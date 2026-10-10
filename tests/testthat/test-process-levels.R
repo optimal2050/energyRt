@@ -368,3 +368,184 @@ test_that("family process-levels: the real hierarchy satisfies the contract", {
   # and the composite lookup the four call sites actually perform
   expect_identical(unname(rk[lo[["NAT"]]]), 1L)
 })
+
+# --------------------------------------------------------------------------- #
+# Coarsening is a MODEL CHANGE, not a re-representation. A coarse process's
+# own constraints bind at its own frame, so they are weaker than the fine
+# process's, and the coarse model is CHEAPER. These tests pin that difference
+# rather than asserting equivalence -- asserting equality here would assert
+# something false.
+#
+# Two sources, both measured:
+#   capacity  availability is `cap * pTimesliceShare[s]`, so a coarse process is
+#             sized against its own (longer) slice. On a SAMPLED calendar the
+#             shares do not sum to 1 and the gap is visible.
+#   relaxation the input/output ratio -- and, once groups are unblocked, the
+#             `@ceff` shares -- bind in aggregate over the coarse cell.
+#
+# Equivalence (fine == coarse) holds only where neither bites: a full calendar
+# with symmetric demand. That is what the cross-backend tests assert.
+# --------------------------------------------------------------------------- #
+
+pl_sampled_model <- function(mill_tf = character()) {
+  newModel("pls", repo = newRepository("r",
+    newCommodity("COA", timeframe = "ANNUAL"),
+    newCommodity("ELC", timeframe = "MONTH"),
+    newCommodity("STEEL", timeframe = "ANNUAL"),
+    newSupply("SUP", commodity = "COA", supply = data.frame(cost = 1)),
+    newTechnology("ECOA", input = list(comm = "COA"),
+                  output = list(comm = "ELC"),
+                  invcost = data.frame(invcost = 900),
+                  vintage = data.frame(olife = 30L), cap2act = 1),
+    newTechnology("MILL", input = list(comm = "ELC"),
+                  output = list(comm = "STEEL"), timeframe = mill_tf,
+                  invcost = data.frame(invcost = 50),
+                  vintage = data.frame(olife = 30L), cap2act = 1),
+    newDemand("DS", commodity = "STEEL", demand = data.frame(demand = 4)),
+    newDemand("DE", commodity = "ELC",
+              demand = data.frame(timeslice = c("m01", "m02", "m03"),
+                                  demand = 20))),
+    calendar = calendars$m12_subset_q1, region = "R1",
+    horizon = newHorizon(2020:2030, intervals = 10), discount = 0)
+}
+
+test_that("family process-levels: a coarse process is sized on its own slice", {
+  skip_if_no_solver()
+  solve_it <- function(tf, tag) {
+    s <- suppressMessages(suppressWarnings(solve_model(
+      pl_sampled_model(tf), name = tag, ondisk = FALSE, overwrite = TRUE)))
+    cap <- suppressWarnings(getData(s, "vTechCap", merge = TRUE))
+    list(obj = suppressWarnings(getData(s, "vObjective", merge = TRUE)$value),
+         cap = unique(cap$value[cap$tech == "MILL"]))
+  }
+  fine <- solve_it(character(), "pl_s_fine")
+  coarse <- solve_it("ANNUAL", "pl_s_coarse")
+  expect_length(fine$obj, 1L)
+  expect_length(coarse$obj, 1L)
+
+  # Measured 2026-10-10 on `m12_subset_q1`: fine 80784.39 / cap 5.8065,
+  # coarse 80754.29 / cap 4.0. The DIRECTION is the contract; the exact values
+  # would move with unrelated cost changes, so they are recorded, not asserted.
+  expect_lt(coarse$obj, fine$obj)
+  expect_lt(max(coarse$cap), max(fine$cap))
+  # ... and the coarse capacity is the annual activity itself (pTimesliceShare
+  # is 1 at the top slice), which is what makes it smaller
+  expect_equal(max(coarse$cap), 4, tolerance = 1e-6)
+})
+
+test_that("family process-levels: equivalence holds where nothing relaxes", {
+  skip_if_no_solver()
+  # full calendar, symmetric demand, no shares: the coarse declaration changes
+  # the model's SHAPE but not its optimum, which is what makes the generalization
+  # safe to default on
+  mk <- function(tf) newModel("ple", repo = newRepository("r",
+      newCommodity("COA", timeframe = "ANNUAL"),
+      newCommodity("ELC", timeframe = "SEASON"),
+      newCommodity("STEEL", timeframe = "ANNUAL"),
+      newSupply("SUP", commodity = "COA", supply = data.frame(cost = 1)),
+      newTechnology("ECOA", input = list(comm = "COA"),
+                    output = list(comm = "ELC"),
+                    invcost = data.frame(invcost = 900),
+                    vintage = data.frame(olife = 30L), cap2act = 1),
+      newTechnology("MILL", input = list(comm = "ELC"),
+                    output = list(comm = "STEEL"), timeframe = tf,
+                    invcost = data.frame(invcost = 50),
+                    vintage = data.frame(olife = 30L), cap2act = 1),
+      newDemand("DS", commodity = "STEEL", demand = data.frame(demand = 4)),
+      newDemand("DE", commodity = "ELC",
+                demand = data.frame(timeslice = c("WIN", "SUM"), demand = 20))),
+    calendar = newCalendar(timetable = make_timetable(
+      struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+      name = "plec"),
+    region = "R1", horizon = newHorizon(2020:2030, intervals = 10),
+    discount = 0)
+  obj <- function(tf, tag) suppressWarnings(getData(
+    suppressMessages(suppressWarnings(solve_model(mk(tf), name = tag,
+      ondisk = FALSE, overwrite = TRUE))), "vObjective", merge = TRUE)$value)
+  expect_equal(obj("ANNUAL", "ple_coarse"), obj(character(), "ple_fine"),
+               tolerance = 1e-6)
+})
+
+pl_group_model <- function(mill_tf = character(), shares = FALSE) {
+  ceff <- data.frame(comm = c("ELC", "GAS"), cinp2ginp = c(2, 3))
+  if (shares) ceff$grp.share.up <- c(NA, 0.1)
+  newModel("plg", repo = newRepository("r",
+    newCommodity("COA", timeframe = "ANNUAL"),
+    newCommodity("ELC", timeframe = "SEASON"),
+    newCommodity("GAS", timeframe = "SEASON"),
+    newCommodity("STEEL", timeframe = "ANNUAL"),
+    newSupply("SUP", commodity = "COA", supply = data.frame(cost = 1)),
+    newTechnology("ECOA", input = list(comm = "COA"),
+                  output = list(comm = "ELC"),
+                  invcost = data.frame(invcost = 900),
+                  vintage = data.frame(olife = 30L), cap2act = 1),
+    newTechnology("EGAS", input = list(comm = "COA"),
+                  output = list(comm = "GAS"),
+                  invcost = data.frame(invcost = 800),
+                  vintage = data.frame(olife = 30L), cap2act = 1),
+    newTechnology("MILL",
+                  input = list(comm = c("ELC", "GAS"),
+                               group = c("FUEL", "FUEL")),
+                  output = list(comm = "STEEL"),
+                  geff = data.frame(group = "FUEL", ginp2use = 1),
+                  ceff = ceff, timeframe = mill_tf,
+                  invcost = data.frame(invcost = 50),
+                  vintage = data.frame(olife = 30L), cap2act = 1),
+    newDemand("DS", commodity = "STEEL", demand = data.frame(demand = 4)),
+    newDemand("DE", commodity = "ELC",
+              demand = data.frame(timeslice = c("WIN", "SUM"),
+                                  demand = c(2, 18))),
+    newDemand("DG", commodity = "GAS",
+              demand = data.frame(timeslice = c("WIN", "SUM"),
+                                  demand = c(18, 2)))),
+    calendar = newCalendar(timetable = make_timetable(
+      struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+      name = "plgc"),
+    region = "R1", horizon = newHorizon(2020:2030, intervals = 10),
+    discount = 0)
+}
+
+test_that("family process-levels: a coarse process's @ceff share relaxes", {
+  skip_if_no_solver()
+  obj <- function(tf, sh, tag) suppressWarnings(getData(
+    suppressMessages(suppressWarnings(solve_model(
+      pl_group_model(tf, sh), name = tag, ondisk = FALSE, overwrite = TRUE))),
+    "vObjective", merge = TRUE)$value)
+
+  # Even WITHOUT a share the coarse model is cheaper: the group input/output
+  # RATIO binds in aggregate over the year, so the coarse process may vary its
+  # fuel mix across seasons in a way the fine one cannot -- intra-period
+  # "banking". Measured 2026-10-10: fine 20883.33, coarse 20880.00.
+  fine0 <- obj(character(), FALSE, "plg_f0")
+  coarse0 <- obj("ANNUAL", FALSE, "plg_c0")
+  expect_lt(coarse0, fine0)
+
+  # WITH a binding share and asymmetric seasonal demand, the coarse process's
+  # share binds in AGGREGATE over the year and is therefore WEAKER than the
+  # fine process's per-season share -- so the coarse model is CHEAPER. This is
+  # the documented model change, not a defect. Measured 2026-10-10:
+  # fine 20953.33, coarse 20885.71.
+  fine <- obj(character(), TRUE, "plg_f1")
+  coarse <- obj("ANNUAL", TRUE, "plg_c1")
+  expect_length(fine, 1L)
+  expect_length(coarse, 1L)
+  expect_lt(coarse, fine)
+  # the share must genuinely bind on the fine model, or the comparison above
+  # would be vacuous
+  expect_gt(fine, fine0)
+  # and the share relaxation is LARGER than the ratio relaxation alone
+  expect_lt(coarse - coarse0, fine - fine0)
+})
+
+test_that("family process-levels: group conversion coefficients are read at the process cell", {
+  # `@ceff` coefficients are per-process properties defined at the process's own
+  # cell. The Agg branches read the VARIABLE at the finer cell and the
+  # COEFFICIENT at the process's -- reading the coefficient finer instead gets
+  # the backend default (GLPK/Julia/Pyomo) or 0 (GAMS dense), which was
+  # silently wrong until the declared value differed from the default. Hence the
+  # non-default 2 / 3 in the fixture: with 1 / 1 the bug was invisible.
+  ce <- pl_group_model("ANNUAL", TRUE)@data[[1]]@data
+  mill <- ce[[which(vapply(ce, function(o) identical(o@name, "MILL"), logical(1)))]]
+  expect_setequal(mill@ceff$cinp2ginp, c(2, 3))
+  expect_false(any(mill@ceff$cinp2ginp == 1))
+})

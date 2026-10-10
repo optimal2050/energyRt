@@ -289,8 +289,8 @@ print("eqTechSng2Sng(tech, region, comm, commp, year, timeslice)...")
     ) +
     sum(
         vTechInp[(t, c, rp, y, s)] * (
-            if haskey(pTechCinp2use, (t, c, rp, y, s))
-                pTechCinp2use[(t, c, rp, y, s)]
+            if haskey(pTechCinp2use, (t, c, r, y, s))
+                pTechCinp2use[(t, c, r, y, s)]
             else
                 pTechCinp2useDef
             end
@@ -304,8 +304,8 @@ print("eqTechSng2Sng(tech, region, comm, commp, year, timeslice)...")
                 pTimesliceAggDef
             end
         ) * vTechInp[(t, c, r, y, sp)] * (
-            if haskey(pTechCinp2use, (t, c, r, y, sp))
-                pTechCinp2use[(t, c, r, y, sp)]
+            if haskey(pTechCinp2use, (t, c, r, y, s))
+                pTechCinp2use[(t, c, r, y, s)]
             else
                 pTechCinp2useDef
             end
@@ -359,6 +359,30 @@ print("eqTechGrp2Sng(tech, region, group, commp, year, timeslice)...")
             else
                 0
             end
+        ) +
+        sum(
+            vTechInp[(t, c, rp, y, s)] * (
+                if haskey(pTechCinp2ginp, (t, c, r, y, s))
+                    pTechCinp2ginp[(t, c, r, y, s)]
+                else
+                    pTechCinp2ginpDef
+                end
+            ) for rp in get(mTechProcAggRegion_ix, (t, c, r), ())
+        ) +
+        sum(
+            (
+                if haskey(pTimesliceAgg, (y, s, sp))
+                    pTimesliceAgg[(y, s, sp)]
+                else
+                    pTimesliceAggDef
+                end
+            ) * vTechInp[(t, c, r, y, sp)] * (
+                if haskey(pTechCinp2ginp, (t, c, r, y, s))
+                    pTechCinp2ginp[(t, c, r, y, s)]
+                else
+                    pTechCinp2ginpDef
+                end
+            ) for sp in get(mTechProcAggTimeslice_ix, (t, c, s), ())
         ) for c in get(mTechGroupComm_ix, (t, g), ())
     ) ==
     (vTechOut[(t, cp, r, y, s)]) / (
@@ -452,6 +476,30 @@ print("eqTechGrp2Grp(tech, region, group, groupp, year, timeslice)...")
             else
                 0
             end
+        ) +
+        sum(
+            vTechInp[(t, c, rp, y, s)] * (
+                if haskey(pTechCinp2ginp, (t, c, r, y, s))
+                    pTechCinp2ginp[(t, c, r, y, s)]
+                else
+                    pTechCinp2ginpDef
+                end
+            ) for rp in get(mTechProcAggRegion_ix, (t, c, r), ())
+        ) +
+        sum(
+            (
+                if haskey(pTimesliceAgg, (y, s, sp))
+                    pTimesliceAgg[(y, s, sp)]
+                else
+                    pTimesliceAggDef
+                end
+            ) * vTechInp[(t, c, r, y, sp)] * (
+                if haskey(pTechCinp2ginp, (t, c, r, y, s))
+                    pTechCinp2ginp[(t, c, r, y, s)]
+                else
+                    pTechCinp2ginpDef
+                end
+            ) for sp in get(mTechProcAggTimeslice_ix, (t, c, s), ())
         ) for c in get(mTechGroupComm_ix, (t, g), ())
     ) == sum(
         (
@@ -490,7 +538,24 @@ print("eqTechShareInpLo(tech, region, group, comm, year, timeslice)...")
 @constraint(
     model,
     [(t, r, g, c, y, s) in meqTechShareInpLo],
-    vTechInp[(t, c, r, y, s)] >=
+    (
+        if (t, c, r, y, s) in mvTechInp
+            vTechInp[(t, c, r, y, s)]
+        else
+            0
+        end
+    ) +
+    sum(vTechInp[(t, c, rp, y, s)] for rp in get(mTechProcAggRegion_ix, (t, c, r), ())) +
+    sum(
+        (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
+            else
+                pTimesliceAggDef
+            end
+        ) * vTechInp[(t, c, r, y, sp)]
+        for sp in get(mTechProcAggTimeslice_ix, (t, c, s), ())
+    ) >=
     (
         if haskey(pTechShareLo, (t, c, r, y, s))
             pTechShareLo[(t, c, r, y, s)]
@@ -499,12 +564,23 @@ print("eqTechShareInpLo(tech, region, group, comm, year, timeslice)...")
         end
     ) * sum(
         (
-            if (t, cp, r, y, s) in mvTechInp
-                vTechInp[(t, cp, r, y, s)]
+        if (t, cp, r, y, s) in mvTechInp
+            vTechInp[(t, cp, r, y, s)]
+        else
+            0
+        end
+    ) +
+    sum(vTechInp[(t, cp, rp, y, s)] for rp in get(mTechProcAggRegion_ix, (t, cp, r), ())) +
+    sum(
+        (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
             else
-                0
+                pTimesliceAggDef
             end
-        ) for cp in get(mTechGroupComm_ix, (t, g), ())
+        ) * vTechInp[(t, cp, r, y, sp)]
+        for sp in get(mTechProcAggTimeslice_ix, (t, cp, s), ())
+    ) for cp in get(mTechGroupComm_ix, (t, g), ())
     )
 );
 print(
@@ -518,7 +594,24 @@ print("eqTechShareInpUp(tech, region, group, comm, year, timeslice)...")
 @constraint(
     model,
     [(t, r, g, c, y, s) in meqTechShareInpUp],
-    vTechInp[(t, c, r, y, s)] <=
+    (
+        if (t, c, r, y, s) in mvTechInp
+            vTechInp[(t, c, r, y, s)]
+        else
+            0
+        end
+    ) +
+    sum(vTechInp[(t, c, rp, y, s)] for rp in get(mTechProcAggRegion_ix, (t, c, r), ())) +
+    sum(
+        (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
+            else
+                pTimesliceAggDef
+            end
+        ) * vTechInp[(t, c, r, y, sp)]
+        for sp in get(mTechProcAggTimeslice_ix, (t, c, s), ())
+    ) <=
     (
         if haskey(pTechShareUp, (t, c, r, y, s))
             pTechShareUp[(t, c, r, y, s)]
@@ -527,12 +620,23 @@ print("eqTechShareInpUp(tech, region, group, comm, year, timeslice)...")
         end
     ) * sum(
         (
-            if (t, cp, r, y, s) in mvTechInp
-                vTechInp[(t, cp, r, y, s)]
+        if (t, cp, r, y, s) in mvTechInp
+            vTechInp[(t, cp, r, y, s)]
+        else
+            0
+        end
+    ) +
+    sum(vTechInp[(t, cp, rp, y, s)] for rp in get(mTechProcAggRegion_ix, (t, cp, r), ())) +
+    sum(
+        (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
             else
-                0
+                pTimesliceAggDef
             end
-        ) for cp in get(mTechGroupComm_ix, (t, g), ())
+        ) * vTechInp[(t, cp, r, y, sp)]
+        for sp in get(mTechProcAggTimeslice_ix, (t, cp, s), ())
+    ) for cp in get(mTechGroupComm_ix, (t, g), ())
     )
 );
 print(
@@ -2409,8 +2513,8 @@ print("eqTechVarom(tech, region, year)...")
             ) +
             sum(
                 (
-                    if haskey(pTechCvarom, (t, c, rp, y, s))
-                        pTechCvarom[(t, c, rp, y, s)]
+                    if haskey(pTechCvarom, (t, c, r, y, s))
+                        pTechCvarom[(t, c, r, y, s)]
                     else
                         pTechCvaromDef
                     end
@@ -2425,8 +2529,8 @@ print("eqTechVarom(tech, region, year)...")
             ) +
             sum(
                 (
-                    if haskey(pTechCvarom, (t, c, r, y, sp))
-                        pTechCvarom[(t, c, r, y, sp)]
+                    if haskey(pTechCvarom, (t, c, r, y, s))
+                        pTechCvarom[(t, c, r, y, s)]
                     else
                         pTechCvaromDef
                     end
@@ -2867,8 +2971,8 @@ print("eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)...")
     sum(
         sum(
             (
-                if haskey(pStorageInpEff, (st1, ci, rp, y, sp))
-                    pStorageInpEff[(st1, ci, rp, y, sp)]
+                if haskey(pStorageInpEff, (st1, ci, r, y, sp))
+                    pStorageInpEff[(st1, ci, r, y, sp)]
                 else
                     pStorageInpEffDef
                 end

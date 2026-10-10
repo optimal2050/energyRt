@@ -949,12 +949,12 @@ eqTechSng2Sng(tech, region, comm, commp, year, timeslice)$meqTechSng2Sng(tech, r
      * vTechInp(tech, comm, region, year, timeslice)$mvTechInp(tech, comm, region, year, timeslice)
 * a technology COARSER than this input draws it at the regions beneath its own
      + sum(regionp$mTechProcAggRegion(tech, comm, region, regionp),
-           pTechCinp2use(tech, comm, regionp, year, timeslice)
+           pTechCinp2use(tech, comm, region, year, timeslice)
            * vTechInp(tech, comm, regionp, year, timeslice))
 * ... and the TIME twin: pTimesliceAgg renormalises the intensive rate
      + sum(timeslicep$mTechProcAggTimeslice(tech, comm, timeslice, timeslicep),
            pTimesliceAgg(year, timeslice, timeslicep)
-           * pTechCinp2use(tech, comm, region, year, timeslicep)
+           * pTechCinp2use(tech, comm, region, year, timeslice)
            * vTechInp(tech, comm, region, year, timeslicep))
    )
 ;
@@ -964,6 +964,14 @@ eqTechGrp2Sng(tech, region, group, commp, year, timeslice)$meqTechGrp2Sng(tech, 
    sum(comm$mTechGroupComm(tech, group, comm),
            (vTechInp(tech, comm, region, year, timeslice) *
            pTechCinp2ginp(tech, comm, region, year, timeslice))$mvTechInp(tech, comm, region, year, timeslice)
+* a process COARSER than this input draws it at the finer cells beneath its own
+         + sum(regionp$mTechProcAggRegion(tech, comm, region, regionp),
+               vTechInp(tech, comm, regionp, year, timeslice)
+               * pTechCinp2ginp(tech, comm, region, year, timeslice))
+         + sum(timeslicep$mTechProcAggTimeslice(tech, comm, timeslice, timeslicep),
+               pTimesliceAgg(year, timeslice, timeslicep)
+               * vTechInp(tech, comm, region, year, timeslicep)
+               * pTechCinp2ginp(tech, comm, region, year, timeslice))
    )
    =e=
    vTechOut(tech, commp, region, year, timeslice) /
@@ -972,8 +980,16 @@ eqTechGrp2Sng(tech, region, group, commp, year, timeslice)$meqTechGrp2Sng(tech, 
 
 
 eqTechSng2Grp(tech, region, comm, groupp, year, timeslice)$meqTechSng2Grp(tech, region, comm, groupp, year, timeslice)..
-   vTechInp(tech, comm, region, year, timeslice) *
-   pTechCinp2use(tech, comm, region, year, timeslice)
+   (vTechInp(tech, comm, region, year, timeslice)
+    * pTechCinp2use(tech, comm, region, year, timeslice)
+   )$mvTechInp(tech, comm, region, year, timeslice)
+   + sum(regionp$mTechProcAggRegion(tech, comm, region, regionp),
+         vTechInp(tech, comm, regionp, year, timeslice)
+         * pTechCinp2use(tech, comm, region, year, timeslice))
+   + sum(timeslicep$mTechProcAggTimeslice(tech, comm, timeslice, timeslicep),
+         pTimesliceAgg(year, timeslice, timeslicep)
+         * vTechInp(tech, comm, region, year, timeslicep)
+         * pTechCinp2use(tech, comm, region, year, timeslice))
    =e=
     sum(commp$mTechGroupComm(tech, groupp, commp),
            (vTechOut(tech, commp, region, year, timeslice) /
@@ -986,6 +1002,14 @@ eqTechGrp2Grp(tech, region, group, groupp, year, timeslice)$meqTechGrp2Grp(tech,
    sum(comm$mTechGroupComm(tech, group, comm),
            (vTechInp(tech, comm, region, year, timeslice) *
            pTechCinp2ginp(tech, comm, region, year, timeslice))$mvTechInp(tech, comm, region, year, timeslice)
+* a process COARSER than this input draws it at the finer cells beneath its own
+         + sum(regionp$mTechProcAggRegion(tech, comm, region, regionp),
+               vTechInp(tech, comm, regionp, year, timeslice)
+               * pTechCinp2ginp(tech, comm, region, year, timeslice))
+         + sum(timeslicep$mTechProcAggTimeslice(tech, comm, timeslice, timeslicep),
+               pTimesliceAgg(year, timeslice, timeslicep)
+               * vTechInp(tech, comm, region, year, timeslicep)
+               * pTechCinp2ginp(tech, comm, region, year, timeslice))
    )
    =e=
    sum(commp$mTechGroupComm(tech, groupp, commp),
@@ -1010,20 +1034,40 @@ eqTechShareOutUp(tech, region, group, comm, year, timeslice)    Technology upper
 
 * Lower bound on Input Share
 eqTechShareInpLo(tech, region, group, comm, year, timeslice)$meqTechShareInpLo(tech, region, group, comm, year, timeslice)..
-                  vTechInp(tech, comm, region, year, timeslice)
+                  vTechInp(tech, comm, region, year, timeslice)$mvTechInp(tech, comm, region, year, timeslice)
+                  + sum(regionp$mTechProcAggRegion(tech, comm, region, regionp),
+                        vTechInp(tech, comm, regionp, year, timeslice))
+                  + sum(timeslicep$mTechProcAggTimeslice(tech, comm, timeslice, timeslicep),
+                        pTimesliceAgg(year, timeslice, timeslicep)
+                        * vTechInp(tech, comm, region, year, timeslicep))
                   =g=
                   pTechShareLo(tech, comm, region, year, timeslice) *
                   sum(commp$mTechGroupComm(tech, group, commp),
                           vTechInp(tech, commp, region, year, timeslice)$mvTechInp(tech, commp, region, year, timeslice)
+                  + sum(regionp$mTechProcAggRegion(tech, commp, region, regionp),
+                        vTechInp(tech, commp, regionp, year, timeslice))
+                  + sum(timeslicep$mTechProcAggTimeslice(tech, commp, timeslice, timeslicep),
+                        pTimesliceAgg(year, timeslice, timeslicep)
+                        * vTechInp(tech, commp, region, year, timeslicep))
                   );
 
 * Upper bound on Input Share
 eqTechShareInpUp(tech, region, group, comm, year, timeslice)$meqTechShareInpUp(tech, region, group, comm, year, timeslice)..
-                  vTechInp(tech, comm, region, year, timeslice)
+                  vTechInp(tech, comm, region, year, timeslice)$mvTechInp(tech, comm, region, year, timeslice)
+                  + sum(regionp$mTechProcAggRegion(tech, comm, region, regionp),
+                        vTechInp(tech, comm, regionp, year, timeslice))
+                  + sum(timeslicep$mTechProcAggTimeslice(tech, comm, timeslice, timeslicep),
+                        pTimesliceAgg(year, timeslice, timeslicep)
+                        * vTechInp(tech, comm, region, year, timeslicep))
                   =l=
                   pTechShareUp(tech, comm, region, year, timeslice) *
                   sum(commp$mTechGroupComm(tech, group, commp),
                           vTechInp(tech, commp, region, year, timeslice)$mvTechInp(tech, commp, region, year, timeslice)
+                  + sum(regionp$mTechProcAggRegion(tech, commp, region, regionp),
+                        vTechInp(tech, commp, regionp, year, timeslice))
+                  + sum(timeslicep$mTechProcAggTimeslice(tech, commp, timeslice, timeslicep),
+                        pTimesliceAgg(year, timeslice, timeslicep)
+                        * vTechInp(tech, commp, region, year, timeslicep))
                   );
 
 * Lower bound on Output Share
@@ -1701,12 +1745,12 @@ eqTechVarom(tech, region, year)$mTechVarom(tech, region, year)..
                 * vTechInp(tech, comm, region, year, timeslice))
             +
             sum((comm, regionp)$mTechProcAggRegion(tech, comm, region, regionp),
-                pTechCvarom(tech, comm, regionp, year, timeslice)
+                pTechCvarom(tech, comm, region, year, timeslice)
                 * pTimesliceWeight(year, timeslice)
                 * vTechInp(tech, comm, regionp, year, timeslice))
             +
             sum((comm, timeslicep)$mTechProcAggTimeslice(tech, comm, timeslice, timeslicep),
-                pTechCvarom(tech, comm, region, year, timeslicep)
+                pTechCvarom(tech, comm, region, year, timeslice)
                 * pTimesliceWeight(year, timeslicep)
                 * vTechInp(tech, comm, region, year, timeslicep))
             +
@@ -1997,7 +2041,7 @@ eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)$meqStorageLevel(s
 * a storage COARSER than its charging commodity draws it at the regions beneath
 * its own; the efficiency is read at the FINE region with its own variable
   + sum((commp, regionp)$mStorageProcAggRegion(stg, commp, region, regionp),
-        pStorageInpEff(stg, commp, regionp, year, timeslicep)
+        pStorageInpEff(stg, commp, region, year, timeslicep)
         * vStorageInp(stg, commp, regionp, year, timeslicep))
   + (pStorageStgEff(stg, comm, region, year, timeslice) ** pTimesliceShare(timeslice))
     * vStorageLevel(stg, comm, region, year, timeslicep)

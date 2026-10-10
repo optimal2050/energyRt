@@ -156,11 +156,6 @@
   list(slot = "aeff", cols = NULL, what = "auxiliary flows"),
   list(slot = "inp2out", cols = NULL, what = "storage inp2out coupling"),
   list(slot = "inp2stg", cols = NULL, what = "storage inp2stg coupling"),
-  list(slot = "group", cols = NULL, what = "commodity groups"),
-  list(slot = "geff", cols = NULL, what = "commodity groups"),
-  list(slot = "ceff",
-       cols = c("cinp2ginp", "grp.share.lo", "grp.share.up", "grp.share.fx"),
-       what = "commodity groups and shares"),
   list(slot = "ceff", cols = c("afc.lo", "afc.up", "afc.fx"),
        what = "per-commodity availability (`afc`)"),
   list(slot = "af", cols = c("rampup", "rampdown"), what = "ramp limits"),
@@ -540,4 +535,82 @@
   if (any(hit)) out$timeslice[hit] <- out$.coarse[hit]
   out$.coarse <- NULL
   unique(out[, names(df), drop = FALSE])
+}
+
+#' Lift a share domain to the COARSEST flow level among its group's members
+#'
+#' A share relates flows to flows, so it belongs at the level the flows live
+#' at -- not at the process's level, where the ratio and capacity equations
+#' live because those relate activity and capacity. The level is the COARSEST
+#' among the group's member flows: the finest level at which every member can
+#' be compared without disaggregating any of them (the no-disaggregation rule).
+#'
+#' Consequences, both intended:
+#' * a group whose flows are all finer than the process keeps a PER-SLICE (or
+#'   per-region) share, so coarsening the process does not loosen it;
+#' * a group with a member at the process's own level falls back to that level,
+#'   which is the only level where the comparison is expressible.
+#'
+#' Never coarser than the flows and never finer than the coarsest member, so it
+#' is always at-or-finer than the process's level -- i.e. never looser than
+#' lifting all the way to the process.
+#'
+#' @param df a share domain carrying `key`, `group`, `comm` and `dim`.
+#' @param dim `"timeslice"` or `"region"`.
+#' @keywords internal
+#' @noRd
+.lift_to_group_level <- function(scen, df, key, dim) {
+  if (!.coarse_axis_ready(dim)) return(df)
+  if (is.null(df) || nrow(df) == 0) return(df)
+  df <- as.data.frame(df)
+  if (!all(c(key, "group", "comm", dim) %in% names(df))) return(df)
+  lv <- .flow_levels(scen, dim)
+  if (is.null(lv) || nrow(lv) == 0) return(df)
+
+  if (identical(dim, "timeslice")) {
+    cal <- scen@settings@calendar
+    rank <- cal@timeframe_rank
+    frames <- cal@timeframes
+    lvl_of <- unlist(lapply(names(frames), function(l)
+      stats::setNames(rep(l, length(frames[[l]])), frames[[l]])))
+    anc <- as.data.frame(cal@timeslice_ancestry)
+    pairs <- data.frame(node = as.character(anc$child),
+                        up = as.character(anc$parent),
+                        stringsAsFactors = FALSE)
+  } else {
+    h <- .scen_geo_hierarchy(scen)
+    rank <- .geo_level_rank(h)
+    lvl_of <- .geo_level_of(h)
+    anc <- .region_ancestry(scen)
+    if (is.null(anc) || nrow(anc) == 0) return(df)
+    pairs <- data.frame(node = as.character(anc$regionp),
+                        up = as.character(anc$region),
+                        stringsAsFactors = FALSE)
+  }
+  if (is.null(rank) || length(rank) == 0) return(df)
+
+  # flow level of each (process, comm)
+  fl <- stats::setNames(lv$flow, paste(lv$process, lv$comm, sep = "\r"))
+  # target level per (process, group): the COARSEST member flow level
+  gk <- paste(df[[key]], df$group, sep = "\r")
+  mem <- fl[paste(df[[key]], df$comm, sep = "\r")]
+  target <- tapply(unname(mem), gk, function(z) {
+    z <- z[!is.na(z)]
+    if (length(z) == 0) return(NA_character_)
+    z[which.min(unname(rank[z]))]
+  })
+
+  # ancestor-or-self of `node` at `want`
+  at_level <- function(node, want) {
+    if (is.na(node) || is.na(want)) return(node)
+    if (!is.na(lvl_of[node]) && identical(unname(lvl_of[node]), want)) return(node)
+    cand <- pairs$up[pairs$node == node]
+    cand <- cand[!is.na(lvl_of[cand]) & lvl_of[cand] == want]
+    if (length(cand) == 0) node else cand[1]
+  }
+  tg <- unname(target[gk])
+  cur <- as.character(df[[dim]])
+  df[[dim]] <- vapply(seq_along(cur), function(i) at_level(cur[i], tg[i]),
+                      character(1))
+  unique(df)
 }

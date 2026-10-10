@@ -23,12 +23,73 @@
 # property of the solver's chosen vertex, not of the model.
 # =========================================================================== #
 
+# A technology declared COARSER than an input it uses -- the case whose `Agg`
+# branches are written separately in every template, so parity here is the only
+# thing that catches one backend reading the aggregation differently. A real
+# instance: the GAMS branch read `pTechCinp2ginp` at the FINE cell, where it is
+# undefined; GLPK/Julia/Pyomo fell back to their default of 1 and agreed by
+# accident, GAMS read 0 and went infeasible. Hence the NON-default 2 / 3 below:
+# with 1 / 1 the discrepancy is invisible.
+.xs_coarse_time <- function(mill_tf = "ANNUAL", group = FALSE) {
+  ceff <- if (group) {
+    data.frame(comm = c("ELC", "GAS"), cinp2ginp = c(2, 3),
+               grp.share.up = c(NA, 0.1))
+  } else NULL
+  mill <- if (group) {
+    newTechnology("MILL",
+      input = list(comm = c("ELC", "GAS"), group = c("FUEL", "FUEL")),
+      output = list(comm = "STEEL"),
+      geff = data.frame(group = "FUEL", ginp2use = 1), ceff = ceff,
+      timeframe = mill_tf, invcost = data.frame(invcost = 50),
+      vintage = data.frame(olife = 30L), cap2act = 1)
+  } else {
+    newTechnology("MILL", input = list(comm = "ELC"),
+      output = list(comm = "STEEL"), timeframe = mill_tf,
+      invcost = data.frame(invcost = 50),
+      vintage = data.frame(olife = 30L), cap2act = 1)
+  }
+  objs <- list(
+    newCommodity("COA", timeframe = "ANNUAL"),
+    newCommodity("ELC", timeframe = "SEASON"),
+    newCommodity("STEEL", timeframe = "ANNUAL"),
+    newSupply("SUP", commodity = "COA", supply = data.frame(cost = 1)),
+    newTechnology("ECOA", input = list(comm = "COA"),
+                  output = list(comm = "ELC"),
+                  invcost = data.frame(invcost = 900),
+                  vintage = data.frame(olife = 30L), cap2act = 1),
+    mill,
+    newDemand("DS", commodity = "STEEL", demand = data.frame(demand = 4)),
+    newDemand("DE", commodity = "ELC",
+              demand = data.frame(timeslice = c("WIN", "SUM"),
+                                  demand = if (group) c(2, 18) else c(20, 20))))
+  if (group) {
+    objs <- c(objs, list(
+      newCommodity("GAS", timeframe = "SEASON"),
+      newTechnology("EGAS", input = list(comm = "COA"),
+                    output = list(comm = "GAS"),
+                    invcost = data.frame(invcost = 800),
+                    vintage = data.frame(olife = 30L), cap2act = 1),
+      newDemand("DG", commodity = "GAS",
+                demand = data.frame(timeslice = c("WIN", "SUM"),
+                                    demand = c(18, 2)))))
+  }
+  newModel("xsc", repo = do.call(newRepository, c(list("r"), objs)),
+    calendar = newCalendar(timetable = make_timetable(
+      struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+      name = "xscc"),
+    region = "R1", horizon = newHorizon(2020:2030, intervals = 10),
+    discount = 0)
+}
+
 .xs_models <- function() {
   env <- .mapping_fixture_env()
   list(
     tm_core    = function() env$tm_core(),
     tm_weather = function() env$tm_weather(),
-    topia_R1  = function() ut_build("R1", "s4_h24")
+    topia_R1  = function() ut_build("R1", "s4_h24"),
+    # coarse-process parity, with and without groups/shares
+    coarse_time  = function() .xs_coarse_time("ANNUAL", group = FALSE),
+    coarse_group = function() .xs_coarse_time("ANNUAL", group = TRUE)
   )
 }
 
@@ -97,7 +158,8 @@
                               nrow(m), " differ)"))
 }
 
-for (model_nm in c("tm_core", "tm_weather", "topia_R1")) {
+for (model_nm in c("tm_core", "tm_weather", "topia_R1",
+                   "coarse_time", "coarse_group")) {
   for (backend in names(.xs_backends)) {
     local({
       mn <- model_nm; bk <- backend
@@ -105,7 +167,7 @@ for (model_nm in c("tm_core", "tm_weather", "topia_R1")) {
       test_that(paste0("cross-solver: ", mn, " on ", bk, " matches GLPK"), {
         eval(spec$skip)
         skip_if_no_solver()
-        if (mn != "topia_R1") skip_if_no_fixtures()
+        if (startsWith(mn, "tm_")) skip_if_no_fixtures()
         build <- .xs_models()[[mn]]
         ref_scen <- .xs_solve(build, paste0("xs_", mn, "_ref"),
                               solver_options$glpk)

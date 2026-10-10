@@ -292,6 +292,15 @@
   pro rata), so a coarser declaration deliberately loses intra-cell detail.
   Declare the process at the commodity's level if that detail matters.
 
+  Coarsening is a **model change**, not a re-representation: the process's own
+  constraints bind at its own frame, so they are weaker and the model is
+  cheaper. The input/output ratio and the `@ceff` group shares hold only in
+  aggregate over the coarse cell, and availability is sized against the longer
+  slice. Equivalence with a finer declaration holds only where neither bites
+  (full calendar, symmetric conditions, no shares). Coarsening removes activity
+  variables and equation rows, **not** flow variables -- those stay at the
+  commodity's level.
+
   Scope of this release: `technology` only, the region axis only, inputs only
   (a finer *output* is refused, because each side's conversion coefficients
   must be read at its own region), single input and output commodity, and no

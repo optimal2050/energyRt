@@ -581,14 +581,14 @@ model.eqTechSng2Sng = Constraint(
     )
     # a technology COARSER than this input draws it at the regions beneath its own
     + sum(
-        model.vTechInp[t, c, rp, y, s] * pTechCinp2use.get((t, c, rp, y, s))
+        model.vTechInp[t, c, rp, y, s] * pTechCinp2use.get((t, c, r, y, s))
         for rp in mTechProcAggRegion_ix.get((t, c, r), ())
     )
     # ... and the TIME twin: pTimesliceAgg renormalises the intensive rate
     + sum(
         pTimesliceAgg.get((y, s, sp))
         * model.vTechInp[t, c, r, y, sp]
-        * pTechCinp2use.get((t, c, r, y, sp))
+        * pTechCinp2use.get((t, c, r, y, s))
         for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
     )
     == (model.vTechOut[t, cp, r, y, s])
@@ -615,6 +615,17 @@ model.eqTechGrp2Sng = Constraint(
             if (t, c, r, y, s) in mvTechInp
             else 0
         )
+        # a process COARSER than this input draws it at the finer cells beneath
+        + sum(
+            model.vTechInp[t, c, rp, y, s] * pTechCinp2ginp.get((t, c, r, y, s))
+            for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+        )
+        + sum(
+            pTimesliceAgg.get((y, s, sp))
+            * model.vTechInp[t, c, r, y, sp]
+            * pTechCinp2ginp.get((t, c, r, y, s))
+            for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
+        )
         for c in mTechGroupComm_ix.get((t, g), ())
     )
     == (model.vTechOut[t, cp, r, y, s])
@@ -634,8 +645,21 @@ if verbose:
 sys.stdout.flush()
 model.eqTechSng2Grp = Constraint(
     meqTechSng2Grp,
-    rule=lambda model, t, r, c, gp, y, s: model.vTechInp[t, c, r, y, s]
-    * pTechCinp2use.get((t, c, r, y, s))
+    rule=lambda model, t, r, c, gp, y, s: (
+        model.vTechInp[t, c, r, y, s] * pTechCinp2use.get((t, c, r, y, s))
+        if (t, c, r, y, s) in mvTechInp
+        else 0
+    )
+    + sum(
+        model.vTechInp[t, c, rp, y, s] * pTechCinp2use.get((t, c, r, y, s))
+        for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+    )
+    + sum(
+        pTimesliceAgg.get((y, s, sp))
+        * model.vTechInp[t, c, r, y, sp]
+        * pTechCinp2use.get((t, c, r, y, s))
+        for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
+    )
     == sum(
         (
             (
@@ -672,6 +696,17 @@ model.eqTechGrp2Grp = Constraint(
             if (t, c, r, y, s) in mvTechInp
             else 0
         )
+        # a process COARSER than this input draws it at the finer cells beneath
+        + sum(
+            model.vTechInp[t, c, rp, y, s] * pTechCinp2ginp.get((t, c, r, y, s))
+            for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+        )
+        + sum(
+            pTimesliceAgg.get((y, s, sp))
+            * model.vTechInp[t, c, r, y, sp]
+            * pTechCinp2ginp.get((t, c, r, y, s))
+            for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
+        )
         for c in mTechGroupComm_ix.get((t, g), ())
     )
     == sum(
@@ -703,10 +738,26 @@ if verbose:
 sys.stdout.flush()
 model.eqTechShareInpLo = Constraint(
     meqTechShareInpLo,
-    rule=lambda model, t, r, g, c, y, s: model.vTechInp[t, c, r, y, s]
+    rule=lambda model, t, r, g, c, y, s: (model.vTechInp[t, c, r, y, s] if (t, c, r, y, s) in mvTechInp else 0)
+        + sum(
+            model.vTechInp[t, c, rp, y, s]
+            for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+        )
+        + sum(
+            pTimesliceAgg.get((y, s, sp)) * model.vTechInp[t, c, r, y, sp]
+            for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
+        )
     >= pTechShareLo.get((t, c, r, y, s))
     * sum(
         (model.vTechInp[t, cp, r, y, s] if (t, cp, r, y, s) in mvTechInp else 0)
+        + sum(
+            model.vTechInp[t, cp, rp, y, s]
+            for rp in mTechProcAggRegion_ix.get((t, cp, r), ())
+        )
+        + sum(
+            pTimesliceAgg.get((y, s, sp)) * model.vTechInp[t, cp, r, y, sp]
+            for sp in mTechProcAggTimeslice_ix.get((t, cp, s), ())
+        )
         for cp in mTechGroupComm_ix.get((t, g), ())
     ),
 )
@@ -724,10 +775,26 @@ if verbose:
 sys.stdout.flush()
 model.eqTechShareInpUp = Constraint(
     meqTechShareInpUp,
-    rule=lambda model, t, r, g, c, y, s: model.vTechInp[t, c, r, y, s]
+    rule=lambda model, t, r, g, c, y, s: (model.vTechInp[t, c, r, y, s] if (t, c, r, y, s) in mvTechInp else 0)
+        + sum(
+            model.vTechInp[t, c, rp, y, s]
+            for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+        )
+        + sum(
+            pTimesliceAgg.get((y, s, sp)) * model.vTechInp[t, c, r, y, sp]
+            for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
+        )
     <= pTechShareUp.get((t, c, r, y, s))
     * sum(
         (model.vTechInp[t, cp, r, y, s] if (t, cp, r, y, s) in mvTechInp else 0)
+        + sum(
+            model.vTechInp[t, cp, rp, y, s]
+            for rp in mTechProcAggRegion_ix.get((t, cp, r), ())
+        )
+        + sum(
+            pTimesliceAgg.get((y, s, sp)) * model.vTechInp[t, cp, r, y, sp]
+            for sp in mTechProcAggTimeslice_ix.get((t, cp, s), ())
+        )
         for cp in mTechGroupComm_ix.get((t, g), ())
     ),
 )
@@ -1851,13 +1918,13 @@ model.eqTechVarom = Constraint(
             * pTimesliceWeight.get((y, s))
             * (model.vTechInp[t, c, r, y, s] if (t, c, r, y, s) in mvTechInp else 0)
             + sum(
-                pTechCvarom.get((t, c, rp, y, s))
+                pTechCvarom.get((t, c, r, y, s))
                 * pTimesliceWeight.get((y, s))
                 * model.vTechInp[t, c, rp, y, s]
                 for rp in mTechProcAggRegion_ix.get((t, c, r), ())
             )
             + sum(
-                pTechCvarom.get((t, c, r, y, sp))
+                pTechCvarom.get((t, c, r, y, s))
                 * pTimesliceWeight.get((y, sp))
                 * model.vTechInp[t, c, r, y, sp]
                 for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
@@ -2194,7 +2261,7 @@ model.eqStorageLevel = Constraint(
     # beneath its own; the efficiency is read at the FINE region
     + sum(
         sum(
-            pStorageInpEff.get((st1, ci, rp, y, sp))
+            pStorageInpEff.get((st1, ci, r, y, sp))
             * model.vStorageInp[st1, ci, rp, y, sp]
             for rp in mStorageProcAggRegion_ix.get((st1, ci, r), ())
         )

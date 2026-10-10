@@ -3324,10 +3324,16 @@ get_process_timeframe <- function(scen, process = NULL,
     .ins <- tryCatch(get_process_inputs(scen), error = function(e) list())
     .out <- tryCatch(get_process_outputs(scen), error = function(e) list())
     .stg <- tryCatch(get_process_stored(scen), error = function(e) list())
+    # the per-feature blockers apply on BOTH axes: a feature whose coarse form
+    # is not written in every template must be refused here too, or a coarse
+    # process carrying it is accepted and silently mis-modelled on the backends
+    # that lack the branch
+    .objs <- tryCatch(.level_check_objects(scen), error = function(e) list())
     ok <- vapply(seq_len(nrow(check_timeframe)), function(i) {
       pr <- as.character(check_timeframe$process[i])
       cm <- as.character(check_timeframe$comm[i])
       if (!unname(.cls[[pr]]) %in% .coarse_classes_supported) return(FALSE)
+      if (length(.coarse_blockers(.objs[[pr]])) > 0) return(FALSE)
       cm %in% as.character(.ins[[pr]]) &&
         !(cm %in% c(as.character(.out[[pr]]), as.character(.stg[[pr]])))
     }, logical(1))

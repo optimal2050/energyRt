@@ -1408,20 +1408,34 @@ recipe_value <- function(scen, names, fmp) {
   }
   nz <- function(df) if (is.null(df) || nrow(df) == 0) NULL else df
 
+  # A coarse process's equations are indexed at ITS cell, while its INPUT flows
+  # were spread down to the commodity's. Lift the input-derived domains once,
+  # here, so every downstream domain (Sng2Sng, Grp2Sng, Sng2Grp, Grp2Grp and the
+  # input share bounds) inherits the process's own cell. Idempotent, and the
+  # identity when no process is coarser. Output domains need no lift -- outputs
+  # are never spread (the no-disaggregation rule).
+  lift <- function(df)
+    .lift_flow_to_proc_timeslice(
+      scen, .lift_flow_to_proc_region(scen, df, "tech"), "tech")
+
   # Single-commodity input / output domains.
   techSingInp <- if (!is.null(mvTechInp) && !is.null(mTechOneComm)) {
-    nz(refine(as.data.frame(merge0(mvTechInp, mTechOneComm)), pTechCinp2use))
+    nz(lift(refine(as.data.frame(merge0(mvTechInp, mTechOneComm)), pTechCinp2use)))
   } else NULL
   techSingOut <- if (!is.null(mvTechOut) && !is.null(mTechOneComm)) {
     nz(refine(as.data.frame(merge0(mvTechOut, mTechOneComm)), pTechCact2cout))
   } else NULL
 
   # Grouped input / output domains (domain x group-membership x group-commodity).
-  techGroupInp <- if (!is.null(mvTechInp) && !is.null(mTechInpGroup) &&
-                      !is.null(mTechGroupComm)) {
+  # Raw (flow-level) and lifted (process-level) forms of the grouped input
+  # domain: the ratio equations need the process's cell, the share bounds need
+  # the group's own flow level.
+  techGroupInpRaw <- if (!is.null(mvTechInp) && !is.null(mTechInpGroup) &&
+                         !is.null(mTechGroupComm)) {
     nz(as.data.frame(merge0(as.data.frame(merge0(mvTechInp, mTechInpGroup)),
                             mTechGroupComm)))
   } else NULL
+  techGroupInp <- nz(lift(techGroupInpRaw))
   techGroupOut <- if (!is.null(mvTechOut) && !is.null(mTechOutGroup) &&
                       !is.null(mTechGroupComm)) {
     nz(as.data.frame(merge0(as.data.frame(merge0(mvTechOut, mTechOutGroup)),
@@ -1449,13 +1463,6 @@ recipe_value <- function(scen, names, fmp) {
     if (!(nm %in% names) || is.null(df) || nrow(df) == 0) return(scen)
     .set_map(scen, nm, df, fmp)
   }
-
-  # A coarse process's equations are indexed at ITS cell, so a domain built
-  # from flow maps is lifted back onto that cell. Identity when no process is
-  # coarser than its commodities, which is every model today.
-  lift <- function(df)
-    .lift_flow_to_proc_timeslice(
-      scen, .lift_flow_to_proc_region(scen, df, "tech"), "tech")
 
   # Activity index maps.
   scen <- set_if(scen, "meqTechActSng", lift(techSingOut))
@@ -1498,6 +1505,15 @@ recipe_value <- function(scen, names, fmp) {
     scen <- set_if(scen, "meqTechShareOutUp",
                    as.data.frame(merge0(mpTechShareUp, techGroupOut)))
   }
+  # A share relates flows to FLOWS, so it arguably belongs at the coarsest flow
+  # level in its group rather than at the process's level (where the ratio and
+  # capacity equations live, because those relate activity and capacity).
+  # NOT DONE: the share's level is set by the domain AND by `pTechShare`, which
+  # is interpolated at the PROCESS's timeframe -- with the domain moved down the
+  # parameter lookup misses and the bound silently stops binding (measured).
+  # Moving it needs the parameter expanded to the group's flow slices, or a
+  # second slice dimension on the domain. `.lift_to_group_level()` is the
+  # domain half, kept and tested for when that lands.
   if (!is.null(mpTechShareLo) && !is.null(techGroupInp)) {
     scen <- set_if(scen, "meqTechShareInpLo",
                    as.data.frame(merge0(mpTechShareLo, techGroupInp)))
