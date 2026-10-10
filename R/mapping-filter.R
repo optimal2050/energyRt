@@ -530,7 +530,11 @@ map_mEmsFuelTot <- function(scen, fmp) {
   ems  <- merge0(effac, ti, by = "commp")
   keep <- intersect(c("tech", "comm", "commp", "region", "year", "timeslice"),
                     colnames(ems))
-  ems <- .filt_cr(scen, as.data.frame(ems)[, keep, drop = FALSE])
+  # an emission belongs to the plant's own region, as its fuel input does:
+  # reachability within the emission commodity's balancing cell, not mCommReg's
+  # own regions (CO2 balanced at the nation is in mCommReg at the nation only,
+  # which dropped every sub-region plant's emissions)
+  ems <- .filt_cr(scen, as.data.frame(ems)[, keep, drop = FALSE], reach = TRUE)
   if (is.null(ems) || nrow(ems) == 0) return(scen)
   scen <- .set_map(scen, "mTechEmsFuel",
                    dplyr::rename(dplyr::distinct(ems), comm.1 = "commp"), fmp)

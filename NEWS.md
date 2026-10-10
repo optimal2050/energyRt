@@ -866,6 +866,11 @@
 
 ## Bug fixes
 
+* Emissions of plants in sub-regions are counted. With the emission commodity
+  balanced at a coarser level (CO2 per country) or the fuel supplied above the
+  plants, `vEmsFuelTot` left out every plant below that level, and a tax or cap
+  on CO2 did not reach them.
+
 * `summand@timeframe` / `@geoframe` decide between taking a level's own rows and
   summing its finer ones **per member**, rather than from the variable's pooled
   domain column, which could not tell a real aggregate (`vOutTot`, whose coarse

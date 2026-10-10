@@ -367,8 +367,21 @@ map_mCommReg <- function(scen, fmp) {
     named_list_to_df(col_names = c("comm", "emission"))
 
   if (nrow(emiss_comm) > 0) {
+    # where the parent commodity is available -- and where a process burns it:
+    # a fuel supplied at the nation and burnt in a sub-region emits there
+    burnt_region <- scen@modInp@sets$process_inputs |>
+      named_list_to_df(col_names = c("process", "comm")) |>
+      left_join(
+        named_list_to_df(scen@modInp@sets$process_region,
+          col_names = c("process", "region")
+        ),
+        by = "process", relationship = "many-to-many"
+      ) |>
+      select(comm, region) |>
+      filter(!is.na(comm), !is.na(region))
     emiss_comm <- emiss_comm |>
-      left_join(comm_region, by = c("comm")) |>
+      left_join(rbind(comm_region, burnt_region) |> unique(), by = c("comm"),
+                relationship = "many-to-many") |>
       select(emission, region) |>
       unique() |>
       rename(comm = emission)
