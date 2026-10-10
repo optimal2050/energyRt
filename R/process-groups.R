@@ -615,7 +615,7 @@ get_process_groups <- function(x, regions = NULL) {
 #' @param ks integer vector of cluster counts. `NULL` (default) sweeps the
 #'   whole admissible range: from one cluster per `level` region to one per
 #'   region.
-#' @param geoscale a [geoscales::Geoscale]; defaults to the model's own.
+#' @param geoscale a [geoscales::GeoScale]; defaults to the model's own.
 #' @param level the target geoframe, e.g. `"zone"`.
 #' @param features feature spec, as in [aggregate_model_regions()].
 #'

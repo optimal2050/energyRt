@@ -319,12 +319,14 @@ test_that("family process-levels: blockers detect each unsupported feature", {
   expect_identical(energyRt:::.coarse_blockers(base), character())
 
   blk <- function(x) energyRt:::.coarse_blockers(x)
-  # two inputs -> not single-in/single-out
+  # SEVERAL commodities are fine: summing the finer inputs works per commodity,
+  # and a different input/output commodity is the configuration that makes a
+  # coarse storage possible at all (ELC in, H2 out). This used to be refused.
   t2 <- newTechnology("T", input = list(comm = c("A", "C")),
                       output = list(comm = "B"),
                       invcost = data.frame(invcost = 1),
                       vintage = data.frame(olife = 10L), cap2act = 1)
-  expect_match(paste(blk(t2), collapse = "|"), "more than one input")
+  expect_identical(blk(t2), character())
 
   # ramp limits
   tr <- base

@@ -14,7 +14,7 @@
 #'
 #' @format A named list of five elements:
 #' \describe{
-#'   \item{geoscales}{named list of four [geoscales::Geoscale] objects
+#'   \item{geoscales}{named list of four [geoscales::GeoScale] objects
 #'     (`squares`, `honeycomb`, `island`, `continent`). Each carries the same
 #'     hierarchy -- `nation TOPIA -> zone WEST/CENTRAL/EAST -> region` over
 #'     `W1`, `W2`, `C1`..`C6`, `E1`..`E3` -- and that layout's polygons, plus a

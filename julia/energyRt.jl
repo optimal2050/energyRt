@@ -58,6 +58,7 @@ mTechAInpCommAggTimeslice_ix = _group(mTechAInpCommAggTimeslice, timeslice, 3, (
 mTechOutCommAggTimeslice_ix = _group(mTechOutCommAggTimeslice, timeslice, 3, (1, 2, 4));
 mTechAOutCommAggTimeslice_ix = _group(mTechAOutCommAggTimeslice, timeslice, 3, (1, 2, 4));
 mTechProcAggRegion_ix = _group(mTechProcAggRegion, region, 4, (1, 2, 3));
+mStorageProcAggRegion_ix = _group(mStorageProcAggRegion, region, 4, (1, 2, 3));
 
 # Indices for the remaining domain-restriction filters; see _group.
 mAggregateFactor_ix = _group(mAggregateFactor, comm, 2, (1,));
@@ -2829,6 +2830,22 @@ print("eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)...")
         ci in comm if (st1, ci, r, y, sp) in mvStorageInp;
         init = 0
     ) +
+    # a storage COARSER than its charging commodity draws it at the regions
+    # beneath its own; the efficiency is read at the FINE region
+    sum(
+        sum(
+            (
+                if haskey(pStorageInpEff, (st1, ci, rp, y, sp))
+                    pStorageInpEff[(st1, ci, rp, y, sp)]
+                else
+                    pStorageInpEffDef
+                end
+            ) * vStorageInp[(st1, ci, rp, y, sp)] for
+            rp in get(mStorageProcAggRegion_ix, (st1, ci, r), ());
+            init = 0
+        ) for ci in comm;
+        init = 0
+    ) +
     (
         ((
             if haskey(pStorageStgEff, (st1, c, r, y, s))
@@ -3909,6 +3926,29 @@ print("eqStorageVarom(stg, region, year)...")
                 end
             ) *
             vStorageInp[(st1, c, r, y, s)] for s in get(mCommTimeslice_ix, c, ());
+            init = 0
+        ) for c in get(mStorageInpComm_ix, st1, ());
+        init = 0
+    ) +
+    sum(
+        sum(
+            sum(
+                (
+                    if haskey(pStorageCostInp, (st1, r, y, s))
+                        pStorageCostInp[(st1, r, y, s)]
+                    else
+                        pStorageCostInpDef
+                    end
+                ) * (
+                    if haskey(pTimesliceWeight, (y, s))
+                        pTimesliceWeight[(y, s)]
+                    else
+                        pTimesliceWeightDef
+                    end
+                ) * vStorageInp[(st1, c, rp, y, s)] for
+                s in get(mCommTimeslice_ix, c, ());
+                init = 0
+            ) for rp in get(mStorageProcAggRegion_ix, (st1, c, r), ());
             init = 0
         ) for c in get(mStorageInpComm_ix, st1, ());
         init = 0

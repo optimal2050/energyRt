@@ -119,6 +119,16 @@ NULL
   }
 
   objs <- .level_check_objects(scen)
+  # Roles, for the coarse-direction exemption below. `outstg` is the union of
+  # produced and stored commodities: both must stay at-or-coarser.
+  inp_of <- tryCatch(get_process_inputs(scen), error = function(e) list())
+  outstg_of <- local({
+    o <- tryCatch(get_process_outputs(scen), error = function(e) list())
+    st <- tryCatch(get_process_stored(scen), error = function(e) list())
+    ks <- union(names(o), names(st))
+    stats::setNames(lapply(ks, function(k)
+      unique(c(as.character(o[[k]]), as.character(st[[k]])))), ks)
+  })
   for (nm in names(objs)) {
     cls <- pclass[[nm]]
     if (is.null(cls) || !(cls %in% .STRICT_LEVEL_CLASSES)) next
@@ -143,9 +153,25 @@ NULL
           add(nm, cls, cm, "timeslice", off, allowed_s)
         }
       }
+      # The REGION axis is per-class: a storage may sit at a region level
+      # COARSER than its input, which .assert_process_geoframe() admits and the
+      # mStorageProcAggRegion branch sums. A region FINER than the commodity is
+      # still a mismatch for every strict class, so only the coarse direction
+      # is exempt, and only for storage.
+      # The REGION axis is exempt in the COARSE direction for a commodity the
+      # object only CONSUMES -- the no-disaggregation rule (R/process-levels.R):
+      # the input is drawn from the finer cells beneath the object and summed.
+      # The test is on the ROLE, not on check ordering: a commodity that is
+      # also produced or stored keeps the strict match, so widening this never
+      # silently admits an output.
       allowed_r <- lv[[cm]]$regions
       if (!is.null(allowed_r) && length(regions) > 0) {
         off <- setdiff(intersect(regions, known_regions), allowed_r)
+        if (length(off) > 0 && .coarse_axis_ready("region") &&
+            cls %in% .coarse_classes_supported &&
+            cm %in% inp_of[[nm]] && !(cm %in% outstg_of[[nm]])) {
+          off <- off[!.region_is_coarser(scen, off, allowed_r)]
+        }
         if (length(off) > 0) {
           add(nm, cls, cm, "region", off, allowed_r)
         }
@@ -325,6 +351,22 @@ NULL
   # cannot do both.
   list(mode = "mixed", values = character(),
        missing = utils::head(sort(names(spans)[which(spans)]), 8))
+}
+
+# Is each of `regs` at a level COARSER than the commodity's own regions? Used
+# to exempt the coarse direction from the strict level check for a class whose
+# flows are summed over the finer cells beneath it.
+#' @noRd
+.region_is_coarser <- function(scen, regs, comm_regs) {
+  h <- tryCatch(.scen_geo_hierarchy(scen), error = function(e) NULL)
+  rr <- .geo_region_rank(h)
+  if (is.null(rr) || length(comm_regs) == 0) {
+    return(rep(FALSE, length(regs)))
+  }
+  cr <- suppressWarnings(min(rr[unique(as.character(comm_regs))], na.rm = TRUE))
+  if (!is.finite(cr)) return(rep(FALSE, length(regs)))
+  r <- unname(rr[as.character(regs)])
+  !is.na(r) & r < cr
 }
 
 # Expand coarse indices named in `for.sum` down to the variable's own.

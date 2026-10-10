@@ -2,7 +2,7 @@
 % Please edit documentation in R/class-config.R
 \name{is_geoscale}
 \alias{is_geoscale}
-\title{Is this a geoscales::Geoscale?}
+\title{Is this a geoscales::GeoScale?}
 \usage{
 is_geoscale(x)
 }

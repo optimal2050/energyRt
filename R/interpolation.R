@@ -2725,6 +2725,36 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
     }
   }
 
+  # No-disaggregation guard: a commodity FINER than the process may appear only
+  # as an INPUT (see the rule in R/process-levels.R). An output or stored
+  # commodity finer than its process lands at the process's cell, where that
+  # commodity has no balance row, so the production enters no balance and is
+  # silently discarded -- the model solves and simply never builds the object.
+  # `.assert_process_geoframe()` refuses this at interpolation; this repeats it
+  # on the finished scenario, so a modInp assembled or edited another way is
+  # caught too.
+  local({
+    ag <- rbind(
+      .pl_agg_pairs(scen, "mTechProcAggRegion", "tech"),
+      .pl_agg_pairs(scen, "mStorageProcAggRegion", "stg")
+    )
+    if (is.null(ag) || nrow(ag) == 0) return(invisible(NULL))
+    outs <- tryCatch(get_process_outputs(scen), error = function(e) list())
+    stg <- tryCatch(get_process_stored(scen), error = function(e) list())
+    bad <- ag[vapply(seq_len(nrow(ag)), function(i) {
+      p <- ag$process[i]; cm <- ag$comm[i]
+      cm %in% as.character(outs[[p]]) || cm %in% as.character(stg[[p]])
+    }, logical(1)), , drop = FALSE]
+    if (nrow(bad) == 0) return(invisible(NULL))
+    add("mTechProcAggRegion", "no_disaggregation",
+        paste0("commodit(ies) finer than their process but NOT used only as an ",
+               "input -- an output or stored commodity cannot be ",
+               "disaggregated: ",
+               paste(utils::head(paste0(bad$process, "/", bad$comm), 5),
+                     collapse = ", ")),
+        severity = "structural")
+  })
+
   # Chronology guard: the storage/ramping chain AND the timeslice family are
   # both derived from timetable ROW ORDER, so a scrambled order (hour-major
   # rows chain the same wall-clock hour across parent frames) stays

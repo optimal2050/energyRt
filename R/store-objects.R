@@ -915,7 +915,7 @@ load_repository <- function(name, hash = NULL, path = NULL, env = NULL,
 #' @description
 #' The dataset analogue of [model_hash()] / [repository_hash()]: a stable
 #' content hash of the payload with volatile attributes stripped. Works for
-#' data.frames (weather/demand tables), `geoscales::Geoscale` maps, and any
+#' data.frames (weather/demand tables), `geoscales::GeoScale` maps, and any
 #' other R object.
 #'
 #' @param x the dataset payload.
@@ -1043,7 +1043,7 @@ dataset_hash <- function(x) {
 #'
 #' @description
 #' `save_dataset()` writes a payload — a data.frame (a weather or demand
-#' series), a `geoscales::Geoscale` map, or any R object — into the
+#' series), a `geoscales::GeoScale` map, or any R object — into the
 #' store `<datasets_path>/<name>/` (see
 #' [get_datasets_path()]). Saving identical content again is a no-op. A
 #' stored dataset can then be REFERENCED by repositories, models, and

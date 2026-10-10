@@ -53,11 +53,11 @@ NULL
 #' `@config`, matching how `@calendar` is resolved.
 #'
 #' @param obj A `config`, `settings`, `model` or `scenario`.
-#' @param geoscale A `geoscales::Geoscale`, or `NULL` to clear it.
+#' @param geoscale A `geoscales::GeoScale`, or `NULL` to clear it.
 #' @param ... Unused.
 #'
 #' @return `setGeoscale()` returns the modified object; `getGeoscale()` returns
-#'   a `geoscales::Geoscale` or `NULL`.
+#'   a `geoscales::GeoScale` or `NULL`.
 #'
 #' @examples
 #' \dontrun{
@@ -135,7 +135,7 @@ setMethod("getCalendar", signature(obj = "scenario"), function(obj) {
 #' than the model uses (a world map for a two-country model) is normal and
 #' useful.
 #'
-#' @param geoscale A `geoscales::Geoscale`.
+#' @param geoscale A `geoscales::GeoScale`.
 #' @param region Character vector of declared model regions.
 #' @param level Level of the geoscale to match against. Defaults to the finest.
 #'
@@ -372,7 +372,7 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
   }
   if (!is.null(gs)) {
     if (!is_geoscale(gs)) {
-      stop("`geoscale` must be a `geoscales::Geoscale` object.", call. = FALSE)
+      stop("`geoscale` must be a `geoscales::GeoScale` object.", call. = FALSE)
     }
     check_package("geoscales")
   }

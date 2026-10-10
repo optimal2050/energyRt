@@ -7,7 +7,7 @@
 \format{
 A named list of five elements:
 \describe{
-\item{geoscales}{named list of four \link[geoscales:Geoscale]{geoscales::Geoscale} objects
+\item{geoscales}{named list of four \link[geoscales:GeoScale]{geoscales::GeoScale} objects
 (\code{squares}, \code{honeycomb}, \code{island}, \code{continent}). Each carries the same
 hierarchy -- \verb{nation TOPIA -> zone WEST/CENTRAL/EAST -> region} over
 \code{W1}, \code{W2}, \code{C1}..\code{C6}, \code{E1}..\code{E3} -- and that layout's polygons, plus a

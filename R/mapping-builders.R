@@ -1681,18 +1681,19 @@ Declare the weather at that region, or at a COARSER region of the ",
 
   bad <- unique(bad[, c("process", "region", "comm")])
 
-  # A coarse TECHNOLOGY is supported in space: its flows sit at the commodity's
-  # finer regions and its own equations sum them (mTechProcAggRegion). Every
-  # other class, and any technology declaring a feature whose coarse form is
-  # not written yet, is still refused -- a coarse process that is accepted but
-  # not summed solves with free output.
+  # A coarse TECHNOLOGY or STORAGE is supported in space: its INPUT flows sit
+  # at the commodity's finer regions and its own equations sum them
+  # (mTechProcAggRegion / mStorageProcAggRegion). Every other class, and any
+  # object declaring a feature whose coarse form is not written yet, is still
+  # refused -- accepted but unsummed, the flow is read at a cell that holds no
+  # variable and the model either strands it or leaves it free.
   objs <- .level_check_objects(scen)
   cls <- get_process_class(scen)
   ready <- .coarse_axis_ready("region")
   out_blk <- if (ready) .coarse_output_blockers(scen) else character()
   allowed <- vapply(unique(bad$process), function(p) {
     if (!ready) return(FALSE)
-    if (!identical(unname(cls[[p]]), "technology")) return(FALSE)
+    if (!unname(cls[[p]]) %in% .coarse_classes_supported) return(FALSE)
     if (any(startsWith(out_blk, paste0(p, " ")))) return(FALSE)
     length(.coarse_blockers(objs[[p]])) == 0L
   }, logical(1))
@@ -1705,9 +1706,11 @@ Declare the weather at that region, or at a COARSER region of the ",
       paste0(p, ": a process coarser than its commodities is not implemented ",
              "on the region axis yet (the equations that would sum its finer ",
              "flows are not written)")
-    } else if (!identical(k, "technology")) {
+    } else if (!k %in% .coarse_classes_supported) {
       paste0(p, " (", if (is.null(k)) "unknown class" else k,
-             "): only `technology` may be coarser than its commodities")
+             "): only ", paste0("`", .coarse_classes_supported, "`",
+                                collapse = ", "),
+             " may be coarser than its commodities, and only in space")
     } else {
       ob <- out_blk[startsWith(out_blk, paste0(p, " "))]
       if (length(ob) > 0) {

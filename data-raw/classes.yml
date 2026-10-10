@@ -1025,6 +1025,13 @@ class:
       description: >
         Vector of regions where the technology exists or can be installed.
         Optional. If not specified, the technology is applied to all regions.
+        A region coarser than the finest geoscale level is allowed, and makes
+        the object operate at that coarser cell: its capacity, activity and
+        output live there, while an INPUT balanced at a finer level is drawn
+        from the cells beneath it and summed. A commodity the object PRODUCES
+        or STORES may never be finer than the object itself -- that would
+        require disaggregating one coarse decision into several fine ones,
+        which energyRt does not do, and is refused.
         If specified, must include all regions used in other slots.
     misc:
       type: list
@@ -1587,7 +1594,15 @@ class:
         group is an independent loop with no energy carried between them.
     region:
       type: character
-      description: Region where the storage technology exists or can be installed.
+      description: >
+        Region where the storage technology exists or can be installed.
+        A region coarser than the finest geoscale level is allowed, and makes
+        the object operate at that coarser cell: its capacity, activity and
+        output live there, while an INPUT balanced at a finer level is drawn
+        from the cells beneath it and summed. A commodity the object PRODUCES
+        or STORES may never be finer than the object itself -- that would
+        require disaggregating one coarse decision into several fine ones,
+        which energyRt does not do, and is refused.
     duration:
       type: data.frame
       description: >
@@ -3108,7 +3123,7 @@ class:
     geoscale:
       type: ANY
       description: >
-        Optional `geoscales::Geoscale` object describing the model's regions --
+        Optional `geoscales::GeoScale` object describing the model's regions --
         their nesting into coarser levels, weights, and (optionally) geometry.
         `region` remains authoritative: it is always the finest level, and the
         geoscale adds the structure above it. Attaching one is inert on its own

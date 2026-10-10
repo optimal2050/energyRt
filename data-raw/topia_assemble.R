@@ -51,7 +51,7 @@ topia$modules <- .e$topia_modules
 stopifnot(
   identical(names(topia),
             c("geoscales", "weather", "demand", "stock", "modules")),
-  all(vapply(topia$geoscales, inherits, logical(1), "geoscales::Geoscale")),
+  all(vapply(topia$geoscales, inherits, logical(1), "geoscales::GeoScale")),
   is.data.frame(topia$weather), is.data.frame(topia$demand),
   is.data.frame(topia$stock), is.list(topia$modules)
 )

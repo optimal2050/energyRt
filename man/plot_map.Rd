@@ -34,7 +34,7 @@ model's own regions. A coarser level aggregates first.}
 
 \item{process}{optional regular expression selecting processes to include.}
 
-\item{geoscale}{a \code{geoscales::Geoscale}, or \code{NULL} to use the scenario's.}
+\item{geoscale}{a \code{geoscales::GeoScale}, or \code{NULL} to use the scenario's.}
 
 \item{palette}{viridis palette option.}
 

@@ -186,6 +186,7 @@ mTechAOutCommSameTimeslice_ix = _group(mTechAOutCommSameTimeslice, tech, 0, (1,)
 mTechAOutCommAgg_ix = _group(mTechAOutCommAgg, tech, 0, (1,))
 mTechOutCommAggTimeslice_ix = _group(mTechOutCommAggTimeslice, timeslice, 2, (0, 1, 3))
 mTechProcAggRegion_ix = _group(mTechProcAggRegion, region, 3, (0, 1, 2))
+mStorageProcAggRegion_ix = _group(mStorageProcAggRegion, region, 3, (0, 1, 2))
 mTechAOutCommAggTimeslice_ix = _group(
     mTechAOutCommAggTimeslice, timeslice, 2, (0, 1, 3))
 
@@ -2175,6 +2176,16 @@ model.eqStorageLevel = Constraint(
         pStorageInpEff.get((st1, ci, r, y, sp)) * model.vStorageInp[st1, ci, r, y, sp]
         for ci in mvStorageInp_ix.get((st1, r, y, sp), ())
     )
+    # a storage COARSER than its charging commodity draws it at the regions
+    # beneath its own; the efficiency is read at the FINE region
+    + sum(
+        sum(
+            pStorageInpEff.get((st1, ci, rp, y, sp))
+            * model.vStorageInp[st1, ci, rp, y, sp]
+            for rp in mStorageProcAggRegion_ix.get((st1, ci, r), ())
+        )
+        for ci in mStorageInpComm_ix.get(st1, ())
+    )
     + ((pStorageStgEff.get((st1, c, r, y, s))) ** (pTimesliceShare.get((s))))
     * model.vStorageLevel[st1, c, r, y, sp]
     - sum(
@@ -2744,6 +2755,18 @@ model.eqStorageVarom = Constraint(
             * pTimesliceWeight.get((y, s))
             * model.vStorageInp[st1, c, r, y, s]
             for s in mCommTimeslice_ix.get(c, ())
+        )
+        for c in mStorageInpComm_ix.get(st1, ())
+    )
+    + sum(
+        sum(
+            sum(
+                pStorageCostInp.get((st1, r, y, s))
+                * pTimesliceWeight.get((y, s))
+                * model.vStorageInp[st1, c, rp, y, s]
+                for s in mCommTimeslice_ix.get(c, ())
+            )
+            for rp in mStorageProcAggRegion_ix.get((st1, c, r), ())
         )
         for c in mStorageInpComm_ix.get(st1, ())
     )

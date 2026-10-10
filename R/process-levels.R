@@ -133,6 +133,15 @@
 # process is refused everywhere, exactly as before this feature existed.
 .coarse_axes_supported <- "region"      # "timeslice" follows
 
+# Classes whose coarse form is VERIFIED end to end. Storage's map, flow domain
+# and equation branches are built, but a single-commodity storage cannot be
+# coarse at all under the inputs-only rule -- `newStorage(commodity = )` makes
+# the input, the stored commodity and the output the same commodity, so one
+# flow level cannot be both finer (as the input) and equal (as the output and
+# the level). Only a multi-commodity storage could be, and that is unverified,
+# so storage stays out until it is.
+.coarse_classes_supported <- c("technology", "storage")
+
 #' Is a coarse process supported on this axis yet?
 #' @keywords internal
 #' @noRd
@@ -144,6 +153,9 @@
 # just refusing.
 .coarse_unsupported <- list(
   list(slot = "aux", cols = NULL, what = "auxiliary flows"),
+  list(slot = "aeff", cols = NULL, what = "auxiliary flows"),
+  list(slot = "inp2out", cols = NULL, what = "storage inp2out coupling"),
+  list(slot = "inp2stg", cols = NULL, what = "storage inp2stg coupling"),
   list(slot = "group", cols = NULL, what = "commodity groups"),
   list(slot = "geff", cols = NULL, what = "commodity groups"),
   list(slot = "ceff",
@@ -151,7 +163,13 @@
        what = "commodity groups and shares"),
   list(slot = "ceff", cols = c("afc.lo", "afc.up", "afc.fx"),
        what = "per-commodity availability (`afc`)"),
-  list(slot = "af", cols = c("rampup", "rampdown"), what = "ramp limits")
+  list(slot = "af", cols = c("rampup", "rampdown"), what = "ramp limits"),
+  # storage INPUT availability drives eqStorageInpUp/Lo, whose domain follows
+  # the (now finer) input while the capacity it is bounded against stays at the
+  # storage's own cell -- the bound would read a capacity that is not there and
+  # silently become `inp <= 0`. The aggregate form is not written yet.
+  list(slot = "af", cols = c("inp.af.lo", "inp.af.up", "inp.af.fx"),
+       what = "storage input availability (`inp.af.*`)")
 )
 
 # Which unsupported features an object declares.
@@ -172,24 +190,25 @@
       out <- c(out, e$what)
     }
   }
-  # single-in / single-out only, so a second commodity on either side blocks
-  n_io <- function(sn) {
-    if (!methods::.hasSlot(obj, sn)) return(0L)
-    v <- methods::slot(obj, sn)
-    if (!is.data.frame(v) || is.null(v$comm)) return(0L)
-    length(unique(v$comm[!is.na(v$comm)]))
-  }
-  if (n_io("input") > 1L || n_io("output") > 1L) {
-    out <- c(out, "more than one input or output commodity")
-  }
   unique(out)
 }
 
-# An OUTPUT finer than the process is refused: each side's conversion
-# coefficients must be read at its own region, which the GAMS form cannot do
-# without division (it multiplies pTechUse2cact * pTechCact2cout deliberately).
-# Inputs finer than the process are the supported direction, and the case the
-# feature exists for -- a national plant drawing a regionally-balanced input.
+# THE NO-DISAGGREGATION RULE
+#
+#   A commodity FINER than the process may appear only as an INPUT.
+#
+# A process may be declared coarser than a commodity it CONSUMES: the input is
+# drawn from the finer cells beneath it and summed back
+# (mTechProcAggRegion / mStorageProcAggRegion). It may never be coarser than a
+# commodity it PRODUCES or STORES -- that would require disaggregating one
+# coarse decision into several fine ones, which energyRt does not do. Without
+# spreading, such an output lands at the process's cell where the commodity has
+# no balance row, so the production enters no balance and is silently
+# discarded.
+#
+# Inputs are unrestricted in both directions: a COARSER input already works via
+# `.commreg_reach()` (draw anywhere in the commodity's cell), a FINER one
+# through the maps above.
 #' @noRd
 .coarse_output_blockers <- function(scen) {
   lv <- .flow_levels(scen, "region")
@@ -198,13 +217,21 @@
                  lv$flow != lv$process_level, , drop = FALSE]
   if (nrow(coarse) == 0) return(character())
   outs <- get_process_outputs(scen)
+  # a storage's STORED commodity is the level, which lives at the storage's own
+  # cell, so it must match too -- only the charging input may be finer
+  stored <- tryCatch(get_process_stored(scen), error = function(e) list())
   bad <- vapply(seq_len(nrow(coarse)), function(i) {
-    o <- outs[[coarse$process[i]]]
-    !is.null(o) && coarse$comm[i] %in% as.character(o)
+    p <- coarse$process[i]
+    cm <- coarse$comm[i]
+    o <- outs[[p]]
+    st <- stored[[p]]
+    (!is.null(o) && cm %in% as.character(o)) ||
+      (!is.null(st) && cm %in% as.character(st))
   }, logical(1))
   if (!any(bad)) return(character())
-  unique(paste0(coarse$process[bad], " (output `", coarse$comm[bad],
-                "` is finer than the process)"))
+  unique(paste0(coarse$process[bad], " (`", coarse$comm[bad],
+                "` is an output or stored commodity, and is finer than the ",
+                "process)"))
 }
 
 #' Coarse-process region pairs: (process region, the flow's finer regions)
@@ -273,7 +300,7 @@
 
 #' Move a coarse process's flow rows down to the commodity's regions
 #'
-#' The mirror of [.commreg_geo_spreader()], which spreads a coarse COMMODITY
+#' The mirror of [.commreg_reach()], which widens a coarse COMMODITY's reach
 #' down to a fine process's regions. Here the PROCESS is the coarse one, so its
 #' flow rows -- carried at its own region by `merge0(mvTechAct, mTech*Comm)` --
 #' are replaced by one row per commodity region beneath it. The activity domain
@@ -391,4 +418,23 @@
   out <- ifelse(is.na(rb) | (!is.na(ra) & ra >= rb), a, b)
   out[is.na(ra) & is.na(rb)] <- NA_character_
   out
+}
+
+#' The (process, comm) pairs a `*ProcAggRegion` map records
+#'
+#' Reads one of the coarse-process maps back off a built scenario, with the
+#' process column renamed, so a caller can test the roles those commodities
+#' play without knowing which class the map belongs to.
+#' @keywords internal
+#' @noRd
+.pl_agg_pairs <- function(scen, nm, key) {
+  p <- tryCatch(scen@modInp@parameters[[nm]], error = function(e) NULL)
+  if (is.null(p)) return(NULL)
+  d <- tryCatch(get_data_slot(p), error = function(e) NULL)
+  if (is.null(d) || nrow(d) == 0) return(NULL)
+  d <- as.data.frame(d)
+  if (!all(c(key, "comm") %in% names(d))) return(NULL)
+  unique(data.frame(process = as.character(d[[key]]),
+                    comm = as.character(d$comm),
+                    stringsAsFactors = FALSE))
 }

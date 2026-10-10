@@ -68,7 +68,7 @@ NULL
 #' summed over timeslices, but summing it across regions is perfectly meaningful.
 #'
 #' @param df data.frame of results.
-#' @param gs a `geoscales::Geoscale`.
+#' @param gs a `geoscales::GeoScale`.
 #' @param from,to level names.
 #' @param name optional variable name, used to look up its role.
 #' @param key name of the region column in `df`.
@@ -165,7 +165,7 @@ NULL
 #'   `comm` filter applies only when passed explicitly.
 #' @param year integer year, or `NULL` for the sum over all milestone years.
 #' @param process optional regular expression selecting processes to include.
-#' @param geoscale a `geoscales::Geoscale`, or `NULL` to use the scenario's.
+#' @param geoscale a `geoscales::GeoScale`, or `NULL` to use the scenario's.
 #' @param palette viridis palette option.
 #' @param name optional name of any solved variable carrying a `region`
 #'   dimension (e.g. `"vTechNewCap"`, `"vTechRetiredStock"`): the map is
@@ -368,7 +368,7 @@ plot_map <- function(object,
 #' Draw a model's geoscale
 #'
 #' Visualises the geography attached to a model, scenario, config, or a bare
-#' `geoscales::Geoscale`: a membership map of one geoframe (`"map"`), a
+#' `geoscales::GeoScale`: a membership map of one geoframe (`"map"`), a
 #' layered view of ALL geoframes stacked in a cabinet/perspective projection
 #' with the coarsest level at the bottom (`"stack"`), or the geometry-free
 #' `"icicle"` diagram.
@@ -377,7 +377,7 @@ plot_map <- function(object,
 #' `geoscales::attach_geometry_geoscale()`) and the `sf` package; `"icicle"`
 #' works without either and is the fallback the report templates degrade to.
 #'
-#' @param object a `model`, `scenario`, `config`, or `geoscales::Geoscale`.
+#' @param object a `model`, `scenario`, `config`, or `geoscales::GeoScale`.
 #' @param type `"map"`, `"stack"`, or `"icicle"`.
 #' @param geoframe for `"map"`: the geoframe whose membership colours the
 #'   atoms; default = the coarsest level above the atoms.
@@ -385,7 +385,7 @@ plot_map <- function(object,
 #'   `geoscales::geoscale_autoplot()`).
 #' @param direction `"down"` (default) draws the coarsest geoframe at the
 #'   bottom of the stack; `"up"` at the top.
-#' @param geoscale a `geoscales::Geoscale` override, or `NULL` to resolve
+#' @param geoscale a `geoscales::GeoScale` override, or `NULL` to resolve
 #'   from `object`.
 #' @param ... passed to the geoscales plotting functions.
 #'

@@ -22,7 +22,7 @@ process_cluster_sweep(
 whole admissible range: from one cluster per \code{level} region to one per
 region.}
 
-\item{geoscale}{a \link[geoscales:Geoscale]{geoscales::Geoscale}; defaults to the model's own.}
+\item{geoscale}{a \link[geoscales:GeoScale]{geoscales::GeoScale}; defaults to the model's own.}
 
 \item{level}{the target geoframe, e.g. \code{"zone"}.}
 

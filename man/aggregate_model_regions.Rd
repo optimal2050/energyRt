@@ -18,7 +18,7 @@ aggregate_model_regions(
 \arguments{
 \item{mod}{A \code{model}.}
 
-\item{geoscale}{A \link[geoscales:Geoscale]{geoscales::Geoscale} whose finest geoframe contains the
+\item{geoscale}{A \link[geoscales:GeoScale]{geoscales::GeoScale} whose finest geoframe contains the
 model's regions. \code{NULL} (default) uses the model's own.}
 
 \item{level}{Name of the target geoframe, coarser than the model's regions.}
@@ -52,7 +52,7 @@ geoscale. With \code{clusters}, the grouping is attached and readable with
 }
 \description{
 Build a smaller model from a finer one by collapsing its regions onto a
-coarser geoframe of a \link[geoscales:Geoscale]{geoscales::Geoscale}. The result is a model in its
+coarser geoframe of a \link[geoscales:GeoScale]{geoscales::GeoScale}. The result is a model in its
 own right: it can be interpolated, solved and reported like any other.
 }
 \details{

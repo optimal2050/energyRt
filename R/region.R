@@ -1127,7 +1127,7 @@ NULL
 #' Aggregate a model to a coarser set of regions
 #'
 #' Build a smaller model from a finer one by collapsing its regions onto a
-#' coarser geoframe of a [geoscales::Geoscale]. The result is a model in its
+#' coarser geoframe of a [geoscales::GeoScale]. The result is a model in its
 #' own right: it can be interpolated, solved and reported like any other.
 #'
 #' Every region-keyed slot is recast. Extensive quantities -- capacities,
@@ -1146,7 +1146,7 @@ NULL
 #' and on cluster structure, so tranched and untranched routes stay apart.
 #'
 #' @param mod A `model`.
-#' @param geoscale A [geoscales::Geoscale] whose finest geoframe contains the
+#' @param geoscale A [geoscales::GeoScale] whose finest geoframe contains the
 #'   model's regions. `NULL` (default) uses the model's own.
 #' @param level Name of the target geoframe, coarser than the model's regions.
 #' @param clusters `NULL` (default) collapses each coarse region to one value.
@@ -1849,7 +1849,7 @@ NULL
   if (is.null(cr) || nrow(cr) == 0) return(NULL)
   cr <- dplyr::distinct(as.data.frame(cr)[, c("comm", "region")])
   # an input balanced at a coarse geoframe is reachable anywhere in its cell
-  cr <- as.data.frame(.commreg_geo_spreader(scen)(dplyr::as_tibble(cr)))
+  cr <- as.data.frame(.commreg_reach(scen)(dplyr::as_tibble(cr)))
   # ... and the mirror, for a process COARSER than its commodities: a commodity
   # available in a fine region is reachable by a process placed above it. Only
   # ancestor cells are added, so a process at a fine region is unaffected --

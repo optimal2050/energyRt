@@ -15,7 +15,7 @@ plot_geoscale(
 )
 }
 \arguments{
-\item{object}{a \code{model}, \code{scenario}, \code{config}, or \code{geoscales::Geoscale}.}
+\item{object}{a \code{model}, \code{scenario}, \code{config}, or \code{geoscales::GeoScale}.}
 
 \item{type}{\code{"map"}, \code{"stack"}, or \code{"icicle"}.}
 
@@ -28,7 +28,7 @@ atoms; default = the coarsest level above the atoms.}
 \item{direction}{\code{"down"} (default) draws the coarsest geoframe at the
 bottom of the stack; \code{"up"} at the top.}
 
-\item{geoscale}{a \code{geoscales::Geoscale} override, or \code{NULL} to resolve
+\item{geoscale}{a \code{geoscales::GeoScale} override, or \code{NULL} to resolve
 from \code{object}.}
 
 \item{...}{passed to the geoscales plotting functions.}
@@ -38,7 +38,7 @@ A \code{ggplot} object.
 }
 \description{
 Visualises the geography attached to a model, scenario, config, or a bare
-\code{geoscales::Geoscale}: a membership map of one geoframe (\code{"map"}), a
+\code{geoscales::GeoScale}: a membership map of one geoframe (\code{"map"}), a
 layered view of ALL geoframes stacked in a cabinet/perspective projection
 with the coarsest level at the bottom (\code{"stack"}), or the geometry-free
 \code{"icicle"} diagram.

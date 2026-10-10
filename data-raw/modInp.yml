@@ -2961,6 +2961,14 @@ mTechProcAggRegion:
   - comm
   - region
   - regionp
+mStorageProcAggRegion:
+  name: mStorageProcAggRegion
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - regionp
 mTechOneComm:
   name: mTechOneComm
   type: map

@@ -125,7 +125,7 @@ recipe_membership <- function(scen, names, fmp) scen
 # and totals domains, and spreading it put unpriced import rows (unserved load
 # among them) in every sub-region.
 #' @noRd
-.commreg_geo_spreader <- function(scen) {
+.commreg_reach <- function(scen) {
   h <- tryCatch(.scen_geo_hierarchy(scen), error = function(e) NULL)
   if (is.null(h) || is.null(h$family) || !nrow(h$family)) return(function(avail) avail)
   cgl <- map_comm_geoframe(scen)
@@ -1742,14 +1742,17 @@ build_mappings <- function(scen, fmp = NULL,
 # the commodity-region closure map mCommReg. Empty mCommReg -> empty result (no
 # commodity is reachable). `region_col` names the region column when it is not
 # literally "region" (e.g. trade `src`/`dst`).
-# `spread = TRUE`: a technology input -- availability within the commodity's
-# balancing cell (`.commreg_geo_spreader()`), not mCommReg's own regions.
-.filt_cr <- function(scen, df, region_col = "region", spread = FALSE) {
+# `reach = TRUE`: a technology input -- REACHABILITY within the commodity's
+# balancing cell (`.commreg_reach()`), not mCommReg's own regions. It widens the
+# membership test only; the domain's regions still come from the process, so no
+# row is ever created here. Not to be confused with `.flow_region_spread()`,
+# which does create rows (a coarse process's flows moved down).
+.filt_cr <- function(scen, df, region_col = "region", reach = FALSE) {
   if (is.null(df) || nrow(df) == 0) return(df)
   df <- as.data.frame(df)
   cr <- .gds(scen, "mCommReg")
   if (is.null(cr) || nrow(cr) == 0) return(df[0, , drop = FALSE])
-  if (isTRUE(spread)) cr <- as.data.frame(.commreg_geo_spreader(scen)(dplyr::as_tibble(as.data.frame(cr)[, c("comm", "region")])))
+  if (isTRUE(reach)) cr <- as.data.frame(.commreg_reach(scen)(dplyr::as_tibble(as.data.frame(cr)[, c("comm", "region")])))
   by <- if (region_col == "region") {
     c("comm", "region")
   } else {

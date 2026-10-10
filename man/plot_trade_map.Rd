@@ -21,7 +21,7 @@ plot_trade_map(
 \code{model} or \code{scenario} (whose trade objects are all drawn).}
 
 \item{map}{An \code{sf}/data.frame with \code{region}, \code{x}, \code{y} and polygon \code{geometry}
-or a \code{geoscales::Geoscale} (e.g. \code{topia$geoscales$honeycomb}). When \code{NULL}, the
+or a \code{geoscales::GeoScale} (e.g. \code{topia$geoscales$honeycomb}). When \code{NULL}, the
 geoscale attached to \code{object} is used. Region polygons need \code{sf}; without
 it, only centroids and routes are drawn.}
 

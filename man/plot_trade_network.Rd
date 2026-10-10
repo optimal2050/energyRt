@@ -23,7 +23,7 @@ plot_trade_network(
 \code{"flow"} need a solved \code{scenario}.}
 
 \item{map}{optional \code{sf} object with \code{region} (and \code{x}, \code{y}) columns, or a
-\code{geoscales::Geoscale}. When \code{NULL}, the object's geoscale is used if it has
+\code{geoscales::GeoScale}. When \code{NULL}, the object's geoscale is used if it has
 one, else a circular layout.}
 
 \item{value}{what sets the link width:
@@ -66,7 +66,7 @@ the solved flows (\code{vTradeIr}). Links are quadratic curves whose bends are
 flipped to reduce crossings.
 
 Nodes are placed at region centroids when a \code{map} (an \code{sf} object or a
-\code{geoscales::Geoscale}) is given or the model carries a geoscale; otherwise
+\code{geoscales::GeoScale}) is given or the model carries a geoscale; otherwise
 they are laid out on a circle and no geography is needed.
 }
 \examples{

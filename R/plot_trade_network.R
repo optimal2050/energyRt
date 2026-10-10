@@ -8,14 +8,14 @@
 #' flipped to reduce crossings.
 #'
 #' Nodes are placed at region centroids when a `map` (an `sf` object or a
-#' `geoscales::Geoscale`) is given or the model carries a geoscale; otherwise
+#' `geoscales::GeoScale`) is given or the model carries a geoscale; otherwise
 #' they are laid out on a circle and no geography is needed.
 #'
 #' @param object a `trade`, a list of trades, or a `repository`, `model` or
 #'   `scenario` (all of whose trade objects are drawn). `value = "capacity"` and
 #'   `"flow"` need a solved `scenario`.
 #' @param map optional `sf` object with `region` (and `x`, `y`) columns, or a
-#'   `geoscales::Geoscale`. When `NULL`, the object's geoscale is used if it has
+#'   `geoscales::GeoScale`. When `NULL`, the object's geoscale is used if it has
 #'   one, else a circular layout.
 #' @param value what sets the link width:
 #'   * `"input"`: the trade objects' `@capacity` in `year` -- existing links

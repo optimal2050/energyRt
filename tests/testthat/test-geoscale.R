@@ -1,4 +1,4 @@
-# Attaching a geoscales::Geoscale to a model, and using it for maps and
+# Attaching a geoscales::GeoScale to a model, and using it for maps and
 # region-level aggregation. `geoscales` is a Suggests dependency, so every
 # test that needs the package skips without it.
 
@@ -25,7 +25,7 @@ test_that("energyRt:::is_geoscale() needs no geoscales namespace", {
   # An S7 object carries a plain character class attribute, so the test is a
   # pure attribute check -- this is what lets `config` validate without a
   # hard dependency.
-  fake <- structure(list(), class = c("geoscales::Geoscale", "S7_object"))
+  fake <- structure(list(), class = c("geoscales::GeoScale", "S7_object"))
   expect_true(energyRt:::is_geoscale(fake))
 })
 
@@ -51,7 +51,7 @@ test_that("setGeoscale round-trips on config, model and scenario", {
 })
 
 test_that("the setter and the validity method reject non-geoscales", {
-  expect_error(setGeoscale(new("config"), 42), "must be a .*Geoscale")
+  expect_error(setGeoscale(new("config"), 42), "must be a .*Geo[Ss]cale")
 
   # `config`'s prototype leaves `region` NULL in a "character" slot, so a
   # default object fails the slot-type check before any validity method runs.
@@ -220,7 +220,7 @@ test_that("topia ships one Geoscale per layout, sharing one hierarchy", {
   ref <- geoscales::geoscale_leaftable(g0)[, cols]
   for (nm in names(topia$geoscales)) {
     gs <- topia$geoscales[[nm]]
-    expect_s3_class(gs, "geoscales::Geoscale")
+    expect_s3_class(gs, "geoscales::GeoScale")
     expect_equal(geoscales::geoscale_leaftable(gs)[, cols], ref,
                  label = paste0("hierarchy of ", nm))
     expect_equal(length(geoscales::geoscale_geometry(gs, "region")$region), 11L,
@@ -283,7 +283,7 @@ test_that("topia reaches its data the way an INSTALL does", {
   # the 0.91 break: no second copy of the geometry anywhere in the dataset
   expect_false(any(c("map", "geo") %in% names(shipped)))
   expect_null(shipped$modules$maps)
-  expect_s3_class(shipped$geoscales$honeycomb, "geoscales::Geoscale")
+  expect_s3_class(shipped$geoscales$honeycomb, "geoscales::GeoScale")
 })
 
 test_that("a shipped geoscale subsets to a model's regions", {

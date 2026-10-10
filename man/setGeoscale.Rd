@@ -36,13 +36,13 @@
 \arguments{
 \item{obj}{A \code{config}, \code{settings}, \code{model} or \code{scenario}.}
 
-\item{geoscale}{A \code{geoscales::Geoscale}, or \code{NULL} to clear it.}
+\item{geoscale}{A \code{geoscales::GeoScale}, or \code{NULL} to clear it.}
 
 \item{...}{Unused.}
 }
 \value{
 \code{setGeoscale()} returns the modified object; \code{getGeoscale()} returns
-a \code{geoscales::Geoscale} or \code{NULL}.
+a \code{geoscales::GeoScale} or \code{NULL}.
 }
 \description{
 A geoscale describes the model's regions -- their nesting into coarser

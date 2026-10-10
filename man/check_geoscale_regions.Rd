@@ -7,7 +7,7 @@
 check_geoscale_regions(geoscale, region, level = NULL)
 }
 \arguments{
-\item{geoscale}{A \code{geoscales::Geoscale}.}
+\item{geoscale}{A \code{geoscales::GeoScale}.}
 
 \item{region}{Character vector of declared model regions.}
 

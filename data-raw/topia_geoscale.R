@@ -27,7 +27,7 @@
 #     so C1 is the south-west region on every layout. A tall narrow zone
 #     (continent's EAST) is numbered north to south instead.
 #
-# WHAT THIS FILE SHIPS. One `geoscales::Geoscale` per layout, in
+# WHAT THIS FILE SHIPS. One `geoscales::GeoScale` per layout, in
 # `topia$geoscales`. Each carries the hierarchy AND that layout's polygons, so
 # the dataset holds exactly one copy of the geometry -- there is no separate
 # `topia$map` or `topia$geo` any more (0.91 hard break).
@@ -161,7 +161,7 @@ topia_geoscales <- lapply(stats::setNames(nm = names(map)), function(nm) {
 for (nm in names(topia_geoscales)) {
   gs <- topia_geoscales[[nm]]
   stopifnot(
-    inherits(gs, "geoscales::Geoscale"),
+    inherits(gs, "geoscales::GeoScale"),
     identical(geoscales::geoscale_geoframes(gs),
               c("nation", "zone", "region")),
     setequal(geoscales::geoscale_regions(gs, "region"), .topia_regions),

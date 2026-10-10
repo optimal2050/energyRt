@@ -145,7 +145,7 @@ newModel <- function(name = "", desc = "", ...) {
   ### @geoscale ####
   if (!is.null(arg$geoscale)) {
     if (!is_geoscale(arg$geoscale)) {
-      stop('"geoscale" argument must be a "geoscales::Geoscale" object')
+      stop('"geoscale" argument must be a "geoscales::GeoScale" object')
     }
     obj@config@geoscale <- arg$geoscale
     arg$geoscale <- NULL

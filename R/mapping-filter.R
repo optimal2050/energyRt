@@ -46,7 +46,7 @@ map_mvTechInp <- function(scen, fmp) {
   # a technology may draw a coarse-geoframe input anywhere in its cell, and a
   # technology COARSER than its input draws at the input's own regions
   dom <- .flow_region_spread(scen, as.data.frame(merge0(act, inp)), "tech")
-  .set_map(scen, "mvTechInp", .filt_cr(scen, dom, spread = TRUE), fmp)
+  .set_map(scen, "mvTechInp", .filt_cr(scen, dom, reach = TRUE), fmp)
 }
 
 map_mvTechOut <- function(scen, fmp) {
@@ -60,29 +60,37 @@ map_mvTechOut <- function(scen, fmp) {
 # own region paired with each commodity region beneath it. The `Agg` branch of
 # the process equations sums the flow over `regionp`; the map is empty in every
 # model where no process is coarser, so the branch generates nothing.
-map_mTechProcAggRegion <- function(scen, fmp) {
-  # ALWAYS set, even with no rows: the templates declare the set
-  # unconditionally, and a declared set with no data is a MathProg error
-  # ("no value for mTechProcAggRegion"). The commodity-side Agg maps are
-  # emitted the same way.
-  empty <- data.frame(tech = character(), comm = character(),
-                      region = character(), regionp = character(),
-                      stringsAsFactors = FALSE)
+# ALWAYS set, even with no rows: the templates declare the set unconditionally,
+# and a declared set with no data is a MathProg error ("no value for <map>").
+# The commodity-side Agg maps are emitted the same way.
+.set_proc_agg_region <- function(scen, fmp, nm, key, cls_want) {
+  empty <- stats::setNames(
+    data.frame(character(), character(), character(), character(),
+               stringsAsFactors = FALSE),
+    c(key, "comm", "region", "regionp"))
   ag <- .flow_region_agg(scen)
   if (!is.null(ag) && nrow(ag) > 0) {
     cls <- get_process_class(scen)
     keep <- vapply(ag$process, function(p)
-      identical(unname(cls[[p]]), "technology"), logical(1))
+      identical(unname(cls[[p]]), cls_want), logical(1))
     ag <- ag[keep, , drop = FALSE]
   }
   df <- if (is.null(ag) || nrow(ag) == 0) {
     empty
   } else {
-    data.frame(tech = ag$process, comm = ag$comm, region = ag$region,
-               regionp = ag$regionp, stringsAsFactors = FALSE)
+    stats::setNames(
+      data.frame(ag$process, ag$comm, ag$region, ag$regionp,
+                 stringsAsFactors = FALSE),
+      c(key, "comm", "region", "regionp"))
   }
-  .set_map(scen, "mTechProcAggRegion", df, fmp)
+  .set_map(scen, nm, df, fmp)
 }
+
+map_mTechProcAggRegion <- function(scen, fmp)
+  .set_proc_agg_region(scen, fmp, "mTechProcAggRegion", "tech", "technology")
+
+map_mStorageProcAggRegion <- function(scen, fmp)
+  .set_proc_agg_region(scen, fmp, "mStorageProcAggRegion", "stg", "storage")
 
 # [agg-rewrite] map_mTechOutRY removed (*RY retired — dead reporting)
 
@@ -180,6 +188,8 @@ map_mvStorageLevel <- function(scen, fmp) {
 map_mvStorageInp <- function(scen, fmp) {
   d <- .filter_storage_role(scen, "mStorageInpComm")
   if (is.null(d)) return(scen)
+  # a storage COARSER than its input charges at the input's own regions
+  d <- .flow_region_spread(scen, d, "stg")
   .set_map(scen, "mvStorageInp", .filt_cr(scen, d), fmp)
 }
 
@@ -243,14 +253,14 @@ map_mvDemInp <- function(scen, fmp) {
 
 # Per-process input/output total = union of the (a)main + aux flow domains with
 # the process key dropped, reduced to the commodity's native timeslice, mCommReg-cut.
-.filter_proc_tot <- function(scen, name, main, aux, key, fmp, spread = FALSE) {
+.filter_proc_tot <- function(scen, name, main, aux, key, fmp, reach = FALSE) {
   m <- .gds(scen, main); a <- .gds(scen, aux)
   if (is.null(m) && is.null(a)) return(scen)
   pieces <- lapply(Filter(Negate(is.null), list(m, a)),
                    function(x) dplyr::select(x, -dplyr::any_of(key)))
   tot <- .reduce_total_map(.reduce_sect(dplyr::bind_rows(pieces)),
                            .gds(scen, "mCommTimesliceOrParent"))
-  .set_map(scen, name, .filt_cr(scen, tot, spread = spread), fmp)
+  .set_map(scen, name, .filt_cr(scen, tot, reach = reach), fmp)
 }
 # Commodity-timeslice classification of a flow domain: join the flow's (key, comm,
 # timeslice) to mCommTimesliceOrParent (timeslicep = the flow's child timeslice, timeslice = the
@@ -278,7 +288,7 @@ map_mTechInpTot <- function(scen, fmp) {
   # a technology's inputs are drawn anywhere in the commodity's cell
   # (mvTechInp); their totals must exist there too, or the flow is counted in
   # no balance and the input is free
-  scen <- .filter_proc_tot(scen, "mTechInpTot", "mvTechInp", "mvTechAInp", "tech", fmp, spread = TRUE)
+  scen <- .filter_proc_tot(scen, "mTechInpTot", "mvTechInp", "mvTechAInp", "tech", fmp, reach = TRUE)
   scen <- .comm_timeslice_class_maps(scen, "mvTechInp",  "mTechInpComm",  fmp)
   .comm_timeslice_class_maps(scen, "mvTechAInp", "mTechAInpComm", fmp)
 }
@@ -941,6 +951,7 @@ map_mvBalance <- function(scen, fmp)
   mvTechInp      = map_mvTechInp,
   mvTechOut      = map_mvTechOut,
   mTechProcAggRegion = map_mTechProcAggRegion,
+  mStorageProcAggRegion = map_mStorageProcAggRegion,
   mvTechAInp     = map_mvTechAInp,
   mvTechAOut     = map_mvTechAOut,
   mSupAva        = map_mSupAva,

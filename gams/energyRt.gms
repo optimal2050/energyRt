@@ -805,6 +805,7 @@ mTechOutCommSameTimeslice(tech, comm)
 mTechOutCommAgg(tech, comm)
 mTechOutCommAggTimeslice(tech, comm, timeslice, timeslicep)
 mTechProcAggRegion(tech, comm, region, regionp)  Coarse technology: its region and the finer commodity regions beneath it
+mStorageProcAggRegion(stg, comm, region, regionp)  Coarse storage: its region and the finer commodity regions beneath it
 mTechAOutCommSameTimeslice(tech, comm)
 mTechAOutCommAgg(tech, comm)
 mTechAOutCommAggTimeslice(tech, comm, timeslice, timeslicep)
@@ -1982,6 +1983,11 @@ eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)$meqStorageLevel(s
   sum(commp$mvStorageInp(stg, commp, region, year, timeslicep),
       pStorageInpEff(stg, commp, region, year, timeslicep)
       * vStorageInp(stg, commp, region, year, timeslicep))
+* a storage COARSER than its charging commodity draws it at the regions beneath
+* its own; the efficiency is read at the FINE region with its own variable
+  + sum((commp, regionp)$mStorageProcAggRegion(stg, commp, region, regionp),
+        pStorageInpEff(stg, commp, regionp, year, timeslicep)
+        * vStorageInp(stg, commp, regionp, year, timeslicep))
   + (pStorageStgEff(stg, comm, region, year, timeslice) ** pTimesliceShare(timeslice))
     * vStorageLevel(stg, comm, region, year, timeslicep)
   - sum(commp$mvStorageOut(stg, commp, region, year, timeslicep),
@@ -2310,6 +2316,11 @@ eqStorageVarom(stg, region, year)$mStorageVarom(stg, region, year)..
                  pStorageCostInp(stg, region, year, timeslice)
                     * pTimesliceWeight(year, timeslice)
                     * vStorageInp(stg, comm, region, year, timeslice)))
+          + sum((comm, regionp)$mStorageProcAggRegion(stg, comm, region, regionp),
+             sum(timeslice$mCommTimeslice(comm, timeslice),
+                 pStorageCostInp(stg, region, year, timeslice)
+                    * pTimesliceWeight(year, timeslice)
+                    * vStorageInp(stg, comm, regionp, year, timeslice)))
           + sum(comm$mStorageOutComm(stg, comm),
              sum(timeslice$mCommTimeslice(comm, timeslice),
                  pStorageCostOut(stg, region, year, timeslice)

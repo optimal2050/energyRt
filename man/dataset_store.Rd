@@ -84,11 +84,11 @@ invisibly. \code{load_dataset()} returns the payload.
 \description{
 The dataset analogue of \code{\link[=model_hash]{model_hash()}} / \code{\link[=repository_hash]{repository_hash()}}: a stable
 content hash of the payload with volatile attributes stripped. Works for
-data.frames (weather/demand tables), \code{geoscales::Geoscale} maps, and any
+data.frames (weather/demand tables), \code{geoscales::GeoScale} maps, and any
 other R object.
 
 \code{save_dataset()} writes a payload — a data.frame (a weather or demand
-series), a \code{geoscales::Geoscale} map, or any R object — into the
+series), a \code{geoscales::GeoScale} map, or any R object — into the
 store \verb{<datasets_path>/<name>/} (see
 \code{\link[=get_datasets_path]{get_datasets_path()}}). Saving identical content again is a no-op. A
 stored dataset can then be REFERENCED by repositories, models, and

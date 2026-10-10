@@ -1777,7 +1777,7 @@ autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
 #' @param object A `trade`, a list of `trade` objects, or a `repository`,
 #'   `model` or `scenario` (whose trade objects are all drawn).
 #' @param map An `sf`/data.frame with `region`, `x`, `y` and polygon `geometry`
-#'   or a `geoscales::Geoscale` (e.g. `topia$geoscales$honeycomb`). When `NULL`, the
+#'   or a `geoscales::GeoScale` (e.g. `topia$geoscales$honeycomb`). When `NULL`, the
 #'   geoscale attached to `object` is used. Region polygons need `sf`; without
 #'   it, only centroids and routes are drawn.
 #' @param labels Logical; label region centroids with their names (default `TRUE`).
@@ -1814,7 +1814,7 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
   if (is.null(map)) map <- tryCatch(getGeoscale(object), error = function(e) NULL)
   if (is.null(map)) {
     stop("plot_trade_map: pass a `map` (an sf object with `region`/`x`/`y` and ",
-         "polygon geometry, or a `geoscales::Geoscale`), e.g. ",
+         "polygon geometry, or a `geoscales::GeoScale`), e.g. ",
          "`topia$geoscales$honeycomb`.", call. = FALSE)
   }
   # Keep the geoscale: when a coarser level is drawn, the route endpoints have
@@ -1953,7 +1953,7 @@ autoplot.trade <- function(object, map = NULL, ...) {
 }
 
 # Normalise the `map` argument of plot_trade_map() to an sf/data.frame carrying
-# `region`, `x`, `y`. Accepts a `geoscales::Geoscale` (dissolved to `level` and
+# `region`, `x`, `y`. Accepts a `geoscales::GeoScale` (dissolved to `level` and
 # given centroids), or anything already in that shape.
 #' @noRd
 .trade_map_normalise <- function(map, level = NULL) {
