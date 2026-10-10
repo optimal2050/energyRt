@@ -28,6 +28,7 @@ get_python_path <- function() {
 
 # Functions to write PYOMO model and data files
 .write_model_PYOMO <- function(arg, scen) {
+  .assert_no_coarse_process(scen, "Pyomo")
   # Arrow in and out unless the preset asks for the legacy SQLite database;
   # `exchange_format` supplies the default (R/exchange.R).
   scen@settings@solver <- .resolve_exchange_formats(scen@settings@solver)

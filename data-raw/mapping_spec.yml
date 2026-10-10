@@ -3394,6 +3394,18 @@ mTechOutCommAggTimeslice:
   unreferenced: yes
   recipe: membership
   source: object_slot
+mTechProcAggRegion:
+  name: mTechProcAggRegion
+  dims:
+  - tech
+  - comm
+  - region
+  - regionp
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
   predicate: .na
   join_keys: []
   filter_by: []

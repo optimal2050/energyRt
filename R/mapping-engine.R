@@ -1450,8 +1450,13 @@ recipe_value <- function(scen, names, fmp) {
     .set_map(scen, nm, df, fmp)
   }
 
+  # A coarse process's equations are indexed at ITS cell, so a domain built
+  # from flow maps is lifted back onto that cell. Identity when no process is
+  # coarser than its commodities, which is every model today.
+  lift <- function(df) .lift_flow_to_proc_region(scen, df, "tech")
+
   # Activity index maps.
-  scen <- set_if(scen, "meqTechActSng", techSingOut)
+  scen <- set_if(scen, "meqTechActSng", lift(techSingOut))
   if (!is.null(mTechOutGroup) && !is.null(mvTechAct)) {
     scen <- set_if(scen, "meqTechActGrp",
                    as.data.frame(merge0(mvTechAct, mTechOutGroup)))
@@ -1469,7 +1474,7 @@ recipe_value <- function(scen, names, fmp) {
   if (!is.null(techSingInp) && !is.null(techSingOut)) {
     scen <- set_if(scen, "meqTechSng2Sng",
                    as.data.frame(merge0(
-                     techSingInp, techSingOut,
+                     lift(techSingInp), lift(techSingOut),
                      by = c("tech", "region", "year", "timeslice"),
                      suffixes = c("", ".1"))))
   }

@@ -2953,6 +2953,14 @@ mTechOutCommAggTimeslice:
   - comm
   - timeslice
   - timeslicep
+mTechProcAggRegion:
+  name: mTechProcAggRegion
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - regionp
 mTechOneComm:
   name: mTechOneComm
   type: map

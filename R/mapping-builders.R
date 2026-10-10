@@ -1270,9 +1270,7 @@ map_mWeatherRegionAt <- function(scen, fmp) {
   # first, so a larger rank is finer; identity always wins because a region's
   # own level is finer than any ancestor's.
   if (!is.null(h) && nrow(cand) > 0) {
-    lvl_of <- unlist(lapply(names(h$members), function(lv)
-      stats::setNames(rep(lv, length(h$members[[lv]])), h$members[[lv]])))
-    rk <- stats::setNames(match(unname(lvl_of), h$levels), names(lvl_of))
+    rk <- .geo_region_rank(h)
     cand$.rk <- unname(rk[cand$regionp])
     cand$.rk[is.na(cand$.rk)] <- 0L
     cand <- cand[order(cand$weather, cand$region, -cand$.rk), , drop = FALSE]
@@ -1410,7 +1408,7 @@ NULL
   if (is.null(h) || nrow(h$family) == 0) return(NULL)
 
   levels <- h$levels
-  rank <- stats::setNames(seq_along(levels), levels)   # 1 = coarsest
+  rank <- .geo_level_rank(h)
   finest <- h$finest
 
   cgl <- map_comm_geoframe(scen)
@@ -1427,9 +1425,7 @@ NULL
   if (length(target) == 0) return(NULL)
 
   # Which level each region belongs to, so a walk can be cut at the right depth.
-  lvl_of <- unlist(lapply(names(h$members), function(lv) {
-    stats::setNames(rep(lv, length(h$members[[lv]])), h$members[[lv]])
-  }))
+  lvl_of <- .geo_level_of(h)
 
   # Transitive ancestry, accumulated one adjacent step at a time. A join rather
   # than a parent lookup, so a region with more than one parent (levels that
@@ -1656,12 +1652,9 @@ Declare the weather at that region, or at a COARSER region of the ",
   cr <- .comm_region_df(scen)
   if (is.null(cr)) return(invisible(NULL))
 
-  rank <- stats::setNames(seq_along(h$levels), h$levels)   # 1 = coarsest
-  lvl_of <- unlist(lapply(names(h$members), function(lv) {
-    stats::setNames(rep(lv, length(h$members[[lv]])), h$members[[lv]])
-  }))
+  reg_rank <- .geo_region_rank(h)
   comm_rank <- vapply(split(cr$region, cr$comm), function(rg) {
-    min(rank[lvl_of[unique(rg)]], na.rm = TRUE)
+    min(reg_rank[unique(rg)], na.rm = TRUE)
   }, numeric(1))
 
   preg <- named_list_to_df(scen@modInp@sets$process_region,
@@ -1680,17 +1673,57 @@ Declare the weather at that region, or at a COARSER region of the ",
   # nrow(preg) + nrow(pio), which is exactly the case data.table refuses by
   # default. The cross is the point of the check.
   d <- merge(preg, pio, by = "process", allow.cartesian = TRUE)
-  d$preg_rank <- unname(rank[lvl_of[d$region]])
+  d$preg_rank <- unname(reg_rank[d$region])
   d$comm_rank <- unname(comm_rank[d$comm])
   bad <- d[!is.na(d$preg_rank) & !is.na(d$comm_rank) &
              d$preg_rank < d$comm_rank, , drop = FALSE]
   if (nrow(bad) == 0) return(invisible(NULL))
 
   bad <- unique(bad[, c("process", "region", "comm")])
+
+  # A coarse TECHNOLOGY is supported in space: its flows sit at the commodity's
+  # finer regions and its own equations sum them (mTechProcAggRegion). Every
+  # other class, and any technology declaring a feature whose coarse form is
+  # not written yet, is still refused -- a coarse process that is accepted but
+  # not summed solves with free output.
+  objs <- .level_check_objects(scen)
+  cls <- get_process_class(scen)
+  ready <- .coarse_axis_ready("region")
+  out_blk <- if (ready) .coarse_output_blockers(scen) else character()
+  allowed <- vapply(unique(bad$process), function(p) {
+    if (!ready) return(FALSE)
+    if (!identical(unname(cls[[p]]), "technology")) return(FALSE)
+    if (any(startsWith(out_blk, paste0(p, " ")))) return(FALSE)
+    length(.coarse_blockers(objs[[p]])) == 0L
+  }, logical(1))
+  if (all(allowed)) return(invisible(NULL))
+
+  bad <- bad[bad$process %in% names(allowed)[!allowed], , drop = FALSE]
+  reasons <- vapply(unique(bad$process), function(p) {
+    k <- unname(cls[[p]])
+    if (!ready) {
+      paste0(p, ": a process coarser than its commodities is not implemented ",
+             "on the region axis yet (the equations that would sum its finer ",
+             "flows are not written)")
+    } else if (!identical(k, "technology")) {
+      paste0(p, " (", if (is.null(k)) "unknown class" else k,
+             "): only `technology` may be coarser than its commodities")
+    } else {
+      ob <- out_blk[startsWith(out_blk, paste0(p, " "))]
+      if (length(ob) > 0) {
+        paste0(ob, " -- only INPUTS may be finer than the process")
+      } else {
+        paste0(p, ": ", paste(.coarse_blockers(objs[[p]]), collapse = ", "),
+               " -- not supported on a coarse process yet")
+      }
+    }
+  }, character(1))
+
   stop("Process(es) placed at a region level COARSER than a commodity they ",
        "use, whose flows could never reach that commodity's balance:\n   ",
        paste(utils::capture.output(print(bad)), collapse = "\n   "),
-       "\nMove the process to a finer region, or declare the commodity at a ",
+       "\n\n   ", paste(reasons, collapse = "\n   "),
+       "\n\nMove the process to a finer region, or declare the commodity at a ",
        "coarser `@geoframe`.", call. = FALSE)
 }
 

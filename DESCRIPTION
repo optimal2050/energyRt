@@ -132,6 +132,7 @@ Collate:
     'portability.R'
     'region.R'
     'process-groups.R'
+    'process-levels.R'
     'process_designer.R'
     'read_sequence.R'
     'registry.R'

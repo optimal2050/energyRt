@@ -43,14 +43,45 @@ map_mvTechAct <- function(scen, fmp) {
 map_mvTechInp <- function(scen, fmp) {
   act <- .gds(scen, "mvTechAct"); inp <- .gds(scen, "mTechInpComm")
   if (is.null(act) || is.null(inp)) return(scen)
-  # a technology may draw a coarse-geoframe input anywhere in its cell
-  .set_map(scen, "mvTechInp", .filt_cr(scen, as.data.frame(merge0(act, inp)), spread = TRUE), fmp)
+  # a technology may draw a coarse-geoframe input anywhere in its cell, and a
+  # technology COARSER than its input draws at the input's own regions
+  dom <- .flow_region_spread(scen, as.data.frame(merge0(act, inp)), "tech")
+  .set_map(scen, "mvTechInp", .filt_cr(scen, dom, spread = TRUE), fmp)
 }
 
 map_mvTechOut <- function(scen, fmp) {
   act <- .gds(scen, "mvTechAct"); out <- .gds(scen, "mTechOutComm")
   if (is.null(act) || is.null(out)) return(scen)
-  .set_map(scen, "mvTechOut", .filt_cr(scen, as.data.frame(merge0(act, out))), fmp)
+  dom <- .flow_region_spread(scen, as.data.frame(merge0(act, out)), "tech")
+  .set_map(scen, "mvTechOut", .filt_cr(scen, dom), fmp)
+}
+
+# mTechProcAggRegion: for a technology COARSER than a commodity it touches, its
+# own region paired with each commodity region beneath it. The `Agg` branch of
+# the process equations sums the flow over `regionp`; the map is empty in every
+# model where no process is coarser, so the branch generates nothing.
+map_mTechProcAggRegion <- function(scen, fmp) {
+  # ALWAYS set, even with no rows: the templates declare the set
+  # unconditionally, and a declared set with no data is a MathProg error
+  # ("no value for mTechProcAggRegion"). The commodity-side Agg maps are
+  # emitted the same way.
+  empty <- data.frame(tech = character(), comm = character(),
+                      region = character(), regionp = character(),
+                      stringsAsFactors = FALSE)
+  ag <- .flow_region_agg(scen)
+  if (!is.null(ag) && nrow(ag) > 0) {
+    cls <- get_process_class(scen)
+    keep <- vapply(ag$process, function(p)
+      identical(unname(cls[[p]]), "technology"), logical(1))
+    ag <- ag[keep, , drop = FALSE]
+  }
+  df <- if (is.null(ag) || nrow(ag) == 0) {
+    empty
+  } else {
+    data.frame(tech = ag$process, comm = ag$comm, region = ag$region,
+               regionp = ag$regionp, stringsAsFactors = FALSE)
+  }
+  .set_map(scen, "mTechProcAggRegion", df, fmp)
 }
 
 # [agg-rewrite] map_mTechOutRY removed (*RY retired — dead reporting)
@@ -909,6 +940,7 @@ map_mvBalance <- function(scen, fmp)
   mvTechAct      = map_mvTechAct,
   mvTechInp      = map_mvTechInp,
   mvTechOut      = map_mvTechOut,
+  mTechProcAggRegion = map_mTechProcAggRegion,
   mvTechAInp     = map_mvTechAInp,
   mvTechAOut     = map_mvTechAOut,
   mSupAva        = map_mSupAva,

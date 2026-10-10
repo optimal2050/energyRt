@@ -563,10 +563,7 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
   cand <- intersect(unique(wr), anc)
   if (length(cand) == 0) return(NULL)
   if (length(cand) > 1) {                            # nearest = finest level
-    lvl_of <- unlist(lapply(names(h$members), function(lv)
-      stats::setNames(rep(lv, length(h$members[[lv]])), h$members[[lv]])))
-    rk <- match(unname(lvl_of[cand]), h$levels)
-    cand <- cand[which.max(rk)]
+    cand <- cand[which.max(.geo_region_rank(h)[cand])]
   }
   keep <- wr == cand
   w@weather <- w@weather[keep, , drop = FALSE]

@@ -279,6 +279,27 @@
 
 ## New features
 
+* A **technology may now sit at a region level coarser than an input it uses**.
+  A national plant drawing a regionally-balanced commodity used to be refused
+  ("placed at a region level COARSER than a commodity they use"); its input now
+  moves down to the regions beneath its own cell while its capacity, activity
+  and output stay at that cell, and `eqTechSng2Sng` / `eqTechVarom` sum the
+  finer flow over the new `mTechProcAggRegion` map. This is what lets a model
+  mix resolutions in space -- an annual national steel plant alongside
+  per-region electricity -- without declaring the plant per region.
+
+  The plant draws where it likes within its cell (it is not forced to split
+  pro rata), so a coarser declaration deliberately loses intra-cell detail.
+  Declare the process at the commodity's level if that detail matters.
+
+  Scope of this release: `technology` only, the region axis only, inputs only
+  (a finer *output* is refused, because each side's conversion coefficients
+  must be read at its own region), single input and output commodity, and no
+  groups, shares, `afc` or ramp limits -- each refused by name. GLPK and GAMS
+  support it; JuMP/Julia and Pyomo refuse it at write time until their
+  templates carry the same branch. A process coarser in *time* is still
+  refused.
+
 * `interpolate_model(parent_levels = )` gives a variable rows at the timeslice
   and region levels coarser than the one it occupies, each defined by a roll-up
   of its finer rows, so a constraint can be written at a level the variable does

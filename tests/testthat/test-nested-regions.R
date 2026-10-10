@@ -389,19 +389,30 @@ test_that("an unknown @geoframe names the levels that do exist", {
   )
 })
 
-test_that("a process coarser than its commodity is refused", {
+test_that("a technology coarser than its commodity draws from beneath it", {
   skip_if_no_geoscales()
   skip_if_no_solver()
-  # The mill sits at NAT but ELC is balanced per region, so its input could
-  # never be drawn from any balance -- it would silently vanish.
+  # The mill sits at NAT while ELC is balanced per region. This used to be
+  # refused ("COARSER"): the input landed at NAT, which no balance reads, so
+  # the mill vanished and the model was infeasible. It is now supported -- the
+  # INPUT moves down to the regions beneath NAT while capacity and output stay
+  # at NAT, and the process equations sum the finer flow (mTechProcAggRegion).
   mod <- setGeoscale(
     nr_model("nation", "NAT", name = "nrE", mill_region = "NAT"),
     nr_geoscale())
-  expect_error(
-    suppressMessages(suppressWarnings(
-      interpolate_model(mod, name = "nrE", fold = TRUE))),
-    "COARSER"
-  )
+  scen <- suppressMessages(suppressWarnings(
+    interpolate_model(mod, name = "nrE", fold = TRUE)))
+  expect_s4_class(scen, "scenario")
+
+  inp <- nr_gd(scen, "mvTechInp")
+  inp <- inp[inp$tech == "MILL", , drop = FALSE]
+  expect_gt(nrow(inp), 0L)
+  # drawn from the regions, not from NAT
+  expect_false("NAT" %in% unique(as.character(inp$region)))
+
+  ag <- nr_gd(scen, "mTechProcAggRegion")
+  expect_gt(nrow(ag), 0L)
+  expect_setequal(unique(as.character(ag$region)), "NAT")
 })
 
 test_that("no engine refuses a coarse commodity any more", {

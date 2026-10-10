@@ -1850,6 +1850,25 @@ NULL
   cr <- dplyr::distinct(as.data.frame(cr)[, c("comm", "region")])
   # an input balanced at a coarse geoframe is reachable anywhere in its cell
   cr <- as.data.frame(.commreg_geo_spreader(scen)(dplyr::as_tibble(cr)))
+  # ... and the mirror, for a process COARSER than its commodities: a commodity
+  # available in a fine region is reachable by a process placed above it. Only
+  # ancestor cells are added, so a process at a fine region is unaffected --
+  # it still needs the commodity at its own region.
+  if (.coarse_axis_ready("region")) {
+    anc <- .region_ancestry(scen)
+    if (!is.null(anc) && nrow(anc) > 0) {
+      up <- merge(cr,
+                  data.frame(region = as.character(anc$regionp),
+                             .anc = as.character(anc$region),
+                             stringsAsFactors = FALSE),
+                  by = "region")
+      if (nrow(up) > 0) {
+        cr <- dplyr::distinct(rbind(
+          cr, data.frame(comm = up$comm, region = up$.anc,
+                         stringsAsFactors = FALSE)))
+      }
+    }
+  }
 
   # `have`: the cells that DO work. A cell is missing when its span row has no
   # match here.
