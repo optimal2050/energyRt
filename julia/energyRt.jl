@@ -57,6 +57,7 @@ mTechInpCommAggTimeslice_ix = _group(mTechInpCommAggTimeslice, timeslice, 3, (1,
 mTechAInpCommAggTimeslice_ix = _group(mTechAInpCommAggTimeslice, timeslice, 3, (1, 2, 4));
 mTechOutCommAggTimeslice_ix = _group(mTechOutCommAggTimeslice, timeslice, 3, (1, 2, 4));
 mTechAOutCommAggTimeslice_ix = _group(mTechAOutCommAggTimeslice, timeslice, 3, (1, 2, 4));
+mTechProcAggRegion_ix = _group(mTechProcAggRegion, region, 4, (1, 2, 3));
 
 # Indices for the remaining domain-restriction filters; see _group.
 mAggregateFactor_ix = _group(mAggregateFactor, comm, 2, (1,));
@@ -271,12 +272,27 @@ print("eqTechSng2Sng(tech, region, comm, commp, year, timeslice)...")
 @constraint(
     model,
     [(t, r, c, cp, y, s) in meqTechSng2Sng],
-    vTechInp[(t, c, r, y, s)] * (
-        if haskey(pTechCinp2use, (t, c, r, y, s))
-            pTechCinp2use[(t, c, r, y, s)]
+    (
+        if (t, c, r, y, s) in mvTechInp
+            vTechInp[(t, c, r, y, s)] * (
+                if haskey(pTechCinp2use, (t, c, r, y, s))
+                    pTechCinp2use[(t, c, r, y, s)]
+                else
+                    pTechCinp2useDef
+                end
+            )
         else
-            pTechCinp2useDef
+            0
         end
+    ) +
+    sum(
+        vTechInp[(t, c, rp, y, s)] * (
+            if haskey(pTechCinp2use, (t, c, rp, y, s))
+                pTechCinp2use[(t, c, rp, y, s)]
+            else
+                pTechCinp2useDef
+            end
+        ) for rp in get(mTechProcAggRegion_ix, (t, c, r), ())
     ) ==
     (vTechOut[(t, cp, r, y, s)]) / (
         (
@@ -2367,7 +2383,29 @@ print("eqTechVarom(tech, region, year)...")
                     pTimesliceWeightDef
                 end
             ) *
-            vTechInp[(t, c, r, y, s)] for c in get(mTechInpComm_ix1_0, t, ())
+            (
+                if (t, c, r, y, s) in mvTechInp
+                    vTechInp[(t, c, r, y, s)]
+                else
+                    0
+                end
+            ) +
+            sum(
+                (
+                    if haskey(pTechCvarom, (t, c, rp, y, s))
+                        pTechCvarom[(t, c, rp, y, s)]
+                    else
+                        pTechCvaromDef
+                    end
+                ) * (
+                    if haskey(pTimesliceWeight, (y, s))
+                        pTimesliceWeight[(y, s)]
+                    else
+                        pTimesliceWeightDef
+                    end
+                ) * vTechInp[(t, c, rp, y, s)] for
+                rp in get(mTechProcAggRegion_ix, (t, c, r), ())
+            ) for c in get(mTechInpComm_ix1_0, t, ())
         ) +
         sum(
             (

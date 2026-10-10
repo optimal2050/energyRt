@@ -295,9 +295,8 @@
   Scope of this release: `technology` only, the region axis only, inputs only
   (a finer *output* is refused, because each side's conversion coefficients
   must be read at its own region), single input and output commodity, and no
-  groups, shares, `afc` or ramp limits -- each refused by name. GLPK and GAMS
-  support it; JuMP/Julia and Pyomo refuse it at write time until their
-  templates carry the same branch. A process coarser in *time* is still
+  groups, shares, `afc` or ramp limits -- each refused by name. All four
+  backends support it and agree. A process coarser in *time* is still
   refused.
 
 * `interpolate_model(parent_levels = )` gives a variable rows at the timeslice

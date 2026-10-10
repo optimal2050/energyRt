@@ -185,6 +185,7 @@ mTechOutCommAgg_ix = _group(mTechOutCommAgg, tech, 0, (1,))
 mTechAOutCommSameTimeslice_ix = _group(mTechAOutCommSameTimeslice, tech, 0, (1,))
 mTechAOutCommAgg_ix = _group(mTechAOutCommAgg, tech, 0, (1,))
 mTechOutCommAggTimeslice_ix = _group(mTechOutCommAggTimeslice, timeslice, 2, (0, 1, 3))
+mTechProcAggRegion_ix = _group(mTechProcAggRegion, region, 3, (0, 1, 2))
 mTechAOutCommAggTimeslice_ix = _group(
     mTechAOutCommAggTimeslice, timeslice, 2, (0, 1, 3))
 
@@ -571,8 +572,16 @@ if verbose:
 sys.stdout.flush()
 model.eqTechSng2Sng = Constraint(
     meqTechSng2Sng,
-    rule=lambda model, t, r, c, cp, y, s: model.vTechInp[t, c, r, y, s]
-    * pTechCinp2use.get((t, c, r, y, s))
+    rule=lambda model, t, r, c, cp, y, s: (
+        model.vTechInp[t, c, r, y, s] * pTechCinp2use.get((t, c, r, y, s))
+        if (t, c, r, y, s) in mvTechInp
+        else 0
+    )
+    # a technology COARSER than this input draws it at the regions beneath its own
+    + sum(
+        model.vTechInp[t, c, rp, y, s] * pTechCinp2use.get((t, c, rp, y, s))
+        for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+    )
     == (model.vTechOut[t, cp, r, y, s])
     / (pTechUse2cact.get((t, cp, r, y, s)) * pTechCact2cout.get((t, cp, r, y, s))),
 )
@@ -1831,7 +1840,13 @@ model.eqTechVarom = Constraint(
         + sum(
             pTechCvarom.get((t, c, r, y, s))
             * pTimesliceWeight.get((y, s))
-            * model.vTechInp[t, c, r, y, s]
+            * (model.vTechInp[t, c, r, y, s] if (t, c, r, y, s) in mvTechInp else 0)
+            + sum(
+                pTechCvarom.get((t, c, rp, y, s))
+                * pTimesliceWeight.get((y, s))
+                * model.vTechInp[t, c, rp, y, s]
+                for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+            )
             for c in mTechInpComm_ix1_0.get(t, ())
         )
         + sum(

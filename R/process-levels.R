@@ -392,23 +392,3 @@
   out[is.na(ra) & is.na(rb)] <- NA_character_
   out
 }
-
-# A coarse process (one declared at a region level coarser than a commodity it
-# uses) needs the mTechProcAggRegion branch in the process equations. GLPK and
-# GAMS carry it; this backend does not yet, and without it the flow is read at
-# a cell that holds no variable -- the model solves with the flow free. Refuse
-# rather than return a wrong answer.
-#' @noRd
-.assert_no_coarse_process <- function(scen, backend) {
-  p <- tryCatch(scen@modInp@parameters[["mTechProcAggRegion"]],
-                error = function(e) NULL)
-  if (is.null(p)) return(invisible(NULL))
-  d <- tryCatch(get_data_slot(p), error = function(e) NULL)
-  if (is.null(d) || nrow(d) == 0) return(invisible(NULL))
-  stop("Process(es) ", paste0('"', sort(unique(as.character(d$tech))), '"',
-                              collapse = ", "),
-       " sit at a region level COARSER than a commodity they use, which the ",
-       backend, " backend does not support yet (GLPK and GAMS do). Solve ",
-       "with `lang = \"GLPK\"` or `\"GAMS\"`, or place the process at the ",
-       "commodity's region level.", call. = FALSE)
-}

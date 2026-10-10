@@ -42,7 +42,6 @@ get_julia_path <- function() {
 }
 
 .write_model_JuMP <- function(arg, scen) {
-  .assert_no_coarse_process(scen, "JuMP/Julia")
   # Arrow in and out unless the preset asks for the legacy RData bundle;
   # `exchange_format` supplies the default (R/exchange.R).
   scen@settings@solver <- .resolve_exchange_formats(scen@settings@solver)
