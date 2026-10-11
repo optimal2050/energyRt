@@ -592,3 +592,69 @@ test_that("family process-levels: afc.up on an output scales with the slice", {
   # and the bound must actually bite, or the test proves nothing
   expect_lt(expected, pp_cap * 0.5)
 })
+
+# --------------------------------------------------------------------------- #
+# A MIXED-LEVEL group on a coarse process: one member AT the process's level
+# (not spread) and one FINER (spread). The group sum must therefore mix a
+# direct term with an Agg-summed one in the same equation -- the combination
+# most likely to expose a formulation error, and the one the earlier audit left
+# unverified.
+#
+# Two different weightings are in play, and getting them crossed is the trap:
+#   the RATIO is in group-input units      -> cinp2ginp-weighted
+#   the SHARE is in raw commodity units    -> NOT weighted
+# --------------------------------------------------------------------------- #
+
+pl_mixed_group_model <- function(mill_tf = "ANNUAL") {
+  newModel("plmg", repo = newRepository("r",
+    newCommodity("COA", timeframe = "ANNUAL"),     # == the process's level
+    newCommodity("GAS", timeframe = "SEASON"),     # FINER -> spread
+    newCommodity("STEEL", timeframe = "ANNUAL"),
+    newSupply("SCOA", commodity = "COA", supply = data.frame(cost = 9)),
+    newSupply("SGAS", commodity = "GAS", supply = data.frame(cost = 1)),
+    newTechnology("MILL",
+      input = list(comm = c("COA", "GAS"), group = c("FUEL", "FUEL")),
+      output = list(comm = "STEEL"),
+      geff = data.frame(group = "FUEL", ginp2use = 1),
+      ceff = data.frame(comm = c("COA", "GAS"), cinp2ginp = c(2, 3),
+                        grp.share.up = c(NA, 0.6)),
+      timeframe = mill_tf, invcost = data.frame(invcost = 50),
+      vintage = data.frame(olife = 30L), cap2act = 1),
+    newDemand("DS", commodity = "STEEL", demand = data.frame(demand = 12))),
+    calendar = newCalendar(timetable = make_timetable(
+      struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+      name = "plmgc"),
+    region = "R1", horizon = newHorizon(2025), discount = 0)
+}
+
+test_that("family process-levels: a mixed-level group sums correctly", {
+  skip_if_no_solver()
+  solved <- function(tf, tag) {
+    s <- suppressMessages(suppressWarnings(solve_model(
+      pl_mixed_group_model(tf), name = tag, ondisk = FALSE, overwrite = TRUE)))
+    i <- suppressWarnings(getData(s, "vTechInp", merge = TRUE))
+    o <- suppressWarnings(getData(s, "vTechOut", merge = TRUE))
+    i <- i[i$tech == "MILL", ]
+    f <- function(cm) sum(i$value[i$comm == cm])
+    list(obj = suppressWarnings(getData(s, "vObjective", merge = TRUE))$value,
+         coa = f("COA"), gas = f("GAS"),
+         out = sum(o$value[o$tech == "MILL"]),
+         slices = sort(unique(as.character(i$timeslice[i$comm == "GAS"]))))
+  }
+  co <- solved("ANNUAL", "pl_mg_c")
+  fi <- solved(character(), "pl_mg_f")
+
+  # the COARSE process's finer member really is spread to the commodity's slices
+  expect_true(all(co$slices %in% c("WIN", "SUM")))
+
+  for (r in list(co, fi)) {
+    # ratio, in GROUP-INPUT units: ginp2use * sum(cinp2ginp * inp) == out
+    expect_equal(2 * r$coa + 3 * r$gas, r$out, tolerance = 1e-6)
+    # share, in RAW commodity units -- the share equation does NOT apply
+    # cinp2ginp, unlike the ratio
+    expect_equal(r$gas / (r$coa + r$gas), 0.6, tolerance = 1e-6)
+  }
+  # nothing here lets the coarse process exploit its freedom (annual demand,
+  # symmetric conditions), so the two must agree exactly
+  expect_equal(co$obj, fi$obj, tolerance = 1e-6)
+})
