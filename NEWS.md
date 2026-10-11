@@ -279,6 +279,12 @@
 
 ## New features
 
+* `solver_options$mm_cuopt_wsl` (and `mm_cuopt_wsl_crossover`) solve the
+  multimod matrix (`lang = "mm"`) with NVIDIA cuOpt on a local GPU through WSL
+  on Windows. `cuopt_cli` is located by the preset's `wsl_user` / `cuopt_cli`,
+  the environment variables `ENERGYRT_WSL_USER` / `ENERGYRT_CUOPT_CLI`, or WSL's
+  default user and `PATH`.
+
 * A **technology may now sit at a region level coarser than an input it uses**.
   A national plant drawing a regionally-balanced commodity used to be refused
   ("placed at a region level COARSER than a commodity they use"); its input now

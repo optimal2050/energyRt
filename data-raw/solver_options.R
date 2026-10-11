@@ -161,6 +161,28 @@ mmcloud_crossover$name <- "mmcloud_crossover"
 # against 2.3e-4 without, for a small extra solve.
 mmcloud_crossover$gpu_solver_options <- "--crossover 1"
 
+## multimod matrix, solved by cuOpt on a local GPU, through WSL (Windows) ####
+# `mm_engine = "cuopt_wsl"`: cuOpt is distributed for Linux, so `cuopt_cli` runs
+# inside WSL on the local NVIDIA card, reading the matrix under /mnt/<drive>/.
+# The solver fields are the cloud route's. The install is found through the
+# optional fields `wsl_user` and `cuopt_cli`, else the environment variables
+# ENERGYRT_WSL_USER and ENERGYRT_CUOPT_CLI, else WSL's default user and
+# `cuopt_cli` on its PATH. PDLP needs roughly 0.7 GB of GPU memory plus ~300
+# bytes per presolved nonzero.
+# cuOpt returns PRIMALS ONLY -- duals are NA -- unless crossover runs.
+mm_cuopt_wsl <- mm_highs
+mm_cuopt_wsl$name <- "mm_cuopt_wsl"
+mm_cuopt_wsl$highs_options <- NULL
+mm_cuopt_wsl$solver <- "cuOpt"
+mm_cuopt_wsl$mm_engine <- "cuopt_wsl"
+# PDLP, as on the cloud route (concurrent mode crashes; barrier exhausts GPU memory)
+mm_cuopt_wsl$gpu_method <- 1L
+mm_cuopt_wsl$gpu_time_limit <- 7200
+
+mm_cuopt_wsl_crossover <- mm_cuopt_wsl
+mm_cuopt_wsl_crossover$name <- "mm_cuopt_wsl_crossover"
+mm_cuopt_wsl_crossover$gpu_solver_options <- "--crossover 1"
+
 ## Pyomo-written matrix, same GPU transport ###################################
 # Kept because it is the route every large model solved with before the
 # multimod writer existed, and because its decoder tolerates a matrix whose
@@ -604,6 +626,8 @@ solver_options <- list(
   mm_highs_barrier_bs3 = mm_highs_barrier_bs3,
   mm_julia_highs_barrier = mm_julia_highs_barrier,
   mm_julia_highs_barrier_bs3 = mm_julia_highs_barrier_bs3,
+  mm_cuopt_wsl = mm_cuopt_wsl,
+  mm_cuopt_wsl_crossover = mm_cuopt_wsl_crossover,
   mmcloud = mmcloud,
   mmcloud_crossover = mmcloud_crossover,
   # Pyomo-written matrix on the same GPU transport

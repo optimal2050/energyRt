@@ -101,6 +101,15 @@
   if (length(control) && (!is.list(control) || is.null(names(control)) || any(!nzchar(names(control))))) {
     stop("solver `highs_options` must be a named list of HiGHS options", call. = FALSE)
   }
+  # `mm_engine = "cuopt_wsl"`: NVIDIA cuOpt on a local GPU, run inside
+  # WSL (cuOpt ships for Linux only); it writes the `.sol` beside the MPS
+  if (identical(scen@settings@solver$mm_engine, "cuopt_wsl")) {
+    rs <- .mm_cuopt_wsl_solve(arg, mps, scen@settings@solver)
+    if (rs != 0) return(rs)
+    .mm_decode_solution(arg$solver.dir, fp(arg$solver.dir, "model.sol"),
+                        solver = "cuopt", echo = isTRUE(arg$echo))
+    return(0L)
+  }
   # `mm_engine = "julia"`: the MPS is solved by Julia's HiGHS (HiGHS.jl), whose
   # build carries the HiPO interior point solver and writes the `.sol` itself
   if (identical(scen@settings@solver$mm_engine, "julia")) {
@@ -153,4 +162,70 @@
     stop("lang = 'mm', mm_engine = 'julia': HiGHS wrote no solution (Julia exit ", rs, ")", call. = FALSE)
   }
   as.integer(rs)
+}
+
+# Solve model.mps with NVIDIA cuOpt on a local GPU through WSL (Windows only):
+# cuOpt is distributed for Linux, and WSL reaches the Windows files under
+# /mnt/<drive>/. The solver fields are those of the cloud route (`gpu_method`,
+# `gpu_time_limit`, `gpu_solver_options`). The install is located by the
+# preset's `wsl_user` and `cuopt_cli`, else by the environment variables
+# ENERGYRT_WSL_USER and ENERGYRT_CUOPT_CLI, else WSL's default user and
+# `cuopt_cli` on that user's PATH.
+.mm_cuopt_wsl_solve <- function(arg, mps, s) {
+  sol <- fp(arg$solver.dir, "model.sol")
+  if (file.exists(sol)) file.remove(sol)
+  # cuOpt writes the solution line by line, which is slow across the
+  # /mnt/<drive> bridge (minutes for a model of millions of columns): it writes
+  # inside WSL's own file system and the file is copied out in one piece
+  wsl_sol <- sprintf("/tmp/energyRt_%s_%d.sol", basename(arg$solver.dir), Sys.getpid())
+  args <- .mm_cuopt_wsl_args(mps, wsl_sol, s)
+  if (isTRUE(arg$echo)) cat("cuOpt (WSL):", paste(args, collapse = " "), "\n")
+  run <- function(a) system2("wsl", a, stdout = if (isTRUE(arg$echo)) "" else FALSE,
+                             stderr = if (isTRUE(arg$echo)) "" else FALSE)
+  user <- c(.wsl_user_args(s), "-e")
+  sol_in_wsl <- function() suppressWarnings(system2("wsl", c(user, "test", "-s", wsl_sol))) == 0
+  rs <- run(args)
+  # cuOpt writes no solution file when its presolve solves the whole problem
+  # (it reports Optimal and exits 0): solve once more without presolve
+  if (rs == 0 && !sol_in_wsl() && !"--presolve" %in% args) {
+    rs <- run(c(args, "--presolve", "0"))
+  }
+  if (sol_in_wsl()) {
+    system2("wsl", c(user, "cp", wsl_sol, .wsl_path(sol)))
+    system2("wsl", c(user, "rm", "-f", wsl_sol))
+  }
+  if (!file.exists(sol)) {
+    stop("lang = 'mm', mm_engine = 'cuopt_wsl': cuOpt wrote no solution (exit ", rs,
+         "). Check that `wsl ", paste(c(.wsl_user_args(s), "-e", .cuopt_cli_path(s)), collapse = " "),
+         " --version` runs and that WSL sees the GPU (`wsl -e nvidia-smi`). ",
+         "Set the preset's `wsl_user` / `cuopt_cli`, or ENERGYRT_WSL_USER / ",
+         "ENERGYRT_CUOPT_CLI, where cuOpt is not on the default user's PATH.", call. = FALSE)
+  }
+  as.integer(rs)
+}
+
+# `-u <user>` when a WSL user is named, nothing for WSL's default user.
+.wsl_user_args <- function(s) {
+  u <- s$wsl_user %||% Sys.getenv("ENERGYRT_WSL_USER", "")
+  if (nzchar(u)) c("-u", u) else character(0)
+}
+.cuopt_cli_path <- function(s) s$cuopt_cli %||% Sys.getenv("ENERGYRT_CUOPT_CLI", "cuopt_cli")
+
+# The `wsl` arguments for one solve: pure, so it can be tested without a GPU.
+.mm_cuopt_wsl_args <- function(mps, sol, s) {
+  opts <- c("--method", as.character(s$gpu_method %||% 1L))
+  # cuopt_cli's own default time limit is short; an unset limit means none
+  if (!is.null(s$gpu_time_limit)) opts <- c(opts, "--time-limit", as.character(s$gpu_time_limit))
+  if (!is.null(s$gpu_solver_options)) opts <- c(opts, unlist(strsplit(s$gpu_solver_options, "[[:space:]]+")))
+  c(.wsl_user_args(s), "-e", .cuopt_cli_path(s),
+    .wsl_path(mps), "--solution-file", .wsl_path(sol), opts)
+}
+
+# A Windows path as WSL sees it: C:/a/b -> /mnt/c/a/b.
+.wsl_path <- function(x) {
+  if (startsWith(x, "/")) return(x)             # already a Linux path
+  x <- normalizePath(x, winslash = "/", mustWork = FALSE)
+  drv <- regmatches(x, regexpr("^[A-Za-z]:", x))
+  if (!length(drv)) return(x)
+  paste0("/mnt/", tolower(substr(drv, 1, 1)), substring(x, 3))
 }
