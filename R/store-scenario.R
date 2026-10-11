@@ -714,7 +714,20 @@ drop_scenario_run <- function(scen, run, force = FALSE) {
   tryCatch({
     reg <- .registry_open()
     rel <- .registry_rel_path(scen@path)
-    reg <- add_to_registry(reg, "scenario", scen@name, path = rel)
+    # The model identifies a scenario whose name repeats, so it has to be
+    # recorded by the save and not only by a later refresh_registry() -- a
+    # pass that has just written 48 same-named scenarios is exactly when it
+    # is needed.
+    #
+    # Read back from the manifest that save_scenario() wrote moments earlier
+    # (arrow.R:372) rather than rebuilt from the slots: that is the same source
+    # refresh_registry() reads, so a saved row and a refreshed one cannot
+    # disagree.
+    mb <- tryCatch(yaml::read_yaml(fp(scen@path, "scenario.yml"))$model,
+                   error = function(e) NULL)
+    reg <- add_to_registry(reg, "scenario", scen@name, path = rel,
+                        model = as.character(mb$name %||% "")[1],
+                        model_hash = as.character(mb$hash %||% "")[1])
     rd <- .run_dirs(scen)
     for (i in which(rd$has_record)) {
       # plain solve label in `name`, the problem in `variant` — the

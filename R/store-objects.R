@@ -391,8 +391,14 @@ save_model <- function(
     find_in_registry(.registry_open(), type = reg_type, name = name, hash = hash),
     error = function(e) NULL)
   if (!is.null(hit) && nrow(hit)) {
-    d <- fp(dirname(get_registry_file()), hit$path[1])
-    if (file.exists(fp(d, manifest))) return(gsub("[\\/]+", "/", d))
+    d <- fp(dirname(get_registry_file()), hit$path)
+    d <- d[file.exists(fp(d, manifest))]
+    # Return only on a unique hit. Registry rows are keyed on path, so a name
+    # with two version folders (`<slug>/` and `<slug>@<hash8>/`) yields two
+    # rows, and `d[1]` would pick one silently. Falling through reaches the
+    # store scan, which already refuses an ambiguous name and names the
+    # versions.
+    if (length(d) == 1L) return(gsub("[\\/]+", "/", d))
   }
   # 2. store scan: a plain `<slug>/` entry (default layout) and/or
   # `<slug>@<hash8>` versions (versioned layout, or pre-rework saves)
@@ -1556,6 +1562,7 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
     list(sealed = FALSE)
   }
   .entry_manifest_update(type, e$path, fields)
+  .registry_sync_entry(type, e$path, e$name)
   if (isTRUE(verbose)) {
     if (sealed) {
       message(type, " '", e$name, "' sealed — modification refused until ",
@@ -1653,6 +1660,9 @@ unseal_scenario <- function(x, verbose = TRUE) {
   type <- .entry_type_of(x, type)
   e <- .entry_resolve(type, x)
   .entry_manifest_update(type, e$path, fields)
+  # the registry caches the mark, so it has to hear about it now rather than
+  # at the next refresh_registry()
+  .registry_sync_entry(type, e$path, e$name)
   if (isTRUE(verbose)) {
     message(type, " '", e$name, "' ", what)
   }

@@ -33,9 +33,17 @@ acc_scen <- function(name, stock = c(100, 100, 100)) {
   suppressMessages(save_scenario(sol, verbose = FALSE))
 }
 
+# Bank entries are keyed on the resolved PATH, not the scenario name -- a name
+# can be shared by several folders -- so clear by the cached object's @name
+# rather than by the key, or this isolates nothing.
 acc_clear_bank <- function(...) {
+  nms <- c(...)
   bank <- energyRt:::.scen_bank()
-  rm(list = intersect(c(...), ls(bank, all.names = TRUE)), envir = bank)
+  for (k in ls(bank, all.names = TRUE)) {
+    o <- tryCatch(get(k, envir = bank, inherits = FALSE),
+                  error = function(e) NULL)
+    if (is(o, "scenario") && isTRUE(o@name %in% nms)) rm(list = k, envir = bank)
+  }
 }
 
 test_that("open_project points the five options and reports them back", {
@@ -95,7 +103,13 @@ test_that("getScenario caches in .scen and reloads on manifest drift", {
   s1 <- getScenario("acc_c")
   expect_s4_class(s1, "scenario")
   bank <- energyRt:::.scen_bank()
-  expect_true(exists("acc_c", envir = bank, inherits = FALSE))
+  # keyed on the resolved path: the name is a label and may be shared, and the
+  # stamp is `updated` at one-second resolution, so a name-keyed cache could
+  # serve one scenario for another saved in the same second
+  expect_true(any(vapply(ls(bank, all.names = TRUE), function(k) {
+    o <- get(k, envir = bank, inherits = FALSE)
+    is(o, "scenario") && identical(o@name, "acc_c")
+  }, logical(1))))
 
   # a second call serves the cached shell (same stamp, same object)
   s2 <- getScenario("acc_c")

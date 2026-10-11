@@ -1760,11 +1760,24 @@ Levelized cost section will be omitted.")
     if (length(v) == 0) "" else paste(unique(v), collapse = ", ")
   }
 
+  # the level each commodity balances at (`@geoframe`); empty = the model's
+  # finest regions. Shown beside every commodity the tables name.
+  comm_gf <- vapply(comms, function(x) {
+    g <- slot_chr(x, "geoframe"); if (nzchar(g)) g else "(finest)"
+  }, character(1))
+  names(comm_gf) <- vapply(comms, function(x) x@name, character(1))
+  gf_of <- function(cm) {
+    cm <- as.character(cm); cm <- cm[!is.na(cm) & nzchar(cm)]
+    if (!length(cm)) return("")
+    g <- comm_gf[cm]; g[is.na(g)] <- "?"
+    paste(unique(g), collapse = ", ")
+  }
+
   comm_df <- if (length(comms) > 0) do.call(rbind, lapply(comms, function(x) {
     em <- if (nrow(x@emis) > 0)
       paste(x@emis$comm, x@emis$emis, x@emis$unit, collapse = "; ") else ""
     data.frame(name = x@name, unit = slot_chr(x, "unit"),
-               timeframe = x@timeframe[1], emissions = em,
+               timeframe = x@timeframe[1], geoframe = gf_of(x@name), emissions = em,
                desc = slot_chr(x, "desc"), stringsAsFactors = FALSE)
   })) else NULL
 
@@ -1774,6 +1787,7 @@ Levelized cost section will be omitted.")
       if (length(v) > 0) paste(unique(signif(range(v), 4)), collapse = " - ") else ""
     } else ""
     data.frame(name = x@name, commodity = paste(x@commodity, collapse = ", "),
+               geoframe = gf_of(x@commodity),
                region = slot_chr(x, "region"), cost = cost,
                stringsAsFactors = FALSE)
   })) else NULL
@@ -1784,6 +1798,7 @@ Levelized cost section will be omitted.")
       if (length(v) > 0) signif(sum(v), 4) else NA
     } else NA
     data.frame(name = x@name, commodity = paste(x@commodity, collapse = ", "),
+               geoframe = gf_of(x@commodity),
                region = slot_chr(x, "region"), total = tot,
                stringsAsFactors = FALSE)
   })) else NULL
@@ -1795,6 +1810,7 @@ Levelized cost section will be omitted.")
       paste(paste0(rt$src, " -> ", rt$dst), collapse = "; ")
     } else ""
     data.frame(name = x@name, commodity = paste(x@commodity, collapse = ", "),
+               geoframe = gf_of(x@commodity),
                routes = routes, stringsAsFactors = FALSE)
   })) else NULL
   cns_df <- if (length(cns) > 0) data.frame(name = names(cns),
@@ -1807,6 +1823,7 @@ Levelized cost section will be omitted.")
     lapply(expimp, function(x) {
       data.frame(name = x@name, class = class(x)[1],
                  commodity = paste(x@commodity, collapse = ", "),
+                 geoframe = gf_of(x@commodity),
                  desc = slot_chr(x, "desc"), stringsAsFactors = FALSE)
     })) else NULL
 
@@ -1856,7 +1873,8 @@ Levelized cost section will be omitted.")
   pols <- c(taxes, subs)
   policy_df <- if (length(pols) > 0) do.call(rbind, lapply(pols, function(x) {
     data.frame(name = x@name, class = class(x)[1],
-               commodity = slot_chr(x, "comm"), desc = slot_chr(x, "desc"),
+               commodity = slot_chr(x, "comm"), geoframe = gf_of(x@comm),
+               desc = slot_chr(x, "desc"),
                stringsAsFactors = FALSE)
   })) else NULL
 

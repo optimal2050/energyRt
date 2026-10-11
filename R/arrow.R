@@ -910,10 +910,17 @@ get_lazy_data <- function(obj,
         isTRUE(od$dim[1] > 0) || isTRUE(od$length > 0)
       }, error = function(e) FALSE)
       if (expected && !optional) {
-        stop("On-disk data expected but not found: ", path, "\n",
-             "  The scenario/model folder may have been moved or renamed. ",
-             "Re-load it with load_scenario() / load_model() to rebase ",
-             "its paths.")
+        # Classed, so a caller can tell a FAILED READ from an absent
+        # variable. Report code that wraps getData() in a tryCatch otherwise
+        # has to treat both as "no data", which turns a moved folder into
+        # silently empty output. The message is unchanged.
+        stop(errorCondition(
+          paste0("On-disk data expected but not found: ", path, "\n",
+                 "  The scenario/model folder may have been moved or renamed. ",
+                 "Re-load it with load_scenario() / load_model() to rebase ",
+                 "its paths."),
+          class = c("energyRt_ondisk_missing", "energyRt_error"),
+          path = path))
       }
       return(NULL)
     }
@@ -1083,6 +1090,15 @@ mark_inMemory <- function(obj) {
 
 #' Load scenario (in progress)
 #'
+#' @section Slots stay on disk:
+#' A loaded scenario keeps its data-frame slots in the Arrow store rather than
+#' in memory, so reading one directly — `obj@demand`, `obj@capacity` — returns
+#' an **empty frame** rather than the data, and `isInMemory()` is `FALSE`.
+#' [getData()] goes through the lazy store and is unaffected, so it is the
+#' route to use; `findData()` and [get_variable()] likewise. This bites report
+#' and plotting code written against an in-memory model, where the symptom is
+#' an empty table rather than an error.
+#'
 #' @param path character. Path to saved with function `save_scenario` scenario directory.
 #' @param name character. Name to assign to the loaded scenario object.
 #' By default, the name is taken from the loaded scenario object.
@@ -1123,6 +1139,11 @@ load_scenario <- function(
     }
     path <- resolved
   }
+  # Anchor the path absolutely before anything is derived from it. The on-disk
+  # slot paths are rebased onto `scen_root` below, so a relative path here is
+  # kept verbatim and every later read breaks the moment the working directory
+  # changes -- as it does inside rmarkdown::render().
+  path <- normalizePath(path, winslash = "/", mustWork = FALSE)
   finf <- file.info(path)
   if (finf$isdir) {
     .mark_notice("scenario", path, basename(path))

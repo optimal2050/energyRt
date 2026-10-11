@@ -34,23 +34,49 @@ test_that("registry add/save/load round-trips", {
   expect_setequal(reg2$type, c("scenario", "model", "run"))
   expect_identical(
     find_in_registry(reg2, type = "run", parent = "BASE")$name, "default/glpk")
-  # all-character round-trip
-  expect_true(all(vapply(reg2, is.character, logical(1))))
+  # Character round-trip everywhere except the three lifecycle columns, which
+  # are typed on load because they get filtered on, not merely displayed.
+  typed <- c("sealed", "marked_delete", "delete_importance")
+  expect_true(all(vapply(reg2[setdiff(names(reg2), typed)], is.character,
+                         logical(1))))
+  expect_type(reg2$sealed, "logical")
+  expect_type(reg2$marked_delete, "logical")
+  expect_type(reg2$delete_importance, "double")
+  # an entry that was never marked reads FALSE, not NA
+  expect_false(any(reg2$marked_delete))
+  expect_true(all(is.na(reg2$delete_importance)))
 })
 
-test_that("add_to_registry upserts on (type, name, parent), preserving created/memo", {
+test_that("add_to_registry upserts on (type, path), preserving created/memo", {
+  # The key is the PATH, not the name. It used to be (type, name, parent,
+  # variant), which cannot hold a name that repeats: a scenario's folder is
+  # {scenario}-{model}-{calendar}-{horizon} while its @name is just
+  # {scenario}, so 48 countries saved as "BY25A_F4" collapsed into one row
+  # whose path each save overwrote -- and a later lookup by name loaded
+  # whichever folder had been written last.
   reg <- newRegistry()
   reg <- add_to_registry(reg, "scenario", "A", path = "p1", memo = "keep me")
   created1 <- reg$created[1]
   Sys.sleep(1.1)  # timestamps have 1s resolution
-  reg <- add_to_registry(reg, "scenario", "A", path = "p2")
+
+  # same path -> upsert
+  reg <- add_to_registry(reg, "scenario", "A", path = "p1")
   expect_identical(nrow(reg), 1L)
-  expect_identical(reg$path, "p2")
   expect_identical(reg$created, created1)   # preserved
   expect_identical(reg$memo, "keep me")     # empty new memo keeps the old
   expect_false(identical(reg$updated, created1))  # updated moved forward
-  # different parent -> separate row
-  reg <- add_to_registry(reg, "scenario", "A", path = "p3", parent = "X")
+
+  # same name, DIFFERENT path -> a second row, which is the fix
+  reg <- add_to_registry(reg, "scenario", "A", path = "p2")
+  expect_identical(nrow(reg), 2L)
+  expect_setequal(reg$path, c("p1", "p2"))
+  expect_identical(unique(reg$name), "A")
+  # the first row is untouched: it is a different folder
+  expect_identical(reg$created[reg$path == "p1"], created1)
+  expect_identical(reg$memo[reg$path == "p1"], "keep me")
+
+  # separator spelling is not a difference -- one folder must not become two
+  reg <- add_to_registry(reg, "scenario", "A", path = "p1/")
   expect_identical(nrow(reg), 2L)
 })
 
@@ -61,10 +87,10 @@ test_that("add() dispatches on the registry tibble and upserts a row", {
   expect_s3_class(reg, "en_registry")
   expect_identical(nrow(reg), 1L)
   expect_identical(reg$name, "BASE")
-  # upsert, not append
-  reg <- add(reg, "scenario", "BASE", path = "scenarios/BASE2")
+  # upsert on the same folder, not append
+  reg <- add(reg, "scenario", "BASE", path = "scenarios/BASE")
   expect_identical(nrow(reg), 1L)
-  expect_identical(reg$path, "scenarios/BASE2")
+  expect_identical(reg$path, "scenarios/BASE")
   # the subclass survives filtering, so dispatch keeps working downstream
   expect_s3_class(find_in_registry(reg, type = "scenario"), "en_registry")
 })

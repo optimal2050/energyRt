@@ -277,7 +277,48 @@
 * `en_install_python_deps()` is deprecated. The Python environment is
   set up by multimod, which energyRt and multimod now share.
 
+## Bug fixes
+
+* The registry keyed rows on `(type, name, parent, variant)`, so several
+  scenarios sharing a name kept **one** row whose `path` each save overwrote,
+  and a later lookup by name loaded whichever folder was written last. Rows are
+  now keyed on `path` — one row per directory. Run rows were affected too,
+  keyed on their scenario's name.
+
+* `getScenario()` and `load_scenario(<name>)` returned the first registry hit
+  when a name matched several folders. They now error, naming the models that
+  share the name; `getScenario(name, model = )` picks one. `getScenario()` also
+  caches on the resolved path rather than the name, since the cache stamp is
+  `scenario.yml`'s `updated` at one-second resolution and could not separate
+  two scenarios saved in the same second.
+
+* `load_scenario()` kept a relative `path`, so every on-disk read failed once
+  the working directory changed — inside `rmarkdown::render()`, for instance.
+  The path is now absolute before the on-disk slots are rebased onto it.
+
 ## New features
+
+* The registry records which model a scenario uses, in a new `model` column,
+  written by `save_scenario()` as well as by `refresh_registry()`.
+
+* A failed on-disk read raises a classed condition,
+  `energyRt_ondisk_missing`, so a caller can tell it from an absent variable
+  instead of treating both as "no data". The message is unchanged.
+
+* The project registry records each entry's lifecycle: `sealed`, `sealed_at`,
+  `marked_delete`, `delete_importance`, `marked_at`, and `status` for run rows.
+  Previously these lived only in the per-entry manifests, so a loaded registry
+  could not say whether an entry was sealed or queued for deletion. The CSV is
+  now complete on its own, for readers outside R too. `mark_delete()` and
+  `seal_model()` and friends update their row immediately, so no refresh is
+  needed to see the change.
+
+* `summary()` on a loaded registry reports entry counts by type, how many
+  entries are sealed or marked for deletion, how the runs ended, and whether
+  the stores have changed since the registry was written.
+
+* `refresh_registry(lazy = TRUE)` skips the rescan when the registry is already
+  up to date with the stores. The default still always rescans.
 
 * `solver_options$mm_cuopt_wsl` (and `mm_cuopt_wsl_crossover`) solve the
   multimod matrix (`lang = "mm"`) with NVIDIA cuOpt on a local GPU through WSL

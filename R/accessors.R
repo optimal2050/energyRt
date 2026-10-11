@@ -68,6 +68,11 @@
 #'   current.
 #' @param hash character, content hash to pin a stored version.
 #' @param path character, project root directory (must exist).
+#' @param model character, the model a scenario belongs to. A scenario's name
+#'   is a label and may be shared — a 48-country pass can save every scenario
+#'   as `"BY25A_F4"`, distinguished only by the model — in which case the name
+#'   alone is refused and this picks one. See the `model` column of
+#'   [load_registry()].
 #' @param verbose logical.
 #' @param ... passed to the dispatched accessor.
 #'
@@ -87,9 +92,10 @@ getScenario <- function(name, ...) UseMethod("getScenario")
 #' @rdname accessors
 #' @export
 getScenario.character <- function(name, registry = NULL, run = NULL,
-                                  refresh = FALSE, verbose = FALSE, ...) {
+                                  refresh = FALSE, verbose = FALSE,
+                                  model = NULL, ...) {
   stopifnot(is.character(name), length(name) == 1L, nzchar(name))
-  path <- .scenario_resolve(name, registry = registry)
+  path <- .scenario_resolve(name, registry = registry, model = model)
   if (is.null(path)) {
     stop("Scenario '", name, "' was not found in the registry ('",
          get_registry_file(), "') or the scenarios store ('",
@@ -99,9 +105,15 @@ getScenario.character <- function(name, registry = NULL, run = NULL,
   }
   bank <- .scen_bank()
   stamp <- .scenario_stamp(path)
+  # Cached on the resolved PATH, not the name. A name may be shared by several
+  # scenarios, and the stamp alone cannot separate them: it is
+  # `scenario.yml$updated`, at one-second resolution, so two countries written
+  # in the same second of a parallel pass carry the same stamp and one would be
+  # served for the other.
+  key <- .registry_path_key(path)
   sc <- NULL
-  if (!isTRUE(refresh) && exists(name, envir = bank, inherits = FALSE)) {
-    cached <- get(name, envir = bank, inherits = FALSE)
+  if (!isTRUE(refresh) && exists(key, envir = bank, inherits = FALSE)) {
+    cached <- get(key, envir = bank, inherits = FALSE)
     if (is(cached, "scenario") &&
         identical(cached@misc[[".accessor_stamp"]] %||% "", stamp)) {
       sc <- cached
@@ -110,7 +122,7 @@ getScenario.character <- function(name, registry = NULL, run = NULL,
   if (is.null(sc)) {
     sc <- load_scenario(path, env = NULL, verbose = verbose)
     sc@misc$.accessor_stamp <- stamp
-    assign(name, sc, envir = bank)
+    assign(key, sc, envir = bank)
   }
   if (!is.null(run)) sc <- read_solution(sc, run = run, echo = FALSE)
   sc
