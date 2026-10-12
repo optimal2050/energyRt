@@ -48,7 +48,11 @@ test_that("arrow exchange solves identically to the legacy format (Julia + Pyomo
       solve_model(mod, name = tag, solver = sv, tmp.dir = td, force = TRUE)))
   }
 
-  skip_if(is.null(get_glpk_path()) || !nzchar(get_glpk_path()), "GLPK not configured")
+  # `skip_if_no_solver()`, not `get_glpk_path()`: the executable is resolved
+  # through the whole chain (configured path, the glpsol PACKAGE, PATH, Rtools),
+  # so gating on the configured path alone skipped this on every machine that
+  # solves via the package
+  skip_if_no_solver()
   g <- obj(solve1(solver_options$glpk, "g"))
   expect_false(is.na(g))
 

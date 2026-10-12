@@ -6,8 +6,7 @@
 # verify_solution() on every cell.
 #
 # Models: the tm_core / tm_weather tier fixtures (storage + weather stress all
-# writers) and the TOPIA R1 teaching layout. GAMS cells skip on a missing or
-# unlicensed install; the NEOS fallback is future work (skip_if_no_neos).
+# writers) and the TOPIA R1 teaching layout.
 #
 # Backends are also a DATA-EXCHANGE dimension: `julia_highs` / `pyomo_cbc` run
 # the default Arrow exchange, `julia_highs_rdata` / `pyomo_cbc_sqlite` the

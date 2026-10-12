@@ -52,8 +52,10 @@ test_that("year-fold is solution-invariant across GLPK / JuMP / Pyomo", {
   FOLD <- c("region", "timeslice", "year")
 
   # --- GLPK anchor (required) ------------------------------------------------ #
-  skip_if(is.null(get_glpk_path()) || !nzchar(get_glpk_path()),
-          "GLPK path not configured")
+  # the full resolution chain, not just the configured path -- see
+  # `.find_glpsol()`; gating on `get_glpk_path()` skipped the anchor wherever
+  # glpsol comes from its own package or Rtools
+  skip_if_no_solver()
   g_uf <- solve_fb(solver_options$glpk, FALSE, "g_uf")
   g_fo <- solve_fb(solver_options$glpk, FOLD,  "g_fo")
   expect_false(is.na(g_uf))

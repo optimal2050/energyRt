@@ -1,8 +1,8 @@
 # GAMS folding end to end: a DENSE folded scenario written for GAMS compiles and
 # solves to the same objective as its unfolded twin, which is the objective
-# every other backend returns on this fixture. Local GAMS is unlicensed here, so
-# the solve goes through NEOS (opt-in: ENERGYRT_TEST_NEOS=true and NEOS_EMAIL
-# set); the text-data route inlines sets.gms and data.gms into one job.
+# every other backend returns on this fixture. The solve goes through NEOS
+# (opt-in: ENERGYRT_TEST_NEOS=true and NEOS_EMAIL set); the text-data route
+# inlines sets.gms and data.gms into one job.
 
 test_that("dense folded and unfolded solve identically on GAMS via NEOS", {
   skip_if_no_neos()

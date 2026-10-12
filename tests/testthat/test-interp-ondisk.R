@@ -50,8 +50,9 @@ test_that("on-disk interpolation equals in-memory (data + solve)", {
   expect_identical(divergent, character(0))
 
   # --- solve identity (requires a GLPK binary) ------------------------------- #
-  skip_if(is.null(get_glpk_path()) || !nzchar(get_glpk_path()),
-          "GLPK path not configured")
+  # the full resolution chain, not just the configured path (see
+  # `.find_glpsol()`)
+  skip_if_no_solver()
   getobj <- function(s) tryCatch(s@modOut@variables$vObjective$value[1],
                                  error = function(e) NA_real_)
   solve1 <- function(s, tag) {

@@ -57,3 +57,7 @@ depreciated/
 # figure/ -- neither belongs in the repo
 Rplots.pdf
 figure/
+
+# the test preamble's backend-probe verdict: a snapshot of THIS machine's
+# backends, rewritten on every suite run (tools/test/lib/runner.R)
+tools/test/.backend-probe.json

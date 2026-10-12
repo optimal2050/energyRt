@@ -131,6 +131,11 @@ check_package <- function(pkg) {
 #' Each detector honours the path configured via the corresponding
 #' `set_*_path()` (e.g. [set_julia_path()]) and falls back to the system `PATH`.
 #'
+#' `en_check_solve()` is the one exception to "read-only": it SOLVES a tiny
+#' model (objective 8) on each configured backend, which is the only way to tell
+#' a backend that is installed from one that can produce a number. A backend
+#' that is not configured is not probed at all.
+#'
 #' @return A one-row (`en_check_*`) or multi-row (`en_check_dependencies`) tibble,
 #'   returned invisibly for `en_check_dependencies()` which also prints a table.
 #' @family solver
@@ -139,6 +144,8 @@ check_package <- function(pkg) {
 #' \dontrun{
 #' en_check_dependencies()
 #' en_check_julia()
+#' en_check_solve()                      # solves on every configured backend
+#' en_check_solve(backends = "gams")     # proprietary: ask for it by name
 #' }
 NULL
 
@@ -271,10 +278,233 @@ en_check_julia_pkgs <- function(pkgs = c("JuMP", "HiGHS", "Arrow")) {
       paste0("missing: ", paste(missing, collapse = ", "), " -> en_install_julia_pkgs()"))
 }
 
+# --------------------------------------------------------------------------- #
+# Solve probe: the only check that proves a backend can produce a number.
+#
+# TWO LEVELS, because a backend can be installed, run, and still be unable to
+# carry a real model -- a size-limited licence (GAMS demo, CPLEX community) is
+# the common case, and it fails nowhere near the entry point.
+#
+#   tiny  the unit kit U1 (`topia$modules$unit$U1`): every input is 1 on the
+#         symmetric `unit_s4` calendar, one region, one year, `discount = 0`, so
+#         the objective is the hand-computed integer `.EN_PROBE_OBJECTIVE` --
+#         arithmetic in `data-raw/topia_modules.R`, pinned by
+#         `tests/testthat/test-unit-model.R`. A constant to assert means no
+#         golden file and no per-backend tolerance. A dozen rows: inside any
+#         demo cap, so this level proves the chain (writer, data exchange,
+#         solver, reader) and nothing about capacity.
+#   full  the R1 electricity kit on `topia_seasons` (~615 variables, ~607
+#         constraints): the size the suite's own fixtures run at, and above the
+#         classic 300x300 demo cap. Its objective is not hand-computable, so the
+#         level asserts agreement with GLPK on the same model -- the same parity
+#         the cross tier checks, at probe scale.
+#
+# Only `gams` carries the `full` level by default; the other presets use
+# unlimited solvers (CBC, HiGHS, GLPK).
+# --------------------------------------------------------------------------- #
+
+.EN_PROBE_OBJECTIVE <- 8
+
+# backend -> (solver preset, toolchain gate, levels). `mm` needs no external
+# binary; `dense` marks a backend whose writer refuses a sparse scenario.
+.en_probe_backends <- function() {
+  list(
+    glpk  = list(preset = "glpk",           gate = function() en_check_glpk()$found),
+    julia = list(preset = "julia_highs",    gate = function() en_check_julia()$found),
+    pyomo = list(preset = "pyomo_cbc",      gate = function() en_check_pyomo()$found),
+    mm    = list(preset = "mm_highs",
+                 gate = function() requireNamespace("multimod", quietly = TRUE)),
+    gams  = list(preset = "gams_gdx_cplex", dense = TRUE,
+                 levels = c("tiny", "full"),
+                 gate = function() en_check_gams()$found)
+  )
+}
+
+# The probe models, built from package data only (no test fixtures). The `tiny`
+# one mirrors `un_build()` in tests/testthat/helper-topia.R -- keep them in step.
+.en_probe_model <- function(level = c("tiny", "full")) {
+  level <- match.arg(level)
+  if (level == "tiny") {
+    kit <- topia$modules$unit$U1
+    return(newModel("EN_PROBE", data = kit$repo,
+                    calendar = topia$modules$unit$calendars[[kit$calendar]],
+                    region   = kit$regions,
+                    horizon  = topia$modules$horizons$unit, discount = 0))
+  }
+  kit <- topia$modules$electricity$R1
+  newModel("EN_PROBE_FULL", data = kit$repo,
+           calendar = topia$modules$calendars$topia_seasons,
+           region   = kit$regions,
+           horizon  = topia$modules$horizons$unit, discount = 0)
+}
+
+#' @rdname en_check
+#' @param backends character vector naming the backends to probe: any of
+#'   `"glpk"`, `"julia"`, `"pyomo"`, `"mm"`, `"gams"`. `NULL` (default) probes
+#'   every one whose toolchain is configured EXCEPT `"gams"`, which is
+#'   proprietary and must be asked for by name.
+#' @param timeout seconds allowed per backend before the probe gives up.
+#' @export
+en_check_solve <- function(backends = NULL, timeout = 180) {
+  defs <- .en_probe_backends()
+  if (is.null(backends)) backends <- setdiff(names(defs), "gams")
+  backends <- intersect(backends, names(defs))
+  if (length(backends) == 0) {
+    return(.en_status_row("solve", required = FALSE,
+      list(found = FALSE, path = NA_character_, version = NA_character_),
+      note = "no backend named"))
+  }
+
+  # A backend that is not configured is NOT probed: no solver starts and the row
+  # is informational, not a failure of this machine.
+  gated <- vapply(backends, function(b) {
+    isTRUE(tryCatch(defs[[b]]$gate(), error = function(e) FALSE))
+  }, logical(1))
+
+  # One interpolation per (level, sparsity), built on first use: the GAMS writer
+  # is the only reader of `status$sparse` and refuses a sparse scenario, so
+  # probing it with the sparse one would report the PROBE's limitation as a
+  # broken backend.
+  cache <- new.env(parent = emptyenv())
+  probe_scen <- function(level, dense) {
+    key <- paste0(level, if (dense) "/dense" else "/sparse")
+    if (is.null(cache[[key]])) {
+      cache[[key]] <- tryCatch(
+        suppressMessages(suppressWarnings(interpolate_model(
+          .en_probe_model(level), name = paste0("en_probe_", level),
+          ondisk = FALSE, sparse = !dense))),
+        error = function(e) e)
+    }
+    cache[[key]]
+  }
+
+  # The `full` level has no hand-computable objective, so it is checked against
+  # GLPK on the same model -- computed once, only if some backend needs it.
+  full_ref <- function(dense) {
+    key <- paste0("ref", if (dense) "/dense" else "/sparse")
+    if (is.null(cache[[key]])) {
+      sc <- probe_scen("full", dense)
+      cache[[key]] <- if (inherits(sc, "error") ||
+                          !isTRUE(tryCatch(en_check_glpk()$found,
+                                           error = function(e) FALSE))) {
+        NA_real_
+      } else {
+        r <- .en_probe_one(sc, "glpk", "glpk", timeout, expected = NA_real_)
+        if (isTRUE(r$found)) as.numeric(sub("^obj ", "", r$version)) else NA_real_
+      }
+    }
+    cache[[key]]
+  }
+
+  rows <- list()
+  for (b in backends) {
+    preset <- defs[[b]]$preset
+    dense <- isTRUE(defs[[b]]$dense)
+    levels <- defs[[b]]$levels %||% "tiny"
+    if (!gated[[b]]) {
+      rows[[length(rows) + 1L]] <- .en_probe_row(b, "tiny", preset,
+        found = FALSE, version = NA_character_, note = "No backend")
+      next
+    }
+    for (lv in levels) {
+      scen <- probe_scen(lv, dense)
+      if (inherits(scen, "error")) {
+        rows[[length(rows) + 1L]] <- .en_probe_row(b, lv, preset,
+          found = FALSE, version = NA_character_,
+          note = paste0("probe model failed to interpolate: ",
+                        .en_first_line(conditionMessage(scen))))
+        next
+      }
+      expected <- if (lv == "tiny") .EN_PROBE_OBJECTIVE else full_ref(dense)
+      r <- .en_probe_one(scen, b, preset, timeout, expected = expected,
+                         level = lv)
+      rows[[length(rows) + 1L]] <- r
+      # a backend that cannot solve the tiny model will not solve the big one,
+      # and its error is already reported
+      if (lv == "tiny" && !isTRUE(r$found)) break
+    }
+  }
+  dplyr::bind_rows(rows)
+}
+
+# One row of the probe table, carrying `backend` and `level` so the caller can
+# group without parsing `component`.
+.en_probe_row <- function(backend, level, preset, found, version, note) {
+  row <- .en_status_row(
+    paste0("solve: ", backend, if (!is.null(level)) paste0(" (", level, ")")),
+    required = FALSE,
+    list(found = found, path = preset, version = version), note = note)
+  row$backend <- backend
+  row$level <- level
+  row
+}
+
+# Solve the probe scenario on one backend. Never throws: a backend that cannot
+# solve is a reported row, not an error in the caller.
+.en_probe_one <- function(scen, backend, preset, timeout,
+                          expected = .EN_PROBE_OBJECTIVE, level = "tiny") {
+  wd <- getwd()
+  dir <- tempfile(paste0("en_probe_", backend, "_"))
+  dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+  on.exit({
+    setwd(wd)
+    unlink(dir, recursive = TRUE, force = TRUE)
+  }, add = TRUE)
+  setwd(dir)                       # solves land here, never in the user's project
+  t0 <- Sys.time()
+  # `echo = FALSE` silences the solver's own console output; the writers print
+  # a little on top of that, so swallow both streams and keep the table clean
+  out <- NULL
+  invisible(utils::capture.output(type = "message", suppressMessages(
+    invisible(utils::capture.output(type = "output", {
+      out <- tryCatch(
+        withCallingHandlers(
+          suppressMessages(suppressWarnings(
+            solve_scenario(scen, name = paste0("en_probe_", backend),
+                           solver = solver_options[[preset]],
+                           solver.dir = file.path(dir, "run"),
+                           transient = TRUE, wait = TRUE, echo = FALSE))),
+          warning = function(w) invokeRestart("muffleWarning")),
+        error = function(e) e)
+    })))))
+  secs <- as.numeric(difftime(Sys.time(), t0, units = "secs"))
+  if (inherits(out, "error")) {
+    return(.en_probe_row(backend, level, preset, found = FALSE,
+      version = NA_character_, note = .en_first_line(conditionMessage(out))))
+  }
+  obj <- tryCatch({
+    d <- getData(out, "vObjective", merge = TRUE)
+    if (is.null(d) || nrow(d) == 0) NA_real_ else as.numeric(d$value[1])
+  }, error = function(e) NA_real_)
+  # `expected = NA` means "any finite objective" -- used when computing the
+  # reference the other backends are then compared against
+  tol <- if (identical(level, "tiny")) 1e-9 else 1e-6 * max(1, abs(expected))
+  ok <- if (is.na(obj)) FALSE else if (is.na(expected)) TRUE else
+    abs(obj - expected) < tol
+  .en_probe_row(backend, level, preset, found = ok,
+    version = if (is.na(obj)) NA_character_ else paste0("obj ", format(obj)),
+    note = if (ok) sprintf("solved in %.1fs", secs) else
+      if (is.na(obj)) "solved but returned no objective" else
+      paste0("solved to ", format(obj), ", expected ", format(expected)))
+}
+
+# First non-empty line of a message, for a one-line status note.
+.en_first_line <- function(msg) {
+  ls <- trimws(strsplit(paste(msg, collapse = "
+"), "
+")[[1]])
+  ls <- ls[nzchar(ls)]
+  if (length(ls) == 0) "failed" else substr(ls[1], 1, 160)
+}
+
+
 #' @rdname en_check
 #' @param solver_pkgs verify Julia solver packages too (slower; starts Julia).
+#' @param solve also run [en_check_solve()], which SOLVES a tiny model on each
+#'   configured backend. `FALSE` by default: the plain dependency check starts no
+#'   solver.
 #' @export
-en_check_dependencies <- function(solver_pkgs = FALSE) {
+en_check_dependencies <- function(solver_pkgs = FALSE, solve = FALSE) {
   rows <- list(
     en_check_glpk(),
     en_check_julia(),
@@ -284,6 +514,7 @@ en_check_dependencies <- function(solver_pkgs = FALSE) {
     en_check_gdx()
   )
   if (solver_pkgs) rows <- c(rows, list(en_check_julia_pkgs()))
+  if (isTRUE(solve)) rows <- c(rows, list(en_check_solve()))
   tab <- dplyr::bind_rows(rows)
 
   # Report --------------------------------------------------------------------

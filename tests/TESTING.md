@@ -163,8 +163,8 @@ TOPIA kits):
 - **goldens captured** via a `make_goldens.R` suite entry (which enforces the
   invariants) and a test comparing with `expect_matches_golden()`;
 - **cross-solver cells declared or explicitly excluded** — an exclusion is an
-  asserted error or a documented skip, never silence (e.g. GAMS unlicensed →
-  skip with reason; GAMS × sparse → the writer's density error).
+  asserted error or a documented skip, never silence (e.g. GAMS × sparse →
+  the writer's density error).
 
 TOPIA specifics (`helper-topia.R`): every layout kit targets
 `topia_s4h24` — ELC lives at the HOUR level, so coarser calendars are
@@ -199,9 +199,37 @@ Rscript tools/test/make_goldens.R --suite=tm    # deliberate rebaseline
 
 Backend guards: `skip_if_no_solver()` (glpsol, tier fast),
 `skip_if_no_julia_highs()` / `skip_if_no_pyomo()` / `skip_if_no_gams()` (tier
-cross; the GAMS guard also skips an unlicensed install — no `gamslice.txt`
-next to the executable) and `skip_if_no_neos()` (additionally requires
+cross) and `skip_if_no_neos()` (additionally requires
 `ENERGYRT_TEST_NEOS=true`).
+
+Each guard asks two questions in order. **Configured?** — the package's own
+`en_check_*()` detectors, which resolve `~/.energyRt/config.yml` before `PATH`;
+not configured skips with "not available". **Can it solve?** — the preamble's
+backend probe, read from the verdict file by `skip_if_probe_failed()`; a
+configured backend that failed to solve skips with the probe's own error --
+"failed the backend probe" when nothing solves, "solves only small models
+(size-limited licence?)" when only the full model does not, which is the
+diagnosis a demo licence otherwise hides. The
+probe runs once per suite run in `en_toolchains()` (`tools/test/lib/runner.R`)
+at two levels -- `tiny` solves the unit kit `U1` to its hand-computed objective
+8 (a dozen rows: inside any demo licence, so it proves the writer/exchange/
+solver/reader chain), `full` solves the `R1` kit on `topia_seasons` (~615
+variables, the size the fixtures run at) and requires agreement with GLPK. Only
+GAMS carries the `full` level, and a backend failing `tiny` is not asked for
+`full`. The probe writes
+`tools/test/.backend-probe.json` with an absolute path exported in
+`ENERGYRT_TEST_PROBE` for parallel workers. A verdict older than an hour is
+ignored, and with no verdict at all the guards fall back to presence only — a
+bare `test_file()` still runs everything. Tier `check` probes nothing, so
+`R CMD check` starts no solver; `fast` probes GLPK; `cross` and `full` probe
+every backend they own, GAMS included, because without a verdict the guard
+cannot tell a broken install from a working one and those cells would fail one
+by one instead of skipping with the reason. (`en_check_solve()` itself leaves
+GAMS out of its default set -- an interactive call starts no proprietary
+software unasked.)
+Measured cost on one machine (tiny level): glpk 0.3 s, pyomo 1.6 s, mm 13 s,
+julia 23 s; the full level adds one interpolation (~5 s) plus a GLPK reference
+solve.
 
 The full tier adds: the interp goldens (`test-interp-golden.R`), the
 TOPIA R7/R11 goldens plus an R3 julia/HiGHS parity check

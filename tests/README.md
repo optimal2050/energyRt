@@ -64,8 +64,19 @@ Selected via the `ENERGYRT_TEST_TIER` environment variable
 | cross | + julia / pyomo / gams (any) | `Rscript tools/test/run_cross.R` — cross-backend parity |
 | full | + external model repos | `Rscript tools/test/run_full.R` — deep regression, interp goldens, external models |
 
-Solver tests always skip cleanly when a toolchain is missing (the GAMS guard
-also skips an unlicensed install); they must never error on absence.
+Solver tests always skip cleanly when a toolchain is missing; they must never
+error on absence.
+
+Every runner opens with a **backend probe**: `en_check_solve()` solves the unit
+kit `U1` (objective 8) on each configured backend, and for GAMS also the larger
+`R1` kit, which is the only check that separates "installed" from "can produce a
+number" -- and, at the second level, from "can only carry a demo-sized model". A backend that is not
+configured is reported quietly and not probed; one that IS configured and fails
+is reported loudly, and its tests then skip naming the probe — so a skip always
+cites a failed solve, never a guess. The verdict is published as
+`tools/test/.backend-probe.json` (gitignored) so parallel shard workers read it
+instead of re-probing. Tier `check` probes nothing, so `R CMD check` starts no
+solver; `cross` and `full` probe GAMS too, since they own its cells.
 
 Key shared machinery: `helper-forks.R` (`run_family()` fork harness),
 `helper-goldens.R` + `tools/test/make_goldens.R` (tracked-value benchmarks,

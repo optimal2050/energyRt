@@ -133,13 +133,13 @@
 # process is refused everywhere, exactly as before this feature existed.
 .coarse_axes_supported <- c("region", "timeslice")
 
-# Classes whose coarse form is VERIFIED end to end. Storage's map, flow domain
-# and equation branches are built, but a single-commodity storage cannot be
-# coarse at all under the inputs-only rule -- `newStorage(commodity = )` makes
-# the input, the stored commodity and the output the same commodity, so one
-# flow level cannot be both finer (as the input) and equal (as the output and
-# the level). Only a multi-commodity storage could be, and that is unverified,
-# so storage stays out until it is.
+# Classes whose coarse form is VERIFIED end to end. Storage is SPACE-only: it
+# has no `@timeframe` slot, so the time-axis gate never sees one. A
+# single-commodity storage cannot be coarse at all under the inputs-only rule
+# -- `newStorage(commodity = )` makes the input, the stored commodity and the
+# output the same commodity, so one flow level cannot be both finer (as the
+# input) and equal (as the output and the level). Only a multi-commodity
+# storage can be, and that is what the coarse-storage fixtures cover.
 .coarse_classes_supported <- c("technology", "storage")
 
 #' Is a coarse process supported on this axis yet?

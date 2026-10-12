@@ -279,6 +279,21 @@
 
 ## Bug fixes
 
+* `eqTechAfcOutUp` omitted `pTimesliceShare[s]`, which its `Lo` twin and both
+  input siblings carry -- consistently in all four backends, so a per-commodity
+  output availability bound was too loose by `1 / share`: 2x on two equal
+  seasons, 8760x on an hourly calendar.
+
+* A GLPK/MathProg parameter whose declared default is `Inf` ("no bound") is now
+  written with **no `default` clause** instead of `default 0`. MathProg has no
+  infinity literal and no substitute is right -- 0 pins the flow to zero, a
+  large number silently relaxes it, a negative one would turn
+  `pDummyImportCost` into a subsidy. All 29 such parameters are read only
+  inside equations whose domain is the parameter's own map, so nothing resolves
+  to the default; where that does break, GLPK now refuses to translate and
+  names the tuple (`no value for pTechAfcUp[...]`) rather than solving against
+  a fabricated bound. Finite defaults are unchanged.
+
 * The registry keyed rows on `(type, name, parent, variant)`, so several
   scenarios sharing a name kept **one** row whose `path` each save overwrote,
   and a later lookup by name loaded whichever folder was written last. Rows are
@@ -348,12 +363,21 @@
   variables and equation rows, **not** flow variables -- those stay at the
   commodity's level.
 
-  Scope of this release: `technology` only, the region axis only, inputs only
-  (a finer *output* is refused, because each side's conversion coefficients
-  must be read at its own region), single input and output commodity, and no
-  groups, shares, `afc` or ramp limits -- each refused by name. All four
-  backends support it and agree. A process coarser in *time* is still
-  refused.
+  Scope of this release: `technology` on **both axes** -- a region level and a
+  `@timeframe` coarser than its commodities -- and `storage` in space only (it
+  has no `@timeframe`; only a multi-commodity storage can be coarse, since
+  `newStorage(commodity = )` makes one commodity the input, the store and the
+  output at once). Input and output **groups and their `@ceff` shares** are
+  supported, binding over the coarse cell.
+
+  A commodity finer than the process may appear only as an **input**: nothing
+  is disaggregated, so a finer *output* or stored commodity is refused by name.
+  Also refused, each naming the feature: `afc` (per-commodity availability),
+  auxiliary flows (`aux` / `aeff`), ramp limits, and storage `inp2out` /
+  `inp2stg` / `inp.af.*`. All four templates carry the aggregation branches and
+  agree: the cross-solver tier crosses the coarse fixtures against GLPK,
+  Julia/HiGHS, Pyomo/CBC and the multimod matrix route, and GAMS was verified
+  through NEOS.
 
 * `interpolate_model(parent_levels = )` gives a variable rows at the timeslice
   and region levels coarser than the one it occupies, each defined by a roll-up
@@ -633,6 +657,43 @@
 * `eqTechAInp` / `eqTechAOut` are multiplied through by `pTechCap2act` in all
   four backends, so no coefficient in them is a division. Parameters keep
   their meaning; the LP is the same problem with those rows scaled.
+
+* `en_check_solve()` solves a model on each configured backend and reports
+  whether it reached the right answer — the one check that separates "installed"
+  from "can produce a number". It probes at **two levels**, because a backend
+  can run and still be unable to carry a real model:
+
+  * `tiny` — the unit kit `U1` (`topia$modules$unit$U1`), whose objective is the
+    hand-computed integer 8, so the verdict is a constant rather than a golden.
+    A dozen LP rows: inside any demo licence, so it proves the chain (writer,
+    data exchange, solver, reader).
+  * `full` — the `R1` electricity kit on `topia_seasons` (~615 variables), the
+    size the test fixtures run at and above the classic 300x300 demo cap. Its
+    objective is not hand-computable, so the level requires agreement with GLPK
+    on the same model.
+
+  Only GAMS carries the `full` level by default, since the other presets use
+  unlimited solvers; a backend that fails `tiny` is not asked for `full`. A
+  backend that is not configured is reported as `No backend` and never probed,
+  and GAMS must be asked for by name (`backends = "gams"`) because it is
+  proprietary. `en_check_dependencies(solve = TRUE)` appends the rows; the
+  default still starts no solver.
+
+  The test runners use it as a preamble. A configured backend that fails makes
+  its own tests skip with that error instead of failing one by one, and the two
+  levels give different reasons: "failed the backend probe" when nothing solves,
+  "solves only small models (size-limited licence?)" when just the full model
+  does not.
+
+* `validate_scenario_parameters()` adds the structural
+  `constraint_not_in_param` check: a data-driven `meq*` constraint map is the
+  variable's domain intersected with the parameter that drives it, so a tuple
+  with no value behind it is a bound nobody wrote. It is reported as an error
+  naming the map, the source parameter and the number of tuples. The six maps
+  flagged `structural` in the constraint-map table are exempt -- they are
+  instantiated over their whole domain by design and their parameter's declared
+  default binds (`pTechAf` up = 1 is the plain capacity limit, written for
+  every slice left blank).
 
 * `validate_scenario_parameters()` adds the advisory `coefficient_scale`
   check: a technology, trade or storage whose `cap2act x finest timeslice
