@@ -336,6 +336,8 @@ get_python_path <- function() {
 # Generate PYOMO code, return character vector
 .toPyomo <- function(obj) {
   as_numpar <- function(data, name, name2, def) {
+    # no infinity literal in a Pyomo coefficient; see `.glpk_default()` in
+    # write_glpk.R for why the substitute is unreachable and fail-closed
     if (def == Inf) def <- 0
     if (ncol(obj@data) == 1) {
       if (nrow(obj@data) == 1) def <- obj@data[[1]]
@@ -479,6 +481,8 @@ get_python_path <- function() {
 
 .toPyomSQLite <- function(obj) {
   as_numpar <- function(data, name, name2, def) {
+    # no infinity literal in a Pyomo coefficient; see `.glpk_default()` in
+    # write_glpk.R for why the substitute is unreachable and fail-closed
     if (def == Inf) def <- 0
     if (ncol(obj@data) == 1) {
       stop(".toPyomSQLite: check @data in ", obj@name)

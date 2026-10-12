@@ -218,6 +218,24 @@ get_glpk_path <- function() {
 }
 
 
+# MathProg has no infinity literal, so a parameter whose declared default is
+# `Inf` ("no bound") cannot be written as one -- and no substitute is correct:
+# 0 pins the flow, a large number silently relaxes it, and a negative one turns
+# `pDummyImportCost` into a subsidy. The clause is therefore OMITTED. The 29
+# such parameters (`pTechAfc`, `pTechCap`, `pTechRampUp`, `pDummyImportCost`,
+# ...) are read only inside equations whose domain is the parameter's own
+# `meq*`/`m*` map, built as the domain intersected with the parameter's
+# support, so no reference resolves to the default. Where that invariant breaks
+# -- a map widened past its parameter, as a coarse process did to
+# `meqTechAfcInpUp` -- GLPK refuses to translate and names the tuple
+# (`no value for pTechAfcUp[PP,ELC,R1,2025,WIN]`) instead of solving a model
+# with a fabricated bound. Finite defaults are kept: `pTechAfUp default 1` is
+# the capacity limit every undeclared slice reads.
+.glpk_default_clause <- function(dd) {
+  if (is.infinite(dd)) "" else paste0(" default ", dd)
+}
+
+
 # Convert one scenario parameter to GMPL (GLPK/CBC) text. The interp_mod()
 # pipeline keeps each parameter's `@data` slot authoritative, so the whole slot
 # is written.
@@ -241,13 +259,11 @@ get_glpk_path <- function() {
     }
   } else if (obj@type == "numpar") {
     if (nrow(obj@data) == 0) {
-      dd <- obj@defVal
-      if (dd == Inf) dd <- 0
-      ret <- paste("param ", obj@name, " default ", dd, " := ;", sep = "")
+      ret <- paste("param ", obj@name, .glpk_default_clause(obj@defVal),
+                   " := ;", sep = "")
     } else {
-      dd <- obj@defVal
-      if (dd == Inf) dd <- 0
-      ret <- paste("param ", obj@name, " default ", dd, " := ", sep = "")
+      ret <- paste("param ", obj@name, .glpk_default_clause(obj@defVal),
+                   " := ", sep = "")
       fl <- obj@data[["value"]] != Inf
       if (any(fl)) {
         ret <- c(
@@ -268,13 +284,11 @@ get_glpk_path <- function() {
     # gg <- gg[, colnames(gg) != "type"]
     gg <- gg |> select(-any_of("type"))
     if (nrow(gg) == 0) { #  || all(gg$value[1] == gg$value)
-      if (nrow(gg) == 0) dd <- obj@defVal[1] else dd <- gg$value[1]
-      if (dd == Inf) dd <- 0
-      ret <- paste("param ", obj@name, "Lo default ", dd, " := ;", sep = "")
+      ret <- paste("param ", obj@name, "Lo",
+                   .glpk_default_clause(obj@defVal[1]), " := ;", sep = "")
     } else {
-      dd <- obj@defVal[1]
-      if (dd == Inf) dd <- 0
-      ret <- paste("param ", obj@name, "Lo default ", dd, " := ", sep = "")
+      ret <- paste("param ", obj@name, "Lo",
+                   .glpk_default_clause(obj@defVal[1]), " := ", sep = "")
       fl <- gg[["value"]] != Inf
       if (any(fl)) {
         ret <- c(
@@ -292,13 +306,11 @@ get_glpk_path <- function() {
     # gg <- gg[, colnames(gg) != "type"]
     gg <- gg |> select(-any_of("type"))
     if (nrow(gg) == 0) { #  || all(gg$value[1] == gg$value)
-      if (nrow(gg) == 0) dd <- obj@defVal[2] else dd <- gg$value[1]
-      if (dd == Inf) dd <- 0
-      ret <- c(ret, paste("param ", obj@name, "Up default ", dd, " := ;", sep = ""))
+      ret <- c(ret, paste("param ", obj@name, "Up",
+                          .glpk_default_clause(obj@defVal[2]), " := ;", sep = ""))
     } else {
-      dd <- obj@defVal[2]
-      if (dd == Inf) dd <- 0
-      ret <- c(ret, paste("param ", obj@name, "Up default ", dd, " := ", sep = ""))
+      ret <- c(ret, paste("param ", obj@name, "Up",
+                          .glpk_default_clause(obj@defVal[2]), " := ", sep = ""))
       fl <- gg[["value"]] != Inf
       if (any(fl)) {
         ret <- c(
