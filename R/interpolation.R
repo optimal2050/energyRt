@@ -2681,6 +2681,52 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
     }
   }
 
+  # The same coverage test for CONSTRAINT maps. A `meq*` map is a domain
+  # intersected with the parameter that drives it, so "no data = no constraint":
+  # a tuple with no value behind it is a constraint the modeller never wrote.
+  # Measured case: a process declared coarser than its commodity got
+  # `meqTechAfcInpUp` rows at the commodity's finer slices while `pTechAfc` sat
+  # at the process's own -- the bound then read the writer's `default 0` and
+  # shut the process down with no capacity at all.
+  for (mp in names(.constraint_map_def)) {
+    spec <- .constraint_map_def[[mp]]
+    if (is.null(spec$source)) next
+    # A `structural = TRUE` entry is instantiated over its WHOLE domain by
+    # design and its parameter's declared default binds -- `pTechAf` up = 1 is
+    # the plain capacity limit, written for every slice the user left blank.
+    # Only the data-driven maps carry the "no data = no constraint" invariant.
+    if (isTRUE(spec$structural)) next
+    mpar <- scen@modInp@parameters[[mp]]
+    if (is.null(mpar)) next
+    md <- get_data_slot(mpar)
+    if (is.null(md) || nrow(md) == 0) next
+    md <- as.data.frame(md)
+    sp_par <- scen@modInp@parameters[[spec$source]]
+    if (is.null(sp_par)) next
+    sd <- get_data_slot(sp_par)
+    if (is.null(sd) || nrow(sd) == 0) next
+    sd <- as.data.frame(sd)
+    # a bounds source carries both sides; keep only the one this map drives
+    if (!is.null(spec$types) && "type" %in% colnames(sd)) {
+      sd <- sd[sd$type %in% spec$types, , drop = FALSE]
+      if (nrow(sd) == 0) next
+    }
+    key <- intersect(colnames(md), colnames(sd))
+    key <- setdiff(key, c("value", "type"))
+    wild <- key[vapply(key, function(cc) any(is.na(sd[[cc]])), logical(1))]
+    key <- setdiff(key, wild)
+    if (length(key) == 0) next
+    uncovered <- dplyr::anti_join(dplyr::distinct(md[, key, drop = FALSE]),
+                                  dplyr::distinct(sd[, key, drop = FALSE]),
+                                  by = key)
+    if (nrow(uncovered) > 0) {
+      add(mp, "constraint_not_in_param",
+          paste0(nrow(uncovered), " constraint tuple(s) with no value in '",
+                 spec$source, "' (the bound would read the solver default)"),
+          severity = "structural")
+    }
+  }
+
   # Free-meal guards: a populated variable DOMAIN whose governing constraint
   # map has no rows for an object leaves that object's variable unbounded on
   # that side -- storage discharging without a level chain is free energy,

@@ -97,3 +97,62 @@ test_that("the coefficient_scale advisory fires on cap2act x share far from 1", 
   expect_true("coefficient_scale" %in% res$check)
   expect_equal(res$severity[res$check == "coefficient_scale"], "advisory")
 })
+
+# ---- constraint_not_in_param ------------------------------------------------ #
+# A data-driven `meq*` map is the domain INTERSECTED with the parameter that
+# drives it, so a tuple with no value behind it is a bound the modeller never
+# wrote (measured: a coarse process got `meqTechAfcInpUp` rows at the
+# commodity's finer slices while `pTechAfc` sat at the process's own, and the
+# writer's `default 0` shut the process down). The `structural = TRUE` entries
+# are the exception and must stay exempt: they are instantiated over their
+# WHOLE domain by design and their declared default binds -- `pTechAf` up = 1
+# is the plain capacity limit, written for every slice left blank.
+.vm_af_model <- function() {
+  newModel("vmaf", repo = newRepository("r",
+      newCommodity("COA", timeframe = "ANNUAL"),
+      newCommodity("ELC", timeframe = "SEASON"),
+      newSupply("SUP", commodity = "COA", supply = data.frame(cost = 1)),
+      newTechnology("PP", input = list(comm = "COA"),
+        output = list(comm = "ELC"),
+        # one of the two seasons only: the other reads the declared default 1
+        af = data.frame(timeslice = "SUM", af.up = 0.2, af.lo = 0.05),
+        invcost = data.frame(invcost = 1), cap2act = 1,
+        vintage = data.frame(olife = 30L)),
+      newDemand("DE", commodity = "ELC",
+                demand = data.frame(timeslice = c("WIN", "SUM"), demand = 10))),
+    calendar = newCalendar(timetable = make_timetable(
+      struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+      name = "vmafc"),
+    region = "R1", horizon = newHorizon(2025), discount = 0)
+}
+
+test_that("af declared on a subset of timeslices is not a missing-value finding", {
+  scen <- suppressMessages(suppressWarnings(
+    interpolate_model(.vm_af_model(), name = "vm_af_subset", ondisk = FALSE)))
+  res <- validate_scenario_parameters(scen, action = "silent")
+  expect_false("constraint_not_in_param" %in% res$check)
+  # the map really is domain-wide, or the exemption would be untested
+  mp <- as.data.frame(get_data_slot(scen@modInp@parameters$meqTechAfUp))
+  pa <- as.data.frame(get_data_slot(scen@modInp@parameters$pTechAf))
+  expect_gt(nrow(mp), nrow(pa[pa$type == "up", , drop = FALSE]))
+})
+
+# The other half: on a DATA-DRIVEN map the invariant holds, and a widened map
+# is exactly the shape the coarse-process work produced. Inject one tuple the
+# parameter has no value for and the finding must be structural.
+test_that("a widened data-driven constraint map is a structural finding", {
+  scen <- suppressMessages(suppressWarnings(
+    interpolate_model(.vm_af_model(), name = "vm_af_widen", ondisk = FALSE)))
+  mp <- scen@modInp@parameters$meqTechAfLo
+  d <- as.data.frame(get_data_slot(mp))
+  expect_equal(d$timeslice, "SUM")           # built from pTechAf's lo side
+  d2 <- rbind(d, transform(d, timeslice = "WIN"))
+  scen@modInp@parameters$meqTechAfLo <- energyRt:::.fold_write_back(mp, d2)
+  # structural findings are errors whatever `action` says
+  err <- tryCatch(validate_scenario_parameters(scen, action = "silent"),
+                  error = function(e) conditionMessage(e))
+  expect_type(err, "character")
+  expect_match(err, "constraint_not_in_param")
+  expect_match(err, "meqTechAfLo: 1 constraint tuple")
+  expect_match(err, "pTechAf")
+})
