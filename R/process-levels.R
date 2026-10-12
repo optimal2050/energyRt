@@ -9,7 +9,7 @@
 
 #' Rank of each geoscale level, 1 = coarsest
 #'
-#' @param h a pruned hierarchy from [.scen_geo_hierarchy()] / `.geo_hierarchy()`.
+#' @param h a pruned hierarchy from `.scen_geo_hierarchy()` / `.geo_hierarchy()`.
 #' @return named integer over `h$levels`, or `NULL` if `h` is `NULL`.
 #' @keywords internal
 #' @noRd
@@ -33,7 +33,7 @@
 
 #' Rank of each region's own level, 1 = coarsest
 #'
-#' [.geo_level_rank()] composed with [.geo_level_of()]: the lookup every caller
+#' `.geo_level_rank()` composed with `.geo_level_of()`: the lookup every caller
 #' that compares two regions' depths actually performs.
 #'
 #' @param h a pruned hierarchy.
@@ -156,9 +156,10 @@
   list(slot = "aeff", cols = NULL, what = "auxiliary flows"),
   list(slot = "inp2out", cols = NULL, what = "storage inp2out coupling"),
   list(slot = "inp2stg", cols = NULL, what = "storage inp2stg coupling"),
+  list(slot = "af", cols = c("rampup", "rampdown"), what = "ramp limits"),
+  # ruled per-slice, blocked on `pTechAfc`'s interpolation level -- see above
   list(slot = "ceff", cols = c("afc.lo", "afc.up", "afc.fx"),
        what = "per-commodity availability (`afc`)"),
-  list(slot = "af", cols = c("rampup", "rampdown"), what = "ramp limits"),
   # storage INPUT availability drives eqStorageInpUp/Lo, whose domain follows
   # the (now finer) input while the capacity it is bounded against stays at the
   # storage's own cell -- the bound would read a capacity that is not there and
@@ -201,6 +202,18 @@
 # no balance row, so the production enters no balance and is silently
 # discarded.
 #
+# `afc` (per-commodity availability) is RULED to bind PER SLICE / PER REGION --
+# it bounds a flow against capacity, so it belongs where its operand lives
+# (user ruling 2026-10-11). `eqTechAfc*`'s domain already follows the flow, so
+# the equation needs nothing. It is BLOCKED anyway, because the DOMAIN is only
+# half of it: `pTechAfc` is interpolated at the PROCESS's frame, so for a
+# coarse process the bound exists at the commodity's finer slices while the
+# parameter has no value there. The writer omits the `default` clause for an
+# infinite default, so GLPK refuses to translate the model and names the tuple
+# (`no value for pTechAfcUp[MILL,ELC,...]`). Lifting it needs `pTechAfc`
+# expanded to the flow's slices, the same parameter-interpolation work the
+# group shares are waiting on.
+#
 # Inputs are unrestricted in both directions: a COARSER input already works via
 # `.commreg_reach()` (draw anywhere in the commodity's cell), a FINER one
 # through the maps above.
@@ -232,7 +245,7 @@
 #' Coarse-process region pairs: (process region, the flow's finer regions)
 #'
 #' The spatial mirror of `mTechOutCommAggTimeslice`. Where
-#' [.flow_levels()] says a flow sits FINER than its process -- i.e. the process
+#' `.flow_levels()` says a flow sits FINER than its process -- i.e. the process
 #' is coarser than the commodity, the case this feature adds -- the process's
 #' own equations must sum the flow over the fine regions inside the process's
 #' cell. This is that enumeration.
@@ -295,14 +308,14 @@
 
 #' Move a coarse process's flow rows down to the commodity's regions
 #'
-#' The mirror of [.commreg_reach()], which widens a coarse COMMODITY's reach
+#' The mirror of `.commreg_reach()`, which widens a coarse COMMODITY's reach
 #' down to a fine process's regions. Here the PROCESS is the coarse one, so its
 #' flow rows -- carried at its own region by `merge0(mvTechAct, mTech*Comm)` --
 #' are replaced by one row per commodity region beneath it. The activity domain
 #' itself stays coarse; only the flows move.
 #'
 #' A no-op until the axis is enabled, and a no-op in any model with no coarse
-#' process, because [.flow_region_agg()] is then empty.
+#' process, because `.flow_region_agg()` is then empty.
 #'
 #' @param df a flow domain carrying `key`, `comm` and `region`.
 #' @param key the process column name (`"tech"`, `"stg"`, ...).
@@ -331,7 +344,7 @@
 
 #' Lift a coarse process's flow rows back up to its own region
 #'
-#' The inverse of [.flow_region_spread()], for the EQUATION domains rather than
+#' The inverse of `.flow_region_spread()`, for the EQUATION domains rather than
 #' the flow domains. A process equation is indexed at the process's own cell --
 #' `vTechAct[t,r,y,s]`, `vTechCap[t,r,y]` live there -- so a domain built by
 #' joining flow maps has to be collapsed back onto that cell, or the equation
@@ -373,7 +386,7 @@
 #' The finer of two level names
 #'
 #' Vectorised and axis-agnostic: pass `calendar@timeframe_rank` for the time
-#' axis or [.geo_level_rank()] for space. Ties return the first argument.
+#' axis or `.geo_level_rank()` for space. Ties return the first argument.
 #'
 #' `NA` and `""` mean "not stated" and lose to a stated level, so a caller that
 #' has already resolved its defaults gets the stated one back, and one that has
@@ -436,7 +449,7 @@
 
 #' Coarse-process timeslice pairs: (process slice, the flow's finer slices)
 #'
-#' The time twin of [.flow_region_agg()]. Where [.flow_levels()] says a flow
+#' The time twin of `.flow_region_agg()`. Where `.flow_levels()` says a flow
 #' sits FINER than its process, the process's own equations must sum the flow
 #' over the finer slices inside its own -- weighted by `pTimesliceAgg`, because
 #' timeslice values are intensive RATES and summing them needs renormalising by
@@ -492,7 +505,7 @@
 
 #' Move a coarse process's flow rows down to the commodity's timeslices
 #'
-#' The time twin of [.flow_region_spread()]. The activity domain stays at the
+#' The time twin of `.flow_region_spread()`. The activity domain stays at the
 #' process's own slice; only the flows move.
 #' @keywords internal
 #' @noRd

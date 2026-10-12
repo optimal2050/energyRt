@@ -658,3 +658,53 @@ test_that("family process-levels: a mixed-level group sums correctly", {
   # symmetric conditions), so the two must agree exactly
   expect_equal(co$obj, fi$obj, tolerance = 1e-6)
 })
+
+test_that("family process-levels: coarse storage holds on a SAMPLED calendar", {
+  skip_if_no_solver()
+  skip_if_not_installed("geoscales")
+  # Storage is coarse in SPACE only, so `pTimesliceAgg` should not enter its
+  # Agg branch at all. On a sampled calendar the month weight is 4.0556 rather
+  # than 1, so a weight leaking in through the level chain would show here and
+  # nowhere else -- the same blind spot that hid the time-axis weight until a
+  # sampled fixture was used.
+  gs <- geoscales::geoscale_from_leaftable(
+    data.frame(nation = "NAT", region = c("R1", "R2")),
+    geoframes = c("nation", "region"), key = "region", name = "plssg")
+  mod <- newModel("plss", repo = newRepository("r",
+      newCommodity("COA", timeframe = "ANNUAL"),
+      newCommodity("ELC"),
+      newCommodity("H2", geoframe = "nation"),
+      newSupply("SUP", commodity = "COA", region = c("R1", "R2"),
+                supply = data.frame(cost = 1)),
+      newTechnology("ECOA", input = list(comm = "COA"),
+                    output = list(comm = "ELC"),
+                    invcost = data.frame(invcost = 900),
+                    vintage = data.frame(olife = 30L), cap2act = 1),
+      # charges REGIONAL electricity, stores and releases NATIONAL hydrogen:
+      # the only shape a coarse storage can take (a single-commodity storage
+      # would need its own commodity both finer and not-finer than itself)
+      newStorage("P2G", input = list(comm = "ELC"),
+                 storage = list(comm = "H2"), output = list(comm = "H2"),
+                 region = "NAT",
+                 invcost = data.frame(out.invcost = 20, stg.invcost = 5),
+                 vintage = data.frame(olife = 20L)),
+      newDemand("DH2", commodity = "H2", region = "NAT",
+                demand = data.frame(demand = 3)),
+      newDemand("DE", commodity = "ELC", demand = data.frame(demand = 30))),
+    calendar = calendars$m12_subset_q1, geoscale = gs,
+    region = c("R1", "R2"), horizon = newHorizon(2025), discount = 0)
+  s <- suppressMessages(suppressWarnings(solve_model(
+    mod, name = "pl_ss", ondisk = FALSE, overwrite = TRUE)))
+
+  inp <- suppressWarnings(getData(s, "vStorageInp", merge = TRUE))
+  out <- suppressWarnings(getData(s, "vStorageOut", merge = TRUE))
+  lvl <- suppressWarnings(getData(s, "vStorageLevel", merge = TRUE))
+  # charging spread to the regions; discharge and reservoir at the storage's own
+  # cell (outputs are never spread -- the no-disaggregation rule)
+  expect_setequal(unique(as.character(inp$region)), c("R1", "R2"))
+  expect_setequal(unique(as.character(out$region)), "NAT")
+  expect_setequal(unique(as.character(lvl$region)), "NAT")
+  # and the energy balances: what is charged is what is released. A sampled
+  # weight leaking into the Agg branch would break this by ~4x.
+  expect_equal(sum(inp$value), sum(out$value), tolerance = 1e-6)
+})
