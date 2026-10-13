@@ -43,12 +43,55 @@ class:
     unit:
       type: character
       description: The main unit of the commodity used in the model.
+    cluster:
+      type: data.frame
+      description: >
+        Declaration of the commodity's parallel grades. For a commodity a
+        cluster is a RESOURCE TIER: the same substance in grades that must NOT
+        pool, so tier-3 land cannot serve a tier-1 plant.
+
+        Tiers exist because the commodity balance is keyed on
+        `(comm, region, year, timeslice)` and carries no cluster -- every
+        producer of one commodity name writes into the same cell. Declaring
+        tiers here expands the object into one commodity per tier (`LAND` tier
+        `T3` -> `LAND_CLT3`), each with its own balance, and a reference from a
+        clustered process resolves BY CLUSTER NAME. A commodity with no
+        clusters is shared as before, which is why `ELC` needs no flag.
+
+        Tiers may differ in DATA, not only in name: `emis`, `agg` and
+        `property` carry a `cluster` column, so coal grades can differ in
+        carbon content and heat value. A row with no cluster is shared by every
+        tier, as elsewhere. Declared labels are authoritative -- a label used in
+        a data slot but absent from this declaration is a typo and an error;
+        with no declaration at all the labels are harvested from the data slots.
+
+        There is deliberately no `region` column: a commodity has no `region`
+        slot (only `geoframe`), and which tiers exist in a region follows from
+        the processes that reference them.
+      columns:
+        cluster:
+          type: character
+          description: Tier label, used in the expanded commodity name.
+        desc:
+          type: character
+          description: Description of the tier.
+        order:
+          type: integer
+          description: >
+            Reporting order, 1 = the best tier. Without it labels sort
+            alphabetically and "T10" would precede "T2".
     emis:
       type: data.frame
       description: >
         Emissions factors related to the commodity consumption
         (if "combustion" parameter of a technology which consumes the commodity is > 0).
       columns:
+        cluster:
+          type: character
+          description: >
+            Tier this row applies to, NA for every tier. See the `cluster`
+            slot: grades of one commodity differ in exactly this kind of data
+            (carbon content, heat value), so a row may be shared or per tier.
         comm:
           type: character
           description: Name of the emitted commodity.
@@ -64,6 +107,12 @@ class:
       description: >
         Used to define an aggregation of several commodities into the `name` commodity.
       columns:
+        cluster:
+          type: character
+          description: >
+            Tier this row applies to, NA for every tier. See the `cluster`
+            slot: grades of one commodity differ in exactly this kind of data
+            (carbon content, heat value), so a row may be shared or per tier.
         comm:
           type: character
           description: Name of a commodity being aggregated.
@@ -86,6 +135,12 @@ class:
         numerator is a *different* commodity, such as a CO2 emission factor, belongs
         in `emis`. See `commodity_properties()` for the recognised names.
       columns:
+        cluster:
+          type: character
+          description: >
+            Tier this row applies to, NA for every tier. See the `cluster`
+            slot: grades of one commodity differ in exactly this kind of data
+            (carbon content, heat value), so a row may be shared or per tier.
         property:
           type: character
           description: >
@@ -2551,10 +2606,58 @@ class:
     defVal:
       type: numeric
       description: Default value of the weather factor, 0 by default.
+    cluster:
+      type: data.frame
+      description: >
+        Declaration of the object's parallel series. For weather a cluster is a
+        RESOURCE TIER -- one profile per grade of the same resource, so a single
+        object covers a whole tier set instead of one hand-named object per
+        tier.
+
+        This slot declares WHAT the tiers are; the per-tier values live in the
+        `cluster` column of `weather`. At interpolation each tier referenced by
+        a process is cloned into an ordinary weather object named with the
+        model's cluster prefix (`WWIN` tier `T3` -> `WWIN_CLT3`), so the
+        backends only ever see plain series.
+
+        A consumer finds its tier BY CLUSTER NAME: a `weather` link row of a
+        technology, storage or supply carrying `cluster = "T3"` reads this
+        object's `T3` rows. A link row with no cluster reads an unclustered
+        object whole, as before, and is an ERROR against a clustered one --
+        the factor is multiplicative, so "every tier at once" has no reading.
+
+        LIMITATION -- there are deliberately no share columns. A share ties
+        parallel parts' capacity or activity to fixed proportions, and a
+        capacity-factor series has neither. Size the tiers on the processes
+        that read them.
+      columns:
+        cluster:
+          type: character
+          description: Tier label, used in the expanded object name.
+        desc:
+          type: character
+          description: Description of the tier.
+        region:
+          type: character
+          description: >
+            Region(s) the tier's series is declared for, NA for everywhere.
+            Intersected with the object's own `region` slot. A process whose
+            region no tier series covers (directly or through the nearest
+            ancestor) is an error, not a silent zero.
+        order:
+          type: integer
+          description: >
+            Reporting order, 1 = the best tier. Without it labels sort
+            alphabetically and "T10" would precede "T2".
     weather:
       type: data.frame
       description: Weather factor values.
       columns:
+        cluster:
+          type: character
+          description: >
+            Tier this row belongs to, NA for every tier. See the `cluster`
+            slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.

@@ -658,6 +658,35 @@
   four backends, so no coefficient in them is a division. Parameters keep
   their meaning; the LP is the same problem with those rows scaled.
 
+* **Resource tiers in one object**, on both sides of a VRE-style resource:
+
+  * `weather@cluster` declares one capacity-factor series per tier, so a single
+    `WWIN` covers a whole tier set instead of one hand-named object per tier.
+    Each tier becomes an ordinary weather object at interpolation (`WWIN` tier
+    `T3` -> `WWIN_CLT3`), so `pWeather`, `mWeatherRegion(At)` and the backends
+    see only plain single series. A tier composes with a `transform`
+    (`WWIN_CLT1_half`): the cluster picks the series, the transform derives from
+    it.
+  * `commodity@cluster` declares grades that must NOT pool. The balance is keyed
+    on `(comm, region, year, timeslice)` and carries no cluster, so every
+    producer of one commodity name writes into the same cell -- clusterizing a
+    supply alone cannot stop tier-1 wind drawing tier-3 land. Each tier becomes
+    its own commodity with its own balance, which is what lets **one** commodity
+    and **one** supply object cover a tier set: `supply@commodity` is a scalar.
+
+  Tiers may differ in **data**, not only in name: `commodity@emis`, `@agg` and
+  `@property` carry a `cluster` column, so coal grades differ in carbon content
+  and heat value while a row with no cluster stays shared by every tier.
+
+  A consumer finds its tier by **cluster name**. A reference from a clustered
+  process (`cluster = "T3"`) resolves to that tier; a reference to an
+  unclustered object is untouched, so shared commodities like `ELC` and
+  single-series weather need no flag anywhere. A clustered object referenced
+  without a cluster, or with a tier it does not declare, is an error -- the
+  consumer decides which tiers exist and the resource must cover them. Tier
+  counts may differ by region, since the process classes' `@cluster` carries
+  `region`.
+
 * `en_check_solve()` solves a model on each configured backend and reports
   whether it reached the right answer — the one check that separates "installed"
   from "can produce a number". It probes at **two levels**, because a backend

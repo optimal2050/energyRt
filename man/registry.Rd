@@ -6,6 +6,7 @@
 \alias{save_registry}
 \alias{add_to_registry}
 \alias{add.en_registry}
+\alias{summary.en_registry}
 \alias{find_in_registry}
 \alias{refresh_registry}
 \title{Project registry of models, scenarios, and runs}
@@ -22,13 +23,22 @@ add_to_registry(
   name,
   path,
   hash = "",
+  model = "",
   model_hash = "",
   parent = "",
   variant = "",
-  memo = ""
+  memo = "",
+  sealed = FALSE,
+  sealed_at = "",
+  marked_delete = FALSE,
+  delete_importance = NA_real_,
+  marked_at = "",
+  status = ""
 )
 
 \method{add}{en_registry}(obj, ...)
+
+\method{summary}{en_registry}(object, ...)
 
 find_in_registry(
   reg,
@@ -39,7 +49,12 @@ find_in_registry(
   variant = NULL
 )
 
-refresh_registry(root = ".", file = get_registry_file(), write = TRUE)
+refresh_registry(
+  root = ".",
+  file = get_registry_file(),
+  write = TRUE,
+  lazy = FALSE
+)
 }
 \arguments{
 \item{file}{character, path to the registry CSV
@@ -66,14 +81,32 @@ embedded model.}
 
 \item{memo}{character, optional free-form note.}
 
+\item{sealed, sealed_at, marked_delete, delete_importance, marked_at}{Lifecycle
+state, mirrored from the entry's own manifest — which stays the source of
+truth. Cached in the registry so the CSV answers "sealed?" and "marked
+for deletion?" on its own. Set by \code{\link[=seal_model]{seal_model()}} and \code{\link[=mark_delete]{mark_delete()}}
+rather than passed by hand.}
+
+\item{status}{character, for run rows: the solve status from \code{run.yml}.}
+
 \item{obj}{the object a registry row is derived from.}
 
-\item{...}{further columns to set on the registry row.}
+\item{...}{unused.}
+
+\item{object}{a loaded registry.}
 
 \item{root}{character, project root to rescan (the directory holding the
 \verb{scenarios/} and \verb{models/} stores).}
 
 \item{write}{logical, save the refreshed registry to \code{file}.}
+
+\item{lazy}{logical. \code{FALSE} (default) always rescans — a full scan is
+around 0.3 s for ~80 manifests, too cheap to risk serving a stale table.
+\code{TRUE} skips the scan when the registry is already up to date with the
+stores, for callers that refresh repeatedly. The check compares the CSV's
+own modification time, which changes without the content changing (a
+\verb{git checkout}, a file copy, cloud sync, saving from Excel), so a registry
+copied in from elsewhere can read as fresh.}
 }
 \value{
 \code{load_registry()}, \code{add_to_registry()}, \code{find_in_registry()}, and
@@ -107,6 +140,11 @@ entries; with \code{write = TRUE} (default) the result is saved.
 \details{
 \code{add()} dispatches on a loaded registry, so \code{add(reg, "scenario", "BASE", path = "scenarios/BASE")} is \code{add_to_registry()} under the generic shared
 with models and repositories.
+
+\code{summary()} reports the registry rather than listing it: counts by type,
+how many entries are sealed or queued for deletion, how the runs ended,
+and — because the lifecycle columns are a cache of each entry's manifest —
+a warning when the stores have moved on since the file was written.
 }
 \examples{
 reg <- newRegistry()

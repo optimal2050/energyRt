@@ -62,9 +62,16 @@
   storage = list(
     key = "stg",
     dims = c("vintage", "cluster"),
+    # Every data slot carrying a `vintage`/`cluster` column belongs here, or a
+    # user's per-variant rows are copied identically to each variant and
+    # silently ignored. `test-variant-registry.R` re-derives this list from the
+    # class so it cannot drift again: `charge` was a slot that had been renamed
+    # away, while `startLevel` and `inp2out` arrived later and were never added
+    # -- the C-rate coupling in `inp2out` is the one that mattered, since a
+    # per-cluster ratio took whichever row came first.
     slots = c("vintage", "capacity", "invcost", "fixom", "varom",
-              "af", "seff", "charge", "aeff", "weather", "duration",
-              "inp2stg"),
+              "af", "seff", "startLevel", "aeff", "weather", "duration",
+              "inp2out", "inp2stg"),
     # A storage keeps one capacity per PART, so its `@capacity` columns read
     # `out.cap.up`, not `cap.up`, and each part has its own variable. Keyed on
     # the FULL stem: keying on `cap`/`ncap` behind a single `out.` prefix made
@@ -281,9 +288,22 @@
 
 # The declared cluster table (@cluster), or NULL when the slot is empty.
 # When present it is AUTHORITATIVE for which clusters exist.
+# A slot added to an S4 class is MISSING from instances serialized before it,
+# and `.hasSlot()` answers from the CLASS definition -- so it says TRUE while
+# `obj@cluster` errors with "no slot of name". The shipped `topia` dataset
+# predates `weather@cluster` / `commodity@cluster`, so every reader of a cluster
+# table goes through here.
+#' @noRd
+.cluster_table <- function(obj) {
+  if (!.hasSlot(obj, "cluster")) return(NULL)
+  d <- tryCatch(obj@cluster, error = function(e) NULL)
+  if (is.null(d)) return(NULL)
+  as.data.frame(d)
+}
+
 .declared_clusters <- function(tech) {
-  if (!.hasSlot(tech, "cluster")) return(NULL)
-  d <- as.data.frame(tech@cluster)
+  d <- .cluster_table(tech)
+  if (is.null(d)) return(NULL)
   if (nrow(d) == 0L || !"cluster" %in% names(d)) return(NULL)
   d$cluster <- as.character(d$cluster)
   d <- d[!is.na(d$cluster) & nzchar(d$cluster), , drop = FALSE]
@@ -291,6 +311,43 @@
   if (!"order" %in% names(d)) d$order <- NA_integer_
   if (!"region" %in% names(d)) d$region <- NA_character_
   d
+}
+
+# Resolve a reference from a clustered consumer to a clustered TARGET: the
+# "match by cluster name" rule, shared by the weather links and (slice 2) the
+# commodity references, so the semantics exist once.
+#
+#   ref      the name the row carries (`"WWIN"`)
+#   cluster  the row's own cluster, NA when the consumer is not clustered
+#   roster   the target's declared clusters, character(0) when it has none
+#   what     "weather" / "commodity", for the message
+#   owner    the consumer's name, for the message
+#
+# An UNCLUSTERED target is returned untouched: that is what keeps single-series
+# weather and shared commodities working without a flag anywhere. A clustered
+# target needs a cluster to pick from, because every use of these references is
+# a one-to-one link -- a multiplicative weather factor or a commodity in one
+# balance cell -- so "every cluster at once" has no reading.
+#' @noRd
+.resolve_cluster_ref <- function(ref, cluster, roster, what, owner,
+                                 prefix = .variant_prefix_default()) {
+  if (length(roster) == 0L) return(ref)
+  if (is.na(cluster) || !nzchar(cluster)) {
+    stop(class(owner)[1], ' "', owner, '" references ', what, ' "', ref,
+         '" without a cluster, but that ', what, ' declares cluster(s) ',
+         paste0('"', roster, '"', collapse = ", "),
+         '. Name the cluster on the referencing row, or split the ', what,
+         ' into one object per cluster.', call. = FALSE)
+  }
+  if (!cluster %in% roster) {
+    stop(class(owner)[1], ' "', owner, '" references ', what, ' "', ref,
+         '" with cluster "', cluster, '", which that ', what,
+         ' does not declare (it has ',
+         paste0('"', roster, '"', collapse = ", "),
+         '). The consumer decides which clusters exist, so the ', what,
+         ' must cover every one it is asked for.', call. = FALSE)
+  }
+  .variant_name(ref, NA, cluster, prefix)
 }
 
 # Per-slot occurrences of a selector column, used both to build the level set and

@@ -473,6 +473,24 @@ interpolate_model <- function(mod, name = NULL, ...,
   scen@model <- mod              # ... while get_process_*() read scen@model
   .assert_variants_expanded(mod)
 
+  # A commodity declaring `@cluster` is a bundle of resource tiers that must
+  # not pool: each becomes its own commodity with its own balance, and the
+  # references from clustered processes are repointed. Before the sets below
+  # freeze `sets$comm`, so the clones are declared members like any commodity.
+  .interp_step(verbose, "materializing commodity clusters")
+  mod <- materialize_commodity_clusters(
+    mod, verbose = verbose, prefix = .variant_prefix(scen@settings))
+  scen@model <- mod
+
+  # A weather object declaring `@cluster` holds one series per resource tier;
+  # each tier a process references becomes its own weather object here and the
+  # link is repointed. BEFORE the transform step, so the two compose: the
+  # cluster picks the series, a transform then derives from it.
+  .interp_step(verbose, "materializing weather clusters")
+  mod <- materialize_weather_clusters(
+    mod, verbose = verbose, prefix = .variant_prefix(scen@settings))
+  scen@model <- mod
+
   # Links that name a weather transform get their own derived weather object,
   # cloned once per (weather, transform) and repointed here -- the backends
   # only ever see plain pWeather series. Must run after `expand_variants()`

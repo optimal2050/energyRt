@@ -81,6 +81,8 @@ navbar:
         href: articles/space-resolution.html
       - text: Storage
         href: articles/storage.html
+      - text: Vintages & clusters
+        href: articles/variants.html
       - text: "TOPIA I: building the model"
         href: articles/topia-build.html
       - text: "TOPIA II: running scenarios"

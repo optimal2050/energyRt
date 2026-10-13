@@ -16,6 +16,7 @@
 #' @slot timeframe `r get_slot_doc("commodity", "timeframe")`
 #' @slot geoframe `r get_slot_doc("commodity", "geoframe")`
 #' @slot unit `r get_slot_doc("commodity", "unit")`
+#' @slot cluster `r get_slot_doc("commodity", "cluster")`
 #' @slot emis `r get_slot_doc("commodity", "emis")`
 #' @slot agg `r get_slot_doc("commodity", "agg")`
 #' @slot property `r get_slot_doc("commodity", "property")`
@@ -33,6 +34,7 @@ setClass("commodity",
     timeframe = "character",
     geoframe = "character",
     unit = "character",
+    cluster = "data.frame", # Resource tiers (grades that must not pool)
     emis = "data.frame", # Emission factors
     agg = "data.frame", # Aggregation parameter
     property = "data.frame", # Physical properties
@@ -45,19 +47,30 @@ setClass("commodity",
     timeframe = character(),
     geoframe = character(),
     unit = character(),
+    # Resource tiers. No `region` column: a commodity has no region slot, and
+    # which tiers exist where follows from the processes that reference them.
+    cluster = data.frame(
+      cluster = character(),
+      desc = character(),
+      order = integer(),
+      stringsAsFactors = FALSE
+    ),
     agg = data.frame(
+      cluster = character(),
       comm = character(),
       unit = character(),
       agg = numeric(),
       stringsAsFactors = FALSE
     ),
     emis = data.frame(
+      cluster = character(),
       comm = character(),
       unit = character(),
       emis = numeric(),
       stringsAsFactors = FALSE
     ),
     property = data.frame(
+      cluster = character(),
       property = character(),
       value = numeric(),
       min = numeric(),
@@ -86,6 +99,7 @@ setMethod("initialize", "commodity", function(.Object, ...) {
 #' @param timeframe `r get_slot_doc("commodity", "timeframe")`
 #' @param geoframe `r get_slot_doc("commodity", "geoframe")`
 #' @param unit `r get_slot_doc("commodity", "unit")`
+#' @param cluster `r get_slot_doc("commodity", "cluster")`
 #' @param agg `r get_slot_doc("commodity", "agg")`
 #' @param emis `r get_slot_doc("commodity", "emis")`
 #' @param property `r get_slot_doc("commodity", "property")`
@@ -123,6 +137,7 @@ newCommodity <- function(
     timeframe = character(),
     geoframe = character(),
     unit = character(),
+    cluster = data.frame(),
     agg = data.frame(),
     emis = data.frame(),
     property = data.frame(),
@@ -140,6 +155,7 @@ newCommodity <- function(
     timeframe = timeframe,
     geoframe = geoframe,
     unit = unit,
+    cluster = cluster,
     agg = agg,
     emis = emis,
     property = property,
@@ -555,4 +571,237 @@ object_image <- function(object, which = c("image", "icon")) {
 .object_image_file <- function(object, which = "image") {
   img <- object_image(object, which)
   if (identical(img$status, "ok")) img$path else NULL
+}
+
+
+# =========================================================================== #
+# Resource tiers. A `commodity` declaring `@cluster` is a bundle of grades that
+# must NOT pool: the balance is keyed on (comm, region, year, timeslice) and
+# carries no cluster, so every producer of one name writes into the same cell.
+# Each declared tier becomes its own commodity (`LAND` tier `T3` ->
+# `LAND_CLT3`) with its own balance, and references from clustered processes are
+# repointed, so the balance, the maps and the four templates are untouched.
+#
+# Same shape as `materialize_weather_clusters()` and the same matching rule
+# (`.resolve_cluster_ref()`): by cluster NAME, an unclustered commodity is left
+# alone, and a clustered one needs a cluster to pick from.
+# =========================================================================== #
+
+# Where commodity names are referenced, per class. `tables` lists the slots and
+# the columns inside them; a table carrying its own `cluster` column resolves
+# per ROW, one without resolves at the OBJECT's cluster (storage's commodity
+# roles and every `aux` table are in the second group).
+.commodity_ref_slots <- list(
+  technology = list(tables = list(input = "comm", output = "comm",
+                                  aux = "acomm", ceff = "comm",
+                                  aeff = c("comm", "acomm"),
+                                  weather = "comm",
+                                  varom = c("comm", "acomm"))),
+  storage    = list(tables = list(input = "comm", output = "comm",
+                                  storage = "comm", aux = "acomm",
+                                  aeff = "acomm")),
+  supply     = list(scalar = "commodity"),
+  demand     = list(scalar = "commodity"),
+  import     = list(scalar = "commodity"),
+  export     = list(scalar = "commodity"),
+  trade      = list(scalar = "commodity",
+                    tables = list(aux = "acomm", aeff = "acomm"))
+)
+
+# The cluster an expanded object belongs to: after `expand_variants()` a variant
+# keeps exactly its own declaration row, so this is a single label or NA.
+#' @noRd
+.object_cluster <- function(obj) {
+  d <- .cluster_table(obj)
+  if (is.null(d) || nrow(d) == 0L || !"cluster" %in% names(d)) {
+    return(NA_character_)
+  }
+  # A REGION-SCOPED roster carries one row per (cluster, region), and expansion
+  # keeps every row of this variant's label -- so a variant existing in four
+  # regions keeps four rows, not one. The LABEL identifies the variant; the row
+  # count does not. Keying on the count made a region-scoped roster resolve to
+  # NA, and the caller then refused the model for referencing a tiered
+  # commodity "without a cluster".
+  v <- unique(as.character(d$cluster))
+  v <- v[!is.na(v) & nzchar(v)]
+  if (length(v) != 1L) return(NA_character_)
+  v
+}
+
+materialize_commodity_clusters <- function(mod, verbose = FALSE,
+                                           prefix = .variant_prefix_default()) {
+  cobjs <- list()
+  taken <- character()
+  collect <- function(r) {
+    for (nm in names(r@data)) {
+      el <- r@data[[nm]]
+      if (methods::is(el, "repository")) {
+        collect(el)
+      } else {
+        if (.hasSlot(el, "name")) taken <<- c(taken, el@name)
+        if (methods::is(el, "commodity")) cobjs[[el@name]] <<- el
+      }
+    }
+  }
+  for (r in mod@data) if (methods::is(r, "repository")) collect(r)
+
+  rosters <- lapply(cobjs, .commodity_clusters)
+  clustered <- names(rosters)[vapply(rosters, length, integer(1)) > 0L]
+  if (!length(clustered)) return(mod)
+
+  pending <- list()
+  for (cn in clustered) {
+    for (clu in rosters[[cn]]) {
+      nm <- .variant_name(cn, NA, clu, prefix)
+      if (nm %in% taken) {
+        stop('Commodity "', cn, '" cluster "', clu, '" would be materialized ',
+             'as "', nm, '", which the model already declares. Rename the ',
+             'cluster or the existing commodity.', call. = FALSE)
+      }
+      pending[[nm]] <- list(commodity = cn, cluster = clu)
+    }
+  }
+
+  # --- repoint every reference ---------------------------------------------- #
+  fix_one <- function(ref, cluster, owner) {
+    if (is.na(ref) || !nzchar(ref)) return(ref)
+    roster <- rosters[[ref]]
+    if (is.null(roster) || length(roster) == 0L) return(ref)
+    .resolve_cluster_ref(ref, cluster, roster, "commodity", owner, prefix)
+  }
+
+  rewrite_el <- function(el) {
+    def <- .commodity_ref_slots[[class(el)[1]]]
+    if (is.null(def)) return(NULL)
+    own <- .object_cluster(el)
+    changed <- FALSE
+    if (!is.null(def$scalar) && .hasSlot(el, def$scalar)) {
+      v <- methods::slot(el, def$scalar)
+      if (is.character(v) && length(v) == 1L) {
+        new <- fix_one(v, own, el@name)
+        if (!identical(new, v)) {
+          methods::slot(el, def$scalar) <- new
+          changed <- TRUE
+        }
+      }
+    }
+    for (sl in names(def$tables %||% list())) {
+      if (!.hasSlot(el, sl)) next
+      d <- as.data.frame(methods::slot(el, sl))
+      if (nrow(d) == 0L) next
+      row_clu <- if ("cluster" %in% names(d)) as.character(d$cluster) else
+        rep(own, nrow(d))
+      touched <- FALSE
+      for (cc in intersect(def$tables[[sl]], names(d))) {
+        v <- as.character(d[[cc]])
+        new <- vapply(seq_along(v), function(i) fix_one(v[i], row_clu[i], el@name),
+                      character(1))
+        if (!identical(new, v)) {
+          d[[cc]] <- new
+          touched <- TRUE
+        }
+      }
+      if (touched) {
+        methods::slot(el, sl) <- d
+        changed <- TRUE
+      }
+    }
+    if (changed) el else NULL
+  }
+
+  rewrite <- function(r) {
+    drop <- character()
+    for (nm in names(r@data)) {
+      el <- r@data[[nm]]
+      if (methods::is(el, "repository")) {
+        r@data[[nm]] <- rewrite(el)
+      } else if (methods::is(el, "commodity")) {
+        if (el@name %in% clustered) drop <- c(drop, nm)
+      } else if (class(el)[1] %in% names(.commodity_ref_slots)) {
+        res <- rewrite_el(el)
+        if (!is.null(res)) r@data[[nm]] <- res
+      }
+    }
+    for (nm in drop) r@data[[nm]] <- NULL
+    r
+  }
+  for (i in seq_along(mod@data)) {
+    if (methods::is(mod@data[[i]], "repository")) {
+      mod@data[[i]] <- rewrite(mod@data[[i]])
+    }
+  }
+
+  clones <- lapply(names(pending), function(nm) {
+    p <- pending[[nm]]
+    .commodity_cluster_clone(cobjs[[p$commodity]], p$cluster, nm)
+  })
+  if (verbose) {
+    message("Materialized ", length(clones), " commodity cluster(s): ",
+            paste(names(pending), collapse = ", "))
+  }
+  do.call(add, c(list(mod), unname(clones)))
+}
+
+# One tier as an ordinary commodity: everything inherited, the roster emptied.
+# `@emis` / `@agg` reference OTHER commodities by name and are copied as they
+# are -- a tier emits and aggregates like its parent.
+#' @noRd
+.commodity_cluster_clone <- function(c0, cluster, name) {
+  out <- c0
+  out@name <- name
+  out@cluster <- .cluster_table(c0)[0, , drop = FALSE]
+  out@desc <- if (length(c0@desc) && nzchar(c0@desc[1]))
+    paste0(c0@desc[1], " [", cluster, "]") else c0@desc
+  # Per-tier data: grades of one commodity differ in carbon content, heat value
+  # and how they aggregate, so each tier keeps its own rows plus the shared
+  # (NA) ones -- the same broadcast rule the process variants use. The column
+  # itself is dropped, so a clone is an ordinary commodity.
+  for (sl in .COMMODITY_TIER_SLOTS) {
+    d <- as.data.frame(methods::slot(out, sl))
+    if (nrow(d) == 0L || !"cluster" %in% names(d)) next
+    cv <- as.character(d$cluster)
+    d <- d[is.na(cv) | !nzchar(cv) | cv == cluster,
+           setdiff(names(d), "cluster"), drop = FALSE]
+    rownames(d) <- NULL
+    methods::slot(out, sl) <- d
+  }
+  out
+}
+
+# Slots whose rows may be selected per tier.
+.COMMODITY_TIER_SLOTS <- c("emis", "agg", "property")
+
+# A commodity's tiers: `@cluster` when declared (authoritative), otherwise
+# harvested from the `cluster` columns of the data slots -- the same rule the
+# process classes use. A label in a data slot that the declaration does not
+# list is a typo, not a member.
+#' @noRd
+.commodity_clusters <- function(c0) {
+  labs <- function(v) {
+    v <- as.character(v)
+    sort(unique(v[!is.na(v) & nzchar(v)]))
+  }
+  declared <- character(0)
+  d <- .cluster_table(c0)
+  if (!is.null(d) && nrow(d) > 0L && "cluster" %in% names(d)) {
+    declared <- labs(d$cluster)
+  }
+  used <- unique(unlist(lapply(.COMMODITY_TIER_SLOTS, function(sl) {
+    if (!.hasSlot(c0, sl)) return(NULL)
+    dd <- tryCatch(as.data.frame(methods::slot(c0, sl)), error = function(e) NULL)
+    if (is.null(dd) || nrow(dd) == 0L || !"cluster" %in% names(dd)) return(NULL)
+    labs(dd$cluster)
+  }), use.names = FALSE))
+  used <- if (is.null(used)) character(0) else used
+  if (length(declared) == 0L) return(sort(used))
+  extra <- setdiff(used, declared)
+  if (length(extra)) {
+    stop('Commodity "', c0@name, '" uses cluster label(s) ',
+         paste0('"', extra, '"', collapse = ", "),
+         ' in its data slots, which the `cluster` slot does not declare ',
+         '(it has ', paste0('"', declared, '"', collapse = ", "),
+         '). Add the label to the declaration or fix the spelling.',
+         call. = FALSE)
+  }
+  declared
 }

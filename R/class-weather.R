@@ -12,6 +12,7 @@
 #' @slot region `r get_slot_doc("weather", "region")`
 #' @slot timeframe `r get_slot_doc("weather", "timeframe")`
 #' @slot defVal `r get_slot_doc("weather", "defVal")`
+#' @slot cluster `r get_slot_doc("weather", "cluster")`
 #' @slot weather `r get_slot_doc("weather", "weather")`
 #' @slot misc `r get_slot_doc("weather", "misc")`
 #'
@@ -29,6 +30,7 @@ setClass("weather",
     region = "character",
     timeframe = "character",
     defVal = "numeric",
+    cluster = "data.frame",
     weather = "data.frame",
     misc = "list"
   ),
@@ -39,7 +41,17 @@ setClass("weather",
     region = character(),
     timeframe = character(),
     defVal = 0.,
+    # Resource tiers: one series per grade in one object. No share columns --
+    # a capacity-factor series has no capacity or activity to tie.
+    cluster = data.frame(
+      cluster = character(),
+      desc = character(),
+      region = character(),
+      order = integer(),
+      stringsAsFactors = FALSE
+    ),
     weather = data.frame(
+      cluster = character(),
       region = character(), #
       year = integer(),
       timeslice = character(),
@@ -73,6 +85,7 @@ setMethod("initialize", "weather", function(.Object, ...) {
 #' @param region `r get_slot_doc("weather", "region")`
 #' @param timeframe `r get_slot_doc("weather", "timeframe")`
 #' @param defVal `r get_slot_doc("weather", "defVal")`
+#' @param cluster `r get_slot_doc("weather", "cluster")`
 #' @param weather `r get_slot_doc("weather", "weather")`
 #' @param misc `r get_slot_doc("weather", "misc")`
 #'
@@ -108,6 +121,7 @@ newWeather <- function(
     region = character(),
     timeframe = character(),
     defVal = 0.,
+    cluster = data.frame(),
     weather = data.frame(),
     misc = list(),
     ...) {
@@ -119,6 +133,7 @@ newWeather <- function(
     region = region,
     timeframe = timeframe,
     defVal = defVal,
+    cluster = cluster,
     weather = weather,
     misc = misc,
     ...
@@ -396,6 +411,158 @@ materialize_weather_transforms <- function(mod, verbose = FALSE) {
             paste(vapply(clones, slot, "", "name"), collapse = ", "))
   }
   clones
+}
+
+# Resource tiers. A `weather` object declaring `@cluster` holds one series per
+# tier; each tier a process actually references is cloned into an ordinary
+# weather object (`WWIN` tier `T3` -> `WWIN_CLT3`) and the link is repointed, so
+# everything downstream -- `pWeather`, `mWeatherRegion(At)`, the four templates
+# -- sees only plain single-series objects. Same shape as the transform pass
+# above, and it runs just before it so the two compose: the cluster picks the
+# series, a transform then derives from that.
+#
+# Readable post-expansion because `.variant_timeslice()` STAMPS each variant's
+# cluster into its filtered link rows (R/variants.R) rather than blanking them,
+# so `EWIN_CLT3@weather` arrives carrying `cluster = "T3"`.
+materialize_weather_clusters <- function(mod, verbose = FALSE,
+                                         prefix = .variant_prefix_default()) {
+  wobjs <- list()
+  taken <- character()
+  collect <- function(r) {
+    for (nm in names(r@data)) {
+      el <- r@data[[nm]]
+      if (methods::is(el, "repository")) {
+        collect(el)
+      } else {
+        if (.hasSlot(el, "name")) taken <<- c(taken, el@name)
+        if (methods::is(el, "weather")) wobjs[[el@name]] <<- el
+      }
+    }
+  }
+  for (r in mod@data) if (methods::is(r, "repository")) collect(r)
+
+  rosters <- lapply(wobjs, function(w) {
+    dc <- .declared_clusters(w)
+    # `unique()`: a REGION-SCOPED roster carries one row per (cluster, region),
+    # so the declared labels repeat. Without it a tier would be cloned once per
+    # region it exists in and the error messages would list it that many times.
+    if (is.null(dc)) .weather_row_clusters(w) else
+      unique(as.character(dc$cluster))
+  })
+  if (!any(vapply(rosters, length, integer(1)) > 0L)) return(mod)
+
+  # EVERY declared tier is materialized, not only the referenced ones: the
+  # bundle itself is dropped below (it is not a series -- its rows would
+  # collapse into duplicate (weather, region, year, timeslice) keys), so a tier
+  # left unmaterialized would silently take its data with it.
+  clustered <- names(rosters)[vapply(rosters, length, integer(1)) > 0L]
+  pending <- list()                   # name -> list(weather, cluster)
+  for (wn in clustered) {
+    for (clu in rosters[[wn]]) {
+      nm <- .variant_name(wn, NA, clu, prefix)
+      if (nm %in% taken) {
+        stop('Weather "', wn, '" cluster "', clu, '" would be materialized as "',
+             nm, '", which the model already declares. Rename the cluster or ',
+             'the existing object.', call. = FALSE)
+      }
+      pending[[nm]] <- list(weather = wn, cluster = clu)
+    }
+  }
+
+  rewrite_el <- function(el) {
+    wt <- as.data.frame(el@weather)
+    if (nrow(wt) == 0L || !"weather" %in% names(wt)) return(NULL)
+    clu <- if ("cluster" %in% names(wt)) as.character(wt$cluster) else
+      rep(NA_character_, nrow(wt))
+    changed <- FALSE
+    for (i in seq_len(nrow(wt))) {
+      wname <- wt$weather[i]
+      if (is.na(wname) || !nzchar(wname)) next
+      roster <- rosters[[wname]] %||% character(0)
+      if (length(roster) == 0L) next            # unclustered: leave alone
+      new <- .resolve_cluster_ref(wname, clu[i], roster, "weather",
+                                  el@name, prefix)
+      if (identical(new, wname)) next
+      wt$weather[i] <- new
+      changed <- TRUE
+    }
+    if (!changed) return(NULL)
+    el@weather <- wt
+    el
+  }
+
+  # One walk: repoint the links, and drop the bundles they pointed at.
+  rewrite <- function(r) {
+    drop <- character()
+    for (nm in names(r@data)) {
+      el <- r@data[[nm]]
+      if (methods::is(el, "repository")) {
+        r@data[[nm]] <- rewrite(el)
+      } else if (class(el)[1] %in% names(.weather_link_structural)) {
+        res <- rewrite_el(el)
+        if (!is.null(res)) r@data[[nm]] <- res
+      } else if (methods::is(el, "weather") && el@name %in% clustered) {
+        drop <- c(drop, nm)
+      }
+    }
+    for (nm in drop) r@data[[nm]] <- NULL
+    r
+  }
+  for (i in seq_along(mod@data)) {
+    if (methods::is(mod@data[[i]], "repository")) {
+      mod@data[[i]] <- rewrite(mod@data[[i]])
+    }
+  }
+
+  if (!length(pending)) return(mod)
+  clones <- lapply(names(pending), function(nm) {
+    p <- pending[[nm]]
+    .weather_cluster_clone(wobjs[[p$weather]], p$cluster, nm)
+  })
+  if (verbose) {
+    message("Materialized ", length(clones), " weather cluster(s): ",
+            paste(names(pending), collapse = ", "))
+  }
+  do.call(add, c(list(mod), unname(clones)))
+}
+
+# Clusters a weather object carries, from `@cluster` if declared, else harvested
+# from the `cluster` column of `@weather` -- the same "declared is
+# authoritative, else harvest" rule the process classes use.
+#' @noRd
+.weather_row_clusters <- function(w) {
+  wt <- tryCatch(as.data.frame(w@weather), error = function(e) NULL)
+  if (is.null(wt)) return(character(0))
+  if (nrow(wt) == 0L || !"cluster" %in% names(wt)) return(character(0))
+  v <- unique(as.character(wt$cluster))
+  sort(v[!is.na(v) & nzchar(v)])
+}
+
+# One tier as an ordinary weather object. Rows with NO cluster are shared by
+# every tier (`NA` = "every tier", as the slot documents), so a tier is its own
+# rows plus the shared ones.
+#' @noRd
+.weather_cluster_clone <- function(w, cluster, name) {
+  wt <- as.data.frame(w@weather)
+  keep <- if ("cluster" %in% names(wt)) {
+    cv <- as.character(wt$cluster)
+    is.na(cv) | !nzchar(cv) | cv == cluster
+  } else {
+    rep(TRUE, nrow(wt))
+  }
+  wt <- wt[keep, setdiff(names(wt), "cluster"), drop = FALSE]
+  rownames(wt) <- NULL
+  if (nrow(wt) == 0L) {
+    stop('Weather "', w@name, '" declares cluster "', cluster,
+         '" but carries no rows for it.', call. = FALSE)
+  }
+  out <- w
+  out@name <- name
+  out@weather <- wt
+  out@cluster <- .cluster_table(w)[0, , drop = FALSE]
+  out@desc <- if (length(w@desc) && nzchar(w@desc[1]))
+    paste0(w@desc[1], " [", cluster, "]") else w@desc
+  out
 }
 
 # Guard used by aggregate_model_regions(): any process link naming a transform
