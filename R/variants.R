@@ -517,10 +517,23 @@
            paste0('"', dc$cluster, '"', collapse = ", "),
            '. Add the label to the `cluster` slot or fix the spelling.')
     }
-    if (anyDuplicated(dc$cluster) > 0L) {
-      stop('Duplicated cluster label(s) in the `cluster` slot of ', cls, ' "',
-           nm, '": ',
-           paste(unique(dc$cluster[duplicated(dc$cluster)]), collapse = ", "))
+    # The row identity of a cluster DECLARATION is (cluster, region): "cluster 1
+    # exists in EAST" and "cluster 1 exists in NORTH" are different statements,
+    # and `.cluster_regions()` is already written to read every row of a label
+    # and return the region set. Keying on the label alone rejected that, so a
+    # cluster could be scoped to one region or (NA) to all, never to a subset.
+    #
+    # `@cluster` declares an axis rather than carrying a parameter, so it has no
+    # entry in `.param_interp_map()` and `.assert_no_conflicting_rows()` -- the
+    # general per-parameter key rule -- skips the slot. Hence the key here.
+    kc <- intersect(c("cluster", "region"), names(dc))
+    if (anyDuplicated(dc[, kc, drop = FALSE]) > 0L) {
+      d <- duplicated(dc[, kc, drop = FALSE])
+      stop('Duplicated cluster declaration(s) in the `cluster` slot of ', cls,
+           ' "', nm, '": ',
+           paste(unique(do.call(paste, c(dc[d, kc, drop = FALSE], sep = "@"))),
+                 collapse = ", "),
+           '. A label may repeat across regions, but not within one.')
     }
   } else if (length(used) > 1L && length(by_slot) > 1L) {
     # No declaration to check against: fall back to cross-slot consistency. A
@@ -896,6 +909,18 @@
   dc <- .declared_clusters(tech)
   col <- def$share_col
   if (is.null(dc) || is.null(col) || !col %in% names(dc)) return(d)
+  # A share names one parallel PART of a process, and `share_region` even
+  # rewrites the row's region to the declared one -- both assume a label sits
+  # in exactly one row. Now that a label may span regions, refuse the
+  # combination rather than silently taking the first row's share.
+  nrow_lab <- sum(as.character(dc$cluster) == cluster)
+  if (nrow_lab > 1L && any(!is.na(dc[[col]][as.character(dc$cluster) == cluster]))) {
+    stop(class(tech)[1], ' "', tech@name, '": cluster "', cluster,
+         '" is declared in several regions AND carries `', col,
+         '`. A share is a fraction of one process in one region, so the two ',
+         'have no combined reading -- give the regional variants distinct ',
+         'cluster labels, or drop the share.', call. = FALSE)
+  }
   i <- match(cluster, as.character(dc$cluster))
   if (is.na(i)) return(d)
   sh <- suppressWarnings(as.numeric(dc[[col]][i]))
