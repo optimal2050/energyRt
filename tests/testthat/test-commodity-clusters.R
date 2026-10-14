@@ -270,12 +270,16 @@ test_that("a data-slot label absent from the declaration is a typo, not a member
   expect_error(energyRt:::.commodity_clusters(bad), "does not declare")
 })
 
-test_that("with no declaration the tiers are harvested from the data slots", {
-  harvested <- newCommodity(
+test_that("tiers used in a data slot must be declared", {
+  # harvesting the labels was the earlier behaviour: a misspelled grade then
+  # became a commodity carrying one stray row
+  undeclared <- newCommodity(
     "COA", timeframe = "ANNUAL",
     emis = data.frame(cluster = c("ANTH", "LIG"), comm = "CO2",
                       emis = c(0.09, 0.11)))
-  expect_equal(energyRt:::.commodity_clusters(harvested), c("ANTH", "LIG"))
+  expect_error(energyRt:::.commodity_clusters(undeclared),
+               "declares no `cluster` roster")
+  expect_error(energyRt:::.commodity_clusters(undeclared), "emis")
 })
 
 # --------------------------------------------------------------------------- #

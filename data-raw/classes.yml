@@ -62,8 +62,9 @@ class:
         `property` carry a `cluster` column, so coal grades can differ in
         carbon content and heat value. A row with no cluster is shared by every
         tier, as elsewhere. Declared labels are authoritative -- a label used in
-        a data slot but absent from this declaration is a typo and an error;
-        with no declaration at all the labels are harvested from the data slots.
+        a data slot but absent from this declaration is a typo and an error.
+        The declaration is REQUIRED whenever a data slot carries a label:
+        labels are never harvested.
 
         There is deliberately no `region` column: a commodity has no `region`
         slot (only `geoframe`), and which tiers exist in a region follows from
@@ -319,8 +320,11 @@ class:
         `asSupplyCurve()`, which also computes the costs and checks that the
         curve rises.
 
-        Optional. When empty, labels are harvested from the `cluster` columns of
-        the other slots. When populated it is AUTHORITATIVE.
+        REQUIRED whenever any other slot carries a `cluster` label, and
+        AUTHORITATIVE: a label used in a slot but not declared here is a
+        typo and an error. Labels are never harvested from the data slots --
+        a misspelling would otherwise become a variant with defaults for
+        everything it does not carry (no cost, no bound).
         LIMITATION -- there is deliberately no `cap.share.fx` column. A
         capacity share ties the variants' capacities to fixed proportions, and
         this class has no capacity variable for the tie to act on. The column
@@ -406,7 +410,11 @@ class:
     cluster:
       type: data.frame
       description: >
-        Declaration of the demand's parallel parts. For demand a cluster is a
+        Declaration of the demand's parallel parts. REQUIRED whenever `demand`
+        carries a `cluster` label, and authoritative: labels are never
+        harvested from the data slot.
+
+        For demand a cluster is a
         SUB-REGIONAL SHARE: the object carries one total, declared at a coarse
         region, and each cluster takes a fixed fraction of it in one finer
         region. Variant expansion mints one `dem` set member per cluster and
@@ -953,9 +961,9 @@ class:
         values live in the `cluster` column of the variant-varying slots
         (`capacity`, `invcost`, `afs`, `weather`, ...), exactly as `group`
         declares input groups whose data lives in `input$group`.
-        Optional: when empty, cluster labels are harvested from those columns.
-        When populated it is authoritative -- a label used in a slot but not
-        declared here raises an error instead of silently creating an extra
+        REQUIRED whenever those columns carry a label, and authoritative -- a
+        label used in a slot but not declared here raises an error instead of
+        silently creating an extra
         technology with default (often unbounded) parameters.
         The share columns are different levers, not substitutes.
         `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
@@ -1203,9 +1211,9 @@ class:
         Declaration of the storage clusters -- parallel sub-processes of the same
         storage with their own capacity, availability and costs. The motivating
         cases are site-constrained storage (pumped-hydro head classes, CAES
-        caverns) and duration classes via a per-cluster `duration`. Optional: when
-        empty, cluster labels are harvested from the other slots; when populated
-        it is authoritative and an undeclared label raises an error.
+        caverns) and duration classes via a per-cluster `duration`. REQUIRED
+        whenever another slot carries a `cluster` label, and authoritative: an
+        undeclared label raises an error, and labels are never harvested.
         The share columns are different levers, not substitutes.
         `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
         year: loss tranches need it, because each tranche efficiency is
@@ -2234,8 +2242,11 @@ class:
         could restrict nothing, and its absence rejects the mistake at
         construction rather than deep inside variant expansion.
 
-        Optional. When empty, tranche labels are harvested from the `cluster`
-        columns of the other slots. When populated it is AUTHORITATIVE.
+        REQUIRED whenever any other slot carries a `cluster` label, and
+        AUTHORITATIVE: a label used in a slot but not declared here is a
+        typo and an error. Labels are never harvested from the data slots --
+        a misspelling would otherwise become a variant with defaults for
+        everything it does not carry (no cost, no bound).
         The share columns are different levers, not substitutes.
         `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
         year: loss tranches need it, because each tranche efficiency is
@@ -2399,8 +2410,11 @@ class:
         `cluster` column of the other slots. Build both with `asImportCurve()`, which
         also computes the prices and checks the direction of the curve.
 
-        Optional. When empty, step labels are harvested from the `cluster`
-        columns of the other slots. When populated it is AUTHORITATIVE.
+        REQUIRED whenever any other slot carries a `cluster` label, and
+        AUTHORITATIVE: a label used in a slot but not declared here is a
+        typo and an error. Labels are never harvested from the data slots --
+        a misspelling would otherwise become a variant with defaults for
+        everything it does not carry (no cost, no bound).
         LIMITATION -- there is deliberately no `cap.share.fx` column. A
         capacity share ties the variants' capacities to fixed proportions, and
         this class has no capacity variable for the tie to act on. The column
@@ -2530,8 +2544,11 @@ class:
         `cluster` column of the other slots. Build both with `asExportCurve()`, which
         also computes the prices and checks the direction of the curve.
 
-        Optional. When empty, step labels are harvested from the `cluster`
-        columns of the other slots. When populated it is AUTHORITATIVE.
+        REQUIRED whenever any other slot carries a `cluster` label, and
+        AUTHORITATIVE: a label used in a slot but not declared here is a
+        typo and an error. Labels are never harvested from the data slots --
+        a misspelling would otherwise become a variant with defaults for
+        everything it does not carry (no cost, no bound).
         LIMITATION -- there is deliberately no `cap.share.fx` column. A
         capacity share ties the variants' capacities to fixed proportions, and
         this class has no capacity variable for the tie to act on. The column
@@ -2615,7 +2632,10 @@ class:
         tier.
 
         This slot declares WHAT the tiers are; the per-tier values live in the
-        `cluster` column of `weather`. At interpolation each tier referenced by
+        `cluster` column of `weather`. It is REQUIRED whenever that column
+        carries a label, and authoritative: labels are never harvested from the
+        series, so a misspelled tier is an error rather than a series nobody
+        asked for. At interpolation each tier referenced by
         a process is cloned into an ordinary weather object named with the
         model's cluster prefix (`WWIN` tier `T3` -> `WWIN_CLT3`), so the
         backends only ever see plain series.

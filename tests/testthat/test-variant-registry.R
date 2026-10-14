@@ -110,3 +110,70 @@ test_that("a row with no selector still reaches every variant", {
     expect_equal(o@inp2out$inp2out.fx, 0.3)
   }
 })
+
+# --------------------------------------------------------------------------- #
+# A roster must be DECLARED. Labels used to be harvested out of the data slots,
+# guarded by a cross-slot consistency check; the guard could not see a single
+# label or a single cluster-carrying slot, and a misspelling then became a
+# variant with defaults for everything it did not carry -- no investment cost
+# and no capacity bound, i.e. free and unlimited. The roster is also the only
+# place `region` and `order` can be stated.
+# --------------------------------------------------------------------------- #
+
+test_that("the cluster axis requires a roster, naming slots and the fix", {
+  t1 <- newTechnology(
+    name = "T1", output = data.frame(comm = "ELC"),
+    invcost = data.frame(cluster = c("01", "02"), invcost = c(600, 900)),
+    capacity = data.frame(cluster = c("01", "02"), cap.up = 10),
+    cap2act = 1)
+  err <- tryCatch(energyRt:::.variant_validate(t1),
+                  error = function(e) conditionMessage(e))
+  expect_match(err, "declares no `cluster` roster")
+  expect_match(err, '"01", "02"')
+  expect_match(err, "invcost")
+  expect_match(err, "capacity")
+  expect_match(err, "cluster = data.frame")
+})
+
+test_that("the vintage axis requires a roster too", {
+  t2 <- newTechnology(
+    name = "T2", output = data.frame(comm = "ELC"),
+    invcost = data.frame(vintage = c("2025", "2035"), invcost = c(10, 8)),
+    capacity = data.frame(cap.up = 1), cap2act = 1)
+  err <- tryCatch(energyRt:::.variant_validate(t2),
+                  error = function(e) conditionMessage(e))
+  expect_match(err, "declares no `vintage` roster")
+  expect_match(err, "vintage = data.frame")
+})
+
+test_that("an undeclared vintage label is refused like a cluster one", {
+  t3 <- newTechnology(
+    name = "T3", output = data.frame(comm = "ELC"),
+    vintage = data.frame(vintage = "2025", olife = 30L),
+    invcost = data.frame(vintage = c("2025", "2035"), invcost = c(10, 8)),
+    cap2act = 1)
+  expect_error(energyRt:::.variant_validate(t3), "Undeclared vintage label")
+})
+
+test_that("a declared roster needs no window, and still expands", {
+  t4 <- newTechnology(
+    name = "T4", output = data.frame(comm = "ELC"),
+    cluster = c("01", "02"),
+    vintage = data.frame(vintage = c("2025", "2035")),   # no start/end/olife
+    invcost = data.frame(cluster = c("01", "02"), invcost = c(600, 900)),
+    capacity = data.frame(cap.up = 10), cap2act = 1)
+  expect_silent(energyRt:::.variant_validate(t4))
+  objs <- energyRt:::.expand_one_process(t4)$objects
+  expect_setequal(vapply(objs, function(o) o@name, character(1)),
+                  c("T4_VIN2025_CL01", "T4_VIN2035_CL01",
+                    "T4_VIN2025_CL02", "T4_VIN2035_CL02"))
+})
+
+test_that("asSupplyCurve() builds a roster, so its output validates", {
+  sup <- newSupply(
+    name = "SUP", commodity = "COA",
+    supply = data.frame(ava.up = 10, cost = 2))
+  curve <- asSupplyCurve(sup, range = c(1, 3), nsteps = 3)
+  expect_equal(nrow(curve@cluster), 3L)
+  expect_silent(energyRt:::.variant_validate(curve))
+})

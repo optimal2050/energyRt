@@ -6,6 +6,7 @@
 test_that("clusters expand into one technology each, keeping per-cluster data", {
   WIN <- newTechnology(
     "EWIN", output = list(comm = "ELC"),
+    cluster  = c("best", "mid", "poor"),   # the roster is required
     invcost  = data.frame(cluster = c("best", "mid", "poor"),
                           invcost = c(1500, 1300, 1100)),
     afs      = data.frame(cluster = c("best", "mid", "poor"), timeslice = "ANNUAL",
@@ -92,6 +93,7 @@ test_that("vintage x cluster produces the full grid", {
   BOTH <- newTechnology(
     "ESOL", output = list(comm = "ELC"),
     vintage = data.frame(vintage = c("2020", "2030"), olife = c(25L, 25L)),
+    cluster = c("a", "b"),
     invcost = data.frame(vintage = rep(c("2020", "2030"), each = 2),
                          cluster = rep(c("a", "b"), 2),
                          invcost = c(2000, 2200, 1500, 1700)),
@@ -120,6 +122,7 @@ test_that("results carry base/vintage/cluster and roll up by default", {
   skip_if_no_solver()
   WIN <- newTechnology(
     "EWIN", output = list(comm = "ELC"),
+    cluster  = c("best", "mid"),
     invcost  = data.frame(cluster = c("best", "mid"), invcost = c(150, 130)),
     afs      = data.frame(cluster = c("best", "mid"), timeslice = "ANNUAL",
                           afs.up = c(0.45, 0.32)),

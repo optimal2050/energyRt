@@ -7,6 +7,24 @@
 
 ## Breaking changes
 
+* **A variant roster must be declared.** A `cluster` or `vintage` label used in
+  any data slot now requires a row in `@cluster` / `@vintage`; the object is
+  refused otherwise, with an error naming the labels, the slots they appear in
+  and the declaration to add. This holds on both axes and for every class that
+  has the slots, `weather` and `commodity` included.
+
+  Labels used to be harvested from the data slots when the roster was empty,
+  guarded by a cross-slot consistency check. That guard could not see a single
+  label or a single cluster-carrying slot, and a misspelling then became a
+  variant carrying the typo's rows and DEFAULTS for everything else -- no
+  investment cost and no capacity bound, i.e. free and unlimited. The roster is
+  also the only place `region` (which regions a member exists in) and `order`
+  can be stated, so a region-scoped or sorted set needed it regardless.
+
+  `asSupplyCurve()` / `asImportCurve()` / `asExportCurve()` are unaffected: they
+  write the roster along with the per-step values. A model that harvested needs
+  the roster added, and the error prints it.
+
 * A summand `timeframe` / `geoframe` is resolved per member rather than from the
   pooled index column. It used to pin to the named level, silently dropping
   every member whose rows lie below it: in a model with one annual and one

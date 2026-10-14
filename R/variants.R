@@ -328,6 +328,32 @@
 # target needs a cluster to pick from, because every use of these references is
 # a one-to-one link -- a multiplicative weather factor or a commodity in one
 # balance cell -- so "every cluster at once" has no reading.
+# A variant roster must be DECLARED: `@cluster` for the cluster axis, `@vintage`
+# for vintages. Labels were once harvested out of the data slots, which made a
+# misspelling into a variant carrying the typo's rows and defaults for
+# everything else -- no investment cost and no capacity bound. The roster is
+# also the only place `region` (which regions a member exists in) and `order`
+# can be stated, so a region-scoped or sorted set needs it regardless.
+#
+# `used` are the labels found in the data slots, `by_slot` the per-slot lists
+# from `.variant_levels_by_slot()`, used to say where each label came from.
+#' @noRd
+.assert_roster_declared <- function(obj, axis, used, by_slot) {
+  used <- unique(used[!is.na(used) & nzchar(used)])
+  if (length(used) == 0L) return(invisible(TRUE))
+  where <- names(by_slot)[vapply(by_slot, function(z) any(used %in% z),
+                                 logical(1))]
+  stop(class(obj)[1], ' "', obj@name, '" uses ', axis, ' label(s) ',
+       paste0('"', used, '"', collapse = ", "), ' in ',
+       paste0('`', where, '`', collapse = ", "),
+       ', but declares no `', axis, '` roster. Add e.g.
+    ', axis, ' = data.frame(', axis, ' = c(',
+       paste0('"', used, '"', collapse = ", "), '))
+The roster is the authoritative set: a label that appears only in a data slot ',
+       'is a typo, and `region` / `order` can be stated nowhere else.',
+       call. = FALSE)
+}
+
 #' @noRd
 .resolve_cluster_ref <- function(ref, cluster, roster, what, owner,
                                  prefix = .variant_prefix_default()) {
@@ -552,6 +578,38 @@
       }
     }
   }
+  # ── vintage labels ─────────────────────────────────────────────────────────
+  # The roster is `@vintage` itself: a row with only the label and an NA window
+  # is enough, since `.variant_default_window()` supplies the default.
+  if ("vintage" %in% .variant_dims_of(tech) && .hasSlot(tech, "vintage")) {
+    vin_by_slot <- .variant_levels_by_slot(tech, "vintage")
+    vin_used <- unique(unlist(vin_by_slot, use.names = FALSE))
+    vin_dec <- as.data.frame(tech@vintage)
+    vin_dec <- if (nrow(vin_dec) == 0L || !"vintage" %in% names(vin_dec)) {
+      character(0)
+    } else {
+      v <- as.character(vin_dec$vintage)
+      unique(v[!is.na(v) & nzchar(v)])
+    }
+    if (length(vin_used) > 0L && length(vin_dec) == 0L) {
+      .assert_roster_declared(tech, "vintage", vin_used, vin_by_slot)
+    }
+    undeclared_vin <- setdiff(vin_used, vin_dec)
+    if (length(vin_dec) > 0L && length(undeclared_vin) > 0L) {
+      where <- vapply(undeclared_vin, function(u) {
+        paste(names(vin_by_slot)[
+          vapply(vin_by_slot, function(z) u %in% z, logical(1))],
+          collapse = ", ")
+      }, character(1))
+      stop('Undeclared vintage label(s) in ', cls, ' "', nm, '": ',
+           paste0('"', undeclared_vin, '" (in ', where, ')', collapse = "; "),
+           '. Declared vintages are: ',
+           paste0('"', vin_dec, '"', collapse = ", "),
+           '. Add the label to the `vintage` slot or fix the spelling.',
+           call. = FALSE)
+    }
+  }
+
   # ── cluster labels ─────────────────────────────────────────────────────────
   dc      <- .declared_clusters(tech)
   by_slot <- .variant_levels_by_slot(tech, "cluster")
@@ -592,26 +650,12 @@
                  collapse = ", "),
            '. A label may repeat across regions, but not within one.')
     }
-  } else if (length(used) > 1L && length(by_slot) > 1L) {
-    # No declaration to check against: fall back to cross-slot consistency. A
-    # label present in some variant-varying slots but missing from others is the
-    # signature of a typo (a real cluster is normally given a cost AND a limit).
-    missing_in <- lapply(used, function(u) {
-      names(by_slot)[!vapply(by_slot, function(z) u %in% z, logical(1))]
-    })
-    names(missing_in) <- used
-    partial <- used[lengths(missing_in) > 0L]
-    if (length(partial) > 0L) {
-      msg <- paste0('"', partial, '" missing from: ',
-                    vapply(missing_in[partial], paste, character(1),
-                           collapse = ", "), collapse = "; ")
-      stop('Inconsistent cluster labels in ', cls, ' "', nm, '": ', msg,
-           '. Every cluster should appear in each slot that differentiates ',
-           'clusters, otherwise a misspelling silently creates an extra ',
-           'technology with default (often unbounded) parameters. Declare the ',
-           'clusters in the `cluster` slot to state the intended set ',
-           'explicitly, or give each cluster a value in every listed slot.')
-    }
+  } else {
+    # No roster: required, not optional. Harvesting the labels out of the data
+    # slots used to be allowed, and a single misspelling then became a variant
+    # carrying whatever data held the typo and DEFAULTS for everything else --
+    # no investment cost and no capacity bound, i.e. free and unlimited.
+    .assert_roster_declared(tech, "cluster", used, by_slot)
   }
 
   # A class with no `@region` slot has no region scope for a cluster to

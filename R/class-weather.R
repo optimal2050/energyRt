@@ -443,11 +443,22 @@ materialize_weather_clusters <- function(mod, verbose = FALSE,
 
   rosters <- lapply(wobjs, function(w) {
     dc <- .declared_clusters(w)
+    if (is.null(dc)) {
+      # No roster: the labels in `@weather` are not a declaration. Harvesting
+      # them would make a misspelled tier a series nobody asked for.
+      rows <- as.data.frame(w@weather)
+      used <- if (nrow(rows) == 0L || !"cluster" %in% names(rows)) {
+        character(0)
+      } else {
+        as.character(rows$cluster)
+      }
+      .assert_roster_declared(w, "cluster", used, list(weather = used))
+      return(character(0))
+    }
     # `unique()`: a REGION-SCOPED roster carries one row per (cluster, region),
     # so the declared labels repeat. Without it a tier would be cloned once per
     # region it exists in and the error messages would list it that many times.
-    if (is.null(dc)) .weather_row_clusters(w) else
-      unique(as.character(dc$cluster))
+    unique(as.character(dc$cluster))
   })
   if (!any(vapply(rosters, length, integer(1)) > 0L)) return(mod)
 
@@ -524,18 +535,6 @@ materialize_weather_clusters <- function(mod, verbose = FALSE,
             paste(names(pending), collapse = ", "))
   }
   do.call(add, c(list(mod), unname(clones)))
-}
-
-# Clusters a weather object carries, from `@cluster` if declared, else harvested
-# from the `cluster` column of `@weather` -- the same "declared is
-# authoritative, else harvest" rule the process classes use.
-#' @noRd
-.weather_row_clusters <- function(w) {
-  wt <- tryCatch(as.data.frame(w@weather), error = function(e) NULL)
-  if (is.null(wt)) return(character(0))
-  if (nrow(wt) == 0L || !"cluster" %in% names(wt)) return(character(0))
-  v <- unique(as.character(wt$cluster))
-  sort(v[!is.na(v) & nzchar(v)])
 }
 
 # One tier as an ordinary weather object. Rows with NO cluster are shared by

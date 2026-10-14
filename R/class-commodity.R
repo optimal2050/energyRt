@@ -793,7 +793,21 @@ materialize_commodity_clusters <- function(mod, verbose = FALSE,
     labs(dd$cluster)
   }), use.names = FALSE))
   used <- if (is.null(used)) character(0) else used
-  if (length(declared) == 0L) return(sort(used))
+  if (length(declared) == 0L) {
+    # No roster: the labels in the data slots are not a declaration.
+    by_slot <- lapply(.COMMODITY_TIER_SLOTS, function(sl) {
+      if (!.hasSlot(c0, sl)) return(character(0))
+      dd <- tryCatch(as.data.frame(methods::slot(c0, sl)),
+                     error = function(e) NULL)
+      if (is.null(dd) || nrow(dd) == 0L || !"cluster" %in% names(dd)) {
+        return(character(0))
+      }
+      labs(dd$cluster)
+    })
+    names(by_slot) <- .COMMODITY_TIER_SLOTS
+    .assert_roster_declared(c0, "cluster", used, by_slot)
+    return(character(0))
+  }
   extra <- setdiff(used, declared)
   if (length(extra)) {
     stop('Commodity "', c0@name, '" uses cluster label(s) ',

@@ -54,6 +54,7 @@ test_that("a custom prefix is used in the minted variant names", {
   WIN <- newTechnology(
     "EWIN", output = list(comm = "ELC"),
     vintage = data.frame(vintage = "2030", olife = 25L),
+    cluster = c("best", "mid"),
     invcost = data.frame(cluster = c("best", "mid"), invcost = c(150, 130)),
     cap2act = 1)
   mod <- vt_model(WIN, name = "pfx")
