@@ -19,19 +19,10 @@ template:
     # bg: dark
     # fg: dark
     # bg: primary
-  # params:
-  #   ganalytics: G-CYBYJ238Q5
   includes:
     in_header: |
-      <!-- Google tag (gtag.js) -->
-      <script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script>
-      <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-
-        gtag('config', 'G-CYBYJ238Q5');
-      </script>
+      <script data-goatcounter="https://energyrt.goatcounter.com/count"
+              async src="https://gc.zgo.at/count.js"></script>
 
 # navbar:
 #   bg: primary
