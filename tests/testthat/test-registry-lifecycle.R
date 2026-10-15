@@ -11,7 +11,9 @@
 # the CSV, and a directory RENAMED or copied carries its old manifest mtime.
 # Both are caught by comparing the set of manifest paths, not the timestamps.
 
-# @covers refresh_registry load_registry add_to_registry summary.en_registry depth=S
+# Covers the R API: refresh_registry(), load_registry(), add_to_registry(),
+# summary.en_registry(). No model entity is exercised, so there is no @covers
+# tag -- the coverage matrix indexes model vocabulary only (tests/README.md).
 
 # A minimal project on disk: scenarios and models with manifests only. No
 # solver and no interpolation, so these stay fast and backend-independent.

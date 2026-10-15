@@ -10,7 +10,9 @@
 # Rows are now keyed on path, so both survive, and a name that matches more
 # than one live folder is refused rather than resolved.
 
-# @covers add_to_registry refresh_registry getScenario load_scenario depth=S backends=glpk
+# Covers the R API: add_to_registry(), refresh_registry(), getScenario(),
+# load_scenario(). No model entity is exercised, so there is no @covers tag --
+# the coverage matrix indexes model vocabulary only (tests/README.md).
 
 # Expect a tidyselect deprecation ("Using an external vector in selections")
 # against most expectations here. It predates this work -- test-seal.R and
