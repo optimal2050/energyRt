@@ -15,6 +15,7 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(energyRt)
+library(geoscales)
 library(ggplot2)
 ```
 
@@ -106,6 +107,20 @@ PP <- newTechnology(
   capacity = data.frame(cap.up = 400),  # GW; no vintage column: both members
   cap2act = 8.76                        # GW -> GWh/year
 )
+```
+
+`draw()` sketches what was just declared, before any model is built:
+
+```{r draw-vintage, fig.height = 3}
+draw(PP)
+```
+
+One box, because the vintages share a structure: same fuel in, same commodity
+out. What differs is the data, which is what `autoplot()` shows -- one series per
+member, over the years each one may be built in:
+
+```{r autoplot-vintage}
+autoplot(object = PP)
 ```
 
 Three things in that declaration are worth naming.
@@ -543,6 +558,18 @@ link <- as.data.frame(link)
 unique(link[, c("tech", "weather", "cluster")])
 ```
 
+The link shows up on the drawing as a weather box against the technology, and
+the tiers themselves plot straight from the object -- pass the `calendar` so the
+timeslices are laid out rather than taken as labels:
+
+```{r draw-weather, fig.height = 3}
+draw(EWIN_W)
+```
+
+```{r autoplot-weather}
+autoplot(object = WWIN, calendar = cal)
+```
+
 A consumer finds its tier **by cluster name** -- the reason the label is built
 once and shared. A link row carrying `cluster = "01"` reads the `01` rows; a link
 to an *unclustered* weather object is untouched (so a single shared profile keeps
@@ -641,6 +668,18 @@ inp <- getData(scen_land, name = "vTechInp", merge = TRUE)
 aggregate(value ~ tech + comm, inp, sum)   # kha
 ```
 
+```{r draw-land, fig.height = 3}
+draw(EWIN_L)
+```
+
+The land input is one arrow on the box, and the tiers that feed it are a
+property of the resource, not of the process. `autoplot()` on the supply object
+shows what each tier has and what it costs:
+
+```{r autoplot-land}
+autoplot(object = RES_LAND, style = "bar")
+```
+
 `EWIN_CL01` exhausts `LAND_CL01` and `EWIN_CL02` starts on `LAND_CL02`; no
 variant ever touches another tier's land. The bound bites where you declared it,
 from **one** commodity and **one** supply object -- which matters because
@@ -728,6 +767,17 @@ ef <- as.data.frame(ef)
 ef[, c("comm", "commp", "value")]   # kt per PJ
 ```
 
+```{r draw-coal, fig.height = 3}
+draw(PP_COA)
+```
+
+and the commodity itself plots its grades, which is where the difference between
+the two fuels actually lives:
+
+```{r autoplot-coal}
+autoplot(object = COA)
+```
+
 Each grade carries its own CO2 factor and both inherit the one shared SO2 row.
 A grade is now a genuinely different fuel: cheap lignite with a high carbon
 factor against costlier anthracite, and a CO2 cap decides which one runs.
@@ -737,6 +787,267 @@ label that appears in a data slot but not in the `cluster` roster is a typo and
 an error, and so is a data slot carrying labels with no roster at all. The
 alternative -- harvesting the labels -- made a silent extra grade out of one
 stray row.
+
+## Two tier sets that do not line up
+
+The sections above tiered one thing at a time, and the rosters lined up by
+design. A real wind resource rarely obliges. Land comes in grades that are
+finite **per region**, because land is where the turbine stands; the wind regime
+that drives output is a property of a much larger area, and the two have nothing
+to do with each other -- the best land in a country can sit in either regime.
+
+So: a two-level geoscale, land declared at the fine level, wind declared at the
+coarse one.
+
+```{r sites-geoscale}
+gs_two <- geoscale_from_leaftable(
+  data.frame(
+    country = c("CO", "CO"),
+    region = c("R1", "R2")
+  ),
+  geoframes = c("country", "region"),
+  key = "region",
+  name = "two_level"
+)
+```
+
+The two regimes are declared **once, at the country level**, and each is an
+ordinary unclustered weather object:
+
+```{r sites-weather}
+WWIN_COAST <- newWeather(
+  name = "WWIN_COAST",
+  desc = "Coastal wind regime",
+  timeframe = "SEASON",
+  unit = "share",
+  weather = data.frame(
+    region = "CO",
+    timeslice = c("WIN", "SUM"),
+    wval = c(0.55, 0.25)
+  )
+)
+WWIN_INLAND <- newWeather(
+  name = "WWIN_INLAND",
+  desc = "Inland wind regime",
+  timeframe = "SEASON",
+  unit = "share",
+  weather = data.frame(
+    region = "CO",
+    timeslice = c("WIN", "SUM"),
+    wval = c(0.20, 0.45)
+  )
+)
+```
+
+Land is a tiered commodity at `geoframe = "region"`, and the potential of each
+grade differs by region -- `R2` has almost no best-grade land:
+
+```{r sites-land}
+LAND_WIN <- newCommodity(
+  name = "LAND_WIN",
+  desc = "Developable wind land by site grade",
+  timeframe = "ANNUAL",
+  geoframe = "region",
+  unit = "kha",
+  cluster = data.frame(
+    cluster = c("01", "02", "03"),
+    desc = c("best", "fair", "poor"),
+    order = 1:3
+  )
+)
+RES_LAND_WIN <- newSupply(
+  name = "RES_LAND_WIN",
+  commodity = "LAND_WIN",
+  cluster = data.frame(
+    cluster = c("01", "02", "03"),
+    region = NA_character_,
+    order = 1:3
+  ),
+  supply = data.frame(
+    cluster = rep(c("01", "02", "03"), each = 2),
+    region = rep(c("R1", "R2"), times = 3),
+    ava.up = c(20, 3,   30, 40,   100, 100),   # kha, by grade and region
+    cost = 0
+  )
+)
+```
+
+Now the technology. Its clusters are the **land** grades, because that is the
+axis its own capacity is limited on. The regime comes in through the `weather`
+table, one row per cluster, each naming whichever country-level object applies:
+
+```{r sites-tech}
+EWIN_SITE <- newTechnology(
+  name = "EWIN_SITE",
+  desc = "Wind, one variant per site grade",
+  output = data.frame(comm = "ELC", unit = "GWh"),
+  aux = data.frame(acomm = "LAND_WIN", unit = "kha"),
+  cluster = data.frame(
+    cluster = c("01", "02", "03"),
+    desc = c("best sites", "fair sites", "poor sites"),
+    region = NA_character_,
+    order = 1:3
+  ),
+  vintage = data.frame(olife = 25L),
+  invcost = data.frame(
+    cluster = c("01", "02", "03"),
+    invcost = c(900, 1000, 1300)    # MUSD/GW
+  ),
+  aeff = data.frame(
+    cluster = c("01", "02", "03"),
+    acomm = "LAND_WIN",
+    ncap2ainp = c(2, 3, 5)          # kha of land per GW built
+  ),
+  # the second axis: grades 01 and 03 are coastal, 02 is inland
+  weather = data.frame(
+    cluster = c("01", "02", "03"),
+    weather = c("WWIN_COAST", "WWIN_INLAND", "WWIN_COAST"),
+    waf.up = 1
+  ),
+  cap2act = 8.76                    # GW -> GWh/year
+)
+```
+
+Two flows and one regime per member, which is what the drawing says: electricity
+out, land in as an auxiliary flow charged against new capacity.
+
+```{r draw-sites, fig.height = 3}
+draw(EWIN_SITE)
+```
+
+The regimes are ordinary series, and plotting them side by side is the clearest
+statement that they are not orderable the way grades are -- one peaks in winter,
+the other in summer:
+
+```{r autoplot-regimes, fig.height = 3}
+autoplot(object = WWIN_COAST, calendar = cal)
+```
+
+```{r autoplot-regimes-inland, fig.height = 3}
+autoplot(object = WWIN_INLAND, calendar = cal)
+```
+
+That `weather` table is the whole trick, and it works because **a link to an
+unclustered weather object is left alone**: the cluster label picks the *row*,
+and the row names the object. The regimes therefore need no relationship to the
+land grades -- two of the three grades share one regime here.
+
+```{r sites-model, warning = TRUE}
+DEM_WIND <- newDemand(
+  name = "DEM_WIND",
+  commodity = "ELC",
+  demand = data.frame(
+    region = c("R1", "R1", "R2", "R2"),
+    timeslice = c("WIN", "SUM", "WIN", "SUM"),
+    demand = 8                      # GWh per slice
+  )
+)
+
+repo_site <- newRepository(
+  name = "repo_site",
+  ELC, IMP_ELC, DEM_WIND, LAND_WIN, RES_LAND_WIN,
+  WWIN_COAST, WWIN_INLAND, EWIN_SITE
+)
+mod_site <- newModel(
+  name = "art_sites",
+  repo = repo_site,
+  calendar = cal,
+  region = c("R1", "R2"),
+  geoscale = gs_two,
+  horizon = newHorizon(2025),
+  discount = 0.05
+)
+scen_site <- solve_model(
+  obj = mod_site,
+  name = "art_sites",
+  ondisk = FALSE,
+  overwrite = TRUE,
+  echo = FALSE
+)
+getVariants(scen_site)
+```
+
+Each regime is stored once, at the country level, however many regions read it:
+
+```{r sites-weather-store}
+pw <- getData(scen_site, name = "pWeather", merge = TRUE)
+unique(as.data.frame(pw)[, c("weather", "region")])
+```
+
+and each grade reads the one its link row names:
+
+```{r sites-weather-link}
+link <- getData(scen_site, name = "pTechWeatherAf", merge = TRUE)
+link <- as.data.frame(link)
+unique(link[, c("tech", "weather", "cluster")])
+```
+
+The solution shows both axes at work at once:
+
+```{r sites-results}
+cap <- getData(scen_site, name = "vTechNewCap", merge = TRUE)
+aggregate(value ~ tech + region, as.data.frame(cap), sum)      # GW
+
+land <- getData(scen_site, name = "vTechAInp", merge = TRUE)
+aggregate(value ~ tech + comm + region, as.data.frame(land), sum)   # kha
+
+out <- getData(scen_site, name = "vTechOut", merge = TRUE)
+aggregate(value ~ tech + timeslice, as.data.frame(out), sum)   # GWh
+```
+
+The same two tables as figures. The resource first -- `style = "regions"` is the
+view that matters here, because the whole point is that a grade's ceiling is a
+different number in each region:
+
+```{r autoplot-sites-land}
+autoplot(object = RES_LAND_WIN, style = "regions")
+```
+
+and then what was built, folded on the cluster axis:
+
+```{r autoplot-sites-cap}
+autoplot(
+  object = scen_site,
+  type = "new_capacity",
+  comm = "ELC",
+  by = "cluster"
+)
+```
+
+```{r autoplot-sites-gen}
+autoplot(
+  object = scen_site,
+  type = "generation",
+  comm = "ELC",
+  by = "cluster"
+)
+```
+
+Read the land table first: `R2` takes `3.000` kha of grade `01`, which is
+exactly what it has, and then falls back to grade `03` -- while `R1`, with 20
+kha of the same grade, never gets near its limit. The tier bound bit **per
+region**, which is why land had to be a regional commodity.
+
+Then the generation table: winter output comes mostly from grades `01` and `03`
+and summer output mostly from `02`. That is the regime assignment, not the land
+quality -- the model is holding a seasonally complementary portfolio because the
+second axis cuts across the first.
+
+Two notes on the alternative. If the regimes *do* coincide with the grades, a
+clustered weather object is tidier: give it the same labels and one link row,
+exactly as in [Weather tiers](#weather-tiers) above. And if they do not coincide
+but you cluster the weather anyway, the rosters must still match label for
+label, or interpolation refuses the model:
+
+```
+technology "EWIN_SITE_CL01" references weather "WWIN" with cluster "01", which
+that weather does not declare (it has "COAST", "INLAND"). The consumer decides
+which clusters exist, so the weather must cover every one it is asked for.
+```
+
+That is the right error: a multiplicative factor has no "pick one for me"
+reading. The fix is either to align the labels or, as here, to let the regimes
+be plain objects and name them per row.
 
 # Reading a family back
 
@@ -748,6 +1059,19 @@ getVariants(scen, class = "technology")             # one class
 getData(scen, name = "vTechCap", variants = TRUE)   # results + provenance
 variantSummary(scen, name = "vTechCap", by = "cluster")  # folded on one axis
 ```
+
+The same call takes a **model**, which answers the question a constraint or a
+levy asks before anything is solved -- what will the members be called?
+
+```{r reading-model}
+getVariants(mod_site)
+```
+
+Those names are minted from the model's own `variant_prefix` and recorded in the
+scenario, and `validate_scenario_parameters()` re-derives every one of them from
+its `(base, vintage, cluster)` cell: a provenance table that disagrees with the
+process names is refused rather than read. The table is the one place to look --
+never the name itself.
 
 `getData(..., variants = TRUE)` adds the provenance columns to the results,
 which is usually what you want for plotting: group by `base` to draw the family,

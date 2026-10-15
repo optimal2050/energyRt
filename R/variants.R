@@ -356,17 +356,18 @@ The roster is the authoritative set: a label that appears only in a data slot ',
 
 #' @noRd
 .resolve_cluster_ref <- function(ref, cluster, roster, what, owner,
+                                 owner_class = "object",
                                  prefix = .variant_prefix_default()) {
   if (length(roster) == 0L) return(ref)
   if (is.na(cluster) || !nzchar(cluster)) {
-    stop(class(owner)[1], ' "', owner, '" references ', what, ' "', ref,
+    stop(owner_class, ' "', owner, '" references ', what, ' "', ref,
          '" without a cluster, but that ', what, ' declares cluster(s) ',
          paste0('"', roster, '"', collapse = ", "),
          '. Name the cluster on the referencing row, or split the ', what,
          ' into one object per cluster.', call. = FALSE)
   }
   if (!cluster %in% roster) {
-    stop(class(owner)[1], ' "', owner, '" references ', what, ' "', ref,
+    stop(owner_class, ' "', owner, '" references ', what, ' "', ref,
          '" with cluster "', cluster, '", which that ', what,
          ' does not declare (it has ',
          paste0('"', roster, '"', collapse = ", "),
@@ -1823,7 +1824,11 @@ expand_tech_variants <- function(mod, prefix = .variant_prefix(mod),
 #' table (or `getData(..., variants = TRUE)`) to analyse results by vintage or
 #' cluster rather than parsing the names.
 #'
-#' @param scen a `scenario` object.
+#' A `model` is accepted as well, which answers the same question *before*
+#' interpolating: the names a constraint, levy or report will have to refer to.
+#' The expansion runs on a throwaway copy, so the model passed in is unchanged.
+#'
+#' @param scen a `scenario` object, or a `model` to expand on the fly.
 #' @param class optional character, keep only variants of these process classes
 #'   (e.g. `"technology"`, `"storage"`).
 #'
@@ -1832,7 +1837,14 @@ expand_tech_variants <- function(mod, prefix = .variant_prefix(mod),
 #' @family technology process
 #' @export
 getVariants <- function(scen, class = NULL) {
-  tv <- tryCatch(scen@modInp@sets$variant, error = function(e) NULL)
+  tv <- if (methods::is(scen, "model")) {
+    # the same provenance the interpolation would record, from the model's own
+    # `variant_prefix`; the expanded copy is discarded
+    expand_variants(scen, prefix = .variant_prefix(scen),
+                    verbose = FALSE)$provenance
+  } else {
+    tryCatch(scen@modInp@sets$variant, error = function(e) NULL)
+  }
   if (is.null(tv) || NROW(tv) == 0) return(NULL)
   tv <- as.data.frame(tv)
   if (!is.null(class)) {

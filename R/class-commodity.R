@@ -663,11 +663,12 @@ materialize_commodity_clusters <- function(mod, verbose = FALSE,
   }
 
   # --- repoint every reference ---------------------------------------------- #
-  fix_one <- function(ref, cluster, owner) {
+  fix_one <- function(ref, cluster, owner, owner_class) {
     if (is.na(ref) || !nzchar(ref)) return(ref)
     roster <- rosters[[ref]]
     if (is.null(roster) || length(roster) == 0L) return(ref)
-    .resolve_cluster_ref(ref, cluster, roster, "commodity", owner, prefix)
+    .resolve_cluster_ref(ref, cluster, roster, "commodity", owner,
+                         owner_class, prefix)
   }
 
   rewrite_el <- function(el) {
@@ -678,7 +679,7 @@ materialize_commodity_clusters <- function(mod, verbose = FALSE,
     if (!is.null(def$scalar) && .hasSlot(el, def$scalar)) {
       v <- methods::slot(el, def$scalar)
       if (is.character(v) && length(v) == 1L) {
-        new <- fix_one(v, own, el@name)
+        new <- fix_one(v, own, el@name, class(el)[1])
         if (!identical(new, v)) {
           methods::slot(el, def$scalar) <- new
           changed <- TRUE
@@ -694,7 +695,9 @@ materialize_commodity_clusters <- function(mod, verbose = FALSE,
       touched <- FALSE
       for (cc in intersect(def$tables[[sl]], names(d))) {
         v <- as.character(d[[cc]])
-        new <- vapply(seq_along(v), function(i) fix_one(v[i], row_clu[i], el@name),
+        new <- vapply(seq_along(v),
+                      function(i) fix_one(v[i], row_clu[i], el@name,
+                                          class(el)[1]),
                       character(1))
         if (!identical(new, v)) {
           d[[cc]] <- new

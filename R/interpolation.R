@@ -2798,6 +2798,68 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
     }
   }
 
+  # Variant provenance: `sets$variant` is the authoritative map from a minted
+  # process name to its (base, vintage, cluster) cell, and the documented rule is
+  # that a name is never parsed back into coordinates. That only holds if the
+  # table and the names agree, which the expansion guarantees at mint time but
+  # nothing re-checks on a scenario loaded from disk, assembled another way, or
+  # read back after `variant_prefix` changed. Re-derive every name from the
+  # scenario's OWN stored prefix.
+  local({
+    tv <- tryCatch(scen@modInp@sets$variant, error = function(e) NULL)
+    if (is.null(tv) || NROW(tv) == 0) return(invisible(NULL))
+    tv <- as.data.frame(tv)
+    need <- c("name", "base", "vintage", "cluster")
+    if (!all(need %in% colnames(tv))) {
+      add("variant", "variant_provenance",
+          paste0("the provenance table lacks column(s): ",
+                 paste(setdiff(need, colnames(tv)), collapse = ", ")),
+          severity = "structural")
+      return(invisible(NULL))
+    }
+    dup <- unique(tv$name[duplicated(tv$name)])
+    if (length(dup) > 0L) {
+      add("variant", "variant_provenance",
+          paste0(length(dup), " variant name(s) appear more than once: ",
+                 paste(utils::head(dup, 5), collapse = ", ")),
+          severity = "structural")
+    }
+    prefix <- .variant_prefix(scen)
+    minted <- vapply(seq_len(nrow(tv)), function(i) {
+      .variant_name(tv$base[i], tv$vintage[i], tv$cluster[i], prefix)
+    }, character(1))
+    off <- which(minted != tv$name)
+    if (length(off) > 0L) {
+      det <- paste0('"', tv$name[off], '" should be "', minted[off], '"')
+      add("variant", "variant_provenance",
+          paste0(length(off), " variant name(s) do not match their (base, ",
+                 "vintage, cluster) under this scenario's variant_prefix (",
+                 paste0(names(prefix), " = ", prefix, collapse = ", "), "): ",
+                 paste(utils::head(det, 5), collapse = ", ")),
+          severity = "structural")
+    }
+    same <- which(tv$name == tv$base)
+    if (length(same) > 0L) {
+      add("variant", "variant_provenance",
+          paste0(length(same), " variant(s) carry their base's own name, so the ",
+                 "base was not replaced: ",
+                 paste(utils::head(tv$name[same], 5), collapse = ", ")),
+          severity = "structural")
+    }
+    proc <- tryCatch(as.character(scen@modInp@sets$process),
+                     error = function(e) character())
+    if (length(proc) > 0L) {
+      gone <- setdiff(tv$name, proc)
+      if (length(gone) > 0L) {
+        add("variant", "variant_provenance",
+            paste0(length(gone), " variant(s) are not members of `process`, so ",
+                   "no equation can reach them: ",
+                   paste(utils::head(gone, 5), collapse = ", ")),
+            severity = "structural")
+      }
+    }
+  })
+
   # No-disaggregation guard: a commodity FINER than the process may appear only
   # as an INPUT (see the rule in R/process-levels.R). An output or stored
   # commodity finer than its process lands at the process's cell, where that

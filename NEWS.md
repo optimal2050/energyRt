@@ -5,6 +5,15 @@
 * energyRt is relicensed from AGPL-3 to **Apache-2.0**. Releases up to and 
   including v0.89 remain available under AGPL-3.
 
+## New features
+
+* `getVariants()` accepts a `model`, listing the names vintages and clusters
+  will expand to before interpolating. The model is not modified.
+
+* `validate_scenario_parameters()` re-derives every variant name from its
+  `(base, vintage, cluster)` cell and the scenario's own `variant_prefix`, and
+  refuses a scenario whose provenance table and process names disagree.
+
 ## Breaking changes
 
 * **Storage charge and discharge rates are bounded by the converters.**

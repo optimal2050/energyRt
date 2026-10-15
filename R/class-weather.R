@@ -492,7 +492,7 @@ materialize_weather_clusters <- function(mod, verbose = FALSE,
       roster <- rosters[[wname]] %||% character(0)
       if (length(roster) == 0L) next            # unclustered: leave alone
       new <- .resolve_cluster_ref(wname, clu[i], roster, "weather",
-                                  el@name, prefix)
+                                  el@name, class(el)[1], prefix)
       if (identical(new, wname)) next
       wt$weather[i] <- new
       changed <- TRUE

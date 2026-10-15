@@ -177,3 +177,130 @@ test_that("asSupplyCurve() builds a roster, so its output validates", {
   expect_equal(nrow(curve@cluster), 3L)
   expect_silent(energyRt:::.variant_validate(curve))
 })
+
+# --------------------------------------------------------------------------- #
+# The provenance table is the only sanctioned way to read a variant's
+# coordinates (`getVariants()`'s own docs: "Variant names are an implementation
+# detail ... use this table rather than parsing the names"). That holds only if
+# the table and the minted names agree. Expansion guarantees it when it mints
+# them; these tests cover the cases where nothing has re-checked since -- a
+# scenario loaded from disk, a modInp assembled another way, or one read back
+# after `variant_prefix` changed.
+# --------------------------------------------------------------------------- #
+
+vr_two_axis_model <- function(nm = "vr_prov",
+                              prefix = c(vintage = "_VIN", cluster = "_CL")) {
+  newModel(
+    name = nm,
+    region = "R1",
+    horizon = newHorizon(c(2025, 2030)),
+    discount = 0,
+    variant_prefix = prefix,
+    calendar = newCalendar(
+      timetable = make_timetable(
+        struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+      name = "vr_cal"),
+    repo = newRepository(
+      name = "vr_repo",
+      newCommodity("ELC", timeframe = "SEASON", unit = "GWh"),
+      newImport("IMP_ELC", commodity = "ELC",
+                import = data.frame(price = 100)),
+      newTechnology(
+        name = "EWIN",
+        output = data.frame(comm = "ELC", unit = "GWh"),
+        cluster = data.frame(cluster = c("01", "02"), region = NA_character_),
+        capacity = data.frame(cluster = c("01", "02"), cap.up = 5),
+        invcost = data.frame(cluster = c("01", "02"), invcost = 600),
+        vintage = data.frame(vintage = c("2025", "2030"),
+                             start = c(2025, 2030), olife = 25L),
+        cap2act = 8.76),
+      newDemand("DEM_ELC", commodity = "ELC",
+                demand = data.frame(demand = 2))))
+}
+
+# A `structural` finding is not silenceable -- `validate_scenario_parameters()`
+# stops on it whatever `action` says -- so the tampered cases below read the
+# message rather than the returned table.
+vr_prov_issues <- function(scen) {
+  d <- validate_scenario_parameters(scen, action = "silent")
+  if (is.null(d) || !is.data.frame(d) || nrow(d) == 0) {
+    return(data.frame(check = character(0), detail = character(0),
+                      severity = character(0)))
+  }
+  d <- as.data.frame(d)
+  d[d$check == "variant_provenance", , drop = FALSE]
+}
+vr_prov_error <- function(scen) {
+  tryCatch({
+    validate_scenario_parameters(scen, action = "silent")
+    NA_character_
+  }, error = conditionMessage)
+}
+
+# @covers depth=I backends=none
+test_that("getVariants() answers from a model, before interpolation", {
+  mod <- vr_two_axis_model()
+  gm <- getVariants(mod)
+  expect_setequal(gm$name, c("EWIN_VIN2025_CL01", "EWIN_VIN2030_CL01",
+                             "EWIN_VIN2025_CL02", "EWIN_VIN2030_CL02"))
+  expect_setequal(colnames(gm),
+                  c("name", "class", "base", "vintage", "cluster"))
+  # the caller's model is NOT expanded in place
+  expect_true("EWIN" %in% vapply(mod@data[[1]]@data,
+                                 function(x) x@name, character(1)))
+  # and it is the same table the interpolation records
+  scen <- suppressMessages(suppressWarnings(
+    interpolate_model(mod, name = "vr_prov_i", ondisk = FALSE)))
+  gs <- getVariants(scen)
+  expect_equal(gm[order(gm$name), ], gs[order(gs$name), ],
+               ignore_attr = TRUE)
+  # the model's own prefix is used, not the package default
+  mod_p <- vr_two_axis_model(nm = "vr_pfx",
+                             prefix = c(vintage = "_VN", cluster = "_C"))
+  expect_true(all(grepl("_VN20", getVariants(mod_p)$name)))
+})
+
+# @covers depth=I backends=none
+test_that("a sound scenario raises no provenance issue", {
+  scen <- suppressMessages(suppressWarnings(
+    interpolate_model(vr_two_axis_model(), name = "vr_ok", ondisk = FALSE)))
+  expect_equal(nrow(vr_prov_issues(scen)), 0L)
+})
+
+# @covers depth=I backends=none
+test_that("a name that no longer matches its cell is structural", {
+  scen <- suppressMessages(suppressWarnings(
+    interpolate_model(vr_two_axis_model(), name = "vr_bad", ondisk = FALSE)))
+  tv <- as.data.frame(scen@modInp@sets$variant)
+  tv$cluster[1] <- "99"
+  scen@modInp@sets$variant <- tv
+  msg <- vr_prov_error(scen)
+  expect_match(msg, "variant_provenance")
+  expect_match(msg, "should be")
+  # structural: it stops the pipeline rather than warning
+  expect_match(msg, "structural issue")
+})
+
+# @covers depth=I backends=none
+test_that("changing variant_prefix on a stored scenario is caught", {
+  # the migration hazard: the names were minted under one prefix and the
+  # settings now say another, so every row disagrees with its own name
+  scen <- suppressMessages(suppressWarnings(
+    interpolate_model(vr_two_axis_model(), name = "vr_pfx2", ondisk = FALSE)))
+  scen@settings@variant_prefix <- c(vintage = "_VN", cluster = "_CL")
+  msg <- vr_prov_error(scen)
+  expect_match(msg, "variant_prefix")
+  expect_match(msg, "_VN")
+  expect_match(msg, "4 variant name")
+})
+
+# @covers depth=I backends=none
+test_that("a variant missing from `process` is structural", {
+  scen <- suppressMessages(suppressWarnings(
+    interpolate_model(vr_two_axis_model(), name = "vr_gone", ondisk = FALSE)))
+  keep <- setdiff(as.character(scen@modInp@sets$process), "EWIN_VIN2025_CL01")
+  scen@modInp@sets$process <- keep
+  msg <- vr_prov_error(scen)
+  expect_match(msg, "not members of", fixed = TRUE)
+  expect_match(msg, "EWIN_VIN2025_CL01", fixed = TRUE)
+})
