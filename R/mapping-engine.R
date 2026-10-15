@@ -1028,18 +1028,17 @@ recipe_value <- function(scen, names, fmp) {
   # allows. Outside the membership the map stays conditional, which is why
   # `pStorageInpAf` carries `dropIfEmpty: false`.
   #
-  # The discharging bound would be structural by the same argument
-  # (`vStorageOutCap` exists for every storage), but ANY `out.af` row is
-  # infeasible on a `year_fraction < 1` calendar (open since 2026-08-28, pinned
-  # in test-family-storage-parts.R), so `pStorageOutAf` keeps its `Inf` default
-  # and `meqStorageOutUp` stays conditional until that is fixed.
+  # The discharging part is the storage's anchor capacity -- `vStorageOutCap`
+  # exists for every storage, with no membership to key on -- so its bound is
+  # structural over the whole flow domain, exactly as `meqTechAfUp` is for a
+  # technology.
   meqStorageInpUp = list(domain = "mvStorageInp", source = "pStorageInpAf",
                          types = "up", drop = "up",
                          structural_in = "mStorageInpCap"),
   meqStorageOutLo = list(domain = "mvStorageOut", source = "pStorageOutAf",
                          types = "lo", drop = "lo"),
   meqStorageOutUp = list(domain = "mvStorageOut", source = "pStorageOutAf",
-                         types = "up", drop = "up"),
+                         types = "up", drop = "up", structural = TRUE),
 
   # C6 storage capacity / retirement bounds.
   mStorageOutCapLo    = list(domain = "mStorageSpan", source = "pStorageOutCap",

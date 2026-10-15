@@ -17,10 +17,11 @@
 #            -> fuel 6, + capacity 4.                            objective 10
 #   solar_U1 kit$SOLAR standalone: ESUN capacity 8 (2 per ON slice over
 #            share 1/4, ON = half the year via topia_profile step levels=2)
-#            + storage out capacity 2 (the part capacity rates ANNUAL
-#            throughput at cap2act = 1 -- total discharge 2; no sub-annual
-#            af declared, so no per-slice power bound).          objective 10
-#   basesolar_U1 SOLAR layered on the base: solar idle (10 > 8). objective 8
+#            + storage out capacity 4 -- discharging 1 in a share-1/4 slice
+#            at cap2act = 1 rates the part at 4, the same arithmetic as E1
+#            above. Was 2 (annual throughput) while `out.af.up` defaulted to
+#            Inf and no per-slice power bound existed.           objective 12
+#   basesolar_U1 SOLAR layered on the base: solar idle (12 > 8). objective 8
 # =========================================================================== #
 
 # @covers vObjective vTechNewCap vSupOut vStorageOut depth=S backends=glpk

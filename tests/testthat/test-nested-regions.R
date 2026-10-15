@@ -346,8 +346,9 @@ test_that("a storage at the commodity's coarse level operates and is priced", {
   scen <- vt_solve(suppressMessages(suppressWarnings(interpolate_model(
     setGeoscale(mod, nr_geoscale()), name = "nrsS", overwrite = TRUE))))
   d <- as.data.frame(get_data_slot(scen@modOut@variables[["vObjective"]]))
-  # hand: buy 10 in S1 at 1 (5 direct + 5 stored) + storage out cap 5 x 1 = 15
-  expect_equal(sum(d$value), 15, tolerance = 1e-9)
+  # hand: buy 10 in S1 at 1 (5 direct + 5 stored) + a discharger able to pass
+  # 5 in a share-1/2 slice at cap2act 1, i.e. out cap 10 x 1 = 20
+  expect_equal(sum(d$value), 20, tolerance = 1e-9)
   so <- as.data.frame(get_data_slot(scen@modOut@variables[["vStorageOut"]]))
   expect_equal(unique(as.character(so$region)), "NAT")
 })

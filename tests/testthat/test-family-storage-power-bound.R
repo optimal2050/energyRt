@@ -14,24 +14,23 @@
 # reservoir ceiling (`eqStorageAfUp`) bound it, so energy was conserved and
 # nothing looked wrong in the results.
 #
-# Semantics now, on the CHARGING side only:
-#   - `inp.af.up` defaults to 1, as `pTechAf` has always had for a technology,
-#     and `meqStorageInpUp` is `structural_in = "mStorageInpCap"`: structural
-#     wherever a charger was declared (any of stock / cap / ncap / invcost /
-#     eac / fixom on the `inp.` part), conditional outside it. A reservoir-only
-#     storage therefore keeps no charging bound -- it never declared a rating
-#     to be held to;
+# Semantics now:
+#   - both upper defaults are 1, as `pTechAf` has always had for a technology,
+#     so a flow in a timeslice cannot exceed `capacity * cap2act * share`;
+#   - `meqStorageOutUp` is structural over its whole domain: `vStorageOutCap`
+#     is the storage's anchor capacity and exists for every storage;
+#   - the charging part is OPTIONAL, so `meqStorageInpUp` is
+#     `structural_in = "mStorageInpCap"`: structural wherever a charger was
+#     declared (any of stock / cap / ncap / invcost / eac / fixom on the `inp.`
+#     part), conditional outside it. A reservoir-only storage therefore keeps
+#     no charging bound -- it never declared a charger rating to be held to;
 #   - `pStorageInpAf` carries `dropIfEmpty: false`, because outside the
 #     membership a declared `inp.af.up = 1` (a weather charging window, say) is
 #     what puts the tuple in the map, and `sparse = TRUE` would otherwise prune
 #     it as "equal to the default" and delete its equation;
-#   - `inp.af.up = Inf` declared explicitly still removes the equation (the
-#     open-side anti-join in `.build_constraint_join_map`), and the `free_meal`
-#     advisory then names it;
-#   - `out.af.up` keeps its `Inf` default: ANY `out.af` row is infeasible on a
-#     `year_fraction < 1` calendar (open since 2026-08-28, pinned in
-#     test-family-storage-parts.R), so the discharging rate stays unbounded by
-#     default until that is fixed.
+#   - `inp.af.up = Inf` / `out.af.up = Inf` declared explicitly still remove the
+#     equation (the open-side anti-join in `.build_constraint_join_map`), and
+#     the `free_meal` advisory then names it.
 # =========================================================================== #
 
 pb_slices <- paste0("s", 1:4)
@@ -88,11 +87,13 @@ pb_max <- function(scen, variable) {
   if (is.null(d) || nrow(d) == 0) 0 else max(as.data.frame(d)$value)
 }
 
-test_that("family storage-power-bound: the charging availability defaults to 1", {
+test_that("family storage-power-bound: the flow availabilities default to 1", {
   mi <- getFromNamespace(".modInp", "energyRt")
   expect_equal(as.numeric(unlist(mi$pStorageInpAf$defVal)), c(0, 1))
-  # the discharging side is deliberately still open -- see the header
-  expect_equal(as.numeric(unlist(mi$pStorageOutAf$defVal)), c(0, Inf))
+  expect_equal(as.numeric(unlist(mi$pStorageOutAf$defVal)), c(0, 1))
+  # the charging map is conditional outside `mStorageInpCap`, so its declared
+  # default-valued rows must survive the `sparse` prune
+  expect_false(isTRUE(mi$pStorageInpAf$dropIfEmpty))
 })
 
 # @covers pStorageInpAf pStorageOutAf eqStorageInpUp eqStorageOutUp depth=I backends=glpk
@@ -102,6 +103,8 @@ test_that("family storage-power-bound: a priced charger is rated without any `af
   # the charging part exists, so both flow bounds are instantiated
   expect_gte(pb_rows(scen, "mStorageInpCap"), 1)
   expect_gte(pb_rows(scen, "meqStorageInpUp"), 1)
+  # the discharging bound is structural, so it is there for every storage
+  expect_gte(pb_rows(scen, "meqStorageOutUp"), 1)
   # nothing was written into the parameter: the declared default carries the 1
   expect_equal(pb_bound_rows(scen, "pStorageInpAf", "up"), 0L)
   # and the coverage check does not read that as a missing value
@@ -115,6 +118,8 @@ test_that("family storage-power-bound: `inp.af.up = Inf` is the explicit opt-out
                                                     stg.invcost = 0),
                     af = data.frame(inp.af.up = Inf))
   expect_equal(pb_rows(scen, "meqStorageInpUp"), 0L)
+  # the discharging side is untouched by the charging opt-out
+  expect_gte(pb_rows(scen, "meqStorageOutUp"), 1)
   # ... and the free meal is now named rather than silent
   iss <- pb_issues(scen)
   fm <- iss[iss$check == "free_meal" & iss$parameter == "meqStorageInpUp", ]
@@ -128,6 +133,8 @@ test_that("family storage-power-bound: a reservoir-only storage keeps no chargin
   expect_equal(pb_rows(scen, "mStorageInpCap"), 0L)
   expect_gte(pb_rows(scen, "mvStorageInp"), 1)      # the flow does exist
   expect_equal(pb_rows(scen, "meqStorageInpUp"), 0L)
+  # its discharging side is rated all the same -- that part always exists
+  expect_gte(pb_rows(scen, "meqStorageOutUp"), 1)
   # no charger was declared, so nothing is missing -- no advisory either
   iss <- pb_issues(scen)
   expect_equal(nrow(iss[iss$parameter == "meqStorageInpUp", , drop = FALSE]), 0L)

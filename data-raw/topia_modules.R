@@ -381,11 +381,10 @@ build_topia <- function(regions = .topia_regions[1:3],
 #   SOLAR module:    a SELF-CONTAINED solar + storage model -- free resource
 #                    ON in half the slices (step levels = 2), storage bridges
 #                    the rest: ESUN cap 8 (2 per ON slice over share 1/4) +
-#                    storage out cap 2 (the part capacity rates ANNUAL
-#                    throughput at cap2act = 1: total discharge 2; no
-#                    sub-annual af is declared, so there is no per-slice
-#                    power bound) -> objective 10. Layered onto the base
-#                    (add, overwrite = TRUE) it stays idle: 10 > 8 is the
+#                    storage out cap 4 (discharging 1 in a share-1/4 slice at
+#                    cap2act = 1, the same arithmetic as E1 above)
+#                    -> objective 12. Layered onto the base
+#                    (add, overwrite = TRUE) it stays idle: 12 > 8 is the
 #                    merit-order lesson.
 #   SUP_CURVE:       SUP_PRM as a 2-step curve (2 units @1 + 2 @2 -> fuel 6,
 #                    objective 10 when it replaces the flat supply).

@@ -82,7 +82,7 @@ un_entries <- function() list(
 )
 
 un_hand_objectives <- c(base_U1 = 8, trade_U3 = 36, curve_U1 = 10,
-                        solar_U1 = 10, basesolar_U1 = 8)
+                        solar_U1 = 12, basesolar_U1 = 8)
 
 # Solve a TOPIA entry with a chosen backend. The backend-choice convention
 # (tests/TESTING.md): glpsol for small models, julia/HiGHS for mid-size and

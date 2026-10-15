@@ -51,14 +51,14 @@
             "comm": "ELC",
             "region": "R2",
             "year": 2020,
-            "value": 17
+            "value": 11
           },
           {
             "tech": "EWIN",
             "comm": "ELC",
             "region": "R2",
             "year": 2025,
-            "value": 12
+            "value": 11
           }
         ],
         "annual_total": [
@@ -78,13 +78,13 @@
             "tech": "EWIN",
             "comm": "ELC",
             "year": 2020,
-            "value": 17
+            "value": 11
           },
           {
             "tech": "EWIN",
             "comm": "ELC",
             "year": 2025,
-            "value": 12
+            "value": 11
           }
         ]
       },
@@ -194,8 +194,8 @@
       }
     },
     "captured": {
-      "date": "2026-09-11",
-      "version": "0.89.5.9005",
+      "date": "2026-10-14",
+      "version": "0.90.0.9024",
       "solver": "glpk"
     }
   },
@@ -313,8 +313,8 @@
       }
     },
     "captured": {
-      "date": "2026-09-11",
-      "version": "0.89.5.9005",
+      "date": "2026-10-14",
+      "version": "0.90.0.9024",
       "solver": "glpk"
     }
   },
@@ -432,8 +432,8 @@
       }
     },
     "captured": {
-      "date": "2026-09-11",
-      "version": "0.89.5.9005",
+      "date": "2026-10-14",
+      "version": "0.90.0.9024",
       "solver": "glpk"
     }
   },
@@ -551,8 +551,8 @@
       }
     },
     "captured": {
-      "date": "2026-09-11",
-      "version": "0.89.5.9005",
+      "date": "2026-10-14",
+      "version": "0.90.0.9024",
       "solver": "glpk"
     }
   },
@@ -670,8 +670,8 @@
       }
     },
     "captured": {
-      "date": "2026-09-11",
-      "version": "0.89.5.9005",
+      "date": "2026-10-14",
+      "version": "0.90.0.9024",
       "solver": "glpk"
     }
   }

@@ -95,8 +95,8 @@
       }
     },
     "captured": {
-      "date": "2026-09-25",
-      "version": "0.90.0.9003",
+      "date": "2026-10-14",
+      "version": "0.90.0.9024",
       "solver": "glpk"
     }
   },
@@ -208,8 +208,8 @@
       }
     },
     "captured": {
-      "date": "2026-09-25",
-      "version": "0.90.0.9003",
+      "date": "2026-10-14",
+      "version": "0.90.0.9024",
       "solver": "glpk"
     }
   },
@@ -322,13 +322,13 @@
       }
     },
     "captured": {
-      "date": "2026-09-25",
-      "version": "0.90.0.9003",
+      "date": "2026-10-14",
+      "version": "0.90.0.9024",
       "solver": "glpk"
     }
   },
   "solar_U1": {
-    "objective": 10,
+    "objective": 12,
     "values": {
       "vTechNewCap": {
         "annual_region": [
@@ -423,8 +423,8 @@
       }
     },
     "captured": {
-      "date": "2026-09-25",
-      "version": "0.90.0.9003",
+      "date": "2026-10-14",
+      "version": "0.90.0.9024",
       "solver": "glpk"
     }
   },
@@ -524,8 +524,8 @@
       }
     },
     "captured": {
-      "date": "2026-09-25",
-      "version": "0.90.0.9003",
+      "date": "2026-10-14",
+      "version": "0.90.0.9024",
       "solver": "glpk"
     }
   }
