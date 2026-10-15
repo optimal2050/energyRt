@@ -92,12 +92,18 @@ test_that("family storage-inp2out: a lone lo bound oversizes the charger, up sid
 
 test_that("family storage-inp2out: a lone up bound leaves the lo side open (documented)", {
   skip_if_no_solver()
-  # one-sided `.up` means lo is OPEN, not the default 1: a priced charger may
-  # size to zero and its invcost then (deliberately) costs nothing
+  # one-sided `.up` means lo is OPEN, not the default 1: the ratio does not
+  # force the charger to any size. It is no longer free, though -- `inp.af.up`
+  # defaults to 1 and the charger is priced, so it must be rated for the flow
+  # it passes: 10 / (cap2act 8760 * share 0.25) = 0.0045662 of capacity, at
+  # 300/30 per unit per year.
   up <- suppressMessages(suppressWarnings(interpolate_model(
     si_build(inp2out = data.frame(inp2out.up = 3), inp_invcost = 300),
     name = "si_up", overwrite = TRUE)))
   up <- .fork_solve(up, solver_options$glpk)
   expect_true(verify_solution(up)$ok)
-  expect_equal(.fork_objective(up), 10, tolerance = 1e-6)
+  expect_equal(ff_solution_sum(up, "vStorageInpCap"), 10 / (8760 * 0.25),
+               tolerance = 1e-4)
+  expect_equal(.fork_objective(up), 10 + 10 / (8760 * 0.25) * 300 / 30,
+               tolerance = 1e-4)
 })

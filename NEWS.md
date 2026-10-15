@@ -7,6 +7,13 @@
 
 ## Breaking changes
 
+* **A storage's charging rate is bounded by its charger.** `inp.af.up` defaults
+  to 1, as `af.up` has always done for a technology, so charging in a timeslice
+  cannot exceed `inp.cap * inp.cap2act * share`. Declare `inp.af.up = Inf` to
+  opt out; a storage that declares no charging capacity is unaffected. Models
+  with a priced or bounded charger and no `inp.af` solve tighter, and the
+  charger is now sized by the flow it passes.
+
 * **A variant roster must be declared.** A `cluster` or `vintage` label used in
   any data slot now requires a row in `@cluster` / `@vintage`; the object is
   refused otherwise, with an error naming the labels, the slots they appear in

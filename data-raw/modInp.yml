@@ -1658,6 +1658,19 @@ pStorageDuration:
   class: storage
   slot: duration
   colName: duration
+# inp.af is one of the two flow-to-capacity links a storage has
+# (eqStorageInpUp). An infinite upper default deleted that equation wherever the
+# user stated no availability, so a priced charger's RATE was unbounded: the
+# whole reservoir could be charged inside one timeslice through a converter
+# rated for a fraction of it. The upper default is 1, as `pTechAf` has always
+# had, and `meqStorageInpUp` is structural WITHIN `mStorageInpCap` -- see
+# `.constraint_map_def`. `inp.af.up = Inf` declared explicitly still removes the
+# equation, and a reservoir-only storage never had a charger to rate.
+#
+# `dropIfEmpty: false` because the map is conditional OUTSIDE that membership: a
+# declared `inp.af.up = 1` (a weather charging window on a storage with no
+# charger capacity of its own) must not be pruned as "equal to the default", or
+# it would take its own equation with it.
 pStorageInpAf:
   name: pStorageInpAf
   dimSets:
@@ -1667,15 +1680,20 @@ pStorageInpAf:
   - year
   - timeslice
   type: bounds
+  dropIfEmpty: false
   defVal:
   - 0.0
-  - .inf
+  - 1.0
   interpolation:
   - back.inter.forth
   - back.inter.forth
   colName: inp.af
   class: storage
   slot: af
+# NOT 1, unlike `pStorageInpAf` above: any `out.af` row makes a storage's
+# discharge infeasible on a `year_fraction < 1` calendar (open since
+# 2026-08-28, pinned in test-family-storage-parts.R), and a binding default
+# would fire that for every storage on a one-day or sampled calendar.
 pStorageOutAf:
   name: pStorageOutAf
   dimSets:

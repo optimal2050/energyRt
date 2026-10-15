@@ -2712,8 +2712,9 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
     # A `structural = TRUE` entry is instantiated over its WHOLE domain by
     # design and its parameter's declared default binds -- `pTechAf` up = 1 is
     # the plain capacity limit, written for every slice the user left blank.
-    # Only the data-driven maps carry the "no data = no constraint" invariant.
-    if (isTRUE(spec$structural)) next
+    # `structural_in` is the same thing on part of the domain. Only the
+    # data-driven maps carry the "no data = no constraint" invariant.
+    if (isTRUE(spec$structural) || !is.null(spec$structural_in)) next
     mpar <- scen@modInp@parameters[[mp]]
     if (is.null(mpar)) next
     md <- get_data_slot(mpar)
@@ -2751,13 +2752,17 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
   # reported OPTIMAL. The storage-balance and trade-capacity links are
   # structural (no legitimate model omits them); the af/power bounds are
   # advisory, since an open (Inf) side deliberately produces no equation.
+  #
+  # `within` restricts a guard to objects for which the bound is meant to
+  # exist: the charging part is optional, so a reservoir-only storage is not
+  # missing a charger rating it never declared.
   guards <- list(
     list(domain = "mvStorageLevel", by = "stg", requires = "meqStorageLevel",
          severity = "structural",
          meaning = "no storage balance chain: level unlinked from flows (free energy)"),
     list(domain = "mvStorageInp", by = "stg", requires = "meqStorageInpUp",
-         severity = "advisory",
-         meaning = "no charging power bound"),
+         severity = "advisory", within = "mStorageInpCap",
+         meaning = "charging power bound removed by inp.af.up = Inf: the rate is not tied to the charger rating"),
     list(domain = "mvStorageOut", by = "stg", requires = "meqStorageOutUp",
          severity = "advisory",
          meaning = "no discharging power bound"),
@@ -2778,6 +2783,10 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
   for (g in guards) {
     have <- .members(g$domain, g$by)
     if (is.null(have) || length(have) == 0) next
+    if (!is.null(g$within)) {
+      have <- intersect(have, .members(g$within, g$by) %||% character(0))
+      if (length(have) == 0) next
+    }
     got <- .members(g$requires, g$by)
     if (is.null(got)) got <- character(0)
     missing <- setdiff(have, got)

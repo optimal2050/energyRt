@@ -963,6 +963,13 @@ recipe_value <- function(scen, names, fmp) {
 #            an explicit bound is set. Omit / FALSE for CONDITIONAL equations whose
 #            default is trivial (`af.lo` = 0: activity >= 0), which exist only
 #            where a non-default bound is declared (`domain` intersect `source`).
+#   structural_in : membership map naming where the default binds. The equation
+#            is structural on `domain` intersect this membership and CONDITIONAL
+#            outside it, so an OPTIONAL process part the model never declares
+#            keeps its flow unbounded while one it does declare is always rated.
+#            Such a parameter needs `dropIfEmpty: false` in modInp.yml: outside
+#            the membership a declared default-valued row is what puts the tuple
+#            in the map, so pruning it would delete the equation.
 # --------------------------------------------------------------------------- #
 .constraint_map_def <- list(
   # C1 commodity balance: restrict the balance domain to commodities that
@@ -1014,8 +1021,21 @@ recipe_value <- function(scen, names, fmp) {
   # may consume a different commodity from the one stored.
   meqStorageInpLo = list(domain = "mvStorageInp", source = "pStorageInpAf",
                          types = "lo", drop = "lo"),
+  # The charging part is OPTIONAL (`mStorageInpCap`: structure follows data), so
+  # `inp.af.up` = 1 binds wherever a charger was declared -- paying for a rating
+  # that constrains nothing is the defect this closes -- while a reservoir-only
+  # storage keeps no charging bound and charges at whatever rate its level
+  # allows. Outside the membership the map stays conditional, which is why
+  # `pStorageInpAf` carries `dropIfEmpty: false`.
+  #
+  # The discharging bound would be structural by the same argument
+  # (`vStorageOutCap` exists for every storage), but ANY `out.af` row is
+  # infeasible on a `year_fraction < 1` calendar (open since 2026-08-28, pinned
+  # in test-family-storage-parts.R), so `pStorageOutAf` keeps its `Inf` default
+  # and `meqStorageOutUp` stays conditional until that is fixed.
   meqStorageInpUp = list(domain = "mvStorageInp", source = "pStorageInpAf",
-                         types = "up", drop = "up"),
+                         types = "up", drop = "up",
+                         structural_in = "mStorageInpCap"),
   meqStorageOutLo = list(domain = "mvStorageOut", source = "pStorageOutAf",
                          types = "lo", drop = "lo"),
   meqStorageOutUp = list(domain = "mvStorageOut", source = "pStorageOutAf",
@@ -1130,6 +1150,64 @@ recipe_value <- function(scen, names, fmp) {
                          types = "up", drop = "up")
 )
 
+# The CONDITIONAL half of a constraint map: the rows where a non-default bound
+# is declared (`domain` intersect `source`). NULL means there was no basis to
+# build from, which leaves the map untouched rather than emptying it.
+.constraint_cond_rows <- function(scen, p, def) {
+  # Optional bound parameter / membership source, type- and value-filtered.
+  src <- NULL
+  if (!is.null(def$source)) {
+    sp <- scen@modInp@parameters[[def$source]]
+    if (is.null(sp)) return(NULL)
+    src <- get_data_slot(sp)
+    if (is.null(src) || nrow(src) == 0) return(NULL)
+    src <- as.data.frame(src)
+    if (!is.null(def$types) && !is.null(src$type)) {
+      src <- src[src$type %in% def$types, , drop = FALSE]
+    }
+    if (!is.null(src$value)) {
+      if (identical(def$drop, "lo")) {
+        src <- src[src$value != 0, , drop = FALSE]
+      } else if (identical(def$drop, "up")) {
+        src <- src[src$value != Inf, , drop = FALSE]
+      }
+    }
+    if (nrow(src) == 0) return(NULL)
+    src <- src[, setdiff(colnames(src), c("type", "value")), drop = FALSE]
+    src <- dplyr::distinct(src)
+  }
+
+  # Optional base activity / flow domain.
+  dom <- NULL
+  if (!is.null(def$domain)) {
+    dp <- scen@modInp@parameters[[def$domain]]
+    if (is.null(dp)) return(NULL)
+    dom <- get_data_slot(dp)
+    if (is.null(dom) || nrow(dom) == 0) return(NULL)
+    dom <- as.data.frame(dom)
+  }
+
+  res <- if (is.null(dom)) {
+    src
+  } else if (is.null(src)) {
+    dom
+  } else {
+    # The bound source is read while still FOLDED: a fully-NA dimension is a
+    # wildcard ("all members") and must not constrain the join with the
+    # explicit-membered domain (merge0 joins on shared columns and NA never
+    # matches an explicit member, which would wrongly empty the map). Drop
+    # fully-NA source columns; the domain supplies those dimensions.
+    keep <- vapply(src, function(col) !all(is.na(col)), logical(1))
+    as.data.frame(merge0(dom, src[, keep, drop = FALSE]))
+  }
+  if (is.null(res) || nrow(res) == 0) return(NULL)
+
+  df <- res |>
+    dplyr::select(dplyr::any_of(p@dimSets)) |>
+    dplyr::distinct()
+  df
+}
+
 # Build one regular constraint map from a `.constraint_map_def` entry.
 .build_constraint_join_map <- function(scen, name, def, fmp) {
   p <- scen@modInp@parameters[[name]]
@@ -1144,7 +1222,7 @@ recipe_value <- function(scen, names, fmp) {
   # writers drop Inf rows from the data, so an instantiated equation would
   # silently fall back to the BINDING default (e.g. `inp2out.lo = 2` alone
   # made the model infeasible against the resurrected default up = 1).
-  if (isTRUE(def$structural)) {
+  if (isTRUE(def$structural) || !is.null(def$structural_in)) {
     if (is.null(def$domain)) return(scen)
     dp <- scen@modInp@parameters[[def$domain]]
     if (is.null(dp)) return(scen)
@@ -1174,61 +1252,33 @@ recipe_value <- function(scen, names, fmp) {
         }
       }
     }
+    # `structural_in`: the default binds only inside a membership. Restrict the
+    # structural rows to it, then add back the rows where a bound is declared
+    # outside it -- those stay conditional, so a part the model never declares
+    # keeps no equation while a declared bound is never lost.
+    if (!is.null(def$structural_in)) {
+      mp <- scen@modInp@parameters[[def$structural_in]]
+      mem <- if (is.null(mp)) NULL else get_data_slot(mp)
+      if (is.null(mem) || nrow(mem) == 0) {
+        df <- df[0, , drop = FALSE]
+      } else {
+        mem <- as.data.frame(mem)
+        by <- intersect(colnames(df), colnames(mem))
+        df <- if (length(by) == 0) df[0, , drop = FALSE] else
+          dplyr::semi_join(df, dplyr::distinct(mem[, by, drop = FALSE]), by = by)
+      }
+      cond <- .constraint_cond_rows(scen, p, def)
+      if (!is.null(cond) && nrow(cond) > 0) {
+        df <- dplyr::distinct(dplyr::bind_rows(df, cond[, colnames(df),
+                                                        drop = FALSE]))
+      }
+    }
     if (nrow(df) == 0) return(.set_map(scen, name, NULL, fmp))
     return(.set_map(scen, name, df, fmp))
   }
 
-  # Optional bound parameter / membership source, type- and value-filtered.
-  src <- NULL
-  if (!is.null(def$source)) {
-    sp <- scen@modInp@parameters[[def$source]]
-    if (is.null(sp)) return(scen)
-    src <- get_data_slot(sp)
-    if (is.null(src) || nrow(src) == 0) return(scen)
-    src <- as.data.frame(src)
-    if (!is.null(def$types) && !is.null(src$type)) {
-      src <- src[src$type %in% def$types, , drop = FALSE]
-    }
-    if (!is.null(src$value)) {
-      if (identical(def$drop, "lo")) {
-        src <- src[src$value != 0, , drop = FALSE]
-      } else if (identical(def$drop, "up")) {
-        src <- src[src$value != Inf, , drop = FALSE]
-      }
-    }
-    if (nrow(src) == 0) return(scen)
-    src <- src[, setdiff(colnames(src), c("type", "value")), drop = FALSE]
-    src <- dplyr::distinct(src)
-  }
-
-  # Optional base activity / flow domain.
-  dom <- NULL
-  if (!is.null(def$domain)) {
-    dp <- scen@modInp@parameters[[def$domain]]
-    if (is.null(dp)) return(scen)
-    dom <- get_data_slot(dp)
-    if (is.null(dom) || nrow(dom) == 0) return(scen)
-    dom <- as.data.frame(dom)
-  }
-
-  res <- if (is.null(dom)) {
-    src
-  } else if (is.null(src)) {
-    dom
-  } else {
-    # The bound source is read while still FOLDED: a fully-NA dimension is a
-    # wildcard ("all members") and must not constrain the join with the
-    # explicit-membered domain (merge0 joins on shared columns and NA never
-    # matches an explicit member, which would wrongly empty the map). Drop
-    # fully-NA source columns; the domain supplies those dimensions.
-    keep <- vapply(src, function(col) !all(is.na(col)), logical(1))
-    as.data.frame(merge0(dom, src[, keep, drop = FALSE]))
-  }
-  if (is.null(res) || nrow(res) == 0) return(scen)
-
-  df <- res |>
-    dplyr::select(dplyr::any_of(p@dimSets)) |>
-    dplyr::distinct()
+  df <- .constraint_cond_rows(scen, p, def)
+  if (is.null(df)) return(scen)
   .set_map(scen, name, df, fmp)
 }
 
