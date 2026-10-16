@@ -16,7 +16,9 @@
   tm_core    = 9921.9914995,
   tm_flows   = 34277.4251473,
   tm_policy  = 33447.4469695,
-  tm_weather = 135773.813654
+  # tm_weather: 135773.813654 -> 169940.57126 on 2026-10-16, deliberate: EWIN's
+  # wafs.up 0.8 now multiplies its afs.up and wafc.up 0.9 implies afc.up = 1
+  tm_weather = 169940.57126
 )
 
 test_that("the tier models still produce their known objectives", {

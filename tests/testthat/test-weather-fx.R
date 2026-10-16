@@ -42,7 +42,7 @@ wx_out <- function(scen) {
 
 # @covers mTechWeatherAfLo meqTechAfLo pTechAf depth=I
 test_that("a technology with waf.fx gets a lower-bound row in every slice", {
-  scen <- suppressMessages(suppressWarnings(interpolate_model(wx_model("wx_map"), name = "wx_map", overwrite = TRUE)))
+  scen <- suppressMessages(suppressWarnings(interpolate_model(wx_model("wx_map"), name = "wx_map", fx_equ = FALSE, overwrite = TRUE)))
   m <- as.data.frame(.gds(scen, "meqTechAfLo"))
   expect_setequal(m$timeslice[m$tech == "WIND"], sprintf("h%02d", 0:3))
   p <- as.data.frame(.gds(scen, "pTechAf"))

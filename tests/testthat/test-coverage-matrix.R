@@ -52,11 +52,13 @@ test_that("matrix rows assemble from package metadata with expected arithmetic",
   # (151 numpar = 141 + the ten pTaxProc*/pSubProc* rate tables that carry a
   # levy onto a process: act/inp/out/cap/ncap for each of tax and subsidy,
   # 2026-10-08)
+  # (313 maps / 151 equations = + meqTechAfFx / eqTechAfFx, a fixed availability
+  # bound as one equality row under `fx_equ`, 2026-10-16)
   expect_equal(unname(counts[["set"]]), 15)
-  expect_equal(unname(counts[["map"]]), 312)
+  expect_equal(unname(counts[["map"]]), 313)
   expect_equal(unname(counts[["numpar"]]), 151)
   expect_equal(unname(counts[["bounds"]]), 38)
-  expect_equal(unname(counts[["equation"]]), 150)
+  expect_equal(unname(counts[["equation"]]), 151)
   expect_gte(unname(counts[["variable"]]), 93)
   expect_false(any(duplicated(rows$name[rows$kind != "variable"])))
   # every bounds row expands to a Lo/Up pXxx pair

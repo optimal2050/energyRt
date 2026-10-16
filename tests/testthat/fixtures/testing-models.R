@@ -183,6 +183,8 @@ tm_EWIN_weather <- newTechnology(
     wafs.up = c(0.8, NA),   # -> mTechWeatherAfsUp
     wafc.up = c(NA, 0.9)    # -> mTechWeatherAfcUp  (commodity-specific)
   ),
+  # wafs multiplies afs, at the weather's (SEASON) timeframe
+  afs = data.frame(timeslice = c("WIN", "SUM"), afs.up = 1),
   invcost = data.frame(region = "R1", invcost = 1500),
   olife = list(olife = 25),
   cap2act = 1

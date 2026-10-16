@@ -217,6 +217,7 @@
   eqTechAOut = "Technology auxiliary commodity output",
   eqTechAfLo = "Technology availability factor lower bound",
   eqTechAfUp = "Technology availability factor upper bound",
+  eqTechAfFx = "Technology availability factor fixed (lower bound equal to upper bound)",
   eqTechAfsLo = "Technology availability factor for sum of timeslices lower bound",
   eqTechAfsUp = "Technology availability factor for sum of timeslices upper bound",
   eqTechRampUp = "Technology ramp up",
@@ -372,6 +373,7 @@
   eqTechAOut = c("tech", "comm", "region", "year", "timeslice"),
   eqTechAfLo = c("tech", "region", "year", "timeslice"),
   eqTechAfUp = c("tech", "region", "year", "timeslice"),
+  eqTechAfFx = c("tech", "region", "year", "timeslice"),
   eqTechAfsLo = c("tech", "region", "year", "timeslice"),
   eqTechAfsUp = c("tech", "region", "year", "timeslice"),
   eqTechRampUp = c("tech", "region", "year", "timeslice", "timeslicep"),
@@ -1037,6 +1039,7 @@
   eqTechAOut = "mvTechAOut(tech, comm, region, year, timeslice)",
   eqTechAfLo = "meqTechAfLo(tech, region, year, timeslice)",
   eqTechAfUp = "meqTechAfUp(tech, region, year, timeslice)",
+  eqTechAfFx = "meqTechAfFx(tech, region, year, timeslice)",
   eqTechAfsLo = "meqTechAfsLo(tech, region, year, timeslice)",
   eqTechAfsUp = "meqTechAfsUp(tech, region, year, timeslice)",
   eqTechRampUp = "mTechRampUp(tech, region, year, timeslice, timeslicep)",
@@ -1428,6 +1431,7 @@
   meqTechShareOutUp = "",
   meqTechAfLo = "",
   meqTechAfUp = "",
+  meqTechAfFx = "",
   meqTechAfsLo = "",
   meqTechAfsUp = "",
   meqTechActSng = "",
@@ -1715,6 +1719,7 @@
   meqTechShareOutUp = c("tech", "region", "group", "comm", "year", "timeslice"),
   meqTechAfLo = c("tech", "region", "year", "timeslice"),
   meqTechAfUp = c("tech", "region", "year", "timeslice"),
+  meqTechAfFx = c("tech", "region", "year", "timeslice"),
   meqTechAfsLo = c("tech", "region", "year", "timeslice"),
   meqTechAfsUp = c("tech", "region", "year", "timeslice"),
   meqTechActSng = c("tech", "comm", "region", "year", "timeslice"),
@@ -2121,6 +2126,9 @@
 .equation_variable <- rbind(.equation_variable, data.frame(
   equation = c("eqTechStockCap", "eqTechStockCap", "eqTechStockPhaseOut", "eqTechStockPhaseOut", "eqTechCap", "eqTechPhaseOut"),
   variable = c("vTechStockCap", "vTechRetiredStock", "vTechStockPhaseOut", "vTechStockCap", "vTechStockCap", "vTechStockCap"),
+  stringsAsFactors = FALSE))
+.equation_variable <- rbind(.equation_variable, data.frame(
+  equation = "eqTechAfFx", variable = c("vTechCap", "vTechAct"),
   stringsAsFactors = FALSE))
 .equation_variable <- .equation_variable[!is.na(.equation_variable$equation), ]
 model_structure <- rbind(

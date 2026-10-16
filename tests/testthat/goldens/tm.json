@@ -194,8 +194,8 @@
       }
     },
     "captured": {
-      "date": "2026-10-14",
-      "version": "0.90.0.9024",
+      "date": "2026-10-16",
+      "version": "0.90.0.9026",
       "solver": "glpk"
     }
   },
@@ -313,8 +313,8 @@
       }
     },
     "captured": {
-      "date": "2026-10-14",
-      "version": "0.90.0.9024",
+      "date": "2026-10-16",
+      "version": "0.90.0.9026",
       "solver": "glpk"
     }
   },
@@ -432,8 +432,8 @@
       }
     },
     "captured": {
-      "date": "2026-10-14",
-      "version": "0.90.0.9024",
+      "date": "2026-10-16",
+      "version": "0.90.0.9026",
       "solver": "glpk"
     }
   },
@@ -551,13 +551,13 @@
       }
     },
     "captured": {
-      "date": "2026-10-14",
-      "version": "0.90.0.9024",
+      "date": "2026-10-16",
+      "version": "0.90.0.9026",
       "solver": "glpk"
     }
   },
   "tm_weather": {
-    "objective": 135773.813654,
+    "objective": 169940.57126,
     "values": {
       "vTechNewCap": {
         "annual_region": [
@@ -565,20 +565,20 @@
             "tech": "EWIN",
             "region": "R1",
             "year": 2020,
-            "value": 160
+            "value": 200
           },
           {
             "tech": "EWIN",
             "region": "R2",
             "year": 2020,
-            "value": 100
+            "value": 125
           }
         ],
         "annual_total": [
           {
             "tech": "EWIN",
             "year": 2020,
-            "value": 260
+            "value": 325
           }
         ]
       },
@@ -589,28 +589,28 @@
             "comm": "ELC",
             "region": "R1",
             "year": 2020,
-            "value": 56
+            "value": 59.5
           },
           {
             "tech": "EWIN",
             "comm": "ELC",
             "region": "R1",
             "year": 2025,
-            "value": 56
+            "value": 59.5
           },
           {
             "tech": "EWIN",
             "comm": "ELC",
             "region": "R2",
             "year": 2020,
-            "value": 11
+            "value": 13.1875
           },
           {
             "tech": "EWIN",
             "comm": "ELC",
             "region": "R2",
             "year": 2025,
-            "value": 17.5
+            "value": 19.6875
           }
         ],
         "annual_total": [
@@ -618,13 +618,13 @@
             "tech": "EWIN",
             "comm": "ELC",
             "year": 2020,
-            "value": 67
+            "value": 72.6875
           },
           {
             "tech": "EWIN",
             "comm": "ELC",
             "year": 2025,
-            "value": 73.5
+            "value": 79.1875
           }
         ]
       },
@@ -670,8 +670,8 @@
       }
     },
     "captured": {
-      "date": "2026-10-14",
-      "version": "0.90.0.9024",
+      "date": "2026-10-16",
+      "version": "0.90.0.9026",
       "solver": "glpk"
     }
   }

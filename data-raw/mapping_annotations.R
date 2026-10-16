@@ -134,7 +134,7 @@
     "meqStorageInpUp", "meqStorageOutLo", "meqStorageOutUp", "meqStorageLevel",
     "meqSupAvaLo", "meqSupReserveLo", "meqTechActGrp", "meqTechActSng",
     "meqTechAfcInpLo", "meqTechAfcInpUp", "meqTechAfcOutLo", "meqTechAfcOutUp",
-    "meqTechAfLo", "meqTechAfsLo", "meqTechAfsUp", "meqTechAfUp",
+    "meqTechAfLo", "meqTechAfsLo", "meqTechAfsUp", "meqTechAfUp", "meqTechAfFx",
     "meqTechGrp2Grp", "meqTechGrp2Sng", "meqTechShareInpLo", "meqTechShareInpUp",
     "meqTechShareOutLo", "meqTechShareOutUp", "meqTechSng2Grp", "meqTechSng2Sng",
     "meqTradeCapFlow", "meqTradeFlowLo", "meqTradeFlowUp",

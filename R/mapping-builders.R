@@ -517,36 +517,94 @@ map_mCommReg <- function(scen, fmp) {
 .cjoin <- function(scen, name, fmp)
   .build_constraint_join_map(scen, name, .constraint_map_def[[name]], fmp)
 
-# A weather lower bound (`waf.lo` / `waf.fx`, and the storage and supply
-# equivalents) is a factor INSIDE its family's lower-bound equation, e.g.
+# A weather bound (`waf.lo` / `waf.fx`, and the storage, supply and `wafc`
+# equivalents) is a factor INSIDE its family's bound equation, e.g.
 #   af.lo * cap2act * vTechCap * share * prod(waf.lo * weather) <= vTechAct,
-# whose domain holds only the rows with a non-zero `.lo` and which is multiplied
-# by that `.lo` (default 0). A process with a weather lower bound and no `.lo` of
-# its own therefore had no lower bound at all, and `.fx` fixed nothing. Here such
-# a process gets `.lo = 1` on its whole domain, so the weather bound binds; a
-# process that declares a `.lo` keeps it (the two multiply).
-#   wmap  the weather lower-bound membership (mTechWeatherAfLo, ...)
+# whose domain holds only the rows where the bound itself is set and which is
+# multiplied by that bound (`.lo` default 0, `afc.up` default Inf). A process
+# with a weather bound and no bound of its own on that side therefore had no
+# bound at all, and `.fx` fixed nothing. Here such a process gets the bound = 1
+# on its whole domain, so the weather binds; a declared bound is kept (the two
+# multiply).
+#   wmap  the weather membership of that side (mTechWeatherAfLo, ...)
 #   par   the family's bound parameter (pTechAf, ...), `type`/`value` columns
-#   dom   the variable domain the rows are taken from (mvTechAct, ...)
-#   key   the process column (tech, stg, sup)
-.weather_lo_default <- function(scen, wmap, par, dom, key) {
-  w <- .gds(scen, wmap); d <- .gds(scen, dom); pp <- scen@modInp@parameters[[par]]
-  if (is.null(w) || is.null(d) || is.null(pp) || !key %in% colnames(d)) return(scen)
-  ents <- unique(as.character(w[[key]]))
+#   dom   the variable domain(s) the rows are taken from (mvTechAct, ...)
+#   key   the column(s) naming the bounded entity (tech; tech + comm for afc)
+#   side  "lo" or "up"
+.weather_bound_default <- function(scen, wmap, par, dom, key, side = "lo") {
+  w <- .gds(scen, wmap); pp <- scen@modInp@parameters[[par]]
+  d <- lapply(dom, function(x) .gds(scen, x))
+  d <- d[!vapply(d, is.null, logical(1))]
+  if (is.null(w) || !length(d) || is.null(pp)) return(scen)
+  dims <- pp@dimSets
+  d <- d[vapply(d, function(x) all(dims %in% colnames(x)), logical(1))]
+  if (!length(d) || !all(key %in% colnames(w))) return(scen)
+  d <- unique(do.call(rbind, lapply(d, function(x) x[, dims, drop = FALSE])))
+  id <- function(x) do.call(paste, c(lapply(x[key], as.character), sep = "\r"))
+  ents <- unique(id(w))
   p <- .gds(scen, par)
   if (!is.null(p) && nrow(p) > 0) {
-    ents <- setdiff(ents, unique(as.character(p[[key]][p$type == "lo"])))
+    ents <- setdiff(ents, unique(id(p[as.character(p$type) == side, , drop = FALSE])))
   }
   if (!length(ents)) return(scen)
-  dims <- intersect(pp@dimSets, colnames(d))
-  if (!setequal(dims, pp@dimSets)) return(scen)
-  rows <- unique(d[as.character(d[[key]]) %in% ents, dims, drop = FALSE])
+  rows <- unique(d[id(d) %in% ents, dims, drop = FALSE])
   if (!nrow(rows)) return(scen)
-  rows$type <- "lo"
+  # the parameter may still be folded here: a dimension NA in every row is a
+  # wildcard. The new rows take the same wildcard, otherwise the column stops
+  # being all-NA and the folded rows of other processes no longer match their
+  # domain (their own bounds would drop out of the map). The value 1 is uniform
+  # over the domain, so the wildcard is exact.
+  if (!is.null(p) && nrow(p) > 0) {
+    for (dc in setdiff(dims, key)) if (all(is.na(p[[dc]]))) rows[[dc]] <- NA
+    rows <- unique(rows)
+  }
+  rows$type <- side
   rows$value <- 1
-  # `.dat2par()` appends: only the new rows go in
-  scen@modInp@parameters[[par]] <- .dat2par(pp, rows)
+  # `d2p()` appends and, unlike `.dat2par()`, keeps NA wildcards
+  scen@modInp@parameters[[par]] <- d2p(pp, rows, NULL)
   scen
+}
+.weather_lo_default <- function(scen, wmap, par, dom, key)
+  .weather_bound_default(scen, wmap, par, dom, key, "lo")
+
+# A weather factor is read at the timeslices of the bound it multiplies: `wafs`
+# at those of `afs`, `wafc` at the commodity's. A weather series with no value
+# at one of them would read as 0 there and silently zero the bound, so it is an
+# error.
+#   meq   the bound's equation map (meqTechAfsLo, ...)
+#   wmap  the weather membership of that side
+#   key   the columns joining the two (tech; tech + comm for afc)
+.weather_timeframe_check <- function(scen, meq, wmap, key, what) {
+  m <- .gds(scen, meq); w <- .gds(scen, wmap); wt <- .gds(scen, "pWeather")
+  if (is.null(m) || is.null(w) || is.null(wt)) return(invisible())
+  x <- dplyr::inner_join(dplyr::distinct(m[, c(key, "timeslice")]),
+                         dplyr::distinct(w[, c("weather", key)]), by = key)
+  if (!nrow(x) || all(is.na(wt$timeslice))) return(invisible())
+  miss <- dplyr::anti_join(x, dplyr::distinct(wt[, c("weather", "timeslice")]),
+                           by = c("weather", "timeslice"))
+  if (nrow(miss)) {
+    miss <- dplyr::distinct(miss[, c(key, "weather")])
+    stop(what, ": the weather series has no value at the timeslices of the bound ",
+         "it multiplies (", paste(utils::head(do.call(paste, c(miss, sep = "/")), 5),
+                                  collapse = ", "), "). ",
+         "Give the weather the bound's timeframe.", call. = FALSE)
+  }
+  invisible()
+}
+
+# `wafs` multiplies `afs`: a weather side with no `afs` on that side is an error
+.wafs_needs_afs <- function(scen, side) {
+  w <- .gds(scen, paste0("mTechWeatherAfs", side))
+  if (is.null(w)) return(invisible())
+  m <- .gds(scen, paste0("meqTechAfs", side))
+  bad <- setdiff(unique(as.character(w$tech)),
+                 if (is.null(m)) character(0) else unique(as.character(m$tech)))
+  if (length(bad)) {
+    stop("wafs.", tolower(side), " is set without afs.", tolower(side), " on ",
+         paste(utils::head(bad, 5), collapse = ", "),
+         ": wafs multiplies afs and has no effect on its own.", call. = FALSE)
+  }
+  invisible()
 }
 
 # C1 commodity balance
@@ -556,15 +614,121 @@ map_meqBalFx <- function(scen, fmp) .cjoin(scen, "meqBalFx", fmp)
 # C2 technology availability factors
 map_meqTechAfLo     <- function(scen, fmp) {
   scen <- .weather_lo_default(scen, "mTechWeatherAfLo", "pTechAf", "mvTechAct", "tech")
+  if (isTRUE(getOption("energyRt.fx_equ", TRUE))) return(.tech_af_fx_maps(scen, fmp))
   .cjoin(scen, "meqTechAfLo", fmp)
 }
-map_meqTechAfUp     <- function(scen, fmp) .cjoin(scen, "meqTechAfUp", fmp)
-map_meqTechAfsLo    <- function(scen, fmp) .cjoin(scen, "meqTechAfsLo", fmp)
-map_meqTechAfsUp    <- function(scen, fmp) .cjoin(scen, "meqTechAfsUp", fmp)
-map_meqTechAfcInpLo <- function(scen, fmp) .cjoin(scen, "meqTechAfcInpLo", fmp)
+map_meqTechAfUp     <- function(scen, fmp) {
+  if (isTRUE(getOption("energyRt.fx_equ", TRUE))) return(scen)
+  .cjoin(scen, "meqTechAfUp", fmp)
+}
+# built together with meqTechAfLo / meqTechAfUp by .tech_af_fx_maps()
+map_meqTechAfFx     <- function(scen, fmp) scen
+
+# `fx_equ`: a cell carried by both meqTechAfLo and meqTechAfUp whose two sides
+# are the same number -- af.lo == af.up and the same weather factors -- is the
+# pair  x <= v  and  x >= v.  It goes to meqTechAfFx (one equality row) and
+# leaves the Lo and Up maps. The three maps are written once each, since
+# `d2p()` appends.
+.tech_af_fx_maps <- function(scen, fmp) {
+  mem <- function(x) NULL
+  lo <- .gds(.cjoin(scen, "meqTechAfLo", mem), "meqTechAfLo")
+  up <- .gds(.cjoin(scen, "meqTechAfUp", mem), "meqTechAfUp")
+  key <- c("tech", "region", "year", "timeslice")
+  fx <- NULL
+  if (!is.null(lo) && !is.null(up)) {
+    both <- dplyr::inner_join(dplyr::distinct(lo[, key]),
+                              dplyr::distinct(up[, key]), by = key)
+    if (nrow(both) > 0) {
+      dv <- scen@modInp@parameters[["pTechAf"]]@defVal
+      src <- .gds(scen, "pTechAf")
+      vlo <- .bound_at(src, both, "lo", dv[1])
+      vup <- .bound_at(src, both, "up", dv[2])
+      same <- is.finite(vlo) & is.finite(vup) &
+        abs(vlo - vup) <= 1e-12 * pmax(1, abs(vlo))
+      same <- same & both$tech %in% .tech_af_weather_same(scen, unique(both$tech))
+      fx <- both[same, , drop = FALSE]
+    }
+  }
+  if (!is.null(fx) && nrow(fx) > 0) {
+    lo <- dplyr::anti_join(lo, fx, by = key)
+    up <- dplyr::anti_join(up, fx, by = key)
+  }
+  scen <- .set_map(scen, "meqTechAfLo", lo, fmp)
+  scen <- .set_map(scen, "meqTechAfUp", up, fmp)
+  .set_map(scen, "meqTechAfFx", fx, fmp)
+}
+
+# value of a `bounds` parameter (`type`/`value` columns) of side `type` at each
+# row of `cells`; a whole-column folded (all-NA) dimension matches every row,
+# a missing row reads as the default `def`
+.bound_at <- function(src, cells, type, def) {
+  n <- nrow(cells)
+  if (is.null(src) || nrow(src) == 0) return(rep(def, n))
+  s <- src[as.character(src$type) == type, , drop = FALSE]
+  if (nrow(s) == 0) return(rep(def, n))
+  by <- intersect(colnames(cells), setdiff(colnames(s), c("type", "value")))
+  by <- by[!vapply(by, function(d) all(is.na(s[[d]])), logical(1))]
+  if (length(by) == 0) return(rep(s$value[1], n))
+  ks <- do.call(paste, c(lapply(s[by], as.character), sep = "\r"))
+  kc <- do.call(paste, c(lapply(cells[by], as.character), sep = "\r"))
+  v <- s$value[match(kc, ks)]
+  v[is.na(v)] <- def
+  v
+}
+
+# technologies whose af.lo weather product equals the af.up one: the same
+# weather members (mTechWeatherAfLo vs mTechWeatherAfUp) with the same
+# coefficients (pTechWeatherAf lo vs up)
+.tech_af_weather_same <- function(scen, techs) {
+  wl <- .gds(scen, "mTechWeatherAfLo"); wu <- .gds(scen, "mTechWeatherAfUp")
+  pw <- .gds(scen, "pTechWeatherAf")
+  dv <- scen@modInp@parameters[["pTechWeatherAf"]]@defVal
+  sig <- function(w, type, def) {
+    if (is.null(w) || nrow(w) == 0) return(setNames(character(0), character(0)))
+    w <- dplyr::distinct(w[, c("weather", "tech")])
+    v <- .bound_at(pw, w, type, def)
+    w$s <- paste0(w$weather, "=", sprintf("%.15g", v))
+    vapply(split(w$s, as.character(w$tech)),
+           function(x) paste(sort(x), collapse = "|"), character(1))
+  }
+  sl <- sig(wl, "lo", dv[1]); su <- sig(wu, "up", dv[2])
+  a <- unname(sl[techs]); b <- unname(su[techs])
+  a[is.na(a)] <- ""; b[is.na(b)] <- ""
+  techs[a == b]
+}
+map_meqTechAfsLo    <- function(scen, fmp) {
+  scen <- .cjoin(scen, "meqTechAfsLo", fmp)
+  .wafs_needs_afs(scen, "Lo")
+  .weather_timeframe_check(scen, "meqTechAfsLo", "mTechWeatherAfsLo", "tech", "wafs.lo")
+  scen
+}
+map_meqTechAfsUp    <- function(scen, fmp) {
+  scen <- .cjoin(scen, "meqTechAfsUp", fmp)
+  .wafs_needs_afs(scen, "Up")
+  .weather_timeframe_check(scen, "meqTechAfsUp", "mTechWeatherAfsUp", "tech", "wafs.up")
+  scen
+}
+# `wafc` acts like `waf` at the commodity's timeframe: with no `afc` of its own
+# on a side, the commodity gets `afc = 1` there (both defaults are needed, since
+# `afc.up` defaults to Inf); the four maps then read the completed parameter
+map_meqTechAfcInpLo <- function(scen, fmp) {
+  for (sd in c("lo", "up")) {
+    scen <- .weather_bound_default(scen, paste0("mTechWeatherAfc", .tc(sd)), "pTechAfc",
+                                   c("mvTechInp", "mvTechOut"), c("tech", "comm"), sd)
+  }
+  .cjoin(scen, "meqTechAfcInpLo", fmp)
+}
 map_meqTechAfcInpUp <- function(scen, fmp) .cjoin(scen, "meqTechAfcInpUp", fmp)
 map_meqTechAfcOutLo <- function(scen, fmp) .cjoin(scen, "meqTechAfcOutLo", fmp)
-map_meqTechAfcOutUp <- function(scen, fmp) .cjoin(scen, "meqTechAfcOutUp", fmp)
+map_meqTechAfcOutUp <- function(scen, fmp) {
+  scen <- .cjoin(scen, "meqTechAfcOutUp", fmp)
+  for (io in c("Inp", "Out")) for (sd in c("Lo", "Up")) {
+    .weather_timeframe_check(scen, paste0("meqTechAfc", io, sd), paste0("mTechWeatherAfc", sd),
+                             c("tech", "comm"), paste0("wafc.", tolower(sd)))
+  }
+  scen
+}
+.tc <- function(x) paste0(toupper(substr(x, 1, 1)), substr(x, 2, nchar(x)))
 # C4 technology capacity / retirement
 map_mTechCapLo    <- function(scen, fmp) .cjoin(scen, "mTechCapLo", fmp)
 map_mTechCapUp    <- function(scen, fmp) .cjoin(scen, "mTechCapUp", fmp)
@@ -663,6 +827,7 @@ map_mTechAfcUp     <- function(scen, fmp) scen
 .constraint_builders <- list(
   meqBalLo = map_meqBalLo, meqBalUp = map_meqBalUp, meqBalFx = map_meqBalFx,
   meqTechAfLo = map_meqTechAfLo, meqTechAfUp = map_meqTechAfUp,
+  meqTechAfFx = map_meqTechAfFx,
   meqTechAfsLo = map_meqTechAfsLo, meqTechAfsUp = map_meqTechAfsUp,
   meqTechAfcInpLo = map_meqTechAfcInpLo, meqTechAfcInpUp = map_meqTechAfcInpUp,
   meqTechAfcOutLo = map_meqTechAfcOutLo, meqTechAfcOutUp = map_meqTechAfcOutUp,

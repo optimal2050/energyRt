@@ -68,6 +68,13 @@
 #'
 #'   Defaults to `getOption("energyRt.parent_levels", FALSE)`, so a whole run or
 #'   test suite can be switched in one place.
+#' @param fx_equ logical; write a technology availability bound whose two sides
+#'   coincide (`af.lo == af.up`, e.g. from `af.fx` or `waf.fx`, with the same
+#'   weather factors) as one equality row (`eqTechAfFx`) instead of a pair of
+#'   inequalities (`eqTechAfLo` + `eqTechAfUp`). The solution is the same; the
+#'   model has fewer rows before presolve (-25% on an hourly full-year VRE
+#'   model). `FALSE` writes the pair. Defaults to
+#'   `getOption("energyRt.fx_equ", TRUE)`.
 #' @param validate logical; run [validate_scenario_parameters()] after
 #'   interpolation (schema, duplicate keys, map/parameter coverage, missing
 #'   governing constraints, calendar chronology).
@@ -128,6 +135,7 @@ interpolate_model <- function(object, name = NULL, ...,
                        boundary_prices = NULL, .prefilter = FALSE,
                        parent_levels = getOption("energyRt.parent_levels",
                                                  FALSE),
+                       fx_equ = getOption("energyRt.fx_equ", TRUE),
                        verbose = isVerbose()) {
   .log_t0 <- Sys.time()
   .interp_stages_reset()
@@ -143,6 +151,9 @@ interpolate_model <- function(object, name = NULL, ...,
   .pl_prev <- getOption("energyRt.parent_levels", FALSE)
   options(energyRt.parent_levels = parent_levels)
   on.exit(options(energyRt.parent_levels = .pl_prev), add = TRUE)
+  .fx_prev <- getOption("energyRt.fx_equ", TRUE)
+  options(energyRt.fx_equ = isTRUE(fx_equ))
+  on.exit(options(energyRt.fx_equ = .fx_prev), add = TRUE)
   # Accept a scenario (re-interpolate its model), matching the legacy interface.
   if (inherits(object, "scenario")) object <- object@model
   # A model loaded from the store keeps its large slots on disk (thinned).
@@ -2814,7 +2825,8 @@ validate_scenario_parameters <- function(object, fold = TRUE,
     list(domain = "mvTradeIr", by = "trade", requires = "meqTradeCapFlow",
          severity = "structural",
          meaning = "no trade flow-capacity link (unbounded transmission)"),
-    list(domain = "mvTechAct", by = "tech", requires = "meqTechAfUp",
+    list(domain = "mvTechAct", by = "tech",
+         requires = c("meqTechAfUp", "meqTechAfFx"),
          severity = "advisory",
          meaning = "no activity-capacity bound")
   )
@@ -2832,11 +2844,11 @@ validate_scenario_parameters <- function(object, fold = TRUE,
       have <- intersect(have, .members(g$within, g$by) %||% character(0))
       if (length(have) == 0) next
     }
-    got <- .members(g$requires, g$by)
+    got <- unlist(lapply(g$requires, .members, col = g$by))
     if (is.null(got)) got <- character(0)
     missing <- setdiff(have, got)
     if (length(missing) > 0) {
-      add(g$requires, "free_meal",
+      add(g$requires[1], "free_meal",
           paste0(g$meaning, " for ", length(missing), " object(s): ",
                  paste(utils::head(missing, 5), collapse = ", ")),
           severity = g$severity)

@@ -583,6 +583,21 @@ meqTechAfUp:
   join_keys: []
   filter_by: []
   depends_on: []
+meqTechAfFx:
+  name: meqTechAfFx
+  dims:
+  - tech
+  - region
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqTechAfFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 meqTechGrp2Grp:
   name: meqTechGrp2Grp
   dims:

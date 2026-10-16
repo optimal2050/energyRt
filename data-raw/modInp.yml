@@ -4603,6 +4603,14 @@ meqTechAfUp:
   - region
   - year
   - timeslice
+meqTechAfFx:
+  name: meqTechAfFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - timeslice
 meqTechAfsLo:
   name: meqTechAfsLo
   type: map

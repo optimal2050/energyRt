@@ -144,6 +144,10 @@ changes* first. The change-by-change log for the whole cycle (450 entries) is in
   well as `region` and `timeslice`, and logs its per-stage timings.
 * Remote solving: the NEOS server for GAMS/CPLEX without a local licence, and
   GPU execution in the cloud.
+* `interpolate_model(fx_equ = TRUE)` writes a fixed availability bound
+  (`af.fx`, `waf.fx`) as one equality row, `eqTechAfFx`, instead of a lower
+  and an upper row: about 25% fewer rows on hourly VRE models, same solution.
+  `fx_equ = FALSE` keeps the pair.
 
 ### Results, storage and sharing
 
@@ -213,6 +217,16 @@ changes* first. The change-by-change log for the whole cycle (450 entries) is in
 
 Around 130 individual fixes are listed in the detailed log; most changed an
 answer rather than only the code. The classes worth knowing about:
+
+* **A fixed weather factor fixed nothing.** `waf.fx` (and the storage and
+  supply equivalents) entered only the upper bound unless the process also
+  declared `af.lo`, so VRE output could fall below the weather and curtailment
+  never reached `vBalance`. It now binds from both sides.
+* **`wafs` and `wafc`.** `wafs` multiplies `afs`: without `afs` it is now an
+  error, and its weather must have a value at each `afs` timeslice (a weather
+  at another timeframe read as 0 and shut the technology down). `wafc` acts
+  like `waf` at the commodity's timeframe: with no `afc` it implies `afc = 1`
+  on the sides it sets (it was silently ignored).
 
 * **Parameters that never reached the solver.** Several slots were declared but
   not wired (`pTradeIrEff`, per-part storage `fixom`/`eac`, aux couplings on an

@@ -960,6 +960,30 @@ if verbose:
         " s)",
         sep="",
     )
+# eqTechAfFx(tech, region, year, timeslice)$meqTechAfFx(tech, region, year, timeslice)
+if verbose:
+    print("eqTechAfFx ", end="")
+sys.stdout.flush()
+model.eqTechAfFx = Constraint(
+    meqTechAfFx,
+    rule=lambda model, t, r, y, s: model.vTechAct[t, r, y, s]
+    == pTechAfLo.get((t, r, y, s))
+    * pTechCap2act.get((t))
+    * model.vTechCap[t, r, y]
+    * pTimesliceShare.get((s))
+    * prod(
+        pTechWeatherAfLo.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mTechWeatherAfLo_ix.get(t, ())
+    ),
+)
+if verbose:
+    print(
+        datetime.datetime.now().strftime("%H:%M:%S"),
+        " (",
+        round(time.time() - seconds, 2),
+        " s)",
+        sep="",
+    )
 # eqTechAfsLo(tech, region, year, timeslice)$meqTechAfsLo(tech, region, year, timeslice)
 if verbose:
     print("eqTechAfsLo ", end="")

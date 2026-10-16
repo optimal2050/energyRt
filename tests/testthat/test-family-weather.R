@@ -87,6 +87,8 @@ test_that("family weather: wafs / wafc / supply wava multipliers land in modInp"
                                            wafs.up = c(0.8, NA),
                                            wafs.lo = c(0.1, NA),
                                            wafc.up = c(NA, 0.9)),
+                      # wafs multiplies afs, at the weather's timeframe
+                      afs = data.frame(timeslice = wf_slices, afs.lo = 1, afs.up = 1),
                       invcost = list(invcost = 1000), olife = list(olife = 30),
                       cap2act = 1),
         newDemand("DEM", commodity = "ELC",
