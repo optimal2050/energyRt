@@ -76,17 +76,17 @@ test_that("a one-sided duration range leaves the other side open", {
   expect_equal(nrow(newStorage("B4", commodity = "ELC")@duration), 0L)
 })
 
-test_that("the deprecated cap2stg reaches @duration as a fixed ratio", {
-  # The formal default used to be a bare `1`, so `.given(args$duration)` was
-  # always TRUE and this path could only ever raise "supply either ... not
-  # both". It could not have worked for anyone.
-  s <- suppressWarnings(newStorage("OLD", commodity = "ELC", cap2stg = 4))
-  expect_equal(s@duration$duration.fx, 4)
-  expect_error(
-    suppressWarnings(newStorage("OLD", commodity = "ELC",
-                                cap2stg = 4, duration = 6)),
-    "not both"
-  )
+test_that("cap2stg is refused by name, pointing at @duration", {
+  # The v0.80 shim accepted it with a warning; v0.90 refuses it. The message
+  # must name the replacement -- the generic unknown-slot error lists every
+  # valid slot and says nothing about the rename.
+  expect_error(newStorage("OLD", commodity = "ELC", cap2stg = 4),
+               "renamed to `@duration`", fixed = TRUE)
+  expect_error(newStorage("OLD", commodity = "ELC", cap2stg = 4),
+               "no longer accepted")
+  # the replacement itself still takes the scalar shorthand
+  expect_equal(newStorage("NEW", commodity = "ELC",
+                          duration = 4)@duration$duration.fx, 4)
 })
 
 test_that("storage vintages expand with per-vintage capex and windows", {

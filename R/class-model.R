@@ -245,6 +245,7 @@ newModel <- function(name = "", desc = "", ...) {
 
 
 #' @rdname newModel
+#' @aliases setHorizon getHorizon
 #' @export
 setMethod("setHorizon", signature(obj = "model"),
   # signature(obj = "model", period = "numeric", intervals = "numeric"),
@@ -481,6 +482,7 @@ add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
 #'
 #' @method add model
 #' @rdname add
+#' @aliases add
 #'
 #' @return model object with added elements to the repository
 #'

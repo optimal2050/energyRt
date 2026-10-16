@@ -109,7 +109,6 @@ setClass("subsidy",
 #' @family class constraint policy
 #' @export
 #' @param ... further named slots of the class, set on the new object.
-#' @aliases newSubsidy
 #' @rdname newSubsidy
 #'
 #' @examples
@@ -125,7 +124,7 @@ setClass("subsidy",
 #'     inp = 0.9 # subsidy rate
 #'    )
 #'  )
-newSub <- function(
+newSubsidy <- function(
   name,
   desc = "",
   comm = "",
@@ -164,9 +163,6 @@ newSub <- function(
     )
 }
 
-#' @export
-#' @noRd
-newSubsidy <- newSub
 
 # setMethod("newSub", signature(name = "character"), function(name, ..., value = NULL) {
 #   .data2slots("sub", name, ...)

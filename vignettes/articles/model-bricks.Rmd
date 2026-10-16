@@ -437,7 +437,7 @@ COALLIM@lhs[[1]]@for.sum$tech
 A term can also be *targeted* rather than enumerated. `process_` is a regular
 expression over process names, `vintage` and `cluster` select variants of a
 vintaged or clustered process, and `classes` restricts to a process class —
-the same filters `newTax()` and `newSub()` take. A name in `for.sum` that
+the same filters `newTax()` and `newSubsidy()` take. A name in `for.sum` that
 matches nothing is an error, never a silent zero, and a declared (base) name
 expands to all of its realized variants:
 

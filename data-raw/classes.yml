@@ -1693,8 +1693,8 @@ class:
       description: >
         How long the store can run at its rated output: the ratio of storing
         capacity to (dis)charging capacity. `duration = 6` on an hourly calendar
-        is a 6-hour store. Renamed from `cap2stg` in v0.80, which is still
-        accepted with a warning.
+        is a 6-hour store. Renamed from `cap2stg` in v0.80; the old spelling
+        is refused since v0.90.
         It is a BOUND on (storage, region, year): `duration.fx` ties energy to
         power, `duration.lo`/`duration.up` let the model choose the ratio -- which
         only bites when the storing side is priced, via `@storage$invcost`.

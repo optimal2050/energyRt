@@ -117,7 +117,7 @@ test_that("family levy-process: cap tax charges installed capacity", {
 # @covers pSubProcNcap vSubsCost eqSubsCost depth=S backends=glpk
 test_that("family levy-process: ncap subsidy credits capacity added", {
   skip_if_no_solver()
-  scen <- lp_solve(lp_build(newSub("LNCAP", process = "TA",
+  scen <- lp_solve(lp_build(newSubsidy("LNCAP", process = "TA",
                                    subsidy = data.frame(ncap = 1))), "lp_ncap")
   expect_true(verify_solution(scen)$ok)
   expect_equal(ff_solution_sum(scen, "vSubsCost"), -40, tolerance = 1e-6)
@@ -351,7 +351,7 @@ test_that("family levy-process: ncap subsidy credits a priced storage's capacity
   skip_if_no_solver()
   b <- lp_solve(lg_stg(inv = 300), "lg_sb")
   expect_equal(.fork_objective(b), LG_STG_PRICED, tolerance = 1e-6)
-  s <- lp_solve(lg_stg(newSub("SS", process = "STG",
+  s <- lp_solve(lg_stg(newSubsidy("SS", process = "STG",
                               subsidy = data.frame(ncap = 1)), inv = 300),
                 "lg_ss")
   expect_true(verify_solution(s)$ok)
@@ -370,7 +370,7 @@ test_that("family levy-process: a capacity subsidy on free capacity is unbounded
   # ("unable to recover undefined or non-optimal solution"), so the read fails
   # rather than returning a scenario with an NA objective.
   expect_error(
-    lp_solve(lg_stg(newSub("SU", process = "STG",
+    lp_solve(lg_stg(newSubsidy("SU", process = "STG",
                            subsidy = data.frame(ncap = 1)), inv = 0), "lg_su"),
     "Solution files not found")
 })

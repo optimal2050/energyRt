@@ -768,6 +768,7 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
 }
 #' @rdname read
 #' @method read scenario
+#' @aliases read
 #' @export
 setMethod("read", "scenario", read_solution)
 

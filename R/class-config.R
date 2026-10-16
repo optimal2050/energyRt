@@ -163,6 +163,7 @@ setMethod("initialize", "config", function(.Object, ...) {
 # setGeneric("setCalendar", function(obj, ...) standardGeneric("setCalendar"))
 
 ## setCalendar ###############################################################
+#' @rdname setGeoscale
 #' @export
 setMethod("setCalendar", signature(obj = "config"), function(obj, ...) {
   obj@calendar <- newCalendar(...) ## ToDo: add check for fractional data

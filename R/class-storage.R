@@ -673,27 +673,14 @@ setMethod("initialize", "storage", function(.Object, ...) {
     args[[old_nm]] <- NULL
   }
 
-  # `cap2stg` -> `duration` (v0.80). Same number, clearer name: it is the ratio of
-  # storing capacity to (dis)charging capacity, i.e. how long the store runs at
-  # its rated output. `maps.R` had already flagged the rename ("to be renamed to
-  # duration"). The column keeps the slot's own name so the `duration = 6` scalar
-  # shorthand keeps working through `.data2slots()`.
+  # `cap2stg` was renamed to `@duration` in v0.80 and the compatibility shim is
+  # gone as of v0.90. Refused by name so the message states the replacement --
+  # the generic unknown-slot error would only list `duration` among 24 others.
   if (.given(args$cap2stg)) {
-    if (.given(args$duration)) {
-      stop("Supply either `duration` or the deprecated `cap2stg`, not both. ",
-           "`cap2stg` was renamed to `duration` in energyRt v0.80.")
-    }
-    .en_deprecate_once(
-      "storage@cap2stg",
-      paste0("`storage@cap2stg` was renamed to `@duration` in energyRt v0.80; the ",
-             "supplied `cap2stg` is accepted and renamed. Please update your data. ",
-             "This warning is shown once per session.")
-    )
-    x <- args$cap2stg
-    if ((is.data.frame(x) || is.list(x)) && "cap2stg" %in% names(x)) {
-      names(x)[names(x) == "cap2stg"] <- "duration"
-    }
-    args$duration <- x
+    stop("`storage@cap2stg` was renamed to `@duration` in energyRt v0.80 and ",
+         "is no longer accepted (v0.90). It is the same number: the ratio of ",
+         "storing to (dis)charging capacity, i.e. how long the store runs at ",
+         "its rated output.", call. = FALSE)
   }
 
   # `duration` is a BOUND now, and `.pack_bounds_long()` reads only the
@@ -747,7 +734,6 @@ setMethod("initialize", "storage", function(.Object, ...) {
   if (.given(args$duration)) args$duration <- .norm_ratio(args$duration, "duration")
   if (.given(args$inp2out))  args$inp2out  <- .norm_ratio(args$inp2out, "inp2out")
   if (.given(args$inp2stg))  args$inp2stg  <- .norm_ratio(args$inp2stg, "inp2stg")
-  args$cap2stg <- NULL
 
   # The pre-part-aware aux capacity couplings coupled ONLY the discharger.
   # HARD BREAK (no aliases): refuse them with the rename, so a model meaning

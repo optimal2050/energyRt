@@ -4563,6 +4563,7 @@ get_interpolation_rule <- function(
 # LIVE API -- kept beside the implementation, not in the deprecation file
 # (which is deleted wholesale at the sunset).
 #' @rdname interpolate_model
+#' @aliases interpolate
 #' @export
 setMethod("interpolate", signature(object = "model"),
           function(object, ...) interpolate_model(object, ...))

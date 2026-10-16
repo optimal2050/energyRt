@@ -71,7 +71,7 @@ NULL
 #'
 #' @family geoscale
 #' @name setGeoscale
-#' @aliases setGeoscale getGeoscale getCalendar
+#' @aliases setGeoscale getGeoscale getCalendar setCalendar
 NULL
 
 #' @rdname setGeoscale
