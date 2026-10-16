@@ -871,8 +871,16 @@ setMethod("levcost", "model",
 
 #' @rdname levcost
 setMethod("levcost", "scenario", function(object, comm, name, ...) {
-  .levcost_scenario(object, name = if (missing(name)) NULL else name,
-                    comm = if (missing(comm)) NULL else comm, ...)
+  dots <- list(...)
+  by_variant <- if (is.null(dots$by_variant)) FALSE else dots$by_variant
+  dots$by_variant <- NULL
+  res <- do.call(.levcost_scenario,
+                 c(list(object, name = if (missing(name)) NULL else name,
+                        comm = if (missing(comm)) NULL else comm), dots))
+  # same contract as the object path: TRUE / "npv" / "components" reduce a
+  # multi-variant result to its tidy table, anything else returns the object
+  if (isFALSE(by_variant) || !inherits(res, "levcost_variants")) res else
+    .levcost_by_variant(res, by_variant)
 })
 
 # Fuel cost of a process in a solved scenario: sum over inputs of
@@ -949,14 +957,66 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
   setNames(a$x, as.character(a$year))
 }
 
+# A scenario holds EXPANDED processes (`EWIN_VIN2035_CL01`), while the name a
+# caller knows is usually the base one `getVariants()` reports. Resolve each
+# given name to the processes it stands for: itself when the scenario declares
+# it, otherwise every variant of that base. An unknown name is passed through so
+# the caller gets the "not a technology ..." message rather than silence.
+#' @noRd
+.levcost_scen_names <- function(scen, name) {
+  prov <- tryCatch(getVariants(scen), error = function(e) NULL)
+  unlist(lapply(as.character(name), function(nm) {
+    if (!is.null(.levcost_scen_class(scen, nm))) return(nm)
+    if (is.null(prov) || !NROW(prov)) return(nm)
+    v <- prov$name[!is.na(prov$base) & prov$base == nm]
+    if (length(v)) v else nm
+  }), use.names = FALSE)
+}
+
 # Ex-post levelized cost of a process in a SOLVED scenario: the discounted sum of
 # the process's own costs (annualised investment `vTechEac`, `vTechFixom`,
 # `vTechVarom`, plus attributed fuel cost) divided by its discounted output.
 .levcost_scenario <- function(scen, name, comm = NULL, discount = NULL,
                               base_year = NULL, verbose = TRUE, ...) {
-  if (is.null(name) || !nzchar(name)) {
+  if (is.null(name) || !length(name) || !any(nzchar(as.character(name)))) {
     message("levcost(): please give the process `name = ` to price."); return(invisible(NULL))
   }
+
+  # One call may name several processes, or one base that expands into many.
+  # Price each and bundle them exactly as the declared-object path does, so
+  # `autoplot()`, `by_variant = ` and the report plumbing see one shape.
+  nms <- unique(.levcost_scen_names(scen, name))
+  if (length(nms) > 1L) {
+    # A variant the solver never built has no output to divide by, which is not
+    # an error here -- it is the usual case for the grades that lost. Report
+    # them once, rather than one message per variant.
+    per_variant <- suppressMessages(lapply(nms, function(nm)
+      .levcost_scenario(scen, name = nm, comm = comm, discount = discount,
+                        base_year = base_year, verbose = FALSE, ...)))
+    names(per_variant) <- nms
+    per_variant <- Filter(function(x) inherits(x, "levcost"), per_variant)
+    skipped <- setdiff(nms, names(per_variant))
+    if (length(skipped) && isTRUE(verbose)) {
+      message("levcost(): ", length(skipped), " of ", length(nms),
+              " variant(s) were not priced -- no output in the solved ",
+              "scenario: ", paste(utils::head(skipped, 5), collapse = ", "),
+              if (length(skipped) > 5) ", ..." else "")
+    }
+    if (!length(per_variant)) return(invisible(NULL))
+    if (length(per_variant) == 1L) return(per_variant[[1]])
+    prov <- tryCatch(getVariants(scen), error = function(e) NULL)
+    bases <- if (is.null(prov)) character(0) else
+      unique(prov$base[match(names(per_variant), prov$name)])
+    bases <- bases[!is.na(bases)]
+    if (length(bases) == 1L && !is.null(prov)) {
+      return(.levcost_variants_object(per_variant, prov, bases))
+    }
+    # several unrelated processes: a plain list, since `levcost_variants`
+    # describes the variants of ONE base
+    class(per_variant) <- c("levcost_list", "list")
+    return(per_variant)
+  }
+  name <- nms[[1L]]
   # `@stage`, not the number of variables: `modOut` pre-populates one empty
   # `variable` per declared variable, so a failed solve has as many as a good one.
   if (!isTRUE(scen@status$interpolated) ||

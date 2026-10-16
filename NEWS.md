@@ -159,6 +159,10 @@ changes* first. The change-by-change log for the whole cycle (450 entries) is in
   with check groups (`checks = "all"`), and `verify_checks()` lists them.
 * `getVariants()` also takes a `model`, listing the names vintages and clusters
   will expand to before interpolating.
+* `levcost()` on a solved scenario accepts a **base** process name and prices
+  every variant of it, returning the same `levcost_variants` result the
+  declared-object path gives (`by_variant = ` included). A vector of names
+  works too; variants the solver never built are reported and skipped.
 * `audit_coefficients()` reports the coefficient range of a written model, per
   equation.
 * `compare_scenarios()`, `compare_models()` and `compare_inputs()` diff solved

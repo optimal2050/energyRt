@@ -564,3 +564,99 @@ test_that("analytic and solve agree on region-keyed variants", {
   expect_equal(a$variant, s$variant)
   expect_equal(a$levcost_npv, s$levcost_npv, tolerance = 5e-5)
 })
+
+# --------------------------------------------------------------------------- #
+# Ex-post (a SOLVED scenario). The scenario holds the EXPANDED processes, so
+# `name = "PWR"` -- the name `getVariants()` reports as the base, and the one a
+# caller thinks in -- used to be refused outright, and a vector of variant names
+# raised R's "'length = n' in coercion to 'logical(1)'" from a scalar `if`.
+# Both now resolve, and the result is the same `levcost_variants` shape the
+# declared-object path returns.
+# --------------------------------------------------------------------------- #
+
+lv_solved <- function() {
+  cal <- newCalendar(
+    timetable = make_timetable(
+      struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+    name = "lv_two_seasons")
+  EWIN <- newTechnology(
+    name = "EWIN",
+    output = data.frame(comm = "ELC", unit = "GWh"),
+    cluster = data.frame(cluster = c("01", "02"), order = 1:2),
+    vintage = data.frame(vintage = c("2025", "2035"),
+                         start = c(2025, 2035), end = 2050, olife = 25L),
+    af = data.frame(cluster = c("01", "02"), af.up = c(0.45, 0.33)),
+    invcost = data.frame(
+      vintage = rep(c("2025", "2035"), each = 2),
+      cluster = rep(c("01", "02"), times = 2),
+      invcost = c(600, 900, 450, 700)),
+    cap2act = 8.76)
+  mod <- newModel(
+    name = "lv_scen", region = "R1", discount = 0.05,
+    horizon = newHorizon(seq(2025, 2050, by = 5)), calendar = cal,
+    repo = newRepository("r",
+      newCommodity("ELC", timeframe = "SEASON", unit = "GWh"),
+      newImport("IMP_ELC", commodity = "ELC",
+                import = data.frame(price = 500)),
+      EWIN,
+      newDemand("DEM_ELC", commodity = "ELC",
+                demand = data.frame(demand = 20))))
+  suppressMessages(suppressWarnings(
+    solve_model(mod, name = "lv_scen", solver = solver_options$glpk,
+                ondisk = FALSE, overwrite = TRUE, echo = FALSE)))
+}
+
+# @covers vTechEac vTechFixom vTechOut depth=S backends=glpk
+test_that("a base name prices every built variant of a solved scenario", {
+  skip_if_no_solver()
+  scen <- lv_solved()
+  built <- unique(as.character(as.data.frame(
+    getData(scen, "vTechNewCap", merge = TRUE))$tech))
+  expect_gte(length(built), 1L)
+
+  lc <- suppressMessages(levcost(scen, name = "EWIN"))
+  expect_s3_class(lc, "levcost_variants")
+  expect_setequal(names(lc), built)          # unbuilt variants are skipped
+
+  npv <- levcost(lc, by_variant = "npv")
+  expect_true(all(c("tech", "variant", "vintage", "cluster", "levcost_npv")
+                  %in% names(npv)))
+  expect_equal(unique(npv$tech), "EWIN")     # the BASE, not the variant name
+  expect_false(any(is.na(npv$vintage)))
+  expect_false(any(is.na(npv$cluster)))
+})
+
+# @covers vTechEac depth=S backends=glpk
+test_that("by_variant = TRUE gives the tidy table ex-post, as for an object", {
+  skip_if_no_solver()
+  scen <- lv_solved()
+  d <- suppressMessages(levcost(scen, name = "EWIN", by_variant = TRUE))
+  expect_true(is.data.frame(d))
+  expect_true(all(c("tech", "variant", "vintage", "cluster", "year", "levcost")
+                  %in% names(d)))
+  expect_gt(nrow(d), 0L)
+})
+
+# @covers vTechEac depth=S backends=glpk
+test_that("a vector of variant names is priced, not refused", {
+  skip_if_no_solver()
+  scen <- lv_solved()
+  built <- unique(as.character(as.data.frame(
+    getData(scen, "vTechNewCap", merge = TRUE))$tech))
+  skip_if(length(built) < 2, "needs two built variants")
+  lc <- suppressMessages(levcost(scen, name = built))
+  expect_s3_class(lc, "levcost_variants")
+  expect_setequal(names(lc), built)
+})
+
+# @covers vTechEac depth=S backends=glpk
+test_that("one expanded name still returns a single levcost, unknown names report", {
+  skip_if_no_solver()
+  scen <- lv_solved()
+  built <- unique(as.character(as.data.frame(
+    getData(scen, "vTechNewCap", merge = TRUE))$tech))[1]
+  one <- suppressMessages(levcost(scen, name = built))
+  expect_s3_class(one, "levcost")
+  expect_false(inherits(one, "levcost_variants"))
+  expect_message(levcost(scen, name = "NOPE"), "not a technology")
+})
