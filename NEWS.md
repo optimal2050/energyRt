@@ -167,6 +167,13 @@ changes* first. The change-by-change log for the whole cycle (450 entries) is in
   with check groups (`checks = "all"`), and `verify_checks()` lists them.
 * `getVariants()` also takes a `model`, listing the names vintages and clusters
   will expand to before interpolating.
+* `report()` on a technology or storage takes spatial and solved context:
+  `geoscale =` adds a map of where the process is declared, `model =` prices it
+  in that model's calendar, horizon and discount, and `scenario =` adds what
+  the solve realized -- capacity built per region, and the ex-post levelized
+  cost beside the ex-ante one, per variant. `scenario` implies its model, which
+  implies its geoscale; a model that is not the scenario's is refused.
+
 * `levcost()` on a solved scenario accepts a **base** process name and prices
   every variant of it, returning the same `levcost_variants` result the
   declared-object path gives (`by_variant = ` included). A vector of names

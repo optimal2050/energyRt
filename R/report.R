@@ -64,6 +64,18 @@
 #' @param open Logical.  Open the rendered report in the system browser/viewer
 #'   when done.  Defaults to \code{interactive()} (opens in an interactive
 #'   session, stays quiet in scripts and knits).
+#' @param geoscale A \code{geoscales::GeoScale} (\code{technology} /
+#'   \code{storage} methods), giving the report geometry so it can map WHERE
+#'   the process is declared. Nothing about the costs changes.
+#' @param model The \code{model} the process sits in (\code{technology} /
+#'   \code{storage} methods). The levelized cost is then computed in that
+#'   model's world -- its calendar, horizon, discount and regions -- and the
+#'   model's geoscale supplies the map.
+#' @param scenario A solved \code{scenario} (\code{technology} /
+#'   \code{storage} methods): the report adds what the solve REALIZED -- the
+#'   capacity built per region, and the ex-post levelized cost beside the
+#'   ex-ante one, per variant. \code{scenario} implies its model, which implies
+#'   its geoscale; a \code{model} that is not the scenario's is refused.
 #' @param levcost A \code{levcost} (or \code{levcost_list}) object returned by
 #'   \code{\link{levcost}}, or \code{NULL} (default).  When \code{NULL} and any
 #'   \code{levcost} keyword arguments are passed via \code{...} (e.g.
@@ -301,6 +313,199 @@ setGeneric(
                             # instance selectors, forwarded to levcost()
                             "vintage", "cluster")
 
+# =========================================================================== #
+# Report context: where a process report gets its world from.
+#
+# `report(object)` documents the DECLARATION -- an ex-ante estimate of what the
+# process could do, priced against an auto-created horizon and a single region.
+# Three optional arguments widen that:
+#
+#   geoscale =   geometry only, so the report can show WHERE the process is
+#                declared. No prices change.
+#   model =      the object as PLACED in a model: its calendar, horizon,
+#                discount and regions, and the model's geoscale. Still ex ante.
+#   scenario =   the REALIZATION: what the solver built and ran, priced ex post,
+#                beside the ex-ante number for comparison.
+#
+# `scenario` implies its model, which implies its geoscale; an explicit argument
+# wins over an implied one, and a model that is not the scenario's is refused
+# rather than silently ignored.
+# =========================================================================== #
+
+#' @noRd
+.report_context <- function(object, geoscale = NULL, model = NULL,
+                            scenario = NULL) {
+  if (!is.null(scenario) && !methods::is(scenario, "scenario")) {
+    stop("`scenario` must be a scenario object; got ", class(scenario)[1], ".",
+         call. = FALSE)
+  }
+  if (!is.null(model) && !methods::is(model, "model")) {
+    stop("`model` must be a model object; got ", class(model)[1], ".",
+         call. = FALSE)
+  }
+  scen_model <- if (!is.null(scenario))
+    tryCatch(scenario@model, error = function(e) NULL) else NULL
+  if (!is.null(model) && !is.null(scen_model) &&
+      !identical(model@name, scen_model@name)) {
+    stop("`model` (\"", model@name, "\") is not the scenario's model (\"",
+         scen_model@name, "\"). Pass one of them, or the scenario alone.",
+         call. = FALSE)
+  }
+  mod <- model %||% scen_model
+  gs <- geoscale %||%
+    (if (!is.null(scenario)) tryCatch(.resolve_geoscale(scenario, NULL),
+                                      error = function(e) NULL)) %||%
+    (if (!is.null(mod)) tryCatch(.resolve_geoscale(mod, NULL),
+                                 error = function(e) NULL))
+  list(
+    geoscale = if (is_geoscale(gs)) gs else NULL,
+    model    = mod,
+    scenario = scenario,
+    # what the levelized-cost section is entitled to show
+    level    = if (!is.null(scenario)) "realized" else
+      if (!is.null(mod)) "model" else "declared"
+  )
+}
+
+# Which regions the process occupies, and with what value, for the choropleth.
+# With a solved scenario this is the REALIZED capacity of the object's variants;
+# without one it is the declaration -- a per-region ceiling when the object
+# states one, otherwise presence.
+#' @noRd
+.report_locations <- function(object, ctx) {
+  nm <- object@name
+  scen <- ctx$scenario
+  # which solved variable carries "how much of this process stands here", and
+  # which column names the process, per class
+  vars <- switch(class(object)[1],
+    technology = list(v = c("vTechNewCap", "vTechCap"), key = "tech"),
+    storage    = list(v = c("vStorageOutNewCap", "vStorageOutCap"), key = "stg"),
+    NULL)
+  if (!is.null(scen) && !is.null(vars)) {
+    v <- NULL
+    for (vn in vars$v) {
+      v <- tryCatch(as.data.frame(getData(scen, name = vn, merge = TRUE)),
+                    error = function(e) NULL)
+      if (!is.null(v) && nrow(v)) break
+    }
+    if (!is.null(v) && nrow(v) && all(c(vars$key, "region", "value") %in% names(v))) {
+      names(v)[names(v) == vars$key] <- "tech"
+      prov <- tryCatch(getVariants(scen), error = function(e) NULL)
+      mine <- if (!is.null(prov) && NROW(prov))
+        c(nm, prov$name[!is.na(prov$base) & prov$base == nm]) else nm
+      v <- v[as.character(v$tech) %in% mine, , drop = FALSE]
+      if (nrow(v)) {
+        d <- stats::aggregate(list(value = v$value),
+                              list(region = as.character(v$region)), sum)
+        return(list(data = d, fill = "value", kind = "realized",
+                    title = paste0(nm, ": capacity built, by region")))
+      }
+    }
+  }
+  # declared: a per-region ceiling if there is one, else presence
+  cap <- tryCatch(as.data.frame(object@capacity), error = function(e) NULL)
+  reg <- as.character(object@region)
+  if (!is.null(cap) && nrow(cap) && "region" %in% names(cap)) {
+    up <- intersect(c("cap.up", "ncap.up", "stock"), names(cap))
+    if (length(up)) {
+      d <- cap[!is.na(cap$region), c("region", up[1]), drop = FALSE]
+      names(d) <- c("region", "value")
+      d <- stats::aggregate(list(value = d$value),
+                            list(region = as.character(d$region)),
+                            function(z) max(z, na.rm = TRUE))
+      if (nrow(d)) {
+        return(list(data = d, fill = "value", kind = "declared",
+                    title = paste0(nm, ": declared ceiling, by region")))
+      }
+    }
+  }
+  if (!length(reg)) return(NULL)
+  d <- data.frame(region = reg, declared = "declared", stringsAsFactors = FALSE)
+  list(data = d, fill = "declared", kind = "presence",
+       title = paste0(nm, ": declared locations"))
+}
+
+# The choropleth itself. `geoscale_plot()` is the same primitive
+# `plot_geoscale()` uses, so the look matches the rest of the stack.
+#' @noRd
+.report_location_plot <- function(object, ctx) {
+  gs <- ctx$geoscale
+  if (is.null(gs)) return(NULL)
+  if (!requireNamespace("geoscales", quietly = TRUE) ||
+      !requireNamespace("sf", quietly = TRUE) ||
+      !requireNamespace("ggplot2", quietly = TRUE)) return(NULL)
+  loc <- .report_locations(object, ctx)
+  if (is.null(loc) || !NROW(loc$data)) return(NULL)
+  finest <- tryCatch(.geo_default_level(gs), error = function(e) NULL)
+  if (is.null(finest)) return(NULL)
+  d <- loc$data
+  names(d)[names(d) == "region"] <- finest
+  tryCatch(
+    geoscales::geoscale_plot(gs, data = d, geoframe = finest,
+                             fill = loc$fill, title = loc$title,
+                             fill_label = if (identical(loc$fill, "value"))
+                               "" else NULL),
+    error = function(e) NULL)
+}
+
+# Ex-ante against realized, per variant. Both sides are NPV levelized costs
+# keyed on the variant name, so the table says what the declaration promised and
+# what the solve actually delivered.
+#' @noRd
+.report_levcost_compare <- function(object, ctx, lc_dots = list()) {
+  scen <- ctx$scenario
+  if (is.null(scen)) return(NULL)
+  nm <- object@name
+  npv_of <- function(x) {
+    if (is.null(x)) return(NULL)
+    if (inherits(x, "levcost_variants"))
+      return(tryCatch(.levcost_by_variant(x, "npv"), error = function(e) NULL))
+    if (inherits(x, "levcost")) {
+      v <- x$levcost_npv
+      if (!length(v)) return(NULL)
+      # a single result carries the priced process in the names of its NPV,
+      # which is the VARIANT when only one variant was built -- joining on the
+      # base name would pair the wrong rows
+      lbl <- names(v)[1] %||% nm
+      return(data.frame(variant = lbl, levcost_npv = unname(v)[1],
+                        stringsAsFactors = FALSE))
+    }
+    NULL
+  }
+  post <- tryCatch(suppressMessages(do.call(
+    energyRt::levcost, c(list(object = scen, name = nm, verbose = FALSE),
+                         lc_dots))), error = function(e) NULL)
+  # Ex ante is the DECLARATION. Price it in model context when that model still
+  # declares this object -- a scenario's `@model` holds the EXPANDED processes,
+  # where the base name no longer exists, so there the object itself is the
+  # only thing that can stand for the declaration.
+  mod <- ctx$model
+  mod_has <- !is.null(mod) && tryCatch(
+    nm %in% names(getObjects(mod, class(object)[1])), error = function(e) FALSE)
+  ante_from <- if (isTRUE(mod_has)) mod else object
+  ante_src <- tryCatch(suppressMessages(do.call(
+    energyRt::levcost, c(list(object = ante_from, name = nm, verbose = FALSE),
+                         lc_dots))),
+    error = function(e) NULL)
+  a <- npv_of(ante_src); p <- npv_of(post)
+  if (is.null(a) && is.null(p)) return(NULL)
+  keep <- function(d, lbl) {
+    if (is.null(d)) return(NULL)
+    k <- intersect(c("variant", "vintage", "cluster", "levcost_npv"), names(d))
+    d <- d[, k, drop = FALSE]
+    names(d)[names(d) == "levcost_npv"] <- lbl
+    d
+  }
+  a <- keep(a, "ex_ante"); p <- keep(p, "realized")
+  out <- if (is.null(a)) p else if (is.null(p)) a else
+    merge(a, p, by = intersect(names(a), names(p)), all = TRUE)
+  if (!is.null(out) && all(c("ex_ante", "realized") %in% names(out))) {
+    out$difference <- out$realized - out$ex_ante
+  }
+  rownames(out) <- NULL
+  out
+}
+
 #' @rdname report
 #' @export
 setMethod(
@@ -309,8 +514,14 @@ setMethod(
   function(object, template = NULL, image_file = NULL, file = NULL,
            format = c("html", "pdf", "tex", "docx"),
            levcost = NULL, cost_unit = NULL, levcost_peers = NULL,
-           open = interactive(),
-           reports_path = NULL, force = FALSE, ...) {
+           open = interactive(), geoscale = NULL, model = NULL,
+           scenario = NULL, reports_path = NULL, force = FALSE, ...) {
+
+    # Where this report gets its world from: geometry only, the model the
+    # object sits in, or the solved scenario that realized it. See
+    # `.report_context()` -- `scenario` implies its model implies its geoscale.
+    ctx <- .report_context(object, geoscale = geoscale, model = model,
+                           scenario = scenario)
 
     # default = html only (pdf/tex need LaTeX); explicit requests are honoured
     format <- if (missing(format)) "html" else
@@ -396,7 +607,12 @@ setMethod(
     key <- .report_key("report/technology", object, tmpl,
                        args = c(param_dots, render_dots,
                                 list(cost_unit = cost_unit,
-                                     levcost_peers_id = peers_id)),
+                                     levcost_peers_id = peers_id,
+                                     context_level = ctx$level,
+                                     context_model = if (!is.null(ctx$model))
+                                       ctx$model@name else NULL,
+                                     context_scen = if (!is.null(ctx$scenario))
+                                       ctx$scenario@name else NULL)),
                        image_file = image_file_abs, levcost_id = lc_id)
     if (!isTRUE(force)) {
       current <- vapply(format, function(f)
@@ -594,6 +810,12 @@ setMethod(
     params$levcost_peers_plot     <- levcost_peers_plot
     params$levcost_by_vintage_df  <- levcost_by_vintage_df
     params$levcost_instance_label <- levcost_instance_label
+    # -- context sections: locations map, ex-ante vs realized ---------------
+    params$context_level   <- ctx$level
+    params$location_plot   <- tryCatch(.report_location_plot(object, ctx),
+                                       error = function(e) NULL)
+    params$levcost_compare_df <- tryCatch(
+      .report_levcost_compare(object, ctx, lc_dots), error = function(e) NULL)
     params$units_costs         <- if (!is.null(cost_unit) && nzchar(cost_unit)) cost_unit else
       .slot_val_report(object@units, "costs", "")
     params$levcost_npv         <- NULL
@@ -695,7 +917,11 @@ setMethod(
   function(object, template = NULL, image_file = NULL, file = NULL,
            format = c("html", "pdf", "tex", "docx"),
            levcost = NULL, cost_unit = NULL, open = interactive(),
+           geoscale = NULL, model = NULL, scenario = NULL,
            reports_path = NULL, force = FALSE, ...) {
+
+    ctx <- .report_context(object, geoscale = geoscale, model = model,
+                           scenario = scenario)
 
     format <- if (missing(format)) "html" else
       match.arg(format, c("html", "pdf", "tex", "docx"), several.ok = TRUE)
@@ -754,7 +980,12 @@ Levelized cost section will be omitted.")
 
     key <- .report_key("report/storage", object, tmpl,
                        args = c(param_dots, render_dots,
-                                list(cost_unit = cost_unit)),
+                                list(cost_unit = cost_unit,
+                                     context_level = ctx$level,
+                                     context_model = if (!is.null(ctx$model))
+                                       ctx$model@name else NULL,
+                                     context_scen = if (!is.null(ctx$scenario))
+                                       ctx$scenario@name else NULL)),
                        image_file = image_file_abs)
     current <- if (isTRUE(force)) rep(FALSE, length(format)) else
       vapply(format, function(f) .report_uptodate(file_base, f, key),
@@ -786,6 +1017,11 @@ Levelized cost section will be omitted.")
 
     params <- .storage_report_params_generic(object, image_file_abs,
                                              draw_file)
+    params$context_level   <- ctx$level
+    params$location_plot   <- tryCatch(.report_location_plot(object, ctx),
+                                       error = function(e) NULL)
+    params$levcost_compare_df <- tryCatch(
+      .report_levcost_compare(object, ctx, lc_dots), error = function(e) NULL)
     if (!is.null(cost_unit) && nzchar(cost_unit)) {
       params$units_costs <- cost_unit
     }
