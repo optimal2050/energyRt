@@ -1474,7 +1474,7 @@ fill_variable_domains <- function(model, prefer = c("spec", "hint"),
 #' everything downstream ([model_to_lp()], [write_mps()], [solve_highs()])
 #' takes the model this returns.
 #'
-#' @param scen An interpolated energyRt scenario.
+#' @param object An interpolated energyRt scenario.
 #' @param gms The GAMS model source. `NULL` (the default) reads the code
 #'   energyRt ships in `.modelCode$GAMS`, which needs no source checkout and
 #'   matches the installed energyRt version. Pass a path to read a working
@@ -1495,10 +1495,10 @@ fill_variable_domains <- function(model, prefer = c("spec", "hint"),
 #' write_mps(m, "model.mps", lp = lp)
 #' }
 #' @export
-multimod_from_energyRt <- function(scen, gms = NULL, prefer = c("spec", "hint"),
+multimod_from_energyRt <- function(object, gms = NULL, prefer = c("spec", "hint"),
                                    inMemory = TRUE, verbose = TRUE) {
   .need_multimod("multimod_from_energyRt()")
-  if (!inherits(scen, "scenario")) {
+  if (!inherits(object, "scenario")) {
     stop("`scen` must be an energyRt scenario object.", call. = FALSE)
   }
   prefer <- match.arg(prefer)
@@ -1538,7 +1538,7 @@ multimod_from_energyRt <- function(scen, gms = NULL, prefer = c("spec", "hint"),
   m <- multimod::as_multimod(ms)
   m <- fill_variable_domains(m, prefer = prefer, verbose = verbose)
 
-  m <- multimod_import_data(m, scen, inMemory = inMemory)
+  m <- multimod_import_data(m, object, inMemory = inMemory)
   m <- suppressWarnings(
     multimod::add_index_aliases(m, index_aliases_energyRt, overwrite = TRUE))
 
@@ -1547,7 +1547,7 @@ multimod_from_energyRt <- function(scen, gms = NULL, prefer = c("spec", "hint"),
   # GAMS string IR on `modInp@user_constraints`, per scenario. Omitting this
   # step produced a model of exactly the right shape with those rows missing -
   # the silent-wrong-answer failure this package keeps guarding against.
-  m <- add_user_constraints(m, scen, verbose = verbose)
+  m <- add_user_constraints(m, object, verbose = verbose)
 
   attr(m, "energyRt_version") <- as.character(utils::packageVersion("energyRt"))
   attr(m, "energyRt_gms") <- src

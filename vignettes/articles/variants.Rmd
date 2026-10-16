@@ -171,7 +171,7 @@ mod_vin <- newModel(
   discount = 0.05
 )
 scen_vin <- solve_model(
-  obj = mod_vin,
+  object = mod_vin,
   name = "art_vintage",
   ondisk = FALSE,
   overwrite = TRUE,
@@ -203,7 +203,7 @@ back along the axis you ask for:
 
 ```{r vintage-summary}
 vs <- variantSummary(
-  scen = scen_vin,
+  object = scen_vin,
   name = "vTechNewCap",
   by = "vintage"
 )
@@ -285,7 +285,7 @@ mod_clu <- newModel(
   discount = 0.05
 )
 scen_clu <- solve_model(
-  obj = mod_clu,
+  object = mod_clu,
   name = "art_cluster",
   ondisk = FALSE,
   overwrite = TRUE,
@@ -647,7 +647,7 @@ mod_land <- newModel(
   discount = 0.05
 )
 scen_land <- solve_model(
-  obj = mod_land,
+  object = mod_land,
   name = "art_land",
   ondisk = FALSE,
   overwrite = TRUE,
@@ -958,7 +958,7 @@ mod_site <- newModel(
   discount = 0.05
 )
 scen_site <- solve_model(
-  obj = mod_site,
+  object = mod_site,
   name = "art_sites",
   ondisk = FALSE,
   overwrite = TRUE,

@@ -100,7 +100,7 @@ NULL
 #' The same behaviour is available without this verb by passing a
 #' `geoscales::filter_geoscale()` subset to [interpolate_model()].
 #'
-#' @param mod a [model].
+#' @param object a [model].
 #' @param region character vector of regions to keep (must be a subset of the
 #'   model's declared regions).
 #' @param boundary_prices optional `data.frame` pricing the boundary stubs of
@@ -114,10 +114,10 @@ NULL
 #' @return the restricted [model].
 #' @family interpolation
 #' @export
-subset_model_regions <- function(mod, region, boundary_prices = NULL,
+subset_model_regions <- function(object, region, boundary_prices = NULL,
                                  verbose = isVerbose()) {
-  stopifnot(inherits(mod, "model"))
-  r_m <- as.character(mod@config@region)
+  stopifnot(inherits(object, "model"))
+  r_m <- as.character(object@config@region)
   unknown <- setdiff(region, r_m)
   if (length(unknown) > 0L) {
     stop("region(s) not declared in the model: ",
@@ -125,24 +125,24 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
   }
   # Warn BEFORE the surgery, while the model still has its full geoscale and
   # every route: a coarse-declared trade cost does not scale with the subset.
-  .warn_sampled_coarse_costs(mod, keep = region)
+  .warn_sampled_coarse_costs(object, keep = region)
 
-  mod <- .subset_model_regions(mod, keep = region,
+  object <- .subset_model_regions(object, keep = region,
                                boundary_prices = boundary_prices,
                                verbose = verbose)
-  mod@config@region <- r_m[r_m %in% region]
-  gs <- tryCatch(mod@config@geoscale, error = function(e) NULL)
+  object@config@region <- r_m[r_m %in% region]
+  gs <- tryCatch(object@config@geoscale, error = function(e) NULL)
   if (!is.null(gs) && is_geoscale(gs)) {
     check_package("geoscales")
     finest <- geoscales::geoscale_geoframes(gs, finest = TRUE)
     atoms <- as.character(geoscales::geoscale_regions(gs, finest))
     keep_atoms <- intersect(atoms, region)
     if (length(keep_atoms) > 0L && length(keep_atoms) < length(atoms)) {
-      mod@config@geoscale <- geoscales::filter_geoscale(
+      object@config@geoscale <- geoscales::filter_geoscale(
         gs, finest, keep_atoms, drop_empty_geoframes = TRUE)
     }
   }
-  mod
+  object
 }
 
 # Trade surgery on the (build copy of the) model: drop routes crossing the
@@ -612,7 +612,7 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
 #' anyway (a per-region reserve does not exist, and a constraint RHS averages
 #' across regions).
 #'
-#' @param mod a model object.
+#' @param object a model object.
 #' @param regions character, the regions being solved (the sample). Routes are
 #'   priced at whichever endpoint is inside this set.
 #' @param share numeric in `(0, 1]`, the fraction of a region's demand the
@@ -628,9 +628,9 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
 #'   `price`, `cap.up`, and the curve columns `nsteps`, `price_lo`, `price_hi`.
 #' @seealso [subset_model_regions()], [solve_by_region()], [asImportCurve()]
 #' @export
-boundary_window <- function(mod, regions, share = 0.1, nsteps = 3,
+boundary_window <- function(object, regions, share = 0.1, nsteps = 3,
                             price = NULL, spread = 0.5, routes = NULL) {
-  stopifnot(is(mod, "model"))
+  stopifnot(is(object, "model"))
   if (!is.numeric(share) || length(share) != 1L || is.na(share) ||
       share <= 0 || share > 1) {
     stop("`share` must be one number in (0, 1].", call. = FALSE)
@@ -649,8 +649,8 @@ boundary_window <- function(mod, regions, share = 0.1, nsteps = 3,
   rr <- routes
   if (is.null(rr)) {
     rows <- list()
-    for (rp in names(mod@data)) {
-      repo <- mod@data[[rp]]
+    for (rp in names(object@data)) {
+      repo <- object@data[[rp]]
       if (!isS4(repo)) next
       for (nm in names(repo@data)) {
         o <- repo@data[[nm]]
@@ -676,7 +676,7 @@ boundary_window <- function(mod, regions, share = 0.1, nsteps = 3,
   }
 
   # the bound: `share` of the kept endpoint's demand, per timeslice
-  prof <- .region_demand_profile(mod, regions)
+  prof <- .region_demand_profile(object, regions)
   out <- list()
   for (i in seq_len(nrow(rr))) {
     src <- as.character(rr$src[i])
@@ -1145,7 +1145,7 @@ NULL
 #' capacity-weighted mean. Corridors merge only when they agree on commodity
 #' and on cluster structure, so tranched and untranched routes stay apart.
 #'
-#' @param mod A `model`.
+#' @param object A `model`.
 #' @param geoscale A [geoscales::GeoScale] whose finest geoframe contains the
 #'   model's regions. `NULL` (default) uses the model's own.
 #' @param level Name of the target geoframe, coarser than the model's regions.
@@ -1211,15 +1211,15 @@ NULL
 #'   model's own resolution instead of coarsening the whole of it;
 #'   [get_process_groups()], [process_cluster_sweep()], [model_clusters()].
 #' @export
-aggregate_model_regions <- function(mod, geoscale = NULL, level,
+aggregate_model_regions <- function(object, geoscale = NULL, level,
                                     clusters = NULL,
                                     as = c("clusters", "objects"),
                                     name = NULL, verbose = isVerbose(),
                                     .trade_parts = NULL) {
-  stopifnot(inherits(mod, "model"))
+  stopifnot(inherits(object, "model"))
   as <- match.arg(as)
   if (!is.null(clusters)) {
-    return(.cl_cluster_model(mod, geoscale = geoscale, level = level,
+    return(.cl_cluster_model(object, geoscale = geoscale, level = level,
                              clusters = clusters, as = as, name = name,
                              verbose = verbose))
   }
@@ -1228,9 +1228,9 @@ aggregate_model_regions <- function(mod, geoscale = NULL, level,
   # with a nonlinear transform: transform(mean(stream)) != mean(transform).
   # Refuse rather than silently distort; materialize first if aggregation of
   # the derived series is what is wanted.
-  .assert_no_weather_transforms(mod)
+  .assert_no_weather_transforms(object)
   gs <- geoscale
-  if (is.null(gs)) gs <- tryCatch(mod@config@geoscale, error = function(e) NULL)
+  if (is.null(gs)) gs <- tryCatch(object@config@geoscale, error = function(e) NULL)
   if (is.null(gs) || !is_geoscale(gs)) {
     stop("no geoscale: pass `geoscale=`, or attach one to the model with ",
          "setGeoscale().", call. = FALSE)
@@ -1246,7 +1246,7 @@ aggregate_model_regions <- function(mod, geoscale = NULL, level,
          "there is nothing to aggregate.", call. = FALSE)
   }
 
-  regions <- as.character(mod@config@region)
+  regions <- as.character(object@config@region)
   regions <- regions[!is.na(regions) & nzchar(regions)]
   atoms <- as.character(geoscales::geoscale_regions(gs, fine))
   unknown <- setdiff(regions, atoms)
@@ -1269,7 +1269,7 @@ aggregate_model_regions <- function(mod, geoscale = NULL, level,
   # objects out of `@data[[1]]`. Reading only that one left them declared over
   # the FINE regions in a model whose regions are now coarse -- silently, and
   # the result solved a different problem than it looked like.
-  objs <- .cl_all_objects(mod)
+  objs <- .cl_all_objects(object)
   cls <- vapply(objs, function(o) class(o)[1], "")
   out <- list()
 
@@ -1396,12 +1396,12 @@ Aggregating between two non-atom levels needs a level-aware ",
             " became internal, ", n_merged, " merged)")
   }
 
-  res <- mod
-  res@name <- name %||% paste0(mod@name, "_", level)
+  res <- object
+  res@name <- name %||% paste0(object@name, "_", level)
   # flattened to ONE repository, since that is where every object went. `[1]`
   # not `list([[1]])`: the list is NAMED and expand_variants() reads
-  # `names(mod@data)[i]`.
-  res@data <- mod@data[1]
+  # `names(object@data)[i]`.
+  res@data <- object@data[1]
   res@data[[1]]@data <- out
   res@config@region <- coarse
   res@config@geoscale <- geoscales::prune_geoscale(gs, level)
@@ -1425,22 +1425,22 @@ Aggregating between two non-atom levels needs a level-aware ",
 #' information is added to classes that do not yet carry an explicit `@region`
 #' slot (e.g. `import` / `export`).
 #'
-#' @param obj a model object (S4) such as `technology`, `storage`, `trade`,
+#' @param object a model object (S4) such as `technology`, `storage`, `trade`,
 #'   `import`, or `export`.
 #'
 #' @returns a character vector of region labels (possibly empty).
 #'
 #' @family model
 #' @export
-get_region <- function(obj) {
-  if (!isS4(obj)) {
+get_region <- function(object) {
+  if (!isS4(object)) {
     return(character(0))
   }
   # A model declares its regions on `@config`, not on a slot of its own, so the
   # reflective walk below finds nothing there. Its declared regions are the
   # answer a caller wants, and reading them should not require `@config@region`.
-  if (methods::.hasSlot(obj, "config")) {
-    cfg <- methods::slot(obj, "config")
+  if (methods::.hasSlot(object, "config")) {
+    cfg <- methods::slot(object, "config")
     if (isS4(cfg) && methods::.hasSlot(cfg, "region")) {
       out <- as.character(methods::slot(cfg, "region"))
       return(unique(out[!is.na(out) & nzchar(out)]))
@@ -1448,9 +1448,9 @@ get_region <- function(obj) {
   }
   keys <- c("region", "src", "dst")
   out <- character(0)
-  for (sn in .instance_slots(obj)) {
+  for (sn in .instance_slots(object)) {
     if (identical(sn, "misc")) next
-    v <- methods::slot(obj, sn)
+    v <- methods::slot(object, sn)
     if (is.data.frame(v)) {
       for (cc in intersect(keys, colnames(v))) {
         out <- c(out, as.character(v[[cc]]))
@@ -1497,20 +1497,20 @@ get_region <- function(obj) {
 #' `storage` or `supply` links to a weather profile by name; the profile itself
 #' is a separate `weather` object in the repository.
 #'
-#' @param obj a model object (S4) such as `technology`, `storage` or `supply`.
+#' @param object a model object (S4) such as `technology`, `storage` or `supply`.
 #'
 #' @returns a character vector of weather object names (possibly empty).
 #'
 #' @family model
 #' @export
-get_weather <- function(obj) {
-  if (!isS4(obj)) {
+get_weather <- function(object) {
+  if (!isS4(object)) {
     return(character(0))
   }
   out <- character(0)
-  for (sn in .instance_slots(obj)) {
+  for (sn in .instance_slots(object)) {
     if (identical(sn, "misc")) next
-    v <- methods::slot(obj, sn)
+    v <- methods::slot(object, sn)
     if (is.data.frame(v) && "weather" %in% colnames(v)) {
       out <- c(out, as.character(v[["weather"]]))
     }

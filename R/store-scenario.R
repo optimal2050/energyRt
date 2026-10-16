@@ -261,7 +261,7 @@
 #' * `drop_scenario_run()` deletes a run directory. The active run (the one
 #'   currently loaded in the scenario object) is refused unless `force = TRUE`.
 #'
-#' @param scen a scenario object with a non-empty `@path`.
+#' @param object a scenario object with a non-empty `@path`.
 #' @param run character, run identifier: `"<solve>"` for a base-problem run
 #'   or `"<variant>/<solve>"`.
 #' @param force logical, allow dropping the active run.
@@ -274,13 +274,13 @@
 #'
 #' @rdname scenario_runs
 #' @export
-scenario_runs <- function(scen) {
-  stopifnot(is(scen, "scenario"))
-  active_variant <- .run_variant(scen)
-  active_solve <- scen@misc$run %||% ""
+scenario_runs <- function(object) {
+  stopifnot(is(object, "scenario"))
+  active_variant <- .run_variant(object)
+  active_solve <- object@misc$run %||% ""
   rows <- list()
 
-  rd <- .run_dirs(scen)
+  rd <- .run_dirs(object)
   for (i in seq_len(nrow(rd))) {
     rec <- if (rd$has_record[i]) {
       tryCatch(yaml::read_yaml(fp(rd$dir[i], "run.yml")),
@@ -305,12 +305,12 @@ scenario_runs <- function(scen) {
     )
   }
 
-  # legacy layout: <scen>/script/<solver>/ (a `solver` csv marks a real run;
+  # legacy layout: <object>/script/<solver>/ (a `solver` csv marks a real run;
   # timestamp dirs from transient runs are listed too, fields empty)
-  legacy_root <- fp(scen@path, "script")
+  legacy_root <- fp(object@path, "script")
   if (dir.exists(legacy_root)) {
     active_dir <- gsub("[\\/]+", "/",
-                       scen@misc$solver.dir %||% scen@misc$tmp.dir %||% "")
+                       object@misc$solver.dir %||% object@misc$tmp.dir %||% "")
     for (sd in list.dirs(legacy_root, recursive = FALSE)) {
       solver_name <- ""
       sf <- fp(sd, "solver")
@@ -346,31 +346,31 @@ scenario_runs <- function(scen) {
 
 #' @rdname scenario_runs
 #' @export
-scenario_run_info <- function(scen, run) {
-  stopifnot(is(scen, "scenario"))
-  id <- .parse_run_id(run, scen)
-  ry <- fp(.run_dir(scen, id$variant, id$solve), "run.yml")
+scenario_run_info <- function(object, run) {
+  stopifnot(is(object, "scenario"))
+  id <- .parse_run_id(run, object)
+  ry <- fp(.run_dir(object, id$variant, id$solve), "run.yml")
   if (!file.exists(ry)) {
     stop("No run record at '", ry, "'.\n  Available runs:\n",
-         .run_list_hint(scen))
+         .run_list_hint(object))
   }
   yaml::read_yaml(ry)
 }
 
 #' @rdname scenario_runs
 #' @export
-drop_scenario_run <- function(scen, run, force = FALSE) {
-  stopifnot(is(scen, "scenario"))
+drop_scenario_run <- function(object, run, force = FALSE) {
+  stopifnot(is(object, "scenario"))
   # a sealed scenario keeps its runs (see ?seal_scenario)
-  .scenario_seal_guard(scen)
-  id <- .parse_run_id(run, scen)
-  run_dir <- .run_dir(scen, id$variant, id$solve)
+  .scenario_seal_guard(object)
+  id <- .parse_run_id(run, object)
+  run_dir <- .run_dir(object, id$variant, id$solve)
   if (!dir.exists(run_dir)) {
     stop("Run directory '", run_dir, "' does not exist.\n  Available runs:\n",
-         .run_list_hint(scen))
+         .run_list_hint(object))
   }
-  is_active <- identical(id$variant, .run_variant(scen)) &&
-    identical(id$solve, scen@misc$run %||% "")
+  is_active <- identical(id$variant, .run_variant(object)) &&
+    identical(id$solve, object@misc$run %||% "")
   if (is_active && !force) {
     msg <- paste0("Run '", .run_id(id$variant, id$solve),
                   "' is the scenario's active run. ")
@@ -378,7 +378,7 @@ drop_scenario_run <- function(scen, run, force = FALSE) {
     # run's store, so dropping it leaves every read failing with "On-disk
     # data expected but not found". Promotion is what makes a run droppable.
     if (dir.exists(fp(run_dir, "modOut", "variables")) &&
-        !.modout_is_promoted(fp(scen@path, "modOut"))) {
+        !.modout_is_promoted(fp(object@path, "modOut"))) {
       msg <- paste0(
         msg, "It holds the only copy of the scenario's solution: dropping it ",
         "would leave the scenario pointing at a store that is gone. ",
@@ -848,7 +848,7 @@ NULL
 #' within one problem: a `"<variant>/<solve>"` run solves a *different* problem
 #' (its own `modInp`), so compare within a `variant`, not across.
 #'
-#' @param scen a scenario object.
+#' @param object a scenario object.
 #' @param peek logical; `FALSE` skips reading `output/` and leaves
 #'   `solver_status` / peeked objectives as `NA`. Faster on a scenario with
 #'   many large runs.
@@ -863,8 +863,8 @@ NULL
 #' import_solution(scen, "julia_highs_barrier")  # make one of them stick
 #' }
 #' @export
-scenario_solutions <- function(scen, peek = TRUE) {
-  stopifnot(is(scen, "scenario"))
+scenario_solutions <- function(object, peek = TRUE) {
+  stopifnot(is(object, "scenario"))
   empty <- tibble(
     run = character(0), variant = character(0), solve = character(0),
     status = character(0), solver_status = character(0),
@@ -873,10 +873,10 @@ scenario_solutions <- function(scen, peek = TRUE) {
     duration_sec = numeric(0), imported = logical(0), has_output = logical(0),
     output_mb = numeric(0), active = logical(0))
 
-  rd <- .run_dirs(scen)
+  rd <- .run_dirs(object)
   if (!nrow(rd)) return(empty)
-  act_v <- .run_variant(scen)
-  act_s <- scen@misc$run %||% ""
+  act_v <- .run_variant(object)
+  act_s <- object@misc$run %||% ""
 
   rows <- lapply(seq_len(nrow(rd)), function(i) {
     dir <- rd$dir[i]
@@ -957,7 +957,7 @@ scenario_solutions <- function(scen, peek = TRUE) {
 #' flips the run to "imported" and would let the solution's only copy be
 #' cleaned up. This refuses to save a read that produced no variables.
 #'
-#' @param scen a scenario object.
+#' @param object a scenario object.
 #' @param run character, the run to import (`"<solve>"` or
 #'   `"<variant>/<solve>"`).
 #' @param ... passed to [read_solution()].
@@ -977,24 +977,24 @@ scenario_solutions <- function(scen, peek = TRUE) {
 #' @return the scenario, invisibly, with `modOut` populated and `run` active.
 #' @seealso [scenario_solutions()], [read_solution()], [drop_solver_outputs()]
 #' @export
-import_solution <- function(scen, run, ..., restore_solver = TRUE,
+import_solution <- function(object, run, ..., restore_solver = TRUE,
                             save = TRUE, promote = FALSE, cleanup = FALSE,
                             verbose = TRUE) {
-  stopifnot(is(scen, "scenario"))
+  stopifnot(is(object, "scenario"))
   if (missing(run) || !length(run) || !nzchar(run[1])) {
     stop("`run` is required: name the run to import.\n  Available runs:\n",
-         .run_list_hint(scen), call. = FALSE)
+         .run_list_hint(object), call. = FALSE)
   }
   run <- as.character(run[1])
-  id <- .parse_run_id(run, scen)
-  run_dir <- tryCatch(.run_dir(scen, id$variant, id$solve),
+  id <- .parse_run_id(run, object)
+  run_dir <- tryCatch(.run_dir(object, id$variant, id$solve),
                       error = function(e) NULL)
   if (is.null(run_dir) || !dir.exists(run_dir)) {
-    stop("No run '", run, "' in scenario '", scen@name, "'.\n",
-         "  Available runs:\n", .run_list_hint(scen), call. = FALSE)
+    stop("No run '", run, "' in scenario '", object@name, "'.\n",
+         "  Available runs:\n", .run_list_hint(object), call. = FALSE)
   }
 
-  out <- read_solution(scen, run = run, echo = FALSE, ...)
+  out <- read_solution(object, run = run, echo = FALSE, ...)
 
   # The guard. `read_solution()` hands back the ORIGINAL object when the
   # dump cannot be read, so "no variables" is the signal that nothing was
@@ -1180,7 +1180,7 @@ NULL
 #' with base-problem parameters. Promote a base-problem run, or keep the
 #' variant's run folder.
 #'
-#' @param scen a scenario object.
+#' @param object a scenario object.
 #' @param run character, the run to promote (`"<solve>"`). `NULL` (default)
 #'   takes the scenario's active run.
 #' @param save logical; write the scenario shell afterwards, so a reload
@@ -1196,18 +1196,18 @@ NULL
 #' drop_scenario_run(scen, "glpk", force = TRUE)   # the run is now scratch
 #' }
 #' @export
-promote_solution <- function(scen, run = NULL, save = TRUE, verbose = TRUE) {
-  stopifnot(is(scen, "scenario"))
+promote_solution <- function(object, run = NULL, save = TRUE, verbose = TRUE) {
+  stopifnot(is(object, "scenario"))
   # `@misc$run` is the SOLVE label only; the variant lives beside it, so
   # defaulting from the active run has to rejoin the two or a variant-active
   # scenario resolves to a base run that does not exist.
   run <- as.character(
-    run %||% .run_id(.run_variant(scen), scen@misc$run %||% ""))
+    run %||% .run_id(.run_variant(object), object@misc$run %||% ""))
   if (!nzchar(run)) {
     stop("No run to promote: the scenario has no active run and none was ",
          "named.\n  scenario_solutions() lists what it has.", call. = FALSE)
   }
-  id <- .parse_run_id(run, scen)
+  id <- .parse_run_id(run, object)
   if (nzchar(id$variant %||% "")) {
     stop("Run '", run, "' belongs to variant '", id$variant,
          "', an own problem: its modInp, settings and manifest live in ",
@@ -1215,10 +1215,10 @@ promote_solution <- function(scen, run = NULL, save = TRUE, verbose = TRUE) {
          "the scenario's own problem.\n  Promote a base-problem run, or keep ",
          "that variant's run folder.", call. = FALSE)
   }
-  run_dir <- tryCatch(.run_dir(scen, "", id$solve), error = function(e) NULL)
+  run_dir <- tryCatch(.run_dir(object, "", id$solve), error = function(e) NULL)
   if (is.null(run_dir) || !dir.exists(run_dir)) {
-    stop("No run '", run, "' in scenario '", scen@name, "'.\n",
-         "  Available runs:\n", .run_list_hint(scen), call. = FALSE)
+    stop("No run '", run, "' in scenario '", object@name, "'.\n",
+         "  Available runs:\n", .run_list_hint(object), call. = FALSE)
   }
   src <- fp(run_dir, "modOut")
   if (!dir.exists(fp(src, "variables"))) {
@@ -1227,7 +1227,7 @@ promote_solution <- function(scen, run = NULL, save = TRUE, verbose = TRUE) {
          "output/ first.", call. = FALSE)
   }
 
-  final <- fp(scen@path, "modOut")
+  final <- fp(object@path, "modOut")
   staging <- paste0(final, ".incoming")
   unlink(staging, recursive = TRUE, force = TRUE)
   on.exit(unlink(staging, recursive = TRUE, force = TRUE), add = TRUE)
@@ -1247,18 +1247,18 @@ promote_solution <- function(scen, run = NULL, save = TRUE, verbose = TRUE) {
   # what makes the load-time rebase resolve to `<scenario>/modOut`.
   mo <- .modout_from_store(
     final,
-    sets = tryCatch(scen@modOut@sets, error = function(e) list()),
+    sets = tryCatch(object@modOut@sets, error = function(e) list()),
     stage = rec$stage %||% "solved")
-  if (!is.null(mo)) scen@modOut <- mo
-  scen@misc$run <- ""
-  scen@misc$variant <- NULL
+  if (!is.null(mo)) object@modOut <- mo
+  object@misc$run <- ""
+  object@misc$variant <- NULL
 
-  if (isTRUE(save)) scen <- save_scenario(scen, verbose = FALSE)
+  if (isTRUE(save)) object <- save_scenario(object, verbose = FALSE)
   if (isTRUE(verbose)) {
     message("Promoted run '", run, "' to '", final, "'. The runs/ tree is now ",
             "scratch: drop_scenario_run() or drop_solver_outputs() reclaim it.")
   }
-  invisible(scen)
+  invisible(object)
 }
 
 

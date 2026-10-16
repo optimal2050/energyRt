@@ -421,7 +421,7 @@ setMethod("update", "horizon", function(object, ..., warn_nodata = TRUE) {
 #' Set a label explicitly with the `label` column of the `intervals` table in
 #' [newHorizon()]; an explicit label always wins over the derived one.
 #'
-#' @param obj a `horizon`, `calendar`, `config`, `settings`, `model` or
+#' @param object a `horizon`, `calendar`, `config`, `settings`, `model` or
 #'   `scenario` object. A bare `horizon` has no calendar, so it never yields
 #'   fiscal labels.
 #'
@@ -432,11 +432,11 @@ setMethod("update", "horizon", function(object, ..., warn_nodata = TRUE) {
 #'
 #' @examples
 #' year_label(newHorizon(2020:2030, c(1, 2, 5, 10)))
-year_label <- function(obj) {
-  hor <- .horizon_of(obj)
+year_label <- function(object) {
+  hor <- .horizon_of(object)
   if (is.null(hor) || !NROW(hor@intervals)) return(stats::setNames(character(), character()))
   iv <- hor@intervals
-  ys <- .year_start(.calendar_of(obj))
+  ys <- .year_start(.calendar_of(object))
   stats::setNames(.derive_labels(iv, ys), as.character(as.integer(iv[["mid"]])))
 }
 

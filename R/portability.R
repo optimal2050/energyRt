@@ -175,7 +175,7 @@ NULL
 #' other — unlike [drop_scenario_run()], cleaning scratch keeps the record and
 #' the solution, so the run stays listed and readable.
 #'
-#' @param scen a scenario object.
+#' @param object a scenario object.
 #'
 #' Rows for the scenario-level derived tiers are listed too, distinguished by
 #' `kind`: `"reports"` for rendered reports and `"levcost"` for cached levcost
@@ -189,8 +189,8 @@ NULL
 #' @seealso [drop_solver_outputs()], [scenario_runs()],
 #'   [clear_report_cache()]
 #' @export
-scenario_artifacts <- function(scen) {
-  stopifnot(is(scen, "scenario"))
+scenario_artifacts <- function(object) {
+  stopifnot(is(object, "scenario"))
   empty <- tibble(
     kind = character(0),
     run = character(0), variant = character(0), solve = character(0),
@@ -198,13 +198,13 @@ scenario_artifacts <- function(scen) {
     solution_mb = numeric(0), active = logical(0), sealed = logical(0),
     has_record = logical(0), path = character(0), suggest = character(0)
   )
-  sealed <- isTRUE(.art_sealed(scen))
-  act_v <- .run_variant(scen)
-  act_s <- scen@misc$run %||% ""
+  sealed <- isTRUE(.art_sealed(object))
+  act_v <- .run_variant(object)
+  act_s <- object@misc$run %||% ""
 
-  rd <- .run_dirs(scen)
+  rd <- .run_dirs(object)
   rows <- lapply(seq_len(nrow(rd)), function(i) {
-    info <- .art_run_info(scen, rd$variant[i], rd$solve[i], rd$dir[i],
+    info <- .art_run_info(object, rd$variant[i], rd$solve[i], rd$dir[i],
                           rd$has_record[i])
     active <- identical(info$variant, act_v) && identical(info$solve, act_s)
     tibble(
@@ -219,7 +219,7 @@ scenario_artifacts <- function(scen) {
       suggest = .art_suggest(info, active, sealed)
     )
   })
-  bind_rows(c(list(empty), rows, .art_derived_rows(scen, sealed)))
+  bind_rows(c(list(empty), rows, .art_derived_rows(object, sealed)))
 }
 
 # The scenario-level derived tiers: rendered reports and cached levcost
@@ -284,7 +284,7 @@ scenario_artifacts <- function(scen) {
 #' scenario-level, not part of a run; [clear_report_cache()] and
 #' [clear_levcost_cache()] remove those.
 #'
-#' @param scen a scenario object.
+#' @param object a scenario object.
 #' @param runs character, run identifiers (`"<solve>"` or `"<variant>/<solve>"`)
 #'   or `NULL` for every run `scenario_artifacts()` suggests.
 #' @param dry_run logical. `TRUE` (default) lists what would go without
@@ -296,16 +296,16 @@ scenario_artifacts <- function(scen) {
 #'   `freed_mb`. Returned visibly on a dry run, invisibly otherwise.
 #' @seealso [scenario_artifacts()], [drop_scenario_run()]
 #' @export
-drop_solver_outputs <- function(scen, runs = NULL, dry_run = TRUE,
+drop_solver_outputs <- function(object, runs = NULL, dry_run = TRUE,
                                 verbose = TRUE) {
-  stopifnot(is(scen, "scenario"))
+  stopifnot(is(object, "scenario"))
   # a RUN cleaner: the scenario-level derived tiers have their own removers
-  art <- scenario_artifacts(scen)
+  art <- scenario_artifacts(object)
   art <- art[art$kind == "run", , drop = FALSE]
   art$action <- character(nrow(art))
   art$freed_mb <- numeric(nrow(art))
   if (!nrow(art)) {
-    if (verbose) message("No runs in scenario '", scen@name, "'.")
+    if (verbose) message("No runs in scenario '", object@name, "'.")
     return(invisible(art))
   }
   sel <- if (is.null(runs)) art[nzchar(art$suggest), ] else {
@@ -313,12 +313,12 @@ drop_solver_outputs <- function(scen, runs = NULL, dry_run = TRUE,
     if (length(unknown)) {
       stop("No such run", if (length(unknown) > 1) "s" else "", ": ",
            paste(unknown, collapse = ", "), "\n  Available runs:\n",
-           .run_list_hint(scen), call. = FALSE)
+           .run_list_hint(object), call. = FALSE)
     }
     art[art$run %in% runs, ]
   }
   if (!nrow(sel)) {
-    if (verbose) message("Nothing to clean in scenario '", scen@name, "'.")
+    if (verbose) message("Nothing to clean in scenario '", object@name, "'.")
     return(invisible(sel))
   }
 
@@ -617,7 +617,7 @@ drop_solver_outputs <- function(scen, runs = NULL, dry_run = TRUE,
 #' `path = NULL` edits in place, which is irreversible, so it is a dry run
 #' unless `confirm = TRUE`.
 #'
-#' @param scen a scenario object.
+#' @param object a scenario object.
 #' @param path target directory for a cleaned copy, or `NULL` to edit in place.
 #' @param scope `"share"` (default) or `"store"` — see Details.
 #' @param keep_solver logical, keep the solver settings and any user-authored
@@ -631,10 +631,10 @@ drop_solver_outputs <- function(scen, runs = NULL, dry_run = TRUE,
 #'   directory or user name after the pass, which should be empty.
 #' @seealso [prepare_for_sharing()], [scenario_artifacts()]
 #' @export
-strip_user_info <- function(scen, path = NULL, scope = c("share", "store"),
+strip_user_info <- function(object, path = NULL, scope = c("share", "store"),
                             keep_solver = FALSE, confirm = FALSE,
                             verbose = TRUE) {
-  from <- if (is(scen, "scenario")) scen@path else as.character(scen)
+  from <- if (is(object, "scenario")) object@path else as.character(object)
   stopifnot(length(from) == 1L, nzchar(from))
   scope <- match.arg(scope)
   in_place <- is.null(path)
@@ -712,7 +712,7 @@ strip_user_info <- function(scen, path = NULL, scope = c("share", "store"),
 #' it cannot be made self-contained by copying alone; those references are
 #' listed in `unresolved` and the recipient will need the store too.
 #'
-#' @param scen a scenario object, or the path to a stored scenario.
+#' @param object a scenario object, or the path to a stored scenario.
 #' @param path target directory. Required.
 #' @param scope `"share"` (default) or `"store"`, passed to
 #'   [strip_user_info()].
@@ -729,7 +729,7 @@ strip_user_info <- function(scen, path = NULL, scope = c("share", "store"),
 #'   `unresolved` (references that will not travel).
 #' @seealso [strip_user_info()], [drop_solver_outputs()]
 #' @export
-prepare_for_sharing <- function(scen, path, scope = c("share", "store"),
+prepare_for_sharing <- function(object, path, scope = c("share", "store"),
                                 keep_runs = FALSE, keep_reports = FALSE,
                                 keep_solver = FALSE, verbose = TRUE) {
   scope <- match.arg(scope)
@@ -737,7 +737,7 @@ prepare_for_sharing <- function(scen, path, scope = c("share", "store"),
     stop("`path` is required: prepare_for_sharing() writes a copy and never ",
          "edits in place.", call. = FALSE)
   }
-  from <- if (is(scen, "scenario")) scen@path else as.character(scen)
+  from <- if (is(object, "scenario")) object@path else as.character(object)
   if (!dir.exists(from)) {
     stop("No stored scenario at '", from, "'.", call. = FALSE)
   }
@@ -754,7 +754,7 @@ prepare_for_sharing <- function(scen, path, scope = c("share", "store"),
     # "the copy" would delete the source's solver files instead. Nothing in
     # `drop_solver_outputs()` reads anything but `@path`, `@name` and the
     # active-run fields, so a rebased copy of the object is enough.
-    obj <- if (is(scen, "scenario")) scen else NULL
+    obj <- if (is(object, "scenario")) object else NULL
     if (is.null(obj)) {
       e <- new.env(parent = emptyenv())
       nm <- tryCatch(load(fp(out, "scen.RData"), envir = e),

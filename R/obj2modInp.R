@@ -304,7 +304,7 @@ setMethod(
 
 #' Update parameter in the scenario by adding data to it
 #'
-#' @param scen scenario object
+#' @param object scenario object
 #' @param param character, name of the parameter to update
 #' @param data data.frame, data to update the parameter with
 #' @param path character, path to the parameter on disk,
@@ -313,31 +313,31 @@ setMethod(
 #'
 #' @returns the updated `scenario` object, invisibly.
 #' @export
-update_parameter <- function(scen, param, data, path = NULL) {
+update_parameter <- function(object, param, data, path = NULL) {
 
   if (is.null(data)) {
-    return(scen)
+    return(object)
   }
   if (!inherits(data, "data.frame")) {
     stop("Data must be a data.frame, not ", class(data))
   }
   if (nrow(data) == 0) {
-    return(scen)
+    return(object)
   }
 
-  if (isOnDisk(scen)) {
+  if (isOnDisk(object)) {
     if (is.null(path)) {
       # check if the path exists in the parameter
-      path <- getObjPath(scen@modInp@parameters[[param]])
+      path <- getObjPath(object@modInp@parameters[[param]])
       if (is.null(path)) {
-        path <- getObjPath(scen@modInp)
+        path <- getObjPath(object@modInp)
         if (is.null(path)) {
           stop(
             "Cannot create path to the parameter ", param, ".",
             "The path to the parameters is not specified in the scenario."
           )
         } else {
-          # `<scen>/modInp` + the slot name + the parameter name. `obj2disk()`
+          # `<object>/modInp` + the slot name + the parameter name. `obj2disk()`
           # writes each parameter to `<modInp path>/parameters/<name>`, so the
           # `parameters` segment is not optional -- without it this fallback
           # pointed at a directory that never exists, and it fires exactly when
@@ -347,15 +347,15 @@ update_parameter <- function(scen, param, data, path = NULL) {
       }
     }
     # set the path to the parameter and mark it as on disk
-    scen@modInp@parameters[[param]] <- scen@modInp@parameters[[param]] |>
+    object@modInp@parameters[[param]] <- object@modInp@parameters[[param]] |>
       setObjPath(path) |>
       mark_ondisk()
   }
   # update the parameter with the new data
-  scen@modInp@parameters[[param]] <- scen@modInp@parameters[[param]] |>
+  object@modInp@parameters[[param]] <- object@modInp@parameters[[param]] |>
     d2p(data, path = path)
 
-  return(scen)
+  return(object)
 }
 
 # Pack the wide bounds columns (<colName>.lo / .up / .fx) of an object slot into

@@ -38,12 +38,12 @@
 
 #' Size estimate of an interpolated scenario and the result of folding
 #'
-#' @param scen a scenario built by [interpolate_model()].
+#' @param object a scenario built by [interpolate_model()].
 #' @param top_n number of largest parameters to list.
 #' @return an S3 `model_size` object (see `print.model_size()`).
 #' @export
-model_size <- function(scen, top_n = 15L) {
-  P <- scen@modInp@parameters
+model_size <- function(object, top_n = 15L) {
+  P <- object@modInp@parameters
   spec <- tryCatch(load_mapping_spec(), error = function(e) list())
 
   nm    <- names(P)
@@ -90,7 +90,7 @@ model_size <- function(scen, top_n = 15L) {
   # Exact saving of the fold STEP: interp_mod records the value-parameter total
   # just before `fold_parameters` (R/fold.R). NULL for an unfolded build
   # or a scenario loaded without the record -> report no saving.
-  rb <- scen@misc$fold_rows_before
+  rb <- object@misc$fold_rows_before
   before_fold <- if (!is.null(rb) && length(rb) == 1L && !is.na(rb) && rb >= folded_total)
     as.integer(rb) else NA_integer_
 
@@ -99,7 +99,7 @@ model_size <- function(scen, top_n = 15L) {
                     type = type[is_val][ord], stringsAsFactors = FALSE)
 
   structure(list(
-    name           = scen@name,
+    name           = object@name,
     n_param        = sum(is_val),
     n_map          = sum(type == "map"),
     n_set          = sum(type == "set"),
@@ -157,7 +157,7 @@ print.model_size <- function(x, ...) {
 #' All builds use `ondisk = FALSE` (so sizes are measured in memory and are
 #' directly comparable) and `overwrite = TRUE`.
 #'
-#' @param mod a `model`.
+#' @param object a `model`.
 #' @param settings a *named* list of setting combinations; each element is a list
 #'   of arguments forwarded to [interpolate_model()], e.g.
 #'   `list(fold = TRUE, sparse = TRUE, prune = TRUE)`. When `NULL` a default grid
@@ -192,7 +192,7 @@ print.model_size <- function(x, ...) {
 #' }
 #' @seealso [model_size()], [interpolate_model()]
 #' @export
-compare_interp_settings <- function(mod, settings = NULL, ...,
+compare_interp_settings <- function(object, settings = NULL, ...,
                                     name = "cmp", verbose = FALSE,
                                     top_n = 12L, keep_scen = FALSE) {
   if (is.null(settings)) {
@@ -221,7 +221,7 @@ compare_interp_settings <- function(mod, settings = NULL, ...,
     t0  <- Sys.time()
     scen <- tryCatch(
       do.call(interpolate_model, c(
-        list(mod, name = paste0(name, "_", nm), ondisk = FALSE,
+        list(object, name = paste0(name, "_", nm), ondisk = FALSE,
              overwrite = TRUE, verbose = verbose),
         arg, dots
       )),
@@ -292,7 +292,7 @@ print.interp_settings_cmp <- function(x, top = 12L, ...) {
 #' identical across `fold` / `sparse` / `prune` for a given solver -- the print
 #' method flags any per-solver disagreement.
 #'
-#' @param mod a `model`.
+#' @param object a `model`.
 #' @param settings a named list of `interp_mod()` setting combinations (see
 #'   [compare_interp_settings()]); `NULL` uses the default grid.
 #' @param solvers a list of solver-option objects, e.g.
@@ -317,7 +317,7 @@ print.interp_settings_cmp <- function(x, top = 12L, ...) {
 #' }
 #' @seealso [compare_interp_settings()], [solve_scenario()], [model_size()]
 #' @export
-compare_solve_settings <- function(mod, settings = NULL, solvers, ...,
+compare_solve_settings <- function(object, settings = NULL, solvers, ...,
                                    name = "cmp", verbose = FALSE,
                                    solver.dir = NULL) {
   if (!is.list(solvers) || length(solvers) == 0) {
@@ -333,7 +333,7 @@ compare_solve_settings <- function(mod, settings = NULL, solvers, ...,
   }
 
   # Interpolate every setting once, keeping the scenarios to solve.
-  ic <- compare_interp_settings(mod, settings, ..., name = name,
+  ic <- compare_interp_settings(object, settings, ..., name = name,
                                 verbose = verbose, keep_scen = TRUE)
 
   rows <- list()

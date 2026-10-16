@@ -63,7 +63,7 @@
 #' so the objectives no longer sum to anything meaningful — the result's
 #' `additive` field records this.
 #'
-#' @param mod a model object.
+#' @param object a model object.
 #' @param name character, the sequence name (one scenario folder).
 #' @param ... passed to [interpolate_model()] for every region.
 #' @param regions character, the regions to solve; defaults to every region of
@@ -89,7 +89,7 @@
 #'   price curve contributes k), `scenarios`, `additive`, and `failed`.
 #' @seealso [subset_model_regions()], [boundary_window()], [solve_guided()]
 #' @export
-solve_by_region <- function(mod, name = NULL, ...,
+solve_by_region <- function(object, name = NULL, ...,
                             regions = NULL, group = NULL,
                             trade = c("none", "user", "auto"),
                             boundary_prices = NULL,
@@ -99,13 +99,13 @@ solve_by_region <- function(mod, name = NULL, ...,
                             on_error = c("stop", "continue"),
                             overwrite = FALSE,
                             keep_scenarios = TRUE, verbose = TRUE) {
-  stopifnot(is(mod, "model"))
+  stopifnot(is(object, "model"))
   trade <- match.arg(trade)
   on_error <- match.arg(on_error)
-  if (is.null(name)) name <- paste0(mod@name, "_by_region")
+  if (is.null(name)) name <- paste0(object@name, "_by_region")
   .assert_object_name(name, "name")
 
-  all_r <- as.character(mod@config@region)
+  all_r <- as.character(object@config@region)
   if (!length(all_r)) {
     stop("The model declares no regions.", call. = FALSE)
   }
@@ -130,7 +130,7 @@ solve_by_region <- function(mod, name = NULL, ...,
             call. = FALSE)
   }
   extra <- list(...)
-  seq_path <- fp(get_scenarios_path(), .path_slug(name, mod@name))
+  seq_path <- fp(get_scenarios_path(), .path_slug(name, object@name))
 
   scens <- list()
   failed <- FALSE
@@ -154,11 +154,11 @@ solve_by_region <- function(mod, name = NULL, ...,
     bp <- switch(trade,
       none = NULL,
       user = boundary_prices,
-      auto = boundary_window(mod, regions = rg, share = share,
+      auto = boundary_window(object, regions = rg, share = share,
                              nsteps = nsteps, price = price, spread = spread)
     )
     sol <- tryCatch({
-      mod_r <- subset_model_regions(mod, region = rg, boundary_prices = bp,
+      mod_r <- subset_model_regions(object, region = rg, boundary_prices = bp,
                                     verbose = FALSE)
       args <- c(list(mod_r, name = name), extra,
                 list(path = seq_path, overwrite = TRUE))
@@ -214,11 +214,11 @@ solve_by_region <- function(mod, name = NULL, ...,
       boundary = as.integer(n_stub)))
   }
 
-  .en_log("by_region", name, duration = NA, model = mod@name,
+  .en_log("by_region", name, duration = NA, model = object@name,
           regions = length(groups), trade = trade, failed = failed)
 
   structure(list(
-    name = name, model = mod, runs = runs, scenarios = scens,
+    name = name, model = object, runs = runs, scenarios = scens,
     trade = trade, share = share, additive = identical(trade, "none"),
     path = if (length(scens)) scens[[length(scens)]]@path else NULL,
     failed = failed
@@ -251,8 +251,8 @@ print.by_region <- function(x, ...) {
 }
 
 #' @export
-getData.by_region <- function(scen, name = NULL, ..., merge = TRUE) {
-  x <- scen
+getData.by_region <- function(object, name = NULL, ..., merge = TRUE) {
+  x <- object
   if (length(x$scenarios) == 0) {
     stop("This by_region result kept no scenario objects ",
          "(keep_scenarios = FALSE); re-run with keep_scenarios = TRUE.",

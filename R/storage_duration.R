@@ -116,7 +116,7 @@
 #' they sum back to it at every timeslice -- so they can be stacked in an area
 #' chart directly.
 #'
-#' @param scen a solved scenario.
+#' @param object a solved scenario.
 #' @param width integer vector of window widths in HOURS, strictly increasing.
 #'   The default splits at half a day, a day, a week and 30 days, producing five
 #'   bands. Widths at or above the length of the series collapse to the series
@@ -153,7 +153,7 @@
 #'   facet_wrap(~region)
 #' }
 #' @export
-storage_duration <- function(scen,
+storage_duration <- function(object,
                              width = c(12L, 24L, 24L * 7L, 24L * 30L),
                              labels = NULL,
                              cyclic = NA,
@@ -174,7 +174,7 @@ storage_duration <- function(scen,
          "), one per band.", call. = FALSE)
   }
 
-  lev <- try(as.data.frame(getData(scen, "vStorageLevel", merge = TRUE,
+  lev <- try(as.data.frame(getData(object, "vStorageLevel", merge = TRUE,
                                    drop.zeros = FALSE)), silent = TRUE)
   empty <- data.frame(stg = character(), comm = character(), region = character(),
                       year = integer(), timeslice = character(),
@@ -188,7 +188,7 @@ storage_duration <- function(scen,
   # Which storages wrap. Read from the objects rather than from a map so this
   # works on a scenario whose maps were dropped after solving.
   fy <- tryCatch(
-    apply_to_scenario_data(scen = scen, classes = "storage", as_list = TRUE,
+    apply_to_scenario_data(scen = object, classes = "storage", as_list = TRUE,
       func = function(x) {
         o <- list()
         o[[x@name]] <- data.frame(stg = x@name, fullYear = isTRUE(x@fullYear),
@@ -201,8 +201,8 @@ storage_duration <- function(scen,
   # The scenario's own calendar, not a format read back out of the timeslice
   # names. `@settings` and `@model@config` both carry one depending on how the
   # scenario was built.
-  ecal <- tryCatch(scen@settings@calendar, error = function(e) NULL) %||%
-    tryCatch(scen@model@config@calendar, error = function(e) NULL)
+  ecal <- tryCatch(object@settings@calendar, error = function(e) NULL) %||%
+    tryCatch(object@model@config@calendar, error = function(e) NULL)
   cal_name <- if (methods::is(ecal, "calendar")) ecal@name else "<none>"
   cal <- .ts_calendar(ecal)
   if (is.null(cal)) {

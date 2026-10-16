@@ -295,18 +295,18 @@ as.data.frame.variable <- function(x, ...) as.data.frame(get_data_slot(x), ...)
 
 #' Get one solved variable from a scenario
 #'
-#' @param scen a scenario.
+#' @param object a scenario.
 #' @param name character, the variable's name.
 #' @param data logical, return the values (default) or the `variable` object.
 #' @returns a data.frame, a `variable`, or NULL if there is no such variable.
 #' @family variable
 #' @export
-get_variable <- function(scen, name, data = TRUE) {
-  v <- tryCatch(scen@modOut@variables[[name]], error = function(e) NULL)
+get_variable <- function(object, name, data = TRUE) {
+  v <- tryCatch(object@modOut@variables[[name]], error = function(e) NULL)
   if (is.null(v)) return(NULL)
   if (inherits(v, "data.frame")) {
     # A scenario saved before `modOut@variables` held typed objects.
-    warning("Scenario '", scen@name, "' predates the `variable` class; ",
+    warning("Scenario '", object@name, "' predates the `variable` class; ",
             "re-save it with save_scenario().")
     return(if (data) v else NULL)
   }

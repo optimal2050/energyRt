@@ -287,7 +287,7 @@ calendar_samples <- function(calendar, level = NULL, sample_size = NULL,
 #' level and is refused, because the only way to build it would rename the leaf
 #' timeslices and silently detach the model's data.
 #'
-#' @param mod a model object.
+#' @param object a model object.
 #' @param name character, the sequence name (one scenario folder).
 #' @param ... passed to [interpolate_model()] for every sample.
 #' @param samples a `calendar_samples` table, a `data.frame(sample, timeslice)`,
@@ -309,7 +309,7 @@ calendar_samples <- function(calendar, level = NULL, sample_size = NULL,
 #'   `samples` and `method`.
 #' @seealso [calendar_samples()], [sample_summary()], [solve_by_region()]
 #' @export
-solve_by_sample <- function(mod, name = NULL, ...,
+solve_by_sample <- function(object, name = NULL, ...,
                             samples = NULL, level = NULL,
                             sample_size = NULL, n = NULL,
                             method = c("sequential", "random", "bootstrap"),
@@ -318,13 +318,13 @@ solve_by_sample <- function(mod, name = NULL, ...,
                             on_error = c("stop", "continue"),
                             overwrite = FALSE,
                             keep_scenarios = TRUE, verbose = TRUE) {
-  stopifnot(is(mod, "model"))
+  stopifnot(is(object, "model"))
   method <- match.arg(method)
   on_error <- match.arg(on_error)
-  if (is.null(name)) name <- paste0(mod@name, "_by_sample")
+  if (is.null(name)) name <- paste0(object@name, "_by_sample")
   .assert_object_name(name, "name")
 
-  cal <- calendar %||% tryCatch(mod@config@calendar, error = function(e) NULL)
+  cal <- calendar %||% tryCatch(object@config@calendar, error = function(e) NULL)
   if (is.null(cal) || !is(cal, "calendar")) {
     stop("The model has no calendar to sample; pass `calendar =`.",
          call. = FALSE)
@@ -341,7 +341,7 @@ solve_by_sample <- function(mod, name = NULL, ...,
 
   # a live defect worth naming before a long ensemble: storage discharge is
   # infeasible on a year_fraction < 1 calendar when out.af.* rows are declared
-  if (.has_out_af(mod)) {
+  if (.has_out_af(object)) {
     warning("This model declares storage `out.af.*` rows, which are ",
             "infeasible on a sampled (year_fraction < 1) calendar. Samples ",
             "are likely to fail; declare the availability on the charging ",
@@ -349,7 +349,7 @@ solve_by_sample <- function(mod, name = NULL, ...,
   }
 
   extra <- list(...)
-  seq_path <- fp(get_scenarios_path(), .path_slug(name, mod@name))
+  seq_path <- fp(get_scenarios_path(), .path_slug(name, object@name))
   scens <- list()
   failed <- FALSE
   runs <- tibble(sample = character(0), run = character(0),
@@ -372,7 +372,7 @@ solve_by_sample <- function(mod, name = NULL, ...,
     sol <- tryCatch({
       cal_k <- .sample_calendar(cal, rows$timeslice, counts = cnt,
                                name = paste0("cs_", sid))
-      args <- c(list(mod, name = name), extra,
+      args <- c(list(object, name = name), extra,
                 list(cal_k, path = seq_path, overwrite = TRUE))
       scen_k <- suppressMessages(do.call(interpolate_model, args))
       solve_scenario(scen_k, solver = solver, echo = FALSE, force = TRUE,
@@ -419,11 +419,11 @@ solve_by_sample <- function(mod, name = NULL, ...,
       status = "solved", objective = obj))
   }
 
-  .en_log("by_sample", name, duration = NA, model = mod@name,
+  .en_log("by_sample", name, duration = NA, model = object@name,
           samples = length(ids), method = method, failed = failed)
 
   structure(list(
-    name = name, model = mod, runs = runs, scenarios = scens,
+    name = name, model = object, runs = runs, scenarios = scens,
     samples = spec, method = method, calendar = cal,
     path = if (length(scens)) scens[[length(scens)]]@path else NULL,
     failed = failed
@@ -514,8 +514,8 @@ print.by_sample <- function(x, ...) {
 }
 
 #' @export
-getData.by_sample <- function(scen, name = NULL, ..., merge = TRUE) {
-  x <- scen
+getData.by_sample <- function(object, name = NULL, ..., merge = TRUE) {
+  x <- object
   if (length(x$scenarios) == 0) {
     stop("This by_sample result kept no scenario objects ",
          "(keep_scenarios = FALSE); re-run with keep_scenarios = TRUE.",

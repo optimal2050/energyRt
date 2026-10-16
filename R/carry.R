@@ -157,7 +157,7 @@
 #' consecutive steps accumulate; [apply_ledger()] turns the
 #' accumulated ledger into the next step's model.
 #'
-#' @param scen a solved scenario.
+#' @param object a solved scenario.
 #' @param years integer, the DECIDED milestone years to extract (default:
 #'   all milestones of the scenario's horizon). With look-ahead windows,
 #'   restrict to the decided years so look-ahead decisions are discarded.
@@ -166,24 +166,24 @@
 #' @return a `carry_ledger` object.
 #' @seealso [apply_ledger()], [solve_myopic()]
 #' @export
-solution_ledger <- function(scen, years = NULL, ledger = NULL) {
-  stopifnot(is(scen, "scenario"))
-  if (!isTRUE(scen@status$optimal)) {
+solution_ledger <- function(object, years = NULL, ledger = NULL) {
+  stopifnot(is(object, "scenario"))
+  if (!isTRUE(object@status$optimal)) {
     stop("solution_ledger() needs a solved scenario ('",
-         scen@name, "' is not solved to optimal).")
+         object@name, "' is not solved to optimal).")
   }
   L <- ledger %||% .ledger_new()
   stopifnot(inherits(L, "carry_ledger"))
-  mids <- as.integer(scen@settings@horizon@intervals$mid)
+  mids <- as.integer(object@settings@horizon@intervals$mid)
   years <- as.integer(years %||% mids)
   years <- intersect(years, mids)
   if (length(years) == 0) stop("No decided years to extract")
-  plen <- .ledger_plen(scen)
+  plen <- .ledger_plen(object)
   y_last <- max(years)
 
   for (fk in names(.carry_families())) {
     fam <- .carry_families()[[fk]]
-    ol <- .ledger_olife(scen, fam)
+    ol <- .ledger_olife(object, fam)
     reg_of <- function(d) {
       if (fam$has_region && "region" %in% names(d)) {
         as.character(d$region)
@@ -192,7 +192,7 @@ solution_ledger <- function(scen, years = NULL, ledger = NULL) {
       }
     }
 
-    nc <- .ledger_var(scen, fam$newcap)
+    nc <- .ledger_var(object, fam$newcap)
     if (!is.null(nc)) {
       nc <- nc[nc$year %in% years & nc$value > 0, , drop = FALSE]
       if (nrow(nc)) {
@@ -209,7 +209,7 @@ solution_ledger <- function(scen, years = NULL, ledger = NULL) {
       }
     }
 
-    rn <- .ledger_var(scen, fam$retnew)
+    rn <- .ledger_var(object, fam$retnew)
     if (!is.null(rn)) {
       # (proc[, region], year = vintage, yearp = retirement year)
       rn <- rn[rn$year %in% years & rn$value > 0, , drop = FALSE]
@@ -225,7 +225,7 @@ solution_ledger <- function(scen, years = NULL, ledger = NULL) {
       }
     }
 
-    rs <- .ledger_var(scen, fam$retstock)
+    rs <- .ledger_var(object, fam$retstock)
     if (!is.null(rs)) {
       rs <- rs[rs$year %in% years & rs$value > 0, , drop = FALSE]
       if (nrow(rs)) {
@@ -239,7 +239,7 @@ solution_ledger <- function(scen, years = NULL, ledger = NULL) {
       }
     }
 
-    ts <- .ledger_var(scen, fam$stockcap)
+    ts <- .ledger_var(object, fam$stockcap)
     if (!is.null(ts)) {
       ts <- ts[ts$year == y_last, , drop = FALSE]
       if (nrow(ts)) {
@@ -259,7 +259,7 @@ solution_ledger <- function(scen, years = NULL, ledger = NULL) {
     }
   }
 
-  so <- .ledger_var(scen, "vSupOut")
+  so <- .ledger_var(object, "vSupOut")
   if (!is.null(so)) {
     so <- so[so$year %in% years, , drop = FALSE]
     if (nrow(so)) {
@@ -276,7 +276,7 @@ solution_ledger <- function(scen, years = NULL, ledger = NULL) {
     }
   }
 
-  prov <- scen@modInp@sets$variant
+  prov <- object@modInp@sets$variant
   if (!is.null(prov) && is.data.frame(prov) && nrow(prov)) {
     L$provenance <- unique(bind_rows(L$provenance, as_tibble(prov)))
   }
@@ -604,7 +604,7 @@ apply_ledger <- function(mod, ledger, horizon,
 #' capacity to be carried forward as sunk `stock`, a target records indicative
 #' capacity to be imposed as a `cap.lo` bound by [apply_targets()].
 #'
-#' @param scen a solved scenario.
+#' @param object a solved scenario.
 #' @param years integer, milestone years to harvest; `NULL` (default) takes
 #'   every year present in the solution.
 #' @param classes character, families to harvest; defaults to all
@@ -614,19 +614,19 @@ apply_ledger <- function(mod, ledger, horizon,
 #'   `value`, carrying the scenario's variant `provenance` as an attribute.
 #' @seealso [apply_targets()], [solve_guided()]
 #' @export
-solution_targets <- function(scen, years = NULL, classes = NULL) {
-  stopifnot(is(scen, "scenario"))
-  if (!isTRUE(scen@status$optimal)) {
+solution_targets <- function(object, years = NULL, classes = NULL) {
+  stopifnot(is(object, "scenario"))
+  if (!isTRUE(object@status$optimal)) {
     stop("Capacity targets can only be taken from an optimal solution; ",
          "this scenario's status is '",
-         scen@status$solution_status %||% "unsolved", "'.", call. = FALSE)
+         object@status$solution_status %||% "unsolved", "'.", call. = FALSE)
   }
   fams <- .carry_families()
   if (!is.null(classes)) fams <- fams[intersect(names(fams), classes)]
   out <- list()
   for (fk in names(fams)) {
     fam <- fams[[fk]]
-    d <- .ledger_var(scen, fam$totalcap)
+    d <- .ledger_var(object, fam$totalcap)
     if (is.null(d) || !"value" %in% names(d)) next
     if (!is.null(years)) d <- d[d$year %in% as.integer(years), , drop = FALSE]
     d <- d[!is.na(d$value) & d$value > 0, , drop = FALSE]
@@ -643,7 +643,7 @@ solution_targets <- function(scen, years = NULL, classes = NULL) {
   res <- if (length(out)) bind_rows(out) else
     tibble(family = character(0), proc = character(0), region = character(0),
            year = integer(0), value = numeric(0))
-  prov <- scen@modInp@sets$variant
+  prov <- object@modInp@sets$variant
   if (!is.null(prov) && is.data.frame(prov) && nrow(prov)) {
     attr(res, "provenance") <- as_tibble(prov)
   }
@@ -669,7 +669,7 @@ solution_targets <- function(scen, years = NULL, classes = NULL) {
 #' Every imposed value is rounded down, so a target cannot exceed what another
 #' constraint permits and turn a guide into an infeasibility.
 #'
-#' @param mod a model object.
+#' @param object a model object.
 #' @param targets a `capacity_targets` tibble from [solution_targets()].
 #' @param horizon the horizon of the solve the targets are being written for;
 #'   used to validate the target years.
@@ -687,17 +687,17 @@ solution_targets <- function(scen, years = NULL, classes = NULL) {
 #' @return the model, with `@capacity` bound columns written.
 #' @seealso [solution_targets()], [solve_guided()], [apply_ledger()]
 #' @export
-apply_targets <- function(mod, targets, horizon, slack = 0.2,
+apply_targets <- function(object, targets, horizon, slack = 0.2,
                           mode = c("lo", "fx"), basis = c("cap", "ncap"),
                           digits = 6, tolerance = 1e-6, verbose = FALSE) {
-  stopifnot(is(mod, "model"), is.data.frame(targets), is(horizon, "horizon"))
+  stopifnot(is(object, "model"), is.data.frame(targets), is(horizon, "horizon"))
   mode <- match.arg(mode)
   basis <- match.arg(basis)
   if (!is.numeric(slack) || length(slack) != 1L || is.na(slack) ||
       slack < 0 || slack > 1) {
     stop("`slack` must be one number in [0, 1].", call. = FALSE)
   }
-  if (slack >= 1 || nrow(targets) == 0) return(mod)
+  if (slack >= 1 || nrow(targets) == 0) return(object)
 
   iv <- as.data.frame(horizon@intervals)
   mids <- as.integer(iv$mid)
@@ -713,7 +713,7 @@ apply_targets <- function(mod, targets, horizon, slack = 0.2,
             paste(sort(off), collapse = ", "), call. = FALSE)
     targets <- targets[targets$year %in% mids, , drop = FALSE]
   }
-  if (!nrow(targets)) return(mod)
+  if (!nrow(targets)) return(object)
   if (max(targets$year) < max(mids)) {
     warning("apply_targets(): the last target year (", max(targets$year),
             ") precedes the horizon's last milestone (", max(mids), "). ",
@@ -741,7 +741,7 @@ apply_targets <- function(mod, targets, horizon, slack = 0.2,
       if (!is.na(pr$vintage %||% NA)) sel$vintage <- pr$vintage
       if (!is.na(pr$cluster %||% NA)) sel$cluster <- pr$cluster
     }
-    hit <- .model_find_object(mod, base, fam$class)
+    hit <- .model_find_object(object, base, fam$class)
     if (is.null(hit)) {
       warning("Targets name ", fam$class, " '", base,
               "' which the model does not contain; skipped.", call. = FALSE)
@@ -781,14 +781,14 @@ apply_targets <- function(mod, targets, horizon, slack = 0.2,
     } else {
       as.data.frame(bind_rows(cap, add))
     }
-    mod <- .model_replace_object(mod, hit$repo, obj)
+    object <- .model_replace_object(object, hit$repo, obj)
     if (verbose) {
       message("target: ", fam$class, " '", base, "'",
               if (!is.na(region)) paste0(" [", region, "]"),
               " ", bcol, " <- ", paste(round(val, 4), collapse = ", "))
     }
   }
-  mod
+  object
 }
 
 #' @method print capacity_targets

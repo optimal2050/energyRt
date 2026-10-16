@@ -191,7 +191,7 @@ guided_windows <- function(horizon, direction = c("backward", "forward"),
 #' `ncap.*` bounds are multiplied by `pPeriodLen` in the equations while the
 #' solved variable is already an annual rate.
 #'
-#' @param mod a model object.
+#' @param object a model object.
 #' @param name character, the sequence name (a scenario folder).
 #' @param ... passed to [interpolate_model()] for every stage.
 #' @param horizon a horizon; defaults to the model's own. At least two
@@ -220,7 +220,7 @@ guided_windows <- function(horizon, direction = c("backward", "forward"),
 #'   `targets`, `ledger`, and `final` — the full-horizon solved scenario.
 #' @seealso [solve_myopic()], [apply_targets()], [guided_gap()]
 #' @export
-solve_guided <- function(mod, name = NULL, ...,
+solve_guided <- function(object, name = NULL, ...,
                          horizon = NULL,
                          stages = c("endpoint", "pairs", "final"),
                          slack = 0.2,
@@ -233,17 +233,17 @@ solve_guided <- function(mod, name = NULL, ...,
                          overwrite = FALSE,
                          keep_scenarios = TRUE,
                          verbose = TRUE) {
-  stopifnot(is(mod, "model"))
+  stopifnot(is(object, "model"))
   basis <- match.arg(basis)
   mode <- match.arg(mode)
   direction <- match.arg(direction)
   on_infeasible <- match.arg(on_infeasible)
   stages <- match.arg(stages, c("base", "endpoint", "transition", "pairs",
                                 "final"), several.ok = TRUE)
-  if (is.null(name)) name <- paste0(mod@name, "_guided")
+  if (is.null(name)) name <- paste0(object@name, "_guided")
   .assert_object_name(name, "name")
 
-  h_full <- horizon %||% mod@config@horizon
+  h_full <- horizon %||% object@config@horizon
   if (is.null(h_full) || nrow(h_full@intervals) < 2L) {
     stop("A guided solve needs a horizon with at least two milestone years.",
          call. = FALSE)
@@ -254,9 +254,9 @@ solve_guided <- function(mod, name = NULL, ...,
   ly_year <- as.integer(iv$mid[n])
   extra <- list(...)
 
-  .myopic_warn_intertemporal(mod)
+  .myopic_warn_intertemporal(object)
 
-  seq_path <- fp(get_scenarios_path(), .path_slug(name, mod@name))
+  seq_path <- fp(get_scenarios_path(), .path_slug(name, object@name))
   ledger <- .ledger_new()
   targets <- NULL
   scens <- list()
@@ -294,7 +294,7 @@ solve_guided <- function(mod, name = NULL, ...,
               paste(years, collapse = ", "),
               if (!is.null(cal)) " (reduced calendar)" else "")
     }
-    mod_k <- apply_ledger(mod, ledger, h, verbose = FALSE)
+    mod_k <- apply_ledger(object, ledger, h, verbose = FALSE)
     res <- .guided_solve_stage(
       mod_k, if (use_targets) targets else NULL, h, name, vlab, seq_path,
       slack, basis, mode, solver, cal, on_infeasible, extra, verbose)
@@ -387,11 +387,11 @@ solve_guided <- function(mod, name = NULL, ...,
   }
 
   .en_log("guided", name, duration = NA,
-          model = mod@name, stages = paste(stages, collapse = "+"),
+          model = object@name, stages = paste(stages, collapse = "+"),
           slack = slack, failed = failed)
 
   structure(list(
-    name = name, model = mod, stages = st, scenarios = scens,
+    name = name, model = object, stages = st, scenarios = scens,
     targets = targets, ledger = ledger, final = final,
     horizon = h_full, slack = slack, basis = basis, mode = mode,
     direction = direction,
@@ -419,8 +419,8 @@ print.guided <- function(x, ...) {
 }
 
 #' @export
-getData.guided <- function(scen, name = NULL, ..., merge = TRUE) {
-  x <- scen
+getData.guided <- function(object, name = NULL, ..., merge = TRUE) {
+  x <- object
   if (is.null(x$final)) {
     stop("This guided result has no final full-horizon solve; ",
          "re-run with \"final\" in `stages`, or call getData() on one of ",

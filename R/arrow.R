@@ -4,7 +4,7 @@
 
 #' Save scenario object on disk in parquet format using `arrow` package.
 #'
-#' @param scen scenario object.
+#' @param object scenario object.
 #' @param path character. Path to scenario directory.
 #' @param embed_model `NULL` (default), `TRUE`, or `FALSE`. Controls whether
 #'   the model is embedded in the saved scenario or referenced from the model
@@ -44,8 +44,8 @@
 #' scen_BASE <- save_scenario(scen_BASE) # saving in the default directory
 #' }
 save_scenario <- function(
-    scen,
-    path = scen@path,
+    object,
+    path = object@path,
     embed_model = NULL,
     embed_datasets = NULL,
     format = get_storage_format(),
@@ -64,22 +64,22 @@ save_scenario <- function(
   }
   # identify directories
   if (is.null(path)) {
-    scen@path <- fp(get_scenarios_path(), scen@name)
-    message("Scenarios directory: ", scen@path)
+    object@path <- fp(get_scenarios_path(), object@name)
+    message("Scenarios directory: ", object@path)
   } else {
-    scen@path <- path
+    object@path <- path
   }
 
   # a sealed scenario is an archive: no rewrites (see ?seal_scenario)
-  .scenario_seal_guard(scen)
+  .scenario_seal_guard(object)
 
   # An on-disk scenario (interpolate_model(ondisk = TRUE)) already has its
   # parameter stores in place, in whatever codec `storage_format` was when they
   # were written — but the thin object, the layout markers, the manifest, and
   # the registry row still need writing, otherwise the folder has data and no
-  # `scen.RData` and load_scenario() fails. So an on-disk scenario skips only
+  # `object.RData` and load_scenario() fails. So an on-disk scenario skips only
   # the obj2disk() data walk below, never the shell.
-  ondisk_data <- isOnDisk(scen)
+  ondisk_data <- isOnDisk(object)
 
   # Model reference vs embedding. `embed_model = NULL` (auto): reference the
   # model store entry, putting the model there first when the store has
@@ -91,10 +91,10 @@ save_scenario <- function(
   # `misc$model_ref`; the returned in-memory object keeps its model.
   model_ref <- NULL
   model_hash_ <- ""
-  if (!isTRUE(embed_model) && nzchar(scen@model@name %||% "")) {
-    model_hash_ <- tryCatch(model_hash(scen@model), error = function(e) "")
+  if (!isTRUE(embed_model) && nzchar(object@model@name %||% "")) {
+    model_hash_ <- tryCatch(model_hash(object@model), error = function(e) "")
     store_dir <- if (nzchar(model_hash_)) {
-      tryCatch(.model_store_resolve(scen@model@name, model_hash_),
+      tryCatch(.model_store_resolve(object@model@name, model_hash_),
                error = function(e) NULL)
     }
     if (is.null(store_dir) && is.null(embed_model)) {
@@ -102,18 +102,18 @@ save_scenario <- function(
       # model_hash() hashes content, so a thinned model hashes differently
       # from its in-memory original and would be stored under one hash and
       # referenced by another.
-      st <- .model_autostore(scen@model, format = format, verbose = verbose)
+      st <- .model_autostore(object@model, format = format, verbose = verbose)
       if (!is.null(st)) {
         model_hash_ <- st$hash
         store_dir <- st$path
       }
     }
     if (!is.null(store_dir)) {
-      model_ref <- list(name = scen@model@name, hash = model_hash_,
+      model_ref <- list(name = object@model@name, hash = model_hash_,
                         source = "ref",
                         path = .registry_rel_path(store_dir))
     } else if (isFALSE(embed_model)) {
-      stop("embed_model = FALSE, but model '", scen@model@name, "' (",
+      stop("embed_model = FALSE, but model '", object@model@name, "' (",
            substr(model_hash_, 1, 8), ") is not in the model store ('",
            get_models_path(), "'). save_model() it first, or use ",
            "embed_model = NULL/TRUE.")
@@ -121,11 +121,11 @@ save_scenario <- function(
   }
   full_model <- NULL
   if (!is.null(model_ref)) {
-    full_model <- scen@model
+    full_model <- object@model
     stub <- new("model")
-    stub@name <- scen@model@name
+    stub@name <- object@model@name
     stub@misc$model_ref <- model_ref
-    scen@model <- stub
+    object@model <- stub
     if (verbose) {
       cat("Model '", model_ref$name, "' referenced from the store (",
           substr(model_ref$hash, 1, 8), "), not embedded\n", sep = "")
@@ -141,25 +141,25 @@ save_scenario <- function(
   full_settings_gs <- NULL
   model_ds_backup <- NULL
   if (!isTRUE(embed_datasets)) {
-    th <- .thin_dataset_slot(scen@settings, embed_datasets, id = "settings",
+    th <- .thin_dataset_slot(object@settings, embed_datasets, id = "settings",
                              verbose = verbose)
     if (!is.null(th$entry)) {
-      scen@settings <- th$obj
+      object@settings <- th$obj
       ds_entries[[length(ds_entries) + 1L]] <- th$entry
       full_settings_gs <- th$full
     }
-    if (is.null(model_ref) && is(scen@model, "model")) {
-      model_backup <- scen@model   # captured BEFORE any thinning
+    if (is.null(model_ref) && is(object@model, "model")) {
+      model_backup <- object@model   # captured BEFORE any thinning
       touched_model <- FALSE
-      mth <- .thin_dataset_slot(scen@model@config, embed_datasets,
+      mth <- .thin_dataset_slot(object@model@config, embed_datasets,
                                 id = "config", verbose = verbose)
       if (!is.null(mth$entry)) {
-        scen@model@config <- mth$obj
+        object@model@config <- mth$obj
         ds_entries[[length(ds_entries) + 1L]] <- mth$entry
         touched_model <- TRUE
       }
-      for (rp in names(scen@model@data)) {
-        repo <- scen@model@data[[rp]]
+      for (rp in names(object@model@data)) {
+        repo <- object@model@data[[rp]]
         if (!is(repo, "repository") || !is.null(repo@misc[["repo_ref"]])) next
         for (ob in names(repo@data)) {
           th2 <- .thin_dataset_slot(repo@data[[ob]], embed_datasets, id = ob,
@@ -170,7 +170,7 @@ save_scenario <- function(
             touched_model <- TRUE
           }
         }
-        scen@model@data[[rp]] <- repo
+        object@model@data[[rp]] <- repo
       }
       if (touched_model) model_ds_backup <- model_backup
     }
@@ -180,7 +180,7 @@ save_scenario <- function(
   # from the saved copy (~0.5 MB per scenario) and restored from the current
   # package on load; user-overridden blocks fail the identity test and are
   # kept verbatim.
-  sourceCode_full <- scen@settings@sourceCode
+  sourceCode_full <- object@settings@sourceCode
   if (length(sourceCode_full)) {
     same <- vapply(
       names(sourceCode_full),
@@ -188,57 +188,57 @@ save_scenario <- function(
       logical(1)
     )
     if (any(same)) {
-      scen@settings@sourceCode[names(sourceCode_full)[same]] <- NULL
-      scen@misc$sourceCode_default <- names(sourceCode_full)[same]
+      object@settings@sourceCode[names(sourceCode_full)[same]] <- NULL
+      object@misc$sourceCode_default <- names(sourceCode_full)[same]
     }
   }
 
   .t_start <- proc.time()[["elapsed"]]
   # clean directories
   if (clean_start) {
-    if (verbose) message("Cleaning directory '", scen@path, "'")
+    if (verbose) message("Cleaning directory '", object@path, "'")
     if (write_log) {
-      ff <- list.files(scen@path, include.dirs = TRUE)
+      ff <- list.files(object@path, include.dirs = TRUE)
       ff <- ff[!(ff == "logfile.csv")]
-      clear_status <- unlink(fp(scen@path, ff),
+      clear_status <- unlink(fp(object@path, ff),
         recursive = TRUE,
         force = TRUE
       )
       if (clear_status != 0) {
         stop(
-          "Cannot delete content of'", scen@path,
+          "Cannot delete content of'", object@path,
           "' directory"
         )
       }
       rm(ff)
     } else {
-      clear_status <- unlink(fp(scen@path),
+      clear_status <- unlink(fp(object@path),
         force = TRUE,
         recursive = TRUE
       )
-      if (clear_status != 0) stop("Cannot delete '", scen@path, "' directory")
+      if (clear_status != 0) stop("Cannot delete '", object@path, "' directory")
     }
   }
 
   # create scenario directories
-  if (!dir.exists(scen@path)) {
-    if (verbose) cat("Creating directory '", scen@path, "'\n")
-    dir.create(scen@path, recursive = TRUE)
+  if (!dir.exists(object@path)) {
+    if (verbose) cat("Creating directory '", object@path, "'\n")
+    dir.create(object@path, recursive = TRUE)
   }
 
   # write format and log
-  format_file <- fp(scen@path, "format")
+  format_file <- fp(object@path, "format")
   write(format, format_file, append = FALSE)
-  class_file <- fp(scen@path, "class")
-  write(class(scen), class_file, append = FALSE)
+  class_file <- fp(object@path, "class")
+  write(class(object), class_file, append = FALSE)
   # Directory-layout version. Bumped to 2 when `modOut@variables` became a list
   # of `variable` objects, moving each variable's data from
   # `variables/<v>/` down to `variables/<v>/data/`. Without the marker, new code
   # reading an old directory finds no `data/` sub-directory, and
   # `get_lazy_data()` returns NULL rather than erroring -- every result would
   # silently come back empty.
-  write(as.character(.SCENARIO_LAYOUT), fp(scen@path, "layout"), append = FALSE)
-  log_file <- (fp(scen@path, "logfile.csv"))
+  write(as.character(.SCENARIO_LAYOUT), fp(object@path, "layout"), append = FALSE)
+  log_file <- (fp(object@path, "logfile.csv"))
   write(paste(lubridate::now(tzone = "UTC"), "format", format, sep = ","),
     file = log_file, append = TRUE
   )
@@ -246,7 +246,7 @@ save_scenario <- function(
   if (!ondisk_data) {
     if (verbose) {
       cat("Saving large slots of scenario object",
-        " '", scen@name, "' ", "on disk\n",
+        " '", object@name, "' ", "on disk\n",
         sep = ""
       )
     }
@@ -257,40 +257,40 @@ save_scenario <- function(
     # additionally owns its modInp: the store goes to runs/<variant>/modInp/
     # (the scenario-level modInp/ stays the base problem's), plus the
     # variant.yml manifest and the problem swap file. The base problem gets
-    # its symmetric swap file <scen>/problem.RData, enabling
+    # its symmetric swap file <object>/problem.RData, enabling
     # read_solution(run=) to switch problems in both directions.
-    run_label <- scen@misc$run %||% ""
-    active_variant <- .run_variant(scen)
+    run_label <- object@misc$run %||% ""
+    active_variant <- .run_variant(object)
     mo <- NULL
     if (nzchar(run_label)) {
-      mo <- scen@modOut
-      scen@modOut <- new("modOut") # keep the main walk off the modOut slot
+      mo <- object@modOut
+      object@modOut <- new("modOut") # keep the main walk off the modOut slot
     }
     mi <- NULL
     if (nzchar(active_variant)) {
-      mi <- scen@modInp
-      scen@modInp <- new("modInp") # keep the main walk off the modInp slot
+      mi <- object@modInp
+      object@modInp <- new("modInp") # keep the main walk off the modInp slot
     }
-    scen <- obj2disk(
-      scen,
-      path = scen@path,
+    object <- obj2disk(
+      object,
+      path = object@path,
       format = format,
       verbose = verbose
     )
     if (!is.null(mi)) {
-      scen@modInp <- obj2disk(
+      object@modInp <- obj2disk(
         mi,
-        path = fp(scen@path, "runs", active_variant, "modInp"),
+        path = fp(object@path, "runs", active_variant, "modInp"),
         format = format,
         verbose = verbose
       )
     }
     if (!is.null(mo)) {
-      .mo_path <- fp(.run_dir(scen, active_variant, run_label), "modOut")
+      .mo_path <- fp(.run_dir(object, active_variant, run_label), "modOut")
       # `read_solution(ondisk = TRUE)` already streamed the solution into this
       # store; its data slots are empty, so re-running the walk would write
       # nothing and record dim-0 bookkeeping over a complete store.
-      scen@modOut <- if (isOnDisk(mo) &&
+      object@modOut <- if (isOnDisk(mo) &&
                          identical(gsub("[\\/]+", "/", getObjPath(mo) %||% ""),
                                    gsub("[\\/]+", "/", .mo_path))) {
         mo
@@ -299,7 +299,7 @@ save_scenario <- function(
       }
     }
     # swap file for the ACTIVE problem (variant.RData / problem.RData)
-    .write_problem_swap(scen, scen@modInp)
+    .write_problem_swap(object, object@modInp)
   } else {
     if (verbose) {
       cat("Scenario data already on disk; refreshing the scenario shell ",
@@ -307,14 +307,14 @@ save_scenario <- function(
     }
     # The data walk is skipped, but a solve AFTER an ondisk interpolation
     # leaves the solution in memory — park it into its run store so the thin
-    # scen.RData stays thin.
-    if (nzchar(.run_variant(scen))) {
+    # object.RData stays thin.
+    if (nzchar(.run_variant(object))) {
       # A re-save of an already-stored variant is fine (its modInp store sits
       # under the variant dir). What is NOT supported is a variant problem
       # whose store was written to the scenario level by
       # interpolate_model(ondisk = TRUE) — that location belongs to the base.
-      mi_path <- gsub("[\\/]+", "/", getObjPath(scen@modInp) %||% "")
-      expected <- gsub("[\\/]+", "/", .problem_modinp_root(scen))
+      mi_path <- gsub("[\\/]+", "/", getObjPath(object@modInp) %||% "")
+      expected <- gsub("[\\/]+", "/", .problem_modinp_root(object))
       if (!identical(mi_path, expected)) {
         stop("Own-problem variants of an ondisk-interpolated scenario are ",
              "not supported yet: interpolate_model(ondisk = TRUE) writes ",
@@ -324,24 +324,24 @@ save_scenario <- function(
     }
     # interpolate_model(ondisk = TRUE) leaves @modOut NULL (prototype);
     # only a materialized in-memory solution needs parking
-    if (!is.null(scen@modOut) && !isOnDisk(scen@modOut) &&
-        length(scen@modOut@variables)) {
-      run_label <- scen@misc$run %||% ""
+    if (!is.null(object@modOut) && !isOnDisk(object@modOut) &&
+        length(object@modOut@variables)) {
+      run_label <- object@misc$run %||% ""
       modout_path <- if (nzchar(run_label)) {
-        fp(.run_dir(scen, .run_variant(scen), run_label), "modOut")
+        fp(.run_dir(object, .run_variant(object), run_label), "modOut")
       } else {
-        fp(scen@path, "modOut")
+        fp(object@path, "modOut")
       }
-      scen@modOut <- obj2disk(
-        scen@modOut,
+      object@modOut <- obj2disk(
+        object@modOut,
         path = modout_path,
         format = format,
         verbose = verbose
       )
     }
-    .write_problem_swap(scen, scen@modInp)
+    .write_problem_swap(object, object@modInp)
   }
-  # scen.RData is the BASE problem's one and only home (problem.RData is
+  # object.RData is the BASE problem's one and only home (problem.RData is
   # retired): with the base problem active the shell is (re)written from
   # the in-memory object; with a VARIANT active the existing shell is left
   # untouched — the variant's problem lives in its own variant.RData, and
@@ -349,13 +349,13 @@ save_scenario <- function(
   # variant-born scenario (no base problem ever materialized) writes a
   # shell flagged `misc$has_base = FALSE`, so a later swap to base errors
   # informatively instead of restoring garbage.
-  scen_shell_path <- fp(scen@path, "scen.RData")
-  if (!nzchar(.run_variant(scen))) {
-    scen@misc$has_base <- TRUE
-    save(scen, file = scen_shell_path)
+  scen_shell_path <- fp(object@path, "scen.RData")
+  if (!nzchar(.run_variant(object))) {
+    object@misc$has_base <- TRUE
+    save(object, file = scen_shell_path)
   } else if (!file.exists(scen_shell_path)) {
     e_born <- new.env(parent = emptyenv())
-    e_born$scen <- scen
+    e_born$scen <- object
     e_born$scen@misc$variant <- NULL
     e_born$scen@misc$run <- NULL
     e_born$scen@misc$has_base <- FALSE
@@ -365,30 +365,30 @@ save_scenario <- function(
     rm(e_born)
   }
   mf_model <- model_ref %||% list(
-    name = scen@model@name %||% "",
+    name = object@model@name %||% "",
     hash = model_hash_,
     source = "embedded"
   )
-  .write_scenario_manifest(scen, format, model = mf_model,
+  .write_scenario_manifest(object, format, model = mf_model,
                            datasets = if (length(ds_entries)) ds_entries)
-  .registry_record_scenario(scen)
+  .registry_record_scenario(object)
   # the returned in-memory object keeps its full model, datasets & sourceCode
-  if (!is.null(full_model)) scen@model <- full_model
-  if (!is.null(model_ds_backup)) scen@model <- model_ds_backup
+  if (!is.null(full_model)) object@model <- full_model
+  if (!is.null(model_ds_backup)) object@model <- model_ds_backup
   if (!is.null(full_settings_gs)) {
-    scen@settings@geoscale <- full_settings_gs
-    scen@settings@misc[["dataset_ref"]] <- NULL
+    object@settings@geoscale <- full_settings_gs
+    object@settings@misc[["dataset_ref"]] <- NULL
   }
-  scen@settings@sourceCode <- sourceCode_full
-  cat("Scenario '", scen@name, "' saved in '", scen@path, "'\n", sep = "")
-  dirsize <- dir_size(scen@path)
+  object@settings@sourceCode <- sourceCode_full
+  cat("Scenario '", object@name, "' saved in '", object@path, "'\n", sep = "")
+  dirsize <- dir_size(object@path)
   cat("Directory size: ", round(dirsize / 1024^2, 2), " MB\n", sep = "")
-  scen@misc$dirsize <- dirsize
+  object@misc$dirsize <- dirsize
   if (verbose) {
     cat(sprintf("save_scenario: %.2f sec elapsed\n",
                 proc.time()[["elapsed"]] - .t_start))
   }
-  return(invisible(scen))
+  return(invisible(object))
 }
 
 
@@ -778,7 +778,7 @@ en_open_dataset <- function(path, format = NULL, engine = "arrow") {
 
 #' Is object stored in memory?
 #'
-#' @param obj Object, checks
+#' @param object Object, checks
 #'
 #' @return Logical value, TRUE if object is stored in memory, FALSE if on disk.
 #'
@@ -788,23 +788,23 @@ en_open_dataset <- function(path, format = NULL, engine = "arrow") {
 #' \dontrun{
 #' isInMemory(scen_BASE)
 #' }
-isInMemory <- function(obj) {
-  if (!isS4(obj)) {
-    has_path <- try({!is.null(obj$misc$inMemory)}, silent = TRUE)
+isInMemory <- function(object) {
+  if (!isS4(object)) {
+    has_path <- try({!is.null(object$misc$inMemory)}, silent = TRUE)
     if (inherits(has_path, "try-error")) {
       return(TRUE)
     }
     if (is.character(has_path)) {
-      return(!is.null(obj$path))
+      return(!is.null(object$path))
     }
     return(TRUE)
   }
-  sts <- slotNames(obj)
+  sts <- slotNames(object)
   if (any(sts %in% "inMemory")) {
-    return(obj@inMemory)
+    return(object@inMemory)
   } else if (any(sts %in% "misc")) {
-    if (!is.null(obj@misc$inMemory)) {
-      return(obj@misc$inMemory)
+    if (!is.null(object@misc$inMemory)) {
+      return(object@misc$inMemory)
     }
   }
   return(TRUE)
@@ -817,7 +817,7 @@ isInMemory <- function(obj) {
 #' subset -- which is what makes predicate pushdown possible for it and
 #' pointless for an in-memory one.
 #'
-#' @param obj Object, checks
+#' @param object Object, checks
 #'
 #' @return Logical value, TRUE if object is stored on disk, FALSE if in memory.
 #'
@@ -828,8 +828,8 @@ isInMemory <- function(obj) {
 #' \dontrun{
 #' isOnDisk(scen_BASE)
 #' }
-isOnDisk <- function(obj) {
-  !isInMemory(obj)
+isOnDisk <- function(object) {
+  !isInMemory(object)
 }
 
 
@@ -1439,7 +1439,7 @@ load_scenarios <- function(names = NULL, run = NULL, env = NULL,
 
 #' Loads objects from disk to memory
 #'
-#' @param obj Object of S4 class, saved on disk (scenario, model, etc.)
+#' @param object Object of S4 class, saved on disk (scenario, model, etc.)
 #' @param verbose If TRUE, prints messages
 #'
 #' @return Object of the same S4 class as input object, with
@@ -1450,25 +1450,25 @@ load_scenarios <- function(names = NULL, run = NULL, env = NULL,
 #' \dontrun{
 #' obj2mem(scen_ondisk)
 #' }
-obj2mem <- function(obj, verbose = isVerbose()) {
-  if (!isS4(obj)) {
-    stop("Object must be of S4 class, actual class: ", class(obj))
+obj2mem <- function(object, verbose = isVerbose()) {
+  if (!isS4(object)) {
+    stop("Object must be of S4 class, actual class: ", class(object))
   }
-  if (isInMemory(obj)) return(invisible(obj))
-  if (!.hasSlot(obj, "misc")) {
-    stop("Object of class ", class(obj), " has no 'misc' slot")
+  if (isInMemory(object)) return(invisible(object))
+  if (!.hasSlot(object, "misc")) {
+    stop("Object of class ", class(object), " has no 'misc' slot")
   }
-  sls <- names(obj@misc$onDisk)
+  sls <- names(object@misc$onDisk)
   if (isDebug() && length(sls) == 0)
     cli::cli_warn("{obj@name}: marked on-disk but @misc$onDisk lists no slots.")
-  obj_pth <- getObjPath(obj)
+  obj_pth <- getObjPath(object)
   for (s in sls) {
     pth <- fp(obj_pth, s)
-    if (isS4(slot(obj, s))) {
-      # cat(getObjPath(slot(obj, s)), "\n")
-      slot(obj, s) <- obj2mem(slot(obj, s), verbose = verbose)
-    } else if (inherits(slot(obj, s), "list")) {
-      sls2 <- names(obj@misc$onDisk[[s]])
+    if (isS4(slot(object, s))) {
+      # cat(getObjPath(slot(object, s)), "\n")
+      slot(object, s) <- obj2mem(slot(object, s), verbose = verbose)
+    } else if (inherits(slot(object, s), "list")) {
+      sls2 <- names(object@misc$onDisk[[s]])
       # A repository's `@data` is where the object count lives (thousands on
       # a converted model), so report progress there instead of printing one
       # path per table. Mirrors `obj2disk()`, and stays silent unless the
@@ -1476,23 +1476,23 @@ obj2mem <- function(obj, verbose = isVerbose()) {
       p <- if (length(sls2) > 1L) progressr::progressor(along = sls2) else NULL
       for (i in sls2) {
         if (!is.null(p)) p(i)
-        if (isS4(slot(obj, s)[[i]])) {
-          slot(obj, s)[[i]] <- obj2mem(slot(obj, s)[[i]], verbose = verbose)
+        if (isS4(slot(object, s)[[i]])) {
+          slot(object, s)[[i]] <- obj2mem(slot(object, s)[[i]], verbose = verbose)
         } else {
-          if (obj@misc$onDisk[[s]][[i]]$dim[1] == 0) next
+          if (object@misc$onDisk[[s]][[i]]$dim[1] == 0) next
           pth2 <- fp(pth, i)
           if(verbose) cat(pth2, "\n")
-          slot(obj, s)[[i]] <- en_open_dataset(pth2) |> collect()}
+          slot(object, s)[[i]] <- en_open_dataset(pth2) |> collect()}
       }
       # cat(s, "\n")
     } else {
-      if (obj@misc$onDisk[[s]]$dim[1] == 0) next
+      if (object@misc$onDisk[[s]]$dim[1] == 0) next
       if(verbose) cat(pth, "\n")
-      slot(obj, s) <- en_open_dataset(pth) |> collect()
+      slot(object, s) <- en_open_dataset(pth) |> collect()
     }
   }
-  obj <- mark_inMemory(obj)
-  invisible(obj)
+  object <- mark_inMemory(object)
+  invisible(object)
 }
 
 

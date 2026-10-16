@@ -111,7 +111,7 @@ NULL
 #' use them; `apply_ledger()` and anything else that continues a sequence
 #' does, so a rebuilt sequence is for reading, not for resuming.
 #'
-#' @param scen a scenario object, or the name of a stored scenario.
+#' @param object a scenario object, or the name of a stored scenario.
 #' @param sequence character, the sequence name to rebuild (as recorded in
 #'   `variant.yml`). Needed only when the scenario holds more than one.
 #' @param type character, restrict to one driver: `"myopic_step"`,
@@ -128,12 +128,12 @@ NULL
 #' myopic_objective(seq)
 #' }
 #' @export
-read_sequence <- function(scen, sequence = NULL, type = NULL, verbose = TRUE) {
-  if (is.character(scen)) scen <- getScenario(scen, verbose = FALSE)
-  stopifnot(is(scen, "scenario"))
-  vs <- .seq_variants(scen)
+read_sequence <- function(object, sequence = NULL, type = NULL, verbose = TRUE) {
+  if (is.character(object)) object <- getScenario(object, verbose = FALSE)
+  stopifnot(is(object, "scenario"))
+  vs <- .seq_variants(object)
   if (is.null(vs)) {
-    stop("Scenario '", scen@name, "' has no own-problem variants, so it holds ",
+    stop("Scenario '", object@name, "' has no own-problem variants, so it holds ",
          "no driver sequence. scenario_runs() lists what it does have.",
          call. = FALSE)
   }
@@ -153,7 +153,7 @@ read_sequence <- function(scen, sequence = NULL, type = NULL, verbose = TRUE) {
   key <- vapply(vs, function(v) paste(v$type, v$sequence, sep = "/"),
                 character(1))
   if (length(unique(key)) > 1L) {
-    stop("Scenario '", scen@name, "' holds ", length(unique(key)),
+    stop("Scenario '", object@name, "' holds ", length(unique(key)),
          " sequences: ", paste(unique(key), collapse = ", "),
          ".\n  Name one with sequence = or type = .", call. = FALSE)
   }
@@ -164,9 +164,9 @@ read_sequence <- function(scen, sequence = NULL, type = NULL, verbose = TRUE) {
 
   if (verbose) {
     message("Rebuilding ", tp, " sequence '", sq, "' from ", length(vs),
-            " variant(s) of '", scen@name, "'.")
+            " variant(s) of '", object@name, "'.")
   }
-  scens <- lapply(vs, function(v) .seq_load(scen, v$run))
+  scens <- lapply(vs, function(v) .seq_load(object, v$run))
 
   out <- switch(
     tp,
@@ -185,7 +185,7 @@ read_sequence <- function(scen, sequence = NULL, type = NULL, verbose = TRUE) {
       # has to be positional, not named by variant.
       sl <- vector("list", max(k, na.rm = TRUE))
       for (i in seq_along(k)) sl[[k[i]]] <- scens[[i]]
-      list(name = sq, model = scen@model, steps = steps, scenarios = sl,
+      list(name = sq, model = object@model, steps = steps, scenarios = sl,
            ledger = NULL, carry = params$carry, tolerance = params$tolerance,
            store = params$store %||% "variants",
            horizon = .seq_horizon(scens),
@@ -201,9 +201,9 @@ read_sequence <- function(scen, sequence = NULL, type = NULL, verbose = TRUE) {
           as.numeric(v$mf$year_fraction %||% NA_real_), numeric(1)),
         status = vapply(vs, `[[`, "", "status"),
         objective = vapply(vs, function(v) as.numeric(v$objective), numeric(1)))
-      list(name = sq, model = scen@model, runs = runs, scenarios = scens,
+      list(name = sq, model = object@model, runs = runs, scenarios = scens,
            samples = NULL, method = params$method %||% vs[[1]]$mf$method,
-           calendar = tryCatch(scen@settings@calendar, error = function(e) NULL),
+           calendar = tryCatch(object@settings@calendar, error = function(e) NULL),
            missing = c("samples"))
     },
     region_sample = {
@@ -216,7 +216,7 @@ read_sequence <- function(scen, sequence = NULL, type = NULL, verbose = TRUE) {
         objective = vapply(vs, function(v) as.numeric(v$objective), numeric(1)),
         boundary = NA_integer_)
       trade <- as.character(params$trade %||% vs[[1]]$mf$trade %||% "none")
-      list(name = sq, model = scen@model, runs = runs, scenarios = scens,
+      list(name = sq, model = object@model, runs = runs, scenarios = scens,
            trade = trade, share = params$share,
            additive = identical(trade, "none"),
            missing = character(0))
@@ -232,7 +232,7 @@ read_sequence <- function(scen, sequence = NULL, type = NULL, verbose = TRUE) {
         status = vapply(vs, `[[`, "", "status"),
         objective = vapply(vs, function(v) as.numeric(v$objective), numeric(1)))
       fin <- which(st$stage == "final")
-      list(name = sq, model = scen@model, stages = st, scenarios = scens,
+      list(name = sq, model = object@model, stages = st, scenarios = scens,
            targets = NULL, ledger = NULL,
            final = if (length(fin)) scens[[fin[1]]] else NULL,
            horizon = .seq_horizon(scens), slack = params$slack,
@@ -241,7 +241,7 @@ read_sequence <- function(scen, sequence = NULL, type = NULL, verbose = TRUE) {
            missing = c("targets", "ledger"))
     })
 
-  out$path <- scen@path
+  out$path <- object@path
   out$failed <- !any(vapply(vs, function(v) identical(v$status, "solved"),
                             logical(1)))
   out$params <- params

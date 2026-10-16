@@ -421,7 +421,7 @@ setMethod('update', signature(object = 'supply'), function(object, ...) {
 #' `ava.*` / `exp.*` / `imp.*` and the cumulative `@reserve`. An object with no
 #' finite bound is refused, because an unbounded curve is meaningless.
 #'
-#' @param obj a `supply`, `export` or `import` object.
+#' @param object a `supply`, `export` or `import` object.
 #' @param range numeric of length 2, the first and last price of a linear curve.
 #' @param nsteps integer, the number of steps. Ignored when `shares` is given.
 #' @param shares numeric, each step's fraction of the quantity. Must be positive
@@ -440,39 +440,39 @@ setMethod('update', signature(object = 'supply'), function(object, ...) {
 #'                  supply = data.frame(ava.up = 100))
 #' SUP <- asSupplyCurve(SUP, range = c(10, 50), nsteps = 5)
 #' SUP@cluster
-asSupplyCurve <- function(obj, range = NULL, nsteps = NULL, shares = NULL,
+asSupplyCurve <- function(object, range = NULL, nsteps = NULL, shares = NULL,
                           price = NULL, labels = NULL, desc = NULL) {
-  if (!methods::is(obj, "supply")) {
-    stop("asSupplyCurve(): expects a `supply` object; got ", class(obj)[1],
+  if (!methods::is(object, "supply")) {
+    stop("asSupplyCurve(): expects a `supply` object; got ", class(object)[1],
          ". Use asExportCurve() / asImportCurve() for those.", call. = FALSE)
   }
   cur <- .price_curve(range, nsteps, shares, price, labels, desc, "asSupplyCurve")
   .check_curve_direction(cur$price, +1, "asSupplyCurve")
-  .apply_curve(obj, cur, "supply", "ava", "cost", "reserve", "asSupplyCurve")
+  .apply_curve(object, cur, "supply", "ava", "cost", "reserve", "asSupplyCurve")
 }
 
 #' @rdname supply-curve
 #' @export
-asImportCurve <- function(obj, range = NULL, nsteps = NULL, shares = NULL,
+asImportCurve <- function(object, range = NULL, nsteps = NULL, shares = NULL,
                           price = NULL, labels = NULL, desc = NULL) {
-  if (!methods::is(obj, "import")) {
-    stop("asImportCurve(): expects an `import` object; got ", class(obj)[1], ".",
+  if (!methods::is(object, "import")) {
+    stop("asImportCurve(): expects an `import` object; got ", class(object)[1], ".",
          call. = FALSE)
   }
   cur <- .price_curve(range, nsteps, shares, price, labels, desc, "asImportCurve")
   .check_curve_direction(cur$price, +1, "asImportCurve")
-  .apply_curve(obj, cur, "import", "imp", "price", "reserve", "asImportCurve")
+  .apply_curve(object, cur, "import", "imp", "price", "reserve", "asImportCurve")
 }
 
 #' @rdname supply-curve
 #' @export
-asExportCurve <- function(obj, range = NULL, nsteps = NULL, shares = NULL,
+asExportCurve <- function(object, range = NULL, nsteps = NULL, shares = NULL,
                           price = NULL, labels = NULL, desc = NULL) {
-  if (!methods::is(obj, "export")) {
-    stop("asExportCurve(): expects an `export` object; got ", class(obj)[1], ".",
+  if (!methods::is(object, "export")) {
+    stop("asExportCurve(): expects an `export` object; got ", class(object)[1], ".",
          call. = FALSE)
   }
   cur <- .price_curve(range, nsteps, shares, price, labels, desc, "asExportCurve")
   .check_curve_direction(cur$price, -1, "asExportCurve")
-  .apply_curve(obj, cur, "export", "exp", "price", "reserve", "asExportCurve")
+  .apply_curve(object, cur, "export", "exp", "price", "reserve", "asExportCurve")
 }

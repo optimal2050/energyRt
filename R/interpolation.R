@@ -8,7 +8,7 @@
 #' and validates the result. The returned scenario is ready for [solve_model()] /
 #' [solve_scenario()].
 #'
-#' @param mod a [model] object, or a [scenario] (its `@model` is re-interpolated).
+#' @param object a [model] object, or a [scenario] (its `@model` is re-interpolated).
 #' @param object as `mod`, for the method dispatched on a scenario.
 #' @param kvl logical or `NULL`; build the Kirchhoff voltage-law cycle
 #'   constraints for meshed trade networks. `NULL` (default) engages them when
@@ -104,7 +104,7 @@
 #' @seealso [solve_model()], [solve_scenario()], the `interpolate` S4 method.
 #' @family interpolation
 #' @export
-interpolate_model <- function(mod, name = NULL, ...,
+interpolate_model <- function(object, name = NULL, ...,
                        desc = NULL, ondisk = FALSE, overwrite = FALSE,
                        fold = FALSE, sparse = TRUE, prune = TRUE,
                        validate = TRUE, code = NULL, kvl = FALSE,
@@ -127,18 +127,18 @@ interpolate_model <- function(mod, name = NULL, ...,
   options(energyRt.parent_levels = parent_levels)
   on.exit(options(energyRt.parent_levels = .pl_prev), add = TRUE)
   # Accept a scenario (re-interpolate its model), matching the legacy interface.
-  if (inherits(mod, "scenario")) mod <- mod@model
+  if (inherits(object, "scenario")) object <- object@model
   # A model loaded from the store keeps its large slots on disk (thinned).
   # The pipeline reads object slots directly, so interpolating a thinned
   # model would silently produce EMPTY parameters (no demand, no weather)
   # and a plausible-looking, meaningless scenario. Rehydrate first — the
   # same contract model hashing uses (model_store.R).
-  if (!isInMemory(mod)) {
-    if (verbose) message("Model '", mod@name,
+  if (!isInMemory(object)) {
+    if (verbose) message("Model '", object@name,
                          "' has on-disk slots; rehydrating with obj2mem()")
-    mod <- obj2mem(mod, verbose = FALSE)
+    object <- obj2mem(object, verbose = FALSE)
   }
-  # `...` (after `mod`/`name`) accepts ANY energyRt objects -- settings, config,
+  # `...` (after `object`/`name`) accepts ANY energyRt objects -- settings, config,
   # calendar, horizon, whole repositories, or individual model "bricks"
   # (technology/commodity/...) -- and folds them into the model BEFORE the
   # mapping pipeline runs, reproducing the legacy `interpolate_model(object,...)`
@@ -149,15 +149,15 @@ interpolate_model <- function(mod, name = NULL, ...,
   # (handy to A/B test template versions). A named list mapping a block name
   # (GLPK, GAMS, JuMP, PYOMOConcrete, ...) to either a script-file path or a
   # character vector of lines. See the override applied after `.modelCode` below.
-  # mod - model
+  # object - model
   # `sparse` is the single storage knob: TRUE drops `value==defVal` rows (and
   # folds); FALSE materialises defVal over each parameter's domain (and unfolds).
   # `drop_default` is the internal strip-component of `sparse`, not user-facing.
   # Upgrade any constraint summands serialized before the `timeframe` slot so
   # legacy models interpolate without a "no slot of name timeframe" error.
-  mod <- .upgrade_model_summands(mod)
+  object <- .upgrade_model_summands(object)
   # Same for storages serialized before the `inp2stg` slot.
-  mod <- .upgrade_model_storages(mod)
+  object <- .upgrade_model_storages(object)
 
   # NOTE: the `kvl` hook is NOT here. It has to run after the model is both
   # complete (objects arriving through `...` are folded in further down) and
@@ -183,9 +183,9 @@ interpolate_model <- function(mod, name = NULL, ...,
   scen <- new("scenario")
 
   # scenario name -- deriving one from the model is normal on the
-  # `solve_model(mod)` convenience path, so this is a message, not a warning
+  # `solve_model(object)` convenience path, so this is a message, not a warning
   if (is.null(name)) {
-    name <- paste0("scen_", mod@name)
+    name <- paste0("scen_", object@name)
     if (verbose) message("Scenario name not provided; using default: ", name)
   }
   .assert_object_name(name, what = "scenario")
@@ -209,7 +209,7 @@ interpolate_model <- function(mod, name = NULL, ...,
     args$path <- NULL
   } else {
     scen@path <- fp(get_scenarios_path(), .scenario_dir_name(
-      scen@name, mod@name, mod@config@calendar@name, mod@config@horizon@name
+      scen@name, object@name, object@config@calendar@name, object@config@horizon@name
     )) |> .fix_path()
   }
 
@@ -259,10 +259,10 @@ interpolate_model <- function(mod, name = NULL, ...,
   }
 
 
-  # class(mod)
-  scen@model <- mod
+  # class(object)
+  scen@model <- object
 
-  # import settings from mod@config
+  # import settings from object@config
   scen@settings <- .config_to_settings(scen@model@config, scen@settings)
 
   # config object -> settings (legacy parity)
@@ -322,10 +322,10 @@ interpolate_model <- function(mod, name = NULL, ...,
                   (\(cv) paste(names(cv), sprintf("%.1f%%", 100 * cv),
                                collapse = ", "))(), " of the parent)")
       }
-      mod <- .subset_model_regions(mod, keep = scen@settings@region,
+      object <- .subset_model_regions(object, keep = scen@settings@region,
                                    boundary_prices = boundary_prices,
                                    verbose = verbose)
-      scen@model <- mod
+      scen@model <- object
     } else if (identical(.spatial_mode, "pruned")) {
       stop("A pruned geoscale (coarser atom layer) requests a full-",
            "territory solve at the parent level. Aggregate the model first ",
@@ -354,7 +354,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   # whole repositories -> added to the model
   ii <- vapply(args, function(x) inherits(x, "repository"), logical(1))
   if (any(ii)) {
-    for (repo in args[ii]) mod <- add(mod, repo, overwrite = overwrite)
+    for (repo in args[ii]) object <- add(object, repo, overwrite = overwrite)
     args <- args[!ii]
   }
 
@@ -364,10 +364,10 @@ interpolate_model <- function(mod, name = NULL, ...,
   if (any(ii)) {
     scen_specific_repo <- newRepository(name = paste0(scen@name, "_repo")) |>
       add(args[ii], overwrite = overwrite)
-    mod <- add(mod, scen_specific_repo, overwrite = overwrite)
+    object <- add(object, scen_specific_repo, overwrite = overwrite)
     args <- args[!ii]
   }
-  scen@model <- mod # keep scen@model in sync with the (possibly extended) model
+  scen@model <- object # keep scen@model in sync with the (possibly extended) model
 
   # Variant naming is stored twice -- on the model config and, copied from it, on
   # the scenario settings. Settings is a COPY, not an override point: variant
@@ -467,29 +467,29 @@ interpolate_model <- function(mod, name = NULL, ...,
   # object is untouched. The link back to each base object is kept in
   # `sets$variant` (see R/variants.R).
   .interp_step(verbose, "expanding vintage/cluster variants")
-  .tech_variants <- expand_variants(mod, prefix = .variant_prefix(scen@settings),
+  .tech_variants <- expand_variants(object, prefix = .variant_prefix(scen@settings),
                                     verbose = verbose)
-  mod <- .tech_variants$model    # the sets below are collected from `mod`
-  scen@model <- mod              # ... while get_process_*() read scen@model
-  .assert_variants_expanded(mod)
+  object <- .tech_variants$model    # the sets below are collected from `object`
+  scen@model <- object              # ... while get_process_*() read scen@model
+  .assert_variants_expanded(object)
 
   # A commodity declaring `@cluster` is a bundle of resource tiers that must
   # not pool: each becomes its own commodity with its own balance, and the
   # references from clustered processes are repointed. Before the sets below
   # freeze `sets$comm`, so the clones are declared members like any commodity.
   .interp_step(verbose, "materializing commodity clusters")
-  mod <- materialize_commodity_clusters(
-    mod, verbose = verbose, prefix = .variant_prefix(scen@settings))
-  scen@model <- mod
+  object <- materialize_commodity_clusters(
+    object, verbose = verbose, prefix = .variant_prefix(scen@settings))
+  scen@model <- object
 
   # A weather object declaring `@cluster` holds one series per resource tier;
   # each tier a process references becomes its own weather object here and the
   # link is repointed. BEFORE the transform step, so the two compose: the
   # cluster picks the series, a transform then derives from it.
   .interp_step(verbose, "materializing weather clusters")
-  mod <- materialize_weather_clusters(
-    mod, verbose = verbose, prefix = .variant_prefix(scen@settings))
-  scen@model <- mod
+  object <- materialize_weather_clusters(
+    object, verbose = verbose, prefix = .variant_prefix(scen@settings))
+  scen@model <- object
 
   # Links that name a weather transform get their own derived weather object,
   # cloned once per (weather, transform) and repointed here -- the backends
@@ -497,8 +497,8 @@ interpolate_model <- function(mod, name = NULL, ...,
   # (each variant owns its link rows) and before the sets below freeze
   # `sets$weather`. Like the expansion, only the build copy is touched.
   .interp_step(verbose, "materializing weather transforms")
-  mod <- materialize_weather_transforms(mod, verbose = verbose)
-  scen@model <- mod
+  object <- materialize_weather_transforms(object, verbose = verbose)
+  scen@model <- object
 
   # `kvl`: enforce Kirchhoff's voltage law on the AC network -- the trade routes
   # that carry a `reactance`. OFF by default, because it is a restriction: a
@@ -515,18 +515,18 @@ interpolate_model <- function(mod, name = NULL, ...,
   # exists. And `.kvl_for_each()` needs the SCENARIO's calendar and horizon,
   # which a `...` argument may have replaced, not the model's own.
   if (isTRUE(kvl)) {
-    kvl_cns <- .kvl_build(mod, prov = .tech_variants$provenance,
+    kvl_cns <- .kvl_build(object, prov = .tech_variants$provenance,
                           settings = scen@settings, verbose = verbose)
     # Added as ONE named repository rather than one `add()` per cycle, so the
     # cycles arrive as a discoverable group instead of scattered among whatever
     # else the model carries.
     if (length(kvl_cns)) {
-      mod <- add(mod, do.call(newRepository,
+      object <- add(object, do.call(newRepository,
                               c(list("kvl_cycles"), unname(kvl_cns))))
       # MUST follow the add: `.interp_user_constraints()` compiles from
-      # `scen@model`, not from `mod`. Without this the constraints are silently
+      # `scen@model`, not from `object`. Without this the constraints are silently
       # dropped and the solve returns the transport relaxation.
-      scen@model <- mod
+      scen@model <- object
     }
   }
 
@@ -604,10 +604,10 @@ interpolate_model <- function(mod, name = NULL, ...,
   # INFO: if a set element is not declared as individual object, error will be thrown
 
   # ONE recursive walk over the model, subset per class below.
-  # `collect_object_names(mod, cls)` filters only as its LAST step, so ten
+  # `collect_object_names(object, cls)` filters only as its LAST step, so ten
   # per-class calls repeated the identical full descent (every slot of every
   # object, nested lists included) ten times.
-  .all_obj_names <- collect_object_names(mod, classes = NULL)
+  .all_obj_names <- collect_object_names(object, classes = NULL)
   .obj_names_of <- function(cls) {
     .all_obj_names$name[.all_obj_names$class %in% cls]
   }
@@ -670,7 +670,7 @@ interpolate_model <- function(mod, name = NULL, ...,
 
   # Other sets (not from model objects) ####
   ## group - groups of commodities
-  scen@modInp@sets$group <- collect_set_elements(mod, "group")
+  scen@modInp@sets$group <- collect_set_elements(object, "group")
   scen@modInp@parameters$group <- d2p(scen@modInp@parameters$group, scen@modInp@sets$group, fmp("group"))
 
   ## process ####
@@ -1245,7 +1245,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   }
   .en_log("interpolate", scen@name,
           duration = difftime(Sys.time(), .log_t0, units = "secs"),
-          model = mod@name,
+          model = object@name,
           calendar = tryCatch(scen@settings@calendar@name,
                               error = function(e) ""),
           horizon = tryCatch(scen@settings@horizon@name,
@@ -1253,7 +1253,7 @@ interpolate_model <- function(mod, name = NULL, ...,
           ondisk = isTRUE(ondisk))
   # Always-on profile log (timing + memory per stage/map/parameter) -- the
   # op log above needs set_log_file(); this appends whenever a sink resolves.
-  .interp_profile_log(scen, mod, ondisk,
+  .interp_profile_log(scen, object, ondisk,
                       difftime(Sys.time(), .log_t0, units = "secs"))
   scen
 }
@@ -2403,14 +2403,14 @@ interpolate_bounds <- function(
 #' dimensions have already been materialised. A parameter is left untouched when
 #' none of its registered maps is available, to avoid clearing data whose map
 #' was not built.
-#' @param scen scenario.
+#' @param object scenario.
 #' @param verbose logical; report per-parameter trim counts.
 #' @returns scenario with trimmed parameter slots.
 #' @export
-trim_parameters <- function(scen, verbose = FALSE) {
+trim_parameters <- function(object, verbose = FALSE) {
   reg <- .param_value_maps()
   for (pn in names(reg)) {
-    param <- scen@modInp@parameters[[pn]]
+    param <- object@modInp@parameters[[pn]]
     if (is.null(param)) next
     pdata <- get_data_slot(param)
     if (is.null(pdata) || nrow(pdata) == 0) next
@@ -2419,7 +2419,7 @@ trim_parameters <- function(scen, verbose = FALSE) {
     kept <- list()
     used_any <- FALSE
     for (mp in reg[[pn]]) {
-      mpar <- scen@modInp@parameters[[mp]]
+      mpar <- object@modInp@parameters[[mp]]
       if (is.null(mpar)) next
       md <- get_data_slot(mpar)
       if (is.null(md)) next
@@ -2451,9 +2451,9 @@ trim_parameters <- function(scen, verbose = FALSE) {
       message("trim '", pn, "': ", nrow(pdata), " -> ", nrow(new_data),
               " rows")
     }
-    scen <- .interp_write_param(scen, pn, new_data)
+    object <- .interp_write_param(object, pn, new_data)
   }
-  scen
+  object
 }
 
 # Filter interpolated VALUE parameters (numpar/bounds) to the scenario's DECLARED
@@ -2528,7 +2528,7 @@ trim_parameters <- function(scen, verbose = FALSE) {
 #' `"warn"`); call it directly to re-check a scenario or to collect the
 #' findings table.
 #'
-#' @param scen an interpolated scenario.
+#' @param object an interpolated scenario.
 #' @param fold logical or character; whether (or in which dimensions) the
 #'   scenario is folded, so NA wildcards are allowed there.
 #' @param action one of `"warn"` (default), `"stop"`, `"silent"`: how to
@@ -2536,7 +2536,7 @@ trim_parameters <- function(scen, verbose = FALSE) {
 #' @returns (invisibly) a data frame of findings with columns `parameter`,
 #'   `check`, `detail`, `severity`.
 #' @export
-validate_scenario_parameters <- function(scen, fold = TRUE,
+validate_scenario_parameters <- function(object, fold = TRUE,
                                           action = c("warn", "stop", "silent")) {
   action <- match.arg(action)
   # Dimensions in which a fold wildcard (NA) is legitimate. `fold` may be the
@@ -2562,7 +2562,7 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
   # coverage joins below), the slowest stage on large models. Mirror ob2mi's
   # progressor so a registered handler shows movement instead of a frozen line.
   # Silent when no handler is set. Steps: all parameters + all value maps.
-  pnames <- names(scen@modInp@parameters)
+  pnames <- names(object@modInp@parameters)
   .n_val <- length(pnames) + length(.value_map_def)
   .prg <- if (.n_val > 0) progressr::progressor(steps = .n_val) else NULL
 
@@ -2570,7 +2570,7 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
     # Advance for EVERY parameter (incl. skipped types/empties) so the bar
     # reaches 100% instead of freezing short of the end.
     if (!is.null(.prg)) .prg(message = pn)
-    param <- scen@modInp@parameters[[pn]]
+    param <- object@modInp@parameters[[pn]]
     ptype <- as.character(param@type)
     if (!(ptype %in% c("numpar", "bounds", "map"))) next
     d <- get_data_slot(param)
@@ -2645,7 +2645,7 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
   # reported.
   for (mp in names(.value_map_def)) {
     if (!is.null(.prg)) .prg(message = mp)
-    mpar <- scen@modInp@parameters[[mp]]
+    mpar <- object@modInp@parameters[[mp]]
     if (is.null(mpar)) next
     md <- get_data_slot(mpar)
     if (is.null(md) || nrow(md) == 0) next
@@ -2657,7 +2657,7 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
     # restricted to defined (non-NA) values -- mirrors `.build_value_map_std`.
     union_src <- NULL
     for (sp in sources) {
-      sp_par <- scen@modInp@parameters[[sp]]
+      sp_par <- object@modInp@parameters[[sp]]
       if (is.null(sp_par)) next
       sd <- get_data_slot(sp_par)
       if (is.null(sd) || nrow(sd) == 0) next
@@ -2715,12 +2715,12 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
     # `structural_in` is the same thing on part of the domain. Only the
     # data-driven maps carry the "no data = no constraint" invariant.
     if (isTRUE(spec$structural) || !is.null(spec$structural_in)) next
-    mpar <- scen@modInp@parameters[[mp]]
+    mpar <- object@modInp@parameters[[mp]]
     if (is.null(mpar)) next
     md <- get_data_slot(mpar)
     if (is.null(md) || nrow(md) == 0) next
     md <- as.data.frame(md)
-    sp_par <- scen@modInp@parameters[[spec$source]]
+    sp_par <- object@modInp@parameters[[spec$source]]
     if (is.null(sp_par)) next
     sd <- get_data_slot(sp_par)
     if (is.null(sd) || nrow(sd) == 0) next
@@ -2774,7 +2774,7 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
          meaning = "no activity-capacity bound")
   )
   .members <- function(nm, col) {
-    p <- scen@modInp@parameters[[nm]]
+    p <- object@modInp@parameters[[nm]]
     if (is.null(p)) return(NULL)
     d <- get_data_slot(p)
     if (is.null(d) || nrow(d) == 0 || !col %in% colnames(d)) return(character(0))
@@ -2806,7 +2806,7 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
   # read back after `variant_prefix` changed. Re-derive every name from the
   # scenario's OWN stored prefix.
   local({
-    tv <- tryCatch(scen@modInp@sets$variant, error = function(e) NULL)
+    tv <- tryCatch(object@modInp@sets$variant, error = function(e) NULL)
     if (is.null(tv) || NROW(tv) == 0) return(invisible(NULL))
     tv <- as.data.frame(tv)
     need <- c("name", "base", "vintage", "cluster")
@@ -2824,7 +2824,7 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
                  paste(utils::head(dup, 5), collapse = ", ")),
           severity = "structural")
     }
-    prefix <- .variant_prefix(scen)
+    prefix <- .variant_prefix(object)
     minted <- vapply(seq_len(nrow(tv)), function(i) {
       .variant_name(tv$base[i], tv$vintage[i], tv$cluster[i], prefix)
     }, character(1))
@@ -2846,7 +2846,7 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
                  paste(utils::head(tv$name[same], 5), collapse = ", ")),
           severity = "structural")
     }
-    proc <- tryCatch(as.character(scen@modInp@sets$process),
+    proc <- tryCatch(as.character(object@modInp@sets$process),
                      error = function(e) character())
     if (length(proc) > 0L) {
       gone <- setdiff(tv$name, proc)
@@ -2870,12 +2870,12 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
   # caught too.
   local({
     ag <- rbind(
-      .pl_agg_pairs(scen, "mTechProcAggRegion", "tech"),
-      .pl_agg_pairs(scen, "mStorageProcAggRegion", "stg")
+      .pl_agg_pairs(object, "mTechProcAggRegion", "tech"),
+      .pl_agg_pairs(object, "mStorageProcAggRegion", "stg")
     )
     if (is.null(ag) || nrow(ag) == 0) return(invisible(NULL))
-    outs <- tryCatch(get_process_outputs(scen), error = function(e) list())
-    stg <- tryCatch(get_process_stored(scen), error = function(e) list())
+    outs <- tryCatch(get_process_outputs(object), error = function(e) list())
+    stg <- tryCatch(get_process_stored(object), error = function(e) list())
     bad <- ag[vapply(seq_len(nrow(ag)), function(i) {
       p <- ag$process[i]; cm <- ag$comm[i]
       cm %in% as.character(outs[[p]]) || cm %in% as.character(stg[[p]])
@@ -2896,7 +2896,7 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
   # self-consistent between them. The truth is the timetable's own COLUMNS:
   # every child's positional parent must be a label that appears in the
   # child's own timetable row.
-  cal <- tryCatch(scen@settings@calendar, error = function(e) NULL)
+  cal <- tryCatch(object@settings@calendar, error = function(e) NULL)
   fam <- if (is.null(cal)) NULL else
     tryCatch(as.data.frame(cal@timeslice_family), error = function(e) NULL)
   tt <- if (is.null(cal)) NULL else
@@ -2938,7 +2938,7 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
   # from 1 it sits in a row with a 1 on the activity variable, and the row
   # ratio is what a solver has to scale away: an hourly calendar with
   # cap2act = 1 puts 1.1e-4 there. The remedy is the unit choice, not data.
-  sc <- .vsp_coefficient_scale(scen)
+  sc <- .vsp_coefficient_scale(object)
   for (i in seq_len(nrow(sc))) {
     add(sc$parameter[i], "coefficient_scale", sc$detail[i])
   }
@@ -3325,7 +3325,7 @@ map_comm_geoframe <- function(scen, comm = NULL) {
 
 #' Get operational timeframe of processes
 #'
-#' @param scen scenario object
+#' @param object scenario object
 #' @param process character vector of process names, if not provided,
 #' all processes retrieved from the scenario object
 #' @param comm_timeframe character vector of commodity timeframes, if not provided,
@@ -3333,11 +3333,11 @@ map_comm_geoframe <- function(scen, comm = NULL) {
 #'
 #' @returns a named list mapping each process to its operational timeframe.
 #' @export
-get_process_timeframe <- function(scen, process = NULL,
+get_process_timeframe <- function(object, process = NULL,
                                   comm_timeframe = NULL) {
   # collect assigned timeframes for all processes in the scenario
   ll <- apply_to_scenario_data(
-    scen = scen,
+    scen = object,
     classes = c(
       "process", "technology", "storage"
       # "trade",
@@ -3373,11 +3373,11 @@ get_process_timeframe <- function(scen, process = NULL,
 
   # replace empty/na values with commodity timeframes
   if (is.null(comm_timeframe)) {
-    comm_timeframe <- map_comm_timeframe(scen)
+    comm_timeframe <- map_comm_timeframe(object)
   }
 
   # create a table of processes, commodities, timeframes
-  process_comm <- get_process_comm(scen) |>
+  process_comm <- get_process_comm(object) |>
     named_list_to_df(col_names = c("process", "comm"))
 
   process_comm_timeframe <- process_comm |>
@@ -3409,7 +3409,7 @@ get_process_timeframe <- function(scen, process = NULL,
   # finer balance and demand leaks to imports.
   process_comm_timeframe <- process_comm_timeframe |>
     left_join(
-      named_list_to_df(scen@settings@calendar@timeframe_rank,
+      named_list_to_df(object@settings@calendar@timeframe_rank,
         col_names = c("timeframe", "timeframe_rank")
       ),
       by = "timeframe"
@@ -3421,7 +3421,7 @@ get_process_timeframe <- function(scen, process = NULL,
   check_timeframe <- process_comm_timeframe |>
     rename(timeframe_rank_process = timeframe_rank) |>
     left_join(
-      named_list_to_df(scen@settings@calendar@timeframe_rank,
+      named_list_to_df(object@settings@calendar@timeframe_rank,
         col_names = c("comm_timeframe", "timeframe_rank_comm")
       ),
       by = c("comm_timeframe")
@@ -3455,15 +3455,15 @@ get_process_timeframe <- function(scen, process = NULL,
   # disaggregated. Gated per class and per axis, so a class whose equations do
   # not carry the branch yet still errors.
   if (nrow(check_timeframe) > 0 && .coarse_axis_ready("timeslice")) {
-    .cls <- get_process_class(scen)
-    .ins <- tryCatch(get_process_inputs(scen), error = function(e) list())
-    .out <- tryCatch(get_process_outputs(scen), error = function(e) list())
-    .stg <- tryCatch(get_process_stored(scen), error = function(e) list())
+    .cls <- get_process_class(object)
+    .ins <- tryCatch(get_process_inputs(object), error = function(e) list())
+    .out <- tryCatch(get_process_outputs(object), error = function(e) list())
+    .stg <- tryCatch(get_process_stored(object), error = function(e) list())
     # the per-feature blockers apply on BOTH axes: a feature whose coarse form
     # is not written in every template must be refused here too, or a coarse
     # process carrying it is accepted and silently mis-modelled on the backends
     # that lack the branch
-    .objs <- tryCatch(.level_check_objects(scen), error = function(e) list())
+    .objs <- tryCatch(.level_check_objects(object), error = function(e) list())
     ok <- vapply(seq_len(nrow(check_timeframe)), function(i) {
       pr <- as.character(check_timeframe$process[i])
       cm <- as.character(check_timeframe$comm[i])
@@ -3514,14 +3514,14 @@ get_process_timeframe <- function(scen, process = NULL,
 
 #' Get class of processes
 #'
-#' @param scen scenario object
+#' @param object scenario object
 #' @param process character vector of process names, if not provided,
 #' all processes retrieved from the scenario object
 #' @param classes character vector of class names to search for
 #'
 #' @returns a named list mapping each process to its class.
 #' @export
-get_process_class <- function(scen, process = NULL, classes = NULL) {
+get_process_class <- function(object, process = NULL, classes = NULL) {
   # collect classes for processes in the scenario
   if (is.null(classes)) {
     classes <- c("process", "technology", "storage", "supply", "import",
@@ -3533,10 +3533,10 @@ get_process_class <- function(scen, process = NULL, classes = NULL) {
   # it; memoize per classes signature, fingerprinted on the object roster.
   ll <- .interp_memo(
     key = paste0("process_class|", paste(classes, collapse = ",")),
-    fingerprint = .interp_model_fp(scen),
+    fingerprint = .interp_model_fp(object),
     compute = function() {
       apply_to_scenario_data(
-        scen,
+        object,
         classes = classes,
         func = function(x) {
           ll <- list()
@@ -3556,14 +3556,14 @@ get_process_class <- function(scen, process = NULL, classes = NULL) {
 
 #' Get inputs of processes
 #'
-#' @param scen scenario object
+#' @param object scenario object
 #' @param process character vector of process names, if not provided,
 #' all processes retrieved from the scenario object
 #' @param classes character vector of class names to search for
 #'
 #' @returns a named list mapping each process to its input commodities.
 #' @export
-get_process_inputs <- function(scen, process = NULL, classes = NULL) {
+get_process_inputs <- function(object, process = NULL, classes = NULL) {
   if (is.null(classes)) {
     classes <- c(
       "process", "technology", "storage",
@@ -3579,7 +3579,7 @@ get_process_inputs <- function(scen, process = NULL, classes = NULL) {
   # collect all inputs for each process
 
   ll <- apply_to_scenario_data(
-    scen = scen,
+    scen = object,
     classes = classes,
     func = function(x) {
       # ll <- list(name = x@name, value = character())
@@ -3629,14 +3629,14 @@ get_process_inputs <- function(scen, process = NULL, classes = NULL) {
 
 #' Get output commodities for each process
 #'
-#' @param scen scenario object
+#' @param object scenario object
 #' @param process character vector of process names, if not provided,
 #' all processes retrieved from the scenario object
 #' @param classes character vector of class names to search for
 #'
 #' @returns a named list mapping each process to its output commodities.
 #' @export
-get_process_outputs <- function(scen, process = NULL, classes = NULL) {
+get_process_outputs <- function(object, process = NULL, classes = NULL) {
   if (is.null(classes)) {
     classes <- c(
       "process", "technology", "storage",
@@ -3648,7 +3648,7 @@ get_process_outputs <- function(scen, process = NULL, classes = NULL) {
   # collect all outputs for each process
 
   ll <- apply_to_scenario_data(
-    scen = scen,
+    scen = object,
     classes = classes,
     func = function(x) {
       # ll <- list(name = x@name, value = character())
@@ -3744,14 +3744,14 @@ get_process_outputs <- function(scen, process = NULL, classes = NULL) {
 
 #' Get auxiliary commodities for each process
 #'
-#' @param scen scenario object
+#' @param object scenario object
 #' @param process character vector of process names, if not provided,
 #' all processes retrieved from the scenario object
 #' @param classes character vector of class names to search for
 #'
 #' @returns a named list mapping each process to its auxiliary commodities.
 #' @export
-get_process_aux <- function(scen, process = NULL, classes = NULL) {
+get_process_aux <- function(object, process = NULL, classes = NULL) {
   if (is.null(classes)) {
     classes <- c("process", "technology", "storage", "trade")
     # "demand", "supply", "import", "export") # no aux
@@ -3759,7 +3759,7 @@ get_process_aux <- function(scen, process = NULL, classes = NULL) {
   # collect all outputs for each process
 
   ll <- apply_to_scenario_data(
-    scen = scen,
+    scen = object,
     classes = classes,
     func = function(x) {
       # ll <- list(name = x@name, value = character())
@@ -3796,15 +3796,15 @@ get_process_aux <- function(scen, process = NULL, classes = NULL) {
 #' would be derived from its ELC flows alone -- putting the level at the wrong
 #' resolution.
 #'
-#' @param scen scenario object
+#' @param object scenario object
 #' @param process optional character vector to restrict to
 #' @param classes classes to search; defaults to `"storage"`
 #' @returns a named list mapping each process to its stored commodity
 #' @export
-get_process_stored <- function(scen, process = NULL, classes = NULL) {
+get_process_stored <- function(object, process = NULL, classes = NULL) {
   if (is.null(classes)) classes <- "storage"
   ll <- apply_to_scenario_data(
-    scen = scen, classes = classes,
+    scen = object, classes = classes,
     func = function(x) {
       out <- list()
       out[[x@name]] <- character()
@@ -3823,7 +3823,7 @@ get_process_stored <- function(scen, process = NULL, classes = NULL) {
 
 #' Commodities associated with a processes
 #'
-#' @param scen scenario object
+#' @param object scenario object
 #' @param process character vector of process names, if not provided,
 #' @param classes character vector of class names to search for
 #' @param return_list logical, if TRUE, return a list of results, otherwise
@@ -3831,19 +3831,19 @@ get_process_stored <- function(scen, process = NULL, classes = NULL) {
 #'
 #' @returns a named list, or a data.frame with columns `process` and `comm`.
 #' @export
-get_process_comm <- function(scen, process = NULL, classes = NULL,
+get_process_comm <- function(object, process = NULL, classes = NULL,
                              return_list = TRUE) {
 
   # collect all commodities for each process
-  ll_inp <- get_process_inputs(scen, process = process, classes = classes)
-  ll_out <- get_process_outputs(scen, process = process, classes = classes)
-  ll_aux <- get_process_aux(scen, process = process, classes = classes)
+  ll_inp <- get_process_inputs(object, process = process, classes = classes)
+  ll_out <- get_process_outputs(object, process = process, classes = classes)
+  ll_aux <- get_process_aux(object, process = process, classes = classes)
   # ... and what a storage HOLDS, which may be neither (H2: ELC in, H2 stored,
   # ELC out). Without it the stored commodity never reaches the process
   # timeframe resolution and the level lands at the wrong one.
   stg_cls <- if (is.null(classes)) "storage" else intersect(classes, "storage")
   ll_stg <- if (length(stg_cls)) {
-    get_process_stored(scen, process = process, classes = stg_cls)
+    get_process_stored(object, process = process, classes = stg_cls)
   } else {
     list()   # caller asked for other classes only -- do not inject storages
   }
@@ -3910,7 +3910,7 @@ nl2df <- named_list_to_df
 
 #' Get regions for each process
 #'
-#' @param scen scenario object
+#' @param object scenario object
 #' @param process character vector of process names, if not provided,
 #' all processes in the scenario are returned.
 #' @param classes character vector of class names to search for
@@ -3925,7 +3925,7 @@ nl2df <- named_list_to_df
 #' pair. The data frame is unique and sorted by process and region.
 #'
 #' @export
-get_process_region <- function(scen, process = NULL, classes = NULL,
+get_process_region <- function(object, process = NULL, classes = NULL,
                                return_list = TRUE) {
   # collect all regions for each process
   if (is.null(classes)) {
@@ -3938,11 +3938,11 @@ get_process_region <- function(scen, process = NULL, classes = NULL,
 
   # Default scope stays the DECLARED (finest) regions: an object with no
   # `@region` exists in every real place, never at a geoscale nation or zone.
-  scen_regions <- scen@settings@region
+  scen_regions <- object@settings@region
   # ... but an EXPLICIT `@region` may name a coarser level, which is how a
   # national demand for a nationally-balanced commodity is declared. Validation
   # therefore runs against the whole hierarchy.
-  .h <- .geo_hierarchy(getGeoscale(scen@settings), as.character(scen_regions))
+  .h <- .geo_hierarchy(getGeoscale(object@settings), as.character(scen_regions))
   known_regions <- if (is.null(.h)) scen_regions else .h$region
 
   # Region scope of each object (uniform rule for all classes):
@@ -3955,7 +3955,7 @@ get_process_region <- function(scen, process = NULL, classes = NULL,
   #   * Trade has no `@region`; its scope is the structural route endpoints
   #     (`src`/`dst`).
   info <- apply_to_scenario_data(
-    scen = scen,
+    scen = object,
     classes = classes,
     func = function(x) {
       reg <- if (.hasSlot(x, "region")) unique(as.character(x@region)) else character()
@@ -4023,14 +4023,14 @@ get_process_region <- function(scen, process = NULL, classes = NULL,
 
 #' Start and end years for process by region
 #'
-#' @param scen scenario object
+#' @param object scenario object
 #' @param process character vector of process names, if not provided,
 #' @param classes character vector of class names to search for
 #'
 #' @returns data frame with columns `process`, `region`, `start`, `end`
 #' @export
 #'
-get_process_invest_window <- function(scen, process = NULL, classes = NULL) {
+get_process_invest_window <- function(object, process = NULL, classes = NULL) {
   # collect all lifespans for each process
   if (is.null(classes)) {
     classes <- c(
@@ -4048,7 +4048,7 @@ get_process_invest_window <- function(scen, process = NULL, classes = NULL) {
   # cell, asserted in `.assert_variants_expanded()`.
   collect_col <- function(col) {
     rows <- apply_to_scenario_data(
-      scen = scen,
+      scen = object,
       classes = classes,
       func = function(x) {
         ll <- list()
@@ -4085,7 +4085,7 @@ get_process_invest_window <- function(scen, process = NULL, classes = NULL) {
       as.data.table()
   }
 
-  reg_map <- named_list_to_df(scen@modInp@sets$process_region,
+  reg_map <- named_list_to_df(object@modInp@sets$process_region,
                               col_names = c("process", "region"))
   expand_na <- function(d) {
     # broadcast NA-region rows fill ONLY the regions without a specific
@@ -4391,7 +4391,7 @@ get_process_years <- function(scen, process = NULL, classes = NULL) {
 
 #' Return default value for one, several, or all parameters
 #'
-#' @param scen scenario object
+#' @param object scenario object
 #' @param pname character, parameter name, as it appears in the model
 #' @param sname character, short name of the parameter, as it appears in classes
 #' @param oname character, object name; accepted for symmetry with the other
@@ -4412,13 +4412,13 @@ get_process_years <- function(scen, process = NULL, classes = NULL) {
 #' A default value for one parameter, or a list of default values for several parameters.
 #' @export
 get_default_value <- function(
-    scen = NULL,
+    object = NULL,
     pname = NULL,
     sname = NULL,
     oname = NULL,
     class = NULL,
     bound = NULL,
-    global = is.null(scen),
+    global = is.null(object),
     one_value = FALSE
     ) {
   # global defaults from .modInp

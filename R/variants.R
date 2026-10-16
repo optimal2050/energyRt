@@ -1828,7 +1828,7 @@ expand_tech_variants <- function(mod, prefix = .variant_prefix(mod),
 #' interpolating: the names a constraint, levy or report will have to refer to.
 #' The expansion runs on a throwaway copy, so the model passed in is unchanged.
 #'
-#' @param scen a `scenario` object, or a `model` to expand on the fly.
+#' @param object a `scenario` object, or a `model` to expand on the fly.
 #' @param class optional character, keep only variants of these process classes
 #'   (e.g. `"technology"`, `"storage"`).
 #'
@@ -1836,14 +1836,14 @@ expand_tech_variants <- function(mod, prefix = .variant_prefix(mod),
 #'   `cluster`, or `NULL` when the model has no variants.
 #' @family technology process
 #' @export
-getVariants <- function(scen, class = NULL) {
-  tv <- if (methods::is(scen, "model")) {
+getVariants <- function(object, class = NULL) {
+  tv <- if (methods::is(object, "model")) {
     # the same provenance the interpolation would record, from the model's own
     # `variant_prefix`; the expanded copy is discarded
-    expand_variants(scen, prefix = .variant_prefix(scen),
+    expand_variants(object, prefix = .variant_prefix(object),
                     verbose = FALSE)$provenance
   } else {
-    tryCatch(scen@modInp@sets$variant, error = function(e) NULL)
+    tryCatch(object@modInp@sets$variant, error = function(e) NULL)
   }
   if (is.null(tv) || NROW(tv) == 0) return(NULL)
   tv <- as.data.frame(tv)
@@ -1864,7 +1864,7 @@ getVariants <- function(scen, class = NULL) {
 #' vintage" view -- e.g. the spread of capacity factors across wind resource
 #' clusters, or of capacity across vintages.
 #'
-#' @param scen a solved `scenario`.
+#' @param object a solved `scenario`.
 #' @param name character, name of the variable or parameter (e.g. `"vTechCap"`).
 #' @param by character vector, variant dimensions to keep as grouping columns:
 #'   any of `"vintage"` and `"cluster"`. Empty (default) summarises across all
@@ -1878,14 +1878,14 @@ getVariants <- function(scen, class = NULL) {
 #'   `sd`, `min` and `max`.
 #' @family technology process
 #' @export
-variantSummary <- function(scen, name, by = character(), weight = NULL, ...) {
+variantSummary <- function(object, name, by = character(), weight = NULL, ...) {
   by <- intersect(by, c("vintage", "cluster"))
-  d <- getData(scen, name = name, merge = TRUE, variants = TRUE, ...)
+  d <- getData(object, name = name, merge = TRUE, variants = TRUE, ...)
   if (NROW(d) == 0) {
-    stop("No data for '", name, "' in scenario '", scen@name, "'.")
+    stop("No data for '", name, "' in scenario '", object@name, "'.")
   }
   if (!"base" %in% names(d)) {
-    stop("Scenario '", scen@name, "' has no process variants.")
+    stop("Scenario '", object@name, "' has no process variants.")
   }
   d <- d |> filter(!is.na(.data$base))
   if (nrow(d) == 0) {
@@ -1895,7 +1895,7 @@ variantSummary <- function(scen, name, by = character(), weight = NULL, ...) {
   idcol <- intersect(c("tech", "stg", "trade", "sup", "expp", "imp",
                        "process"), names(d))[1]
   if (!is.null(weight)) {
-    w <- getData(scen, name = weight, merge = TRUE, variants = TRUE, ...)
+    w <- getData(object, name = weight, merge = TRUE, variants = TRUE, ...)
     keys <- intersect(names(d), names(w))
     keys <- setdiff(keys, c("value", "name", "scenario"))
     w <- w |> select(all_of(c(keys, "value"))) |> rename(.w = "value")

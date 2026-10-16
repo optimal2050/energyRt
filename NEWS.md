@@ -69,6 +69,14 @@ changes* first. The change-by-change log for the whole cycle (450 entries) is in
   `C1`–`C6`, `E1`–`E3`, and its four standalone datasets are folded into
   `topia`. The test tier `nightly` is renamed `full`.
 
+* **The first argument is `object`** wherever a function takes an energyRt
+  object: 66 functions that said `obj`, `mod` or `scen` now say `object`
+  (`getData()`, `interpolate_model()`, `solve_model()` and the solve drivers,
+  the scenario-store verbs, `get_process_*()`, …). Positional calls are
+  unaffected; a call naming the argument (`getData(scen = s)`) must be updated.
+  `x` stays where the argument is data rather than a model object, and generics
+  defined elsewhere (`summary()`, `autoplot()`, `update()`) keep their formals.
+
 * `storage@cap2stg` is refused rather than renamed: it became `@duration` in
   0.80, and the compatibility shim is gone. The error names the replacement.
 

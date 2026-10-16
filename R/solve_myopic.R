@@ -130,7 +130,7 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #' PATHS are the meaningful comparison, and [myopic_objective()] recomputes
 #' a globally discounted total cost over the decided years.
 #'
-#' @param mod a model.
+#' @param object a model.
 #' @param name character, sequence name (default `"<model>_myopic"`); names
 #'   the scenario (or the per-step scenario prefix).
 #' @param ... forwarded to [interpolate_model()] for every step (settings /
@@ -160,7 +160,7 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #' @seealso [horizon_windows()], [solution_ledger()], [apply_ledger()],
 #'   [myopic_objective()]
 #' @export
-solve_myopic <- function(mod, name = NULL, ...,
+solve_myopic <- function(object, name = NULL, ...,
                          horizon = NULL, step = 1L, overlap = 0L,
                          carry = c("capacity", "budgets"),
                          solver = NULL, tolerance = 1e-6,
@@ -170,20 +170,20 @@ solve_myopic <- function(mod, name = NULL, ...,
                          on_error = c("stop", "return"),
                          verbose = TRUE) {
   .log_t0 <- Sys.time()
-  stopifnot(is(mod, "model"))
+  stopifnot(is(object, "model"))
   store <- match.arg(store)
   on_error <- match.arg(on_error)
-  name <- name %||% paste0(mod@name, "_myopic")
+  name <- name %||% paste0(object@name, "_myopic")
   .assert_object_name(name, "name")
-  horizon <- horizon %||% tryCatch(mod@config@horizon, error = function(e) NULL)
+  horizon <- horizon %||% tryCatch(object@config@horizon, error = function(e) NULL)
   if (is.null(horizon) || nrow(horizon@intervals) == 0) {
     stop("No horizon: pass `horizon =` or give the model one.")
   }
   windows <- horizon_windows(horizon, step = step, overlap = overlap)
-  .myopic_warn_intertemporal(mod)
+  .myopic_warn_intertemporal(object)
   # one folder for the whole sequence: the default path derivation includes
   # the (per-window) horizon name, so pin the path explicitly
-  seq_path <- fp(get_scenarios_path(), .path_slug(name, mod@name))
+  seq_path <- fp(get_scenarios_path(), .path_slug(name, object@name))
 
   ledger <- .ledger_new()
   scens <- list()
@@ -220,9 +220,9 @@ solve_myopic <- function(mod, name = NULL, ...,
                                                     collapse = ", "), ")"))
     }
     mod_k <- if (k == 1L) {
-      mod
+      object
     } else {
-      apply_ledger(mod, ledger, w$horizon, carry = carry,
+      apply_ledger(object, ledger, w$horizon, carry = carry,
                          tolerance = tolerance, verbose = FALSE)
     }
     sol <- tryCatch({
@@ -287,11 +287,11 @@ solve_myopic <- function(mod, name = NULL, ...,
   .en_log("myopic", name,
           status = if (failed) "failed" else "ok",
           duration = difftime(Sys.time(), .log_t0, units = "secs"),
-          model = mod@name, steps = nrow(steps),
+          model = object@name, steps = nrow(steps),
           step = step, overlap = overlap, store = store)
 
   structure(list(
-    name = name, model = mod, steps = steps, scenarios = scens,
+    name = name, model = object, steps = steps, scenarios = scens,
     ledger = ledger, carry = carry, tolerance = tolerance,
     store = store, horizon = horizon,
     path = if (length(scens)) scens[[length(scens)]]@path else NULL,
@@ -312,8 +312,8 @@ print.myopic <- function(x, ...) {
 }
 
 #' @export
-getData.myopic <- function(scen, name = NULL, ..., merge = TRUE) {
-  x <- scen
+getData.myopic <- function(object, name = NULL, ..., merge = TRUE) {
+  x <- object
   if (length(x$scenarios) == 0) {
     stop("The myopic result kept no scenario objects ",
          "(keep_scenarios = FALSE); re-run with keep_scenarios = TRUE.")

@@ -32,7 +32,7 @@
 #' must pass every check; a failure indicates a solver, template, writer, or
 #' reader defect -- or a corrupted solution.
 #'
-#' @param scen a solved `scenario` (must carry `modOut` variables).
+#' @param object a solved `scenario` (must carry `modOut` variables).
 #' @param checks character. Individual check names, or the sentinels
 #'   `"default"` (the cheap set, run everywhere) and `"all"`. See
 #'   [verify_checks()] for the vocabulary, each check's group, and which data
@@ -74,11 +74,11 @@
 #' print(vs)
 #' }
 #' @export
-verify_solution <- function(scen,
+verify_solution <- function(object,
                             checks = "default",
                             tol_rel = 1e-6, tol_abs = 1e-6,
                             verbose = FALSE) {
-  stopifnot(is(scen, "scenario"))
+  stopifnot(is(object, "scenario"))
   # NB the vocabulary is passed EXPLICITLY rather than left as the formal
   # default: `match.arg(several.ok = TRUE)` returns every choice when the
   # argument is its own default, which would silently make "all" the default
@@ -86,16 +86,16 @@ verify_solution <- function(scen,
   checks <- match.arg(checks, c("default", "all", .vs_check_names()),
                       several.ok = TRUE)
   checks <- .vs_expand_checks(checks)
-  ctx <- list(scen = scen, tol_rel = tol_rel, tol_abs = tol_abs)
+  ctx <- list(scen = object, tol_rel = tol_rel, tol_abs = tol_abs)
 
   reg <- .vs_registry()
-  # The object-path checks read `scen@model@data` and would happily run on an
+  # The object-path checks read `object@model@data` and would happily run on an
   # unsolved scenario -- which would make `verify_solution()` return ok = TRUE
   # for a scenario carrying no solution at all. That is the "nothing verified"
   # defect `ok`/`n_ran` exist to prevent, so every check here is gated on the
   # solution being present. Checking inputs WITHOUT solving is `validate_*`'s
   # half of the verb split, not `verify_*`'s.
-  has_sol <- .vs_has_solution(scen)
+  has_sol <- .vs_has_solution(object)
   res <- lapply(checks, function(nm) {
     if (verbose) {
       message("verify_solution: ", nm, " (", reg[[nm]]$group, ") ... ",
@@ -125,7 +125,7 @@ verify_solution <- function(scen,
   # reported OPTIMAL sailed through `expect_true(vs$ok)`. A verification that
   # verified nothing is not a pass.
   out <- list(
-    scenario = scen@name,
+    scenario = object@name,
     ok = sum(.status == "violated") == 0L && .n_ran > 0L,
     n_ran = .n_ran,
     n_skipped = sum(.status == "skipped"),

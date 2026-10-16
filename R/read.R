@@ -189,7 +189,7 @@
 #' Re-deriving that on demand would also need `@modInp`, since the set members
 #' come from the problem — and a variant swap may have replaced it.
 #'
-#' @param obj scenario object.
+#' @param object scenario object.
 #' @param run character, optional run to read: `"<solve>"` for a base-problem
 #'   run or `"<variant>/<solve>"` — see [scenario_runs()]. The scenario's
 #'   active run switches to it. Default `NULL` reads the active run (or, for
@@ -224,8 +224,8 @@
 #' scen <- read_solution(scen, run = "low/glpk")  # a variant's run
 #' }
 
-read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
-  scen <- obj
+read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object)) {
+  scen <- object
   ## arguments
   # scen
   # readOutputFunction = read.csv (may use data.table::fread)
@@ -308,7 +308,7 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
       warning("Scenario '", scen@name, "': ", verdict,
               ". No solution was written to ", arg$solver.dir,
               call. = FALSE)
-      return(invisible(obj))
+      return(invisible(object))
     }
     # The run's own imported store, if it has one. A FALLBACK, never a
     # preference: `solve_scenario()` overwrites a run's `output/` in place
@@ -336,7 +336,7 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
       stop(msg, call. = FALSE)
     }
     message(msg)
-    return(invisible(obj))
+    return(invisible(object))
   }
   if (file.exists(paste(arg$solver.dir, "/output/variable_list2.csv", sep = ""))) {
     vrb_list2 <- arg$readOutputFunction(

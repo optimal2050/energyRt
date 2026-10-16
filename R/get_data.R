@@ -11,16 +11,16 @@
 #'     contained objects.
 #' }
 #'
-#' @param scen a \code{scenario} (or list of scenarios), a model object, a
+#' @param object a \code{scenario} (or list of scenarios), a model object, a
 #'   \code{model}, or a \code{repository}.
 #' @param ... passed to the dispatched method (filters, \code{name}, \code{merge}, ...).
 #' @seealso the per-class methods for the full argument list.
 #' @export
-getData <- function(scen, ...) UseMethod("getData")
+getData <- function(object, ...) UseMethod("getData")
 
 #' Performs search for available data in _scenario_ object.
 #'
-#' @param scen object _scenario_ with model solution.
+#' @param object object _scenario_ with model solution.
 #' @param dataType type of data to lok for (currently only "parameters" and "variables").
 #' @param dropEmpty logical, if TRUE drops parameters and variables with zero length.
 #' @param valueColumn logical, if TRUE will return variables and parameters with 'value' column (to filter sets and mappings).
@@ -35,7 +35,7 @@ getData <- function(scen, ...) UseMethod("getData")
 #' @return list with variables and parameters name, each includes _dim_ and _names_ character vectors.
 #'
 #' @export
-findData <- function(scen,
+findData <- function(object,
                      dataType = c("parameters", "variables"),
                      setsNames_ = NULL,
                      valueColumn = TRUE,
@@ -52,8 +52,8 @@ findData <- function(scen,
   ii <- dataType == "parameters"
   if (any(ii)) {
     dataType <- dataType[!ii]
-    # dat <- scen@modInp@parameters
-    lt <- lapply(scen@modInp@parameters, function(x) {
+    # dat <- object@modInp@parameters
+    lt <- lapply(object@modInp@parameters, function(x) {
       # if (dim(x@data)[1] > 0 || !dropEmpty) {
       # cat(x@name, " ")
       qu <- get_lazy_dim_names(x, slot = "data")
@@ -74,12 +74,12 @@ findData <- function(scen,
   if (any(ii)) {
     lt <- list()
     dataType <- dataType[!ii]
-    for (v in names(scen@modOut@variables)) {
+    for (v in names(object@modOut@variables)) {
       # The `variable` object itself, exactly as the parameter branch above
       # passes the `parameter`. Passing the modOut container instead returns
       # `colnames()` of an S4 object -- NULL -- and the value-column filter
       # below then drops every variable without a word.
-      qu <- get_lazy_dim_names(scen@modOut@variables[[v]], slot = "data")
+      qu <- get_lazy_dim_names(object@modOut@variables[[v]], slot = "data")
       lt[[v]] <- list(
         dim = qu$dim,
         names = qu$names
@@ -133,7 +133,7 @@ findData <- function(scen,
 #' Extracts information from scenario objects, based on filters.
 #'
 #' @rdname getData
-#' @param scen Object scenario or list of scenarios.
+#' @param object Object scenario or list of scenarios.
 #' @param ... filters for various sets (setname = c(val1, val2) or setname_ = "matching pattern"), see details.
 #' @param name character vector with names of parameters and/or variables.
 #' @param merge if TRUE, the search results will be merged in one dataframe; the named list will be returned if FALSE. When TRUE, a data.frame (empty if nothing matched) is always returned, never NULL.
@@ -182,7 +182,7 @@ findData <- function(scen,
 #' @param verbose logical, print progress and diagnostic messages.
 #' @param sets logical, include set-type parameters in the result (by default
 #'   only value-bearing parameters are returned).
-#' @param obj the object whose data is returned, for the per-class methods
+#' @param object the object whose data is returned, for the per-class methods
 #'   (`technology`, `commodity`, `storage`, ...).
 #' @param unfold logical, expand a stored parameter back over its full domain
 #'   before returning it.
@@ -205,7 +205,7 @@ findData <- function(scen,
 #' @method getData scenario
 #' @export
 getData.scenario <- function(
-    scen,
+    object,
     name = NULL,
     ...,
     merge = FALSE,
@@ -232,7 +232,7 @@ getData.scenario <- function(
     stringsAsFactors = FALSE,
     yearsAsFactors = FALSE,
     drop_duplicated_scenarios = TRUE,
-    scenNameInList = as.logical(length(scen) - 1),
+    scenNameInList = as.logical(length(object) - 1),
     unfold = TRUE,
     variants = TRUE,
     run = NULL,
@@ -265,26 +265,26 @@ getData.scenario <- function(
     }
   }
   # Select scenarios, check and add names if not provided
-  if (!is.list(scen)) {
-    scen <- list(scen)
-    names(scen) <- scen[[1]]@name
+  if (!is.list(object)) {
+    object <- list(object)
+    names(object) <- object[[1]]@name
   } else {
-    ii <- sapply(scen, class) == "scenario"
+    ii <- sapply(object, class) == "scenario"
     if (sum(ii) == 0) {
       message("Scenario object is not found")
       return(.getdata_empty(merge, asTibble))
     }
-    scen <- scen[ii] # keep scenarios only
-    nm <- names(scen)
-    if (is.null(nm)) nm <- rep("", length(scen))
+    object <- object[ii] # keep scenarios only
+    nm <- names(object)
+    if (is.null(nm)) nm <- rep("", length(object))
     ii <- nm == ""
-    nm[ii] <- sapply(scen[ii], function(x) x@name) # work on names
-    names(scen) <- nm
+    nm[ii] <- sapply(object[ii], function(x) x@name) # work on names
+    names(object) <- nm
     ii <- duplicated(nm)
     if (any(ii)) {
       if (drop_duplicated_scenarios) {
         warning("Dropping duplicated scenarios: ", nm[ii])
-        scen <- scen[!ii]
+        object <- object[!ii]
       } else {
         if (verbose) cat("Found scenarios with identical names: ", nm[ii], "\n")
       }
@@ -300,9 +300,9 @@ getData.scenario <- function(
   run_of <- NULL
   if (!is.null(run) && length(run)) {
     exp_scen <- list(); exp_run <- character(0); exp_nm <- character(0)
-    for (s in seq_along(scen)) {
-      sc0 <- scen[[s]]
-      nmi <- names(scen)[s]
+    for (s in seq_along(object)) {
+      sc0 <- object[[s]]
+      nmi <- names(object)[s]
       rids <- if (identical(as.character(run)[1], "all")) {
         rr <- tryCatch(scenario_runs(sc0)$run, error = function(e) character(0))
         rr[nzchar(rr)]
@@ -337,7 +337,7 @@ getData.scenario <- function(
               "). An own-problem variant has its own modInp, so these ",
               "results are not like-for-like.", call. = FALSE)
     }
-    scen <- exp_scen; names(scen) <- exp_nm; run_of <- exp_run
+    object <- exp_scen; names(object) <- exp_nm; run_of <- exp_run
   }
 
   # Identify filters
@@ -369,8 +369,8 @@ getData.scenario <- function(
   # Fishing for the data in scenarios
   ll <- list()
   parvar <- c(parameters = parameters, variables = variables)
-  for (s in 1:length(scen)) { # loop over scenarios
-    sc <- names(scen)[s]
+  for (s in 1:length(object)) { # loop over scenarios
+    sc <- names(object)[s]
     # Data availability: an un-interpolated scenario has no modInp parameters.
     # Solvedness is read off `@stage` OR off actual DATA rows -- `modOut`
     # pre-populates one empty `variable` per declared variable (so COUNTING
@@ -379,16 +379,16 @@ getData.scenario <- function(
     # odd status code) still exports its incumbent, and withholding it
     # silently made getData() return an empty frame while the data sat in
     # `@modOut` in plain sight. Serve it, and SAY so.
-    stage_s <- tryCatch(scen[[s]]@modOut@stage, error = function(e) "")
+    stage_s <- tryCatch(object[[s]]@modOut@stage, error = function(e) "")
     solved_s <- identical(stage_s, "solved")
     has_rows_s <- tryCatch(
-      any(vapply(scen[[s]]@modOut@variables,
+      any(vapply(object[[s]]@modOut@variables,
                  function(v) {
                    nrow(v@data) > 0 || isTRUE(v@misc$onDisk$data$dim[1] > 0)
                  }, logical(1))),
       error = function(e) FALSE)
     avail <- c(
-      parameters = tryCatch(length(scen[[s]]@modInp@parameters) > 0,
+      parameters = tryCatch(length(object[[s]]@modInp@parameters) > 0,
         error = function(e) FALSE),
       variables = solved_s || has_rows_s
     )
@@ -396,7 +396,7 @@ getData.scenario <- function(
         nzchar(stage_s)) {
       # only speak up when the query can actually touch variables: a full
       # dump, or a name matching a declared variable
-      vnames <- tryCatch(names(scen[[s]]@modOut@variables),
+      vnames <- tryCatch(names(object[[s]]@modOut@variables),
                          error = function(e) character(0))
       touches <- is.null(name) ||
         any(tolower(vnames) %in% tolower(as.character(name)))
@@ -412,7 +412,7 @@ getData.scenario <- function(
     if (verbose && !any(avail)) {
       message("Scenario '", sc, "' has no interpolated/solved data to extract.")
     }
-    # if(is.null(scen[[sc]]@modInp@parameters$pDemand@data$comm)) {scen[[sc]] <- .addComm2pDemand(scen[[sc]])}
+    # if(is.null(object[[sc]]@modInp@parameters$pDemand@data$comm)) {object[[sc]] <- .addComm2pDemand(object[[sc]])}
     for (datype in names(parvar)[parvar]) { # loop over data sources
       if (!isTRUE(avail[[datype]])) {
         if (verbose) cat("No", datype, "available in scenario '", sc, "'.\n")
@@ -428,7 +428,7 @@ getData.scenario <- function(
       } else {
         sets_names <- NULL
       }
-      lt <- findData(scen[[s]],
+      lt <- findData(object[[s]],
         dataType = datype, setsNames_ = sets_names,
         valueColumn = !(sets || maps),
         ignore.case = ignore.case
@@ -441,7 +441,7 @@ getData.scenario <- function(
         if (maps) keep_types <- c(keep_types, "map")
         keep_types <- unique(keep_types)
         ptype <- vapply(names(lt), function(nm) {
-          p <- scen[[s]]@modInp@parameters[[nm]]
+          p <- object[[s]]@modInp@parameters[[nm]]
           if (is.null(p) || !methods::.hasSlot(p, "type")) {
             return(NA_character_)
           }
@@ -501,7 +501,7 @@ getData.scenario <- function(
       } else {
         for (pv in pvNames) { # selected pars/vars
           if (datype == "parameters") {
-            dat <- get_lazy_data(scen[[s]]@modInp@parameters[[pv]],
+            dat <- get_lazy_data(object[[s]]@modInp@parameters[[pv]],
               slot = "data"
             )
             if (!is.null(dat)) {
@@ -510,16 +510,16 @@ getData.scenario <- function(
             # Unfold wildcard (NA) rows of folded parameters back to explicit
             # members at read time, using the scenario's membership maps.
             if (isTRUE(unfold) && !is.null(dat) && nrow(dat) > 0) {
-              fi <- scen[[s]]@modInp@parameters[[pv]]@misc[["fold_info"]]
+              fi <- object[[s]]@modInp@parameters[[pv]]@misc[["fold_info"]]
               if (!is.null(fi) && isTRUE(fi[["folded"]])) {
                 dat <- unfold_scenario_parameter(
-                  scen[[s]], scen[[s]]@modInp@parameters[[pv]]
+                  object[[s]], object[[s]]@modInp@parameters[[pv]]
                 )
               }
             }
           } else {
-            # dat <- scen[[sc]]@modOut@variables[[pv]]
-            dat <- get_lazy_data(scen[[s]]@modOut@variables[[pv]],
+            # dat <- object[[sc]]@modOut@variables[[pv]]
+            dat <- get_lazy_data(object[[s]]@modOut@variables[[pv]],
               slot = "data"
             )
             if (!is.null(dat)) {
@@ -666,7 +666,7 @@ getData.scenario <- function(
   # `modInp@sets$tech_variant` so results can be analysed (or rolled up) by
   # vintage and cluster without ever parsing the mangled variant names.
   if (isTRUE(variants) && length(ll) > 0) {
-    tv <- tryCatch(scen[[1]]@modInp@sets$variant, error = function(e) NULL)
+    tv <- tryCatch(object[[1]]@modInp@sets$variant, error = function(e) NULL)
     if (is.null(tv) || NROW(tv) == 0) {
       if (verbose) message("No technology variants in this scenario.")
     } else {
@@ -676,7 +676,7 @@ getData.scenario <- function(
 
   # Sub-annual time aggregation (timeslice roll-up), see `timeframe` argument.
   if (length(ll) > 0) {
-    cal <- tryCatch(scen[[1]]@settings@calendar, error = function(e) NULL)
+    cal <- tryCatch(object[[1]]@settings@calendar, error = function(e) NULL)
     if (!is.null(cal)) ll <- .apply_timeframe(ll, cal, timeframe)
   }
 
@@ -684,7 +684,7 @@ getData.scenario <- function(
   # `geoframe = "finest"` (the default) leaves results at native resolution --
   # so this changes nothing unless asked for.
   if (length(ll) > 0 && !identical(tolower(as.character(geoframe)[1]), "finest")) {
-    hier <- tryCatch(.scen_geo_hierarchy(scen[[1]]), error = function(e) NULL)
+    hier <- tryCatch(.scen_geo_hierarchy(object[[1]]), error = function(e) NULL)
     if (!is.null(hier)) ll <- .apply_geoframe(ll, hier, geoframe)
   }
 
@@ -723,7 +723,7 @@ getData.scenario <- function(
       }
       if (!is.null(dat$year)) {
         if (yearsAsFactors) {
-          dat$year <- .crs2fct(dat$year, labels = .year_label_safe(scen))
+          dat$year <- .crs2fct(dat$year, labels = .year_label_safe(object))
         } else {
           dat$year <- .crs2int(dat$year)
         }
@@ -743,7 +743,7 @@ getData.scenario <- function(
           if (yearsAsFactors) {
             if (!is(ll[[i]]$year, "factor")) {
               ll[[i]]$year <- .crs2fct(ll[[i]]$year,
-                                       labels = .year_label_safe(scen))
+                                       labels = .year_label_safe(object))
             }
           } else {
             ll[[i]]$year <- .crs2int(ll[[i]]$year)
@@ -784,9 +784,9 @@ getData.list <- getData.scenario
 #' @rdname getData
 #' @method getData character
 #' @export
-getData.character <- function(scen, ...) {
-  scens <- lapply(scen, getScenario)
-  names(scens) <- scen
+getData.character <- function(object, ...) {
+  scens <- lapply(object, getScenario)
+  names(scens) <- object
   getData.scenario(scens, ...)
 }
 
@@ -795,16 +795,16 @@ getData.character <- function(scen, ...) {
 #' @rdname getData
 #' @method getData environment
 #' @export
-getData.environment <- function(scen, ...) {
-  getData.scenario(as.list(scen), ...)
+getData.environment <- function(object, ...) {
+  getData.scenario(as.list(object), ...)
 }
 
 #' @rdname getData
 #' @method getData default
 #' @export
-getData.default <- function(scen, ...) {
+getData.default <- function(object, ...) {
   stop(
-    "getData() has no method for class '", paste(class(scen), collapse = "/"),
+    "getData() has no method for class '", paste(class(object), collapse = "/"),
     "'. Supported: scenario (or list of scenarios), model, repository, and ",
     "model objects (technology, commodity, storage, supply, demand, trade).",
     call. = FALSE

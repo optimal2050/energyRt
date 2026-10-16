@@ -610,7 +610,7 @@ get_process_groups <- function(x, regions = NULL) {
 #' deliberately no "best k" here, and none in `nestedscales` either -- the
 #' number depends on what the model is for.
 #'
-#' @param mod a `model`.
+#' @param object a `model`.
 #' @param group a process group name, as [get_process_groups()] reports it.
 #' @param ks integer vector of cluster counts. `NULL` (default) sweeps the
 #'   whole admissible range: from one cluster per `level` region to one per
@@ -626,16 +626,16 @@ get_process_groups <- function(x, regions = NULL) {
 #' @seealso [get_process_groups()], [aggregate_model_regions()]
 #' @family geoscale
 #' @export
-process_cluster_sweep <- function(mod, group, ks = NULL, geoscale = NULL, level,
+process_cluster_sweep <- function(object, group, ks = NULL, geoscale = NULL, level,
                                features = NULL) {
-  stopifnot(inherits(mod, "model"))
+  stopifnot(inherits(object, "model"))
   check_package("nestedscales")
-  gs <- geoscale %||% tryCatch(mod@config@geoscale, error = function(e) NULL)
+  gs <- geoscale %||% tryCatch(object@config@geoscale, error = function(e) NULL)
   if (is.null(gs) || !is_geoscale(gs)) {
     stop("no geoscale: pass `geoscale=`, or attach one with setGeoscale().",
          call. = FALSE)
   }
-  gdf <- get_process_groups(mod)
+  gdf <- get_process_groups(object)
   if (!isTRUE(group %in% gdf$group)) {
     stop("`group` = \"", group, "\" is not a process group of this model; ",
          "one of: ", paste(gdf$group, collapse = ", "), call. = FALSE)
@@ -653,7 +653,7 @@ process_cluster_sweep <- function(mod, group, ks = NULL, geoscale = NULL, level,
          "instead -- that is what the choice is about.", call. = FALSE)
   }
   regs <- strsplit(g$regions, ",")[[1]]
-  objs <- .cl_all_objects(mod)
+  objs <- .cl_all_objects(object)
   long <- .cl_features(.cl_feature_table(objs[strsplit(g$members, ",")[[1]]],
                                         regs, features))
   lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
@@ -683,7 +683,7 @@ process_cluster_sweep <- function(mod, group, ks = NULL, geoscale = NULL, level,
 #' chose from when `k` was `"auto"`, and a geoscale carrying a `cluster`
 #' geoframe so the grouping can be plotted with [plot_geoscale()].
 #'
-#' @param mod a `model` returned by [aggregate_model_regions()].
+#' @param object a `model` returned by [aggregate_model_regions()].
 #'
 #' @return A named list, one element per process group, each with `k`,
 #'   `crosswalk` (`region`, `cluster`, `medoid`, `target`), `sweep` and
@@ -697,9 +697,9 @@ process_cluster_sweep <- function(mod, group, ks = NULL, geoscale = NULL, level,
 #' @seealso [aggregate_model_regions()], [process_cluster_sweep()]
 #' @family geoscale
 #' @export
-model_clusters <- function(mod) {
-  stopifnot(inherits(mod, "model"))
-  attr(mod, "clustering") %||% list()
+model_clusters <- function(object) {
+  stopifnot(inherits(object, "model"))
+  attr(object, "clustering") %||% list()
 }
 
 

@@ -656,7 +656,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 #' work unchanged. The transitional names `solve_mod()` / `solve_scen()` are
 #' deprecated aliases.
 #'
-#' @param obj a model object (`solve_model()`) or an interpolated scenario
+#' @param object a model object (`solve_model()`) or an interpolated scenario
 #'   object (`solve_scenario()`).
 #' @param name character name of the scenario to create / return.
 #' @param kvl logical or `NULL`; what the caller expects of Kirchhoff's
@@ -706,18 +706,18 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 #' @return a scenario object with the solution.
 #' @rdname solve_model
 #' @export
-solve_model <- function(obj, name = NULL, solver = NULL,
+solve_model <- function(object, name = NULL, solver = NULL,
                         ondisk = FALSE, fold = FALSE, ...) {
-  if (inherits(obj, "scenario")) {
+  if (inherits(object, "scenario")) {
     # convenience: interpolate an un-interpolated scenario before solving; an
     # already-interpolated scenario is solved as-is (its build knobs preserved)
-    if (!isTRUE(obj@status$interpolated)) {
-      obj <- interpolate_model(obj@model, name = obj@name)
+    if (!isTRUE(object@status$interpolated)) {
+      object <- interpolate_model(object@model, name = object@name)
     }
-    return(do.call(solve_scenario, c(list(obj = obj, solver = solver),
+    return(do.call(solve_scenario, c(list(object = object, solver = solver),
                                      list(...))))
   }
-  if (!inherits(obj, "model")) {
+  if (!inherits(object, "model")) {
     stop("`solve_model()` expects a model or scenario object. ",
          "Use `solve_scenario()` for an interpolated scenario.")
   }
@@ -734,24 +734,24 @@ solve_model <- function(obj, name = NULL, solver = NULL,
 
   scen <- do.call(
     interpolate_model,
-    c(list(mod = obj, name = name, ondisk = ondisk, fold = fold), iarg)
+    c(list(object = object, name = name, ondisk = ondisk, fold = fold), iarg)
   )
 
-  do.call(solve_scenario, c(list(obj = scen, solver = solver), sarg))
+  do.call(solve_scenario, c(list(object = scen, solver = solver), sarg))
 }
 
 #' @rdname solve_model
 #' @export
-solve_scenario <- function(obj, name = obj@name, solver = NULL, solver.dir = NULL,
+solve_scenario <- function(object, name = object@name, solver = NULL, solver.dir = NULL,
                        transient = FALSE, force = FALSE, kvl = NULL,
                        variant = NULL, ...,
                        tmp.dir = NULL, tmp.del = NULL) {
   if (!is.null(variant)) {
-    # own-problem variant: the interpolated problem in `obj` belongs to this
+    # own-problem variant: the interpolated problem in `object` belongs to this
     # named variant — its solves land in runs/<variant>/<solve>/ and
     # save_scenario() stores its modInp under runs/<variant>/modInp/
     stopifnot(is.character(variant), length(variant) == 1L)
-    obj@misc$variant <- if (nzchar(variant)) variant else NULL
+    object@misc$variant <- if (nzchar(variant)) variant else NULL
   }
   .log_t0 <- Sys.time()
   if (!is.null(tmp.dir)) {
@@ -766,11 +766,11 @@ solve_scenario <- function(obj, name = obj@name, solver = NULL, solver.dir = NUL
       .frequency = "once", .frequency_id = "energyRt-tmp.del-deprecated")
     transient <- tmp.del
   }
-  if (!inherits(obj, "scenario")) {
+  if (!inherits(object, "scenario")) {
     stop("`solve_scenario()` expects a scenario built by `interpolate_model()`. ",
          "Use `solve_model()` for a model object.")
   }
-  if (!isTRUE(obj@status$interpolated)) {
+  if (!isTRUE(object@status$interpolated)) {
     stop("Scenario is not interpolated. Build it with `interpolate_model()` ",
          "or call `solve_model()` on the model.")
   }
@@ -779,14 +779,14 @@ solve_scenario <- function(obj, name = obj@name, solver = NULL, solver.dir = NUL
   # about to differ from what was asked for. KVL changes the answer, and the
   # difference is silent otherwise: a scenario built without it simply solves
   # the transport relaxation and reports nothing unusual.
-  .kvl_guard(obj, kvl)
-  if (isTRUE(obj@status$optimal) && !isTRUE(force)) {
+  .kvl_guard(object, kvl)
+  if (isTRUE(object@status$optimal) && !isTRUE(force)) {
     message("The scenario is already solved to optimal.\n",
             "Use 'force = TRUE' to solve it again.")
-    return(obj)
+    return(object)
   }
 
-  scen <- .finalize_interp(obj)
+  scen <- .finalize_interp(object)
   scen@name <- name
 
   # The `write_*` helpers read each parameter's in-memory `@data` slot. For an

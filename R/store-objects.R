@@ -68,7 +68,7 @@
 #' the data is genuinely absent from the object. Hash models before/without
 #' thinning — `save_model()` does.
 #'
-#' @param mod a model object.
+#' @param object a model object.
 #' @return character, the full hash. The store uses its first 8 characters
 #'   in directory names (`<name>@<hash8>`).
 #' @export
@@ -76,9 +76,9 @@
 #' \dontrun{
 #' model_hash(mod)
 #' }
-model_hash <- function(mod) {
-  stopifnot(is(mod, "model"))
-  rlang::hash(.strip_volatile(mod))
+model_hash <- function(object) {
+  stopifnot(is(object, "model"))
+  rlang::hash(.strip_volatile(object))
 }
 
 #' Content hash of any energyRt object
@@ -121,7 +121,7 @@ object_hash <- function(x) {
 #' `"name@hash8"`, or with `hash =`) via the registry first, then by scanning
 #' the store directory; `path` bypasses resolution and loads that directory.
 #'
-#' @param mod a model object.
+#' @param object a model object.
 #' @param name character, model name, `"name@hash8"`, or a store directory
 #'   path.
 #' @param hash character, full or short content hash to pin a version.
@@ -159,7 +159,7 @@ object_hash <- function(x) {
 #' @rdname model_store
 #' @export
 save_model <- function(
-    mod,
+    object,
     path = NULL,
     embed_repos = NULL,
     embed_datasets = NULL,
@@ -168,8 +168,8 @@ save_model <- function(
     overwrite = FALSE,
     rehash = TRUE,
     verbose = TRUE) {
-  stopifnot(is(mod, "model"))
-  if (!nzchar(mod@name)) stop("The model must have a non-empty @name")
+  stopifnot(is(object, "model"))
+  if (!nzchar(object@name)) stop("The model must have a non-empty @name")
   # "arrow" and "ipc" are aliases for feather, as in save_scenario(). These
   # stores used to pin parquet here for hash stability; they no longer do.
   # dataset_hash()/model_hash() run .dataset_canonical() over the payload,
@@ -186,15 +186,15 @@ save_model <- function(
   # so re-saving a just-saved/just-loaded model is a genuine no-op and an
   # edited one a clean update (never a spurious new entry, never an entry
   # overwritten with empty data).
-  if (!isInMemory(mod)) mod <- obj2mem(mod, verbose = FALSE)
+  if (!isInMemory(object)) object <- obj2mem(object, verbose = FALSE)
   # CRITICAL ORDER: the model hash is computed on the FULL model, before any
   # repository is replaced by a store reference below — the recorded hash
   # identifies the complete content regardless of how the repositories are
   # persisted (embedded vs referenced).
-  h <- model_hash(mod)
+  h <- model_hash(object)
   h8 <- substr(h, 1, 8)
   if (is.null(path)) {
-    path <- .store_entry_dir(get_models_path(), mod@name, h, type = "model")
+    path <- .store_entry_dir(get_models_path(), object@name, h, type = "model")
   }
   path <- gsub("[\\/]+", "/", path)
 
@@ -205,14 +205,14 @@ save_model <- function(
     prev <- tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
     if (!overwrite && !is.null(prev) && identical(prev$hash, h)) {
       if (verbose) {
-        message("Model '", mod@name, "' (", h8, ") is already in the store: ",
+        message("Model '", object@name, "' (", h8, ") is already in the store: ",
                 path)
       }
-      mod@misc$hash <- h
-      mod@misc$path <- path
-      return(invisible(mod))
+      object@misc$hash <- h
+      object@misc$path <- path
+      return(invisible(object))
     }
-    .seal_guard(prev, "model", mod@name, "unseal_model")
+    .seal_guard(prev, "model", object@name, "unseal_model")
     # rehash = FALSE: the user declares the change insignificant — write the
     # new content but KEEP the recorded hash (a version tag, not a content
     # proof; the manifest marks the exception with `hash_kept`)
@@ -233,8 +233,8 @@ save_model <- function(
   # TRUE always embeds; FALSE requires a store hit for every repository.
   repo_entries <- list()
   full_repos <- NULL
-  for (rp in names(mod@data)) {
-    repo <- mod@data[[rp]]
+  for (rp in names(object@data)) {
+    repo <- object@data[[rp]]
     if (!is(repo, "repository")) next
     rh <- tryCatch(repository_hash(repo), error = function(e) "")
     store_dir <- NULL
@@ -259,12 +259,12 @@ save_model <- function(
   ref_slots <- names(repo_entries)[vapply(repo_entries,
                                           \(e) e$source == "ref", logical(1))]
   if (length(ref_slots)) {
-    full_repos <- mod@data
+    full_repos <- object@data
     for (rp in ref_slots) {
       stub <- new("repository")
-      stub@name <- mod@data[[rp]]@name
+      stub@name <- object@data[[rp]]@name
       stub@misc$repo_ref <- repo_entries[[rp]]
-      mod@data[[rp]] <- stub
+      object@data[[rp]] <- stub
     }
     if (verbose) {
       cat("Repositories referenced from the store (not embedded): ",
@@ -281,15 +281,15 @@ save_model <- function(
   ds_entries <- list()
   full_config <- NULL
   if (!isTRUE(embed_datasets)) {
-    th <- .thin_dataset_slot(mod@config, embed_datasets, id = "config",
+    th <- .thin_dataset_slot(object@config, embed_datasets, id = "config",
                              verbose = verbose)
     if (!is.null(th$entry)) {
-      mod@config <- th$obj
+      object@config <- th$obj
       ds_entries[[length(ds_entries) + 1L]] <- th$entry
       full_config <- th$full
     }
-    for (rp in setdiff(names(mod@data), ref_slots)) {
-      repo <- mod@data[[rp]]
+    for (rp in setdiff(names(object@data), ref_slots)) {
+      repo <- object@data[[rp]]
       if (!is(repo, "repository")) next
       touched <- FALSE
       for (ob in names(repo@data)) {
@@ -302,26 +302,26 @@ save_model <- function(
         }
       }
       if (touched) {
-        if (is.null(full_repos)) full_repos <- mod@data
-        mod@data[[rp]] <- repo
+        if (is.null(full_repos)) full_repos <- object@data
+        object@data[[rp]] <- repo
       }
     }
   }
 
   dir.create(path, recursive = TRUE, showWarnings = FALSE)
   # thin the big data slots into parquet next to the manifest
-  mod <- obj2disk(mod, path = path, format = format, verbose = verbose)
-  mod@misc$hash <- h
+  object <- obj2disk(object, path = path, format = format, verbose = verbose)
+  object@misc$hash <- h
   # obj2disk records the path only when it wrote data slots; with everything
   # referenced there is nothing to write, so record it explicitly
-  mod@misc$path <- path
-  save(mod, file = fp(path, "mod.RData"))
+  object@misc$path <- path
+  save(object, file = fp(path, "mod.RData"))
   write("model", fp(path, "class"), append = FALSE)
   write(as.character(.SCENARIO_LAYOUT), fp(path, "layout"), append = FALSE)
   yaml::write_yaml(c(list(
     layout = .SCENARIO_LAYOUT,
     class = "model",
-    name = mod@name,
+    name = object@name,
     hash = h,
     created = prev$created %||% .registry_now(),
     updated = .registry_now(),
@@ -332,19 +332,19 @@ save_model <- function(
      if (hash_kept) list(hash_kept = TRUE),
      .lifecycle_carry(prev)), mf_path)
   # the returned in-memory object keeps its full repositories and geoscale
-  if (!is.null(full_repos)) mod@data <- full_repos
+  if (!is.null(full_repos)) object@data <- full_repos
   if (!is.null(full_config)) {
-    mod@config@geoscale <- full_config
-    mod@config@misc[["dataset_ref"]] <- NULL
+    object@config@geoscale <- full_config
+    object@config@misc[["dataset_ref"]] <- NULL
   }
   if (verbose) {
-    cat("Model '", mod@name, "' (", h8, ") saved in '", path, "'\n", sep = "")
+    cat("Model '", object@name, "' (", h8, ") saved in '", path, "'\n", sep = "")
   }
 
   if (isTRUE(registry)) {
     tryCatch({
       reg <- .registry_open()
-      reg <- add_to_registry(reg, "model", mod@name,
+      reg <- add_to_registry(reg, "model", object@name,
                           path = .registry_rel_path(path), hash = h)
       save_registry(reg)
     }, error = function(e) {
@@ -352,7 +352,7 @@ save_model <- function(
               conditionMessage(e), ")", call. = FALSE)
     })
   }
-  invisible(mod)
+  invisible(object)
 }
 
 # Resolve a content-addressed store directory from name/hash: registry first,

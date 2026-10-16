@@ -1,6 +1,6 @@
 #' Write scenario object as a Python, Julia, GAMS, or MathProg script with data files to a directory
 #'
-#' @param scen scenario object, must be interpolated
+#' @param object scenario object, must be interpolated
 #' @param x scenario object, as `scen` (the `write_sc()` spelling).
 #' @param solver.dir character, an external directory to write into; default
 #'   (`NULL`) writes into the run's `solver/` directory under the scenario
@@ -12,12 +12,12 @@
 #' @seealso [solve()] to run the script, solve the scenario. [read_solution] to read model solution.
 #'
 #' @export
-write_script <- function(scen, solver.dir = NULL, solver = NULL, ...) {
-  if (!isTRUE(scen@status$interpolated)) {
+write_script <- function(object, solver.dir = NULL, solver = NULL, ...) {
+  if (!isTRUE(object@status$interpolated)) {
     stop("Scenario must be interpolated before writing the script.")
   }
   # deprecated aliases in `...` are mapped by .executeScenario itself
-  .executeScenario(scen,
+  .executeScenario(object,
                    solver.dir = solver.dir, solver = solver,
                    run = FALSE, write = TRUE, ...)
 }

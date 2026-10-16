@@ -13,7 +13,7 @@
 #' `autoplot(scenario, ...)`, the scenario report, and any custom analysis
 #' (including sonification -- see the useR! training course).
 #'
-#' @param scen a solved `scenario` object, or a **named list** of scenarios
+#' @param object a solved `scenario` object, or a **named list** of scenarios
 #'   (results are row-bound with the list names in the `scenario` column).
 #' @param type character: `"generation"` (default -- output of `comm` by process,
 #'   with storage-in and exports negative), `"capacity"` (`vTechCap` +
@@ -60,7 +60,7 @@
 #' cl  <- getMix(scen, "capacity", by = "cluster")        # split by cluster
 #' }
 #' @export
-getMix <- function(scen,
+getMix <- function(object,
                    type = c("generation", "capacity", "new_capacity", "fuel"),
                    comm = "ELC", region = NULL, year = NULL, timeslice = NULL,
                    drop_small = 0, by = NULL, top_n = NULL) {
@@ -68,13 +68,13 @@ getMix <- function(scen,
   by <- if (is.null(by)) character() else intersect(by, c("vintage", "cluster"))
   # named list of scenarios -> row-bind (lumping applied per scenario, so
   # each keeps its own top set)
-  if (is.list(scen) && !isS4(scen)) {
-    out <- lapply(seq_along(scen), function(i) {
-      d <- getMix(scen[[i]], type = type, comm = comm, region = region,
+  if (is.list(object) && !isS4(object)) {
+    out <- lapply(seq_along(object), function(i) {
+      d <- getMix(object[[i]], type = type, comm = comm, region = region,
                   year = year, timeslice = timeslice, drop_small = drop_small,
                   by = by, top_n = top_n)
       if (!is.null(d) && nrow(d) > 0) {
-        nm <- names(scen)[i]
+        nm <- names(object)[i]
         if (!is.null(nm) && nzchar(nm)) d$scenario <- nm
       }
       d
@@ -83,14 +83,14 @@ getMix <- function(scen,
     rownames(out) <- NULL
     return(out)
   }
-  stopifnot(inherits(scen, "scenario"))
+  stopifnot(inherits(object, "scenario"))
 
   # `by` is shadowed by a local further down, so keep a copy under another name
   by_dims <- by
   # Variant provenance for every process class. By DEFAULT variants are rolled
   # back up to their base object, so existing charts do not fragment into one
   # series per vintage/cluster; pass `by = c("vintage", "cluster")` to split.
-  tv <- tryCatch(as.data.frame(scen@modInp@sets$variant),
+  tv <- tryCatch(as.data.frame(object@modInp@sets$variant),
                  error = function(e) NULL)
   if (!is.null(tv) && NROW(tv) == 0) tv <- NULL
   # `.mix_fetch()` resolves the id column to `process`, so match on `name`
@@ -124,7 +124,7 @@ getMix <- function(scen,
 
   rows <- list()
   for (p in pieces) {
-    d <- .mix_fetch(scen, p$var, native = !is.null(timeslice))
+    d <- .mix_fetch(object, p$var, native = !is.null(timeslice))
     if (is.null(d) || nrow(d) == 0) next
     # commodity filter (balanced commodity of the mix)
     if (!is.null(p$comm) && "comm" %in% names(d))
@@ -176,7 +176,7 @@ getMix <- function(scen,
 
   # inter-regional trade: only when a region subset is requested
   if (type == "generation" && !is.null(region)) {
-    tr <- .mix_fetch(scen, "vTradeIr", native = !is.null(timeslice))
+    tr <- .mix_fetch(object, "vTradeIr", native = !is.null(timeslice))
     if (!is.null(tr) && nrow(tr) > 0 && all(c("src", "dst") %in% names(tr))) {
       if (!is.null(year)) tr <- tr[tr$year %in% year, , drop = FALSE]
       if (!is.null(timeslice) && "timeslice" %in% names(tr))
@@ -216,7 +216,7 @@ getMix <- function(scen,
     d[, cols, drop = FALSE]
   })
   out <- do.call(rbind, rows)
-  out$scenario <- scen@name
+  out$scenario <- object@name
   out$type     <- type
   # pieces that carry no technology (trade, demand overlay) got NA on the
   # variant columns during column alignment
