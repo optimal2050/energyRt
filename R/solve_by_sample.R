@@ -78,6 +78,17 @@
 #'   and `count`.
 #' @seealso [solve_by_sample()]
 #' @export
+#' @examples
+#' cal <- topia$modules$calendars$s4_h24
+#'
+#' # two sequential blocks of timeslices, one row per (sample, timeslice)
+#' sam <- calendar_samples(cal, n = 2, seed = 1)
+#' sam
+#' head(as.data.frame(sam), 3)
+#'
+#' # two random samples of two seasons each, drawn without replacement
+#' calendar_samples(cal, level = "SEASON", sample_size = 2, n = 2,
+#'                  method = "random", seed = 42)
 calendar_samples <- function(calendar, level = NULL, sample_size = NULL,
                              n = NULL,
                              method = c("sequential", "random", "bootstrap"),
@@ -309,6 +320,25 @@ calendar_samples <- function(calendar, level = NULL, sample_size = NULL,
 #'   `samples` and `method`.
 #' @seealso [calendar_samples()], [sample_summary()], [solve_by_region()]
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$s4_h24,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#'
+#' # two random two-season samples of the calendar, each solved as a full year
+#' res <- solve_by_sample(mod, name = "BY_SAMPLE", level = "SEASON",
+#'                        sample_size = 2, n = 2, method = "random", seed = 1,
+#'                        solver = solver_options$glpk)
+#'
+#' # the spread across samples is the estimate's uncertainty, not a partition
+#' sample_summary(res, "vTechCap", by = "tech")
+#' }
 solve_by_sample <- function(object, name = NULL, ...,
                             samples = NULL, level = NULL,
                             sample_size = NULL, n = NULL,
@@ -467,6 +497,26 @@ solve_by_sample <- function(object, name = NULL, ...,
 #'   per requested quantile.
 #' @seealso [solve_by_sample()]
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$s4_h24,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#' res <- solve_by_sample(mod, name = "BY_SAMPLE", level = "SEASON",
+#'                        sample_size = 2, n = 2, method = "random", seed = 1,
+#'                        solver = solver_options$glpk)
+#'
+#' sample_summary(res, "vTechCap", by = "tech")
+#'
+#' # a wider band, by region as well
+#' sample_summary(res, "vTechNewCap", probs = c(0.1, 0.5, 0.9),
+#'                by = c("tech", "region"))
+#' }
 sample_summary <- function(x, name, probs = c(0.05, 0.5, 0.95), by = NULL,
                            ...) {
   stopifnot(inherits(x, "by_sample"))

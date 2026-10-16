@@ -71,6 +71,16 @@
 #'   decided) and `endpoint`.
 #' @seealso [solve_guided()], [horizon_windows()]
 #' @export
+#' @examples
+#' h <- topia$modules$horizons$base
+#'
+#' # backward guidance: the endpoint first, then each neighbouring pair
+#' w <- guided_windows(h)
+#' vapply(w, function(x) x$horizon@name, character(1))
+#'
+#' # forward instead, including the base period
+#' vapply(guided_windows(h, direction = "forward", include_base = TRUE),
+#'        function(x) x$horizon@name, character(1))
 guided_windows <- function(horizon, direction = c("backward", "forward"),
                            include_base = FALSE) {
   stopifnot(is(horizon, "horizon"))
@@ -220,6 +230,23 @@ guided_windows <- function(horizon, direction = c("backward", "forward"),
 #'   `targets`, `ledger`, and `final` — the full-horizon solved scenario.
 #' @seealso [solve_myopic()], [apply_targets()], [guided_gap()]
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$topia_seasons,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#'
+#' # the endpoint first, then each neighbouring pair, then the full horizon
+#' # with the guidance as bounds
+#' res <- solve_guided(mod, name = "GUIDED", slack = 0.2,
+#'                     solver = solver_options$glpk)
+#' sum(getData(res$final, "vObjective", merge = TRUE)$value)
+#' }
 solve_guided <- function(object, name = NULL, ...,
                          horizon = NULL,
                          stages = c("endpoint", "pairs", "final"),
@@ -445,6 +472,24 @@ getData.guided <- function(object, name = NULL, ..., merge = TRUE) {
 #' @return a list with `guided`, `pf` and `gap` (the relative difference).
 #' @seealso [solve_guided()]
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$topia_seasons,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#'
+#' # what the guidance cost, against a true perfect-foresight run
+#' pf  <- solve_model(mod, name = "PF", solver = solver_options$glpk)
+#' res <- solve_guided(mod, name = "GUIDED", solver = solver_options$glpk)
+#'
+#' guided_gap(res, pf)        # 0 means the bounds never bound
+#' guided_gap(res, sum(getData(pf, "vObjective", merge = TRUE)$value))
+#' }
 guided_gap <- function(x, pf) {
   stopifnot(inherits(x, "guided"))
   if (is.null(x$final)) {

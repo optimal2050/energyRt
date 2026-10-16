@@ -59,6 +59,29 @@ NULL
 #'   accepts named scenario lists), [scenario_runs()].
 #' @family comparison
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$topia_seasons,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#'
+#' base <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+#' cap  <- solve_model(add(mod, ek$CO2_CAP), name = "CAP",
+#'                     solver = solver_options$glpk)
+#'
+#' # a NAMED list, the first entry as the baseline
+#' cmp <- compare_scenarios(list(BASE = base, CAP = cap))
+#' cmp
+#' ggplot2::autoplot(cmp, type = "generation", comm = "ELC")
+#'
+#' # or several runs of ONE scenario folder, by run id
+#' compare_scenarios(base, runs = scenario_runs(base)$run)
+#' }
 compare_scenarios <- function(object, runs = NULL, name = NULL, base = 1L,
                               level = c("annual_region", "annual_total"),
                               tol_rel = 1e-6, tol_abs = 1e-6,

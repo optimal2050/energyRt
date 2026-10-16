@@ -57,9 +57,9 @@ changes* first. The change-by-change log for the whole cycle (450 entries) is in
   `save_scenario()` / `load_scenario()` / `drop_scenario_run()`, the registry
   class is `en_registry`, and 46 machinery helpers are no longer exported.
   Object names are validated at construction. The 0.5-era deprecation layer is
-  removed, bar four shims that still accept the old spelling and warn once per
-  session: `storage@charge`, the `slice` column name, the un-prefixed solver
-  path environment variables, and `options(energyRt.verbose)`.
+  **gone**: `storage@charge`/`@inflow` and the `slice` column name are refused
+  with an error naming the new spelling, and the un-prefixed solver path
+  environment variables and `options(energyRt.verbose)` are no longer read.
 
 * **The Julia and Python backends exchange Arrow files**, which needs
   `Arrow.jl` and `pyarrow`; `arrow_format` split into `storage_format` and
@@ -79,6 +79,10 @@ changes* first. The change-by-change log for the whole cycle (450 entries) is in
 
 * `storage@cap2stg` is refused rather than renamed: it became `@duration` in
   0.80, and the compatibility shim is gone. The error names the replacement.
+  `storage@charge` and `@inflow` are refused the same way, and the error says
+  why it is not a pure rename: `@startLevel` is added once per cycle at the
+  first timeslice, where `@charge` added its value at every timeslice given.
+  For a weather-driven inflow profile, feed the storage from a `supply`.
 
 * `newSub()` is removed — `newSubsidy()` is the constructor. They were the same
   function, and `newTax()` never had a short alias.
@@ -230,6 +234,11 @@ answer rather than only the code. The classes worth knowing about:
 * **Reporting the truth**: an infeasible or unbounded model is a result rather
   than an error, `verify_solution()` stops double-counting coarse regions, and
   a non-interactive run no longer stops at a debugger prompt.
+* **`get_process_*(process = )` is honoured.** `get_process_inputs()`,
+  `_outputs()`, `_aux()`, `_region()`, `_invest_window()` and `_timeframe()`
+  accepted the argument and ignored it, returning every process in the model;
+  `get_process_comm()` inherited it. The returned shape was right, so the
+  answer looked right.
 
 ## Documentation
 
@@ -243,6 +252,10 @@ answer rather than only the code. The classes worth knowing about:
 * `?add`, `?read`, `?interpolate`, `?setCalendar`, `?setHorizon`, `?getHorizon`
   and `?add_to_convert` open a help page. The generics were exported with only
   their methods documented, so the bare names resolved to nothing.
+* **Every public help page has an example.** 82 topics had none; they now
+  build what they use, on the shipped TOPIA kits, so each runs as pasted.
+  Examples needing a solver, a project store, pandoc or a python environment
+  are marked `\dontrun{}` but were executed before being written in.
 
 # energyRt 0.50.9-dev
 

@@ -301,6 +301,24 @@ as.data.frame.variable <- function(x, ...) as.data.frame(get_data_slot(x), ...)
 #' @returns a data.frame, a `variable`, or NULL if there is no such variable.
 #' @family variable
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$topia_seasons,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+#'
+#' # the solved values
+#' get_variable(scen, "vTechCap")
+#'
+#' # the `variable` object itself, with its sets and units
+#' get_variable(scen, "vTechCap", data = FALSE)
+#' }
 get_variable <- function(object, name, data = TRUE) {
   v <- tryCatch(object@modOut@variables[[name]], error = function(e) NULL)
   if (is.null(v)) return(NULL)

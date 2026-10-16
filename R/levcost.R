@@ -1118,6 +1118,20 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
 #' @param object A \code{technology} S4 object.
 #' @return A \code{data.frame} or \code{NULL} if no constrained groups found.
 #' @export
+#' @examples
+#' # a co-firing plant whose biomass may cover at most 30% of the fuel group
+#' chp <- newTechnology(
+#'   "CHP",
+#'   input   = data.frame(comm = c("COA", "BIO"), group = "fuel"),
+#'   output  = data.frame(comm = "ELC"),
+#'   group   = data.frame(group = "fuel", unit = "MMBtu"),
+#'   ceff    = data.frame(comm = c("COA", "BIO"), cinp2use = c(0.40, 0.35),
+#'                        grp.share.up = c(1, 0.3)),
+#'   cap2act = 8760
+#' )
+#'
+#' # the feasible share band per commodity, and what it does to efficiency
+#' tech_share_frontier(chp)
 tech_share_frontier <- function(object) {
   stopifnot(inherits(object, "technology"))
   tech_name <- if (nzchar(object@name)) object@name else "TECH"
@@ -3109,6 +3123,22 @@ Price it with `timeframe = \"native\"` and a matching `calendar = `.",
 #' @param base_size Integer. Base font size passed to \code{theme_energyRt()}.
 #' @return A list of class \code{"share_frontier_plots"}, or \code{NULL}.
 #' @export
+#' @examples
+#' # a co-firing plant whose biomass may cover at most 30% of the fuel group
+#' chp <- newTechnology(
+#'   "CHP",
+#'   input   = data.frame(comm = c("COA", "BIO"), group = "fuel"),
+#'   output  = data.frame(comm = "ELC"),
+#'   group   = data.frame(group = "fuel", unit = "MMBtu"),
+#'   ceff    = data.frame(comm = c("COA", "BIO"), cinp2use = c(0.40, 0.35),
+#'                        grp.share.up = c(1, 0.3)),
+#'   cap2act = 8760
+#' )
+#'
+#' # one ggplot per (direction x group)
+#' p <- plot_share_frontier(tech_share_frontier(chp))
+#' names(p)
+#' p[[1]]
 plot_share_frontier <- function(object, title = NULL, base_size = 11L) {
   if (is.null(object) || nrow(object) == 0) return(NULL)
   check_package("ggplot2")
@@ -3982,6 +4012,10 @@ plot.levcost_list <- function(x, y, ...) {
 #'   path to a levcost cache directory.
 #' @return the deleted directory, invisibly.
 #' @export
+#' @examples
+#' # drop every memoized levelised cost (they are keyed on the inputs that
+#' # produced them, so this is only needed after editing a scenario in place)
+#' clear_levcost_cache()
 clear_levcost_cache <- function(x = NULL) {
   dir <- if (is.character(x)) x else .levcost_cache_dir(x)
   if (!is.null(dir) && dir.exists(dir)) unlink(dir, recursive = TRUE)

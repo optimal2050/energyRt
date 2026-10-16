@@ -166,6 +166,26 @@
 #' @return a `carry_ledger` object.
 #' @seealso [apply_ledger()], [solve_myopic()]
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$topia_seasons,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+#'
+#' # what the step decided, as the input to the next one
+#' led <- solution_ledger(scen)
+#' names(led)
+#'
+#' # the accumulated ledger is what `solve_myopic()` writes into the next
+#' # step's model
+#' led$steps
+#' }
 solution_ledger <- function(object, years = NULL, ledger = NULL) {
   stopifnot(is(object, "scenario"))
   if (!isTRUE(object@status$optimal)) {
@@ -614,6 +634,25 @@ apply_ledger <- function(mod, ledger, horizon,
 #'   `value`, carrying the scenario's variant `provenance` as an attribute.
 #' @seealso [apply_targets()], [solve_guided()]
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$topia_seasons,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+#'
+#' # the capacity the solved run decided, per process, region and year
+#' tg <- solution_targets(scen)
+#' tg
+#'
+#' # technologies only
+#' solution_targets(scen, classes = "technology")
+#' }
 solution_targets <- function(object, years = NULL, classes = NULL) {
   stopifnot(is(object, "scenario"))
   if (!isTRUE(object@status$optimal)) {
@@ -687,6 +726,23 @@ solution_targets <- function(object, years = NULL, classes = NULL) {
 #' @return the model, with `@capacity` bound columns written.
 #' @seealso [solution_targets()], [solve_guided()], [apply_ledger()]
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$topia_seasons,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+#'
+#' # steer a second solve toward the first without pinning it
+#' tg   <- solution_targets(scen)
+#' mod2 <- apply_targets(mod, tg, horizon = getHorizon(mod), slack = 0.2)
+#' scen2 <- solve_model(mod2, name = "STEERED", solver = solver_options$glpk)
+#' }
 apply_targets <- function(object, targets, horizon, slack = 0.2,
                           mode = c("lo", "fx"), basis = c("cap", "ncap"),
                           digits = 6, tolerance = 1e-6, verbose = FALSE) {

@@ -28,6 +28,15 @@
 #'   milestone years, possibly empty).
 #' @seealso [solve_myopic()]
 #' @export
+#' @examples
+#' h <- topia$modules$horizons$base
+#'
+#' # one window per milestone year
+#' vapply(horizon_windows(h), function(x) x$horizon@name, character(1))
+#'
+#' # two years per window, overlapping by one
+#' vapply(horizon_windows(h, step = 2L, overlap = 1L),
+#'        function(x) x$horizon@name, character(1))
 horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
   stopifnot(is(horizon, "horizon"))
   iv <- as.data.frame(horizon@intervals)
@@ -160,6 +169,23 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #' @seealso [horizon_windows()], [solution_ledger()], [apply_ledger()],
 #'   [myopic_objective()]
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$topia_seasons,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#'
+#' # one solve per milestone year, each blind to the next, with capacity
+#' # carried forward
+#' res <- solve_myopic(mod, name = "MYOPIC", step = 1L,
+#'                     solver = solver_options$glpk)
+#' myopic_objective(res, sdr = 0.05)
+#' }
 solve_myopic <- function(object, name = NULL, ...,
                          horizon = NULL, step = 1L, overlap = 0L,
                          carry = c("capacity", "budgets"),
@@ -359,6 +385,23 @@ getData.myopic <- function(object, name = NULL, ..., merge = TRUE) {
 #' @param sdr numeric social discount rate (default 0).
 #' @return numeric scalar.
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$topia_seasons,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#' res <- solve_myopic(mod, name = "MYOPIC", solver = solver_options$glpk)
+#'
+#' # per-step objectives are discounted to their own base years, so they do
+#' # not add up; this is the comparable number
+#' myopic_objective(res)              # undiscounted
+#' myopic_objective(res, sdr = 0.05)  # discounted to the first milestone
+#' }
 myopic_objective <- function(x, sdr = 0) {
   stopifnot(inherits(x, "myopic"))
   tc <- getData(x, "vTotalCost", merge = TRUE)

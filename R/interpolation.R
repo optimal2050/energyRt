@@ -104,6 +104,23 @@
 #' @seealso [solve_model()], [solve_scenario()], the `interpolate` S4 method.
 #' @family interpolation
 #' @export
+#' @examples
+#' \donttest{
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$s4_h24,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#'
+#' # build the solver-facing sets and parameters; nothing is solved yet
+#' scen <- interpolate_model(mod, name = "BASE")
+#' scen
+#'
+#' # `fold = TRUE` substitutes constant parameters into the equations, which
+#' # shrinks what the backend has to read
+#' model_size(interpolate_model(mod, name = "FOLDED", fold = TRUE))
+#' }
 interpolate_model <- function(object, name = NULL, ...,
                        desc = NULL, ondisk = FALSE, overwrite = FALSE,
                        fold = FALSE, sparse = TRUE, prune = TRUE,
@@ -2407,6 +2424,21 @@ interpolate_bounds <- function(
 #' @param verbose logical; report per-parameter trim counts.
 #' @returns scenario with trimmed parameter slots.
 #' @export
+#' @examples
+#' \donttest{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- interpolate_model(mod, name = "EX")
+#'
+#' # drop the approximation context the scenario no longer needs; the
+#' # parameters themselves are untouched
+#' model_size(scen)
+#' model_size(trim_parameters(scen))
+#' }
 trim_parameters <- function(object, verbose = FALSE) {
   reg <- .param_value_maps()
   for (pn in names(reg)) {
@@ -2536,6 +2568,19 @@ trim_parameters <- function(object, verbose = FALSE) {
 #' @returns (invisibly) a data frame of findings with columns `parameter`,
 #'   `check`, `detail`, `severity`.
 #' @export
+#' @examples
+#' \donttest{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- interpolate_model(mod, name = "EX")
+#'
+#' # no rows means every parameter's domain, bounds and defaults agree
+#' validate_scenario_parameters(scen, action = "silent")
+#' }
 validate_scenario_parameters <- function(object, fold = TRUE,
                                           action = c("warn", "stop", "silent")) {
   action <- match.arg(action)
@@ -3333,6 +3378,19 @@ map_comm_geoframe <- function(scen, comm = NULL) {
 #'
 #' @returns a named list mapping each process to its operational timeframe.
 #' @export
+#' @examples
+#' \donttest{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- interpolate_model(mod, name = "EX")
+#'
+#' # the timeframe a process is resolved at: the finest of its commodities
+#' get_process_timeframe(scen, process = c("ECOA", "SUP_COA"))
+#' }
 get_process_timeframe <- function(object, process = NULL,
                                   comm_timeframe = NULL) {
   # collect assigned timeframes for all processes in the scenario
@@ -3509,6 +3567,8 @@ get_process_timeframe <- function(object, process = NULL,
   # coerce to list
   ll <- split(process_comm_timeframe$timeframe, process_comm_timeframe$process)
 
+  if (!is.null(process)) ll <- ll[names(ll) %in% process]
+
   return(ll)
 }
 
@@ -3521,6 +3581,20 @@ get_process_timeframe <- function(object, process = NULL,
 #'
 #' @returns a named list mapping each process to its class.
 #' @export
+#' @examples
+#' \donttest{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- interpolate_model(mod, name = "EX")
+#'
+#' # the class of the processes asked for, or of every one of them
+#' get_process_class(scen, process = c("ECOA", "STG_ELC"))
+#' get_process_class(scen, classes = "storage")
+#' }
 get_process_class <- function(object, process = NULL, classes = NULL) {
   # collect classes for processes in the scenario
   if (is.null(classes)) {
@@ -3563,6 +3637,18 @@ get_process_class <- function(object, process = NULL, classes = NULL) {
 #'
 #' @returns a named list mapping each process to its input commodities.
 #' @export
+#' @examples
+#' \donttest{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- interpolate_model(mod, name = "EX")
+#'
+#' get_process_inputs(scen, process = c("ECOA", "EGAS"))
+#' }
 get_process_inputs <- function(object, process = NULL, classes = NULL) {
   if (is.null(classes)) {
     classes <- c(
@@ -3624,6 +3710,7 @@ get_process_inputs <- function(object, process = NULL, classes = NULL) {
     message("Processes with no input commodity (output is bounded, not fuelled): ",
             paste(sort(unique(.no_input_processes)), collapse = ", "))
   }
+  if (!is.null(process)) ll <- ll[names(ll) %in% process]
   ll
 }
 
@@ -3636,6 +3723,18 @@ get_process_inputs <- function(object, process = NULL, classes = NULL) {
 #'
 #' @returns a named list mapping each process to its output commodities.
 #' @export
+#' @examples
+#' \donttest{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- interpolate_model(mod, name = "EX")
+#'
+#' get_process_outputs(scen, process = c("ECOA", "SUP_COA"))
+#' }
 get_process_outputs <- function(object, process = NULL, classes = NULL) {
   if (is.null(classes)) {
     classes <- c(
@@ -3673,6 +3772,7 @@ get_process_outputs <- function(object, process = NULL, classes = NULL) {
       ll
     }
   )
+  if (!is.null(process)) ll <- ll[names(ll) %in% process]
   ll
 }
 
@@ -3751,6 +3851,19 @@ get_process_outputs <- function(object, process = NULL, classes = NULL) {
 #'
 #' @returns a named list mapping each process to its auxiliary commodities.
 #' @export
+#' @examples
+#' \donttest{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- interpolate_model(mod, name = "EX")
+#'
+#' # a process with no auxiliary flow reports an empty vector, not a missing entry
+#' get_process_aux(scen, process = "ECOA")
+#' }
 get_process_aux <- function(object, process = NULL, classes = NULL) {
   if (is.null(classes)) {
     classes <- c("process", "technology", "storage", "trade")
@@ -3780,6 +3893,7 @@ get_process_aux <- function(object, process = NULL, classes = NULL) {
       ll
     }
   )
+  if (!is.null(process)) ll <- ll[names(ll) %in% process]
   ll
 }
 
@@ -3801,6 +3915,19 @@ get_process_aux <- function(object, process = NULL, classes = NULL) {
 #' @param classes classes to search; defaults to `"storage"`
 #' @returns a named list mapping each process to its stored commodity
 #' @export
+#' @examples
+#' \donttest{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- interpolate_model(mod, name = "EX")
+#'
+#' # only `storage` holds a commodity
+#' get_process_stored(scen)
+#' }
 get_process_stored <- function(object, process = NULL, classes = NULL) {
   if (is.null(classes)) classes <- "storage"
   ll <- apply_to_scenario_data(
@@ -3831,6 +3958,22 @@ get_process_stored <- function(object, process = NULL, classes = NULL) {
 #'
 #' @returns a named list, or a data.frame with columns `process` and `comm`.
 #' @export
+#' @examples
+#' \donttest{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- interpolate_model(mod, name = "EX")
+#'
+#' # every commodity a process touches, whichever side it enters on
+#' get_process_comm(scen, process = c("ECOA", "STG_ELC"))
+#'
+#' # as a two-column table instead of a list
+#' head(get_process_comm(scen, classes = "technology", return_list = FALSE), 4)
+#' }
 get_process_comm <- function(object, process = NULL, classes = NULL,
                              return_list = TRUE) {
 
@@ -3925,6 +4068,21 @@ nl2df <- named_list_to_df
 #' pair. The data frame is unique and sorted by process and region.
 #'
 #' @export
+#' @examples
+#' \donttest{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- interpolate_model(mod, name = "EX")
+#'
+#' get_process_region(scen, process = "ECOA")
+#'
+#' # as a (process, region) table
+#' head(get_process_region(scen, return_list = FALSE), 4)
+#' }
 get_process_region <- function(object, process = NULL, classes = NULL,
                                return_list = TRUE) {
   # collect all regions for each process
@@ -4006,6 +4164,8 @@ get_process_region <- function(object, process = NULL, classes = NULL,
     }
   }
 
+  if (!is.null(process)) nn <- nn[names(nn) %in% process]
+
   if (!return_list) {
     # convert to data.frame
     nn <- named_list_to_df(nn, col_names = c("process", "region")) |>
@@ -4030,6 +4190,19 @@ get_process_region <- function(object, process = NULL, classes = NULL,
 #' @returns data frame with columns `process`, `region`, `start`, `end`
 #' @export
 #'
+#' @examples
+#' \donttest{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- interpolate_model(mod, name = "EX")
+#'
+#' # the years a process may be invested in, by region
+#' get_process_invest_window(scen, process = c("ECOA", "EWIN"))
+#' }
 get_process_invest_window <- function(object, process = NULL, classes = NULL) {
   # collect all lifespans for each process
   if (is.null(classes)) {
@@ -4105,10 +4278,19 @@ get_process_invest_window <- function(object, process = NULL, classes = NULL) {
   ll_s <- expand_na(collect_col("start")) |> rename(start = value)
   ll_e <- expand_na(collect_col("end")) |> rename(end = value)
 
-  full_join(ll_s, ll_e, by = c("process", "region")) |>
+  win <- full_join(ll_s, ll_e, by = c("process", "region")) |>
     mutate(start = as.integer(start), end = as.integer(end)) |>
     arrange(process, region) |>
     as.data.table()
+
+  # the mask is built OUTSIDE the `[` call: `win` is a data.table whose own
+  # `process` column would shadow this argument inside it
+  if (!is.null(process)) {
+    keep <- win$process %in% process
+    win <- win[keep, ]
+  }
+
+  win
 }
 
 # Cross a (process, region, start, end) window table with the milestone
@@ -4411,6 +4593,9 @@ get_process_years <- function(scen, process = NULL, classes = NULL) {
 #' @returns
 #' A default value for one parameter, or a list of default values for several parameters.
 #' @export
+#' @examples
+#' # the package-wide default and bound of a parameter, without a model
+#' get_default_value(pname = c("pTechCap", "pTechAf"), global = TRUE)
 get_default_value <- function(
     object = NULL,
     pname = NULL,

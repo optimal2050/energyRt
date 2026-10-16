@@ -114,6 +114,24 @@ NULL
 #' @return the restricted [model].
 #' @family interpolation
 #' @export
+#' @examples
+#' repo <- newRepository(
+#'   "mini",
+#'   newCommodity("COA", unit = "MMBtu"),
+#'   newCommodity("ELC", unit = "MWh", timeframe = "ANNUAL"),
+#'   newSupply("SUP_COA", commodity = "COA", supply = data.frame(cost = 1)),
+#'   newTechnology("ECOA", input = list(comm = "COA"), output = list(comm = "ELC"),
+#'                 cap2act = 1, invcost = list(invcost = 100),
+#'                 olife = list(olife = 30)),
+#'   newDemand("DEM", commodity = "ELC",
+#'             demand = data.frame(region = c("W1", "W2"), year = 2020, demand = 10))
+#' )
+#' mod <- newModel("MINI", data = repo, calendar = calendars$annual,
+#'                 region = c("W1", "W2"), horizon = horizons$Y2020_2060_by_5)
+#'
+#' # keep one region; demand, capacity and routes outside it are dropped
+#' sub <- subset_model_regions(mod, "W1")
+#' get_region(sub)
 subset_model_regions <- function(object, region, boundary_prices = NULL,
                                  verbose = isVerbose()) {
   stopifnot(inherits(object, "model"))
@@ -628,6 +646,18 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
 #'   `price`, `cap.up`, and the curve columns `nsteps`, `price_lo`, `price_hi`.
 #' @seealso [subset_model_regions()], [solve_by_region()], [asImportCurve()]
 #' @export
+#' @examples
+#' \dontrun{
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$topia_seasons,
+#'                 region = ek$regions, horizon = topia$modules$horizons$base)
+#'
+#' # the priced import/export stubs a sub-territory solve needs at its edge:
+#' # a share of the region's own demand, in `nsteps` price steps
+#' boundary_window(mod, regions = c("W1", "W2"), price = 60, share = 0.1,
+#'                 nsteps = 3)
+#' }
 boundary_window <- function(object, regions, share = 0.1, nsteps = 3,
                             price = NULL, spread = 0.5, routes = NULL) {
   stopifnot(is(object, "model"))
@@ -1211,6 +1241,25 @@ NULL
 #'   model's own resolution instead of coarsening the whole of it;
 #'   [get_process_groups()], [process_cluster_sweep()], [model_clusters()].
 #' @export
+#' @examples
+#' repo <- newRepository(
+#'   "mini",
+#'   newCommodity("COA", unit = "MMBtu"),
+#'   newCommodity("ELC", unit = "MWh", timeframe = "ANNUAL"),
+#'   newSupply("SUP_COA", commodity = "COA", supply = data.frame(cost = 1)),
+#'   newTechnology("ECOA", input = list(comm = "COA"), output = list(comm = "ELC"),
+#'                 cap2act = 1, invcost = list(invcost = 100),
+#'                 olife = list(olife = 30)),
+#'   newDemand("DEM", commodity = "ELC",
+#'             demand = data.frame(region = c("W1", "W2"), year = 2020, demand = 10))
+#' )
+#' mod <- newModel("MINI", data = repo, calendar = calendars$annual,
+#'                 region = c("W1", "W2"), horizon = horizons$Y2020_2060_by_5)
+#'
+#' # roll the two regions up into the zone they share
+#' agg <- aggregate_model_regions(mod, geoscale = topia$geoscales$squares,
+#'                                level = "zone")
+#' get_region(agg)
 aggregate_model_regions <- function(object, geoscale = NULL, level,
                                     clusters = NULL,
                                     as = c("clusters", "objects"),
@@ -1432,6 +1481,14 @@ Aggregating between two non-atom levels needs a level-aware ",
 #'
 #' @family model
 #' @export
+#' @examples
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$s4_h24,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#' get_region(mod)
 get_region <- function(object) {
   if (!isS4(object)) {
     return(character(0))
@@ -1503,6 +1560,13 @@ get_region <- function(object) {
 #'
 #' @family model
 #' @export
+#' @examples
+#' # the weather series a process is linked to, read from its own slots
+#' ek <- topia$modules$electricity$R3
+#' get_weather(ek$EWIN)
+#'
+#' # a process with no weather link reports none
+#' get_weather(ek$ECOA)
 get_weather <- function(object) {
   if (!isS4(object)) {
     return(character(0))

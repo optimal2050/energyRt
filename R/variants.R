@@ -1836,6 +1836,22 @@ expand_tech_variants <- function(mod, prefix = .variant_prefix(mod),
 #'   `cluster`, or `NULL` when the model has no variants.
 #' @family technology process
 #' @export
+#' @examples
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$s4_h24,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#'
+#' # the base kit has no variants
+#' getVariants(mod)
+#'
+#' # add the clustered-wind and vintaged-nuclear modules and ask again: this is
+#' # the roster of names the solver-facing sets will carry
+#' mod <- add(mod, ek$EWIN_SITES, ek$ENUC_VINT, overwrite = TRUE)
+#' getVariants(mod)
+#' getVariants(mod, class = "technology")
 getVariants <- function(object, class = NULL) {
   tv <- if (methods::is(object, "model")) {
     # the same provenance the interpolation would record, from the model's own
@@ -1878,6 +1894,25 @@ getVariants <- function(object, class = NULL) {
 #'   `sd`, `min` and `max`.
 #' @family technology process
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$s4_h24,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#'
+#' # split wind into site grades, solve, then read the result BY GRADE rather
+#' # than by variant name
+#' mod  <- add(mod, ek$EWIN_SITES, overwrite = TRUE)
+#' scen <- solve_model(mod, name = "SITES", solver = solver_options$glpk)
+#'
+#' variantSummary(scen, "vTechCap", by = "cluster")
+#' variantSummary(scen, "vTechOut", by = c("cluster", "region"))
+#' }
 variantSummary <- function(object, name, by = character(), weight = NULL, ...) {
   by <- intersect(by, c("vintage", "cluster"))
   d <- getData(object, name = name, merge = TRUE, variants = TRUE, ...)

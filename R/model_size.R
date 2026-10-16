@@ -42,6 +42,18 @@
 #' @param top_n number of largest parameters to list.
 #' @return an S3 `model_size` object (see `print.model_size()`).
 #' @export
+#' @examples
+#' \donttest{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- interpolate_model(mod, name = "EX")
+#'
+#' model_size(scen, top_n = 5)
+#' }
 model_size <- function(object, top_n = 15L) {
   P <- object@modInp@parameters
   spec <- tryCatch(load_mapping_spec(), error = function(e) list())

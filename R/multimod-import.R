@@ -643,6 +643,24 @@ create_link_log_entry <- function(multimod_name, scenario_name, type, status,
 #' @param log_file Optional path to export import log as CSV
 #' @return Modified model with scenario data linked and import log
 #' @export
+#' @examples
+#' \dontrun{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$topia_seasons,
+#'                  region = ek$regions, horizon = topia$modules$horizons$base)
+#' scen <- interpolate_model(mod, name = "BASE")
+#'
+#' # a model read from its algebra, with empty sets and parameters
+#' m <- multimod::read_gams("my_model.gms")
+#'
+#' # fill them from the scenario
+#' m <- multimod_import_data(m, scen)
+#'
+#' # what matched, and what did not
+#' multimod_import_log(m)
+#' multimod_unmatched(m)
+#' }
 multimod_import_data <- function(model, scenario, inMemory = scenario@inMemory, log_file = NULL) {
   .stop_not_multimod(model)
   if (!inherits(scenario, "scenario")) {
@@ -1269,6 +1287,21 @@ print_import_summary <- function(import_log) {
 #' @param model Multimod model with import log
 #' @return Import log list or NULL if not available
 #' @export
+#' @examples
+#' \dontrun{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$topia_seasons,
+#'                  region = ek$regions, horizon = topia$modules$horizons$base)
+#' scen <- interpolate_model(mod, name = "BASE")
+#'
+#' # a model read from its algebra, with empty sets and parameters
+#' m <- multimod::read_gams("my_model.gms")
+#' m <- multimod_import_data(m, scen)
+#'
+#' # one row per symbol: what it was filled from, and how many rows
+#' multimod_import_log(m)
+#' }
 multimod_import_log <- function(model) {
   if (is.null(model$misc$data_import_log)) {
     message("No import log found. Run multimod_import_data() to create one.")
@@ -1281,6 +1314,22 @@ multimod_import_log <- function(model) {
 #'
 #' @param model Multimod model with import log
 #' @export
+#' @examples
+#' \dontrun{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$topia_seasons,
+#'                  region = ek$regions, horizon = topia$modules$horizons$base)
+#' scen <- interpolate_model(mod, name = "BASE")
+#'
+#' # a model read from its algebra, with empty sets and parameters
+#' m <- multimod::read_gams("my_model.gms")
+#' m <- multimod_import_data(m, scen)
+#'
+#' # the symbols the scenario had no data for -- the list to work through
+#' # before the imported model will solve
+#' multimod_unmatched(m)
+#' }
 multimod_unmatched <- function(model) {
   log <- multimod_import_log(model)
   if (is.null(log) || is.null(log$unmatched)) {

@@ -189,6 +189,19 @@ NULL
 #' @seealso [drop_solver_outputs()], [scenario_runs()],
 #'   [clear_report_cache()]
 #' @export
+#' @examples
+#' \donttest{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- interpolate_model(mod, name = "EX")
+#'
+#' # what exists on disk for this scenario, and what could be dropped
+#' scenario_artifacts(scen)
+#' }
 scenario_artifacts <- function(object) {
   stopifnot(is(object, "scenario"))
   empty <- tibble(
@@ -296,6 +309,16 @@ scenario_artifacts <- function(object) {
 #'   `freed_mb`. Returned visibly on a dry run, invisibly otherwise.
 #' @seealso [scenario_artifacts()], [drop_scenario_run()]
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project("~/projects/mymodel")
+#' scen <- getScenario("BASE")
+#'
+#' # the solver's scratch files are the bulk of a scenario folder and are not
+#' # needed once the solution has been imported
+#' drop_solver_outputs(scen)                    # dry run: reports what it would do
+#' drop_solver_outputs(scen, dry_run = FALSE)
+#' }
 drop_solver_outputs <- function(object, runs = NULL, dry_run = TRUE,
                                 verbose = TRUE) {
   stopifnot(is(object, "scenario"))
@@ -631,6 +654,15 @@ drop_solver_outputs <- function(object, runs = NULL, dry_run = TRUE,
 #'   directory or user name after the pass, which should be empty.
 #' @seealso [prepare_for_sharing()], [scenario_artifacts()]
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project("~/projects/mymodel")
+#' scen <- getScenario("BASE")
+#'
+#' # in place, on the scenario's own folder -- `confirm = TRUE` is required
+#' # because it rewrites what is on disk
+#' strip_user_info(scen, confirm = TRUE)
+#' }
 strip_user_info <- function(object, path = NULL, scope = c("share", "store"),
                             keep_solver = FALSE, confirm = FALSE,
                             verbose = TRUE) {
@@ -729,6 +761,18 @@ strip_user_info <- function(object, path = NULL, scope = c("share", "store"),
 #'   `unresolved` (references that will not travel).
 #' @seealso [strip_user_info()], [drop_solver_outputs()]
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project("~/projects/mymodel")
+#' scen <- getScenario("BASE")
+#'
+#' # a copy with absolute paths, user names and solver scratch removed
+#' prepare_for_sharing(scen, path = file.path(tempdir(), "share"))
+#'
+#' # keep the runs and reports, for a colleague who will read them
+#' prepare_for_sharing(scen, path = file.path(tempdir(), "share"),
+#'                     keep_runs = TRUE, keep_reports = TRUE)
+#' }
 prepare_for_sharing <- function(object, path, scope = c("share", "store"),
                                 keep_runs = FALSE, keep_reports = FALSE,
                                 keep_solver = FALSE, verbose = TRUE) {

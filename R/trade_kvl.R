@@ -74,6 +74,15 @@
 #' @seealso [newDCLink()], [newTrade()]
 #' @family class trade
 #' @export
+#' @examples
+#' ac <- newACLine("L_W1_W2", commodity = "ELC", from = "W1", to = "W2",
+#'                 reactance = 0.02, resistance = 0.001)
+#'
+#' # an AC line is bidirectional: both directions are declared as routes
+#' ac@routes
+#'
+#' # the electrical parameters travel in @misc, where the KVL constraints read them
+#' ac@misc[c("reactance", "resistance")]
 newACLine <- function(name, commodity, from, to, reactance,
                       resistance = NA_real_, trade = data.frame(), ...) {
   if (missing(reactance)) {
@@ -110,6 +119,14 @@ newACLine <- function(name, commodity, from, to, reactance,
 #' @seealso [newACLine()], [newTrade()]
 #' @family class trade
 #' @export
+#' @examples
+#' dc <- newDCLink("K_W1_C1", commodity = "ELC", from = "W1", to = "C1",
+#'                 resistance = 0.001)
+#' dc@routes
+#'
+#' # a one-way link declares a single route
+#' newDCLink("K_ONE_WAY", commodity = "ELC", from = "W1", to = "C1",
+#'           bidirectional = FALSE)@routes
 newDCLink <- function(name, commodity, from, to, resistance = NA_real_,
                       trade = data.frame(), bidirectional = TRUE, ...) {
   .line_common(name, commodity, from, to, NA_real_, resistance, trade,

@@ -448,21 +448,11 @@ get_solver_path <- function(backend) {
   name <- .solver_path_options[[backend]]
   res <- tryCatch(options::opt(name), error = function(e) NULL)
 
-  # Deprecated: the un-prefixed environment variables used before ENERGYRT_*.
-  if ((is.null(res) || !nzchar(res)) &&
-      identical(.en_opt_source(name), "default")) {
-    legacy <- Sys.getenv(.solver_path_legacy_envvars[[backend]], unset = "")
-    if (nzchar(legacy)) {
-      .en_deprecate_once(
-        paste0("envvar_", backend),
-        paste0("Environment variable `", .solver_path_legacy_envvars[[backend]],
-               "` is deprecated. Use `",
-               toupper(paste0("ENERGYRT_", .solver_path_options[[backend]])),
-               "` instead.")
-      )
-      res <- legacy
-    }
-  }
+  # The un-prefixed environment variables (`GLPK_PATH` and friends) were read
+  # until v0.90 and are not any more: only `ENERGYRT_*` is consulted. Dropping
+  # them is silent by design -- those names belong to other tools as often as
+  # to us, so erroring on one a user set for another program would be hostile.
+  # `en_check_dependencies()` reports what energyRt can actually find.
 
   if (is.null(res) || !nzchar(res)) NULL else res
 }
@@ -503,18 +493,9 @@ get_solver_path <- function(backend) {
 #' isVerbose()
 #' isDebug(2)
 isVerbose <- function(level = 1) {
-  # Deprecated: `energyRt.verbose` predates the registry and is documented in
-  # ?interpolate_model, so honour it while the user has not set `en.verbose`.
-  if (identical(.en_opt_source("verbose"), "default")) {
-    legacy <- getOption("energyRt.verbose", NULL)
-    if (!is.null(legacy)) {
-      .en_deprecate_once(
-        "energyRt.verbose",
-        'Option "energyRt.verbose" is deprecated. Use options(en.verbose = 1).'
-      )
-      return(.as_report_level(legacy) >= level)
-    }
-  }
+  # `options(energyRt.verbose)` was honoured until v0.90; `en.verbose` is the
+  # only name now. Silent for the same reason as the solver path variables: an
+  # option set in a user's profile should not start raising errors.
   .as_report_level(options::opt("verbose", env = "energyRt")) >= level
 }
 

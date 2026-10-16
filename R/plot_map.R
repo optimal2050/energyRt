@@ -392,6 +392,15 @@ plot_map <- function(object,
 #' @return A `ggplot` object.
 #' @family geoscale
 #' @export
+#' @examples
+#' gs <- topia$geoscales$squares
+#'
+#' # the nesting of a geoscale, without any geometry
+#' plot_geoscale(gs, type = "icicle")
+#' plot_geoscale(gs, type = "stack")
+#'
+#' # the map itself
+#' plot_geoscale(gs, type = "map")
 plot_geoscale <- function(object, type = c("map", "stack", "icicle"),
                           geoframe = NULL, view = "cabinet",
                           direction = "down", geoscale = NULL, ...) {

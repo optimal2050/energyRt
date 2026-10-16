@@ -158,6 +158,25 @@ object_hash <- function(x) {
 #'
 #' @rdname model_store
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$topia_seasons,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base)
+#'
+#' # writes models/<name>/ and registers this version
+#' save_model(mod)
+#'
+#' # read it back by name (the newest version)
+#' mod2 <- load_model("TOPIA")
+#'
+#' # the registry lists every stored version, each addressable by its hash
+#' load_registry()
+#' }
 save_model <- function(
     object,
     path = NULL,
@@ -658,6 +677,12 @@ load_model <- function(name, hash = NULL, path = NULL, env = NULL,
 #' @param repo a repository object.
 #' @return character, the full hash (the store uses its first 8 characters).
 #' @export
+#' @examples
+#' repo <- newRepository("r", newCommodity("ELC", unit = "MWh"))
+#' repository_hash(repo)
+#'
+#' # the hash follows the content: adding an object changes it
+#' repository_hash(add(repo, newCommodity("COA", unit = "MMBtu")))
 repository_hash <- function(repo) {
   stopifnot(is(repo, "repository"))
   rlang::hash(.strip_volatile(repo))
@@ -709,6 +734,15 @@ repository_hash <- function(repo) {
 #'
 #' @rdname repo_store
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' repo <- newRepository("my_repo", newCommodity("ELC", unit = "MWh"))
+#' save_repository(repo)
+#'
+#' load_repository("my_repo")
+#' }
 save_repository <- function(
     repo,
     path = NULL,
@@ -1105,6 +1139,21 @@ dataset_hash <- function(x) {
 #'
 #' @rdname dataset_store
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' # a table a model refers to, stored once and referenced by hash
+#' save_dataset(topia$weather, "topia_weather")
+#' dataset_hash(topia$weather)
+#' load_dataset("topia_weather")
+#'
+#' # or store the CALL that makes it -- `fun` is a namespaced name, and the
+#' # payload is left out entirely -- and materialize it on demand
+#' save_dataset(name = "profiles", fun = "energyRt::topia_profiles",
+#'              args = list(regions = c("W1", "W2")), materialize = FALSE)
+#' load_dataset("profiles", evaluate = TRUE)
+#' }
 save_dataset <- function(
     x,
     name,
@@ -1599,6 +1648,23 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
 #' @param verbose logical.
 #' @rdname seal
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' save_repository(newRepository("my_repo", newCommodity("ELC", unit = "MWh")))
+#'
+#' # sealing and marking address the STORED version, by name: a sealed one
+#' # refuses overwrites and deletion
+#' seal_repository("my_repo")
+#' unseal_repository("my_repo")
+#'
+#' # marking is the opposite -- flag now, sweep later
+#' mark_delete("my_repo", type = "repository", importance = 0)
+#' delete_marked(dry_run = TRUE)      # review what would go
+#' delete_marked(dry_run = FALSE)
+#' unmark_delete("my_repo", type = "repository")
+#' }
 seal_model <- function(x, verbose = TRUE) .seal_set("model", x, TRUE, verbose)
 
 #' @rdname seal

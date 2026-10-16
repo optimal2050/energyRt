@@ -356,6 +356,14 @@
 #'   [process_spec_issues()] for the report).
 #' @family process spec
 #' @export
+#' @examples
+#' spec <- process_to_spec(topia$modules$electricity$R3$ECOA)
+#'
+#' # a spec already in memory is returned as-is, so the same call accepts
+#' # either a list or the path to a YAML file written by `process_to_spec()`
+#' f <- tempfile(fileext = ".yml")
+#' process_to_spec(topia$modules$electricity$R3$ECOA, file = f)
+#' identical(read_process_spec(f)$name, spec$name)
 read_process_spec <- function(spec) {
   if (is.character(spec) && length(spec) == 1) {
     if (!file.exists(spec)) stop("process spec file not found: ", spec)
@@ -695,6 +703,16 @@ process_from_spec <- function(spec, strict = FALSE) {
 #' @return The spec list (invisibly when `file` is given).
 #' @family process spec
 #' @export
+#' @examples
+#' tech <- topia$modules$electricity$R3$ECOA
+#'
+#' # the object as a plain nested list: diffable, editable, writable as YAML
+#' spec <- process_to_spec(tech)
+#' names(spec)
+#' spec$efficiency
+#'
+#' # `process_from_spec()` is the way back
+#' identical(process_from_spec(spec)@name, tech@name)
 process_to_spec <- function(object, file = NULL) {
   cls <- .SPEC_CLASSES[vapply(.SPEC_CLASSES, function(k) is(object, k),
                               logical(1))]
@@ -779,6 +797,11 @@ process_to_spec <- function(object, file = NULL) {
 #' @return A single character string of R code.
 #' @family process spec
 #' @export
+#' @examples
+#' spec <- process_to_spec(topia$modules$electricity$R3$ECOA)
+#'
+#' # the constructor call that would rebuild the object, as text
+#' cat(process_spec_code(spec))
 process_spec_code <- function(spec) {
   spec <- read_process_spec(spec)
   cls  <- .spec_class(spec)

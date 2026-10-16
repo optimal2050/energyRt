@@ -239,6 +239,10 @@
 #' @seealso [topia], [topia_profile()], [calendars]
 #' @family topia
 #' @export
+#' @examples
+#' # weather, demand and stock expanded to the regions of a model
+#' prof <- topia_profiles(c("W1", "W2"), calendar = "s4_h24")
+#' lapply(prof, head, 3)
 topia_profiles <- function(regions,
                             calendar = c("s4_h24", "m12_h24",
                                          "topia_seasons"),
@@ -445,7 +449,7 @@ topia_profiles <- function(regions,
 #'
 #' @examples
 #' # on/off resource on the 4-slice test calendar: free half the year
-#' topia_profile("step", levels = 2, calendar = "topia_seasons")
+#' topia_profile("step", levels = 2, calendar = "s4")
 #'
 #' # a diurnal sine for every season, phased across three regions
 #' head(topia_profile("sine", calendar = "s4_h24",

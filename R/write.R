@@ -12,6 +12,22 @@
 #' @seealso [solve()] to run the script, solve the scenario. [read_solution] to read model solution.
 #'
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$topia_seasons,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- interpolate_model(mod, name = "BASE")
+#'
+#' # write the backend's model and data files without solving, to read them
+#' # or to run the solver by hand
+#' write_script(scen, solver = solver_options$glpk, solver.dir = tempdir())
+#' }
 write_script <- function(object, solver.dir = NULL, solver = NULL, ...) {
   if (!isTRUE(object@status$interpolated)) {
     stop("Scenario must be interpolated before writing the script.")

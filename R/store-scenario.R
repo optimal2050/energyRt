@@ -274,6 +274,19 @@
 #'
 #' @rdname scenario_runs
 #' @export
+#' @examples
+#' \donttest{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- interpolate_model(mod, name = "EX")
+#'
+#' # a freshly interpolated scenario has no runs yet; each solve adds one
+#' scenario_runs(scen)
+#' }
 scenario_runs <- function(object) {
   stopifnot(is(object, "scenario"))
   active_variant <- .run_variant(object)
@@ -977,6 +990,18 @@ scenario_solutions <- function(object, peek = TRUE) {
 #' @return the scenario, invisibly, with `modOut` populated and `run` active.
 #' @seealso [scenario_solutions()], [read_solution()], [drop_solver_outputs()]
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project("~/projects/mymodel")
+#' scen <- getScenario("BASE")
+#'
+#' # read a solve that ran elsewhere (a cluster or cloud run) back in
+#' scenario_runs(scen)
+#' scen <- import_solution(scen, run = "glpk")
+#'
+#' # `promote = TRUE` makes it the scenario's active solution
+#' scen <- import_solution(scen, run = "highs", promote = TRUE)
+#' }
 import_solution <- function(object, run, ..., restore_solver = TRUE,
                             save = TRUE, promote = FALSE, cleanup = FALSE,
                             verbose = TRUE) {
@@ -1354,6 +1379,12 @@ promote_solution <- function(object, run = NULL, save = TRUE, verbose = TRUE) {
 #' @param verbose logical.
 #' @return the upgraded scenario object, invisibly.
 #' @export
+#' @examples
+#' \dontrun{
+#' # migrate a scenario folder written by an older energyRt to the current
+#' # runs/<variant>/<solve>/ layout
+#' upgrade_scenario_layout("scenarios/BASE-TOPIA-s4_h24-base")
+#' }
 upgrade_scenario_layout <- function(path, verbose = TRUE) {
   path <- gsub("[\\/]+", "/", path)
   if (!dir.exists(path) || !file.exists(fp(path, "scen.RData"))) {

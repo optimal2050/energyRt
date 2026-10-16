@@ -237,6 +237,11 @@ verify_solution <- function(object,
 #'   (`"modInp"`, `"objects"` or `"registry"` -- which data the expectation is
 #'   derived from) and `tier` (`"default"` or `"optin"`).
 #' @export
+#' @examples
+#' # the catalogue of checks `verify_solution()` can run, with their tiers
+#' checks <- verify_checks()
+#' head(checks, 4)
+#' table(checks$tier)
 verify_checks <- function() {
   reg <- .vs_registry()
   data.frame(

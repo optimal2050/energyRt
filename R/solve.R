@@ -706,6 +706,25 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 #' @return a scenario object with the solution.
 #' @rdname solve_model
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$topia_seasons,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+#'
+#' sum(getData(scen, "vObjective", merge = TRUE)$value)
+#'
+#' # or in two steps, which is what you want when the inputs need inspecting
+#' # before the solver sees them
+#' scen <- interpolate_model(mod, name = "BASE2")
+#' scen <- solve_scenario(scen, solver = solver_options$glpk)
+#' }
 solve_model <- function(object, name = NULL, solver = NULL,
                         ondisk = FALSE, fold = FALSE, ...) {
   if (inherits(object, "scenario")) {

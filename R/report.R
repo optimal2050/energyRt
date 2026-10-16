@@ -141,6 +141,40 @@
 #' @seealso \code{\link{levcost}}, \code{\link{report_pdf}},
 #'   \code{\link{report_html}}, \code{\link{report_tex}}
 #'
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek  <- topia$modules$electricity$R3
+#' tech <- ek$ECOA
+#'
+#' # an object on its own: its assumptions, and an ex-ante estimate of what it
+#' # could do
+#' report(tech)
+#'
+#' # the same object as the model sees it -- prices and calendar from the
+#' # model it belongs to
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$topia_seasons,
+#'                 region = ek$regions, horizon = topia$modules$horizons$base)
+#' report(tech, model = mod)
+#'
+#' # and as a solved scenario realized it, against that ex-ante estimate
+#' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+#' report(tech, scenario = scen)
+#'
+#' # with a map of where it is sited
+#' report(tech, model = mod, geoscale = topia$geoscales$squares)
+#'
+#' # a container reports what the container is about: a model its
+#' # assumptions, a scenario its results
+#' report(mod)
+#' report(scen)
+#'
+#' # other formats, and several at once
+#' report(tech, format = "pdf")
+#' report(tech, format = c("html", "docx"))
+#' }
 #' @export
 setGeneric(
   "report",
@@ -2677,6 +2711,13 @@ setMethod("report", "scenario",
 #'
 #' @inheritParams report
 #' @return Path to the generated \code{.pdf} file (invisibly).
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' # needs a LaTeX installation
+#' report_pdf(topia$modules$electricity$R3$ECOA)
+#' }
 #' @export
 setGeneric("report_pdf", function(object, ...) standardGeneric("report_pdf"))
 
@@ -2693,6 +2734,22 @@ setMethod("report_pdf", "ANY", function(object, ...) {
 #'
 #' @inheritParams report
 #' @return Path to the generated \code{.html} file (invisibly).
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#' tech <- topia$modules$electricity$R3$ECOA
+#'
+#' # a portable single-file page under the project's reports/
+#' report_html(tech)
+#'
+#' # a scenario's report covers results, where an object's covers assumptions
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$topia_seasons,
+#'                  region = ek$regions, horizon = topia$modules$horizons$base)
+#' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+#' report_html(scen)
+#' }
 #' @export
 setGeneric("report_html", function(object, ...) standardGeneric("report_html"))
 
@@ -2709,6 +2766,13 @@ setMethod("report_html", "ANY", function(object, ...) {
 #'
 #' @inheritParams report
 #' @return Path to the generated \code{.tex} file (invisibly).
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' # the LaTeX source, for inclusion in a larger document
+#' report_tex(topia$modules$electricity$R3$ECOA)
+#' }
 #' @export
 setGeneric("report_tex", function(object, ...) standardGeneric("report_tex"))
 
@@ -2724,6 +2788,12 @@ setMethod("report_tex", "ANY", function(object, ...) {
 #'
 #' @inheritParams report
 #' @return Path to the generated \code{.docx} file (invisibly).
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' report_docx(topia$modules$electricity$R3$ECOA)
+#' }
 #' @export
 setGeneric("report_docx", function(object, ...) standardGeneric("report_docx"))
 

@@ -161,7 +161,10 @@ test_that("a solver path always ends in a slash and must exist", {
   expect_error(get_solver_path("not-a-backend"))
 })
 
-test_that("deprecated un-prefixed path env vars still work, warning once", {
+test_that("the un-prefixed path env vars are no longer read", {
+  # v0.90 consults only `ENERGYRT_*`. `JULIA_PATH` and friends are names other
+  # tools use too, so energyRt ignores them silently rather than erroring on
+  # something a user set for another program.
   dir <- normalizePath(tempdir(), winslash = "/")
   with_clean_options({
     options(en.julia_path = NULL)
@@ -172,11 +175,13 @@ test_that("deprecated un-prefixed path env vars still work, warning once", {
     }, add = TRUE)
 
     Sys.setenv(JULIA_PATH = dir)
-    .en_deprecate_reset()
-    expect_warning(res <- get_julia_path(), "deprecated")
-    expect_identical(res, dir)
-    # second read is silent
-    expect_silent(get_julia_path())
+    expect_silent(res <- get_julia_path())
+    expect_false(identical(res, dir))
+
+    # the supported name still works
+    Sys.setenv(ENERGYRT_JULIA_PATH = dir)
+    on.exit(Sys.unsetenv("ENERGYRT_JULIA_PATH"), add = TRUE)
+    expect_identical(get_julia_path(), dir)
   })
 })
 
@@ -202,20 +207,19 @@ test_that("isVerbose()/isDebug() accept levels and logicals", {
   })
 })
 
-test_that("the deprecated energyRt.verbose option is honoured once", {
+test_that("options(energyRt.verbose) is no longer honoured", {
+  # `en.verbose` is the only name in v0.90; the old option is ignored in
+  # silence, for the same reason as the path env vars.
   with_clean_options({
     old <- getOption("energyRt.verbose")
     on.exit(options(energyRt.verbose = old), add = TRUE)
 
     options(en.verbose = NULL, energyRt.verbose = TRUE)
-    .en_deprecate_reset()
-    expect_warning(res <- isVerbose(), "deprecated")
-    expect_true(res)
-    expect_silent(isVerbose())
+    expect_silent(res <- isVerbose())
+    expect_false(res)
 
-    # an explicit en.verbose wins over the deprecated option
-    options(en.verbose = 0)
-    expect_false(isVerbose())
+    options(en.verbose = 1)
+    expect_true(isVerbose())
   })
 })
 

@@ -66,6 +66,19 @@ setMethod("initialize", "repository", function(.Object, ...) {
 #'
 #' @export
 #' @family repository model data
+#' @examples
+#' repo <- newRepository(
+#'   "my_repo",
+#'   newCommodity("ELC", unit = "MWh"),
+#'   newCommodity("COA", unit = "MMBtu"),
+#'   desc = "Two commodities and nothing else"
+#' )
+#' repo
+#'
+#' # objects can be added afterwards; `add()` returns the updated repository
+#' repo <- add(repo, newSupply("SUP_COA", commodity = "COA",
+#'                             supply = data.frame(cost = 2)))
+#' repo
 newRepository <- function(
     name = "base_repository",
     ...,

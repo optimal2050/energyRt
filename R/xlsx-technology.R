@@ -108,6 +108,13 @@
 #' @seealso [read_technology_xlsx()]
 #' @family technology process
 #' @export
+#' @examples
+#' tech <- topia$modules$electricity$R3$ECOA
+#' f <- tempfile(fileext = ".xlsx")
+#'
+#' # one sheet per slot that carries data, plus an `info` sheet
+#' write_technology_xlsx(tech, f)
+#' basename(f)
 write_technology_xlsx <- function(x, path, include_empty = TRUE,
                                   drop_empty_cols = FALSE,
                                   header_fill = "#DDEBF7",
@@ -304,6 +311,15 @@ write_technology_xlsx <- function(x, path, include_empty = TRUE,
 #' @seealso [write_technology_xlsx()]
 #' @family technology process
 #' @export
+#' @examples
+#' tech <- topia$modules$electricity$R3$ECOA
+#' f <- tempfile(fileext = ".xlsx")
+#' write_technology_xlsx(tech, f)
+#'
+#' # a named list of the technologies found in the workbook
+#' back <- read_technology_xlsx(f)
+#' names(back)
+#' identical(back[[1]]@name, tech@name)
 read_technology_xlsx <- function(path, sheet = NULL, as_repository = FALSE) {
   if (!requireNamespace("openxlsx", quietly = TRUE))
     stop("Package 'openxlsx' is required: install.packages('openxlsx')")

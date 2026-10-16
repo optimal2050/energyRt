@@ -165,6 +165,16 @@ NULL
 #'   [aggregate_model_regions()] to apply it.
 #' @family geoscale
 #' @export
+#' @examples
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$s4_h24,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#'
+#' # families of processes that share a commodity signature, with their members
+#' head(get_process_groups(mod), 4)
 get_process_groups <- function(x, regions = NULL) {
   objs <- .cl_all_objects(x)
   tech <- objs[vapply(objs, function(o) class(o)[1] %in% .cl_groupable,
@@ -626,6 +636,21 @@ get_process_groups <- function(x, regions = NULL) {
 #' @seealso [get_process_groups()], [aggregate_model_regions()]
 #' @family geoscale
 #' @export
+#' @examples
+#' \dontrun{
+#' ek  <- topia$modules$electricity$R11
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$topia_seasons,
+#'                 region = ek$regions, horizon = topia$modules$horizons$base)
+#'
+#' # how a family's regions group at each k, and the spread left inside the
+#' # clusters -- the input to choosing `clusters` for
+#' # aggregate_model_regions(). The family needs parameters that actually
+#' # differ by region (site yields, site costs): one value for every region
+#' # leaves nothing to cluster on.
+#' process_cluster_sweep(mod, group = "EWIN", ks = 3:6,
+#'                       geoscale = topia$geoscales$honeycomb, level = "zone")
+#' }
 process_cluster_sweep <- function(object, group, ks = NULL, geoscale = NULL, level,
                                features = NULL) {
   stopifnot(inherits(object, "model"))

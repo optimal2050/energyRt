@@ -89,6 +89,22 @@
 #'   price curve contributes k), `scenarios`, `additive`, and `failed`.
 #' @seealso [subset_model_regions()], [boundary_window()], [solve_guided()]
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$topia_seasons,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#'
+#' # one solve per region, each seeing priced boundary flows to its neighbours
+#' res <- solve_by_region(mod, name = "BY_REGION", trade = "auto", price = 60,
+#'                        solver = solver_options$glpk)
+#' res$summary
+#' }
 solve_by_region <- function(object, name = NULL, ...,
                             regions = NULL, group = NULL,
                             trade = c("none", "user", "auto"),

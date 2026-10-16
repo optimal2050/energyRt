@@ -143,6 +143,11 @@ setMethod("getCalendar", signature(obj = "scenario"), function(obj) {
 #'
 #' @family geoscale
 #' @export
+#' @examples
+#' # returns the declared regions the geoscale cannot place, and warns about them
+#' gs <- topia$geoscales$squares
+#' check_geoscale_regions(gs, c("W1", "W2", "C1"))        # all placed: character(0)
+#' suppressWarnings(check_geoscale_regions(gs, c("W1", "NOWHERE")))
 check_geoscale_regions <- function(geoscale, region, level = NULL) {
   if (is.null(geoscale)) return(invisible(character()))
   check_package("geoscales")

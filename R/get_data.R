@@ -35,6 +35,24 @@ getData <- function(object, ...) UseMethod("getData")
 #' @return list with variables and parameters name, each includes _dim_ and _names_ character vectors.
 #'
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$topia_seasons,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+#'
+#' # which parameters carry a `tech` set, and what their dimensions are
+#' findData(scen, setsNames_ = "tech")
+#'
+#' # the solved variables only
+#' findData(scen, dataType = "variables", setsNames_ = "tech")
+#' }
 findData <- function(object,
                      dataType = c("parameters", "variables"),
                      setsNames_ = NULL,

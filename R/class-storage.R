@@ -641,36 +641,19 @@ setMethod("initialize", "storage", function(.Object, ...) {
     stop(msg, call. = FALSE)
   }
 
-  # `charge`/`inflow` -> `startLevel` (v0.80). The value column is renamed and any
-  # `timeslice` column is dropped with a warning: the slice is now derived, so a
-  # user-supplied one would be silently ignored otherwise.
+  # `charge`/`inflow` became `@startLevel` in v0.80 and the shim is gone as of
+  # v0.90. Refused by name, because the SEMANTICS changed with the rename: the
+  # old slots added their value at every timeslice given, `@startLevel` adds it
+  # once per cycle at the first slice. Silently accepting the old spelling would
+  # change what the model means, not just what it is called.
   for (old_nm in c("charge", "inflow")) {
     if (!.given(args[[old_nm]])) { args[[old_nm]] <- NULL; next }
-    if (.given(args$startLevel)) {
-      stop("Supply either `startLevel` or the deprecated `", old_nm,
-           "`, not both. `", old_nm, "` was renamed to `startLevel`.")
-    }
-    .en_deprecate_once(
-      paste0("storage@", old_nm),
-      paste0("`storage@", old_nm, "` was renamed to `@startLevel` in energyRt ",
-             "v0.80 and is now added ONCE PER CYCLE at the first timeslice, not ",
-             "at every timeslice given. For a weather-driven inflow profile use ",
-             "a `supply` feeding the storage. This warning is shown once per ",
-             "session.")
-    )
-    x <- args[[old_nm]]
-    if (is.data.frame(x) || is.list(x)) {
-      if (old_nm %in% names(x)) names(x)[names(x) == old_nm] <- "startLevel"
-      if ("timeslice" %in% names(x)) {
-        warning("storage", if (nzchar(name)) paste0(" '", name, "'") else "",
-                ": the `timeslice` column of `@", old_nm, "` is ignored -- ",
-                "`@startLevel` is applied at the first timeslice of each cycle.",
-                call. = FALSE)
-        x[["timeslice"]] <- NULL
-      }
-    }
-    args$startLevel <- x
-    args[[old_nm]] <- NULL
+    stop("`storage@", old_nm, "` was renamed to `@startLevel` in energyRt ",
+         "v0.80 and is no longer accepted (v0.90). It is not a pure rename: ",
+         "`@startLevel` is added ONCE PER CYCLE at the first timeslice, where ",
+         "`@", old_nm, "` added its value at every timeslice given. For a ",
+         "weather-driven inflow profile use a `supply` feeding the storage.",
+         call. = FALSE)
   }
 
   # `cap2stg` was renamed to `@duration` in v0.80 and the compatibility shim is

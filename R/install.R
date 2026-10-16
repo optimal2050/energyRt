@@ -113,6 +113,14 @@ en_install_julia_pkgs <- function(pkgs = NULL, update = FALSE) {
 #' @return NULL, invisibly. Verify with [en_check_pyomo()].
 #' @family solver
 #' @export
+#' @examples
+#' \dontrun{
+#' # create (or top up) the python environment the Pyomo backend uses
+#' en_install_python_deps()
+#'
+#' # a named environment and an explicit solver
+#' en_install_python_deps(env = "energyRt", solver = "highs")
+#' }
 en_install_python_deps <- function(env = "multimod",
                                    packages = NULL,
                                    solver = NULL,

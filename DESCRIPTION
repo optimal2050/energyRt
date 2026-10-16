@@ -25,9 +25,9 @@ Description: A macro-language for energy system modeling in R. Describe an
     energy system as R objects (commodities, technologies, supply, demand,
     storage, trade), compile it into a capacity-expansion and dispatch
     optimization model, solve it on one of four interchangeable backends
-    (GLPK/MathProg, Julia/JuMP, Python/Pyomo, or GAMS), and analyze tidy
-    results with built-in tools for levelized costs, technology reports,
-    and plotting.
+    ('GLPK'/'MathProg', 'Julia'/'JuMP', 'Python'/'Pyomo', or 'GAMS'), and
+    analyze tidy results with built-in tools for levelized costs, technology
+    reports, and plotting.
 Depends: R (>= 4.3)
 Imports: methods, grid, stats, generics, data.table, tibble, tidyr, dplyr, rlang,
         stringr, lubridate, purrr, arrow, progressr, cli,
@@ -165,5 +165,5 @@ Collate:
     'xlsx-technology.R'
 Config/testthat/edition: 3
 Config/testthat/parallel: false
-Config/roxygen2/version: 8.1.0
+Config/roxygen2/version: 8.1.1
 Roxygen: list(markdown = TRUE)

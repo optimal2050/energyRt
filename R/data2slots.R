@@ -1,24 +1,18 @@
-# slice -> timeslice compatibility (v0.80 rename) -----------------------------
-# Accept the pre-rename `slice` column/element name in user-supplied data and
-# rename it, warning once per session. Kept package-wide so every entry point
+# slice -> timeslice (v0.80 rename) -------------------------------------------
+# The pre-rename `slice` column/element name was accepted with a warning until
+# v0.90; it is now refused. Kept package-wide so every entry point
 # (.data2slots, newCalendar timetables, constraint for.each lists, fold dims)
-# shares the single warning.
+# refuses it the same way and names where it came from -- a renamed dimension
+# that is silently accepted at one entry point and not another is worse than a
+# break.
 .slice_compat_env <- new.env(parent = emptyenv())
 
 #' @noRd
 .rename_slice_compat <- function(nms, where) {
   i <- !is.na(nms) & nms == "slice"
   if (any(i)) {
-    if (!isTRUE(.slice_compat_env$warned)) {
-      warning(
-        "`slice` was renamed to `timeslice` in energyRt v0.80; the supplied ",
-        "`slice` name (", where, ") is accepted and renamed. ",
-        "Please update your data. This warning is shown once per session.",
-        call. = FALSE
-      )
-      .slice_compat_env$warned <- TRUE
-    }
-    nms[i] <- "timeslice"
+    stop("`slice` was renamed to `timeslice` in energyRt v0.80 and is no ",
+         "longer accepted (v0.90): rename it in ", where, ".", call. = FALSE)
   }
   nms
 }
