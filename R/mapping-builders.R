@@ -517,12 +517,47 @@ map_mCommReg <- function(scen, fmp) {
 .cjoin <- function(scen, name, fmp)
   .build_constraint_join_map(scen, name, .constraint_map_def[[name]], fmp)
 
+# A weather lower bound (`waf.lo` / `waf.fx`, and the storage and supply
+# equivalents) is a factor INSIDE its family's lower-bound equation, e.g.
+#   af.lo * cap2act * vTechCap * share * prod(waf.lo * weather) <= vTechAct,
+# whose domain holds only the rows with a non-zero `.lo` and which is multiplied
+# by that `.lo` (default 0). A process with a weather lower bound and no `.lo` of
+# its own therefore had no lower bound at all, and `.fx` fixed nothing. Here such
+# a process gets `.lo = 1` on its whole domain, so the weather bound binds; a
+# process that declares a `.lo` keeps it (the two multiply).
+#   wmap  the weather lower-bound membership (mTechWeatherAfLo, ...)
+#   par   the family's bound parameter (pTechAf, ...), `type`/`value` columns
+#   dom   the variable domain the rows are taken from (mvTechAct, ...)
+#   key   the process column (tech, stg, sup)
+.weather_lo_default <- function(scen, wmap, par, dom, key) {
+  w <- .gds(scen, wmap); d <- .gds(scen, dom); pp <- scen@modInp@parameters[[par]]
+  if (is.null(w) || is.null(d) || is.null(pp) || !key %in% colnames(d)) return(scen)
+  ents <- unique(as.character(w[[key]]))
+  p <- .gds(scen, par)
+  if (!is.null(p) && nrow(p) > 0) {
+    ents <- setdiff(ents, unique(as.character(p[[key]][p$type == "lo"])))
+  }
+  if (!length(ents)) return(scen)
+  dims <- intersect(pp@dimSets, colnames(d))
+  if (!setequal(dims, pp@dimSets)) return(scen)
+  rows <- unique(d[as.character(d[[key]]) %in% ents, dims, drop = FALSE])
+  if (!nrow(rows)) return(scen)
+  rows$type <- "lo"
+  rows$value <- 1
+  # `.dat2par()` appends: only the new rows go in
+  scen@modInp@parameters[[par]] <- .dat2par(pp, rows)
+  scen
+}
+
 # C1 commodity balance
 map_meqBalLo <- function(scen, fmp) .cjoin(scen, "meqBalLo", fmp)
 map_meqBalUp <- function(scen, fmp) .cjoin(scen, "meqBalUp", fmp)
 map_meqBalFx <- function(scen, fmp) .cjoin(scen, "meqBalFx", fmp)
 # C2 technology availability factors
-map_meqTechAfLo     <- function(scen, fmp) .cjoin(scen, "meqTechAfLo", fmp)
+map_meqTechAfLo     <- function(scen, fmp) {
+  scen <- .weather_lo_default(scen, "mTechWeatherAfLo", "pTechAf", "mvTechAct", "tech")
+  .cjoin(scen, "meqTechAfLo", fmp)
+}
 map_meqTechAfUp     <- function(scen, fmp) .cjoin(scen, "meqTechAfUp", fmp)
 map_meqTechAfsLo    <- function(scen, fmp) .cjoin(scen, "meqTechAfsLo", fmp)
 map_meqTechAfsUp    <- function(scen, fmp) .cjoin(scen, "meqTechAfsUp", fmp)
@@ -538,11 +573,20 @@ map_mTechNewCapUp <- function(scen, fmp) .cjoin(scen, "mTechNewCapUp", fmp)
 map_mTechRetLo    <- function(scen, fmp) .cjoin(scen, "mTechRetLo", fmp)
 map_mTechRetUp    <- function(scen, fmp) .cjoin(scen, "mTechRetUp", fmp)
 # C5 storage activity bounds
-map_meqStorageAfLo  <- function(scen, fmp) .cjoin(scen, "meqStorageAfLo", fmp)
+map_meqStorageAfLo  <- function(scen, fmp) {
+  scen <- .weather_lo_default(scen, "mStorageWeatherAfLo", "pStorageAf", "mvStorageLevel", "stg")
+  .cjoin(scen, "meqStorageAfLo", fmp)
+}
 map_meqStorageAfUp  <- function(scen, fmp) .cjoin(scen, "meqStorageAfUp", fmp)
-map_meqStorageInpLo <- function(scen, fmp) .cjoin(scen, "meqStorageInpLo", fmp)
+map_meqStorageInpLo <- function(scen, fmp) {
+  scen <- .weather_lo_default(scen, "mStorageWeatherInpAfLo", "pStorageInpAf", "mvStorageInp", "stg")
+  .cjoin(scen, "meqStorageInpLo", fmp)
+}
 map_meqStorageInpUp <- function(scen, fmp) .cjoin(scen, "meqStorageInpUp", fmp)
-map_meqStorageOutLo <- function(scen, fmp) .cjoin(scen, "meqStorageOutLo", fmp)
+map_meqStorageOutLo <- function(scen, fmp) {
+  scen <- .weather_lo_default(scen, "mStorageWeatherOutAfLo", "pStorageOutAf", "mvStorageOut", "stg")
+  .cjoin(scen, "meqStorageOutLo", fmp)
+}
 map_meqStorageOutUp <- function(scen, fmp) .cjoin(scen, "meqStorageOutUp", fmp)
 # C6 storage capacity / retirement
 map_mStorageCapLo    <- function(scen, fmp) .cjoin(scen, "mStorageOutCapLo", fmp)

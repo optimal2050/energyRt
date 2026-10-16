@@ -549,6 +549,9 @@ map_mEmsFuelTot <- function(scen, fmp) {
 # map sharing this derivation; it is emitted here as a side-effect (recipe_constraint
 # skips it).
 map_mSupAvaUp <- function(scen, fmp) {
+  # a supply with a weather lower bound and no `ava.lo`: ava.lo = 1 over its
+  # domain, so the weather bound binds (see .weather_lo_default)
+  scen <- .weather_lo_default(scen, "mSupWeatherLo", "pSupAva", "mSupAva", "sup")
   mSupAva <- .gds(scen, "mSupAva"); pSupAva <- .gds(scen, "pSupAva")
   if (is.null(mSupAva) || is.null(pSupAva)) return(scen)
   sk <- intersect(c("sup", "comm", "region", "year"), colnames(pSupAva))
