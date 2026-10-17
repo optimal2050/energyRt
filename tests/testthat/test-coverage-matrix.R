@@ -54,11 +54,14 @@ test_that("matrix rows assemble from package metadata with expected arithmetic",
   # 2026-10-08)
   # (313 maps / 151 equations = + meqTechAfFx / eqTechAfFx, a fixed availability
   # bound as one equality row under `fx_equ`, 2026-10-16)
+  # (345 maps / 182 equations = + the Fx map and equation of 32 more bound
+  # families under `fx_equ`; eqTradeIrAfFx, like eqTradeIrAfLo, has no
+  # description entry and is not counted, 2026-10-16)
   expect_equal(unname(counts[["set"]]), 15)
-  expect_equal(unname(counts[["map"]]), 313)
+  expect_equal(unname(counts[["map"]]), 345)
   expect_equal(unname(counts[["numpar"]]), 151)
   expect_equal(unname(counts[["bounds"]]), 38)
-  expect_equal(unname(counts[["equation"]]), 151)
+  expect_equal(unname(counts[["equation"]]), 182)
   expect_gte(unname(counts[["variable"]]), 93)
   expect_false(any(duplicated(rows$name[rows$kind != "variable"])))
   # every bounds row expands to a Lo/Up pXxx pair

@@ -583,6 +583,55 @@ print("eqTechShareInpLo(tech, region, group, comm, year, timeslice)...")
     ) for cp in get(mTechGroupComm_ix, (t, g), ())
     )
 );
+print("eqTechShareInpFx(tech, region, group, comm, year, timeslice)...")
+@constraint(
+    model,
+    [(t, r, g, c, y, s) in meqTechShareInpFx],
+    (
+        if (t, c, r, y, s) in mvTechInp
+            vTechInp[(t, c, r, y, s)]
+        else
+            0
+        end
+    ) +
+    sum(vTechInp[(t, c, rp, y, s)] for rp in get(mTechProcAggRegion_ix, (t, c, r), ())) +
+    sum(
+        (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
+            else
+                pTimesliceAggDef
+            end
+        ) * vTechInp[(t, c, r, y, sp)]
+        for sp in get(mTechProcAggTimeslice_ix, (t, c, s), ())
+    ) ==
+    (
+        if haskey(pTechShareLo, (t, c, r, y, s))
+            pTechShareLo[(t, c, r, y, s)]
+        else
+            pTechShareLoDef
+        end
+    ) * sum(
+        (
+        if (t, cp, r, y, s) in mvTechInp
+            vTechInp[(t, cp, r, y, s)]
+        else
+            0
+        end
+    ) +
+    sum(vTechInp[(t, cp, rp, y, s)] for rp in get(mTechProcAggRegion_ix, (t, cp, r), ())) +
+    sum(
+        (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
+            else
+                pTimesliceAggDef
+            end
+        ) * vTechInp[(t, cp, r, y, sp)]
+        for sp in get(mTechProcAggTimeslice_ix, (t, cp, s), ())
+    ) for cp in get(mTechGroupComm_ix, (t, g), ())
+    )
+);
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -651,6 +700,27 @@ print("eqTechShareOutLo(tech, region, group, comm, year, timeslice)...")
     model,
     [(t, r, g, c, y, s) in meqTechShareOutLo],
     vTechOut[(t, c, r, y, s)] >=
+    (
+        if haskey(pTechShareLo, (t, c, r, y, s))
+            pTechShareLo[(t, c, r, y, s)]
+        else
+            pTechShareLoDef
+        end
+    ) * sum(
+        (
+            if (t, cp, r, y, s) in mvTechOut
+                vTechOut[(t, cp, r, y, s)]
+            else
+                0
+            end
+        ) for cp in get(mTechGroupComm_ix, (t, g), ())
+    )
+);
+print("eqTechShareOutFx(tech, region, group, comm, year, timeslice)...")
+@constraint(
+    model,
+    [(t, r, g, c, y, s) in meqTechShareOutFx],
+    vTechOut[(t, c, r, y, s)] ==
     (
         if haskey(pTechShareLo, (t, c, r, y, s))
             pTechShareLo[(t, c, r, y, s)]
@@ -862,6 +932,58 @@ print(
     "
 ",
 )
+# eqTechAfFx(tech, region, year, timeslice)$meqTechAfFx(tech, region, year, timeslice)
+print("eqTechAfFx(tech, region, year, timeslice)...")
+@constraint(
+    model,
+    [(t, r, y, s) in meqTechAfFx],
+    vTechAct[(t, r, y, s)] ==
+    (
+        if haskey(pTechAfLo, (t, r, y, s))
+            pTechAfLo[(t, r, y, s)]
+        else
+            pTechAfLoDef
+        end
+    ) *
+    (
+        if haskey(pTechCap2act, (t))
+            pTechCap2act[(t)]
+        else
+            pTechCap2actDef
+        end
+    ) *
+    vTechCap[(t, r, y)] *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    ) *
+    prod(
+        (
+            if haskey(pTechWeatherAfLo, (wth1, t))
+                pTechWeatherAfLo[(wth1, t)]
+            else
+                pTechWeatherAfLoDef
+            end
+        ) * (
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
+        ) for wth1 in get(mTechWeatherAfLo_ix, t, ())
+    ; init = 1)
+);
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 # eqTechAfsLo(tech, region, year, timeslice)$meqTechAfsLo(tech, region, year, timeslice)
 print("eqTechAfsLo(tech, region, year, timeslice)...")
 @constraint(
@@ -906,6 +1028,64 @@ print("eqTechAfsLo(tech, region, year, timeslice)...")
             ; init = 0)
         ) for wth1 in get(mTechWeatherAfsLo_ix, t, ())
     ; init = 1) <= sum(
+        (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
+            else
+                pTimesliceAggDef
+            end
+        ) * (
+            if (t, r, y, sp) in mvTechAct
+                vTechAct[(t, r, y, sp)]
+            else
+                0
+            end
+        ) for sp in get(mTimesliceParentChildE_ix, s, ())
+    )
+);
+print("eqTechAfsFx(tech, region, year, timeslice)...")
+@constraint(
+    model,
+    [(t, r, y, s) in meqTechAfsFx],
+    (
+        if haskey(pTechAfsLo, (t, r, y, s))
+            pTechAfsLo[(t, r, y, s)]
+        else
+            pTechAfsLoDef
+        end
+    ) *
+    (
+        if haskey(pTechCap2act, (t))
+            pTechCap2act[(t)]
+        else
+            pTechCap2actDef
+        end
+    ) *
+    vTechCap[(t, r, y)] *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    ) *
+    prod(
+        (
+            if haskey(pTechWeatherAfsLo, (wth1, t))
+                pTechWeatherAfsLo[(wth1, t)]
+            else
+                pTechWeatherAfsLoDef
+            end
+        ) * (
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
+        ) for wth1 in get(mTechWeatherAfsLo_ix, t, ())
+    ; init = 1) == sum(
         (
             if haskey(pTimesliceAgg, (y, s, sp))
                 pTimesliceAgg[(y, s, sp)]
@@ -1190,6 +1370,57 @@ print("eqTechAfcOutLo(tech, region, comm, year, timeslice)...")
         ) for wth1 in get(mTechWeatherAfcLo_ix, (t, c), ())
     ; init = 1) <= vTechOut[(t, c, r, y, s)]
 );
+print("eqTechAfcOutFx(tech, region, comm, year, timeslice)...")
+@constraint(
+    model,
+    [(t, r, c, y, s) in meqTechAfcOutFx],
+    (
+        if haskey(pTechCact2cout, (t, c, r, y, s))
+            pTechCact2cout[(t, c, r, y, s)]
+        else
+            pTechCact2coutDef
+        end
+    ) *
+    (
+        if haskey(pTechAfcLo, (t, c, r, y, s))
+            pTechAfcLo[(t, c, r, y, s)]
+        else
+            pTechAfcLoDef
+        end
+    ) *
+    (
+        if haskey(pTechCap2act, (t))
+            pTechCap2act[(t)]
+        else
+            pTechCap2actDef
+        end
+    ) *
+    vTechCap[(t, r, y)] *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    ) *
+    prod(
+        (
+            if haskey(pTechWeatherAfcLo, (wth1, t, c))
+                pTechWeatherAfcLo[(wth1, t, c)]
+            else
+                pTechWeatherAfcLoDef
+            end
+        ) * (
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
+        ) for wth1 in get(mTechWeatherAfcLo_ix, (t, c), ())
+    ; init = 1) == vTechOut[(t, c, r, y, s)]
+);
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -1299,6 +1530,50 @@ print("eqTechAfcInpLo(tech, region, comm, year, timeslice)...")
             ; init = 0)
         ) for wth1 in get(mTechWeatherAfcLo_ix, (t, c), ())
     ; init = 1) <= vTechInp[(t, c, r, y, s)]
+);
+print("eqTechAfcInpFx(tech, region, comm, year, timeslice)...")
+@constraint(
+    model,
+    [(t, r, c, y, s) in meqTechAfcInpFx],
+    (
+        if haskey(pTechAfcLo, (t, c, r, y, s))
+            pTechAfcLo[(t, c, r, y, s)]
+        else
+            pTechAfcLoDef
+        end
+    ) *
+    (
+        if haskey(pTechCap2act, (t))
+            pTechCap2act[(t)]
+        else
+            pTechCap2actDef
+        end
+    ) *
+    vTechCap[(t, r, y)] *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    ) *
+    prod(
+        (
+            if haskey(pTechWeatherAfcLo, (wth1, t, c))
+                pTechWeatherAfcLo[(wth1, t, c)]
+            else
+                pTechWeatherAfcLoDef
+            end
+        ) * (
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
+        ) for wth1 in get(mTechWeatherAfcLo_ix, (t, c), ())
+    ; init = 1) == vTechInp[(t, c, r, y, s)]
 );
 print(
     " ",
@@ -1414,6 +1689,18 @@ print("eqTechCapLo(tech, region, year)...")
         end
     )
 );
+print("eqTechCapFx(tech, region, year)...")
+@constraint(
+    model,
+    [(t, r, y) in mTechCapFx],
+    vTechCap[(t, r, y)] == (
+        if haskey(pTechCapLo, (t, r, y))
+            pTechCapLo[(t, r, y)]
+        else
+            pTechCapLoDef
+        end
+    )
+);
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -1445,6 +1732,25 @@ print("eqTechNewCapLo(tech, region, year)...")
     model,
     [(t, r, y) in mTechNewCapLo],
     vTechNewCap[(t, r, y)] >=
+    (
+        if haskey(pTechNewCapLo, (t, r, y))
+            pTechNewCapLo[(t, r, y)]
+        else
+            pTechNewCapLoDef
+        end
+    ) * (
+        if haskey(pPeriodLen, (y))
+            pPeriodLen[(y)]
+        else
+            pPeriodLenDef
+        end
+    )
+);
+print("eqTechNewCapFx(tech, region, year)...")
+@constraint(
+    model,
+    [(t, r, y) in mTechNewCapFx],
+    vTechNewCap[(t, r, y)] ==
     (
         if haskey(pTechNewCapLo, (t, r, y))
             pTechNewCapLo[(t, r, y)]
@@ -1596,6 +1902,33 @@ print("eqTechRetLo(tech, region, year)...")
         vTechRetiredNewCap[(t, r, yp, y)] for
         yp in year if (t, r, yp, y) in mvTechRetiredNewCap
     ) >= (
+        if haskey(pTechRetLo, (t, r, y))
+            pTechRetLo[(t, r, y)]
+        else
+            pTechRetLoDef
+        end
+    ) * (
+        if haskey(pPeriodLen, (y))
+            pPeriodLen[(y)]
+        else
+            pPeriodLenDef
+        end
+    )
+);
+print("eqTechRetFx(tech, region, year)...")
+@constraint(
+    model,
+    [(t, r, y) in mTechRetFx],
+    (
+        if (t, r, y) in mvTechRetiredStock
+            vTechRetiredStock[(t, r, y)]
+        else
+            0
+        end
+    ) + sum(
+        vTechRetiredNewCap[(t, r, yp, y)] for
+        yp in year if (t, r, yp, y) in mvTechRetiredNewCap
+    ) == (
         if haskey(pTechRetLo, (t, r, y))
             pTechRetLo[(t, r, y)]
         else
@@ -1831,6 +2164,33 @@ print("eqStorageOutRetLo(stg, region, year)...")
         end
     )
 );
+print("eqStorageOutRetFx(stg, region, year)...")
+@constraint(
+    model,
+    [(st1, r, y) in mStorageOutRetFx],
+    (
+        if (st1, r, y) in mvStorageRetiredStock
+            vStorageOutRetiredStock[(st1, r, y)]
+        else
+            0
+        end
+    ) + sum(
+        vStorageOutRetiredNewCap[(st1, r, yp, y)] for
+        yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap
+    ) == (
+        if haskey(pStorageOutRetLo, (st1, r, y))
+            pStorageOutRetLo[(st1, r, y)]
+        else
+            pStorageOutRetLoDef
+        end
+    ) * (
+        if haskey(pPeriodLen, (y))
+            pPeriodLen[(y)]
+        else
+            pPeriodLenDef
+        end
+    )
+);
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -1947,6 +2307,33 @@ print("eqStorageInpRetLo(stg, region, year)...")
         end
     )
 );
+print("eqStorageInpRetFx(stg, region, year)...")
+@constraint(
+    model,
+    [(st1, r, y) in mStorageInpRetFx],
+    (
+        if (st1, r, y) in mvStorageRetiredStock
+            vStorageInpRetiredStock[(st1, r, y)]
+        else
+            0
+        end
+    ) + sum(
+        vStorageInpRetiredNewCap[(st1, r, yp, y)] for
+        yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap
+    ) == (
+        if haskey(pStorageInpRetLo, (st1, r, y))
+            pStorageInpRetLo[(st1, r, y)]
+        else
+            pStorageInpRetLoDef
+        end
+    ) * (
+        if haskey(pPeriodLen, (y))
+            pPeriodLen[(y)]
+        else
+            pPeriodLenDef
+        end
+    )
+);
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -2050,6 +2437,33 @@ print("eqStorageStgRetLo(stg, region, year)...")
         vStorageStgRetiredNewCap[(st1, r, yp, y)] for
         yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap
     ) >= (
+        if haskey(pStorageStgRetLo, (st1, r, y))
+            pStorageStgRetLo[(st1, r, y)]
+        else
+            pStorageStgRetLoDef
+        end
+    ) * (
+        if haskey(pPeriodLen, (y))
+            pPeriodLen[(y)]
+        else
+            pPeriodLenDef
+        end
+    )
+);
+print("eqStorageStgRetFx(stg, region, year)...")
+@constraint(
+    model,
+    [(st1, r, y) in mStorageStgRetFx],
+    (
+        if (st1, r, y) in mvStorageRetiredStock
+            vStorageStgRetiredStock[(st1, r, y)]
+        else
+            0
+        end
+    ) + sum(
+        vStorageStgRetiredNewCap[(st1, r, yp, y)] for
+        yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap
+    ) == (
         if haskey(pStorageStgRetLo, (st1, r, y))
             pStorageStgRetLo[(st1, r, y)]
         else
@@ -2267,6 +2681,33 @@ print("eqTradeRetLo(trade, year)...")
         vTradeRetiredNewCap[(t1, yp, y)] for
         yp in year if (t1, yp, y) in mvTradeRetiredNewCap
     ) >= (
+        if haskey(pTradeRetLo, (t1, y))
+            pTradeRetLo[(t1, y)]
+        else
+            pTradeRetLoDef
+        end
+    ) * (
+        if haskey(pPeriodLen, (y))
+            pPeriodLen[(y)]
+        else
+            pPeriodLenDef
+        end
+    )
+);
+print("eqTradeRetFx(trade, year)...")
+@constraint(
+    model,
+    [(t1, y) in mTradeRetFx],
+    (
+        if (t1, y) in mvTradeRetiredStock
+            vTradeRetiredStock[(t1, y)]
+        else
+            0
+        end
+    ) + sum(
+        vTradeRetiredNewCap[(t1, yp, y)] for
+        yp in year if (t1, yp, y) in mvTradeRetiredNewCap
+    ) == (
         if haskey(pTradeRetLo, (t1, y))
             pTradeRetLo[(t1, y)]
         else
@@ -2655,6 +3096,35 @@ print("eqSupAvaLo(sup, comm, region, year, timeslice)...")
         ) for wth1 in get(mSupWeatherLo_ix, s1, ())
     ; init = 1)
 );
+print("eqSupAvaFx(sup, comm, region, year, timeslice)...")
+@constraint(
+    model,
+    [(s1, c, r, y, s) in meqSupAvaFx],
+    vSupOut[(s1, c, r, y, s)] ==
+    (
+        if haskey(pSupAvaLo, (s1, c, r, y, s))
+            pSupAvaLo[(s1, c, r, y, s)]
+        else
+            pSupAvaLoDef
+        end
+    ) * prod(
+        (
+            if haskey(pSupWeatherLo, (wth1, s1))
+                pSupWeatherLo[(wth1, s1)]
+            else
+                pSupWeatherLoDef
+            end
+        ) * (
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
+        ) for wth1 in get(mSupWeatherLo_ix, s1, ())
+    ; init = 1)
+);
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -2716,6 +3186,18 @@ print("eqSupReserveLo(sup, comm, region)...")
     model,
     [(s1, c, r) in meqSupReserveLo],
     vSupReserve[(s1, c, r)] >= (
+        if haskey(pSupReserveLo, (s1, c, r))
+            pSupReserveLo[(s1, c, r)]
+        else
+            pSupReserveLoDef
+        end
+    )
+);
+print("eqSupReserveFx(sup, comm, region)...")
+@constraint(
+    model,
+    [(s1, c, r) in meqSupReserveFx],
+    vSupReserve[(s1, c, r)] == (
         if haskey(pSupReserveLo, (s1, c, r))
             pSupReserveLo[(s1, c, r)]
         else
@@ -3067,6 +3549,51 @@ print("eqStorageAfLo(stg, comm, region, year, timeslice)...")
         ) for wth1 in get(mStorageWeatherAfLo_ix, st1, ())
     ; init = 1)
 );
+print("eqStorageAfFx(stg, comm, region, year, timeslice)...")
+@constraint(
+    model,
+    [(st1, c, r, y, s) in meqStorageAfFx],
+    vStorageLevel[(st1, c, r, y, s)] ==
+    (
+        if haskey(pStorageAfLo, (st1, r, y, s))
+            pStorageAfLo[(st1, r, y, s)]
+        else
+            pStorageAfLoDef
+        end
+    ) *
+    (
+        # [2c] the storing side is its own variable where it carries data;
+        # elsewhere the duration ratio is inlined onto the output capacity.
+        if (st1, r, y) in mStorageStgCap
+            vStorageStgCap[(st1, r, y)]
+        else
+            (
+                if haskey(pStorageDurationLo, (st1, r, y))
+                    pStorageDurationLo[(st1, r, y)]
+                else
+                    pStorageDurationLoDef
+                end
+            ) * vStorageOutCap[(st1, r, y)]
+        end
+    ) *
+    prod(
+        (
+            if haskey(pStorageWeatherAfLo, (wth1, st1))
+                pStorageWeatherAfLo[(wth1, st1)]
+            else
+                pStorageWeatherAfLoDef
+            end
+        ) * (
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
+        ) for wth1 in get(mStorageWeatherAfLo_ix, st1, ())
+    ; init = 1)
+);
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -3275,6 +3802,66 @@ print("eqStorageInpLo(stg, comm, region, year, timeslice)...")
         ) for wth1 in get(mStorageWeatherInpAfLo_ix, st1, ())
     ; init = 1)
 );
+print("eqStorageInpFx(stg, comm, region, year, timeslice)...")
+@constraint(
+    model,
+    [(st1, c, r, y, s) in meqStorageInpFx],
+    vStorageInp[(st1, c, r, y, s)] ==
+    (
+        # [2c] the charging side is its own variable where it carries data;
+        # elsewhere inp2out is inlined onto the output capacity.
+        if (st1, r, y) in mStorageInpCap
+            vStorageInpCap[(st1, r, y)]
+        else
+            (
+        if haskey(pStorageInp2outLo, (st1, r, y))
+            pStorageInp2outLo[(st1, r, y)]
+        else
+            pStorageInp2outLoDef
+        end
+    ) * vStorageOutCap[(st1, r, y)]
+        end
+    ) *
+    # [rate] capacity is per HOUR, not per timeslice
+    (
+        if haskey(pStorageInpCap2act, (st1))
+            pStorageInpCap2act[(st1)]
+        else
+            pStorageInpCap2actDef
+        end
+    ) *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    ) *
+    (
+        if haskey(pStorageInpAfLo, (st1, c, r, y, s))
+            pStorageInpAfLo[(st1, c, r, y, s)]
+        else
+            pStorageInpAfLoDef
+        end
+    ) *
+    prod(
+        (
+            if haskey(pStorageWeatherInpAfLo, (wth1, st1))
+                pStorageWeatherInpAfLo[(wth1, st1)]
+            else
+                pStorageWeatherInpAfLoDef
+            end
+        ) * (
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
+        ) for wth1 in get(mStorageWeatherInpAfLo_ix, st1, ())
+    ; init = 1)
+);
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -3339,6 +3926,51 @@ print("eqStorageOutLo(stg, comm, region, year, timeslice)...")
     model,
     [(st1, c, r, y, s) in meqStorageOutLo],
     vStorageOut[(st1, c, r, y, s)] >=
+    vStorageOutCap[(st1, r, y)] *
+    (
+        if haskey(pStorageOutCap2act, (st1))
+            pStorageOutCap2act[(st1)]
+        else
+            pStorageOutCap2actDef
+        end
+    ) *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    ) *
+    (
+        if haskey(pStorageOutAfLo, (st1, c, r, y, s))
+            pStorageOutAfLo[(st1, c, r, y, s)]
+        else
+            pStorageOutAfLoDef
+        end
+    ) *
+    prod(
+        (
+            if haskey(pStorageWeatherOutAfLo, (wth1, st1))
+                pStorageWeatherOutAfLo[(wth1, st1)]
+            else
+                pStorageWeatherOutAfLoDef
+            end
+        ) * (
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
+        ) for wth1 in get(mStorageWeatherOutAfLo_ix, st1, ())
+    ; init = 1)
+);
+print("eqStorageOutFx(stg, comm, region, year, timeslice)...")
+@constraint(
+    model,
+    [(st1, c, r, y, s) in meqStorageOutFx],
+    vStorageOut[(st1, c, r, y, s)] ==
     vStorageOutCap[(st1, r, y)] *
     (
         if haskey(pStorageOutCap2act, (st1))
@@ -3483,6 +4115,15 @@ print("eqStorageInpCapLo(stg, region, year)...")
             pStorageInpCapLoDef
         end
     ));
+print("eqStorageInpCapFx(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageInpCapFx],
+    vStorageInpCap[(st1, r, y)] == (
+        if haskey(pStorageInpCapLo, (st1, r, y))
+            pStorageInpCapLo[(st1, r, y)]
+        else
+            pStorageInpCapLoDef
+        end
+    ));
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -3507,6 +4148,21 @@ print(
 print("eqStorageInpNewCapLo(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageInpNewCapLo],
     vStorageInpNewCap[(st1, r, y)] >= (
+        if haskey(pStorageInpNewCapLo, (st1, r, y))
+            pStorageInpNewCapLo[(st1, r, y)]
+        else
+            pStorageInpNewCapLoDef
+        end
+    ) * (
+        if haskey(pPeriodLen, (y))
+            pPeriodLen[(y)]
+        else
+            pPeriodLenDef
+        end
+    ));
+print("eqStorageInpNewCapFx(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageInpNewCapFx],
+    vStorageInpNewCap[(st1, r, y)] == (
         if haskey(pStorageInpNewCapLo, (st1, r, y))
             pStorageInpNewCapLo[(st1, r, y)]
         else
@@ -3556,6 +4212,15 @@ print("eqStorageInp2outLo(stg, region, year)...")
             pStorageInp2outLoDef
         end
     ) * vStorageOutCap[(st1, r, y)]);
+print("eqStorageInp2outFx(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageInp2outFx],
+    vStorageInpCap[(st1, r, y)] == (
+        if haskey(pStorageInp2outLo, (st1, r, y))
+            pStorageInp2outLo[(st1, r, y)]
+        else
+            pStorageInp2outLoDef
+        end
+    ) * vStorageOutCap[(st1, r, y)]);
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -3583,6 +4248,15 @@ print(
 print("eqStorageInp2stgLo(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageInp2stgLo],
     vStorageInpCap[(st1, r, y)] >= (
+        if haskey(pStorageInp2stgLo, (st1, r, y))
+            pStorageInp2stgLo[(st1, r, y)]
+        else
+            pStorageInp2stgLoDef
+        end
+    ) * vStorageStgCap[(st1, r, y)]);
+print("eqStorageInp2stgFx(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageInp2stgFx],
+    vStorageInpCap[(st1, r, y)] == (
         if haskey(pStorageInp2stgLo, (st1, r, y))
             pStorageInp2stgLo[(st1, r, y)]
         else
@@ -3665,6 +4339,15 @@ print("eqStorageStgCapLo(stg, region, year)...")
             pStorageStgCapLoDef
         end
     ));
+print("eqStorageStgCapFx(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageStgCapFx],
+    vStorageStgCap[(st1, r, y)] == (
+        if haskey(pStorageStgCapLo, (st1, r, y))
+            pStorageStgCapLo[(st1, r, y)]
+        else
+            pStorageStgCapLoDef
+        end
+    ));
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -3689,6 +4372,21 @@ print(
 print("eqStorageStgNewCapLo(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageStgNewCapLo],
     vStorageStgNewCap[(st1, r, y)] >= (
+        if haskey(pStorageStgNewCapLo, (st1, r, y))
+            pStorageStgNewCapLo[(st1, r, y)]
+        else
+            pStorageStgNewCapLoDef
+        end
+    ) * (
+        if haskey(pPeriodLen, (y))
+            pPeriodLen[(y)]
+        else
+            pPeriodLenDef
+        end
+    ));
+print("eqStorageStgNewCapFx(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageStgNewCapFx],
+    vStorageStgNewCap[(st1, r, y)] == (
         if haskey(pStorageStgNewCapLo, (st1, r, y))
             pStorageStgNewCapLo[(st1, r, y)]
         else
@@ -3738,6 +4436,15 @@ print("eqStorageDurationLo(stg, region, year)...")
             pStorageDurationLoDef
         end
     ) * vStorageOutCap[(st1, r, y)]);
+print("eqStorageDurationFx(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageDurationFx],
+    vStorageStgCap[(st1, r, y)] == (
+        if haskey(pStorageDurationLo, (st1, r, y))
+            pStorageDurationLo[(st1, r, y)]
+        else
+            pStorageDurationLoDef
+        end
+    ) * vStorageOutCap[(st1, r, y)]);
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -3765,6 +4472,18 @@ print("eqStorageOutCapLo(stg, region, year)...")
     model,
     [(st1, r, y) in mStorageOutCapLo],
     vStorageOutCap[(st1, r, y)] >= (
+        if haskey(pStorageOutCapLo, (st1, r, y))
+            pStorageOutCapLo[(st1, r, y)]
+        else
+            pStorageOutCapLoDef
+        end
+    )
+);
+print("eqStorageOutCapFx(stg, region, year)...")
+@constraint(
+    model,
+    [(st1, r, y) in mStorageOutCapFx],
+    vStorageOutCap[(st1, r, y)] == (
         if haskey(pStorageOutCapLo, (st1, r, y))
             pStorageOutCapLo[(st1, r, y)]
         else
@@ -3803,6 +4522,25 @@ print("eqStorageOutNewCapLo(stg, region, year)...")
     model,
     [(st1, r, y) in mStorageOutNewCapLo],
     vStorageOutNewCap[(st1, r, y)] >=
+    (
+        if haskey(pStorageOutNewCapLo, (st1, r, y))
+            pStorageOutNewCapLo[(st1, r, y)]
+        else
+            pStorageOutNewCapLoDef
+        end
+    ) * (
+        if haskey(pPeriodLen, (y))
+            pPeriodLen[(y)]
+        else
+            pPeriodLenDef
+        end
+    )
+);
+print("eqStorageOutNewCapFx(stg, region, year)...")
+@constraint(
+    model,
+    [(st1, r, y) in mStorageOutNewCapFx],
+    vStorageOutNewCap[(st1, r, y)] ==
     (
         if haskey(pStorageOutNewCapLo, (st1, r, y))
             pStorageOutNewCapLo[(st1, r, y)]
@@ -4259,6 +4997,18 @@ print("eqTradeFlowLo(trade, comm, src, dst, year, timeslice)...")
         end
     )
 );
+print("eqTradeFlowFx(trade, comm, src, dst, year, timeslice)...")
+@constraint(
+    model,
+    [(t1, c, src, dst, y, s) in meqTradeFlowFx],
+    vTradeIr[(t1, c, src, dst, y, s)] == (
+        if haskey(pTradeIrLo, (t1, src, dst, y, s))
+            pTradeIrLo[(t1, src, dst, y, s)]
+        else
+            pTradeIrLoDef
+        end
+    )
+);
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -4311,6 +5061,33 @@ print("eqTradeIrAfLo(trade, comm, src, dst, year, timeslice)...")
     model,
     [(t1, c, src, dst, y, s) in meqTradeIrAfLo],
     vTradeIr[(t1, c, src, dst, y, s)] >= (
+        if haskey(pTradeIrAfLo, (t1, src, dst, y, s))
+            pTradeIrAfLo[(t1, src, dst, y, s)]
+        else
+            pTradeIrAfLoDef
+        end
+    ) *
+    (
+        if haskey(pTradeCap2Act, (t1))
+            pTradeCap2Act[(t1)]
+        else
+            pTradeCap2ActDef
+        end
+    ) *
+    vTradeCap[(t1, y)] *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    )
+);
+print("eqTradeIrAfFx(trade, comm, src, dst, year, timeslice)...")
+@constraint(
+    model,
+    [(t1, c, src, dst, y, s) in meqTradeIrAfFx],
+    vTradeIr[(t1, c, src, dst, y, s)] == (
         if haskey(pTradeIrAfLo, (t1, src, dst, y, s))
             pTradeIrAfLo[(t1, src, dst, y, s)]
         else
@@ -4464,6 +5241,18 @@ print("eqExportRowLo(expp, comm, region, year, timeslice)...")
         end
     )
 );
+print("eqExportRowFx(expp, comm, region, year, timeslice)...")
+@constraint(
+    model,
+    [(e, c, r, y, s) in meqExportRowFx],
+    vExportRow[(e, c, r, y, s)] == (
+        if haskey(pExportRowLo, (e, r, y, s))
+            pExportRowLo[(e, r, y, s)]
+        else
+            pExportRowLoDef
+        end
+    )
+);
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -4575,6 +5364,18 @@ print("eqImportRowLo(imp, comm, region, year, timeslice)...")
     model,
     [(i, c, r, y, s) in meqImportRowLo],
     vImportRow[(i, c, r, y, s)] >= (
+        if haskey(pImportRowLo, (i, r, y, s))
+            pImportRowLo[(i, r, y, s)]
+        else
+            pImportRowLoDef
+        end
+    )
+);
+print("eqImportRowFx(imp, comm, region, year, timeslice)...")
+@constraint(
+    model,
+    [(i, c, r, y, s) in meqImportRowFx],
+    vImportRow[(i, c, r, y, s)] == (
         if haskey(pImportRowLo, (i, r, y, s))
             pImportRowLo[(i, r, y, s)]
         else
@@ -4756,6 +5557,18 @@ print("eqTradeCapLo(trade, year)...")
         end
     )
 );
+print("eqTradeCapFx(trade, year)...")
+@constraint(
+    model,
+    [(t1, y) in mTradeCapFx],
+    vTradeCap[(t1, y)] == (
+        if haskey(pTradeCapLo, (t1, y))
+            pTradeCapLo[(t1, y)]
+        else
+            pTradeCapLoDef
+        end
+    )
+);
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -4793,6 +5606,24 @@ print("eqTradeNewCapLo(trade, year)...")
             pPeriodLenDef
         end
     ) >= (
+        if haskey(pTradeNewCapLo, (t1, y))
+            pTradeNewCapLo[(t1, y)]
+        else
+            pTradeNewCapLoDef
+        end
+    )
+);
+print("eqTradeNewCapFx(trade, year)...")
+@constraint(
+    model,
+    [(t1, y) in mTradeNewCapFx],
+    vTradeNewCap[(t1, y)] * (
+        if haskey(pPeriodLen, (y))
+            pPeriodLen[(y)]
+        else
+            pPeriodLenDef
+        end
+    ) == (
         if haskey(pTradeNewCapLo, (t1, y))
             pTradeNewCapLo[(t1, y)]
         else

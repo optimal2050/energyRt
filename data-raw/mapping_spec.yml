@@ -251,6 +251,22 @@ meqExportRowLo:
   join_keys: []
   filter_by: []
   depends_on: []
+meqExportRowFx:
+  name: meqExportRowFx
+  dims:
+  - expp
+  - comm
+  - region
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqExportRowFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 meqImportRowLo:
   name: meqImportRowLo
   dims:
@@ -267,6 +283,22 @@ meqImportRowLo:
   join_keys: []
   filter_by: []
   depends_on: []
+meqImportRowFx:
+  name: meqImportRowFx
+  dims:
+  - imp
+  - comm
+  - region
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqImportRowFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 meqStorageAfLo:
   name: meqStorageAfLo
   dims:
@@ -277,6 +309,22 @@ meqStorageAfLo:
   - timeslice
   gates_var: []
   gates_eq: eqStorageAfLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqStorageAfFx:
+  name: meqStorageAfFx
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqStorageAfFx
   recipe: constraint
   source: constraint
   predicate: .na
@@ -309,6 +357,22 @@ meqStorageInpLo:
   - timeslice
   gates_var: []
   gates_eq: eqStorageInpLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqStorageInpFx:
+  name: meqStorageInpFx
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqStorageInpFx
   recipe: constraint
   source: constraint
   predicate: .na
@@ -364,6 +428,22 @@ meqStorageOutLo:
   join_keys: []
   filter_by: []
   depends_on: []
+meqStorageOutFx:
+  name: meqStorageOutFx
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqStorageOutFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 meqStorageOutUp:
   name: meqStorageOutUp
   dims:
@@ -413,6 +493,22 @@ meqSupAvaLo:
   join_keys: []
   filter_by: []
   depends_on: []
+meqSupAvaFx:
+  name: meqSupAvaFx
+  dims:
+  - sup
+  - comm
+  - region
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqSupAvaFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 meqSupReserveLo:
   name: meqSupReserveLo
   dims:
@@ -421,6 +517,20 @@ meqSupReserveLo:
   - region
   gates_var: []
   gates_eq: eqSupReserveLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqSupReserveFx:
+  name: meqSupReserveFx
+  dims:
+  - sup
+  - comm
+  - region
+  gates_var: []
+  gates_eq: eqSupReserveFx
   recipe: constraint
   source: constraint
   predicate: .na
@@ -475,6 +585,22 @@ meqTechAfcInpLo:
   join_keys: []
   filter_by: []
   depends_on: []
+meqTechAfcInpFx:
+  name: meqTechAfcInpFx
+  dims:
+  - tech
+  - region
+  - comm
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqTechAfcInpFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 meqTechAfcInpUp:
   name: meqTechAfcInpUp
   dims:
@@ -501,6 +627,22 @@ meqTechAfcOutLo:
   - timeslice
   gates_var: []
   gates_eq: eqTechAfcOutLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechAfcOutFx:
+  name: meqTechAfcOutFx
+  dims:
+  - tech
+  - region
+  - comm
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqTechAfcOutFx
   recipe: constraint
   source: constraint
   predicate: .na
@@ -547,6 +689,21 @@ meqTechAfsLo:
   - timeslice
   gates_var: []
   gates_eq: eqTechAfsLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechAfsFx:
+  name: meqTechAfsFx
+  dims:
+  - tech
+  - region
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqTechAfsFx
   recipe: constraint
   source: constraint
   predicate: .na
@@ -663,6 +820,23 @@ meqTechShareInpLo:
   join_keys: []
   filter_by: []
   depends_on: []
+meqTechShareInpFx:
+  name: meqTechShareInpFx
+  dims:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqTechShareInpFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 meqTechShareInpUp:
   name: meqTechShareInpUp
   dims:
@@ -691,6 +865,23 @@ meqTechShareOutLo:
   - timeslice
   gates_var: []
   gates_eq: eqTechShareOutLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechShareOutFx:
+  name: meqTechShareOutFx
+  dims:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqTechShareOutFx
   recipe: constraint
   source: constraint
   predicate: .na
@@ -780,6 +971,23 @@ meqTradeFlowLo:
   join_keys: []
   filter_by: []
   depends_on: []
+meqTradeFlowFx:
+  name: meqTradeFlowFx
+  dims:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqTradeFlowFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 meqTradeFlowUp:
   name: meqTradeFlowUp
   dims:
@@ -808,6 +1016,23 @@ meqTradeIrAfLo:
   - timeslice
   gates_var: []
   gates_eq: eqTradeIrAfLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTradeIrAfFx:
+  name: meqTradeIrAfFx
+  dims:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqTradeIrAfFx
   recipe: constraint
   source: constraint
   predicate: .na
@@ -1424,6 +1649,20 @@ mStorageDurationLo:
   join_keys: []
   filter_by: []
   depends_on: []
+mStorageDurationFx:
+  name: mStorageDurationFx
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageDurationFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mStorageDurationUp:
   name: mStorageDurationUp
   dims:
@@ -1492,6 +1731,20 @@ mStorageInp2outLo:
   join_keys: []
   filter_by: []
   depends_on: []
+mStorageInp2outFx:
+  name: mStorageInp2outFx
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageInp2outFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mStorageInp2outUp:
   name: mStorageInp2outUp
   dims:
@@ -1514,6 +1767,20 @@ mStorageInp2stgLo:
   - year
   gates_var: []
   gates_eq: eqStorageInp2stgLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInp2stgFx:
+  name: mStorageInp2stgFx
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageInp2stgFx
   recipe: constraint
   source: constraint
   predicate: .na
@@ -1596,6 +1863,20 @@ mStorageInpCapLo:
   - year
   gates_var: []
   gates_eq: eqStorageInpCapLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInpCapFx:
+  name: mStorageInpCapFx
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageInpCapFx
   recipe: constraint
   source: constraint
   predicate: .na
@@ -1768,6 +2049,20 @@ mStorageInpNewCapLo:
   join_keys: []
   filter_by: []
   depends_on: []
+mStorageInpNewCapFx:
+  name: mStorageInpNewCapFx
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageInpNewCapFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mStorageInpNewCapUp:
   name: mStorageInpNewCapUp
   dims:
@@ -1790,6 +2085,20 @@ mStorageInpRetLo:
   - year
   gates_var: []
   gates_eq: eqStorageInpRetLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInpRetFx:
+  name: mStorageInpRetFx
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageInpRetFx
   recipe: constraint
   source: constraint
   predicate: .na
@@ -1951,6 +2260,20 @@ mStorageOutCapLo:
   join_keys: []
   filter_by: []
   depends_on: []
+mStorageOutCapFx:
+  name: mStorageOutCapFx
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageOutCapFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mStorageOutCapUp:
   name: mStorageOutCapUp
   dims:
@@ -2073,6 +2396,20 @@ mStorageOutNewCapLo:
   join_keys: []
   filter_by: []
   depends_on: []
+mStorageOutNewCapFx:
+  name: mStorageOutNewCapFx
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageOutNewCapFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mStorageOutNewCapUp:
   name: mStorageOutNewCapUp
   dims:
@@ -2095,6 +2432,20 @@ mStorageOutRetLo:
   - year
   gates_var: []
   gates_eq: eqStorageOutRetLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageOutRetFx:
+  name: mStorageOutRetFx
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageOutRetFx
   recipe: constraint
   source: constraint
   predicate: .na
@@ -2339,6 +2690,20 @@ mStorageStgCapLo:
   join_keys: []
   filter_by: []
   depends_on: []
+mStorageStgCapFx:
+  name: mStorageStgCapFx
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageStgCapFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mStorageStgCapUp:
   name: mStorageStgCapUp
   dims:
@@ -2461,6 +2826,20 @@ mStorageStgNewCapLo:
   join_keys: []
   filter_by: []
   depends_on: []
+mStorageStgNewCapFx:
+  name: mStorageStgNewCapFx
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageStgNewCapFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mStorageStgNewCapUp:
   name: mStorageStgNewCapUp
   dims:
@@ -2483,6 +2862,20 @@ mStorageStgRetLo:
   - year
   gates_var: []
   gates_eq: eqStorageStgRetLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageStgRetFx:
+  name: mStorageStgRetFx
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageStgRetFx
   recipe: constraint
   source: constraint
   predicate: .na
@@ -2998,6 +3391,20 @@ mTechCapLo:
   join_keys: []
   filter_by: []
   depends_on: []
+mTechCapFx:
+  name: mTechCapFx
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqTechCapFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mTechCapUp:
   name: mTechCapUp
   dims:
@@ -3327,6 +3734,20 @@ mTechNewCapLo:
   join_keys: []
   filter_by: []
   depends_on: []
+mTechNewCapFx:
+  name: mTechNewCapFx
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqTechNewCapFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mTechNewCapUp:
   name: mTechNewCapUp
   dims:
@@ -3637,6 +4058,20 @@ mTechRetLo:
   join_keys: []
   filter_by: []
   depends_on: []
+mTechRetFx:
+  name: mTechRetFx
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqTechRetFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mTechRetUp:
   name: mTechRetUp
   dims:
@@ -3881,6 +4316,19 @@ mTradeCapLo:
   join_keys: []
   filter_by: []
   depends_on: []
+mTradeCapFx:
+  name: mTradeCapFx
+  dims:
+  - trade
+  - year
+  gates_var: []
+  gates_eq: eqTradeCapFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mTradeCapUp:
   name: mTradeCapUp
   dims:
@@ -4102,6 +4550,19 @@ mTradeNewCapLo:
   join_keys: []
   filter_by: []
   depends_on: []
+mTradeNewCapFx:
+  name: mTradeNewCapFx
+  dims:
+  - trade
+  - year
+  gates_var: []
+  gates_eq: eqTradeNewCapFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mTradeNewCapUp:
   name: mTradeNewCapUp
   dims:
@@ -4148,6 +4609,19 @@ mTradeRetLo:
   - year
   gates_var: []
   gates_eq: eqTradeRetLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeRetFx:
+  name: mTradeRetFx
+  dims:
+  - trade
+  - year
+  gates_var: []
+  gates_eq: eqTradeRetFx
   recipe: constraint
   source: constraint
   predicate: .na

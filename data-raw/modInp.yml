@@ -3374,6 +3374,13 @@ mStorageStgCapLo:
   - stg
   - region
   - year
+mStorageStgCapFx:
+  name: mStorageStgCapFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
 mStorageStgCapUp:
   name: mStorageStgCapUp
   type: map
@@ -3383,6 +3390,13 @@ mStorageStgCapUp:
   - year
 mStorageStgNewCapLo:
   name: mStorageStgNewCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgNewCapFx:
+  name: mStorageStgNewCapFx
   type: map
   dimSets:
   - stg
@@ -3411,6 +3425,13 @@ mStorageStgEac:
   - year
 mStorageDurationLo:
   name: mStorageDurationLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageDurationFx:
+  name: mStorageDurationFx
   type: map
   dimSets:
   - stg
@@ -3451,6 +3472,13 @@ mStorageInpCapLo:
   - stg
   - region
   - year
+mStorageInpCapFx:
+  name: mStorageInpCapFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
 mStorageInpCapUp:
   name: mStorageInpCapUp
   type: map
@@ -3460,6 +3488,13 @@ mStorageInpCapUp:
   - year
 mStorageInpNewCapLo:
   name: mStorageInpNewCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpNewCapFx:
+  name: mStorageInpNewCapFx
   type: map
   dimSets:
   - stg
@@ -3493,6 +3528,13 @@ mStorageInp2outLo:
   - stg
   - region
   - year
+mStorageInp2outFx:
+  name: mStorageInp2outFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
 mStorageInp2outUp:
   name: mStorageInp2outUp
   type: map
@@ -3509,6 +3551,13 @@ mStorageInpStgCap:
   - year
 mStorageInp2stgLo:
   name: mStorageInp2stgLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInp2stgFx:
+  name: mStorageInp2stgFx
   type: map
   dimSets:
   - stg
@@ -4557,6 +4606,16 @@ meqTechShareInpLo:
   - comm
   - year
   - timeslice
+meqTechShareInpFx:
+  name: meqTechShareInpFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - timeslice
 meqTechShareInpUp:
   name: meqTechShareInpUp
   type: map
@@ -4569,6 +4628,16 @@ meqTechShareInpUp:
   - timeslice
 meqTechShareOutLo:
   name: meqTechShareOutLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - timeslice
+meqTechShareOutFx:
+  name: meqTechShareOutFx
   type: map
   dimSets:
   - tech
@@ -4619,6 +4688,14 @@ meqTechAfsLo:
   - region
   - year
   - timeslice
+meqTechAfsFx:
+  name: meqTechAfsFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - timeslice
 meqTechAfsUp:
   name: meqTechAfsUp
   type: map
@@ -4654,6 +4731,15 @@ meqTechAfcOutLo:
   - comm
   - year
   - timeslice
+meqTechAfcOutFx:
+  name: meqTechAfcOutFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - year
+  - timeslice
 meqTechAfcOutUp:
   name: meqTechAfcOutUp
   type: map
@@ -4665,6 +4751,15 @@ meqTechAfcOutUp:
   - timeslice
 meqTechAfcInpLo:
   name: meqTechAfcInpLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - year
+  - timeslice
+meqTechAfcInpFx:
+  name: meqTechAfcInpFx
   type: map
   dimSets:
   - tech
@@ -4690,6 +4785,15 @@ meqSupAvaLo:
   - region
   - year
   - timeslice
+meqSupAvaFx:
+  name: meqSupAvaFx
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
+  - year
+  - timeslice
 meqSupReserveLo:
   name: meqSupReserveLo
   type: map
@@ -4697,8 +4801,24 @@ meqSupReserveLo:
   - sup
   - comm
   - region
+meqSupReserveFx:
+  name: meqSupReserveFx
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
 meqStorageAfLo:
   name: meqStorageAfLo
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageAfFx:
+  name: meqStorageAfFx
   type: map
   dimSets:
   - stg
@@ -4733,6 +4853,15 @@ meqStorageInpLo:
   - region
   - year
   - timeslice
+meqStorageInpFx:
+  name: meqStorageInpFx
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
 meqStorageOutUp:
   name: meqStorageOutUp
   type: map
@@ -4744,6 +4873,15 @@ meqStorageOutUp:
   - timeslice
 meqStorageOutLo:
   name: meqStorageOutLo
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageOutFx:
+  name: meqStorageOutFx
   type: map
   dimSets:
   - stg
@@ -4763,6 +4901,16 @@ meqTradeFlowUp:
   - timeslice
 meqTradeFlowLo:
   name: meqTradeFlowLo
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+meqTradeFlowFx:
+  name: meqTradeFlowFx
   type: map
   dimSets:
   - trade
@@ -4791,6 +4939,16 @@ meqTradeIrAfLo:
   - dst
   - year
   - timeslice
+meqTradeIrAfFx:
+  name: meqTradeIrAfFx
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
 meqExportRowLo:
   name: meqExportRowLo
   type: map
@@ -4800,8 +4958,26 @@ meqExportRowLo:
   - region
   - year
   - timeslice
+meqExportRowFx:
+  name: meqExportRowFx
+  type: map
+  dimSets:
+  - expp
+  - comm
+  - region
+  - year
+  - timeslice
 meqImportRowLo:
   name: meqImportRowLo
+  type: map
+  dimSets:
+  - imp
+  - comm
+  - region
+  - year
+  - timeslice
+meqImportRowFx:
+  name: meqImportRowFx
   type: map
   dimSets:
   - imp
@@ -4848,6 +5024,13 @@ mTechCapLo:
   - tech
   - region
   - year
+mTechCapFx:
+  name: mTechCapFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
 mTechCapUp:
   name: mTechCapUp
   type: map
@@ -4857,6 +5040,13 @@ mTechCapUp:
   - year
 mTechNewCapLo:
   name: mTechNewCapLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechNewCapFx:
+  name: mTechNewCapFx
   type: map
   dimSets:
   - tech
@@ -4876,6 +5066,13 @@ mTechRetLo:
   - tech
   - region
   - year
+mTechRetFx:
+  name: mTechRetFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
 mTechRetUp:
   name: mTechRetUp
   type: map
@@ -4885,6 +5082,13 @@ mTechRetUp:
   - year
 mStorageOutCapLo:
   name: mStorageOutCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutCapFx:
+  name: mStorageOutCapFx
   type: map
   dimSets:
   - stg
@@ -4904,6 +5108,13 @@ mStorageOutNewCapLo:
   - stg
   - region
   - year
+mStorageOutNewCapFx:
+  name: mStorageOutNewCapFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
 mStorageOutNewCapUp:
   name: mStorageOutNewCapUp
   type: map
@@ -4913,6 +5124,13 @@ mStorageOutNewCapUp:
   - year
 mStorageOutRetLo:
   name: mStorageOutRetLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutRetFx:
+  name: mStorageOutRetFx
   type: map
   dimSets:
   - stg
@@ -4934,6 +5152,13 @@ mStorageInpRetLo:
   - stg
   - region
   - year
+mStorageInpRetFx:
+  name: mStorageInpRetFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
 mStorageInpRetUp:
   name: mStorageInpRetUp
   type: map
@@ -4943,6 +5168,13 @@ mStorageInpRetUp:
   - year
 mStorageStgRetLo:
   name: mStorageStgRetLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgRetFx:
+  name: mStorageStgRetFx
   type: map
   dimSets:
   - stg
@@ -4961,6 +5193,12 @@ mTradeCapLo:
   dimSets:
   - trade
   - year
+mTradeCapFx:
+  name: mTradeCapFx
+  type: map
+  dimSets:
+  - trade
+  - year
 mTradeCapUp:
   name: mTradeCapUp
   type: map
@@ -4969,6 +5207,12 @@ mTradeCapUp:
   - year
 mTradeNewCapLo:
   name: mTradeNewCapLo
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeNewCapFx:
+  name: mTradeNewCapFx
   type: map
   dimSets:
   - trade
@@ -4988,6 +5232,12 @@ mTradeFixom:
   - year
 mTradeRetLo:
   name: mTradeRetLo
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeRetFx:
+  name: mTradeRetFx
   type: map
   dimSets:
   - trade

@@ -68,12 +68,17 @@
 #'
 #'   Defaults to `getOption("energyRt.parent_levels", FALSE)`, so a whole run or
 #'   test suite can be switched in one place.
-#' @param fx_equ logical; write a technology availability bound whose two sides
-#'   coincide (`af.lo == af.up`, e.g. from `af.fx` or `waf.fx`, with the same
-#'   weather factors) as one equality row (`eqTechAfFx`) instead of a pair of
-#'   inequalities (`eqTechAfLo` + `eqTechAfUp`). The solution is the same; the
-#'   model has fewer rows before presolve (-25% on an hourly full-year VRE
-#'   model). `FALSE` writes the pair. Defaults to
+#' @param fx_equ logical; write a bound whose two sides coincide (`.fx`, or
+#'   `.lo == .up`, with the same weather factors) as one equality row
+#'   (`eq<Family>Fx`) instead of a pair of inequalities (`eq<Family>Lo` +
+#'   `eq<Family>Up`). Applies to every bound family: technology availability
+#'   (`af`, `afs`, `afc`), shares, capacity, new capacity and retirement of
+#'   technologies, storages and trade, storage availability, charge,
+#'   discharge, duration and part ratios, supply availability and reserve,
+#'   trade flows and availability, import and export rows. The solution is the
+#'   same; the model has fewer rows before presolve (-25% on an hourly
+#'   full-year VRE model). `FALSE` writes the pairs. On-disk interpolation
+#'   (`ondisk = TRUE`) keeps the pairs. Defaults to
 #'   `getOption("energyRt.fx_equ", TRUE)`.
 #' @param validate logical; run [validate_scenario_parameters()] after
 #'   interpolation (schema, duplicate keys, map/parameter coverage, missing
@@ -2816,10 +2821,10 @@ validate_scenario_parameters <- function(object, fold = TRUE,
     list(domain = "mvStorageLevel", by = "stg", requires = "meqStorageLevel",
          severity = "structural",
          meaning = "no storage balance chain: level unlinked from flows (free energy)"),
-    list(domain = "mvStorageInp", by = "stg", requires = "meqStorageInpUp",
+    list(domain = "mvStorageInp", by = "stg", requires = c("meqStorageInpUp", "meqStorageInpFx"),
          severity = "advisory", within = "mStorageInpCap",
          meaning = "charging power bound removed by inp.af.up = Inf: the rate is not tied to the charger rating"),
-    list(domain = "mvStorageOut", by = "stg", requires = "meqStorageOutUp",
+    list(domain = "mvStorageOut", by = "stg", requires = c("meqStorageOutUp", "meqStorageOutFx"),
          severity = "advisory",
          meaning = "no discharging power bound"),
     list(domain = "mvTradeIr", by = "trade", requires = "meqTradeCapFlow",

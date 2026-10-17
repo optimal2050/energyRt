@@ -144,10 +144,11 @@ changes* first. The change-by-change log for the whole cycle (450 entries) is in
   well as `region` and `timeslice`, and logs its per-stage timings.
 * Remote solving: the NEOS server for GAMS/CPLEX without a local licence, and
   GPU execution in the cloud.
-* `interpolate_model(fx_equ = TRUE)` writes a fixed availability bound
-  (`af.fx`, `waf.fx`) as one equality row, `eqTechAfFx`, instead of a lower
-  and an upper row: about 25% fewer rows on hourly VRE models, same solution.
-  `fx_equ = FALSE` keeps the pair.
+* `interpolate_model(fx_equ = TRUE)` writes a fixed bound (`.fx`, or
+  `.lo == .up`) as one equality row, `eq<Family>Fx`, instead of a lower and an
+  upper row, in every bound family (availability, shares, capacities, storage,
+  supply, trade, import/export rows): about 25% fewer rows on hourly VRE
+  models, same solution. `fx_equ = FALSE` keeps the pairs.
 
 ### Results, storage and sharing
 

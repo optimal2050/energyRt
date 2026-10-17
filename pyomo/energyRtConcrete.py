@@ -761,6 +761,31 @@ model.eqTechShareInpLo = Constraint(
         for cp in mTechGroupComm_ix.get((t, g), ())
     ),
 )
+model.eqTechShareInpFx = Constraint(
+    meqTechShareInpFx,
+    rule=lambda model, t, r, g, c, y, s: (model.vTechInp[t, c, r, y, s] if (t, c, r, y, s) in mvTechInp else 0)
+        + sum(
+            model.vTechInp[t, c, rp, y, s]
+            for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+        )
+        + sum(
+            pTimesliceAgg.get((y, s, sp)) * model.vTechInp[t, c, r, y, sp]
+            for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
+        )
+    == pTechShareLo.get((t, c, r, y, s))
+    * sum(
+        (model.vTechInp[t, cp, r, y, s] if (t, cp, r, y, s) in mvTechInp else 0)
+        + sum(
+            model.vTechInp[t, cp, rp, y, s]
+            for rp in mTechProcAggRegion_ix.get((t, cp, r), ())
+        )
+        + sum(
+            pTimesliceAgg.get((y, s, sp)) * model.vTechInp[t, cp, r, y, sp]
+            for sp in mTechProcAggTimeslice_ix.get((t, cp, s), ())
+        )
+        for cp in mTechGroupComm_ix.get((t, g), ())
+    ),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -814,6 +839,15 @@ model.eqTechShareOutLo = Constraint(
     meqTechShareOutLo,
     rule=lambda model, t, r, g, c, y, s: model.vTechOut[t, c, r, y, s]
     >= pTechShareLo.get((t, c, r, y, s))
+    * sum(
+        (model.vTechOut[t, cp, r, y, s] if (t, cp, r, y, s) in mvTechOut else 0)
+        for cp in mTechGroupComm_ix.get((t, g), ())
+    ),
+)
+model.eqTechShareOutFx = Constraint(
+    meqTechShareOutFx,
+    rule=lambda model, t, r, g, c, y, s: model.vTechOut[t, c, r, y, s]
+    == pTechShareLo.get((t, c, r, y, s))
     * sum(
         (model.vTechOut[t, cp, r, y, s] if (t, cp, r, y, s) in mvTechOut else 0)
         for cp in mTechGroupComm_ix.get((t, g), ())
@@ -1004,6 +1038,22 @@ model.eqTechAfsLo = Constraint(
         for sp in mTimesliceParentChildE_ix.get(s, ())
     ),
 )
+model.eqTechAfsFx = Constraint(
+    meqTechAfsFx,
+    rule=lambda model, t, r, y, s: pTechAfsLo.get((t, r, y, s))
+    * pTechCap2act.get((t))
+    * model.vTechCap[t, r, y]
+    * pTimesliceShare.get((s))
+    * prod(
+        pTechWeatherAfsLo.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mTechWeatherAfsLo_ix.get(t, ())
+    )
+    == sum(
+        pTimesliceAgg.get((y, s, sp))
+        * (model.vTechAct[t, r, y, sp] if (t, r, y, sp) in mvTechAct else 0)
+        for sp in mTimesliceParentChildE_ix.get(s, ())
+    ),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -1146,6 +1196,19 @@ model.eqTechAfcOutLo = Constraint(
     )
     <= model.vTechOut[t, c, r, y, s],
 )
+model.eqTechAfcOutFx = Constraint(
+    meqTechAfcOutFx,
+    rule=lambda model, t, r, c, y, s: pTechCact2cout.get((t, c, r, y, s))
+    * pTechAfcLo.get((t, c, r, y, s))
+    * pTechCap2act.get((t))
+    * model.vTechCap[t, r, y]
+    * pTimesliceShare.get((s))
+    * prod(
+        pTechWeatherAfcLo.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mTechWeatherAfcLo_ix.get((t, c), ())
+    )
+    == model.vTechOut[t, c, r, y, s],
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -1194,6 +1257,18 @@ model.eqTechAfcInpLo = Constraint(
         for wth1 in mTechWeatherAfcLo_ix.get((t, c), ())
     )
     <= model.vTechInp[t, c, r, y, s],
+)
+model.eqTechAfcInpFx = Constraint(
+    meqTechAfcInpFx,
+    rule=lambda model, t, r, c, y, s: pTechAfcLo.get((t, c, r, y, s))
+    * pTechCap2act.get((t))
+    * model.vTechCap[t, r, y]
+    * pTimesliceShare.get((s))
+    * prod(
+        pTechWeatherAfcLo.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mTechWeatherAfcLo_ix.get((t, c), ())
+    )
+    == model.vTechInp[t, c, r, y, s],
 )
 if verbose:
     print(
@@ -1272,6 +1347,10 @@ model.eqTechCapLo = Constraint(
     mTechCapLo,
     rule=lambda model, t, r, y: model.vTechCap[t, r, y] >= pTechCapLo.get((t, r, y)),
 )
+model.eqTechCapFx = Constraint(
+    mTechCapFx,
+    rule=lambda model, t, r, y: model.vTechCap[t, r, y] == pTechCapLo.get((t, r, y)),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -1304,6 +1383,11 @@ model.eqTechNewCapLo = Constraint(
     mTechNewCapLo,
     rule=lambda model, t, r, y: model.vTechNewCap[t, r, y]
     >= pTechNewCapLo.get((t, r, y)) * pPeriodLen.get((y)),
+)
+model.eqTechNewCapFx = Constraint(
+    mTechNewCapFx,
+    rule=lambda model, t, r, y: model.vTechNewCap[t, r, y]
+    == pTechNewCapLo.get((t, r, y)) * pPeriodLen.get((y)),
 )
 if verbose:
     print(
@@ -1438,6 +1522,17 @@ model.eqTechRetLo = Constraint(
     )
     >= pTechRetLo.get((t, r, y)) * pPeriodLen.get((y)),
 )
+model.eqTechRetFx = Constraint(
+    mTechRetFx,
+    rule=lambda model, t, r, y: (
+        model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0
+    )
+    + sum(
+        model.vTechRetiredNewCap[t, r, yp, y]
+        for yp in mvTechRetiredNewCap_ix2_013.get((t, r, y), ())
+    )
+    == pTechRetLo.get((t, r, y)) * pPeriodLen.get((y)),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -1501,6 +1596,19 @@ model.eqStorageOutRetLo = Constraint(
     )
     >= pStorageOutRetLo.get((st1, r, y)) * pPeriodLen.get((y)),
 )
+model.eqStorageOutRetFx = Constraint(
+    mStorageOutRetFx,
+    rule=lambda model, st1, r, y: (
+        model.vStorageOutRetiredStock[st1, r, y]
+        if (st1, r, y) in mvStorageRetiredStock
+        else 0
+    )
+    + sum(
+        model.vStorageOutRetiredNewCap[st1, r, yp, y]
+        for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
+    )
+    == pStorageOutRetLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
 # eqStorageInpRetiredNewCap(stg, region, year)$meqStorageRetiredNewCap
 model.eqStorageInpRetiredNewCap = Constraint(
     meqStorageRetiredNewCap,
@@ -1556,6 +1664,19 @@ model.eqStorageInpRetLo = Constraint(
     )
     >= pStorageInpRetLo.get((st1, r, y)) * pPeriodLen.get((y)),
 )
+model.eqStorageInpRetFx = Constraint(
+    mStorageInpRetFx,
+    rule=lambda model, st1, r, y: (
+        model.vStorageInpRetiredStock[st1, r, y]
+        if (st1, r, y) in mvStorageRetiredStock
+        else 0
+    )
+    + sum(
+        model.vStorageInpRetiredNewCap[st1, r, yp, y]
+        for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
+    )
+    == pStorageInpRetLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
 # eqStorageStgRetiredNewCap(stg, region, year)$meqStorageRetiredNewCap
 model.eqStorageStgRetiredNewCap = Constraint(
     meqStorageRetiredNewCap,
@@ -1610,6 +1731,19 @@ model.eqStorageStgRetLo = Constraint(
         for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
     )
     >= pStorageStgRetLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+model.eqStorageStgRetFx = Constraint(
+    mStorageStgRetFx,
+    rule=lambda model, st1, r, y: (
+        model.vStorageStgRetiredStock[st1, r, y]
+        if (st1, r, y) in mvStorageRetiredStock
+        else 0
+    )
+    + sum(
+        model.vStorageStgRetiredNewCap[st1, r, yp, y]
+        for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
+    )
+    == pStorageStgRetLo.get((st1, r, y)) * pPeriodLen.get((y)),
 )
 # eqStorageRetCost(stg, region, year)$mStorageRetCost
 model.eqStorageRetCost = Constraint(
@@ -1735,6 +1869,17 @@ model.eqTradeRetLo = Constraint(
         for yp in mvTradeRetiredNewCap_ix1_02.get((t1, y), ())
     )
     >= pTradeRetLo.get((t1, y)) * pPeriodLen.get((y)),
+)
+model.eqTradeRetFx = Constraint(
+    mTradeRetFx,
+    rule=lambda model, t1, y: (
+        model.vTradeRetiredStock[t1, y] if (t1, y) in mvTradeRetiredStock else 0
+    )
+    + sum(
+        model.vTradeRetiredNewCap[t1, yp, y]
+        for yp in mvTradeRetiredNewCap_ix1_02.get((t1, y), ())
+    )
+    == pTradeRetLo.get((t1, y)) * pPeriodLen.get((y)),
 )
 # eqTradeRetCost(trade, region, year)$mTradeRetCost
 model.eqTradeRetCost = Constraint(
@@ -2020,6 +2165,15 @@ model.eqSupAvaLo = Constraint(
         for wth1 in mSupWeatherLo_ix.get(s1, ())
     ),
 )
+model.eqSupAvaFx = Constraint(
+    meqSupAvaFx,
+    rule=lambda model, s1, c, r, y, s: model.vSupOut[s1, c, r, y, s]
+    == pSupAvaLo.get((s1, c, r, y, s))
+    * prod(
+        pSupWeatherLo.get((wth1, s1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mSupWeatherLo_ix.get(s1, ())
+    ),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -2074,6 +2228,11 @@ model.eqSupReserveLo = Constraint(
     meqSupReserveLo,
     rule=lambda model, s1, c, r: model.vSupReserve[s1, c, r]
     >= pSupReserveLo.get((s1, c, r)),
+)
+model.eqSupReserveFx = Constraint(
+    meqSupReserveFx,
+    rule=lambda model, s1, c, r: model.vSupReserve[s1, c, r]
+    == pSupReserveLo.get((s1, c, r)),
 )
 if verbose:
     print(
@@ -2328,6 +2487,22 @@ model.eqStorageAfLo = Constraint(
         for wth1 in mStorageWeatherAfLo_ix.get(st1, ())
     ),
 )
+model.eqStorageAfFx = Constraint(
+    meqStorageAfFx,
+    rule=lambda model, st1, c, r, y, s: model.vStorageLevel[st1, c, r, y, s]
+    == pStorageAfLo.get((st1, r, y, s))
+    # [2c] the storing side is its own variable where it carries data;
+    # elsewhere the duration ratio is inlined onto the output capacity.
+    * (
+        model.vStorageStgCap[st1, r, y]
+        if (st1, r, y) in mStorageStgCap
+        else pStorageDurationLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
+    )
+    * prod(
+        pStorageWeatherAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mStorageWeatherAfLo_ix.get(st1, ())
+    ),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -2439,6 +2614,25 @@ model.eqStorageInpLo = Constraint(
         for wth1 in mStorageWeatherInpAfLo_ix.get(st1, ())
     ),
 )
+model.eqStorageInpFx = Constraint(
+    meqStorageInpFx,
+    rule=lambda model, st1, c, r, y, s: model.vStorageInp[st1, c, r, y, s]
+    == (
+        # [2c] the charging side is its own variable where it carries data;
+        # elsewhere inp2out is inlined onto the output capacity.
+        model.vStorageInpCap[st1, r, y]
+        if (st1, r, y) in mStorageInpCap
+        else pStorageInp2outLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
+    )
+    # [rate] capacity is per HOUR, not per timeslice
+    * pStorageInpCap2act.get((st1))
+    * pTimesliceShare.get((s))
+    * pStorageInpAfLo.get((st1, c, r, y, s))
+    * prod(
+        pStorageWeatherInpAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mStorageWeatherInpAfLo_ix.get(st1, ())
+    ),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -2479,6 +2673,18 @@ model.eqStorageOutLo = Constraint(
     meqStorageOutLo,
     rule=lambda model, st1, c, r, y, s: model.vStorageOut[st1, c, r, y, s]
     >= model.vStorageOutCap[st1, r, y]
+    * pStorageOutCap2act.get((st1))
+    * pTimesliceShare.get((s))
+    * pStorageOutAfLo.get((st1, c, r, y, s))
+    * prod(
+        pStorageWeatherOutAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mStorageWeatherOutAfLo_ix.get(st1, ())
+    ),
+)
+model.eqStorageOutFx = Constraint(
+    meqStorageOutFx,
+    rule=lambda model, st1, c, r, y, s: model.vStorageOut[st1, c, r, y, s]
+    == model.vStorageOutCap[st1, r, y]
     * pStorageOutCap2act.get((st1))
     * pTimesliceShare.get((s))
     * pStorageOutAfLo.get((st1, c, r, y, s))
@@ -2565,6 +2771,11 @@ model.eqStorageInpCapLo = Constraint(
     rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
     >= pStorageInpCapLo.get((st1, r, y)),
 )
+model.eqStorageInpCapFx = Constraint(
+    mStorageInpCapFx,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    == pStorageInpCapLo.get((st1, r, y)),
+)
 model.eqStorageInpCapUp = Constraint(
     mStorageInpCapUp,
     rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
@@ -2574,6 +2785,11 @@ model.eqStorageInpNewCapLo = Constraint(
     mStorageInpNewCapLo,
     rule=lambda model, st1, r, y: model.vStorageInpNewCap[st1, r, y]
     >= pStorageInpNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+model.eqStorageInpNewCapFx = Constraint(
+    mStorageInpNewCapFx,
+    rule=lambda model, st1, r, y: model.vStorageInpNewCap[st1, r, y]
+    == pStorageInpNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
 )
 model.eqStorageInpNewCapUp = Constraint(
     mStorageInpNewCapUp,
@@ -2585,6 +2801,11 @@ model.eqStorageInp2outLo = Constraint(
     mStorageInp2outLo,
     rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
     >= pStorageInp2outLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y],
+)
+model.eqStorageInp2outFx = Constraint(
+    mStorageInp2outFx,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    == pStorageInp2outLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y],
 )
 model.eqStorageInp2outUp = Constraint(
     mStorageInp2outUp,
@@ -2598,6 +2819,11 @@ model.eqStorageInp2stgLo = Constraint(
     mStorageInp2stgLo,
     rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
     >= pStorageInp2stgLo.get((st1, r, y)) * model.vStorageStgCap[st1, r, y],
+)
+model.eqStorageInp2stgFx = Constraint(
+    mStorageInp2stgFx,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    == pStorageInp2stgLo.get((st1, r, y)) * model.vStorageStgCap[st1, r, y],
 )
 model.eqStorageInp2stgUp = Constraint(
     mStorageInp2stgUp,
@@ -2634,6 +2860,11 @@ model.eqStorageStgCapLo = Constraint(
     rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
     >= pStorageStgCapLo.get((st1, r, y)),
 )
+model.eqStorageStgCapFx = Constraint(
+    mStorageStgCapFx,
+    rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
+    == pStorageStgCapLo.get((st1, r, y)),
+)
 model.eqStorageStgCapUp = Constraint(
     mStorageStgCapUp,
     rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
@@ -2643,6 +2874,11 @@ model.eqStorageStgNewCapLo = Constraint(
     mStorageStgNewCapLo,
     rule=lambda model, st1, r, y: model.vStorageStgNewCap[st1, r, y]
     >= pStorageStgNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+model.eqStorageStgNewCapFx = Constraint(
+    mStorageStgNewCapFx,
+    rule=lambda model, st1, r, y: model.vStorageStgNewCap[st1, r, y]
+    == pStorageStgNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
 )
 model.eqStorageStgNewCapUp = Constraint(
     mStorageStgNewCapUp,
@@ -2655,6 +2891,11 @@ model.eqStorageDurationLo = Constraint(
     rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
     >= pStorageDurationLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y],
 )
+model.eqStorageDurationFx = Constraint(
+    mStorageDurationFx,
+    rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
+    == pStorageDurationLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y],
+)
 model.eqStorageDurationUp = Constraint(
     mStorageDurationUp,
     rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
@@ -2664,6 +2905,11 @@ model.eqStorageOutCapLo = Constraint(
     mStorageOutCapLo,
     rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
     >= pStorageOutCapLo.get((st1, r, y)),
+)
+model.eqStorageOutCapFx = Constraint(
+    mStorageOutCapFx,
+    rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
+    == pStorageOutCapLo.get((st1, r, y)),
 )
 if verbose:
     print(
@@ -2698,6 +2944,11 @@ model.eqStorageOutNewCapLo = Constraint(
     mStorageOutNewCapLo,
     rule=lambda model, st1, r, y: model.vStorageOutNewCap[st1, r, y]
     >= pStorageOutNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+model.eqStorageOutNewCapFx = Constraint(
+    mStorageOutNewCapFx,
+    rule=lambda model, st1, r, y: model.vStorageOutNewCap[st1, r, y]
+    == pStorageOutNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
 )
 if verbose:
     print(
@@ -3004,6 +3255,11 @@ model.eqTradeFlowLo = Constraint(
     rule=lambda model, t1, c, src, dst, y, s: model.vTradeIr[t1, c, src, dst, y, s]
     >= pTradeIrLo.get((t1, src, dst, y, s)),
 )
+model.eqTradeFlowFx = Constraint(
+    meqTradeFlowFx,
+    rule=lambda model, t1, c, src, dst, y, s: model.vTradeIr[t1, c, src, dst, y, s]
+    == pTradeIrLo.get((t1, src, dst, y, s)),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -3046,6 +3302,14 @@ model.eqTradeIrAfLo = Constraint(
     meqTradeIrAfLo,
     rule=lambda model, t1, c, src, dst, y, s: model.vTradeIr[t1, c, src, dst, y, s]
     >= pTradeIrAfLo.get((t1, src, dst, y, s))
+    * pTradeCap2Act.get((t1))
+    * model.vTradeCap[t1, y]
+    * pTimesliceShare.get((s)),
+)
+model.eqTradeIrAfFx = Constraint(
+    meqTradeIrAfFx,
+    rule=lambda model, t1, c, src, dst, y, s: model.vTradeIr[t1, c, src, dst, y, s]
+    == pTradeIrAfLo.get((t1, src, dst, y, s))
     * pTradeCap2Act.get((t1))
     * model.vTradeCap[t1, y]
     * pTimesliceShare.get((s)),
@@ -3157,6 +3421,11 @@ model.eqExportRowLo = Constraint(
     rule=lambda model, e, c, r, y, s: model.vExportRow[e, c, r, y, s]
     >= pExportRowLo.get((e, r, y, s)),
 )
+model.eqExportRowFx = Constraint(
+    meqExportRowFx,
+    rule=lambda model, e, c, r, y, s: model.vExportRow[e, c, r, y, s]
+    == pExportRowLo.get((e, r, y, s)),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -3251,6 +3520,11 @@ model.eqImportRowLo = Constraint(
     meqImportRowLo,
     rule=lambda model, i, c, r, y, s: model.vImportRow[i, c, r, y, s]
     >= pImportRowLo.get((i, r, y, s)),
+)
+model.eqImportRowFx = Constraint(
+    meqImportRowFx,
+    rule=lambda model, i, c, r, y, s: model.vImportRow[i, c, r, y, s]
+    == pImportRowLo.get((i, r, y, s)),
 )
 if verbose:
     print(
@@ -3389,6 +3663,10 @@ model.eqTradeCapLo = Constraint(
     mTradeCapLo,
     rule=lambda model, t1, y: model.vTradeCap[t1, y] >= pTradeCapLo.get((t1, y)),
 )
+model.eqTradeCapFx = Constraint(
+    mTradeCapFx,
+    rule=lambda model, t1, y: model.vTradeCap[t1, y] == pTradeCapLo.get((t1, y)),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -3421,6 +3699,11 @@ model.eqTradeNewCapLo = Constraint(
     mTradeNewCapLo,
     rule=lambda model, t1, y: model.vTradeNewCap[t1, y] * pPeriodLen.get((y))
     >= pTradeNewCapLo.get((t1, y)),
+)
+model.eqTradeNewCapFx = Constraint(
+    mTradeNewCapFx,
+    rule=lambda model, t1, y: model.vTradeNewCap[t1, y] * pPeriodLen.get((y))
+    == pTradeNewCapLo.get((t1, y)),
 )
 if verbose:
     print(

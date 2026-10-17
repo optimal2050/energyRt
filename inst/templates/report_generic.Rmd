@@ -44,6 +44,9 @@ params:
   levcost_by_vintage_df: NULL
   levcost_instance_label: NULL
   levcost_peers_plot: NULL
+  context_level:      "declared"
+  location_plot:      NULL
+  levcost_compare_df: NULL
 header-includes:
   - \usepackage{geometry}
   - \geometry{a4paper, top=15mm, bottom=15mm, left=15mm, right=15mm}
@@ -553,4 +556,35 @@ if (!is.null(dim_plots) && length(dim_plots) > 0) {
 sec("Levelized cost vs peers",
     "same structure, priced with the same assumptions")
 emit_img(plot_png(params$levcost_peers_plot, 6.5, 3.2), 1)
+```
+
+```{r en-locations, results='asis', eval=!is.null(params$location_plot)}
+# ------------------------------------------------------------------------------
+#  LOCATIONS -- a choropleth of where the process is, drawn only when the
+#  report was given spatial context (geoscale =, model = or scenario =).
+#  With a scenario it shows what was BUILT; otherwise what was DECLARED.
+# ------------------------------------------------------------------------------
+sec("Locations",
+    switch(params$context_level %||% "declared",
+           realized = "capacity built, by region",
+           model    = "declared in the model's geoscale",
+           "declared regions"))
+emit_img(plot_png(params$location_plot, 5.2, 3.4), 0.8)
+```
+
+```{r en-levcost_compare, results='asis', eval=!is.null(params$levcost_compare_df)}
+# ------------------------------------------------------------------------------
+#  EX ANTE vs REALIZED -- what the declaration promised against what the solve
+#  delivered, per variant. Only a scenario context can fill this.
+# ------------------------------------------------------------------------------
+cmp_df <- params$levcost_compare_df
+if (!is.null(cmp_df) && nrow(cmp_df) > 0) {
+  sec(paste0(lc_title, ": ex ante vs realized"),
+      if (nzchar(lcoe_unit)) paste0("[", lcoe_unit, "]") else NULL)
+  tbl(cmp_df)
+  cat("\n*Ex ante* prices the declaration on its own terms; *realized* divides ",
+      "the costs the solve actually incurred by the output it actually ",
+      "produced. A variant the solver never built has no realized cost.\n",
+      sep = "")
+}
 ```

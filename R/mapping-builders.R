@@ -874,6 +874,147 @@ map_mTechAfcUp     <- function(scen, fmp) scen
   mTechAfUp = map_mTechAfUp, mTechAfcUp = map_mTechAfcUp
 )
 
+# -- fixed bounds as one equality row (`fx_equ`) ---------------------------- #
+# A cell carried by both the Lo and the Up map of a family, whose two sides are
+# the same number, is the pair  x >= v  and  x <= v. With `fx_equ` (default) it
+# goes to the family's Fx map, written as one equality row (eq<Fam>Fx, the Lo
+# equation with `=`), and leaves the Lo and Up maps. The two sides are equal
+# when every factor that differs between eq<Fam>Lo and eq<Fam>Up does:
+#   par    the bound parameter (`type` lo / up)
+#   extra  other bounds parameters the two equations read on their own side
+#          (storage duration, inp2out)
+#   w*     the weather product: same members and coefficients on both sides
+# TechAf is built with its Lo/Up maps (.tech_af_fx_maps); the rest here, after
+# every Lo/Up map exists. An on-disk map is not rewritten (the pair is kept).
+.fx_families <- list(
+  TechAfs = list(lo = "meqTechAfsLo", up = "meqTechAfsUp", fx = "meqTechAfsFx", par = "pTechAfs",
+                 wlo = "mTechWeatherAfsLo", wup = "mTechWeatherAfsUp", wcoef = "pTechWeatherAfs", went = "tech"),
+  TechAfcInp = list(lo = "meqTechAfcInpLo", up = "meqTechAfcInpUp", fx = "meqTechAfcInpFx", par = "pTechAfc",
+                    wlo = "mTechWeatherAfcLo", wup = "mTechWeatherAfcUp", wcoef = "pTechWeatherAfc",
+                    went = c("tech", "comm")),
+  TechAfcOut = list(lo = "meqTechAfcOutLo", up = "meqTechAfcOutUp", fx = "meqTechAfcOutFx", par = "pTechAfc",
+                    wlo = "mTechWeatherAfcLo", wup = "mTechWeatherAfcUp", wcoef = "pTechWeatherAfc",
+                    went = c("tech", "comm")),
+  TechShareInp = list(lo = "meqTechShareInpLo", up = "meqTechShareInpUp", fx = "meqTechShareInpFx",
+                      par = "pTechShare"),
+  TechShareOut = list(lo = "meqTechShareOutLo", up = "meqTechShareOutUp", fx = "meqTechShareOutFx",
+                      par = "pTechShare"),
+  TechCap = list(lo = "mTechCapLo", up = "mTechCapUp", fx = "mTechCapFx", par = "pTechCap"),
+  TechNewCap = list(lo = "mTechNewCapLo", up = "mTechNewCapUp", fx = "mTechNewCapFx", par = "pTechNewCap"),
+  TechRet = list(lo = "mTechRetLo", up = "mTechRetUp", fx = "mTechRetFx", par = "pTechRet"),
+  StorageAf = list(lo = "meqStorageAfLo", up = "meqStorageAfUp", fx = "meqStorageAfFx", par = "pStorageAf",
+                   extra = "pStorageDuration",
+                   wlo = "mStorageWeatherAfLo", wup = "mStorageWeatherAfUp", wcoef = "pStorageWeatherAf",
+                   went = "stg"),
+  StorageInp = list(lo = "meqStorageInpLo", up = "meqStorageInpUp", fx = "meqStorageInpFx", par = "pStorageInpAf",
+                    extra = "pStorageInp2out",
+                    wlo = "mStorageWeatherInpAfLo", wup = "mStorageWeatherInpAfUp",
+                    wcoef = "pStorageWeatherInpAf", went = "stg"),
+  StorageOut = list(lo = "meqStorageOutLo", up = "meqStorageOutUp", fx = "meqStorageOutFx", par = "pStorageOutAf",
+                    wlo = "mStorageWeatherOutAfLo", wup = "mStorageWeatherOutAfUp",
+                    wcoef = "pStorageWeatherOutAf", went = "stg"),
+  StorageDuration = list(lo = "mStorageDurationLo", up = "mStorageDurationUp", fx = "mStorageDurationFx",
+                         par = "pStorageDuration"),
+  StorageInp2out = list(lo = "mStorageInp2outLo", up = "mStorageInp2outUp", fx = "mStorageInp2outFx",
+                        par = "pStorageInp2out"),
+  StorageInp2stg = list(lo = "mStorageInp2stgLo", up = "mStorageInp2stgUp", fx = "mStorageInp2stgFx",
+                        par = "pStorageInp2stg"),
+  StorageInpCap = list(lo = "mStorageInpCapLo", up = "mStorageInpCapUp", fx = "mStorageInpCapFx",
+                       par = "pStorageInpCap"),
+  StorageInpNewCap = list(lo = "mStorageInpNewCapLo", up = "mStorageInpNewCapUp", fx = "mStorageInpNewCapFx",
+                          par = "pStorageInpNewCap"),
+  StorageInpRet = list(lo = "mStorageInpRetLo", up = "mStorageInpRetUp", fx = "mStorageInpRetFx",
+                       par = "pStorageInpRet"),
+  StorageOutCap = list(lo = "mStorageOutCapLo", up = "mStorageOutCapUp", fx = "mStorageOutCapFx",
+                       par = "pStorageOutCap"),
+  StorageOutNewCap = list(lo = "mStorageOutNewCapLo", up = "mStorageOutNewCapUp", fx = "mStorageOutNewCapFx",
+                          par = "pStorageOutNewCap"),
+  StorageOutRet = list(lo = "mStorageOutRetLo", up = "mStorageOutRetUp", fx = "mStorageOutRetFx",
+                       par = "pStorageOutRet"),
+  StorageStgCap = list(lo = "mStorageStgCapLo", up = "mStorageStgCapUp", fx = "mStorageStgCapFx",
+                       par = "pStorageStgCap"),
+  StorageStgNewCap = list(lo = "mStorageStgNewCapLo", up = "mStorageStgNewCapUp", fx = "mStorageStgNewCapFx",
+                          par = "pStorageStgNewCap"),
+  StorageStgRet = list(lo = "mStorageStgRetLo", up = "mStorageStgRetUp", fx = "mStorageStgRetFx",
+                       par = "pStorageStgRet"),
+  SupAva = list(lo = "meqSupAvaLo", up = "mSupAvaUp", fx = "meqSupAvaFx", par = "pSupAva",
+                wlo = "mSupWeatherLo", wup = "mSupWeatherUp", wcoef = "pSupWeather", went = "sup"),
+  SupReserve = list(lo = "meqSupReserveLo", up = "mSupReserveUp", fx = "meqSupReserveFx", par = "pSupReserve"),
+  TradeFlow = list(lo = "meqTradeFlowLo", up = "meqTradeFlowUp", fx = "meqTradeFlowFx", par = "pTradeIr"),
+  TradeIrAf = list(lo = "meqTradeIrAfLo", up = "meqTradeIrAfUp", fx = "meqTradeIrAfFx", par = "pTradeIrAf"),
+  TradeCap = list(lo = "mTradeCapLo", up = "mTradeCapUp", fx = "mTradeCapFx", par = "pTradeCap"),
+  TradeNewCap = list(lo = "mTradeNewCapLo", up = "mTradeNewCapUp", fx = "mTradeNewCapFx", par = "pTradeNewCap"),
+  TradeRet = list(lo = "mTradeRetLo", up = "mTradeRetUp", fx = "mTradeRetFx", par = "pTradeRet"),
+  ImportRow = list(lo = "meqImportRowLo", up = "mImportRowUp", fx = "meqImportRowFx", par = "pImportRow"),
+  ExportRow = list(lo = "meqExportRowLo", up = "mExportRowUp", fx = "meqExportRowFx", par = "pExportRow")
+)
+
+# lo == up of a bounds parameter at each row of `cells`
+.bound_same <- function(scen, par, cells) {
+  pp <- scen@modInp@parameters[[par]]
+  if (is.null(pp)) return(rep(FALSE, nrow(cells)))
+  src <- .gds(scen, par); dv <- pp@defVal
+  vlo <- .bound_at(src, cells, "lo", dv[1]); vup <- .bound_at(src, cells, "up", dv[2])
+  is.finite(vlo) & is.finite(vup) & abs(vlo - vup) <= 1e-12 * pmax(1, abs(vlo))
+}
+
+# per row of `cells`: does the Lo weather product equal the Up one (same
+# members, same coefficients) for the row's entity (`ent` columns)?
+.weather_same_ent <- function(scen, wlo, wup, wcoef, ent, cells) {
+  pw <- .gds(scen, wcoef)
+  pp <- scen@modInp@parameters[[wcoef]]
+  dv <- if (is.null(pp)) c(1, 1) else pp@defVal
+  id <- function(x) do.call(paste, c(lapply(x[ent], as.character), sep = "\r"))
+  sig <- function(w, type, def) {
+    if (is.null(w) || nrow(w) == 0) return(setNames(character(0), character(0)))
+    w <- dplyr::distinct(w[, c("weather", ent), drop = FALSE])
+    v <- .bound_at(pw, w, type, def)
+    w$s <- paste0(w$weather, "=", sprintf("%.15g", v))
+    vapply(split(w$s, id(w)), function(x) paste(sort(x), collapse = "|"), character(1))
+  }
+  sl <- sig(.gds(scen, wlo), "lo", dv[1]); su <- sig(.gds(scen, wup), "up", dv[2])
+  k <- id(cells)
+  a <- unname(sl[k]); b <- unname(su[k])
+  a[is.na(a)] <- ""; b[is.na(b)] <- ""
+  a == b
+}
+
+# overwrite a map that is already built (`d2p()` appends)
+.map_replace <- function(scen, name, df, fmp) {
+  scen@modInp@parameters[[name]] <- .resetParameter(scen@modInp@parameters[[name]])
+  .set_map(scen, name, df, fmp)
+}
+
+.fx_split <- function(scen, f, fmp) {
+  if (!isTRUE(getOption("energyRt.fx_equ", TRUE))) return(scen)
+  pl <- scen@modInp@parameters[[f$lo]]; pu <- scen@modInp@parameters[[f$up]]
+  if (is.null(pl) || is.null(pu) || is.null(scen@modInp@parameters[[f$fx]])) return(scen)
+  if (isOnDisk(pl) || isOnDisk(pu)) return(scen)
+  lo <- .gds(scen, f$lo); up <- .gds(scen, f$up)
+  if (is.null(lo) || is.null(up)) return(scen)
+  key <- intersect(colnames(lo), colnames(up))
+  both <- dplyr::inner_join(dplyr::distinct(lo[, key, drop = FALSE]),
+                            dplyr::distinct(up[, key, drop = FALSE]), by = key)
+  if (nrow(both) == 0) return(scen)
+  same <- .bound_same(scen, f$par, both)
+  for (x in f$extra) same <- same & .bound_same(scen, x, both)
+  if (!is.null(f$wlo)) {
+    same <- same & .weather_same_ent(scen, f$wlo, f$wup, f$wcoef, f$went, both)
+  }
+  fx <- both[same, , drop = FALSE]
+  if (nrow(fx) == 0) return(scen)
+  scen <- .map_replace(scen, f$lo, dplyr::anti_join(lo, fx, by = key), fmp)
+  scen <- .map_replace(scen, f$up, dplyr::anti_join(up, fx, by = key), fmp)
+  .set_map(scen, f$fx, fx, fmp)
+}
+
+.fx_builders <- lapply(.fx_families, function(f) {
+  force(f)
+  function(scen, fmp) .fx_split(scen, f, fmp)
+})
+names(.fx_builders) <- vapply(.fx_families, `[[`, character(1), "fx")
+.constraint_builders <- c(.constraint_builders, .fx_builders)
+
 
 # ---------------------------------------------------------------------------
 # (was R/map_costagg.R, merged 2026-09-20)

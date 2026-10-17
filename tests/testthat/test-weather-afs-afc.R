@@ -83,8 +83,10 @@ test_that("wafc without afc gets afc = 1 on the sides it sets", {
   p <- .gds(scen, "pTechAfc")
   expect_setequal(as.character(p$type[p$tech == "WS"]), c("lo", "up"))
   expect_true(all(p$value[p$tech == "WS"] == 1))
-  expect_equal(nrow(.gds(scen, "meqTechAfcOutLo")), 4L)
-  expect_equal(nrow(.gds(scen, "meqTechAfcOutUp")), 4L)
+  # lo == up: with fx_equ (default) the four cells are one equality row each
+  expect_equal(nrow(.gds(scen, "meqTechAfcOutFx")), 4L)
+  expect_null(.gds(scen, "meqTechAfcOutLo"))
+  expect_null(.gds(scen, "meqTechAfcOutUp"))
 })
 
 # @covers eqTechAfcOutLo eqTechAfcOutUp depth=S backends=glpk
