@@ -473,7 +473,8 @@ interpolate_model <- function(object, name = NULL, ...,
   # filter removes the out-of-sample rows later.
   .interp_step(verbose, "checking declarations")
   .known_regions <- .declaration_regions(scen)
-  .check_declared_regions(scen@model, .known_regions)
+  .check_declared_regions(scen@model, .known_regions,
+                          .declaration_geo_hierarchy(scen))
 
   # guard: a weather profile referenced by name must have an object behind it.
   # Unlike a stray region this one never surfaces later -- the reference is
@@ -4129,6 +4130,11 @@ get_process_region <- function(object, process = NULL, classes = NULL,
   #     region that is not within a populated `@region` is an error.
   #   * Trade has no `@region`; its scope is the structural route endpoints
   #     (`src`/`dst`).
+  #   * `@geoframe`, when declared, names the geoscale level the object's
+  #     regions are expressed at. It narrows only the "exists in ALL regions"
+  #     case, to all regions OF THAT LEVEL; it never overrides a populated
+  #     `@region` (the membership of the two is checked up front by
+  #     `.check_declared_geoframes()`).
   info <- apply_to_scenario_data(
     scen = object,
     classes = classes,
@@ -4149,7 +4155,8 @@ get_process_region <- function(object, process = NULL, classes = NULL,
       o[[x@name]] <- list(
         reg    = reg,
         struct = unique(struct[!is.na(struct)]),
-        param  = unique(param[!is.na(param)])
+        param  = unique(param[!is.na(param)]),
+        gf     = .obj_geoframe(x)
       )
       o
     }
@@ -4158,6 +4165,7 @@ get_process_region <- function(object, process = NULL, classes = NULL,
   nn <- list()
   for (i in names(info)) {
     reg <- info[[i]]$reg; struct <- info[[i]]$struct; param <- info[[i]]$param
+    gf <- info[[i]]$gf %||% NA_character_
     if (length(reg) > 0) {
       # @region populated: authoritative. Any region used in a slot must be in it.
       bad <- setdiff(c(param, struct), reg)
@@ -4169,6 +4177,12 @@ get_process_region <- function(object, process = NULL, classes = NULL,
     } else if (length(struct) > 0) {
       # no @region: structural route endpoints define the scope (trade).
       nn[[i]] <- struct
+    } else if (!is.na(gf) && !is.null(.h)) {
+      # no @region, no routes, but a declared level: the object exists in all
+      # regions OF THAT LEVEL. This is the one default `@geoframe` sets, and it
+      # is what makes the declaration mean something rather than merely being
+      # checked. A coarse process still has to pass `.assert_process_geoframe()`.
+      nn[[i]] <- .geo_level_regions(.h, gf)
     } else {
       # no @region, no routes: the object exists in ALL regions. Parameter-slot
       # regions only localize values; they do not restrict the scope.

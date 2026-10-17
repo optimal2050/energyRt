@@ -365,6 +365,13 @@ class:
           description: >
             Fill order, 1 = the cheapest grade. Without it labels sort
             alphabetically and "S10" would precede "S2".
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. A supply DELIVERS its commodity, so its level may not be coarser than the commodity's balance level.
     region:
       type: character
       description: >
@@ -459,6 +466,13 @@ class:
           description: >
             Optional ordering for reporting. Without it labels sort
             alphabetically and "R10" would precede "R2".
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. A demand CONSUMES, so it may sit at a coarser level than the commodity it takes.
     region:
       type: character
       description: >
@@ -1083,6 +1097,31 @@ class:
       description: >
         Name of timeframe level the technology is operating. By default,
         the lowest level of timeframe of commodities used in the technology is applied.
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at
+        (e.g. "nation", "zone"). Unset (the default) DERIVES the level from the
+        region codes themselves -- the finest level any of them belongs to --
+        which is what every model written before this slot existed relies on.
+        Declared, it names the level, makes that level's own regions the
+        object's default scope, and `region` may then narrow it; every code in
+        `region` and in the data slots must be a member of the level, or it is
+        an error rather than a silent reinterpretation.
+
+        It adds those checks and that one default, never new behaviour: it does
+        not aggregate, does not distribute, and does not by itself make a
+        coarse process legal. The rule it makes checkable is that an object may
+        be coarser than the commodities it CONSUMES, never than those it
+        produces or stores -- the balance layer rolls finer regions up into
+        coarser ones and never splits a coarse quantity among children. So a
+        technology at "nation" may burn a state-level fuel, but may not produce
+        a state-level commodity.
+
+        Requires a geoscale on the model config. Distinct from
+        `commodity@geoframe`, which names the level a commodity is BALANCED at,
+        and from `summand@geoframe`, which restricts the region dimension a
+        constraint term is summed over.
     region:
       type: character
       description: >
@@ -1666,6 +1705,13 @@ class:
         If FALSE, the cycle is closed within each parent timeframe: the preceding time-timeslice of
         the first time-timeslice of a group is the LAST time-timeslice of the SAME group, so every
         group is an independent loop with no energy carried between them.
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. A storage both consumes and delivers, so its level may be coarser than an input commodity's but never than the commodity it outputs or holds.
     region:
       type: character
       description: >
@@ -1987,6 +2033,13 @@ class:
     commodity:
       type: character
       description: The traded commodity short name.
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. `trade` has no `region` slot: the level is the one its ROUTES are expressed at, checked against every `src` and `dst`. A corridor delivers at `dst`, so its level may not be coarser than the traded commodity's -- moving a state-level commodity between nations would have to distribute it among the destination's children, which the balance layer does not do.
     routes:
       type: data.frame
       description: Source and destination regions. For bivariate trade define both directions in separate rows.
@@ -2450,6 +2503,13 @@ class:
           description: >
             Fill order, 1 = the cheapest step (or, for export, the best paid).
             Without it labels sort alphabetically and "S10" would precede "S2".
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. An import DELIVERS into the model, so its level may not be coarser than the commodity's balance level.
     region:
       type: character
       description: >
@@ -2584,6 +2644,13 @@ class:
           description: >
             Fill order, 1 = the cheapest step (or, for export, the best paid).
             Without it labels sort alphabetically and "S10" would precede "S2".
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. An export CONSUMES, so it may sit at a coarser level than the commodity it takes.
     region:
       type: character
       description: >
@@ -2605,6 +2672,13 @@ class:
     unit:
       type: character
       description: Unit of the weather factor.
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. A weather factor is multiplicative and balances nothing, so no commodity rule applies. This is the class where declaring the level matters most: left unset, a series whose data names no region spans every region of every level, where naming the level scopes it to that level alone.
     region:
       type: character
       description: >
@@ -2848,6 +2922,13 @@ class:
       description: >
         Commodity filter: the commodity or commodities the levy applies to.
         Empty means every commodity the chosen base reaches.
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. A levy neither produces nor consumes a commodity, so the declaration is a region-membership check only.
     region:
       type: character
       description: >
@@ -2973,6 +3054,13 @@ class:
       description: >
         Commodity filter: the commodity or commodities the levy applies to.
         Empty means every commodity the chosen base reaches.
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. A levy neither produces nor consumes a commodity, so the declaration is a region-membership check only.
     region:
       type: character
       description: >

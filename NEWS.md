@@ -126,6 +126,17 @@ changes* first. The change-by-change log for the whole cycle (450 entries) is in
 * A filtered geoscale passed to `interpolate_model()` solves a sub-territory,
   and `subset_model_regions()` warns when sampling splits a cell a process
   spans.
+* **`@geoframe` on the region-carrying classes** (`weather`, `supply`,
+  `demand`, `technology`, `storage`, `import`, `export`, `tax`, `subsidy`,
+  `trade`) declares the geoscale level an object's regions are expressed at.
+  Optional: left unset the level is derived from the region codes, as before.
+  Declared, it scopes an object that names no regions of its own to that
+  level's regions, and every code it does name must be a member of the level —
+  `geoframe = "nation"` beside `region = "R1"` is now an error instead of
+  quietly meaning something else. It adds that one default and those checks,
+  nothing more: an object may still be coarser only than the commodities it
+  consumes, never than those it produces or stores, enforced where it always
+  was.
 
 ### Solving
 
@@ -254,6 +265,13 @@ answer rather than only the code. The classes worth knowing about:
   accepted the argument and ignored it, returning every process in the model;
   `get_process_comm()` inherited it. The returned shape was right, so the
   answer looked right.
+* **A weather series whose data omits `region` is stored where it is
+  declared.** `pWeather` took its regions from the data column while the two
+  weather maps took theirs from `@region`, so a region-agnostic profile
+  declared at a coarse region was materialised at every region of every
+  geoscale level. No answer moves — every backend reads the series through
+  `mWeatherRegionAt` — but the parameter no longer claims it where nothing
+  declared it.
 
 ## Documentation
 

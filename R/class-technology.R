@@ -35,6 +35,7 @@
 #' @slot optimizeRetirement `r get_slot_doc("technology", "optimizeRetirement")`
 #' @slot fullYear `r get_slot_doc("technology", "fullYear")`
 #' @slot timeframe `r get_slot_doc("technology", "timeframe")`
+#' @slot geoframe `r get_slot_doc("technology", "geoframe")`
 #' @slot region `r get_slot_doc("technology", "region")`
 #' @slot misc `r get_slot_doc("technology", "misc")`
 #'
@@ -72,6 +73,7 @@ setClass("technology",
     # upgrade.technology = "character",
     fullYear = "logical",
     timeframe = "character",
+    geoframe = "character",
     region = "character",
     misc = "list"
   ),
@@ -327,6 +329,7 @@ setClass("technology",
     ),
     optimizeRetirement = TRUE,
     # upgrade.technology = character(),
+    geoframe = character(),
     region = character(),
     timeframe = character(),
     misc = list()
@@ -370,6 +373,7 @@ setMethod("initialize", "technology", function(.Object, ...) {
 #' @param cluster `r get_slot_doc("technology", "cluster")`
 #' @param vintage `r get_slot_doc("technology", "vintage")`
 #' @param olife deprecated, use the `olife` column of `vintage`.
+#' @param geoframe `r get_slot_doc("technology", "geoframe")`
 #' @param region `r get_slot_doc("technology", "region")`
 #' @param start deprecated, use the `start` column of `vintage`.
 #' @param end deprecated, use the `end` column of `vintage`.
@@ -473,6 +477,7 @@ newTechnology <- function(
     cluster = data.frame(),
     vintage = data.frame(),
     olife = data.frame(),
+    geoframe = character(),
     region = character(),
     start = data.frame(),
     end = data.frame(),
@@ -503,6 +508,7 @@ newTechnology <- function(
     cluster = cluster,
     vintage = vintage,
     olife = olife,
+    geoframe = geoframe,
     region = region,
     start = start,
     end = end,

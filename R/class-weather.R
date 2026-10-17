@@ -9,6 +9,7 @@
 #' @slot name `r get_slot_doc("weather", "name")`
 #' @slot desc `r get_slot_doc("weather", "desc")`
 #' @slot unit `r get_slot_doc("weather", "unit")`
+#' @slot geoframe `r get_slot_doc("weather", "geoframe")`
 #' @slot region `r get_slot_doc("weather", "region")`
 #' @slot timeframe `r get_slot_doc("weather", "timeframe")`
 #' @slot defVal `r get_slot_doc("weather", "defVal")`
@@ -27,6 +28,7 @@ setClass("weather",
     name = "character",
     desc = "character",
     unit = "character",
+    geoframe = "character",
     region = "character",
     timeframe = "character",
     defVal = "numeric",
@@ -38,6 +40,7 @@ setClass("weather",
     name = "",
     desc = "",
     unit = as.character(NA),
+    geoframe = character(),
     region = character(),
     timeframe = character(),
     defVal = 0.,
@@ -82,6 +85,7 @@ setMethod("initialize", "weather", function(.Object, ...) {
 #' @param name `r get_slot_doc("weather", "name")`
 #' @param desc `r get_slot_doc("weather", "desc")`
 #' @param unit `r get_slot_doc("weather", "unit")`
+#' @param geoframe `r get_slot_doc("weather", "geoframe")`
 #' @param region `r get_slot_doc("weather", "region")`
 #' @param timeframe `r get_slot_doc("weather", "timeframe")`
 #' @param defVal `r get_slot_doc("weather", "defVal")`
@@ -118,6 +122,7 @@ newWeather <- function(
     name = "",
     desc = "",
     unit = as.character(NA),
+    geoframe = character(),
     region = character(),
     timeframe = character(),
     defVal = 0.,
@@ -130,6 +135,7 @@ newWeather <- function(
     name,
     desc = desc,
     unit = unit,
+    geoframe = geoframe,
     region = region,
     timeframe = timeframe,
     defVal = defVal,

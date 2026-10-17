@@ -1574,25 +1574,46 @@ map_mStorageAOut <- function(scen, fmp) .build_aux_membership(scen, "storage",  
 # `region` column of its own data, else every scenario region. Shared by
 # `map_mWeatherRegion()` and `map_mWeatherRegionAt()` so the two can never
 # disagree about where a series lives.
+# The region universe a weather may be declared in: the WIDENED set, because a
+# weather may legitimately sit at a coarser geoscale level than the model's
+# atoms (one profile per adm1 serving its adm2 children). Filtering against
+# `settings@region` dropped such an object silently and left both weather maps
+# empty.
 #' @noRd
-.weather_regions_served <- function(scen) {
-  # The WIDENED set: a weather may legitimately be declared at a coarser
-  # geoscale level than the model's atoms (one profile per adm1 serving its
-  # adm2 children). Filtering against `settings@region` dropped such an object
-  # silently and left both weather maps empty.
+.weather_region_span <- function(scen) {
   regs <- as.character(.known_regions(scen))
   if (length(regs) == 0) regs <- as.character(scen@settings@region)
+  regs
+}
+
+# The regions ONE weather object serves: its `@region` slot, else the regions
+# named in its own data, else every region of the span. Reading the slot alone
+# claimed every region, and `pWeather` defaults to 0, so the phantom cells
+# silently zeroed availability wherever the object was never declared.
+#
+# Shared by `map_mWeatherRegion()`, `map_mWeatherRegionAt()` AND
+# `ob2mi(weather)`: the maps read the slot while `pWeather` copied the data
+# column, so a series whose data left `region` NA was stored at every region of
+# every level while the maps correctly pointed at one.
+#' @noRd
+.weather_scope <- function(obj, regs, hier = NULL) {
+  r <- as.character(obj@region)
+  r <- r[!is.na(r)]
+  if (length(r) == 0) r <- .obj_data_regions(obj, "weather")
+  # naming no region at all means every region -- of the DECLARED level when
+  # `@geoframe` names one, which is the whole point of declaring it
+  if (length(r) == 0) r <- .obj_level_members(obj, hier, regs)
+  r[r %in% regs]
+}
+
+#' @noRd
+.weather_regions_served <- function(scen) {
+  regs <- .weather_region_span(scen)
+  hier <- .scen_geo_hierarchy(scen)
   res <- apply_to_scenario_data(
     scen = scen, classes = "weather", as_list = TRUE,
     func = function(x) {
-      # scoped by the `@region` slot OR by the `region` column of its own
-      # data; reading the slot alone claimed every region, and `pWeather`
-      # defaults to 0, so the phantom cells silently zeroed availability
-      # wherever the object was never declared
-      r <- as.character(x@region); r <- r[!is.na(r)]
-      if (length(r) == 0) r <- .obj_data_regions(x, "weather")
-      if (length(r) == 0) r <- regs            # unset -> all regions
-      r <- r[r %in% regs]
+      r <- .weather_scope(x, regs, hier)
       if (length(r) == 0) return(NULL)
       o <- list(); o[[x@name]] <- data.frame(weather = x@name, region = r,
                                              stringsAsFactors = FALSE)

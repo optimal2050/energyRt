@@ -9,6 +9,7 @@
 #' @slot unit `r get_slot_doc("demand", "unit")`
 #' @slot demand `r get_slot_doc("demand", "demand")`
 #' @slot cluster `r get_slot_doc("demand", "cluster")`
+#' @slot geoframe `r get_slot_doc("demand", "geoframe")`
 #' @slot region `r get_slot_doc("demand", "region")`
 #' @slot misc `r get_slot_doc("demand", "misc")`
 #'
@@ -24,6 +25,7 @@ setClass("demand",
     unit = "character",
     demand = "data.frame",
     cluster = "data.frame",
+    geoframe = "character",
     region = "character",
     misc = "list"
   ),
@@ -31,6 +33,7 @@ setClass("demand",
     name = "",
     desc = "",
     unit = "",
+    geoframe = character(),
     region = character(),
     demand = data.frame(
       cluster = character(),
@@ -80,6 +83,7 @@ setMethod("initialize", "demand", function(.Object, ...) {
 #' @param unit `r get_slot_doc("demand", "unit")`
 #' @param demand `r get_slot_doc("demand", "demand")`
 #' @param cluster `r get_slot_doc("demand", "cluster")`
+#' @param geoframe `r get_slot_doc("demand", "geoframe")`
 #' @param region `r get_slot_doc("demand", "region")`
 #' @param misc `r get_slot_doc("demand", "misc")`
 #' @param ... further named slots of the class -- set on the new object by
@@ -114,6 +118,7 @@ newDemand <- function(
     unit = character(),
     demand = data.frame(),
     cluster = data.frame(),
+    geoframe = character(),
     region = character(),
     misc = list(),
     ...)
@@ -124,6 +129,7 @@ newDemand <- function(
     unit = unit,
     demand = demand,
     cluster = cluster,
+    geoframe = geoframe,
     region = region,
     misc = misc,
     ...

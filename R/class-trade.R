@@ -9,6 +9,7 @@
 #' @slot name `r get_slot_doc("trade", "name")`
 #' @slot desc `r get_slot_doc("trade", "desc")`
 #' @slot commodity `r get_slot_doc("trade", "commodity")`
+#' @slot geoframe `r get_slot_doc("trade", "geoframe")`
 #' @slot routes `r get_slot_doc("trade", "routes")`
 #' @slot trade `r get_slot_doc("trade", "trade")`
 #' @slot aux `r get_slot_doc("trade", "aux")`
@@ -33,6 +34,7 @@ setClass("trade",
     name = "character", # Short name
     desc = "character", # Details
     commodity = "character", # Vector if NULL that
+    geoframe = "character",
     routes = "data.frame",
     # Performance parameters
     trade = "data.frame",
@@ -54,6 +56,7 @@ setClass("trade",
     name = "", # name in sets
     desc = "",
     commodity = NULL, #
+    geoframe = character(),
     routes = data.frame(
       src = character(),
       dst = character(),
@@ -231,6 +234,7 @@ setMethod("initialize", "trade", function(.Object, ...) {
 #' @param name `r get_slot_doc("trade", "name")`
 #' @param desc `r get_slot_doc("trade", "desc")`
 #' @param commodity `r get_slot_doc("trade", "commodity")`
+#' @param geoframe `r get_slot_doc("trade", "geoframe")`
 #' @param routes `r get_slot_doc("trade", "routes")`
 #' @param trade `r get_slot_doc("trade", "trade")`
 #' @param fixom `r get_slot_doc("trade", "fixom")`
@@ -305,6 +309,7 @@ newTrade <- function(
     name = "",
     desc = "",
     commodity = character(),
+    geoframe = character(),
     routes = data.frame(),
     trade = data.frame(),
     fixom = data.frame(),
@@ -328,6 +333,7 @@ newTrade <- function(
   args <- list(
     desc = desc,
     commodity = commodity,
+    geoframe = geoframe,
     routes = routes,
     trade = trade,
     fixom = fixom,

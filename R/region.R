@@ -1526,14 +1526,19 @@ get_region <- function(object) {
 # data.frame). NA / "" entries are wildcards ("all declared regions") and are
 # ignored. Run early in `interp_mod()` so a stray region fails fast with a clear
 # message rather than as an out-of-domain error in a solver writer.
-.check_declared_regions <- function(model, declared) {
+.check_declared_regions <- function(model, declared, hier = NULL) {
   declared <- as.character(declared)
   declared <- declared[!is.na(declared) & nzchar(declared)]
   used <- character(0)
+  all_objs <- list()
   for (rp in model@data) {
     objs <- if (methods::is(rp, "repository")) rp@data else list(rp)
-    for (o in objs) used <- c(used, get_region(o))
+    for (o in objs) {
+      used <- c(used, get_region(o))
+      all_objs[[length(all_objs) + 1L]] <- o
+    }
   }
+  .check_declared_geoframes(all_objs, hier)
   undeclared <- setdiff(unique(used), declared)
   if (length(undeclared) > 0) {
     stop(
@@ -1545,6 +1550,54 @@ get_region <- function(object) {
     )
   }
   invisible(TRUE)
+}
+
+# Guard: an object that DECLARES `@geoframe` may only name regions of that
+# level. Without the declaration the level is derived from the codes and any
+# mixture is legal (a national profile with one region overriding it); with it,
+# a code from another level is a typo or a misreading -- `geoframe = "nation"`
+# with `region = "R1"` reads as "this object is national" while naming a state,
+# and the two cannot both be true. Raised here so it fails at the same point as
+# an undeclared region, with the object named.
+#' @noRd
+.check_declared_geoframes <- function(objs, hier) {
+  if (is.null(hier) || length(objs) == 0) {
+    return(invisible(TRUE))
+  }
+  bad <- character(0)
+  for (o in objs) {
+    lv <- .obj_geoframe(o)
+    if (is.na(lv)) next
+    nm <- tryCatch(as.character(o@name), error = function(e) "<unnamed>")
+    if (!lv %in% hier$levels) {
+      bad <- c(bad, sprintf(
+        "%s \"%s\": `geoframe = \"%s\"` is not a level of the model's ",
+        class(o)[1], nm, lv))
+      bad[length(bad)] <- paste0(bad[length(bad)], "geoscale (it has: ",
+                                 paste(hier$levels, collapse = ", "), ")")
+      next
+    }
+    members <- .geo_level_regions(hier, lv)
+    codes <- get_region(o)
+    off <- setdiff(codes, members)
+    # a code the geoscale does not know at all is the business of the
+    # undeclared-region guard below, which names it better
+    off <- off[off %in% hier$region]
+    if (length(off) == 0) next
+    bad <- c(bad, sprintf(
+      "%s \"%s\": `geoframe = \"%s\"` but names region(s) %s, which belong to %s",
+      class(o)[1], nm, lv,
+      paste0("\"", sort(off), "\"", collapse = ", "),
+      paste0("\"", unique(unname(.geo_level_of(hier)[off])), "\"",
+             collapse = ", ")))
+  }
+  if (length(bad) == 0) {
+    return(invisible(TRUE))
+  }
+  stop("Region(s) inconsistent with a declared `@geoframe`:\n   ",
+       paste(bad, collapse = "\n   "),
+       "\nName regions of the declared level, or drop `@geoframe` to have the ",
+       "level derived from the regions themselves.", call. = FALSE)
 }
 
 #' Collect the weather objects an object refers to

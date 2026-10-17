@@ -8,6 +8,7 @@
 #' @slot reserve `r get_slot_doc("supply", "reserve")`
 #' @slot cluster `r get_slot_doc("supply", "cluster")`
 #' @slot supply `r get_slot_doc("supply", "supply")`
+#' @slot geoframe `r get_slot_doc("supply", "geoframe")`
 #' @slot region `r get_slot_doc("supply", "region")`
 #' @slot misc `r get_slot_doc("supply", "misc")`
 #'
@@ -25,6 +26,7 @@ setClass("supply",
     reserve = "data.frame",
     supply = "data.frame",
     cluster = "data.frame",
+    geoframe = "character",
     region = "character",
     misc = "list"
   ),
@@ -61,6 +63,7 @@ setClass("supply",
       cost = numeric(),
       stringsAsFactors = FALSE
     ),
+    geoframe = character(),
     region = character(),
     # Cluster declaration. A cluster is a parallel sub-object of the same
     # process -- for these classes, a PRICE STEP of a stepped supply / export /
@@ -116,6 +119,7 @@ setMethod("initialize", "supply", function(.Object, ...) {
 #' @param reserve `r get_slot_doc("supply", "reserve")`
 #' @param cluster `r get_slot_doc("supply", "cluster")`
 #' @param supply `r get_slot_doc("supply", "supply")`
+#' @param geoframe `r get_slot_doc("supply", "geoframe")`
 #' @param region `r get_slot_doc("supply", "region")`
 #' @param misc `r get_slot_doc("supply", "misc")`
 #' @param ... further named slots of the class, set on the new object.
@@ -157,6 +161,7 @@ newSupply <- function(
   reserve = data.frame(),
   supply = data.frame(),
   cluster = data.frame(),
+  geoframe = character(),
   region = character(),
   misc = list(),
   ...
@@ -171,6 +176,7 @@ newSupply <- function(
     reserve = reserve,
     supply = supply,
     cluster = cluster,
+    geoframe = geoframe,
     region = region,
     misc = misc,
     ...

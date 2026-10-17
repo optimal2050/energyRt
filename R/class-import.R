@@ -15,6 +15,7 @@
 #' @slot reserve `r get_slot_doc("import", "reserve")`
 #' @slot cluster `r get_slot_doc("import", "cluster")`
 #' @slot import `r get_slot_doc("import", "import")`
+#' @slot geoframe `r get_slot_doc("import", "geoframe")`
 #' @slot region `r get_slot_doc("import", "region")`
 #' @slot misc `r get_slot_doc("import", "misc")`
 #'
@@ -33,6 +34,7 @@ setClass("import",
     reserve = "data.frame",
     import = "data.frame",
     cluster = "data.frame",
+    geoframe = "character",
     region = "character",
     # timeframe = "character", # set to commodity@timeframe
     misc = "list"
@@ -95,6 +97,7 @@ setClass("import",
       order = integer(),
       stringsAsFactors = FALSE
     ),
+    geoframe = character(),
     region = character(),
     misc = list()
   ),
@@ -131,6 +134,7 @@ setMethod("initialize", "import", function(.Object, ...) {
 #' @param reserve `r get_slot_doc("import", "reserve")`
 #' @param cluster `r get_slot_doc("import", "cluster")`
 #' @param import `r get_slot_doc("import", "import")`
+#' @param geoframe `r get_slot_doc("import", "geoframe")`
 #' @param region `r get_slot_doc("import", "region")`
 #' @param misc `r get_slot_doc("import", "misc")`
 #'
@@ -162,6 +166,7 @@ newImport <- function(
     reserve = data.frame(),
     import = data.frame(),
     cluster = data.frame(),
+    geoframe = character(),
     region = character(),
     misc = list(),
     ...
@@ -181,6 +186,7 @@ newImport <- function(
     reserve = reserve,
     import = import,
     cluster = cluster,
+    geoframe = geoframe,
     region = region,
     misc = misc,
     ...

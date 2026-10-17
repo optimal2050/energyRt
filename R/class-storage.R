@@ -8,6 +8,7 @@
 #' @slot name `r get_slot_doc("storage", "name")`
 #' @slot desc `r get_slot_doc("storage", "desc")`
 #' @slot aux `r get_slot_doc("storage", "aux")`
+#' @slot geoframe `r get_slot_doc("storage", "geoframe")`
 #' @slot region `r get_slot_doc("storage", "region")`
 #' @slot cluster `r get_slot_doc("storage", "cluster")`
 #' @slot vintage `r get_slot_doc("storage", "vintage")`
@@ -44,6 +45,7 @@ setClass("storage",
     output = "data.frame",   # what it releases       (the "discharger" side)
     storage = "data.frame",  # what it HOLDS -- the level's commodity
     aux = "data.frame", #
+    geoframe = "character",
     region = "character",
     cluster = "data.frame",
     vintage = "data.frame",
@@ -413,6 +415,7 @@ setClass("storage",
       stringsAsFactors = FALSE
     ),
     fullYear = TRUE,
+    geoframe = character(),
     region = character(),
     weather = data.frame(
       vintage = character(),
@@ -868,6 +871,7 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'   `@commodity` slot -- this is folded into the three roles at construction,
 #'   so the object never carries two answers.
 #' @param aux `r get_slot_doc("storage", "aux")`
+#' @param geoframe `r get_slot_doc("storage", "geoframe")`
 #' @param region `r get_slot_doc("storage", "region")`
 #' @param cluster `r get_slot_doc("storage", "cluster")`
 #' @param vintage `r get_slot_doc("storage", "vintage")`
@@ -977,6 +981,7 @@ newStorage <- function(
     desc = "",
     commodity = character(),
     aux = data.frame(),
+    geoframe = character(),
     region = character(),
     start = data.frame(),
     end = data.frame(),
@@ -1007,6 +1012,7 @@ newStorage <- function(
     desc = desc,
     commodity = commodity,
     aux = aux,
+    geoframe = geoframe,
     region = region,
     cluster = cluster,
     vintage = vintage,

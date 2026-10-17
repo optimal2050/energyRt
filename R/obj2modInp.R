@@ -865,6 +865,15 @@ setMethod(
     value = as.numeric(wth@weather$wval)
   ) |>
     force_cols_classes()
+  # A row leaving `region` NA is a wildcard, and it is the obvious way to write
+  # a region-agnostic profile. Resolve it to the object's OWN scope -- the same
+  # `.weather_scope()` the two weather maps use -- not to every region: left NA
+  # here, `unfold_parameters()` has no `weather` key in `.region_allowed()` and
+  # falls back to the whole region set, which in a multi-level model means
+  # every coarse level as well. The maps meanwhile read `@region`, so the
+  # parameter claimed the series where the maps said it did not live.
+  dat <- .expand_na_region(dat, .weather_scope(
+    wth, .weather_region_span(scen), .scen_geo_hierarchy(scen)))
   scen <- update_parameter(scen, "pWeather", dat)
 
   # obj@parameters[["pWeather"]]@defVal <- wth@defVal

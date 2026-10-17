@@ -364,6 +364,40 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
   hier$members[[level]]
 }
 
+# The geoscale level an object DECLARES its regions at, or NA when it declares
+# none. `@geoframe` is optional on every region-carrying class: left unset, the
+# level is DERIVED from the region codes themselves (`.flow_levels()` takes the
+# finest level any of them belongs to), which is what every model written
+# before the slot existed relies on.
+#
+# Distinct from `commodity@geoframe` (the level a commodity is BALANCED at) and
+# `summand@geoframe` (a restriction of the summed region dimension), which read
+# their own slot directly.
+#' @noRd
+.obj_geoframe <- function(obj) {
+  if (!isS4(obj) || !methods::.hasSlot(obj, "geoframe")) {
+    return(NA_character_)
+  }
+  g <- as.character(methods::slot(obj, "geoframe"))
+  g <- g[!is.na(g) & nzchar(g)]
+  if (length(g) == 0) NA_character_ else g[1]
+}
+
+# The regions a declared level covers, or `default` when no level is declared.
+#
+# This is the ONE default `@geoframe` sets: an object that names no regions of
+# its own spans its LEVEL instead of every region in the model. Everything else
+# the slot does is a check. For a weather series that is the difference between
+# one stored row and one per region of every level.
+#' @noRd
+.obj_level_members <- function(obj, hier, default) {
+  lv <- .obj_geoframe(obj)
+  if (is.na(lv) || is.null(hier)) {
+    return(default)
+  }
+  .geo_level_regions(hier, lv)
+}
+
 # Resolve a geoscale from an explicit argument, else from the object.
 #' @noRd
 .resolve_geoscale <- function(x, geoscale = NULL, required = TRUE) {

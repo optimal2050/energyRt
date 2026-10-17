@@ -6,6 +6,7 @@
 #' @slot name `r get_slot_doc("tax", "name")`
 #' @slot desc `r get_slot_doc("tax", "desc")`
 #' @slot comm `r get_slot_doc("tax", "comm")`
+#' @slot geoframe `r get_slot_doc("tax", "geoframe")`
 #' @slot region `r get_slot_doc("tax", "region")`
 #' @slot process `r get_slot_doc("tax", "process")`
 #' @slot process_ `r get_slot_doc("tax", "process_")`
@@ -28,6 +29,7 @@ setClass("tax",
     name = "character", #
     desc = "character", #
     comm = "character", #
+    geoframe = "character",
     region = "character", #
     process = "character", #
     process_ = "character", #
@@ -45,6 +47,7 @@ setClass("tax",
     name = "", # Short name
     comm = "",
     desc = "",
+    geoframe = character(),
     region = character(), #
     process = character(), #
     process_ = character(), #
@@ -87,6 +90,7 @@ setClass("tax",
 #' @param name `r get_slot_doc("tax", "name")`
 #' @param desc `r get_slot_doc("tax", "desc")`
 #' @param comm `r get_slot_doc("tax", "comm")`
+#' @param geoframe `r get_slot_doc("tax", "geoframe")`
 #' @param region `r get_slot_doc("tax", "region")`
 #' @param process `r get_slot_doc("tax", "process")`
 #' @param process_ `r get_slot_doc("tax", "process_")`
@@ -128,6 +132,7 @@ newTax <- function(
   name,
   desc = "",
   comm = "",
+  geoframe = character(),
   region = character(),
   process = character(),
   process_ = character(),
@@ -147,6 +152,7 @@ newTax <- function(
     name,
     desc = desc,
     comm = comm,
+    geoframe = geoframe,
     region = region,
     process = process,
     process_ = process_,
