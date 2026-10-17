@@ -1031,6 +1031,7 @@ interpolate_model <- function(object, name = NULL, ...,
   #   the rest are reported pending until implemented.
   .interp_step(verbose, "building maps: constraint")
   scen <- build_mappings(scen, fmp = fmp, recipes = "constraint")
+  .check_storage_parts(scen)
 
   #============================================================================#
   # User-defined constraints and cost terms ####
@@ -2826,8 +2827,8 @@ validate_scenario_parameters <- function(object, fold = TRUE,
          severity = "advisory", within = "mStorageInpCap",
          meaning = "charging power bound removed by inp.af.up = Inf: the rate is not tied to the charger rating"),
     list(domain = "mvStorageOut", by = "stg", requires = c("meqStorageOutUp", "meqStorageOutFx"),
-         severity = "advisory",
-         meaning = "no discharging power bound"),
+         severity = "advisory", within = "mStorageOutCap",
+         meaning = "discharging power bound removed by out.af.up = Inf: the rate is not tied to the discharger rating"),
     list(domain = "mvTradeIr", by = "trade", requires = "meqTradeCapFlow",
          severity = "structural",
          meaning = "no trade flow-capacity link (unbounded transmission)"),

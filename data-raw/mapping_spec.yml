@@ -2134,6 +2134,51 @@ mStorageInpStgCap:
   join_keys: []
   filter_by: []
   depends_on: []
+mStorageOutCap:
+  name: mStorageOutCap
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageOutNew:
+  name: mStorageOutNew
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInpOutCap:
+  name: mStorageInpOutCap
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mStorageInpTot:
   name: mStorageInpTot
   dims:

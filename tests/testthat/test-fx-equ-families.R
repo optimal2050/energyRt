@@ -114,7 +114,7 @@ test_that("fx_equ gives the GLPK objective on JuMP, Pyomo and multimod", {
 # A folded bound can carry an NA wildcard on some rows only (here the battery's
 # region): it must still match, or the cell reads the defaults (1 = 1 for
 # inp2out) and an open ratio (0 / Inf) is wrongly fixed -- vStorageInpCap == 0.
-# @covers mStorageInp2outFx depth=U
+# @covers mStorageInp2outFx depth=I
 test_that("row-wise NA wildcards in a bound are matched, most specific first", {
   src <- data.frame(stg = c("HYD", "HYD", "BAT", "BAT", "PHS"),
                     region = c("BE", "BE", NA, NA, "BE"), year = 2025,

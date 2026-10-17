@@ -225,7 +225,7 @@ test_that("each seff coefficient is filed under its OWN role's commodity", {
         storage  = list(comm = "BAT"),
         output   = list(comm = "KM"),
         seff     = data.frame(inpeff = 0.90, outeff = 6),
-        duration = data.frame(duration.lo = 0, duration.up = 1e6),
+        capacity = data.frame(stg.cap.up = 1e6),
         vintage  = V),
       newDemand("TRIPS", commodity = "KM",
                 demand = data.frame(timeslice = "h03", demand = 60))))

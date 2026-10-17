@@ -49,7 +49,9 @@ sd_solved_scenario <- function() {
       newStorage("STG", commodity = "ELC", vintage = V,
         invcost = list(out.invcost = 4, stg.invcost = 1),
         duration = data.frame(duration.lo = 1, duration.up = 200),
-        af = data.frame(inp.af.up = 1, out.af.up = 1)),
+        # a charger rated as the discharger (the bidirectional inverter)
+        capacity = data.frame(inp.cap.up = 1e6),
+        inp2out = 1),
       newDemand("DEM", commodity = "ELC",
                 demand = data.frame(timeslice = tsl, demand = 10))))
 

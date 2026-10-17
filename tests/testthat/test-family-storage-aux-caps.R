@@ -4,8 +4,9 @@
 # A storage has three capacities; each `<part>.cap2a*` / `<part>.ncap2a*`
 # multiplies its OWN part's capacity variable. The pre-part-aware bare names
 # (`cap2ainp` ...) coupled only the discharger and are REFUSED with a rename
-# hint. A coupling on a part with no capacity variable (not priced/bounded)
-# emits no map rows -- dropped with a warning at interpolation.
+# hint. The reservoir always exists (the anchor); a coupling on a charger or
+# discharger with no capacity variable (not priced/bounded) emits no map rows
+# -- dropped with a warning at interpolation.
 #
 # Shift model (supply at s1 only, cost 1; demand 10 at s3), WAT aux at cost 2,
 # storing part priced (stg.invcost 30, olife 30, discount 0 -> reservoir EAC
@@ -56,21 +57,21 @@ test_that("family storage-aux-caps: the bare legacy names are refused with a hin
 })
 
 # @covers pStorageStgNCap2AInp pStorageStgCap2AInp depth=I backends=glpk
-test_that("family storage-aux-caps: stg couplings land iff the part is materialised", {
+test_that("family storage-aux-caps: couplings land iff the part is materialised", {
+  # the reservoir is the anchor: its couplings always land
   scen <- suppressMessages(suppressWarnings(interpolate_model(
     sc_build(data.frame(acomm = "WAT", stg.ncap2ainp = 0.1)),
     name = "sc_i", overwrite = TRUE)))
   expect_equal(unique(ff_param(scen, "pStorageStgNCap2AInp")$value), 0.1)
   expect_gte(nrow(ff_param(scen, "mStorageStgNCap2AInp")), 1)
-  # the storing part unpriced: no vStorageStgCap, so the coupling is dropped
+  # no charger (no inp.* data): no vStorageInpCap, so its coupling is dropped
   # (with a warning) and no map rows are emitted
   expect_warning(
     scen2 <- suppressMessages(interpolate_model(
-      sc_build(data.frame(acomm = "WAT", stg.ncap2ainp = 0.1),
-               stg_priced = FALSE),
+      sc_build(data.frame(acomm = "WAT", inp.ncap2ainp = 0.1)),
       name = "sc_i2", overwrite = TRUE)),
     "no capacity variable")
-  expect_equal(nrow(ff_param(scen2, "mStorageStgNCap2AInp")), 0)
+  expect_equal(nrow(ff_param(scen2, "mStorageInpNCap2AInp")), 0)
 })
 
 # @covers pStorageStgNCap2AInp vStorageAInp eqStorageAInp depth=S backends=glpk

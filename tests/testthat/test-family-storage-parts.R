@@ -7,10 +7,14 @@
 #   - part capacities are POWER rates: flow bounds read
 #     cap * cap2act * share * af, with cap2act defaulting to 8760 -- the af
 #     tests pin cap2act = 1 on the role slot so the arithmetic is exact.
-#   - capacity bounds (inp.cap.up / stg.cap.up) bind through the structural
-#     part links; an unmeetable bound is infeasible.
-#   - whole-storage af bounds the LEVEL against the storing capacity:
-#     af.up = 0.8 -> StgCap (and the duration-linked OutCap) = 10/0.8 = 12.5.
+#   - the reservoir is the anchor (StgCap always exists); the charger and the
+#     discharger exist only with data, and the links between parts only where
+#     declared. A part bound binds the others through a declared link; an
+#     unmeetable bound is infeasible.
+#   - whole-storage af bounds the LEVEL against the reservoir:
+#     af.up = 0.8 -> StgCap = 10/0.8 = 12.5.
+#   - the annuity tests size the charger to the reservoir through a declared
+#     `inp2stg.fx = 1` (10 units stored -> 10 units of charger).
 #   - wacc / payback are STORAGE-WIDE and carried on the OUT columns
 #     (compute_eac_parameters reuses pStorageOutWacc/Payback for all three
 #     parts -- deliberate: "one storage, one lifetime and one wacc").
@@ -52,9 +56,14 @@ pt_solve <- function(mod, tag) {
 # @covers pStorageInpCap pStorageStgCap depth=S backends=glpk
 test_that("family storage-parts: unmeetable part-capacity bounds are infeasible", {
   skip_if_no_solver()
-  for (case in list(list(cap = data.frame(inp.cap.up = 5), tag = "pt_inpcap"),
-                    list(cap = data.frame(stg.cap.up = 6), tag = "pt_stgcap"))) {
-    scen <- pt_solve(pt_build(invcost = data.frame(stg.invcost = 0),
+  # the charger bound binds the reservoir through a declared inp2stg link
+  for (case in list(list(cap = data.frame(inp.cap.up = 5), tag = "pt_inpcap",
+                         i2s = data.frame(inp2stg.fx = 1),
+                         inv = data.frame(stg.invcost = 0, inp.invcost = 0)),
+                    list(cap = data.frame(stg.cap.up = 6), tag = "pt_stgcap",
+                         i2s = data.frame(),
+                         inv = data.frame(stg.invcost = 0)))) {
+    scen <- pt_solve(pt_build(invcost = case$inv, inp2stg = case$i2s,
                               capacity = case$cap), case$tag)
     expect_true(is.na(.fork_objective(scen)),
                 label = paste0(case$tag, " infeasible (bound < required)"))
@@ -92,20 +101,22 @@ test_that("family storage-parts: whole-storage af bounds the level against the s
   scen <- pt_solve(pt_build(invcost = data.frame(stg.invcost = 0),
                             af = data.frame(af.up = 0.8)), "pt_af")
   expect_true(verify_solution(scen)$ok)
-  # level 10 <= 0.8 * StgCap; duration [1,1] links OutCap to it
-  expect_equal(ff_solution_sum(scen, "vStorageOutCap"), 12.5, tolerance = 1e-6)
+  # level 10 <= 0.8 * StgCap
+  expect_equal(ff_solution_sum(scen, "vStorageStgCap"), 12.5, tolerance = 1e-6)
 })
 
 # @covers pStorageOutWacc pStorageInpEac depth=S backends=glpk
 test_that("family storage-parts: storage-wide wacc rides the out columns; eac bypasses annuitisation", {
   skip_if_no_solver()
   scen <- pt_solve(pt_build(invcost = data.frame(inp.invcost = 300, out.wacc = 0.1,
-                                                 stg.invcost = 0)), "pt_wacc")
+                                                 stg.invcost = 0),
+                            inp2stg = data.frame(inp2stg.fx = 1)), "pt_wacc")
   expect_true(verify_solution(scen)$ok)
   crf <- 0.1 / (1 - 1.1^-30)
   expect_equal(.fork_objective(scen), 10 + 10 * 300 * crf, tolerance = 1e-4)
   # direct eac replaces the computed annuity
-  scen2 <- pt_solve(pt_build(invcost = data.frame(inp.eac = 17, stg.invcost = 0)),
+  scen2 <- pt_solve(pt_build(invcost = data.frame(inp.eac = 17, stg.invcost = 0),
+                            inp2stg = data.frame(inp2stg.fx = 1)),
                     "pt_eac")
   expect_true(verify_solution(scen2)$ok)
   expect_equal(.fork_objective(scen2), 10 + 170, tolerance = 1e-6)
@@ -116,7 +127,8 @@ test_that("family storage-parts: storage-wide payback shortens the recovery life
   skip_if_no_solver()
   scen <- pt_solve(pt_build(invcost = data.frame(inp.invcost = 300,
                                                  out.payback = 10,
-                                                 stg.invcost = 0)), "pt_payback")
+                                                 stg.invcost = 0),
+                            inp2stg = data.frame(inp2stg.fx = 1)), "pt_payback")
   expect_true(verify_solution(scen)$ok)
   expect_equal(.fork_objective(scen), 10 + 10 * 300 / 10, tolerance = 1e-6)
 })
@@ -128,14 +140,16 @@ test_that("family storage-parts: a part-specific wacc/payback annuitises that pa
   # inp.wacc alone: the charger is annuitised at ITS rate
   scen <- pt_solve(pt_build(invcost = data.frame(inp.invcost = 300,
                                                  inp.wacc = 0.1,
-                                                 stg.invcost = 0)), "pt_iw")
+                                                 stg.invcost = 0),
+                            inp2stg = data.frame(inp2stg.fx = 1)), "pt_iw")
   expect_true(verify_solution(scen)$ok)
   expect_equal(.fork_objective(scen), 10 + 10 * 300 * crf(0.1, 30),
                tolerance = 1e-4)
   # inp.payback alone: cost recovered over 10 years, not olife
   scen2 <- pt_solve(pt_build(invcost = data.frame(inp.invcost = 300,
                                                   inp.payback = 10,
-                                                  stg.invcost = 0)), "pt_ip")
+                                                  stg.invcost = 0),
+                            inp2stg = data.frame(inp2stg.fx = 1)), "pt_ip")
   expect_true(verify_solution(scen2)$ok)
   expect_equal(.fork_objective(scen2), 10 + 10 * 300 / 10, tolerance = 1e-6)
 })
@@ -147,7 +161,8 @@ test_that("family storage-parts: the part rate overrides the storage-wide out.* 
   # inp.wacc 0.1 beats out.wacc 0.2 for the charger
   scen <- pt_solve(pt_build(invcost = data.frame(inp.invcost = 300,
                                                  inp.wacc = 0.1, out.wacc = 0.2,
-                                                 stg.invcost = 0)), "pt_prec")
+                                                 stg.invcost = 0),
+                            inp2stg = data.frame(inp2stg.fx = 1)), "pt_prec")
   expect_true(verify_solution(scen)$ok)
   expect_equal(.fork_objective(scen), 10 + 10 * 300 * crf(0.1, 30),
                tolerance = 1e-4)
@@ -189,7 +204,9 @@ test_that("family storage-parts: a weather window restricts when the storage may
                             sup_cost = c(2, 1, 1, 1),
                             sup_ava = c(1000, 1000, 0, 0)), "pt_w_base")
   expect_equal(.fork_objective(base), 10, tolerance = 1e-6)  # charges at s2
+  # a free, non-binding charger carries the window (inp.af needs a charger)
   scen <- pt_solve(pt_build(invcost = data.frame(stg.invcost = 0),
+                            capacity = data.frame(inp.cap.up = 1e6),
                             af = data.frame(inp.af.up = 1),
                             weather = data.frame(weather = "WCH", inp.waf.up = 1),
                             sup_cost = c(2, 1, 1, 1),
@@ -247,9 +264,10 @@ test_that("family storage-parts: parts in different units need `inp2out`", {
   obj <- function(scen) sum(as.data.frame(
     get_data_slot(scen@modOut@variables[["vObjective"]]))$value)
 
-  # the default ratio ties a 120 km/h discharger to a 7 kW charger: infeasible
-  bad <- slv(mk(data.frame(timeslice = hrs, out.af.up = 1)), "sp_af_i2o")
-  expect_false(!is.null(bad) && isTRUE(bad@status$solved))
+  # no ratio declared: the two parts are sized independently (7 kW, 120 km/h)
+  # and the commute solves
+  free <- slv(mk(data.frame(timeslice = hrs, out.af.up = 1)), "sp_af_i2o")
+  expect_true(!is.null(free) && isTRUE(free@status$solved))
 
   # stating the ratio between the two units frees it, and the commute prices
   # the same whichever side the rating is expressed on

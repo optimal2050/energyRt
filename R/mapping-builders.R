@@ -997,7 +997,15 @@ map_mTechAfcUp     <- function(scen, fmp) scen
 
 # overwrite a map that is already built (`d2p()` appends)
 .map_replace <- function(scen, name, df, fmp) {
-  scen@modInp@parameters[[name]] <- .resetParameter(scen@modInp@parameters[[name]])
+  p <- .resetParameter(scen@modInp@parameters[[name]])
+  if (isOnDisk(p)) {
+    # d2p() appends to what is stored: drop the stored copy and rebuild the
+    # map in memory; saving the scenario writes it back
+    unlink(fp(fmp(name), "data"), recursive = TRUE)
+    p <- mark_inMemory(p)
+    fmp <- function(x) NULL
+  }
+  scen@modInp@parameters[[name]] <- p
   .set_map(scen, name, df, fmp)
 }
 
@@ -1005,7 +1013,6 @@ map_mTechAfcUp     <- function(scen, fmp) scen
   if (!isTRUE(getOption("energyRt.fx_equ", TRUE))) return(scen)
   pl <- scen@modInp@parameters[[f$lo]]; pu <- scen@modInp@parameters[[f$up]]
   if (is.null(pl) || is.null(pu) || is.null(scen@modInp@parameters[[f$fx]])) return(scen)
-  if (isOnDisk(pl) || isOnDisk(pu)) return(scen)
   lo <- .gds(scen, f$lo); up <- .gds(scen, f$up)
   if (is.null(lo) || is.null(up)) return(scen)
   key <- intersect(colnames(lo), colnames(up))
@@ -2235,13 +2242,18 @@ Declare the weather at that region, or at a COARSER region of the ",
   # direction: `mStorage*Eac` still built an objective term, so the LP carried a
   # capacity variable that was priced but appeared in no constraint, and drove it
   # to zero. An `eac`-financed charging or storing part was silently free.
-  mStorageStgCap = list(source = c("pStorageStgStock", "pStorageStgCap",
-                                   "pStorageStgNewCap", "pStorageStgInvcost",
-                                   "pStorageStgEac", "pStorageStgFixom"),
+  # THE RESERVOIR IS THE ANCHOR: `vStorageStgCap` exists for every storage, so
+  # its maps are the storage's own span and new-capacity window (bespoke
+  # builders below). The data rule survives as `.storage_stg_data`, which the
+  # check that a reservoir is determined reads.
+  # The discharging part, same structure-follows-data gate as the charging part.
+  mStorageOutCap = list(source = c("pStorageOutStock", "pStorageOutCap",
+                                   "pStorageOutNewCap", "pStorageOutInvcost",
+                                   "pStorageOutEac", "pStorageOutFixom"),
                         window = "mStorageSpan"),
-  mStorageStgNew = list(source = c("pStorageStgStock", "pStorageStgCap",
-                                   "pStorageStgNewCap", "pStorageStgInvcost",
-                                   "pStorageStgEac", "pStorageStgFixom"),
+  mStorageOutNew = list(source = c("pStorageOutStock", "pStorageOutCap",
+                                   "pStorageOutNewCap", "pStorageOutInvcost",
+                                   "pStorageOutEac", "pStorageOutFixom"),
                         window = "mStorageNew"),
   # The charging part, same structure-follows-data gate as the storing part.
   mStorageInpCap = list(source = c("pStorageInpStock", "pStorageInpCap",
@@ -2302,12 +2314,30 @@ map_mTechRetCost  <- function(scen, fmp) .value_std(scen, "mTechRetCost", fmp)
 map_mStorageRetCost <- function(scen, fmp) .value_std(scen, "mStorageRetCost", fmp)
 map_mTradeRetCost   <- function(scen, fmp) .value_std(scen, "mTradeRetCost", fmp)
 map_mStorageFixom <- function(scen, fmp) .value_std(scen, "mStorageFixom", fmp)
-map_mStorageStgCap   <- function(scen, fmp) .value_std(scen, "mStorageStgCap", fmp)
+# the reservoir is the anchor: its capacity exists wherever the storage operates
+.map_copy <- function(scen, name, from, fmp) {
+  d <- .gds(scen, from)
+  if (is.null(d) || !nrow(d)) return(scen)
+  .set_map(scen, name, as.data.frame(d), fmp)
+}
+# Which storages carry reservoir data of their own (a stock, a bound or a price,
+# a declared zero included) is still needed: `.check_storage_parts()` stops on a
+# reservoir nothing determines. The data rule is the one this map used before the
+# anchor move, evaluated on a scratch copy and kept in `@misc`.
+map_mStorageStgCap   <- function(scen, fmp) {
+  tmp <- value_on_window(scen, "mStorageStgCap", source = .storage_stg_data,
+                         window = "mStorageSpan", fmp = function(x) NULL)
+  d <- .gds(tmp, "mStorageStgCap")
+  scen@misc$.storage_stg_data <- if (is.null(d)) character(0) else unique(as.character(d$stg))
+  .map_copy(scen, "mStorageStgCap", "mStorageSpan", fmp)
+}
+map_mStorageStgNew   <- function(scen, fmp) .map_copy(scen, "mStorageStgNew", "mStorageNew", fmp)
+map_mStorageOutCap   <- function(scen, fmp) .value_std(scen, "mStorageOutCap", fmp)
+map_mStorageOutNew   <- function(scen, fmp) .value_std(scen, "mStorageOutNew", fmp)
 map_mStorageInpCap   <- function(scen, fmp) .value_std(scen, "mStorageInpCap", fmp)
 map_mStorageInpNew   <- function(scen, fmp) .value_std(scen, "mStorageInpNew", fmp)
 map_mStorageInpFixom <- function(scen, fmp) .value_std(scen, "mStorageInpFixom", fmp)
 map_mStorageInpEac   <- function(scen, fmp) .value_std(scen, "mStorageInpEac", fmp)
-map_mStorageStgNew   <- function(scen, fmp) .value_std(scen, "mStorageStgNew", fmp)
 map_mStorageStgFixom <- function(scen, fmp) .value_std(scen, "mStorageStgFixom", fmp)
 map_mStorageStgEac   <- function(scen, fmp) .value_std(scen, "mStorageStgEac", fmp)
 
@@ -2346,7 +2376,118 @@ map_mStorageInpStgCap <- function(scen, fmp) {
                            by = c("stg", "region", "year"))
   .set_map(scen, "mStorageInpStgCap", as.data.frame(out), fmp)
 }
+# The INTERSECTION of the charging and discharging capacity domains: the
+# inp2out ratio links the two, so it can only exist where both do.
+map_mStorageInpOutCap <- function(scen, fmp) {
+  inp <- .gds(scen, "mStorageInpCap")
+  out <- .gds(scen, "mStorageOutCap")
+  if (is.null(inp) || !nrow(inp) || is.null(out) || !nrow(out)) return(scen)
+  d <- dplyr::inner_join(as.data.frame(inp), as.data.frame(out),
+                         by = c("stg", "region", "year"))
+  .set_map(scen, "mStorageInpOutCap", as.data.frame(d), fmp)
+}
 map_mStorageVarom <- function(scen, fmp) .value_std(scen, "mStorageVarom", fmp)
+
+# -- storage parts: the checks the anchor needs ------------------------------ #
+# The reservoir (`vStorageStgCap`) exists for every storage; the charger and
+# discharger only with data. Three things the maps cannot say on their own, so
+# interpolation stops on them (`.check_storage_parts()`, after the constraint
+# maps are built):
+#   1. a reservoir nothing determines -- no reservoir data (stock, bound, cost)
+#      and no link to a sized part (`duration`, `inp2stg`) -- is a free,
+#      unbounded energy capacity;
+#   2. a flow bound (`inp.af`, `out.af`) on a part that does not exist binds a
+#      capacity variable that is not there;
+#   3. a link (`duration`, `inp2out`, `inp2stg`) declared on a part that does
+#      not exist links nothing.
+.storage_stg_data <- c("pStorageStgStock", "pStorageStgCap", "pStorageStgNewCap",
+                       "pStorageStgInvcost", "pStorageStgEac", "pStorageStgFixom")
+
+# storages (stg names) with any row in `pars`; for a bounds parameter only rows
+# that bound (lo > 0 or up < Inf) count
+.storages_in <- function(scen, pars) {
+  out <- character(0)
+  for (p in pars) {
+    d <- .gds(scen, p)
+    if (is.null(d) || !nrow(d) || !"stg" %in% colnames(d)) next
+    if ("type" %in% colnames(d)) {
+      d <- d[(as.character(d$type) == "lo" & d$value > 0) |
+               (as.character(d$type) == "up" & is.finite(d$value)), , drop = FALSE]
+    }
+    out <- union(out, unique(as.character(d$stg)))
+  }
+  out
+}
+.stg_of <- function(scen, map) {
+  d <- .gds(scen, map)
+  if (is.null(d) || !nrow(d)) character(0) else unique(as.character(d$stg))
+}
+
+# storages whose reservoir is DECLARED on the object -- any stg.* stock, bound,
+# price or fixed cost, a deliberate zero included. Zero rows are dropped before
+# the maps are built, so an explicit `stg.invcost = 0` (a free reservoir, chosen)
+# is read from the objects; variant names map back to their base object.
+.storage_stg_declared <- function(scen) {
+  objs <- tryCatch(getObjects(scen@model, class = "storage"), error = function(e) NULL)
+  if (!length(objs)) return(character(0))
+  has <- function(df, cols) {
+    cols <- intersect(cols, colnames(df))
+    length(cols) > 0 && any(!is.na(as.matrix(df[, cols, drop = FALSE])))
+  }
+  base <- unique(unlist(lapply(objs, function(o) {
+    stg_cols <- function(df) grep("^stg[.]", colnames(df), value = TRUE)
+    if (has(o@capacity, stg_cols(o@capacity)) || has(o@invcost, stg_cols(o@invcost)) ||
+        has(o@fixom, stg_cols(o@fixom))) o@name else NULL
+  })))
+  if (!length(base)) return(character(0))
+  v <- tryCatch(as.data.frame(scen@modInp@sets$variant), error = function(e) NULL)
+  if (is.null(v) || !nrow(v) || !all(c("name", "base") %in% colnames(v))) return(base)
+  union(base, as.character(v$name[as.character(v$base) %in% base]))
+}
+
+.check_storage_parts <- function(scen) {
+  all_stg <- .stg_of(scen, "mStorageSpan")
+  if (!length(all_stg)) return(invisible())
+  inp <- .stg_of(scen, "mStorageInpCap"); out <- .stg_of(scen, "mStorageOutCap")
+  msg <- character(0)
+  # 1. the reservoir is determined
+  linked <- union(.stg_of(scen, "mStorageDurationLo"),
+                  c(.stg_of(scen, "mStorageDurationUp"), .stg_of(scen, "mStorageDurationFx"),
+                    .stg_of(scen, "mStorageInp2stgLo"), .stg_of(scen, "mStorageInp2stgUp"),
+                    .stg_of(scen, "mStorageInp2stgFx")))
+  free <- setdiff(all_stg, Reduce(union, list(scen@misc$.storage_stg_data, linked,
+                                               .storage_stg_declared(scen))))
+  if (length(free)) {
+    msg <- c(msg, paste0(
+      "the reservoir of ", paste(utils::head(free, 5), collapse = ", "),
+      " is not determined: give it a stock, a capacity bound or a price (stg.*; ",
+      "stg.invcost = 0 for a deliberately free reservoir), or link it to a sized ",
+      "discharger (duration) or charger (inp2stg)"))
+  }
+  # 2. flow bounds on a part that does not exist
+  for (pt in list(list("Inp", inp, "inp.af", "charger"), list("Out", out, "out.af", "discharger"))) {
+    b <- unique(unlist(lapply(c("Lo", "Up", "Fx"), function(s)
+      .stg_of(scen, paste0("meqStorage", pt[[1]], s)))))
+    bad <- setdiff(b, pt[[2]])
+    if (length(bad)) {
+      msg <- c(msg, paste0(pt[[3]], " is set on ", paste(utils::head(bad, 5), collapse = ", "),
+                           ", which has no ", pt[[4]], " (no ", tolower(pt[[1]]),
+                           ".* capacity or cost data)"))
+    }
+  }
+  # 3. links on a part that does not exist
+  for (lk in list(list("pStorageDuration", out, "duration", "discharger"),
+                  list("pStorageInp2out", intersect(inp, out), "inp2out", "charger and a discharger"),
+                  list("pStorageInp2stg", inp, "inp2stg", "charger"))) {
+    bad <- intersect(setdiff(.storages_in(scen, lk[[1]]), lk[[2]]), all_stg)
+    if (length(bad)) {
+      msg <- c(msg, paste0(lk[[3]], " is declared on ", paste(utils::head(bad, 5), collapse = ", "),
+                           ", which has no ", lk[[4]], " to link"))
+    }
+  }
+  if (length(msg)) stop(paste0("Storage: ", msg, collapse = "\n"), call. = FALSE)
+  invisible()
+}
 map_mTradeInv     <- function(scen, fmp) .value_std(scen, "mTradeInv", fmp)
 map_mTradeEac     <- function(scen, fmp) .value_std(scen, "mTradeEac", fmp)
 map_mTradeFixom   <- function(scen, fmp) .value_std(scen, "mTradeFixom", fmp)
@@ -2493,6 +2634,8 @@ map_mSubCost <- function(scen, fmp)
   mTradeRetCost = map_mTradeRetCost,
   mStorageFixom = map_mStorageFixom,
   mStorageStgCap = map_mStorageStgCap,
+  mStorageOutCap = map_mStorageOutCap,
+  mStorageOutNew = map_mStorageOutNew,
   mStorageInpCap = map_mStorageInpCap,
   mStorageNoInpCap = map_mStorageNoInpCap,   # AFTER mStorageInpCap
   mStorageInpNew = map_mStorageInpNew,
@@ -2500,6 +2643,7 @@ map_mSubCost <- function(scen, fmp)
   mStorageInpEac = map_mStorageInpEac,
   mStorageNoStgCap = map_mStorageNoStgCap,   # AFTER mStorageStgCap: complement
   mStorageInpStgCap = map_mStorageInpStgCap, # AFTER both parents: intersection
+  mStorageInpOutCap = map_mStorageInpOutCap, # AFTER both parents: intersection
   mStorageStgNew = map_mStorageStgNew,
   mStorageStgFixom = map_mStorageStgFixom,
   mStorageStgEac = map_mStorageStgEac,

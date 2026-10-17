@@ -205,7 +205,7 @@ model = Model();
 @variable(model, vTechPhaseOut[mvTechPhaseOut] >= 0);
 @variable(model, vStoragePhaseOut[mvStoragePhaseOut] >= 0);
 @variable(model, vStorageStockPhaseOut[mvStoragePhaseOut] >= 0);
-@variable(model, vStorageOutStockCap[mStorageSpan] >= 0);
+@variable(model, vStorageOutStockCap[mStorageOutCap] >= 0);
 @variable(model, vStorageOutRetiredStock[mvStorageRetiredStock] >= 0);
 @variable(model, vStorageOutRetiredNewCap[mvStorageRetiredNewCap] >= 0);
 @variable(model, vStorageInpStockCap[mStorageInpCap] >= 0);
@@ -247,12 +247,12 @@ model = Model();
 @variable(model, vStorageLevel[mvStorageLevel] >= 0);
 @variable(model, vStorageInv[mStorageNew] >= 0);
 @variable(model, vStorageEac[mStorageEac] >= 0);
-@variable(model, vStorageOutCap[mStorageSpan] >= 0);
+@variable(model, vStorageOutCap[mStorageOutCap] >= 0);
 @variable(model, vStorageStgCap[mStorageStgCap] >= 0);
 @variable(model, vStorageInpCap[mStorageInpCap] >= 0);
 @variable(model, vStorageInpNewCap[mStorageInpNew] >= 0);
 @variable(model, vStorageStgNewCap[mStorageStgNew] >= 0);
-@variable(model, vStorageOutNewCap[mStorageNew] >= 0);
+@variable(model, vStorageOutNewCap[mStorageOutNew] >= 0);
 @variable(model, vImportTot[mImport] >= 0);
 @variable(model, vExportTot[mExport] >= 0);
 @variable(model, vTradeIr[mvTradeIr] >= 0);
@@ -2004,10 +2004,10 @@ print("eqStoragePhaseOut(...)...")
             pPeriodLenDef
         end
     ) == sum(
-        vStorageOutCap[(st1, r, yp)] for
+        vStorageStgCap[(st1, r, yp)] for
         yp in year if ((yp, y) in mMilestoneNext && (st1, r, yp) in mStorageSpan)
-    ) - vStorageOutCap[(st1, r, y)] + (if (st1, r, y) in mStorageNew
-        vStorageOutNewCap[(st1, r, y)]
+    ) - vStorageStgCap[(st1, r, y)] + (if (st1, r, y) in mStorageStgNew
+        vStorageStgNewCap[(st1, r, y)]
     else
         0
     end) * (
@@ -2017,9 +2017,9 @@ print("eqStoragePhaseOut(...)...")
             pPeriodLenDef
         end
     ) - (
-        (if (st1, r, y) in mvStorageRetiredStock; vStorageOutRetiredStock[(st1, r, y)]; else; 0; end)
+        (if (st1, r, y) in mvStorageRetiredStock; vStorageStgRetiredStock[(st1, r, y)]; else; 0; end)
         + sum(
-            vStorageOutRetiredNewCap[(st1, r, yp, y)] for
+            vStorageStgRetiredNewCap[(st1, r, yp, y)] for
             yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap
         )
     ) * (
@@ -2028,7 +2028,7 @@ print("eqStoragePhaseOut(...)...")
         else
             pPeriodLenDef
         end
-    ) + ((if haskey(pStorageOutStockNew, (st1, r, y)); pStorageOutStockNew[(st1, r, y)]; else; pStorageOutStockNewDef; end) + (if y in mMilestoneFirst && haskey(pStorageOutStock, (st1, r, y)); pStorageOutStock[(st1, r, y)]; else; 0; end))
+    ) + ((if haskey(pStorageStgStockNew, (st1, r, y)); pStorageStgStockNew[(st1, r, y)]; else; pStorageStgStockNewDef; end) + (if y in mMilestoneFirst && haskey(pStorageStgStock, (st1, r, y)); pStorageStgStock[(st1, r, y)]; else; 0; end))
 );
 # eqStorageStockPhaseOut -- what the schedule actually removed.
 print(
@@ -2042,8 +2042,8 @@ print("eqStorageStockPhaseOut...")
     model,
     [(st1, r, y) in mvStoragePhaseOut],
     vStorageStockPhaseOut[(st1, r, y)] * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end) ==
-    (1 - (if haskey(pStorageOutStockSurv, (st1, r, y)); pStorageOutStockSurv[(st1, r, y)]; else; pStorageOutStockSurvDef; end)) *
-    sum(vStorageOutStockCap[(st1, r, yp)] for yp in year
+    (1 - (if haskey(pStorageStgStockSurv, (st1, r, y)); pStorageStgStockSurv[(st1, r, y)]; else; pStorageStgStockSurvDef; end)) *
+    sum(vStorageStgStockCap[(st1, r, yp)] for yp in year
         if ((yp, y) in mMilestoneNext && (st1, r, yp) in mStorageSpan))
 );
 print(" ", Dates.format(now(), "HH:MM:SS"), "
@@ -2069,7 +2069,7 @@ print("eqStorageOutRetiredNewCap(stg, region, year)...")
         ) for
         yp in year if (st1, r, y, yp) in mvStorageRetiredNewCap
     ) <= (
-        if (st1, r, y) in mStorageNew
+        if (st1, r, y) in mStorageOutNew
             vStorageOutNewCap[(st1, r, y)]
         else
             0
@@ -2092,11 +2092,11 @@ print(
 print("eqStorageOutStockCap...")
 @constraint(
     model,
-    [(st1, r, y) in mStorageSpan],
+    [(st1, r, y) in mStorageOutCap],
     vStorageOutStockCap[(st1, r, y)] ==
     (if haskey(pStorageOutStockSurv, (st1, r, y)); pStorageOutStockSurv[(st1, r, y)]; else; pStorageOutStockSurvDef; end) *
     sum(vStorageOutStockCap[(st1, r, yp)] for yp in year
-        if ((yp, y) in mMilestoneNext && (st1, r, yp) in mStorageSpan)) +
+        if ((yp, y) in mMilestoneNext && (st1, r, yp) in mStorageOutCap)) +
     ((if haskey(pStorageOutStockNew, (st1, r, y)); pStorageOutStockNew[(st1, r, y)]; else; pStorageOutStockNewDef; end) + (if y in mMilestoneFirst && haskey(pStorageOutStock, (st1, r, y)); pStorageOutStock[(st1, r, y)]; else; 0; end)) -
     (if (st1, r, y) in mvStorageRetiredStock; vStorageOutRetiredStock[(st1, r, y)]; else; 0; end) * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end)
 );
@@ -3430,7 +3430,7 @@ print("eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)...")
         end
     ) +
     (
-        if (st1, r, y) in mStorageNew
+        if (st1, r, y) in mStorageStgNew
             (
                 (
                     if haskey(pStorageNCap2Stg, (st1, c, r, y, s))
@@ -3438,7 +3438,7 @@ print("eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)...")
                     else
                         pStorageNCap2StgDef
                     end
-                ) * vStorageOutNewCap[(st1, r, y)]
+                ) * vStorageStgNewCap[(st1, r, y)]
             )
         else
             0
@@ -4017,11 +4017,11 @@ print(
     "
 ",
 )
-# eqStorageOutCap(stg, region, year)$mStorageSpan(stg, region, year)
+# eqStorageOutCap(stg, region, year)$mStorageOutCap(stg, region, year)
 print("eqStorageOutCap(stg, region, year)...")
 @constraint(
     model,
-    [(st1, r, y) in mStorageSpan],
+    [(st1, r, y) in mStorageOutCap],
     vStorageOutCap[(st1, r, y)] ==
     vStorageOutStockCap[(st1, r, y)] +
     sum(
@@ -4052,7 +4052,7 @@ print("eqStorageOutCap(stg, region, year)...")
                     end
                 ) + ordYear[(yp)]
             ) &&
-            (st1, r, yp) in mStorageNew
+            (st1, r, yp) in mStorageOutNew
         )
     )
 );
@@ -4593,13 +4593,17 @@ print("eqStorageInv(stg, region, year)...")
     model,
     [(st1, r, y) in mStorageNew],
     vStorageInv[(st1, r, y)] ==
+    (if (st1, r, y) in mStorageOutNew
     (
         if haskey(pStorageOutInvcost, (st1, r, y))
             pStorageOutInvcost[(st1, r, y)]
         else
             pStorageOutInvcostDef
         end
-    ) * vStorageOutNewCap[(st1, r, y)] +
+    ) * vStorageOutNewCap[(st1, r, y)]
+    else
+        0
+    end) +
     # [2c] the storing side's capital cost is per unit of ENERGY; absent data
     # the (st1, r, y) tuple is not in mStorageStgNew and the term is zero.
     (
@@ -4651,13 +4655,17 @@ print("eqStorageEac(stg, region, year)...")
                 pPeriodLenDef
             end
         ) * (
+        (if (st1, r, yp) in mStorageOutNew
         (
             if haskey(pStorageOutEac, (st1, r, yp))
                 pStorageOutEac[(st1, r, yp)]
             else
                 pStorageOutEacDef
             end
-        ) * vStorageOutNewCap[(st1, r, yp)] +
+        ) * vStorageOutNewCap[(st1, r, yp)]
+        else
+            0
+        end) +
         # [2c] the storing side annuitises separately, on the same lifetime.
         (
             if (st1, r, yp) in mStorageStgNew
@@ -4741,13 +4749,17 @@ print("eqStorageFixom(stg, region, year)...")
     model,
     [(st1, r, y) in mStorageFixom],
     vStorageFixom[(st1, r, y)] ==
+    (if (st1, r, y) in mStorageOutCap
     (
         if haskey(pStorageOutFixom, (st1, r, y))
             pStorageOutFixom[(st1, r, y)]
         else
             pStorageOutFixomDef
         end
-    ) * vStorageOutCap[(st1, r, y)] +
+    ) * vStorageOutCap[(st1, r, y)]
+    else
+        0
+    end) +
     (
         if (st1, r, y) in mStorageStgFixom
             (
@@ -6560,12 +6572,12 @@ print("eqTaxCost(levy, region, year)...")
     + sum(
         (if haskey(pTaxProcCap, (lv, st1, r, y)) pTaxProcCap[(lv, st1, r, y)] else pTaxProcCapDef end) *
         vStorageOutCap[(st1, r, y)] for
-        st1 in stg if ((st1, r, y) in mStorageSpan && (if haskey(pTaxProcCap, (lv, st1, r, y)) pTaxProcCap[(lv, st1, r, y)] else pTaxProcCapDef end) != 0)
+        st1 in stg if ((st1, r, y) in mStorageOutCap && (if haskey(pTaxProcCap, (lv, st1, r, y)) pTaxProcCap[(lv, st1, r, y)] else pTaxProcCapDef end) != 0)
     )
     + sum(
         (if haskey(pTaxProcNcap, (lv, st1, r, y)) pTaxProcNcap[(lv, st1, r, y)] else pTaxProcNcapDef end) *
         vStorageOutNewCap[(st1, r, y)] for
-        st1 in stg if ((st1, r, y) in mStorageNew && (if haskey(pTaxProcNcap, (lv, st1, r, y)) pTaxProcNcap[(lv, st1, r, y)] else pTaxProcNcapDef end) != 0)
+        st1 in stg if ((st1, r, y) in mStorageOutNew && (if haskey(pTaxProcNcap, (lv, st1, r, y)) pTaxProcNcap[(lv, st1, r, y)] else pTaxProcNcapDef end) != 0)
     )
 );
 print(
@@ -6675,12 +6687,12 @@ print("eqSubsCost(levy, region, year)...")
     - sum(
         (if haskey(pSubProcCap, (lv, st1, r, y)) pSubProcCap[(lv, st1, r, y)] else pSubProcCapDef end) *
         vStorageOutCap[(st1, r, y)] for
-        st1 in stg if ((st1, r, y) in mStorageSpan && (if haskey(pSubProcCap, (lv, st1, r, y)) pSubProcCap[(lv, st1, r, y)] else pSubProcCapDef end) != 0)
+        st1 in stg if ((st1, r, y) in mStorageOutCap && (if haskey(pSubProcCap, (lv, st1, r, y)) pSubProcCap[(lv, st1, r, y)] else pSubProcCapDef end) != 0)
     )
     - sum(
         (if haskey(pSubProcNcap, (lv, st1, r, y)) pSubProcNcap[(lv, st1, r, y)] else pSubProcNcapDef end) *
         vStorageOutNewCap[(st1, r, y)] for
-        st1 in stg if ((st1, r, y) in mStorageNew && (if haskey(pSubProcNcap, (lv, st1, r, y)) pSubProcNcap[(lv, st1, r, y)] else pSubProcNcapDef end) != 0)
+        st1 in stg if ((st1, r, y) in mStorageOutNew && (if haskey(pSubProcNcap, (lv, st1, r, y)) pSubProcNcap[(lv, st1, r, y)] else pSubProcNcapDef end) != 0)
     )
 );
 print(

@@ -67,6 +67,7 @@
     "mStorageInpCap", "mStorageInpEac", "mStorageInpFixom", "mStorageInpNew",
     "mStorageNoInpCap", "mStorageNoStgCap", "mStorageStgCap", "mStorageStgEac",
     "mStorageStgFixom", "mStorageStgNew", "mStorageInpStgCap",
+    "mStorageOutCap", "mStorageOutNew", "mStorageInpOutCap",
 
     "mTechInv", "mTechFixom", "mTechVarom", "mTechRetCost", "mTechRetirement",
     "mStorageRetCost", "mTradeRetCost",

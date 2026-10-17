@@ -1028,29 +1028,30 @@ recipe_value <- function(scen, names, fmp) {
   # allows. Outside the membership the map stays conditional, which is why
   # `pStorageInpAf` carries `dropIfEmpty: false`.
   #
-  # The discharging part is the storage's anchor capacity -- `vStorageOutCap`
-  # exists for every storage, with no membership to key on -- so its bound is
-  # structural over the whole flow domain, exactly as `meqTechAfUp` is for a
-  # technology.
+  # The discharging part is optional in the same way (`mStorageOutCap`): the
+  # reservoir is the storage's anchor, so a storage without a discharger
+  # discharges at whatever rate its level allows.
   meqStorageInpUp = list(domain = "mvStorageInp", source = "pStorageInpAf",
                          types = "up", drop = "up",
                          structural_in = "mStorageInpCap"),
   meqStorageOutLo = list(domain = "mvStorageOut", source = "pStorageOutAf",
                          types = "lo", drop = "lo"),
   meqStorageOutUp = list(domain = "mvStorageOut", source = "pStorageOutAf",
-                         types = "up", drop = "up", structural = TRUE),
+                         types = "up", drop = "up",
+                         structural_in = "mStorageOutCap"),
 
   # C6 storage capacity / retirement bounds.
-  mStorageOutCapLo    = list(domain = "mStorageSpan", source = "pStorageOutCap",
+  # Discharging-side bounds live on the discharger's own maps: without data
+  # there is no vStorageOutCap to bound.
+  mStorageOutCapLo    = list(domain = "mStorageOutCap", source = "pStorageOutCap",
                           types = "lo"),
-  mStorageOutCapUp    = list(domain = "mStorageSpan", source = "pStorageOutCap",
+  mStorageOutCapUp    = list(domain = "mStorageOutCap", source = "pStorageOutCap",
                           types = "up"),
-  mStorageOutNewCapLo = list(domain = "mStorageNew",  source = "pStorageOutNewCap",
+  mStorageOutNewCapLo = list(domain = "mStorageOutNew", source = "pStorageOutNewCap",
                           types = "lo"),
-  mStorageOutNewCapUp = list(domain = "mStorageNew",  source = "pStorageOutNewCap",
+  mStorageOutNewCapUp = list(domain = "mStorageOutNew", source = "pStorageOutNewCap",
                           types = "up"),
-  # Storing-side bounds live on mStorageStgCap, not mStorageSpan: without data
-  # there is no vStorageStgCap to bound.
+  # The reservoir is the anchor: mStorageStgCap is every storage-year.
   mStorageStgCapLo    = list(domain = "mStorageStgCap", source = "pStorageStgCap",
                              types = "lo"),
   mStorageStgCapUp    = list(domain = "mStorageStgCap", source = "pStorageStgCap",
@@ -1059,9 +1060,6 @@ recipe_value <- function(scen, names, fmp) {
                              types = "lo"),
   mStorageStgNewCapUp = list(domain = "mStorageStgNew", source = "pStorageStgNewCap",
                              types = "up"),
-  # The duration LINK is an equation only where both capacities are variables.
-  # Where the storing part has no data the ratio is inlined into the af bounds
-  # instead, so there is nothing to constrain and no row is emitted.
   mStorageInpCapLo    = list(domain = "mStorageInpCap", source = "pStorageInpCap",
                              types = "lo"),
   mStorageInpCapUp    = list(domain = "mStorageInpCap", source = "pStorageInpCap",
@@ -1070,31 +1068,25 @@ recipe_value <- function(scen, names, fmp) {
                              types = "lo"),
   mStorageInpNewCapUp = list(domain = "mStorageInpNew", source = "pStorageInpNewCap",
                              types = "up"),
-  # STRUCTURAL: both ratios default to [1, 1] (`pStorageInp2out`,
-  # `pStorageDuration` in modInp.yml), and a binding default is exactly what
-  # `structural` is for. Left conditional, an empty `@duration` or `@inp2out`
-  # produced NO equation, so the documented default of 1 silently became "no
-  # constraint": `vStorageStgCap` was never tied to `vStorageOutCap`, and a
-  # charging part that was priced but not explicitly ratio'd kept
-  # `vStorageInpCap` at zero -- its `inp.invcost` and `inp.fixom` vanished from
-  # the objective. The domains already restrict these to storages whose part
-  # HAS a capacity variable, so nothing fires for an unpriced part.
-  mStorageInp2outLo   = list(domain = "mStorageInpCap", source = "pStorageInp2out",
-                             types = "lo", structural = TRUE),
-  mStorageInp2outUp   = list(domain = "mStorageInpCap", source = "pStorageInp2out",
-                             types = "up", structural = TRUE),
-  # inp2stg (charging C-rate) is NOT structural: its default is open, so the
-  # link exists only where a finite bound is declared -- `drop` discards the
-  # opened sides `.norm_ratio()` writes (0-lo / Inf-up). The domain is the
-  # intersection of the two capacity domains: no variable pair, no equation.
+  # THE LINKS EXIST ONLY WHERE DECLARED. All three ratios (inp2out, inp2stg,
+  # duration) default to open [0, Inf], so a link is an equation only where a
+  # finite bound is declared -- `drop` discards the opened sides
+  # `.norm_ratio()` writes (0-lo / Inf-up). Each part with capacity data
+  # stands on its own (priced, and bounding its own flow through `inp.af.up` /
+  # `out.af.up`); the domain is the intersection of the two capacity domains:
+  # no variable pair, no equation.
+  mStorageInp2outLo   = list(domain = "mStorageInpOutCap", source = "pStorageInp2out",
+                             types = "lo", drop = "lo"),
+  mStorageInp2outUp   = list(domain = "mStorageInpOutCap", source = "pStorageInp2out",
+                             types = "up", drop = "up"),
   mStorageInp2stgLo   = list(domain = "mStorageInpStgCap", source = "pStorageInp2stg",
                              types = "lo", drop = "lo"),
   mStorageInp2stgUp   = list(domain = "mStorageInpStgCap", source = "pStorageInp2stg",
                              types = "up", drop = "up"),
-  mStorageDurationLo  = list(domain = "mStorageStgCap", source = "pStorageDuration",
-                             types = "lo", structural = TRUE),
-  mStorageDurationUp  = list(domain = "mStorageStgCap", source = "pStorageDuration",
-                             types = "up", structural = TRUE),
+  mStorageDurationLo  = list(domain = "mStorageOutCap", source = "pStorageDuration",
+                             types = "lo", drop = "lo"),
+  mStorageDurationUp  = list(domain = "mStorageOutCap", source = "pStorageDuration",
+                             types = "up", drop = "up"),
   mStorageOutRetLo    = list(domain = "mStorageSpan", source = "pStorageOutRet",
                           types = "lo"),
   mStorageOutRetUp    = list(domain = "mStorageSpan", source = "pStorageOutRet",

@@ -4,7 +4,7 @@
 # eqStorageInpUp / eqStorageOutUp are the ONLY equations tying a storage's
 # charge / discharge FLOW to its converter CAPACITY:
 #
-#   vStorageInp <= (InpCap | inp2out * OutCap) * cap2act * share * inp.af.up
+#   vStorageInp <= InpCap * cap2act * share * inp.af.up   (and Out alike)
 #
 # They come from `pStorageInpAf` / `pStorageOutAf`, whose upper default was
 # `Inf`. An infinite upper bound deletes the equation, so a storage with no
@@ -17,17 +17,14 @@
 # Semantics now:
 #   - both upper defaults are 1, as `pTechAf` has always had for a technology,
 #     so a flow in a timeslice cannot exceed `capacity * cap2act * share`;
-#   - `meqStorageOutUp` is structural over its whole domain: `vStorageOutCap`
-#     is the storage's anchor capacity and exists for every storage;
-#   - the charging part is OPTIONAL, so `meqStorageInpUp` is
-#     `structural_in = "mStorageInpCap"`: structural wherever a charger was
-#     declared (any of stock / cap / ncap / invcost / eac / fixom on the `inp.`
-#     part), conditional outside it. A reservoir-only storage therefore keeps
-#     no charging bound -- it never declared a charger rating to be held to;
-#   - `pStorageInpAf` carries `dropIfEmpty: false`, because outside the
-#     membership a declared `inp.af.up = 1` (a weather charging window, say) is
-#     what puts the tuple in the map, and `sparse = TRUE` would otherwise prune
-#     it as "equal to the default" and delete its equation;
+#   - both converters are OPTIONAL (the reservoir is the anchor, 2026-10-17):
+#     `meqStorageInpUp` / `meqStorageOutUp` are `structural_in` their part's
+#     map (`mStorageInpCap` / `mStorageOutCap`), structural wherever the part
+#     has data (any of stock / cap / ncap / invcost / eac / fixom on the
+#     `inp.` / `out.` part). A reservoir-only storage keeps no flow bound
+#     beyond its level;
+#   - `inp.af` / `out.af` declared on a storage without that part is an
+#     interpolation error;
 #   - `inp.af.up = Inf` / `out.af.up = Inf` declared explicitly still remove the
 #     equation (the open-side anti-join in `.build_constraint_join_map`), and
 #     the `free_meal` advisory then names it.
@@ -103,8 +100,8 @@ test_that("family storage-power-bound: a priced charger is rated without any `af
   # the charging part exists, so both flow bounds are instantiated
   expect_gte(pb_rows(scen, "mStorageInpCap"), 1)
   expect_gte(pb_rows(scen, "meqStorageInpUp"), 1)
-  # the discharging bound is structural, so it is there for every storage
-  expect_gte(pb_rows(scen, "meqStorageOutUp"), 1)
+  # no discharger declared: no discharging bound
+  expect_equal(pb_rows(scen, "meqStorageOutUp"), 0L)
   # nothing was written into the parameter: the declared default carries the 1
   expect_equal(pb_bound_rows(scen, "pStorageInpAf", "up"), 0L)
   # and the coverage check does not read that as a missing value
@@ -115,6 +112,7 @@ test_that("family storage-power-bound: a priced charger is rated without any `af
 # @covers pStorageInpAf eqStorageInpUp depth=I backends=glpk
 test_that("family storage-power-bound: `inp.af.up = Inf` is the explicit opt-out", {
   scen <- pb_interp("pb_open", invcost = data.frame(inp.invcost = 10,
+                                                    out.invcost = 10,
                                                     stg.invcost = 0),
                     af = data.frame(inp.af.up = Inf))
   expect_equal(pb_rows(scen, "meqStorageInpUp"), 0L)
@@ -127,29 +125,26 @@ test_that("family storage-power-bound: `inp.af.up = Inf` is the explicit opt-out
   expect_match(fm$detail, "inp.af.up = Inf")
 })
 
-# @covers pStorageInpAf mStorageNoInpCap depth=I backends=glpk
-test_that("family storage-power-bound: a reservoir-only storage keeps no charging bound", {
+# @covers pStorageInpAf depth=I backends=glpk
+test_that("family storage-power-bound: a reservoir-only storage keeps no flow bound", {
   scen <- pb_interp("pb_rsv")                       # no inp capacity driver
   expect_equal(pb_rows(scen, "mStorageInpCap"), 0L)
   expect_gte(pb_rows(scen, "mvStorageInp"), 1)      # the flow does exist
   expect_equal(pb_rows(scen, "meqStorageInpUp"), 0L)
-  # its discharging side is rated all the same -- that part always exists
-  expect_gte(pb_rows(scen, "meqStorageOutUp"), 1)
+  expect_equal(pb_rows(scen, "mStorageOutCap"), 0L)
+  expect_equal(pb_rows(scen, "meqStorageOutUp"), 0L)
   # no charger was declared, so nothing is missing -- no advisory either
   iss <- pb_issues(scen)
   expect_equal(nrow(iss[iss$parameter == "meqStorageInpUp", , drop = FALSE]), 0L)
 })
 
 # @covers pStorageInpAf eqStorageInpUp depth=I backends=glpk
-test_that("family storage-power-bound: a declared bound survives without a charger", {
-  # the conditional half of `structural_in`: no charging capacity of its own,
-  # but an availability the modeller stated -- the equation must still exist
-  # (its rating comes from inp2out * OutCap). A weather charging window is this
-  # case, which is why `dropIfEmpty: false` matters for a declared `= 1`.
-  scen <- pb_interp("pb_declared", af = data.frame(inp.af.up = 0.5))
-  expect_equal(pb_rows(scen, "mStorageInpCap"), 0L)
-  expect_gte(pb_rows(scen, "meqStorageInpUp"), 1)
-  expect_equal(unique(ff_bound(scen, "pStorageInpAf", "up")$value), 0.5)
+test_that("family storage-power-bound: a bound declared without a charger is an error", {
+  # there is no charger rating for the availability to scale
+  expect_error(pb_interp("pb_declared", af = data.frame(inp.af.up = 0.5)),
+               "no charger")
+  expect_error(pb_interp("pb_declared_out", af = data.frame(out.af.up = 0.5)),
+               "no discharger")
 })
 
 # @covers pStorageInpAf vStorageInp eqStorageInpUp depth=S backends=glpk
@@ -157,20 +152,16 @@ test_that("family storage-power-bound: the rating limits the per-slice flow", {
   skip_if_no_solver()
   # charger fixed at 4, cap2act 1, four equal slices -> 1 unit per slice. The
   # discharger is left roomy (40 -> 10 per slice) so that only the CHARGING
-  # rate is in question; `inp2out` must allow the 0.1 ratio, as its default
-  # [1, 1] would otherwise tie the two capacities together.
+  # rate is in question.
   cap <- data.frame(inp.cap.fx = 4, out.cap.fx = 40)
-  ratio <- data.frame(inp2out.fx = 0.1)
   allow <- 4 * 1 * 0.25
 
-  bounded <- .fork_solve(pb_interp("pb_bound", capacity = cap,
-                                   inp2out = ratio),
+  bounded <- .fork_solve(pb_interp("pb_bound", capacity = cap),
                          solver_options$glpk)
   expect_true(verify_solution(bounded)$ok)
   expect_lte(pb_max(bounded, "vStorageInp"), allow + 1e-6)
 
   open <- .fork_solve(pb_interp("pb_unbound", capacity = cap,
-                                inp2out = ratio,
                                 af = data.frame(inp.af.up = Inf)),
                       solver_options$glpk)
   # without the equation the whole demand is charged in the cheap slice, well

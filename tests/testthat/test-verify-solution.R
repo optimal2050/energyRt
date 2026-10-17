@@ -367,11 +367,13 @@ test_that("inputs_bounds passes on the tiers that declare bounds", {
     expect_equal(ck$status, "ok", label = paste0(tier, " inputs_bounds"))
     expect_gt(ck$n, 0L)
   }
-  # a model with no bounds must SKIP with a reason, never silently pass
+  # a model with nothing to test must SKIP with a reason, never silently pass;
+  # tm_core's only bound is its storage's duration link, which has no solution
+  # variable of its own
   ck <- verify_solution(.vs_solved("tm_core"),
                         checks = "inputs_bounds")$checks$inputs_bounds
   expect_equal(ck$status, "skipped")
-  expect_match(ck$reason, "no bounds")
+  expect_match(ck$reason, "no bounds|no declared bound has a matching")
 })
 
 test_that("inputs_bounds catches a solution that breaks a declared bound", {

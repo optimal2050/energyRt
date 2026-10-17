@@ -349,7 +349,7 @@ model.vStorageStockPhaseOut = Var(
     doc="Exogenous storage capacity leaving on the schedule"
 )
 model.vStorageOutStockCap = Var(
-    mStorageSpan, domain=pyo.NonNegativeReals,
+    mStorageOutCap, domain=pyo.NonNegativeReals,
     doc="Surviving exogenous (legacy) capacity"
 )
 model.vStorageOutRetiredStock = Var(
@@ -483,7 +483,8 @@ model.vStorageEac = Var(
     mStorageEac, domain=pyo.NonNegativeReals, doc="Storage EAC investments"
 )
 model.vStorageOutCap = Var(
-    mStorageSpan, domain=pyo.NonNegativeReals, doc="Storage capacity"
+    mStorageOutCap, domain=pyo.NonNegativeReals,
+    doc="Storage discharging (output) capacity"
 )
 model.vStorageStgCap = Var(
     mStorageStgCap, domain=pyo.NonNegativeReals,
@@ -502,7 +503,8 @@ model.vStorageStgNewCap = Var(
     doc="Storage new energy (storing) capacity"
 )
 model.vStorageOutNewCap = Var(
-    mStorageNew, domain=pyo.NonNegativeReals, doc="Storage new capacity"
+    mStorageOutNew, domain=pyo.NonNegativeReals,
+    doc="Storage new discharging (output) capacity"
 )
 model.vImportTot = Var(
     mImport,
@@ -1550,19 +1552,19 @@ model.eqStorageOutRetiredNewCap = Constraint(
             for yp in mvStorageRetiredNewCap_ix3_012.get((st1, r, y), ())
         )
         <= model.vStorageOutNewCap[st1, r, y] * pPeriodLen.get((y))
-        if (st1, r, y) in mStorageNew
+        if (st1, r, y) in mStorageOutNew
         else pyo.Constraint.Skip
     ),
 )
 # eqStorageOutStockCap -- the legacy fleet as a recursive balance.
 model.eqStorageOutStockCap = Constraint(
-    mStorageSpan,
+    mStorageOutCap,
     rule=lambda model, st1, r, y: model.vStorageOutStockCap[st1, r, y]
     == pStorageOutStockSurv.get((st1, r, y))
     * sum(
         model.vStorageOutStockCap[st1, r, yp]
         for yp in year
-        if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageSpan)
+        if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageOutCap)
     )
     + (pStorageOutStockNew.get((st1, r, y)) + (pStorageOutStock.get((st1, r, y)) if y in mMilestoneFirst else 0))
     - (model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0)
@@ -1925,31 +1927,31 @@ model.eqStoragePhaseOut = Constraint(
     mvStoragePhaseOut,
     rule=lambda model, st1, r, y: model.vStoragePhaseOut[st1, r, y] * pPeriodLen.get((y))
     == sum(
-        model.vStorageOutCap[st1, r, yp]
+        model.vStorageStgCap[st1, r, yp]
         for yp in year
         if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageSpan)
     )
-    - model.vStorageOutCap[st1, r, y]
-    + (model.vStorageOutNewCap[st1, r, y] if (st1, r, y) in mStorageNew else 0)
+    - model.vStorageStgCap[st1, r, y]
+    + (model.vStorageStgNewCap[st1, r, y] if (st1, r, y) in mStorageStgNew else 0)
     * pPeriodLen.get((y))
     - (
-        (model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0)
+        (model.vStorageStgRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0)
         + sum(
-            model.vStorageOutRetiredNewCap[st1, r, yp, y]
+            model.vStorageStgRetiredNewCap[st1, r, yp, y]
             for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
         )
     )
     * pPeriodLen.get((y))
-    + (pStorageOutStockNew.get((st1, r, y)) + (pStorageOutStock.get((st1, r, y)) if y in mMilestoneFirst else 0)),
+    + (pStorageStgStockNew.get((st1, r, y)) + (pStorageStgStock.get((st1, r, y)) if y in mMilestoneFirst else 0)),
 )
 # eqStorageStockPhaseOut -- what the schedule actually removed.
 model.eqStorageStockPhaseOut = Constraint(
     mvStoragePhaseOut,
     rule=lambda model, st1, r, y: model.vStorageStockPhaseOut[st1, r, y]
     * pPeriodLen.get((y))
-    == (1 - pStorageOutStockSurv.get((st1, r, y)))
+    == (1 - pStorageStgStockSurv.get((st1, r, y)))
     * sum(
-        model.vStorageOutStockCap[st1, r, yp]
+        model.vStorageStgStockCap[st1, r, yp]
         for yp in year
         if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageSpan)
     ),
@@ -2429,8 +2431,8 @@ model.eqStorageLevel = Constraint(
     rule=lambda model, st1, c, r, y, sp, s: model.vStorageLevel[st1, c, r, y, s]
     == pStorageStartLevel.get((st1, c, r, y, s))
     + (
-        (pStorageNCap2Stg.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y])
-        if (st1, r, y) in mStorageNew
+        (pStorageNCap2Stg.get((st1, c, r, y, s)) * model.vStorageStgNewCap[st1, r, y])
+        if (st1, r, y) in mStorageStgNew
         else 0
     )
     # [multi-commodity] the level is kept in `c`, but what fills and empties it need
@@ -2706,7 +2708,7 @@ if verbose:
     print("eqStorageOutCap ", end="")
 sys.stdout.flush()
 model.eqStorageOutCap = Constraint(
-    mStorageSpan,
+    mStorageOutCap,
     rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
     == model.vStorageOutStockCap[st1, r, y]
     + sum(
@@ -2726,7 +2728,7 @@ model.eqStorageOutCap = Constraint(
                 (st1, r) in mStorageOlifeInf
                 or ordYear.get((y)) < pStorageOlife.get((st1, r)) + ordYear.get((yp))
             )
-            and (st1, r, yp) in mStorageNew
+            and (st1, r, yp) in mStorageOutNew
         )
     ),
 )
@@ -2982,7 +2984,8 @@ sys.stdout.flush()
 model.eqStorageInv = Constraint(
     mStorageNew,
     rule=lambda model, st1, r, y: model.vStorageInv[st1, r, y]
-    == pStorageOutInvcost.get((st1, r, y)) * model.vStorageOutNewCap[st1, r, y]
+    == (pStorageOutInvcost.get((st1, r, y)) * model.vStorageOutNewCap[st1, r, y]
+        if (st1, r, y) in mStorageOutNew else 0)
     # [2c] the storing side's capital cost is per unit of ENERGY.
     + (
         pStorageStgInvcost.get((st1, r, y)) * model.vStorageStgNewCap[st1, r, y]
@@ -3016,7 +3019,8 @@ model.eqStorageEac = Constraint(
     == sum(
         pPeriodLen.get((yp))
         * (
-            pStorageOutEac.get((st1, r, yp)) * model.vStorageOutNewCap[st1, r, yp]
+            (pStorageOutEac.get((st1, r, yp)) * model.vStorageOutNewCap[st1, r, yp]
+             if (st1, r, yp) in mStorageOutNew else 0)
             # [2c] the storing side annuitises separately, same lifetime.
             + (
                 pStorageStgEac.get((st1, r, yp))
@@ -3076,7 +3080,8 @@ sys.stdout.flush()
 model.eqStorageFixom = Constraint(
     mStorageFixom,
     rule=lambda model, st1, r, y: model.vStorageFixom[st1, r, y]
-    == pStorageOutFixom.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
+    == (pStorageOutFixom.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
+        if (st1, r, y) in mStorageOutCap else 0)
     + (
         pStorageStgFixom.get((st1, r, y)) * model.vStorageStgCap[st1, r, y]
         if (st1, r, y) in mStorageStgFixom
@@ -4382,13 +4387,13 @@ model.eqTaxCost = Constraint(
         pTaxProcCap.get((lv, st1, r, y))
         * model.vStorageOutCap[st1, r, y]
         for st1 in stg
-        if ((st1, r, y) in mStorageSpan and pTaxProcCap.get((lv, st1, r, y)) != 0)
+        if ((st1, r, y) in mStorageOutCap and pTaxProcCap.get((lv, st1, r, y)) != 0)
     )
     + sum(
         pTaxProcNcap.get((lv, st1, r, y))
         * model.vStorageOutNewCap[st1, r, y]
         for st1 in stg
-        if ((st1, r, y) in mStorageNew and pTaxProcNcap.get((lv, st1, r, y)) != 0)
+        if ((st1, r, y) in mStorageOutNew and pTaxProcNcap.get((lv, st1, r, y)) != 0)
     ),
 )
 if verbose:
@@ -4490,13 +4495,13 @@ model.eqSubsCost = Constraint(
         pSubProcCap.get((lv, st1, r, y))
         * model.vStorageOutCap[st1, r, y]
         for st1 in stg
-        if ((st1, r, y) in mStorageSpan and pSubProcCap.get((lv, st1, r, y)) != 0)
+        if ((st1, r, y) in mStorageOutCap and pSubProcCap.get((lv, st1, r, y)) != 0)
     )
     - sum(
         pSubProcNcap.get((lv, st1, r, y))
         * model.vStorageOutNewCap[st1, r, y]
         for st1 in stg
-        if ((st1, r, y) in mStorageNew and pSubProcNcap.get((lv, st1, r, y)) != 0)
+        if ((st1, r, y) in mStorageOutNew and pSubProcNcap.get((lv, st1, r, y)) != 0)
     ),
 )
 if verbose:

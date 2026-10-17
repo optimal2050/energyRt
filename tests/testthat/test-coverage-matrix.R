@@ -57,8 +57,10 @@ test_that("matrix rows assemble from package metadata with expected arithmetic",
   # (345 maps / 182 equations = + the Fx map and equation of 32 more bound
   # families under `fx_equ`; eqTradeIrAfFx, like eqTradeIrAfLo, has no
   # description entry and is not counted, 2026-10-16)
+  # (348 maps = + mStorageOutCap, mStorageOutNew, mStorageInpOutCap: the
+  # discharger exists only with data, 2026-10-17)
   expect_equal(unname(counts[["set"]]), 15)
-  expect_equal(unname(counts[["map"]]), 345)
+  expect_equal(unname(counts[["map"]]), 348)
   expect_equal(unname(counts[["numpar"]]), 151)
   expect_equal(unname(counts[["bounds"]]), 38)
   expect_equal(unname(counts[["equation"]]), 182)

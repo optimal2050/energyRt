@@ -1581,8 +1581,8 @@ pStorageInp2out:
   - year
   type: bounds
   defVal:
-  - 1.0
-  - 1.0
+  - 0.0
+  - .inf
   interpolation:
   - inter.forth
   - inter.forth
@@ -1650,8 +1650,8 @@ pStorageDuration:
   - year
   type: bounds
   defVal:
-  - 1.0
-  - 1.0
+  - 0.0
+  - .inf
   interpolation:
   - inter.forth
   - inter.forth
@@ -3544,6 +3544,27 @@ mStorageInp2outUp:
   - year
 mStorageInpStgCap:
   name: mStorageInpStgCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutCap:
+  name: mStorageOutCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutNew:
+  name: mStorageOutNew
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpOutCap:
+  name: mStorageInpOutCap
   type: map
   dimSets:
   - stg

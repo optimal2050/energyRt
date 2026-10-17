@@ -524,6 +524,9 @@ mStorageInp2outLo(stg, region, year)
 mStorageInp2outFx(stg, region, year)
 mStorageInp2outUp(stg, region, year)
 mStorageInpStgCap(stg, region, year)
+mStorageOutCap(stg, region, year)
+mStorageOutNew(stg, region, year)
+mStorageInpOutCap(stg, region, year)
 mStorageInp2stgLo(stg, region, year)
 mStorageInp2stgFx(stg, region, year)
 mStorageInp2stgUp(stg, region, year)
@@ -730,14 +733,14 @@ vStorageLevel(stg, comm, region, year, timeslice)        Storage level
 vStorageInv(stg, region, year)                       Storage investments
 *@ mStorageEac(stg, region, year)
 vStorageEac(stg, region, year)                       Storage EAC investments
-*@ mStorageSpan(stg, region, year)
-vStorageOutCap(stg, region, year)                       Storage capacity
-vStorageStgCap(stg, region, year)                       Storage energy (storing) capacity
+vStorageStgCap(stg, region, year)                       Storage energy (storing) capacity -- the anchor
+*@ mStorageOutCap(stg, region, year)
+vStorageOutCap(stg, region, year)                       Storage discharging (output) capacity
 vStorageInpCap(stg, region, year)                       Storage charging (input) capacity
 vStorageInpNewCap(stg, region, year)                    Storage new charging (input) capacity
 vStorageStgNewCap(stg, region, year)                    Storage new energy (storing) capacity
-*@ mStorageNew(stg, region, year)
-vStorageOutNewCap(stg, region, year)                    Storage new capacity
+*@ mStorageOutNew(stg, region, year)
+vStorageOutNewCap(stg, region, year)                    Storage new discharging (output) capacity
 ;
 variable
 * mStorageOMCost(stg, region, year)
@@ -1642,20 +1645,20 @@ eqTechPhaseOut(tech, region, year)$mvTechPhaseOut(tech, region, year)..
 eqStoragePhaseOut(stg, region, year)$mvStoragePhaseOut(stg, region, year)..
     vStoragePhaseOut(stg, region, year) * pPeriodLen(year) =e=
     sum(yearp$(mMilestoneNext(yearp, year) and mStorageSpan(stg, region, yearp)),
-        vStorageOutCap(stg, region, yearp))
-    - vStorageOutCap(stg, region, year)
-    + vStorageOutNewCap(stg, region, year)$mStorageNew(stg, region, year) * pPeriodLen(year)
-    - ( vStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+        vStorageStgCap(stg, region, yearp))
+    - vStorageStgCap(stg, region, year)
+    + vStorageStgNewCap(stg, region, year)$mStorageStgNew(stg, region, year) * pPeriodLen(year)
+    - ( vStorageStgRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
         + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
-              vStorageOutRetiredNewCap(stg, region, yearp, year))
+              vStorageStgRetiredNewCap(stg, region, yearp, year))
       ) * pPeriodLen(year)
-    + (pStorageOutStockNew(stg, region, year) + pStorageOutStock(stg, region, year)$mMilestoneFirst(year));
+    + (pStorageStgStockNew(stg, region, year) + pStorageStgStock(stg, region, year)$mMilestoneFirst(year));
 
 eqStorageStockPhaseOut(stg, region, year)$mvStoragePhaseOut(stg, region, year)..
          vStorageStockPhaseOut(stg, region, year) * pPeriodLen(year) =e=
-         (1 - pStorageOutStockSurv(stg, region, year)) *
+         (1 - pStorageStgStockSurv(stg, region, year)) *
          sum(yearp$(mMilestoneNext(yearp, year) and mStorageSpan(stg, region, yearp)),
-             vStorageOutStockCap(stg, region, yearp));
+             vStorageStgStockCap(stg, region, yearp));
 
 
 * --- storage Out part: early retirement ---
@@ -1665,10 +1668,10 @@ eqStorageOutRetiredNewCap(stg, region, year)$meqStorageRetiredNewCap(stg, region
          =l=
          vStorageOutNewCap(stg, region, year) * pPeriodLen(year);
 
-eqStorageOutStockCap(stg, region, year)$mStorageSpan(stg, region, year)..
+eqStorageOutStockCap(stg, region, year)$mStorageOutCap(stg, region, year)..
          vStorageOutStockCap(stg, region, year) =e=
          pStorageOutStockSurv(stg, region, year) *
-         sum(yearp$(mMilestoneNext(yearp, year) and mStorageSpan(stg, region, yearp)),
+         sum(yearp$(mMilestoneNext(yearp, year) and mStorageOutCap(stg, region, yearp)),
              vStorageOutStockCap(stg, region, yearp))
          + (pStorageOutStockNew(stg, region, year) + pStorageOutStock(stg, region, year)$mMilestoneFirst(year))
          - vStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
@@ -2220,8 +2223,8 @@ eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)$meqStorageLevel(s
   =e=
   pStorageStartLevel(stg, comm, region, year, timeslice)
   + (pStorageNCap2Stg(stg, comm, region, year, timeslice)
-     * vStorageOutNewCap(stg, region, year)
-    )$mStorageNew(stg, region, year)
+     * vStorageStgNewCap(stg, region, year)
+    )$mStorageStgNew(stg, region, year)
   +
 *  sum(timeslicep$(mCommTimeslice(comm, timeslicep) and mTimesliceNext(timeslicep, timeslice)),
 * [multi-commodity] the level is kept in `comm`, but what fills and empties it
@@ -2427,7 +2430,7 @@ eqStorageVarom(stg, region, year)    Storage variable costs
 ;
 
 * Capacity equation
-eqStorageOutCap(stg, region, year)$mStorageSpan(stg, region, year)..
+eqStorageOutCap(stg, region, year)$mStorageOutCap(stg, region, year)..
          vStorageOutCap(stg, region, year)
          =e=
          vStorageOutStockCap(stg, region, year) +
@@ -2438,7 +2441,7 @@ eqStorageOutCap(stg, region, year)$mStorageSpan(stg, region, year)..
                      ordYear(year) < pStorageOlife(stg, region) + ordYear(yearp)
                      )
                     and
-                     mStorageNew(stg, region, yearp)
+                     mStorageOutNew(stg, region, yearp)
                  ),
                  pPeriodLen(yearp) * vStorageOutNewCap(stg, region, yearp)
                  - sum(yeare$(mvStorageRetiredNewCap(stg, region, yearp, yeare)
@@ -2577,8 +2580,8 @@ eqStorageOutNewCapUp(stg, region, year)$mStorageOutNewCapUp(stg, region, year)..
 eqStorageInv(stg, region, year)$mStorageNew(stg, region, year)..
          vStorageInv(stg, region, year)
          =e=
-         pStorageOutInvcost(stg, region, year) *
-         vStorageOutNewCap(stg, region, year)
+         (pStorageOutInvcost(stg, region, year) *
+          vStorageOutNewCap(stg, region, year))$mStorageOutNew(stg, region, year)
 *        [2c] the storing side's capital cost is per unit of ENERGY and rides on
 *        the same investment variable; absent data, the term does not exist.
          + (pStorageStgInvcost(stg, region, year)
@@ -2618,8 +2621,8 @@ eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
 *           converts to the vintage's standing capacity (same accumulation
 *           as the cap equations).
             pPeriodLen(yearp)
-            * (pStorageOutEac(stg, region, yearp)
-             * vStorageOutNewCap(stg, region, yearp)
+            * ((pStorageOutEac(stg, region, yearp)
+             * vStorageOutNewCap(stg, region, yearp))$mStorageOutNew(stg, region, yearp)
              + (pStorageStgEac(stg, region, yearp)
                 * vStorageStgNewCap(stg, region, yearp)
                )$mStorageStgNew(stg, region, yearp)
@@ -2636,7 +2639,8 @@ eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
 eqStorageFixom(stg, region, year)$mStorageFixom(stg, region, year)..
          vStorageFixom(stg, region, year)
          =e=
-         pStorageOutFixom(stg, region, year) * vStorageOutCap(stg, region, year)
+         (pStorageOutFixom(stg, region, year) * vStorageOutCap(stg, region, year)
+         )$mStorageOutCap(stg, region, year)
          + (pStorageStgFixom(stg, region, year)
             * vStorageStgCap(stg, region, year)
            )$mStorageStgFixom(stg, region, year)
@@ -3334,11 +3338,11 @@ eqTaxCost(levy, region, year)$mTaxCost(levy, region, year)..
              * pTimesliceWeight(year, timeslice)
              * vStorageOut(stg, comm, region, year, timeslice)
              )
-       + sum((stg)$(mStorageSpan(stg, region, year) and pTaxProcCap(levy, stg, region, year) <> 0),
+       + sum((stg)$(mStorageOutCap(stg, region, year) and pTaxProcCap(levy, stg, region, year) <> 0),
              pTaxProcCap(levy, stg, region, year)
              * vStorageOutCap(stg, region, year)
              )
-       + sum((stg)$(mStorageNew(stg, region, year) and pTaxProcNcap(levy, stg, region, year) <> 0),
+       + sum((stg)$(mStorageOutNew(stg, region, year) and pTaxProcNcap(levy, stg, region, year) <> 0),
              pTaxProcNcap(levy, stg, region, year)
              * vStorageOutNewCap(stg, region, year)
              );
@@ -3394,11 +3398,11 @@ eqSubsCost(levy, region, year)$mSubCost(levy, region, year)..
              * pTimesliceWeight(year, timeslice)
              * vStorageOut(stg, comm, region, year, timeslice)
              )
-       - sum((stg)$(mStorageSpan(stg, region, year) and pSubProcCap(levy, stg, region, year) <> 0),
+       - sum((stg)$(mStorageOutCap(stg, region, year) and pSubProcCap(levy, stg, region, year) <> 0),
              pSubProcCap(levy, stg, region, year)
              * vStorageOutCap(stg, region, year)
              )
-       - sum((stg)$(mStorageNew(stg, region, year) and pSubProcNcap(levy, stg, region, year) <> 0),
+       - sum((stg)$(mStorageOutNew(stg, region, year) and pSubProcNcap(levy, stg, region, year) <> 0),
              pSubProcNcap(levy, stg, region, year)
              * vStorageOutNewCap(stg, region, year)
              );

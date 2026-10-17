@@ -375,7 +375,7 @@ f.close()
 flist.write("vStorageOutStockCap\n")
 f = open("output/vStorageOutStockCap.csv", "w")
 f.write("stg,region,year,value\n")
-for st1, r, y in mStorageSpan:
+for st1, r, y in mStorageOutCap:
     val = model.vStorageOutStockCap[(st1, r, y)].value
     if val is not None and val != 0:
         f.write(str(st1) + "," + str(r) + "," + str(y) + "," + str(val) + "\n")
@@ -1207,7 +1207,7 @@ for st1, r, y in mStorageStgNew:
 f.close()
 f = open("output/vStorageOutCap.csv", "w")
 f.write("stg,region,year,value\n")
-for st1, r, y in mStorageSpan:
+for st1, r, y in mStorageOutCap:
     if model.vStorageOutCap[(st1, r, y)].value != 0:
         f.write(
             str(st1)
@@ -1223,7 +1223,7 @@ f.close()
 flist.write("vStorageOutNewCap\n")
 f = open("output/vStorageOutNewCap.csv", "w")
 f.write("stg,region,year,value\n")
-for st1, r, y in mStorageNew:
+for st1, r, y in mStorageOutNew:
     if model.vStorageOutNewCap[(st1, r, y)].value != 0:
         f.write(
             str(st1)

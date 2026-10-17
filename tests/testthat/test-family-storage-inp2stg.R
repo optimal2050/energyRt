@@ -2,38 +2,36 @@
 # Feature family: storage-inp2stg (charging C-rate: charger/reservoir link).
 #
 # eqStorageInp2stgLo/Up: vStorageInpCap >=/<= rate * vStorageStgCap, emitted
-# only where a finite bound is declared AND both parts carry capacity
-# variables (mStorageInpStgCap = mStorageInpCap intersect mStorageStgCap).
+# only where a finite bound is declared on a storage with a charger
+# (mStorageInpStgCap = mStorageInpCap intersect mStorageStgCap; the reservoir
+# always exists since the anchor move of 2026-10-17).
 #
-# Semantics (deliberately unlike `duration`/`inp2out`):
-#   - nothing declared     -> NO equation at all: the default is open [0, Inf],
-#                             not a binding identity (a 1C default would
-#                             silently bind every storage pricing both parts)
-#   - one side declared    -> the other side is OPEN (`.norm_ratio()` writes
-#                             0-lo / Inf-up, and the map `drop` discards them)
-#   - either part unpriced -> no variable pair, no equation (no inlining
-#                             fallback exists -- nothing to inline onto)
+# Semantics, as `duration` and `inp2out`:
+#   - nothing declared      -> NO equation (open default [0, Inf])
+#   - one side declared     -> the other side is OPEN
+#   - declared without a charger -> interpolation error
 # The three ratios form a triangle (inp2stg = inp2out / duration); the
 # constructor refuses a contradictory fixed triangle.
 #
-# Anchor economics (discount 0, olife 30, charge/discharge 10, supply cost 1,
+# Economics (discount 0, olife 30, charge/discharge 10, supply cost 1,
 # inp.invcost 300 -> charger EAC 10/unit, stg.invcost 30 -> reservoir EAC
-# 1/unit). The fixture opens `duration` -- its structural default [1,1] would
-# tie StgCap == OutCap and contradict any C-rate != 1 (with the inp2out
-# default also binding, the triangle would close on itself). With the level
-# bound now on StgCap (stg part priced) nothing sizes the discharger, so
-# `out.cap.lo = 10` pins it; the inp2out default then sizes the charger:
-# InpCap == OutCap. The level held between s1 and s3 keeps StgCap >= 10.
-#   base              InpCap == OutCap == 10, StgCap 10:  10 + 100 + 10 = 120
-#   inp2stg.up = 0.5  -> StgCap >= 2*InpCap = 20:         10 + 100 + 20 = 130
-#   inp2stg.lo = 2    -> InpCap >= 2*StgCap -> both 20:   10 + 200 + 10 = 220
+# 1/unit). `inp.cap.lo = 10` pins the charger; there is no discharger, so the
+# discharge is limited by the level only. The level held between s1 and s3
+# keeps StgCap >= 10.
+#   base              InpCap 10, StgCap 10:                 10 + 100 + 10 = 120
+#   inp2stg.up = 0.5  -> StgCap >= 2*InpCap = 20:           10 + 100 + 20 = 130
+#   inp2stg.lo = 2    -> InpCap >= 2*StgCap = 20:           10 + 200 + 10 = 220
 # =========================================================================== #
 
 si2_slices <- paste0("s", 1:4)
 
-si2_build <- function(inp2stg = NULL, inp_invcost = 300, stg_invcost = 30) {
-  inv <- data.frame(stg.invcost = stg_invcost)
-  if (!is.null(inp_invcost)) inv$inp.invcost <- inp_invcost
+si2_build <- function(inp2stg = NULL, charger = TRUE) {
+  inv <- data.frame(stg.invcost = 30)
+  cap <- data.frame()
+  if (charger) {
+    inv$inp.invcost <- 300
+    cap <- data.frame(inp.cap.lo = 10)
+  }
   newModel("si2",
     repo = newRepository("si2_repo",
       newCommodity("ELC", timeframe = "SL"),
@@ -42,8 +40,7 @@ si2_build <- function(inp2stg = NULL, inp_invcost = 300, stg_invcost = 30) {
                                     ava.up = c(1000, 0, 0, 0))),
       newStorage("STG", commodity = "ELC",
                  olife = data.frame(olife = 30),
-                 duration = data.frame(duration.lo = 0, duration.up = Inf),
-                 capacity = data.frame(out.cap.lo = 10),
+                 capacity = cap,
                  invcost = inv, inp2stg = inp2stg),
       newDemand("DEM", commodity = "ELC",
                 demand = data.frame(timeslice = "s3", demand = 10))),
@@ -102,12 +99,10 @@ test_that("family storage-inp2stg: the rate bound lands in modInp with its maps"
     si2_build(), name = "si2_i2", overwrite = TRUE)))
   expect_equal(nrow(ff_param(scen2, "mStorageInp2stgUp")), 0)
   expect_equal(nrow(ff_param(scen2, "mStorageInp2stgLo")), 0)
-  # an unpriced charging part has no vStorageInpCap: the intersection domain
-  # is empty and a declared rate emits nothing (no inlining fallback)
-  scen3 <- suppressMessages(suppressWarnings(interpolate_model(
-    si2_build(inp2stg = data.frame(inp2stg.up = 0.5), inp_invcost = NULL),
-    name = "si2_i3", overwrite = TRUE)))
-  expect_equal(nrow(ff_param(scen3, "mStorageInp2stgUp")), 0)
+  # a rate declared on a storage without a charger is an error
+  expect_error(suppressMessages(suppressWarnings(interpolate_model(
+    si2_build(inp2stg = data.frame(inp2stg.up = 0.5), charger = FALSE),
+    name = "si2_i3", overwrite = TRUE))), "no charger")
 })
 
 # @covers pStorageInp2stg vStorageInpCap vStorageStgCap eqStorageInp2stgUp depth=S backends=glpk
@@ -125,7 +120,7 @@ test_that("family storage-inp2stg: an up rate grows the reservoir behind a slow 
     name = "si2_up", overwrite = TRUE)))
   scen <- .fork_solve(scen, solver_options$glpk)
   expect_true(verify_solution(scen)$ok)
-  # InpCap == OutCap == 10 (inp2out default) and InpCap <= 0.5 * StgCap
+  # InpCap == 10 (pinned) and InpCap <= 0.5 * StgCap
   expect_equal(ff_solution_sum(scen, "vStorageInpCap"), 10, tolerance = 1e-6)
   expect_equal(ff_solution_sum(scen, "vStorageStgCap"), 20, tolerance = 1e-6)
   expect_equal(.fork_objective(scen), 130, tolerance = 1e-6)
@@ -138,7 +133,7 @@ test_that("family storage-inp2stg: a lone lo rate oversizes the charger, up side
     name = "si2_lo", overwrite = TRUE)))
   scen <- .fork_solve(scen, solver_options$glpk)
   expect_true(verify_solution(scen)$ok)
-  # StgCap >= 10 (must hold the cycle), so InpCap >= 20; inp2out drags OutCap
+  # StgCap >= 10 (must hold the cycle), so InpCap >= 20
   expect_equal(ff_solution_sum(scen, "vStorageInpCap"), 20, tolerance = 1e-6)
   expect_equal(ff_solution_sum(scen, "vStorageStgCap"), 10, tolerance = 1e-6)
   expect_equal(.fork_objective(scen), 220, tolerance = 1e-6)

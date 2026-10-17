@@ -1051,6 +1051,8 @@ print.solution_verification <- function(x, detail = c("full", "issues"), ...) {
 
 .vs_par_bound <- function(par, bound) {
   if (is.null(par) || is.na(bound) || !"type" %in% names(par)) return(par)
+  # a `.fx` column is stored as a lo and an up row of the same value
+  if (identical(bound, "fx")) bound <- "lo"
   out <- par[as.character(par$type) == bound]
   out$type <- NULL
   out

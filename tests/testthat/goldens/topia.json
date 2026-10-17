@@ -753,8 +753,8 @@
       }
     },
     "captured": {
-      "date": "2026-10-14",
-      "version": "0.90.0.9024",
+      "date": "2026-10-17",
+      "version": "0.90.0.9026",
       "solver": "glpk"
     }
   },
@@ -1016,14 +1016,14 @@
             "comm": "ELC",
             "region": "C1",
             "year": 2020,
-            "value": 58.38605547
+            "value": 58.41289952
           },
           {
             "tech": "EHYD",
             "comm": "ELC",
             "region": "C1",
             "year": 2030,
-            "value": 82.62182964
+            "value": 83.06262105
           },
           {
             "tech": "EHYD",
@@ -1128,14 +1128,14 @@
             "comm": "ELC",
             "region": "C1",
             "year": 2020,
-            "value": 7.742011752
+            "value": 7.715167704
           },
           {
             "tech": "ESOL",
             "comm": "ELC",
             "region": "C1",
             "year": 2030,
-            "value": 2.275897551
+            "value": 1.835106142
           },
           {
             "tech": "ESOL",
@@ -1191,7 +1191,7 @@
             "comm": "ELC",
             "region": "W2",
             "year": 2030,
-            "value": 28.42372988
+            "value": 28.4003218
           },
           {
             "tech": "ESOL",
@@ -1254,7 +1254,7 @@
             "comm": "ELC",
             "region": "W2",
             "year": 2030,
-            "value": 4.52193156
+            "value": 4.545339638
           }
         ],
         "annual_total": [
@@ -1298,13 +1298,13 @@
             "tech": "EHYD",
             "comm": "ELC",
             "year": 2020,
-            "value": 58.38605547
+            "value": 58.41289952
           },
           {
             "tech": "EHYD",
             "comm": "ELC",
             "year": 2030,
-            "value": 82.62182964
+            "value": 83.06262105
           },
           {
             "tech": "EHYD",
@@ -1346,13 +1346,13 @@
             "tech": "ESOL",
             "comm": "ELC",
             "year": 2020,
-            "value": 33.92770198
+            "value": 33.90085793
           },
           {
             "tech": "ESOL",
             "comm": "ELC",
             "year": 2030,
-            "value": 54.70676222
+            "value": 54.24256273
           },
           {
             "tech": "ESOL",
@@ -1376,7 +1376,7 @@
             "tech": "EWIN",
             "comm": "ELC",
             "year": 2030,
-            "value": 9.241747412
+            "value": 9.26515549
           },
           {
             "tech": "EWIN",
@@ -1498,14 +1498,14 @@
             "comm": "HYD",
             "region": "C1",
             "year": 2020,
-            "value": 58.38605547
+            "value": 58.41289952
           },
           {
             "tech": "EHYD",
             "comm": "HYD",
             "region": "C1",
             "year": 2030,
-            "value": 82.62182964
+            "value": 83.06262105
           },
           {
             "tech": "EHYD",
@@ -1610,14 +1610,14 @@
             "comm": "SOL",
             "region": "C1",
             "year": 2020,
-            "value": 7.742011752
+            "value": 7.715167704
           },
           {
             "tech": "ESOL",
             "comm": "SOL",
             "region": "C1",
             "year": 2030,
-            "value": 2.275897551
+            "value": 1.835106142
           },
           {
             "tech": "ESOL",
@@ -1673,7 +1673,7 @@
             "comm": "SOL",
             "region": "W2",
             "year": 2030,
-            "value": 28.42372988
+            "value": 28.4003218
           },
           {
             "tech": "ESOL",
@@ -1736,7 +1736,7 @@
             "comm": "WIN",
             "region": "W2",
             "year": 2030,
-            "value": 4.52193156
+            "value": 4.545339638
           }
         ],
         "annual_total": [
@@ -1780,13 +1780,13 @@
             "tech": "EHYD",
             "comm": "HYD",
             "year": 2020,
-            "value": 58.38605547
+            "value": 58.41289952
           },
           {
             "tech": "EHYD",
             "comm": "HYD",
             "year": 2030,
-            "value": 82.62182964
+            "value": 83.06262105
           },
           {
             "tech": "EHYD",
@@ -1828,13 +1828,13 @@
             "tech": "ESOL",
             "comm": "SOL",
             "year": 2020,
-            "value": 33.92770198
+            "value": 33.90085793
           },
           {
             "tech": "ESOL",
             "comm": "SOL",
             "year": 2030,
-            "value": 54.70676222
+            "value": 54.24256273
           },
           {
             "tech": "ESOL",
@@ -1858,7 +1858,7 @@
             "tech": "EWIN",
             "comm": "WIN",
             "year": 2030,
-            "value": 9.241747412
+            "value": 9.26515549
           },
           {
             "tech": "EWIN",
@@ -1875,14 +1875,14 @@
             "comm": "HYD",
             "region": "C1",
             "year": 2020,
-            "value": 58.38605547
+            "value": 58.41289952
           },
           {
             "sup": "RES_HYD",
             "comm": "HYD",
             "region": "C1",
             "year": 2030,
-            "value": 82.62182964
+            "value": 83.06262105
           },
           {
             "sup": "RES_HYD",
@@ -1903,14 +1903,14 @@
             "comm": "SOL",
             "region": "C1",
             "year": 2020,
-            "value": 7.742011752
+            "value": 7.715167704
           },
           {
             "sup": "RES_SOL",
             "comm": "SOL",
             "region": "C1",
             "year": 2030,
-            "value": 2.275897551
+            "value": 1.835106142
           },
           {
             "sup": "RES_SOL",
@@ -1966,7 +1966,7 @@
             "comm": "SOL",
             "region": "W2",
             "year": 2030,
-            "value": 28.42372988
+            "value": 28.4003218
           },
           {
             "sup": "RES_SOL",
@@ -2029,7 +2029,7 @@
             "comm": "WIN",
             "region": "W2",
             "year": 2030,
-            "value": 4.52193156
+            "value": 4.545339638
           },
           {
             "sup": "SUP_COA",
@@ -2163,13 +2163,13 @@
             "sup": "RES_HYD",
             "comm": "HYD",
             "year": 2020,
-            "value": 58.38605547
+            "value": 58.41289952
           },
           {
             "sup": "RES_HYD",
             "comm": "HYD",
             "year": 2030,
-            "value": 82.62182964
+            "value": 83.06262105
           },
           {
             "sup": "RES_HYD",
@@ -2187,13 +2187,13 @@
             "sup": "RES_SOL",
             "comm": "SOL",
             "year": 2020,
-            "value": 33.92770198
+            "value": 33.90085793
           },
           {
             "sup": "RES_SOL",
             "comm": "SOL",
             "year": 2030,
-            "value": 54.70676222
+            "value": 54.24256273
           },
           {
             "sup": "RES_SOL",
@@ -2217,7 +2217,7 @@
             "sup": "RES_WIN",
             "comm": "WIN",
             "year": 2030,
-            "value": 9.241747412
+            "value": 9.26515549
           },
           {
             "sup": "RES_WIN",
@@ -2479,8 +2479,8 @@
       }
     },
     "captured": {
-      "date": "2026-10-14",
-      "version": "0.90.0.9024",
+      "date": "2026-10-17",
+      "version": "0.90.0.9026",
       "solver": "glpk"
     }
   },
@@ -2694,21 +2694,21 @@
             "comm": "ELC",
             "region": "W1",
             "year": 2030,
-            "value": 35.82630811
+            "value": 35.65273279
           },
           {
             "tech": "ESOL",
             "comm": "ELC",
             "region": "W1",
             "year": 2040,
-            "value": 41.7407715
+            "value": 41.89397757
           },
           {
             "tech": "ESOL",
             "comm": "ELC",
             "region": "W1",
             "year": 2050,
-            "value": 46.25564481
+            "value": 43.81389895
           },
           {
             "tech": "EWIN",
@@ -2722,21 +2722,21 @@
             "comm": "ELC",
             "region": "W1",
             "year": 2030,
-            "value": 19.42768682
+            "value": 19.60126214
           },
           {
             "tech": "EWIN",
             "comm": "ELC",
             "region": "W1",
             "year": 2040,
-            "value": 47.91632844
+            "value": 47.72627954
           },
           {
             "tech": "EWIN",
             "comm": "ELC",
             "region": "W1",
             "year": 2050,
-            "value": 78.95303615
+            "value": 80.20630014
           }
         ],
         "annual_total": [
@@ -2816,19 +2816,19 @@
             "tech": "ESOL",
             "comm": "ELC",
             "year": 2030,
-            "value": 35.82630811
+            "value": 35.65273279
           },
           {
             "tech": "ESOL",
             "comm": "ELC",
             "year": 2040,
-            "value": 41.7407715
+            "value": 41.89397757
           },
           {
             "tech": "ESOL",
             "comm": "ELC",
             "year": 2050,
-            "value": 46.25564481
+            "value": 43.81389895
           },
           {
             "tech": "EWIN",
@@ -2840,19 +2840,19 @@
             "tech": "EWIN",
             "comm": "ELC",
             "year": 2030,
-            "value": 19.42768682
+            "value": 19.60126214
           },
           {
             "tech": "EWIN",
             "comm": "ELC",
             "year": 2040,
-            "value": 47.91632844
+            "value": 47.72627954
           },
           {
             "tech": "EWIN",
             "comm": "ELC",
             "year": 2050,
-            "value": 78.95303615
+            "value": 80.20630014
           }
         ]
       },
@@ -2947,21 +2947,21 @@
             "comm": "SOL",
             "region": "W1",
             "year": 2030,
-            "value": 35.82630811
+            "value": 35.65273279
           },
           {
             "tech": "ESOL",
             "comm": "SOL",
             "region": "W1",
             "year": 2040,
-            "value": 41.7407715
+            "value": 41.89397757
           },
           {
             "tech": "ESOL",
             "comm": "SOL",
             "region": "W1",
             "year": 2050,
-            "value": 46.25564481
+            "value": 43.81389895
           },
           {
             "tech": "EWIN",
@@ -2975,21 +2975,21 @@
             "comm": "WIN",
             "region": "W1",
             "year": 2030,
-            "value": 19.42768682
+            "value": 19.60126214
           },
           {
             "tech": "EWIN",
             "comm": "WIN",
             "region": "W1",
             "year": 2040,
-            "value": 47.91632844
+            "value": 47.72627954
           },
           {
             "tech": "EWIN",
             "comm": "WIN",
             "region": "W1",
             "year": 2050,
-            "value": 78.95303615
+            "value": 80.20630014
           }
         ],
         "annual_total": [
@@ -3069,19 +3069,19 @@
             "tech": "ESOL",
             "comm": "SOL",
             "year": 2030,
-            "value": 35.82630811
+            "value": 35.65273279
           },
           {
             "tech": "ESOL",
             "comm": "SOL",
             "year": 2040,
-            "value": 41.7407715
+            "value": 41.89397757
           },
           {
             "tech": "ESOL",
             "comm": "SOL",
             "year": 2050,
-            "value": 46.25564481
+            "value": 43.81389895
           },
           {
             "tech": "EWIN",
@@ -3093,19 +3093,19 @@
             "tech": "EWIN",
             "comm": "WIN",
             "year": 2030,
-            "value": 19.42768682
+            "value": 19.60126214
           },
           {
             "tech": "EWIN",
             "comm": "WIN",
             "year": 2040,
-            "value": 47.91632844
+            "value": 47.72627954
           },
           {
             "tech": "EWIN",
             "comm": "WIN",
             "year": 2050,
-            "value": 78.95303615
+            "value": 80.20630014
           }
         ]
       },
@@ -3123,21 +3123,21 @@
             "comm": "SOL",
             "region": "W1",
             "year": 2030,
-            "value": 35.82630811
+            "value": 35.65273279
           },
           {
             "sup": "RES_SOL",
             "comm": "SOL",
             "region": "W1",
             "year": 2040,
-            "value": 41.7407715
+            "value": 41.89397757
           },
           {
             "sup": "RES_SOL",
             "comm": "SOL",
             "region": "W1",
             "year": 2050,
-            "value": 46.25564481
+            "value": 43.81389895
           },
           {
             "sup": "RES_WIN",
@@ -3151,21 +3151,21 @@
             "comm": "WIN",
             "region": "W1",
             "year": 2030,
-            "value": 19.42768682
+            "value": 19.60126214
           },
           {
             "sup": "RES_WIN",
             "comm": "WIN",
             "region": "W1",
             "year": 2040,
-            "value": 47.91632844
+            "value": 47.72627954
           },
           {
             "sup": "RES_WIN",
             "comm": "WIN",
             "region": "W1",
             "year": 2050,
-            "value": 78.95303615
+            "value": 80.20630014
           },
           {
             "sup": "SUP_BIO",
@@ -3235,19 +3235,19 @@
             "sup": "RES_SOL",
             "comm": "SOL",
             "year": 2030,
-            "value": 35.82630811
+            "value": 35.65273279
           },
           {
             "sup": "RES_SOL",
             "comm": "SOL",
             "year": 2040,
-            "value": 41.7407715
+            "value": 41.89397757
           },
           {
             "sup": "RES_SOL",
             "comm": "SOL",
             "year": 2050,
-            "value": 46.25564481
+            "value": 43.81389895
           },
           {
             "sup": "RES_WIN",
@@ -3259,19 +3259,19 @@
             "sup": "RES_WIN",
             "comm": "WIN",
             "year": 2030,
-            "value": 19.42768682
+            "value": 19.60126214
           },
           {
             "sup": "RES_WIN",
             "comm": "WIN",
             "year": 2040,
-            "value": 47.91632844
+            "value": 47.72627954
           },
           {
             "sup": "RES_WIN",
             "comm": "WIN",
             "year": 2050,
-            "value": 78.95303615
+            "value": 80.20630014
           },
           {
             "sup": "SUP_BIO",
@@ -3425,8 +3425,8 @@
       }
     },
     "captured": {
-      "date": "2026-10-14",
-      "version": "0.90.0.9024",
+      "date": "2026-10-17",
+      "version": "0.90.0.9026",
       "solver": "glpk"
     }
   },
@@ -3604,21 +3604,21 @@
             "comm": "ELC",
             "region": "W1",
             "year": 2030,
-            "value": 37.69468959
+            "value": 37.6703603
           },
           {
             "tech": "ESOL",
             "comm": "ELC",
             "region": "W1",
             "year": 2040,
-            "value": 48.10785384
+            "value": 47.6116053
           },
           {
             "tech": "ESOL",
             "comm": "ELC",
             "region": "W1",
             "year": 2050,
-            "value": 58.47823776
+            "value": 58.63890839
           },
           {
             "tech": "EWIN",
@@ -3632,21 +3632,21 @@
             "comm": "ELC",
             "region": "W1",
             "year": 2030,
-            "value": 3.19937332
+            "value": 3.223702615
           },
           {
             "tech": "EWIN",
             "comm": "ELC",
             "region": "W1",
             "year": 2040,
-            "value": 23.71461312
+            "value": 24.21086166
           },
           {
             "tech": "EWIN",
             "comm": "ELC",
             "region": "W1",
             "year": 2050,
-            "value": 49.43962424
+            "value": 49.27895362
           }
         ],
         "annual_total": [
@@ -3714,19 +3714,19 @@
             "tech": "ESOL",
             "comm": "ELC",
             "year": 2030,
-            "value": 37.69468959
+            "value": 37.6703603
           },
           {
             "tech": "ESOL",
             "comm": "ELC",
             "year": 2040,
-            "value": 48.10785384
+            "value": 47.6116053
           },
           {
             "tech": "ESOL",
             "comm": "ELC",
             "year": 2050,
-            "value": 58.47823776
+            "value": 58.63890839
           },
           {
             "tech": "EWIN",
@@ -3738,19 +3738,19 @@
             "tech": "EWIN",
             "comm": "ELC",
             "year": 2030,
-            "value": 3.19937332
+            "value": 3.223702615
           },
           {
             "tech": "EWIN",
             "comm": "ELC",
             "year": 2040,
-            "value": 23.71461312
+            "value": 24.21086166
           },
           {
             "tech": "EWIN",
             "comm": "ELC",
             "year": 2050,
-            "value": 49.43962424
+            "value": 49.27895362
           }
         ]
       },
@@ -3831,21 +3831,21 @@
             "comm": "SOL",
             "region": "W1",
             "year": 2030,
-            "value": 37.69468959
+            "value": 37.6703603
           },
           {
             "tech": "ESOL",
             "comm": "SOL",
             "region": "W1",
             "year": 2040,
-            "value": 48.10785384
+            "value": 47.6116053
           },
           {
             "tech": "ESOL",
             "comm": "SOL",
             "region": "W1",
             "year": 2050,
-            "value": 58.47823776
+            "value": 58.63890839
           },
           {
             "tech": "EWIN",
@@ -3859,21 +3859,21 @@
             "comm": "WIN",
             "region": "W1",
             "year": 2030,
-            "value": 3.19937332
+            "value": 3.223702615
           },
           {
             "tech": "EWIN",
             "comm": "WIN",
             "region": "W1",
             "year": 2040,
-            "value": 23.71461312
+            "value": 24.21086166
           },
           {
             "tech": "EWIN",
             "comm": "WIN",
             "region": "W1",
             "year": 2050,
-            "value": 49.43962424
+            "value": 49.27895362
           }
         ],
         "annual_total": [
@@ -3941,19 +3941,19 @@
             "tech": "ESOL",
             "comm": "SOL",
             "year": 2030,
-            "value": 37.69468959
+            "value": 37.6703603
           },
           {
             "tech": "ESOL",
             "comm": "SOL",
             "year": 2040,
-            "value": 48.10785384
+            "value": 47.6116053
           },
           {
             "tech": "ESOL",
             "comm": "SOL",
             "year": 2050,
-            "value": 58.47823776
+            "value": 58.63890839
           },
           {
             "tech": "EWIN",
@@ -3965,19 +3965,19 @@
             "tech": "EWIN",
             "comm": "WIN",
             "year": 2030,
-            "value": 3.19937332
+            "value": 3.223702615
           },
           {
             "tech": "EWIN",
             "comm": "WIN",
             "year": 2040,
-            "value": 23.71461312
+            "value": 24.21086166
           },
           {
             "tech": "EWIN",
             "comm": "WIN",
             "year": 2050,
-            "value": 49.43962424
+            "value": 49.27895362
           }
         ]
       },
@@ -3995,21 +3995,21 @@
             "comm": "SOL",
             "region": "W1",
             "year": 2030,
-            "value": 37.69468959
+            "value": 37.6703603
           },
           {
             "sup": "RES_SOL",
             "comm": "SOL",
             "region": "W1",
             "year": 2040,
-            "value": 48.10785384
+            "value": 47.6116053
           },
           {
             "sup": "RES_SOL",
             "comm": "SOL",
             "region": "W1",
             "year": 2050,
-            "value": 58.47823776
+            "value": 58.63890839
           },
           {
             "sup": "RES_WIN",
@@ -4023,21 +4023,21 @@
             "comm": "WIN",
             "region": "W1",
             "year": 2030,
-            "value": 3.19937332
+            "value": 3.223702615
           },
           {
             "sup": "RES_WIN",
             "comm": "WIN",
             "region": "W1",
             "year": 2040,
-            "value": 23.71461312
+            "value": 24.21086166
           },
           {
             "sup": "RES_WIN",
             "comm": "WIN",
             "region": "W1",
             "year": 2050,
-            "value": 49.43962424
+            "value": 49.27895362
           },
           {
             "sup": "SUP_COA",
@@ -4100,19 +4100,19 @@
             "sup": "RES_SOL",
             "comm": "SOL",
             "year": 2030,
-            "value": 37.69468959
+            "value": 37.6703603
           },
           {
             "sup": "RES_SOL",
             "comm": "SOL",
             "year": 2040,
-            "value": 48.10785384
+            "value": 47.6116053
           },
           {
             "sup": "RES_SOL",
             "comm": "SOL",
             "year": 2050,
-            "value": 58.47823776
+            "value": 58.63890839
           },
           {
             "sup": "RES_WIN",
@@ -4124,19 +4124,19 @@
             "sup": "RES_WIN",
             "comm": "WIN",
             "year": 2030,
-            "value": 3.19937332
+            "value": 3.223702615
           },
           {
             "sup": "RES_WIN",
             "comm": "WIN",
             "year": 2040,
-            "value": 23.71461312
+            "value": 24.21086166
           },
           {
             "sup": "RES_WIN",
             "comm": "WIN",
             "year": 2050,
-            "value": 49.43962424
+            "value": 49.27895362
           },
           {
             "sup": "SUP_COA",
@@ -4284,8 +4284,8 @@
       }
     },
     "captured": {
-      "date": "2026-10-14",
-      "version": "0.90.0.9024",
+      "date": "2026-10-17",
+      "version": "0.90.0.9026",
       "solver": "glpk"
     }
   },
@@ -5043,8 +5043,8 @@
       }
     },
     "captured": {
-      "date": "2026-10-14",
-      "version": "0.90.0.9024",
+      "date": "2026-10-17",
+      "version": "0.90.0.9026",
       "solver": "glpk"
     }
   },
@@ -5802,8 +5802,8 @@
       }
     },
     "captured": {
-      "date": "2026-10-14",
-      "version": "0.90.0.9024",
+      "date": "2026-10-17",
+      "version": "0.90.0.9026",
       "solver": "glpk"
     }
   },
@@ -6661,8 +6661,8 @@
       }
     },
     "captured": {
-      "date": "2026-10-14",
-      "version": "0.90.0.9024",
+      "date": "2026-10-17",
+      "version": "0.90.0.9026",
       "solver": "glpk"
     }
   }

@@ -211,6 +211,8 @@ tm_STG_ELC <- newStorage(
   desc = "Electricity storage",
   commodity = "ELC",
   invcost = list(out.invcost = 50),
+  # the reservoir is the anchor: one hour at the discharger's rating
+  duration = 1,
   olife = list(olife = 15)
 )
 
@@ -234,6 +236,8 @@ tm_STG_ELC_aux <- newStorage(
                stg2aout = 0.01)
   ),
   invcost = list(out.invcost = 50),
+  # the reservoir is the anchor: one hour at the discharger's rating
+  duration = 1,
   olife = list(olife = 15)
 )
 
@@ -261,6 +265,8 @@ tm_STG_ELC_weather <- newStorage(
     out.waf.up = 0.8   # -> mStorageWeatherOutAfUp
   ),
   invcost = list(out.invcost = 50),
+  # the reservoir is the anchor: one hour at the discharger's rating
+  duration = 1,
   olife = list(olife = 15)
 )
 

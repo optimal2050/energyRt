@@ -442,7 +442,7 @@ build_unit <- function(regions = .topia_regions[1], calendar = "unit_s4") {
     cap2act = 1, invcost = list(invcost = 1), olife = 1L)
 
   STG_ELC <- newStorage("STG_ELC", commodity = "ELC", olife = 1L, cap2act = 1,
-    invcost = list(out.invcost = 1),
+    invcost = list(out.invcost = 1), duration = 1,
     seff = data.frame(inpeff = 1, outeff = 1))
 
   # self-contained: `newModel(data = kit$SOLAR)` is the storage-bridging model

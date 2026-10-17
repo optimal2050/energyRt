@@ -62,9 +62,9 @@ test_that("storage carries the path on every part", {
   expect_equal(unname(sp_by_year(sol, "vStorageInpStockCap")), c(100, 70, 0))
   # the reservoir is four hours of power, and stays so through the whole path
   expect_equal(unname(sp_by_year(sol, "vStorageStgStockCap")), c(400, 280, 0))
-  # phase-out is a storage-level quantity, rated on the discharging part -- the
+  # phase-out is rated on the reservoir, the storage's anchor capacity -- the
   # same convention as vStoragePhaseOut and the pho2a* coefficients
-  expect_equal(unname(sp_by_year(sol, "vStorageStockPhaseOut")), c(0, 20, 70))
+  expect_equal(unname(sp_by_year(sol, "vStorageStockPhaseOut")), c(0, 80, 280))
 })
 
 test_that("trade carries the path on region-free capacity", {

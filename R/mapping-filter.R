@@ -395,7 +395,8 @@ map_mStorageOutTot <- function(scen, fmp) {
   # Per-part capacity couplings. The optional 4th element names the part's
   # capacity DOMAIN: the coupled variable exists only for materialised parts,
   # so rows outside it must be dropped (a solver would index a variable out
-  # of its domain). The discharger's variable always exists -- no requirement.
+  # of its domain). The reservoir's variable always exists (the anchor); the
+  # discharger, like the charger, only with data.
   mStorageInpCap2AInp  = list("pStorageInpCap2AInp",  "mvStorageAInp", FALSE, "mStorageInpCap"),
   mStorageInpCap2AOut  = list("pStorageInpCap2AOut",  "mvStorageAOut", FALSE, "mStorageInpCap"),
   mStorageInpNCap2AInp = list("pStorageInpNCap2AInp", "mvStorageAInp", FALSE, "mStorageInpCap"),
@@ -404,10 +405,10 @@ map_mStorageOutTot <- function(scen, fmp) {
   mStorageStgCap2AOut  = list("pStorageStgCap2AOut",  "mvStorageAOut", FALSE, "mStorageStgCap"),
   mStorageStgNCap2AInp = list("pStorageStgNCap2AInp", "mvStorageAInp", FALSE, "mStorageStgCap"),
   mStorageStgNCap2AOut = list("pStorageStgNCap2AOut", "mvStorageAOut", FALSE, "mStorageStgCap"),
-  mStorageOutCap2AInp  = list("pStorageOutCap2AInp",  "mvStorageAInp", FALSE),
-  mStorageOutCap2AOut  = list("pStorageOutCap2AOut",  "mvStorageAOut", FALSE),
-  mStorageOutNCap2AInp = list("pStorageOutNCap2AInp", "mvStorageAInp", FALSE),
-  mStorageOutNCap2AOut = list("pStorageOutNCap2AOut", "mvStorageAOut", FALSE),
+  mStorageOutCap2AInp  = list("pStorageOutCap2AInp",  "mvStorageAInp", FALSE, "mStorageOutCap"),
+  mStorageOutCap2AOut  = list("pStorageOutCap2AOut",  "mvStorageAOut", FALSE, "mStorageOutCap"),
+  mStorageOutNCap2AInp = list("pStorageOutNCap2AInp", "mvStorageAInp", FALSE, "mStorageOutNew"),
+  mStorageOutNCap2AOut = list("pStorageOutNCap2AOut", "mvStorageAOut", FALSE, "mStorageOutNew"),
   mTechPho2AInp    = list("pTechPho2AInp",    "mvTechAInp",      FALSE),
   mTechRet2AInp    = list("pTechRet2AInp",    "mvTechAInp",      FALSE),
   mTechPho2AOut    = list("pTechPho2AOut",    "mvTechAOut",      FALSE),

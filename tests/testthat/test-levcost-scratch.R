@@ -45,7 +45,7 @@ test_that("levcost storage/trade mini-solves leave the store untouched", {
     "BAT", commodity = "ELC", region = "R1",
     storage = list(comm = "ELC"),
     invcost = data.frame(stg.invcost = 300),
-    duration = 1, vintage = data.frame(olife = 15L))
+    vintage = data.frame(olife = 15L))
   before <- list.files(scen_root, recursive = TRUE, all.files = TRUE)
   lc <- suppressMessages(suppressWarnings(
     levcost(stg, cycles = 365, price = 10, discount = 0.05,

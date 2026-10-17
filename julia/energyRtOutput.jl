@@ -978,7 +978,7 @@ close(fvStorageStgNewCap);
 
 fvStorageCap = open("output/vStorageOutCap.csv", "w");
 println(fvStorageCap, "stg,region,year,value");
-for (st1, r, y) in mStorageSpan
+for (st1, r, y) in mStorageOutCap
     if JuMP.value(vStorageOutCap[(st1, r, y)]) != 0
         println(
             fvStorageCap,
@@ -996,7 +996,7 @@ close(fvStorageCap);
 
 fvStorageNewCap = open("output/vStorageOutNewCap.csv", "w");
 println(fvStorageNewCap, "stg,region,year,value");
-for (st1, r, y) in mStorageNew
+for (st1, r, y) in mStorageOutNew
     if JuMP.value(vStorageOutNewCap[(st1, r, y)]) != 0
         println(
             fvStorageNewCap,
@@ -1260,7 +1260,7 @@ close(fvTotalUserCosts);
 
 fvStorageOutStockCap = open("output/vStorageOutStockCap.csv", "w");
 println(fvStorageOutStockCap, "stg,region,year,value");
-for (st1, r, y) in mStorageSpan
+for (st1, r, y) in mStorageOutCap
     if JuMP.value(vStorageOutStockCap[(st1, r, y)]) != 0
         println(fvStorageOutStockCap, st1, ",", r, ",", y, ",", JuMP.value(vStorageOutStockCap[(st1, r, y)]))
     end
