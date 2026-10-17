@@ -640,7 +640,7 @@ get_process_groups <- function(x, regions = NULL) {
 #' \dontrun{
 #' ek  <- topia$modules$electricity$R11
 #' mod <- newModel("TOPIA", data = ek$repo,
-#'                 calendar = topia$modules$calendars$topia_seasons,
+#'                 calendar = topia$modules$calendars$s4_h24,
 #'                 region = ek$regions, horizon = topia$modules$horizons$base)
 #'
 #' # how a family's regions group at each k, and the spread left inside the

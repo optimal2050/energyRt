@@ -248,6 +248,7 @@ export(print)
 export(process_cluster_sweep)
 export(process_designer)
 export(process_from_spec)
+export(process_operability)
 export(process_spec_code)
 export(process_spec_issues)
 export(process_to_spec)
@@ -415,144 +416,118 @@ exportMethods(show)
 exportMethods(solve)
 exportMethods(summary)
 exportMethods(update)
-importFrom(data.table,
-  ":=",
-  .BY,
-  .EACHI,
-  .GRP,
-  .I,
-  .N,
-  .NGRP,
-  .SD,
-  as.data.table,
-  data.table,
-  hour,
-  is.data.table,
-  mday,
-  month,
-  rbindlist,
-  setcolorder,
-  yday,
-  year
-)
-importFrom(dplyr,
-  across,
-  add_row,
-  all_of,
-  anti_join,
-  any_of,
-  arrange,
-  bind_rows,
-  c_across,
-  case_when,
-  coalesce,
-  collect,
-  cross_join,
-  distinct,
-  filter,
-  full_join,
-  group_by,
-  if_all,
-  if_else,
-  inner_join,
-  left_join,
-  matches,
-  mutate,
-  n,
-  pull,
-  relocate,
-  rename,
-  right_join,
-  row_number,
-  rows_update,
-  rowwise,
-  select,
-  semi_join,
-  slice_head,
-  summarise,
-  summarize,
-  ungroup
-)
+importFrom(data.table,":=")
+importFrom(data.table,.BY)
+importFrom(data.table,.EACHI)
+importFrom(data.table,.GRP)
+importFrom(data.table,.I)
+importFrom(data.table,.N)
+importFrom(data.table,.NGRP)
+importFrom(data.table,.SD)
+importFrom(data.table,as.data.table)
+importFrom(data.table,data.table)
+importFrom(data.table,hour)
+importFrom(data.table,is.data.table)
+importFrom(data.table,mday)
+importFrom(data.table,month)
+importFrom(data.table,rbindlist)
+importFrom(data.table,setcolorder)
+importFrom(data.table,yday)
+importFrom(data.table,year)
+importFrom(dplyr,across)
+importFrom(dplyr,add_row)
+importFrom(dplyr,all_of)
+importFrom(dplyr,anti_join)
+importFrom(dplyr,any_of)
+importFrom(dplyr,arrange)
+importFrom(dplyr,bind_rows)
+importFrom(dplyr,c_across)
+importFrom(dplyr,case_when)
+importFrom(dplyr,coalesce)
+importFrom(dplyr,collect)
+importFrom(dplyr,cross_join)
+importFrom(dplyr,distinct)
+importFrom(dplyr,filter)
+importFrom(dplyr,full_join)
+importFrom(dplyr,group_by)
+importFrom(dplyr,if_all)
+importFrom(dplyr,if_else)
+importFrom(dplyr,inner_join)
+importFrom(dplyr,left_join)
+importFrom(dplyr,matches)
+importFrom(dplyr,mutate)
+importFrom(dplyr,n)
+importFrom(dplyr,pull)
+importFrom(dplyr,relocate)
+importFrom(dplyr,rename)
+importFrom(dplyr,right_join)
+importFrom(dplyr,row_number)
+importFrom(dplyr,rows_update)
+importFrom(dplyr,rowwise)
+importFrom(dplyr,select)
+importFrom(dplyr,semi_join)
+importFrom(dplyr,slice_head)
+importFrom(dplyr,summarise)
+importFrom(dplyr,summarize)
+importFrom(dplyr,ungroup)
 importFrom(generics,interpolate)
 importFrom(grDevices,rgb)
-importFrom(grid,
-  gpar,
-  unit
-)
-importFrom(lubridate,
-  days,
-  days_in_month,
-  hours,
-  is.timepoint,
-  now,
-  ymd,
-  ymd_h
-)
-importFrom(methods,
-  "slot<-",
-  .hasSlot,
-  as,
-  getClass,
-  getSlots,
-  is,
-  new,
-  slot,
-  slotNames
-)
-importFrom(options,
-  define_option,
-  opt,
-  opt_set,
-  opt_source,
-  set_envvar_name_fn,
-  set_option_name_fn
-)
-importFrom(purrr,
-  list_flatten,
-  reduce
-)
-importFrom(rlang,
-  as_string,
-  ensym,
-  is_empty,
-  is_null
-)
-importFrom(stats,
-  aggregate,
-  end,
-  start
-)
-importFrom(stringr,
-  str_extract,
-  str_replace_all,
-  str_sub
-)
-importFrom(tibble,
-  as_tibble,
-  is_tibble,
-  tibble
-)
-importFrom(tidyr,
-  complete,
-  crossing,
-  drop_na,
-  expand,
-  expand_grid,
-  fill,
-  full_seq,
-  nesting,
-  pivot_longer,
-  pivot_wider,
-  replace_na,
-  unite
-)
-importFrom(utils,
-  capture.output,
-  data,
-  flush.console,
-  head,
-  object.size,
-  read.csv,
-  tail,
-  write.csv
-)
+importFrom(grid,gpar)
+importFrom(grid,unit)
+importFrom(lubridate,days)
+importFrom(lubridate,days_in_month)
+importFrom(lubridate,hours)
+importFrom(lubridate,is.timepoint)
+importFrom(lubridate,now)
+importFrom(lubridate,ymd)
+importFrom(lubridate,ymd_h)
+importFrom(methods,"slot<-")
+importFrom(methods,.hasSlot)
+importFrom(methods,as)
+importFrom(methods,getClass)
+importFrom(methods,getSlots)
+importFrom(methods,is)
+importFrom(methods,new)
+importFrom(methods,slot)
+importFrom(methods,slotNames)
+importFrom(options,define_option)
+importFrom(options,opt)
+importFrom(options,opt_set)
+importFrom(options,opt_source)
+importFrom(options,set_envvar_name_fn)
+importFrom(options,set_option_name_fn)
+importFrom(purrr,list_flatten)
+importFrom(purrr,reduce)
+importFrom(rlang,as_string)
+importFrom(rlang,ensym)
+importFrom(rlang,is_empty)
+importFrom(rlang,is_null)
+importFrom(stats,aggregate)
+importFrom(stats,end)
+importFrom(stats,start)
+importFrom(stringr,str_extract)
+importFrom(stringr,str_replace_all)
+importFrom(stringr,str_sub)
+importFrom(tibble,as_tibble)
+importFrom(tibble,is_tibble)
+importFrom(tibble,tibble)
+importFrom(tidyr,complete)
+importFrom(tidyr,crossing)
+importFrom(tidyr,drop_na)
+importFrom(tidyr,expand)
+importFrom(tidyr,expand_grid)
+importFrom(tidyr,fill)
+importFrom(tidyr,full_seq)
+importFrom(tidyr,nesting)
+importFrom(tidyr,pivot_longer)
+importFrom(tidyr,pivot_wider)
+importFrom(tidyr,replace_na)
+importFrom(tidyr,unite)
+importFrom(utils,capture.output)
+importFrom(utils,data)
+importFrom(utils,flush.console)
+importFrom(utils,head)
+importFrom(utils,object.size)
+importFrom(utils,read.csv)
+importFrom(utils,tail)
+importFrom(utils,write.csv)

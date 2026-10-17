@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.90.0.9026
-Date: 2026-10-16
+Version: 0.90.0.9027
+Date: 2026-10-17
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -123,6 +123,7 @@ Collate:
     'multimod-import.R'
     'neos.R'
     'obj2modInp.R'
+    'operability.R'
     'parent-levels.R'
     'plot_scenario.R'
     'plot_map.R'

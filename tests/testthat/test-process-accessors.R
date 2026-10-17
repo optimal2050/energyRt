@@ -10,7 +10,7 @@
 # =========================================================================== #
 
 pa_scen <- local({
-  mod <- ut_build("R3", calendar = "topia_seasons")
+  mod <- ut_build("R3", calendar = "s4_h24")
   suppressMessages(suppressWarnings(
     interpolate_model(mod, name = "pa_accessors", overwrite = TRUE)))
 })

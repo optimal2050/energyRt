@@ -77,9 +77,14 @@
 #'   discharge, duration and part ratios, supply availability and reserve,
 #'   trade flows and availability, import and export rows. The solution is the
 #'   same; the model has fewer rows before presolve (-25% on an hourly
-#'   full-year VRE model). `FALSE` writes the pairs. On-disk interpolation
-#'   (`ondisk = TRUE`) keeps the pairs. Defaults to
+#'   full-year VRE model). `FALSE` writes the pairs. Defaults to
 #'   `getOption("energyRt.fx_equ", TRUE)`.
+#' @param on_missing_input `"stop"` or `"warn"`: what to do when a process
+#'   with existing capacity (stock, or a lower / fixed capacity bound) is
+#'   declared in a region where one of its input commodities has no source.
+#'   `"stop"` names the cells; `"warn"` drops them, as is always done for
+#'   processes that could only be built new. Defaults to
+#'   `getOption("energyRt.on_missing_input", "stop")`.
 #' @param validate logical; run [validate_scenario_parameters()] after
 #'   interpolation (schema, duplicate keys, map/parameter coverage, missing
 #'   governing constraints, calendar chronology).
@@ -141,6 +146,8 @@ interpolate_model <- function(object, name = NULL, ...,
                        parent_levels = getOption("energyRt.parent_levels",
                                                  FALSE),
                        fx_equ = getOption("energyRt.fx_equ", TRUE),
+                       on_missing_input = getOption("energyRt.on_missing_input",
+                                                    "stop"),
                        verbose = isVerbose()) {
   .log_t0 <- Sys.time()
   .interp_stages_reset()
@@ -159,6 +166,10 @@ interpolate_model <- function(object, name = NULL, ...,
   .fx_prev <- getOption("energyRt.fx_equ", TRUE)
   options(energyRt.fx_equ = isTRUE(fx_equ))
   on.exit(options(energyRt.fx_equ = .fx_prev), add = TRUE)
+  on_missing_input <- match.arg(on_missing_input, c("stop", "warn"))
+  .mi_prev <- getOption("energyRt.on_missing_input", "stop")
+  options(energyRt.on_missing_input = on_missing_input)
+  on.exit(options(energyRt.on_missing_input = .mi_prev), add = TRUE)
   # Accept a scenario (re-interpolate its model), matching the legacy interface.
   if (inherits(object, "scenario")) object <- object@model
   # A model loaded from the store keeps its large slots on disk (thinned).
@@ -481,6 +492,8 @@ interpolate_model <- function(object, name = NULL, ...,
   # simply dropped and the process loses its availability limit.
   .check_declared_objects(scen@model)
   .check_group_members(scen@model)
+  .check_declared_names(scen@model, .declaration_calendar(scen))
+  .check_unused_names(scen@model)
 
   # Costs accrue only in the model's own regions (`mvTotalCost` is built from
   # them, not from the widened set above), and trade costs are borne per
@@ -1001,7 +1014,7 @@ interpolate_model <- function(object, name = NULL, ...,
   # from nothing. Recorded here -- the last point where both the closure
   # (mCommReg) and the span maps exist and the filter recipe has not yet run --
   # and subtracted by the activity domains (region_gaps.R).
-  scen <- .record_region_gaps(scen)
+  scen <- .record_region_gaps(scen, fmp)
 
   #============================================================================#
   # Filter / activity-domain mapping parameters ####

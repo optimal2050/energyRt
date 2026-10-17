@@ -42,7 +42,7 @@
 #'
 #' Only GENERIC calendars are shipped. Calendars belonging to a particular
 #' model travel with it: the TOPIA teaching calendar is
-#' `topia$modules$calendars$topia_seasons`, and the unit kits' symmetric
+#' `topia$modules$calendars$s4_h24`, and the unit kits' symmetric
 #' calendars are `topia$modules$unit$calendars`.
 #'
 #' @format A named list of `calendar` objects:

@@ -175,7 +175,7 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #'
 #' ek  <- topia$modules$electricity$R3
 #' mod <- newModel("TOPIA", data = ek$repo,
-#'                 calendar = topia$modules$calendars$topia_seasons,
+#'                 calendar = topia$modules$calendars$s4_h24,
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
@@ -391,7 +391,7 @@ getData.myopic <- function(object, name = NULL, ..., merge = TRUE) {
 #'
 #' ek  <- topia$modules$electricity$R3
 #' mod <- newModel("TOPIA", data = ek$repo,
-#'                 calendar = topia$modules$calendars$topia_seasons,
+#'                 calendar = topia$modules$calendars$s4_h24,
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)

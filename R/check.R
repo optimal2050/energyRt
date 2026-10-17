@@ -293,8 +293,8 @@ en_check_julia_pkgs <- function(pkgs = c("JuMP", "HiGHS", "Arrow")) {
 #         golden file and no per-backend tolerance. A dozen rows: inside any
 #         demo cap, so this level proves the chain (writer, data exchange,
 #         solver, reader) and nothing about capacity.
-#   full  the R1 electricity kit on `topia_seasons` (~615 variables, ~607
-#         constraints): the size the suite's own fixtures run at, and above the
+#   full  the R1 electricity kit on `s4_h24`, the calendar its data is built
+#         for: the size the suite's own fixtures run at, and above the
 #         classic 300x300 demo cap. Its objective is not hand-computable, so the
 #         level asserts agreement with GLPK on the same model -- the same parity
 #         the cross tier checks, at probe scale.
@@ -333,7 +333,7 @@ en_check_julia_pkgs <- function(pkgs = c("JuMP", "HiGHS", "Arrow")) {
   }
   kit <- topia$modules$electricity$R1
   newModel("EN_PROBE_FULL", data = kit$repo,
-           calendar = topia$modules$calendars$topia_seasons,
+           calendar = topia$modules$calendars$s4_h24,
            region   = kit$regions,
            horizon  = topia$modules$horizons$unit, discount = 0)
 }

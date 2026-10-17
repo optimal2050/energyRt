@@ -33,6 +33,9 @@ params:
   levcost_df:   NULL
   levcost_cmp_plot:    NULL
   levcost_group_plots: NULL
+  operability_df: NULL
+  operability_summary_df: NULL
+  diagnostics_note: NULL
 header-includes:
   - \usepackage{booktabs}
 ---
@@ -79,6 +82,15 @@ tbl(params$size_df, caption = "Problem size")
 
 ```{r en-verify, results='asis', eval=!is.null(params$verify_df)}
 tbl(params$verify_df, caption = "Solution checks (verify_solution)")
+```
+
+```{r en-operability, results='asis', eval=!is.null(params$operability_df) || !is.null(params$diagnostics_note)}
+cat("### Processes that cannot operate\n\n")
+if (!is.null(params$diagnostics_note)) cat(params$diagnostics_note, "\n\n")
+if (!is.null(params$operability_summary_df))
+  tbl(params$operability_summary_df, caption = "Processes that cannot operate, by reason")
+if (!is.null(params$operability_df))
+  tbl(params$operability_df, caption = "Where and when", max_rows = 60)
 ```
 
 ```{r en-runs-header, results='asis', eval=!is.null(params$runs_df) && nrow(params$runs_df) > 0}

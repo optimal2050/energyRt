@@ -647,7 +647,7 @@ create_link_log_entry <- function(multimod_name, scenario_name, type, status,
 #' \dontrun{
 #' ek   <- topia$modules$electricity$R3
 #' mod  <- newModel("TOPIA", data = ek$repo,
-#'                  calendar = topia$modules$calendars$topia_seasons,
+#'                  calendar = topia$modules$calendars$s4_h24,
 #'                  region = ek$regions, horizon = topia$modules$horizons$base)
 #' scen <- interpolate_model(mod, name = "BASE")
 #'
@@ -1291,7 +1291,7 @@ print_import_summary <- function(import_log) {
 #' \dontrun{
 #' ek   <- topia$modules$electricity$R3
 #' mod  <- newModel("TOPIA", data = ek$repo,
-#'                  calendar = topia$modules$calendars$topia_seasons,
+#'                  calendar = topia$modules$calendars$s4_h24,
 #'                  region = ek$regions, horizon = topia$modules$horizons$base)
 #' scen <- interpolate_model(mod, name = "BASE")
 #'
@@ -1318,7 +1318,7 @@ multimod_import_log <- function(model) {
 #' \dontrun{
 #' ek   <- topia$modules$electricity$R3
 #' mod  <- newModel("TOPIA", data = ek$repo,
-#'                  calendar = topia$modules$calendars$topia_seasons,
+#'                  calendar = topia$modules$calendars$s4_h24,
 #'                  region = ek$regions, horizon = topia$modules$horizons$base)
 #' scen <- interpolate_model(mod, name = "BASE")
 #'

@@ -650,7 +650,7 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
 #' \dontrun{
 #' ek  <- topia$modules$electricity$R3
 #' mod <- newModel("TOPIA", data = ek$repo,
-#'                 calendar = topia$modules$calendars$topia_seasons,
+#'                 calendar = topia$modules$calendars$s4_h24,
 #'                 region = ek$regions, horizon = topia$modules$horizons$base)
 #'
 #' # the priced import/export stubs a sub-territory solve needs at its edge:
@@ -1717,6 +1717,104 @@ get_weather <- function(object) {
   invisible(TRUE)
 }
 
+# Guard: every commodity, timeslice and timeframe an object names must be
+# declared -- a commodity object, a timeslice or timeframe of the model's own
+# calendar (the declaration calendar: a sampled calendar at interpolation keeps
+# only some slices, and the data legitimately names the rest). NA / "" are
+# wildcards. On a sampled calendar (year_fraction < 1) an undeclared timeslice
+# is a warning: the data names the slices left out of the sample. Declared
+# names nobody uses are fine; `.check_unused_names()` warns.
+.check_declared_names <- function(model, cal) {
+  objs <- .model_objects(model)
+  comms <- .nonblank(unlist(lapply(objs, function(o)
+    if (methods::is(o, "commodity")) o@name else character(0))))
+  frames <- if (!is.null(cal)) names(cal@timeframes) else character(0)
+  slices <- if (!is.null(cal)) .nonblank(unlist(cal@timeframes)) else character(0)
+  bad <- list()
+  note <- function(o, what, x) {
+    if (length(x)) bad[[length(bad) + 1L]] <<- data.frame(
+      object = .object_label(o), class = class(o)[1], what = what,
+      name = sort(x), stringsAsFactors = FALSE)
+  }
+  for (o in objs) {
+    used_c <- character(0); used_f <- character(0)
+    for (sn in .instance_slots(o)) {
+      if (identical(sn, "misc")) next
+      v <- methods::slot(o, sn)
+      if (is.data.frame(v)) {
+        for (cc in intersect(c("comm", "acomm"), colnames(v)))
+          used_c <- c(used_c, .nonblank(v[[cc]]))
+      } else if (is.atomic(v) && sn %in% c("commodity", "comm")) {
+        used_c <- c(used_c, .nonblank(v))
+      } else if (is.atomic(v) && identical(sn, "timeframe")) {
+        used_f <- c(used_f, .nonblank(v))
+      }
+    }
+    note(o, "commodity", setdiff(unique(used_c), comms))
+    if (length(frames)) note(o, "timeframe", setdiff(unique(used_f), frames))
+    if (length(slices)) note(o, "timeslice", setdiff(.declared_timeslices(o), slices))
+  }
+  if (!length(bad)) return(invisible(TRUE))
+  bad <- do.call(rbind, bad)
+  # a model built on a sampled calendar (year_fraction < 1) names the slices
+  # outside the sample; their rows are dropped, with a warning
+  sampled <- !is.null(cal) && isTRUE(cal@year_fraction < 1)
+  if (sampled && any(bad$what == "timeslice")) {
+    ts <- bad[bad$what == "timeslice", , drop = FALSE]
+    warning(length(unique(ts$name)), " timeslice(s) named by ",
+            length(unique(ts$object)), " object(s) are outside the sampled ",
+            "calendar \"", cal@name, "\"; their rows are dropped.",
+            call. = FALSE)
+    bad <- bad[bad$what != "timeslice", , drop = FALSE]
+    if (!nrow(bad)) return(invisible(TRUE))
+  }
+  lines <- vapply(split(bad, bad$what), function(d) {
+    by_o <- tapply(d$name, d$object, function(x) paste(unique(x), collapse = ", "))
+    sprintf("  %s: %s", d$what[1],
+            paste(sprintf("%s (in %s)", by_o, names(by_o)), collapse = "; "))
+  }, character(1))
+  stop("The model references undeclared name(s):
+", paste(lines, collapse = "
+"),
+       "
+Declare commodities with `newCommodity()` and add them to the model; ",
+       "timeslices and timeframes must be in the model's calendar.", call. = FALSE)
+}
+
+# Advisory: declared weathers that no object refers to.
+.check_unused_names <- function(model) {
+  objs <- .model_objects(model)
+  decl_c <- character(0); decl_w <- character(0); used <- character(0); used_w <- character(0)
+  for (o in objs) {
+    if (methods::is(o, "commodity")) { decl_c <- c(decl_c, o@name); next }
+    if (methods::is(o, "weather")) { decl_w <- c(decl_w, o@name); next }
+    used_w <- c(used_w, get_weather(o))
+    for (sn in .instance_slots(o)) {
+      v <- methods::slot(o, sn)
+      if (is.data.frame(v)) {
+        for (cc in intersect(c("comm", "acomm"), colnames(v))) used <- c(used, .nonblank(v[[cc]]))
+      } else if (is.atomic(v) && sn %in% c("commodity", "comm")) used <- c(used, .nonblank(v))
+    }
+  }
+  # aggregates and emissions name their members on the commodity itself
+  for (o in objs) if (methods::is(o, "commodity"))
+    used <- c(used, .slot_col(o, "agg", "comm"), .slot_col(o, "emis", "comm"))
+  # (unused commodities are reported by the closure step)
+  uw <- setdiff(decl_w, used_w)
+  if (length(uw)) warning("Declared but unused weather object", if (length(uw) > 1) "s: " else ": ",
+                          paste(sort(uw), collapse = ", "), call. = FALSE)
+  invisible(TRUE)
+}
+
+.model_objects <- function(model) {
+  out <- list()
+  for (rp in model@data) {
+    objs <- if (methods::is(rp, "repository")) rp@data else list(rp)
+    out <- c(out, unname(objs))
+  }
+  out
+}
+
 .slot_col <- function(o, slot, col) {
   v <- tryCatch(methods::slot(o, slot), error = function(e) NULL)
   if (!is.data.frame(v) || !col %in% colnames(v)) return(character(0))
@@ -2050,10 +2148,29 @@ NULL
 # Record the gaps on the scenario and report them once. Called from the closure
 # recipe, after `mCommReg` exists; `map_mvTechAct()` / `.filter_storage_act()`
 # subtract what it records.
-.record_region_gaps <- function(scen) {
+.record_region_gaps <- function(scen, fmp = function(x) NULL) {
   g <- .process_region_gaps(scen)
   scen@misc$region_gaps <- g
   if (is.null(g)) return(scen)
+  # a cell with existing capacity is capacity that cannot run: stop, unless
+  # the caller asked for the drop
+  ex <- .gap_existing(scen, g)
+  if (any(ex) && identical(getOption("energyRt.on_missing_input", "stop"), "stop")) {
+    e <- g[ex, , drop = FALSE]
+    stop(
+      nrow(e), " process-region cell", if (nrow(e) > 1) "s have" else " has",
+      " existing capacity but no source for a required input:
+   ",
+      paste(utils::capture.output(print(utils::head(e, 20), row.names = FALSE)),
+            collapse = "
+   "),
+      if (nrow(e) > 20) paste0("
+   ... and ", nrow(e) - 20, " more"),
+      "
+Declare the missing supply/import/trade, remove the capacity, or ",
+      "interpolate with `on_missing_input = \"warn\"` to drop these cells.",
+      call. = FALSE)
+  }
   n <- nrow(g)
   head_n <- utils::head(g, 10)
   warning(
@@ -2068,7 +2185,45 @@ NULL
     "missing supply/import/trade, or narrow the process `@region`.",
     call. = FALSE
   )
+  # the variable-cost maps (built before the gaps) sum the activity of the cell:
+  # a dropped cell has none
+  for (m in list(c("mTechVarom", "tech", "technology"), c("mStorageVarom", "stg", "storage"))) {
+    d <- .gds(scen, m[1])
+    if (is.null(d)) next
+    kept <- .drop_region_gaps(scen, d, m[2], m[3])
+    if (nrow(kept) < nrow(d)) scen <- .map_replace(scen, m[1], kept, fmp)
+  }
   scen
+}
+
+# TRUE for gap cells whose process has existing capacity in that region: a
+# positive stock, or a positive lower / fixed capacity bound (any part of a
+# storage). Region NA in a folded parameter is a wildcard.
+.gap_existing <- function(scen, g) {
+  pos <- function(pars, key, cls) {
+    out <- list()
+    for (p in pars) {
+      d <- .gds(scen, p)
+      if (is.null(d) || !nrow(d) || !key %in% colnames(d)) next
+      if ("type" %in% colnames(d)) d <- d[as.character(d$type) %in% c("lo", "fx"), , drop = FALSE]
+      d <- d[!is.na(d$value) & d$value > 0, , drop = FALSE]
+      if (!nrow(d)) next
+      out[[length(out) + 1L]] <- data.frame(
+        process = as.character(d[[key]]),
+        region = if ("region" %in% colnames(d)) as.character(d$region) else NA_character_,
+        class = cls, stringsAsFactors = FALSE)
+    }
+    out
+  }
+  ex <- c(pos(c("pTechStock", "pTechCap"), "tech", "technology"),
+          pos(c("pStorageInpStock", "pStorageStgStock", "pStorageOutStock",
+                "pStorageInpCap", "pStorageStgCap", "pStorageOutCap"), "stg", "storage"))
+  if (!length(ex)) return(rep(FALSE, nrow(g)))
+  ex <- unique(do.call(rbind, ex))
+  vapply(seq_len(nrow(g)), function(i) {
+    m <- ex$process == g$process[i] & ex$class == g$class[i]
+    any(m & (is.na(ex$region) | ex$region == g$region[i]))
+  }, logical(1))
 }
 
 # The (key, region) pairs to subtract from an activity domain.

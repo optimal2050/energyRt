@@ -76,6 +76,15 @@
 #'   capacity built per region, and the ex-post levelized cost beside the
 #'   ex-ante one, per variant. \code{scenario} implies its model, which implies
 #'   its geoscale; a \code{model} that is not the scenario's is refused.
+#'   For the \code{model} method, an interpolated scenario (solved or not) of
+#'   the model: its diagnostics -- the processes that cannot operate
+#'   ([process_operability()]) -- are added to the report.
+#' @param interpolate \code{model} method: \code{FALSE} (default) adds no
+#'   diagnostics; \code{TRUE} interpolates the model in memory (nothing is
+#'   saved) and adds the processes that cannot operate and the interpolation's
+#'   warnings; a list passes further arguments to [interpolate_model()], e.g.
+#'   \code{list(calendars$d365_h24_1dpm)}. An interpolation that stops is
+#'   reported in the section instead of failing the report.
 #' @param levcost A \code{levcost} (or \code{levcost_list}) object returned by
 #'   \code{\link{levcost}}, or \code{NULL} (default).  When \code{NULL} and any
 #'   \code{levcost} keyword arguments are passed via \code{...} (e.g.
@@ -155,7 +164,7 @@
 #' # the same object as the model sees it -- prices and calendar from the
 #' # model it belongs to
 #' mod <- newModel("TOPIA", data = ek$repo,
-#'                 calendar = topia$modules$calendars$topia_seasons,
+#'                 calendar = topia$modules$calendars$s4_h24,
 #'                 region = ek$regions, horizon = topia$modules$horizons$base)
 #' report(tech, model = mod)
 #'
@@ -1922,7 +1931,8 @@ Levelized cost section will be omitted.")
 .report_model <- function(object, template, file, format, dots,
                           open = interactive(), reports_path = NULL,
                           force = FALSE, logos = NULL, figure = NULL,
-                          levcost = NULL, cost_unit = NULL, groups = NULL) {
+                          levcost = NULL, cost_unit = NULL, groups = NULL,
+                          interpolate = FALSE, scenario = NULL) {
   is_model <- inherits(object, "model")
   nm   <- if (nzchar(object@name)) object@name else class(object)[1]
 
@@ -1944,6 +1954,10 @@ Levelized cost section will be omitted.")
   params_fn <- function(declared = NULL) {
   want <- function(p) is.null(declared) || p %in% declared
   desc <- tryCatch(object@desc, error = function(e) "")
+
+  # -- diagnostics: an interpolation (in memory, discarded) or a given scenario
+  diag <- if (is_model && (want("operability_df") || want("diagnostics_note")))
+    .report_diagnostics(object, interpolate, scenario) else list()
 
   # -- configuration (model only) ------------------------------------------
   config_df <- NULL
@@ -2222,7 +2236,9 @@ Levelized cost section will be omitted.")
     group_index_df = group_index_df,
     levcost_df = levcost_df, levcost_cmp_plot = levcost_cmp_plot,
     levcost_group_plots = levcost_group_plots,
-    geo_map = geo_map, geo_stack = geo_stack)
+    geo_map = geo_map, geo_stack = geo_stack,
+    operability_df = diag$df, operability_summary_df = diag$summary,
+    diagnostics_note = diag$note)
   }
 
   tmpl <- template %||% .report_misc_template(object) %||% "model"
@@ -2232,7 +2248,64 @@ Levelized cost section will be omitted.")
                  engine = if (is_model) "report/model" else "report/repository",
                  key_args = c(.branding_key(logos_r, figure_r),
                               list(report_groups =
-                                     .report_groups_key(object, groups))))
+                                     .report_groups_key(object, groups),
+                                   diagnostics = .report_diag_key(interpolate,
+                                                                  scenario))))
+}
+
+# Diagnostic tables of the model report: the processes that cannot operate
+# (process_operability()) on an interpolated copy of the model -- in memory,
+# never saved -- or on a scenario the caller passes. An interpolation that
+# stops is reported, not raised: the rest of the report still renders.
+.report_diagnostics <- function(object, interpolate = FALSE, scenario = NULL) {
+  scen <- scenario
+  warn <- character(0)
+  if (is.null(scen) && !isFALSE(interpolate)) {
+    args <- if (is.list(interpolate)) interpolate else list()
+    scen <- tryCatch(withCallingHandlers(
+      suppressMessages(do.call(interpolate_model, c(
+        list(object, name = paste0(object@name, "_report_check"),
+             ondisk = FALSE), args))),
+      warning = function(w) {
+        warn <<- c(warn, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }),
+      error = function(e) e)
+  }
+  if (is.null(scen)) return(list())
+  if (inherits(scen, "error")) {
+    return(list(note = paste0("Interpolation stopped: ",
+                              conditionMessage(scen))))
+  }
+  .report_operability(scen, warn)
+}
+
+.report_operability <- function(scen, warn = character(0)) {
+  op <- tryCatch(process_operability(scen), error = function(e) e)
+  if (inherits(op, "error")) {
+    return(list(note = paste("The operability check failed:",
+                             conditionMessage(op))))
+  }
+  note <- if (!nrow(op)) "Every declared process can operate." else NULL
+  if (length(warn)) {
+    note <- c(note, paste0("Interpolation warnings: ",
+                           paste(unique(gsub("\\s+", " ", warn)),
+                                 collapse = " | ")))
+  }
+  summary <- if (nrow(op)) {
+    sm <- stats::aggregate(process ~ kind + reason, op,
+                           function(x) length(unique(x)))
+    names(sm)[3] <- "processes"
+    sm
+  }
+  list(df = if (nrow(op)) op, summary = summary,
+       note = if (length(note)) paste(note, collapse = "\n\n"))
+}
+
+.report_diag_key <- function(interpolate, scenario) {
+  if (!is.null(scenario)) return(paste0("scenario:", scenario@name))
+  if (isFALSE(interpolate)) return(NULL)
+  "interpolate"
 }
 
 .report_scenario <- function(scen, template, file, format, dots,
@@ -2603,6 +2676,9 @@ Levelized cost section will be omitted.")
     }
   }, error = function(e) NULL) else NULL
 
+  diag <- if (want("operability_df") || want("diagnostics_note"))
+    .report_operability(scen) else list()
+
   desc <- tryCatch(scen@desc, error = function(e) "")
   if (is.null(desc) || length(desc) == 0) desc <- ""
   list(
@@ -2626,7 +2702,9 @@ Levelized cost section will be omitted.")
     costs_plot = costs_plot,
     variants_df = variants_df, levcost_df = levcost_df,
     levcost_cmp_plot = levcost_cmp_plot,
-    levcost_group_plots = levcost_group_plots)
+    levcost_group_plots = levcost_group_plots,
+    operability_df = diag$df, operability_summary_df = diag$summary,
+    diagnostics_note = diag$note)
   }
 
   tmpl <- template %||% .report_misc_template(scen) %||% "scenario"
@@ -2665,7 +2743,8 @@ setMethod("report", "model",
   function(object, template = NULL, image_file = NULL, file = NULL,
            format = c("html", "pdf", "tex", "docx"), levcost = NULL, cost_unit = NULL,
            open = interactive(), reports_path = NULL, force = FALSE,
-           logos = NULL, figure = NULL, groups = NULL, ...) {
+           logos = NULL, figure = NULL, groups = NULL,
+           interpolate = FALSE, scenario = NULL, ...) {
     if (missing(format)) format <- "html"
     dots <- list(...); name <- dots[["name"]]; dots[["name"]] <- NULL
     if (is.null(name)) {
@@ -2673,7 +2752,8 @@ setMethod("report", "model",
                            reports_path = reports_path, force = force,
                            logos = logos, figure = figure,
                            levcost = levcost, cost_unit = cost_unit,
-                           groups = groups))
+                           groups = groups, interpolate = interpolate,
+                           scenario = scenario))
     }
     .report_container(object, object, object, template, image_file, file, format,
                       levcost, cost_unit, name, dots, open = open,
@@ -2745,7 +2825,7 @@ setMethod("report_pdf", "ANY", function(object, ...) {
 #' # a scenario's report covers results, where an object's covers assumptions
 #' ek   <- topia$modules$electricity$R3
 #' mod  <- newModel("TOPIA", data = ek$repo,
-#'                  calendar = topia$modules$calendars$topia_seasons,
+#'                  calendar = topia$modules$calendars$s4_h24,
 #'                  region = ek$regions, horizon = topia$modules$horizons$base)
 #' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
 #' report_html(scen)
