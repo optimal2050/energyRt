@@ -659,19 +659,35 @@ map_meqTechAfFx     <- function(scen, fmp) scen
 }
 
 # value of a `bounds` parameter (`type`/`value` columns) of side `type` at each
-# row of `cells`; a whole-column folded (all-NA) dimension matches every row,
-# a missing row reads as the default `def`
+# row of `cells`. The parameter may still be folded: an NA in a key column of a
+# source row is a wildcard for that row (all members), whether the whole column
+# is NA or only some rows. The most specific matching row wins (fewest
+# wildcards), as when the writers expand them; a cell no row matches reads as
+# the default `def`.
 .bound_at <- function(src, cells, type, def) {
   n <- nrow(cells)
-  if (is.null(src) || nrow(src) == 0) return(rep(def, n))
-  s <- src[as.character(src$type) == type, , drop = FALSE]
-  if (nrow(s) == 0) return(rep(def, n))
-  by <- intersect(colnames(cells), setdiff(colnames(s), c("type", "value")))
-  by <- by[!vapply(by, function(d) all(is.na(s[[d]])), logical(1))]
-  if (length(by) == 0) return(rep(s$value[1], n))
-  ks <- do.call(paste, c(lapply(s[by], as.character), sep = "\r"))
-  kc <- do.call(paste, c(lapply(cells[by], as.character), sep = "\r"))
-  v <- s$value[match(kc, ks)]
+  v <- rep(NA_real_, n)
+  if (!is.null(src) && nrow(src) > 0) {
+    s <- src[as.character(src$type) == type, , drop = FALSE]
+    by <- intersect(colnames(cells), setdiff(colnames(s), c("type", "value")))
+    if (nrow(s) > 0 && length(by) == 0) v[] <- s$value[1]
+    if (nrow(s) > 0 && length(by) > 0) {
+      wild <- is.na(as.matrix(s[by]))
+      pat <- apply(wild, 1, function(r) paste(as.integer(r), collapse = ""))
+      # patterns in order of specificity: fewest wildcard columns first
+      ord <- unique(pat[order(rowSums(wild))])
+      for (p in ord) {
+        if (!anyNA(v) ) break
+        k <- by[strsplit(p, "")[[1]] == "0"]
+        sp <- s[pat == p, , drop = FALSE]
+        todo <- which(is.na(v))
+        if (length(k) == 0) { v[todo] <- sp$value[1]; next }
+        ks <- do.call(paste, c(lapply(sp[k], as.character), sep = "\r"))
+        kc <- do.call(paste, c(lapply(cells[todo, k, drop = FALSE], as.character), sep = "\r"))
+        v[todo] <- sp$value[match(kc, ks)]
+      }
+    }
+  }
   v[is.na(v)] <- def
   v
 }
