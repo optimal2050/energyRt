@@ -243,8 +243,11 @@ set_hf_token <- function(token = NULL) {
     "pip install -q --no-cache-dir cuopt-cu12",
     # cuopt_cli dispatches on the extension and reads .gz directly, so the
     # matrix is never unpacked inside the container.
+    # GPU memory sampled every second during the solve; the peak goes to the log
+    "(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits -l 1 > /tmp/vram.log 2>/dev/null &) || true",
     paste("cuopt_cli /job/model.mps.gz --solution-file /out/model.sol",
           paste(opts, collapse = " ")),
+    "echo VRAM_PEAK_MIB $(sort -n /tmp/vram.log 2>/dev/null | tail -1)",
     "ls -l /out")
 }
 

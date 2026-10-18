@@ -194,6 +194,8 @@ test_that("a failed on-disk read is distinguishable from absent data", {
 })
 
 test_that("a loaded scenario's slots stay on disk, and getData() still reads", {
+  # every table to its own file, whatever its size: this tests the on-disk layout
+  withr::local_options(energyRt.ondisk_min_rows = 0)
   # Documented on load_scenario(): @slot reads come back EMPTY on a loaded
   # scenario while getData() works. Pinned here because the symptom is an
   # empty table rather than an error, which is how it reached a report.

@@ -249,6 +249,8 @@ test_that("a saved scenario carries the machine before stripping", {
 })
 
 test_that("a cleaned copy has no paths, command line or provenance", {
+  # every table to its own file, whatever its size: this tests the on-disk layout
+  withr::local_options(energyRt.ondisk_min_rows = 0)
   skip_if_no_solver()
   root <- su_local("copy")
   s <- su_scen("su_copy")

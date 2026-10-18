@@ -155,7 +155,11 @@ changes* first. The change-by-change log for the whole cycle (450 entries) is in
   well as `region` and `timeslice`, and logs its per-stage timings. The
   technology group and share maps are built once per run rather than once per
   map, and the object loop no longer slows down with the number of objects:
-  a 48-country model interpolates in about 28 minutes instead of 48.
+  a model of 21,000 objects interpolates in about 20 minutes instead of 48.
+* `save_scenario()` and `save_model()` keep tables below
+  `getOption("energyRt.ondisk_min_rows", 1e5)` rows in the object's `.RData`
+  instead of writing a file for each; saving a model of many small objects no
+  longer takes tens of minutes.
 * The `mm` route keeps folded numeric parameters folded when the installed
   multimod looks wildcards up itself, instead of expanding them on import.
 * Remote solving: the NEOS server for GAMS/CPLEX without a local licence, and

@@ -329,7 +329,8 @@ save_model <- function(
 
   dir.create(path, recursive = TRUE, showWarnings = FALSE)
   # thin the big data slots into parquet next to the manifest
-  object <- obj2disk(object, path = path, format = format, verbose = verbose)
+  object <- obj2disk(object, path = path, format = format, verbose = verbose,
+                     min_rows = getOption("energyRt.ondisk_min_rows", 1e5))
   object@misc$hash <- h
   # obj2disk records the path only when it wrote data slots; with everything
   # referenced there is nothing to write, so record it explicitly

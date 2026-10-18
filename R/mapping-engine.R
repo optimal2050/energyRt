@@ -1544,7 +1544,10 @@ recipe_value <- function(scen, names, fmp) {
   }
 
   # Activity index maps.
-  out <- put(out, "meqTechActSng", lift(techSingOut))
+  # the output domain lifted once (ActSng and Sng2Sng both use it); the input
+  # domain `techSingInp` is lifted above already, and lifting is idempotent
+  techSingOutL <- lift(techSingOut)
+  out <- put(out, "meqTechActSng", techSingOutL)
   if (!is.null(mTechOutGroup) && !is.null(mvTechAct)) {
     out <- put(out, "meqTechActGrp",
                    as.data.frame(merge0(mvTechAct, mTechOutGroup)))
@@ -1562,7 +1565,7 @@ recipe_value <- function(scen, names, fmp) {
   if (!is.null(techSingInp) && !is.null(techSingOut)) {
     out <- put(out, "meqTechSng2Sng",
                    as.data.frame(merge0(
-                     lift(techSingInp), lift(techSingOut),
+                     techSingInp, techSingOutL,
                      by = c("tech", "region", "year", "timeslice"),
                      suffixes = c("", ".1"))))
   }

@@ -275,7 +275,8 @@ save_scenario <- function(
       object,
       path = object@path,
       format = format,
-      verbose = verbose
+      verbose = verbose,
+      min_rows = getOption("energyRt.ondisk_min_rows", 1e5)
     )
     if (!is.null(mi)) {
       object@modInp <- obj2disk(
@@ -491,7 +492,14 @@ obj2disk <- function(
     save_not_S4 = FALSE,
     force_save = FALSE,
     verbose = FALSE,
-    delay = 0) {
+    delay = 0,
+    min_rows = 0L) {
+  # `min_rows`: a table with fewer rows stays in the object (and so in its
+  # .RData) instead of getting a file of its own. Writing one small file per
+  # slot of every model object is what made saving a large model take half an
+  # hour; save_scenario() and save_model() pass
+  # getOption("energyRt.ondisk_min_rows"). The default 0 keeps every non-empty
+  # table on disk, which callers that empty the slot afterwards rely on.
   Sys.sleep(delay)
   # identifies which slots of S4 obj are savable,
   # proceeds with saving and wiping the saved slots with marks in @misc
@@ -522,7 +530,8 @@ obj2disk <- function(
           slot(obj, s),
           path = fp(path, s),
           format = format,
-          verbose = verbose
+          verbose = verbose,
+          min_rows = min_rows
         )
         if (isOnDisk(slot(obj, s))) isSaved <- TRUE
       } else if (inherits(slot(obj, s), "list")) {
@@ -558,16 +567,17 @@ obj2disk <- function(
               path = fp(path, s, i),
               save_not_S4 = TRUE,
               format = format,
-              verbose = verbose
+              verbose = verbose,
+              min_rows = min_rows
             )
             # if (inherits(obj, "weather")) browser()
             if (isOnDisk(slot(obj, s)[[i]])) isSaved <- TRUE
           } else { # call data2disk for not S4 elements
             # if (i == "vObjective") browser()
             if (any(obj@misc$onDisk[[s]][[i]]$class %in% "data.frame")) {
-              save_i <- obj@misc$onDisk[[s]][[i]]$dim[1] > 0
+              save_i <- obj@misc$onDisk[[s]][[i]]$dim[1] >= max(1L, min_rows)
             } else {
-              save_i <- obj@misc$onDisk[[s]][[i]]$length > 0
+              save_i <- obj@misc$onDisk[[s]][[i]]$length >= max(1L, min_rows)
             }
             if (isTRUE(save_i)) {
               xs <- data2disk(
@@ -590,9 +600,9 @@ obj2disk <- function(
         # save dim_list
       } else { # obj@s slot is not S4
         if (any(obj@misc$onDisk[[s]]$class %in% "data.frame")) {
-          save_i <- obj@misc$onDisk[[s]]$dim[1] > 0
+          save_i <- obj@misc$onDisk[[s]]$dim[1] >= max(1L, min_rows)
         } else {
-          save_i <- obj@misc$onDisk[[s]]$length > 0
+          save_i <- obj@misc$onDisk[[s]]$length >= max(1L, min_rows)
         }
         if (isTRUE(save_i)) {
           xs <- data2disk(
@@ -610,7 +620,7 @@ obj2disk <- function(
         }
       }
     }
-  } else if (save_not_S4) {
+  } else if (save_not_S4 && NROW(obj) >= max(1L, min_rows)) {
     x <- data2disk(
       obj = obj,
       path = fp(path),

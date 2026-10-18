@@ -672,8 +672,9 @@ map_meqTechAfFx     <- function(scen, fmp) scen
     by <- intersect(colnames(cells), setdiff(colnames(s), c("type", "value")))
     if (nrow(s) > 0 && length(by) == 0) v[] <- s$value[1]
     if (nrow(s) > 0 && length(by) > 0) {
-      wild <- is.na(as.matrix(s[by]))
-      pat <- apply(wild, 1, function(r) paste(as.integer(r), collapse = ""))
+      # per-row wildcard pattern ("0" explicit, "1" NA), built column-wise
+      wild <- do.call(cbind, lapply(by, function(b) is.na(s[[b]])))
+      pat <- do.call(paste0, lapply(seq_along(by), function(j) as.integer(wild[, j])))
       # patterns in order of specificity: fewest wildcard columns first
       ord <- unique(pat[order(rowSums(wild))])
       for (p in ord) {
@@ -682,9 +683,11 @@ map_meqTechAfFx     <- function(scen, fmp) scen
         sp <- s[pat == p, , drop = FALSE]
         todo <- which(is.na(v))
         if (length(k) == 0) { v[todo] <- sp$value[1]; next }
-        ks <- do.call(paste, c(lapply(sp[k], as.character), sep = "\r"))
-        kc <- do.call(paste, c(lapply(cells[todo, k, drop = FALSE], as.character), sep = "\r"))
-        v[todo] <- sp$value[match(kc, ks)]
+        # first matching row, as match() on pasted keys would give
+        spd <- data.table::as.data.table(lapply(sp[k], as.character))
+        data.table::set(spd, j = "value", value = sp$value)
+        cd <- data.table::as.data.table(lapply(cells[todo, k, drop = FALSE], as.character))
+        v[todo] <- spd[cd, on = k, mult = "first"]$value
       }
     }
   }

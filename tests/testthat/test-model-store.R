@@ -186,6 +186,8 @@ test_that("the default stores the model, then references it", {
 })
 
 test_that("re-saving a referenced scenario keeps the reference", {
+  # every table to its own file, whatever its size: this tests the on-disk layout
+  withr::local_options(energyRt.ondisk_min_rows = 0)
   skip_if_no_solver()
   ms_local_store()
   mod <- sp_tech(c(65, 65, 65), optret = FALSE, name = "msagain")

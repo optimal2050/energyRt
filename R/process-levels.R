@@ -68,6 +68,16 @@
 #' @noRd
 .flow_levels <- function(scen, dim = c("timeslice", "region")) {
   dim <- match.arg(dim)
+  # called by several map builders per run on the same, fixed model objects;
+  # memoised per interpolation (`.interp_memo()`), keyed on the object roster,
+  # the declared regions and the calendar's timeframe ranks
+  .interp_memo(paste0("flow_levels:", dim),
+               list(.interp_model_fp(scen), as.character(scen@settings@region),
+                    scen@settings@calendar@timeframe_rank),
+               function() .flow_levels_build(scen, dim))
+}
+
+.flow_levels_build <- function(scen, dim) {
   pc <- get_process_comm(scen)
   if (length(pc) == 0) return(NULL)
   d <- named_list_to_df(pc, col_names = c("process", "comm"))

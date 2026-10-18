@@ -93,7 +93,7 @@ setMethod(
     # order columns
     # data <- .force_year_class_df(data)
     # data <- .force_value_class_df(data)
-    data <- force_cols_classes(data)
+    if (!isTRUE(attr(data, "en_cols_forced"))) data <- force_cols_classes(data)
     data <- select(data, all_of(colnames(obj@data)))
     data <- as.data.table(data)
 
@@ -161,7 +161,7 @@ setMethod(
         key <- .pending_new_key()
         obj@misc[[".pending_key"]] <- key
       }
-      .pending_add(key, unique(data))
+      .pending_add(key, data)
       return(obj)
     }
     data_exist <- get_data_slot(obj, optional = TRUE, dedup = FALSE)
@@ -1747,6 +1747,7 @@ make_data_param <- function(
   # duplicated.data.frame
   .dedup <- function(dat) {
     if (nrow(dat) < 2L) return(dat)
+    if (isTRUE(getOption("en.bulk_param_write", FALSE))) return(dat)
     dat[!duplicated(data.table::as.data.table(dat)), , drop = FALSE]
   }
 
@@ -1807,6 +1808,8 @@ make_data_param <- function(
   # !!! add optional or essential info to metadata and filter NAs for optional
   dat <- .dedup(dat[!is.na(dat$value), , drop = FALSE])
   rownames(dat) <- NULL
+  # classes are already the canonical ones; d2p() need not coerce again
+  attr(dat, "en_cols_forced") <- TRUE
 
   dat
 }

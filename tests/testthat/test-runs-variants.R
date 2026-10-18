@@ -39,6 +39,8 @@ vr_state <- local({
 })
 
 test_that("a variant's solve and problem land under runs/<variant>/", {
+  # every table to its own file, whatever its size: this tests the on-disk layout
+  withr::local_options(energyRt.ondisk_min_rows = 0)
   skip_if_no_solver()
   st <- vr_state()
   expect_identical(st$alt@misc$variant, "low")
