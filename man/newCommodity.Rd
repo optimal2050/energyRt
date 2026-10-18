@@ -11,6 +11,7 @@ newCommodity(
   timeframe = character(),
   geoframe = character(),
   unit = character(),
+  cluster = data.frame(),
   agg = data.frame(),
   emis = data.frame(),
   property = data.frame(),
@@ -32,9 +33,23 @@ newCommodity(
 
 \item{unit}{character. The main unit of the commodity used in the model.}
 
+\item{cluster}{data.frame. Declaration of the commodity's parallel grades. For a commodity a cluster is a RESOURCE TIER: the same substance in grades that must NOT pool, so tier-3 land cannot serve a tier-1 plant.
+Tiers exist because the commodity balance is keyed on \verb{(comm, region, year, timeslice)} and carries no cluster -- every producer of one commodity name writes into the same cell. Declaring tiers here expands the object into one commodity per tier (\code{LAND} tier \code{T3} -> \code{LAND_CLT3}), each with its own balance, and a reference from a clustered process resolves BY CLUSTER NAME. A commodity with no clusters is shared as before, which is why \code{ELC} needs no flag.
+Tiers may differ in DATA, not only in name: \code{emis}, \code{agg} and \code{property} carry a \code{cluster} column, so coal grades can differ in carbon content and heat value. A row with no cluster is shared by every tier, as elsewhere. Declared labels are authoritative -- a label used in a data slot but absent from this declaration is a typo and an error. The declaration is REQUIRED whenever a data slot carries a label: labels are never harvested.
+There is deliberately no \code{region} column: a commodity has no \code{region} slot (only \code{geoframe}), and which tiers exist in a region follows from the processes that reference them.
+
+\describe{
+\item{cluster}{character. Tier label, used in the expanded commodity name.}
+\item{desc}{character. Description of the tier.}
+\item{order}{integer. Reporting order, 1 = the best tier. Without it labels sort alphabetically and "T10" would precede "T2".
+}
+}}
+
 \item{agg}{data.frame. Used to define an aggregation of several commodities into the \code{name} commodity.
 
 \describe{
+\item{cluster}{character. Tier this row applies to, NA for every tier. See the \code{cluster} slot: grades of one commodity differ in exactly this kind of data (carbon content, heat value), so a row may be shared or per tier.
+}
 \item{comm}{character. Name of a commodity being aggregated.}
 \item{unit}{character. Unit of the commodity being aggregated.}
 \item{agg}{numeric. weight of the commodity in the aggregation, must be set for all aggregated commodities.
@@ -44,6 +59,8 @@ newCommodity(
 \item{emis}{data.frame. Emissions factors related to the commodity consumption (if "combustion" parameter of a technology which consumes the commodity is > 0).
 
 \describe{
+\item{cluster}{character. Tier this row applies to, NA for every tier. See the \code{cluster} slot: grades of one commodity differ in exactly this kind of data (carbon content, heat value), so a row may be shared or per tier.
+}
 \item{comm}{character. Name of the emitted commodity.}
 \item{unit}{character. Unit of the emission factor.}
 \item{emis}{numeric. Emission factor, emissions released per unit of the consumed commodity.
@@ -53,6 +70,8 @@ newCommodity(
 \item{property}{data.frame. Physical properties of the commodity -- heating values, density, molar mass, composition. Reference data: it is never written to the model input, but it gives \code{convert()} the physics needed to move between measures of the same commodity (energy, mass, volume, amount). A property whose unit is a ratio of two dimensions, such as \code{lhv} in "GJ/t", acts as a conversion edge between them. Only properties of the commodity itself belong here -- anything whose numerator is a \emph{different} commodity, such as a CO2 emission factor, belongs in \code{emis}. See \code{commodity_properties()} for the recognised names.
 
 \describe{
+\item{cluster}{character. Tier this row applies to, NA for every tier. See the \code{cluster} slot: grades of one commodity differ in exactly this kind of data (carbon content, heat value), so a row may be shared or per tier.
+}
 \item{property}{character. Name of the property, e.g. "lhv", "hhv", "density", "molar_mass", or "frac_C" for an element mass fraction. Unrecognised names are kept with a warning.
 }
 \item{value}{numeric. The value of the property, in \code{unit}. Always the deterministic point estimate -- the mean, mode or best guess; \code{min}, \code{max} and \code{sd} describe uncertainty around it and are never read by \code{convert()}.

@@ -36,6 +36,17 @@ The focus interval is widened to cover the years up to the endpoint, so the
 window's period lengths span the calendar (\code{pPeriodLen} is row-local, so a
 bare row slice would leave the intervening years unweighted).
 }
+\examples{
+h <- topia$modules$horizons$base
+
+# backward guidance: the endpoint first, then each neighbouring pair
+w <- guided_windows(h)
+vapply(w, function(x) x$horizon@name, character(1))
+
+# forward instead, including the base period
+vapply(guided_windows(h, direction = "forward", include_base = TRUE),
+       function(x) x$horizon@name, character(1))
+}
 \seealso{
 \code{\link[=solve_guided]{solve_guided()}}, \code{\link[=horizon_windows]{horizon_windows()}}
 }

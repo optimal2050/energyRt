@@ -90,6 +90,59 @@ multiplier, and a set of sets for which the summand is defined.
 
   list. List of sets for which the summand will be created.
 
+- `timeframe`:
+
+  character. Pins the timeframe level the variable is taken at (e.g.
+  "ANNUAL", "SEASON"): the variable's `timeslice` dimension is
+  restricted to that level's timeslices, so summing them yields the
+  level aggregate without double-counting across levels. `NA` (default)
+  applies no restriction and sums the variable's native timeslices.
+
+- `geoframe`:
+
+  character. The spatial twin of `timeframe`: pins the geoscale level
+  the variable is taken at (e.g. "zone", "nation"), restricting the
+  variable's `region` dimension to that level's regions. `NA` (default)
+  applies no restriction. Requires a geoscale on the model
+  configuration.
+
+- `process_`:
+
+  character. Process filter, as a regular expression over process names
+  (the `_` suffix convention of
+  [`getData()`](https://energyRt.org/reference/getData.md)). Matched
+  against the declared (base) name as well as the realized variant name,
+  so a pattern naming a vintaged process selects all of its variants. A
+  pattern that matches nothing is an error, never a silent zero. Exact
+  names belong in `for.sum`, where a base name expands to its variants.
+
+- `classes`:
+
+  character. Process class filter, e.g. "technology" or "storage":
+  restricts the variable's process dimension to processes of these
+  classes. Spelled `classes` to match the `get_process_*()` family;
+  `class` is a reserved S4 slot name.
+
+- `vintage`:
+
+  character. Vintage filter for vintaged processes. Resolved by joining
+  the variant provenance table, NOT by parsing the mangled variant name
+  – the name separator is configurable, so a pattern over names is not
+  stable.
+
+- `vintage_`:
+
+  character. Vintage filter as a regular expression.
+
+- `cluster`:
+
+  character. Cluster filter for clustered processes, resolved from the
+  variant provenance table in the same way as `vintage`.
+
+- `cluster_`:
+
+  character. Cluster filter as a regular expression.
+
 - `mult`:
 
   data.frame. Multiplying coefficients to the variable for each set in

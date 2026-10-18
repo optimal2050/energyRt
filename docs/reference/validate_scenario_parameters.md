@@ -37,7 +37,7 @@ bounds / map parameters of a scenario and reports any issues. Checks:
 
 ``` r
 validate_scenario_parameters(
-  scen,
+  object,
   fold = TRUE,
   action = c("warn", "stop", "silent")
 )
@@ -45,7 +45,7 @@ validate_scenario_parameters(
 
 ## Arguments
 
-- scen:
+- object:
 
   an interpolated scenario.
 
@@ -70,3 +70,20 @@ Structural findings always stop; `action` governs the advisory ones.
 [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
 runs this automatically (`validate = TRUE`, action `"warn"`); call it
 directly to re-check a scenario or to collect the findings table.
+
+## Examples
+
+``` r
+# \donttest{
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- interpolate_model(mod, name = "EX")
+
+# no rows means every parameter's domain, bounds and defaults agree
+validate_scenario_parameters(scen, action = "silent")
+# }
+```

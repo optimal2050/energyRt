@@ -48,6 +48,16 @@ with the coarsest level at the bottom (\code{"stack"}), or the geometry-free
 \code{geoscales::attach_geometry_geoscale()}) and the \code{sf} package; \code{"icicle"}
 works without either and is the fallback the report templates degrade to.
 }
+\examples{
+gs <- topia$geoscales$squares
+
+# the nesting of a geoscale, without any geometry
+plot_geoscale(gs, type = "icicle")
+plot_geoscale(gs, type = "stack")
+
+# the map itself
+plot_geoscale(gs, type = "map")
+}
 \seealso{
 Other geoscale:
 \code{\link[=check_geoscale_regions]{check_geoscale_regions()}},
@@ -55,6 +65,6 @@ Other geoscale:
 \code{\link[=model_clusters]{model_clusters()}},
 \code{\link[=plot_map]{plot_map()}},
 \code{\link[=process_cluster_sweep]{process_cluster_sweep()}},
-\code{\link{setGeoscale,config-method}}
+\code{\link{setCalendar,config-method}}
 }
 \concept{geoscale}

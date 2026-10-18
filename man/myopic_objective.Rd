@@ -23,3 +23,21 @@ Note the documented under-count relative to perfect foresight: capacity
 carried between steps enters as investment-cost-free stock, so its
 annuities after its building step are not in \code{vTotalCost}.
 }
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+res <- solve_myopic(mod, name = "MYOPIC", solver = solver_options$glpk)
+
+# per-step objectives are discounted to their own base years, so they do
+# not add up; this is the comparable number
+myopic_objective(res)              # undiscounted
+myopic_objective(res, sdr = 0.05)  # discounted to the first milestone
+}
+}

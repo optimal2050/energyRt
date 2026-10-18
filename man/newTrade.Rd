@@ -8,6 +8,7 @@ newTrade(
   name = "",
   desc = "",
   commodity = character(),
+  geoframe = character(),
   routes = data.frame(),
   trade = data.frame(),
   fixom = data.frame(),
@@ -33,6 +34,8 @@ newTrade(
 \item{desc}{character. Description of the trade object.}
 
 \item{commodity}{character. The traded commodity short name.}
+
+\item{geoframe}{character. Optional. The geoscale level this object's regions are expressed at; unset (the default) derives it from the region codes. See \code{technology@geoframe} for the full rule, including the consistency checks it turns on. \code{trade} has no \code{region} slot: the level is the one its ROUTES are expressed at, checked against every \code{src} and \code{dst}. A corridor delivers at \code{dst}, so its level may not be coarser than the traded commodity's -- moving a state-level commodity between nations would have to distribute it among the destination's children, which the balance layer does not do.}
 
 \item{routes}{data.frame. Source and destination regions. For bivariate trade define both directions in separate rows.
 \describe{
@@ -90,7 +93,7 @@ Before 0.85 both columns were summed into a single term that cancelled between \
 \item{cluster}{data.frame. Declaration of the object's parallel sub-lines. For trade a cluster is a LOSS TRANCHE: one segment of a piecewise-linear approximation of the quadratic loss curve, with its own share of the capacity and its own \code{teff}. Real losses go as \code{r * f^2}, so the loss FRACTION rises with loading -- which a single \code{teff} cannot express, since under it a half-loaded and a fully-loaded line lose the same proportion.
 This slot declares WHAT the tranches are; the per-tranche values live in the \code{cluster} column of the variant-varying slots (\code{trade}, \code{capacity}, ...). Build both with \code{lossTranches()} rather than by hand.
 There is deliberately no \code{region} column: a trade object has no \code{region} slot -- its scope comes from the route endpoints -- so a region here could restrict nothing, and its absence rejects the mistake at construction rather than deep inside variant expansion.
-Optional. When empty, tranche labels are harvested from the \code{cluster} columns of the other slots. When populated it is AUTHORITATIVE. The share columns are different levers, not substitutes. \code{cap.share.fx} fixes the ratio of the variants' CAPACITIES in every year: loss tranches need it, because each tranche efficiency is calibrated to its place in the capacity stack and the flow must stay free to fill the cheapest first. \code{act.share.lo/up/fx} bounds a variant share of the family THROUGHPUT instead, which is what stops a clustered family collapsing to its cheapest member once regional borders are aggregated away. Both are optional; a variant with neither sizes and runs freely.
+REQUIRED whenever any other slot carries a \code{cluster} label, and AUTHORITATIVE: a label used in a slot but not declared here is a typo and an error. Labels are never harvested from the data slots -- a misspelling would otherwise become a variant with defaults for everything it does not carry (no cost, no bound). The share columns are different levers, not substitutes. \code{cap.share.fx} fixes the ratio of the variants' CAPACITIES in every year: loss tranches need it, because each tranche efficiency is calibrated to its place in the capacity stack and the flow must stay free to fill the cheapest first. \code{act.share.lo/up/fx} bounds a variant share of the family THROUGHPUT instead, which is what stops a clustered family collapsing to its cheapest member once regional borders are aggregated away. Both are optional; a variant with neither sizes and runs freely.
 
 \describe{
 \item{cluster}{character. Tranche label, used in the expanded object name.}

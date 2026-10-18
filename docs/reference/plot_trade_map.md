@@ -39,7 +39,7 @@ autoplot(object, map = NULL, ...)
 - map:
 
   An `sf`/data.frame with `region`, `x`, `y` and polygon `geometry` or a
-  [`geoscales::Geoscale`](https://optimal2050.github.io/geoscales/r/reference/Geoscale.html)
+  [`geoscales::GeoScale`](https://optimal2050.github.io/geoscales/r/reference/GeoScale.html)
   (e.g. `topia$geoscales$honeycomb`). When `NULL`, the geoscale attached
   to `object` is used. Region polygons need `sf`; without it, only
   centroids and routes are drawn.

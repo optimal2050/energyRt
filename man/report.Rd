@@ -48,6 +48,9 @@ report(
   cost_unit = NULL,
   levcost_peers = NULL,
   open = interactive(),
+  geoscale = NULL,
+  model = NULL,
+  scenario = NULL,
   reports_path = NULL,
   force = FALSE,
   ...
@@ -62,6 +65,9 @@ report(
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
+  geoscale = NULL,
+  model = NULL,
+  scenario = NULL,
   reports_path = NULL,
   force = FALSE,
   ...
@@ -98,6 +104,8 @@ report(
   logos = NULL,
   figure = NULL,
   groups = NULL,
+  interpolate = FALSE,
+  scenario = NULL,
   ...
 )
 
@@ -408,6 +416,24 @@ peers, rendered as a comparison chart. Filled automatically when the
 datasheet is requested from a container (\code{report(mod, name = )});
 rarely passed by hand.}
 
+\item{geoscale}{A \code{geoscales::GeoScale} (\code{technology} /
+\code{storage} methods), giving the report geometry so it can map WHERE
+the process is declared. Nothing about the costs changes.}
+
+\item{model}{The \code{model} the process sits in (\code{technology} /
+\code{storage} methods). The levelized cost is then computed in that
+model's world -- its calendar, horizon, discount and regions -- and the
+model's geoscale supplies the map.}
+
+\item{scenario}{A solved \code{scenario} (\code{technology} /
+\code{storage} methods): the report adds what the solve REALIZED -- the
+capacity built per region, and the ex-post levelized cost beside the
+ex-ante one, per variant. \code{scenario} implies its model, which implies
+its geoscale; a \code{model} that is not the scenario's is refused.
+For the \code{model} method, an interpolated scenario (solved or not) of
+the model: its diagnostics -- the processes that cannot operate
+(\code{\link[=process_operability]{process_operability()}}) -- are added to the report.}
+
 \item{reports_path}{Character.  Redirects the default output directory for
 this call (\code{file =} still wins).}
 
@@ -435,6 +461,13 @@ c("WIN_ON", "^R._win"))}). Defaults to \code{object@misc$report_groups}
 \code{"topology"} groups automatically by structure. Without groups
 the report shows a representative sample of up to 12 processes.
 Processes in no group form a final "Ungrouped" sample.}
+
+\item{interpolate}{\code{model} method: \code{FALSE} (default) adds no
+diagnostics; \code{TRUE} interpolates the model in memory (nothing is
+saved) and adds the processes that cannot operate and the interpolation's
+warnings; a list passes further arguments to \code{\link[=interpolate_model]{interpolate_model()}}, e.g.
+\code{list(calendars$d365_h24_1dpm)}. An interpolation that stops is
+reported in the section instead of failing the report.}
 
 \item{run}{Character or \code{NULL} (\code{scenario} method). The run id to
 report, as listed by \code{\link{scenario_runs}} (\code{"<solve>"} or
@@ -494,6 +527,41 @@ container, \code{report(mod, name = "X")} finds the element of any class
 cost section applies to technology, storage and trade only.
 
 }}
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek  <- topia$modules$electricity$R3
+tech <- ek$ECOA
+
+# an object on its own: its assumptions, and an ex-ante estimate of what it
+# could do
+report(tech)
+
+# the same object as the model sees it -- prices and calendar from the
+# model it belongs to
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions, horizon = topia$modules$horizons$base)
+report(tech, model = mod)
+
+# and as a solved scenario realized it, against that ex-ante estimate
+scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+report(tech, scenario = scen)
+
+# with a map of where it is sited
+report(tech, model = mod, geoscale = topia$geoscales$squares)
+
+# a container reports what the container is about: a model its
+# assumptions, a scenario its results
+report(mod)
+report(scen)
+
+# other formats, and several at once
+report(tech, format = "pdf")
+report(tech, format = c("html", "docx"))
+}
+}
 \seealso{
 \code{\link{levcost}}, \code{\link{report_pdf}},
 \code{\link{report_html}}, \code{\link{report_tex}}

@@ -4,10 +4,10 @@
 \alias{isOnDisk}
 \title{Is object stored on disk?}
 \usage{
-isOnDisk(obj)
+isOnDisk(object)
 }
 \arguments{
-\item{obj}{Object, checks}
+\item{object}{Object, checks}
 }
 \value{
 Logical value, TRUE if object is stored on disk, FALSE if in memory.

@@ -4,10 +4,10 @@
 \alias{get_weather}
 \title{Collect the weather objects an object refers to}
 \usage{
-get_weather(obj)
+get_weather(object)
 }
 \arguments{
-\item{obj}{a model object (S4) such as \code{technology}, \code{storage} or \code{supply}.}
+\item{object}{a model object (S4) such as \code{technology}, \code{storage} or \code{supply}.}
 }
 \value{
 a character vector of weather object names (possibly empty).
@@ -17,6 +17,14 @@ Reflective accessor that walks every slot of an S4 model object (except
 \code{misc}) and gathers the names in any \code{weather} column. A \code{technology},
 \code{storage} or \code{supply} links to a weather profile by name; the profile itself
 is a separate \code{weather} object in the repository.
+}
+\examples{
+# the weather series a process is linked to, read from its own slots
+ek <- topia$modules$electricity$R3
+get_weather(ek$EWIN)
+
+# a process with no weather link reports none
+get_weather(ek$ECOA)
 }
 \seealso{
 Other model:

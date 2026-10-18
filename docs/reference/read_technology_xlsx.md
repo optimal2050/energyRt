@@ -43,3 +43,18 @@ Other technology process:
 [`newTechnology()`](https://energyRt.org/reference/technology.md),
 [`variantSummary()`](https://energyRt.org/reference/variantSummary.md),
 [`write_technology_xlsx()`](https://energyRt.org/reference/write_technology_xlsx.md)
+
+## Examples
+
+``` r
+tech <- topia$modules$electricity$R3$ECOA
+f <- tempfile(fileext = ".xlsx")
+write_technology_xlsx(tech, f)
+
+# a named list of the technologies found in the workbook
+back <- read_technology_xlsx(f)
+names(back)
+#> [1] "ECOA"
+identical(back[[1]]@name, tech@name)
+#> [1] TRUE
+```

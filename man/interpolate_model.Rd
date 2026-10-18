@@ -3,10 +3,11 @@
 \name{interpolate_model}
 \alias{interpolate_model}
 \alias{interpolate,model-method}
+\alias{interpolate}
 \title{Interpolate a model into a solver-ready scenario}
 \usage{
 interpolate_model(
-  mod,
+  object,
   name = NULL,
   ...,
   desc = NULL,
@@ -21,13 +22,15 @@ interpolate_model(
   boundary_prices = NULL,
   .prefilter = FALSE,
   parent_levels = getOption("energyRt.parent_levels", FALSE),
+  fx_equ = getOption("energyRt.fx_equ", TRUE),
+  on_missing_input = getOption("energyRt.on_missing_input", "stop"),
   verbose = isVerbose()
 )
 
 \S4method{interpolate}{model}(object, ...)
 }
 \arguments{
-\item{mod}{a \link{model} object, or a \link{scenario} (its \verb{@model} is re-interpolated).}
+\item{object}{as \code{mod}, for the method dispatched on a scenario.}
 
 \item{name}{character scenario name. If \code{NULL}, a default \verb{scen_<model>} is
 used (with a warning).}
@@ -126,14 +129,31 @@ affected: \code{eqOutTot} / \code{eqInpTot} are written against them.
 Defaults to \code{getOption("energyRt.parent_levels", FALSE)}, so a whole run or
 test suite can be switched in one place.}
 
+\item{fx_equ}{logical; write a bound whose two sides coincide (\code{.fx}, or
+\code{.lo == .up}, with the same weather factors) as one equality row
+(\verb{eq<Family>Fx}) instead of a pair of inequalities (\verb{eq<Family>Lo} +
+\verb{eq<Family>Up}). Applies to every bound family: technology availability
+(\code{af}, \code{afs}, \code{afc}), shares, capacity, new capacity and retirement of
+technologies, storages and trade, storage availability, charge,
+discharge, duration and part ratios, supply availability and reserve,
+trade flows and availability, import and export rows. The solution is the
+same; the model has fewer rows before presolve (-25\% on an hourly
+full-year VRE model). \code{FALSE} writes the pairs. Defaults to
+\code{getOption("energyRt.fx_equ", TRUE)}.}
+
+\item{on_missing_input}{\code{"stop"} or \code{"warn"}: what to do when a process
+with existing capacity (stock, or a lower / fixed capacity bound) is
+declared in a region where one of its input commodities has no source.
+\code{"stop"} names the cells; \code{"warn"} drops them, as is always done for
+processes that could only be built new. Defaults to
+\code{getOption("energyRt.on_missing_input", "stop")}.}
+
 \item{verbose}{logical; print per-step progress. This also governs the
 variant-expansion report -- how many process objects were expanded and how
 many constraints were generated for them. The generated constraints
 themselves are retrievable with \code{getObject(scen, class = "constraint")};
 each carries a readable \code{desc} and, in \code{misc$.variant_source}, the object
 it was derived from.}
-
-\item{object}{as \code{mod}, for the method dispatched on a scenario.}
 }
 \value{
 an interpolated \link{scenario} object.
@@ -145,6 +165,24 @@ lifespan / value / constraint / cost mappings, extracts and interpolates the
 numeric parameters over the milestone years, and (optionally) folds, prunes
 and validates the result. The returned scenario is ready for \code{\link[=solve_model]{solve_model()}} /
 \code{\link[=solve_scenario]{solve_scenario()}}.
+}
+\examples{
+\donttest{
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+
+# build the solver-facing sets and parameters; nothing is solved yet
+scen <- interpolate_model(mod, name = "BASE")
+scen
+
+# `fold = TRUE` substitutes constant parameters into the equations, which
+# shrinks what the backend has to read
+model_size(interpolate_model(mod, name = "FOLDED", fold = TRUE))
+}
 }
 \seealso{
 \code{\link[=solve_model]{solve_model()}}, \code{\link[=solve_scenario]{solve_scenario()}}, the \code{interpolate} S4 method.

@@ -8,15 +8,15 @@ leaves the raw output on disk, and nothing else reads it.
 ## Usage
 
 ``` r
-read_solution(obj, run = NULL, ..., ondisk = !isInMemory(obj))
+read_solution(object, run = NULL, ..., ondisk = !isInMemory(object))
 
 # S4 method for class 'scenario'
-read(obj, run = NULL, ..., ondisk = !isInMemory(obj))
+read(object, run = NULL, ..., ondisk = !isInMemory(object))
 ```
 
 ## Arguments
 
-- obj:
+- object:
 
   scenario object.
 

@@ -5,7 +5,7 @@
 \title{Extract a tidy mix (generation, capacity, fuel) from a solved scenario}
 \usage{
 getMix(
-  scen,
+  object,
   type = c("generation", "capacity", "new_capacity", "fuel"),
   comm = "ELC",
   region = NULL,
@@ -17,7 +17,7 @@ getMix(
 )
 }
 \arguments{
-\item{scen}{a solved \code{scenario} object, or a \strong{named list} of scenarios
+\item{object}{a solved \code{scenario} object, or a \strong{named list} of scenarios
 (results are row-bound with the list names in the \code{scenario} column).}
 
 \item{type}{character: \code{"generation"} (default -- output of \code{comm} by process,

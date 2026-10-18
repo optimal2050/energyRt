@@ -26,7 +26,8 @@ An S4 class to declare a demand in the model
 \item{demand}{numeric. Value of the demand.}
 }}
 
-\item{\code{cluster}}{data.frame. Declaration of the demand's parallel parts. For demand a cluster is a SUB-REGIONAL SHARE: the object carries one total, declared at a coarse region, and each cluster takes a fixed fraction of it in one finer region. Variant expansion mints one \code{dem} set member per cluster and \code{pDemand} is indexed by \code{dem}, so \code{eqDemInp} sums the parts back -- the coarse figure is the AGGREGATE of its children and stays the number you edit.
+\item{\code{cluster}}{data.frame. Declaration of the demand's parallel parts. REQUIRED whenever \code{demand} carries a \code{cluster} label, and authoritative: labels are never harvested from the data slot.
+For demand a cluster is a SUB-REGIONAL SHARE: the object carries one total, declared at a coarse region, and each cluster takes a fixed fraction of it in one finer region. Variant expansion mints one \code{dem} set member per cluster and \code{pDemand} is indexed by \code{dem}, so \code{eqDemInp} sums the parts back -- the coarse figure is the AGGREGATE of its children and stays the number you edit.
 LIMITATION -- only \code{dem.share.fx}, deliberately. A \code{lo}/\code{up} split would need the LP to CHOOSE where load sits inside the region, and nothing indexed by \code{dem} is a variable for such a bound to act on: \code{pDemand} sits on the right-hand side of an equality. There is no \code{cap.share.fx} either (a demand has no capacity) and no \verb{act.share.*} (same reason -- no variable per demand object).
 Shares are fractions of THIS object's total and must sum to 1, so one demand object is one coarse region. Several zones are several demand objects, the same way one \code{lossTranches()} object is one line.
 Note the commodity's own \verb{@geoframe} is a different question: a commodity balanced at the coarse level cannot read region-level demand at all, and declaring both is refused. Split the demand when the commodity stays at the finer level.
@@ -41,6 +42,8 @@ Note the commodity's own \verb{@geoframe} is a different question: a commodity b
 \item{order}{integer. Optional ordering for reporting. Without it labels sort alphabetically and "R10" would precede "R2".
 }
 }}
+
+\item{\code{geoframe}}{character. Optional. The geoscale level this object's regions are expressed at; unset (the default) derives it from the region codes. See \code{technology@geoframe} for the full rule, including the consistency checks it turns on. A demand CONSUMES, so it may sit at a coarser level than the commodity it takes.}
 
 \item{\code{region}}{character. Optional name of region to narrow the specification of the demand in the case of used NAs. Error will be returned if specified regions in \verb{@demand} are not mensioned in the \verb{@region} slot (if the slot is not empty).}
 

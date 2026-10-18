@@ -4,10 +4,10 @@
 \alias{trim_parameters}
 \title{Trim numeric/bounds parameters to the domain of the maps that index them}
 \usage{
-trim_parameters(scen, verbose = FALSE)
+trim_parameters(object, verbose = FALSE)
 }
 \arguments{
-\item{scen}{scenario.}
+\item{object}{scenario.}
 
 \item{verbose}{logical; report per-parameter trim counts.}
 }
@@ -26,4 +26,20 @@ Intended for the unfolded (\code{fold = FALSE}) pipeline, where wildcard (NA)
 dimensions have already been materialised. A parameter is left untouched when
 none of its registered maps is available, to avoid clearing data whose map
 was not built.
+}
+\examples{
+\donttest{
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- interpolate_model(mod, name = "EX")
+
+# drop the approximation context the scenario no longer needs; the
+# parameters themselves are untouched
+model_size(scen)
+model_size(trim_parameters(scen))
+}
 }

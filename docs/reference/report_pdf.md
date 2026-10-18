@@ -33,3 +33,14 @@ report_pdf(object, ...)
 ## Value
 
 Path to the generated `.pdf` file (invisibly).
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+open_project(tempdir())
+
+# needs a LaTeX installation
+report_pdf(topia$modules$electricity$R3$ECOA)
+} # }
+```

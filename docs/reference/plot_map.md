@@ -55,7 +55,7 @@ plot_map(
 - geoscale:
 
   a
-  [`geoscales::Geoscale`](https://optimal2050.github.io/geoscales/r/reference/Geoscale.html),
+  [`geoscales::GeoScale`](https://optimal2050.github.io/geoscales/r/reference/GeoScale.html),
   or `NULL` to use the scenario's.
 
 - palette:
@@ -100,7 +100,7 @@ Other geoscale:
 [`model_clusters()`](https://energyRt.org/reference/model_clusters.md),
 [`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md),
 [`process_cluster_sweep()`](https://energyRt.org/reference/process_cluster_sweep.md),
-[`setGeoscale,config-method`](https://energyRt.org/reference/setGeoscale.md)
+[`setCalendar,config-method`](https://energyRt.org/reference/setGeoscale.md)
 
 ## Examples
 

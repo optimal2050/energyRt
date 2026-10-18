@@ -15,6 +15,7 @@ newExport(
   reserve = data.frame(),
   export = data.frame(),
   cluster = data.frame(),
+  geoframe = character(),
   region = character(),
   misc = list(),
   ...
@@ -123,15 +124,18 @@ update(object, ...)
   column of the other slots. Build both with
   [`asExportCurve()`](https://energyRt.org/reference/supply-curve.md),
   which also computes the prices and checks the direction of the curve.
-  Optional. When empty, step labels are harvested from the `cluster`
-  columns of the other slots. When populated it is AUTHORITATIVE.
-  LIMITATION – there is deliberately no `cap.share.fx` column. A
-  capacity share ties the variants' capacities to fixed proportions, and
-  this class has no capacity variable for the tie to act on. The column
-  is absent rather than present-and-ignored, so the mistake is rejected
-  at construction instead of silently doing nothing. Bound the split
-  with `act.share.lo/up/fx`, which acts on the quantity this class does
-  have, or fix it directly in the per-step bounds. The share columns are
+  REQUIRED whenever any other slot carries a `cluster` label, and
+  AUTHORITATIVE: a label used in a slot but not declared here is a typo
+  and an error. Labels are never harvested from the data slots – a
+  misspelling would otherwise become a variant with defaults for
+  everything it does not carry (no cost, no bound). LIMITATION – there
+  is deliberately no `cap.share.fx` column. A capacity share ties the
+  variants' capacities to fixed proportions, and this class has no
+  capacity variable for the tie to act on. The column is absent rather
+  than present-and-ignored, so the mistake is rejected at construction
+  instead of silently doing nothing. Bound the split with
+  `act.share.lo/up/fx`, which acts on the quantity this class does have,
+  or fix it directly in the per-step bounds. The share columns are
   different levers, not substitutes. `cap.share.fx` fixes the ratio of
   the variants' CAPACITIES in every year: loss tranches need it, because
   each tranche efficiency is calibrated to its place in the capacity
@@ -163,6 +167,14 @@ update(object, ...)
   : integer. Fill order, 1 = the cheapest step (or, for export, the best
     paid). Without it labels sort alphabetically and "S10" would precede
     "S2".
+
+- geoframe:
+
+  character. Optional. The geoscale level this object's regions are
+  expressed at; unset (the default) derives it from the region codes.
+  See `technology@geoframe` for the full rule, including the consistency
+  checks it turns on. An export CONSUMES, so it may sit at a coarser
+  level than the commodity it takes.
 
 - region:
 

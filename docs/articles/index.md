@@ -29,5 +29,6 @@
 - [TOPIA II: running
   scenarios](https://energyRt.org/articles/topia-use.md):
 - [Units](https://energyRt.org/articles/units.md):
+- [Vintages and clusters](https://energyRt.org/articles/variants.md):
 - [Workflow: working with results and
   scenarios](https://energyRt.org/articles/workflow.md):

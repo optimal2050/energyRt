@@ -6,11 +6,18 @@
 \alias{solve,model,character-method}
 \title{Solve a model or an interpolated scenario}
 \usage{
-solve_model(obj, name = NULL, solver = NULL, ondisk = FALSE, fold = FALSE, ...)
+solve_model(
+  object,
+  name = NULL,
+  solver = NULL,
+  ondisk = FALSE,
+  fold = FALSE,
+  ...
+)
 
 solve_scenario(
-  obj,
-  name = obj@name,
+  object,
+  name = object@name,
   solver = NULL,
   solver.dir = NULL,
   transient = FALSE,
@@ -25,7 +32,7 @@ solve_scenario(
 \S4method{solve}{model,character}(a, b, ...)
 }
 \arguments{
-\item{obj}{a model object (\code{solve_model()}) or an interpolated scenario
+\item{object}{a model object (\code{solve_model()}) or an interpolated scenario
 object (\code{solve_scenario()}).}
 
 \item{name}{character name of the scenario to create / return.}
@@ -94,6 +101,26 @@ errors otherwise. Both reuse the write / run / read framework
 (\code{.executeScenario()}); all solver backends (GLPK/GMPL, GAMS, Pyomo, JuMP)
 work unchanged. The transitional names \code{solve_mod()} / \code{solve_scen()} are
 deprecated aliases.
+}
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+
+sum(getData(scen, "vObjective", merge = TRUE)$value)
+
+# or in two steps, which is what you want when the inputs need inspecting
+# before the solver sees them
+scen <- interpolate_model(mod, name = "BASE2")
+scen <- solve_scenario(scen, solver = solver_options$glpk)
+}
 }
 \seealso{
 \code{\link[=interpolate_model]{interpolate_model()}}, \code{\link[=read_solution]{read_solution()}}

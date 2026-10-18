@@ -18,6 +18,7 @@ getScenario(name, ...)
   run = NULL,
   refresh = FALSE,
   verbose = FALSE,
+  model = NULL,
   ...
 )
 
@@ -54,6 +55,12 @@ via \code{\link[=read_solution]{read_solution()}} (the cached copy keeps the def
 current.}
 
 \item{verbose}{logical.}
+
+\item{model}{character, the model a scenario belongs to. A scenario's name
+is a label and may be shared — a 48-country pass can save every scenario
+as \code{"BY25A_F4"}, distinguished only by the model — in which case the name
+alone is refused and this picks one. See the \code{model} column of
+\code{\link[=load_registry]{load_registry()}}.}
 
 \item{scenario}{character, the scenario name to fetch from a registry.}
 

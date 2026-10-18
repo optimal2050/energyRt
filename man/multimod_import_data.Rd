@@ -29,3 +29,22 @@ bounds-style parameters (stored as single objects in energyRt but split
 into *Lo/*Up entries inside multimod models). Creates a detailed import
 log stored in model$misc$data_import_log.
 }
+\examples{
+\dontrun{
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions, horizon = topia$modules$horizons$base)
+scen <- interpolate_model(mod, name = "BASE")
+
+# a model read from its algebra, with empty sets and parameters
+m <- multimod::read_gams("my_model.gms")
+
+# fill them from the scenario
+m <- multimod_import_data(m, scen)
+
+# what matched, and what did not
+multimod_import_log(m)
+multimod_unmatched(m)
+}
+}

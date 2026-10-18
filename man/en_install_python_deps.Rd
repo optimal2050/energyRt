@@ -33,6 +33,15 @@ installs with \code{pip} inside a conda environment, so it cannot supply the CBC
 binary. Install a shell solver separately if you still need one; \code{highspy}
 is part of the default package set.
 }
+\examples{
+\dontrun{
+# create (or top up) the python environment the Pyomo backend uses
+en_install_python_deps()
+
+# a named environment and an explicit solver
+en_install_python_deps(env = "energyRt", solver = "highs")
+}
+}
 \seealso{
 Other solver:
 \code{\link{en_check}},

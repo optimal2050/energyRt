@@ -15,6 +15,7 @@ newSupply(
   reserve = data.frame(),
   supply = data.frame(),
   cluster = data.frame(),
+  geoframe = character(),
   region = character(),
   misc = list(),
   ...
@@ -157,10 +158,13 @@ newSupply(
   and `weather`. Build both with
   [`asSupplyCurve()`](https://energyRt.org/reference/supply-curve.md),
   which also computes the costs and checks that the curve rises.
-  Optional. When empty, labels are harvested from the `cluster` columns
-  of the other slots. When populated it is AUTHORITATIVE. LIMITATION –
-  there is deliberately no `cap.share.fx` column. A capacity share ties
-  the variants' capacities to fixed proportions, and this class has no
+  REQUIRED whenever any other slot carries a `cluster` label, and
+  AUTHORITATIVE: a label used in a slot but not declared here is a typo
+  and an error. Labels are never harvested from the data slots – a
+  misspelling would otherwise become a variant with defaults for
+  everything it does not carry (no cost, no bound). LIMITATION – there
+  is deliberately no `cap.share.fx` column. A capacity share ties the
+  variants' capacities to fixed proportions, and this class has no
   capacity variable for the tie to act on. The column is absent rather
   than present-and-ignored, so the mistake is rejected at construction
   instead of silently doing nothing. Bound the split with
@@ -200,6 +204,14 @@ newSupply(
 
   : integer. Fill order, 1 = the cheapest grade. Without it labels sort
     alphabetically and "S10" would precede "S2".
+
+- geoframe:
+
+  character. Optional. The geoscale level this object's regions are
+  expressed at; unset (the default) derives it from the region codes.
+  See `technology@geoframe` for the full rule, including the consistency
+  checks it turns on. A supply DELIVERS its commodity, so its level may
+  not be coarser than the commodity's balance level.
 
 - region:
 

@@ -106,3 +106,21 @@ silently skipped: the dependents are named and the deletion confirmed one
 entry at a time. A non-interactive session is never prompted — it takes the
 refusal and \code{ignore_refs}, so a scripted sweep cannot hang.
 }
+\examples{
+\dontrun{
+open_project(tempdir())
+
+save_repository(newRepository("my_repo", newCommodity("ELC", unit = "MWh")))
+
+# sealing and marking address the STORED version, by name: a sealed one
+# refuses overwrites and deletion
+seal_repository("my_repo")
+unseal_repository("my_repo")
+
+# marking is the opposite -- flag now, sweep later
+mark_delete("my_repo", type = "repository", importance = 0)
+delete_marked(dry_run = TRUE)      # review what would go
+delete_marked(dry_run = FALSE)
+unmark_delete("my_repo", type = "repository")
+}
+}

@@ -5,7 +5,7 @@
 \title{Impose capacity targets on a model}
 \usage{
 apply_targets(
-  mod,
+  object,
   targets,
   horizon,
   slack = 0.2,
@@ -17,7 +17,7 @@ apply_targets(
 )
 }
 \arguments{
-\item{mod}{a model object.}
+\item{object}{a model object.}
 
 \item{targets}{a \code{capacity_targets} tibble from \code{\link[=solution_targets]{solution_targets()}}.}
 
@@ -59,6 +59,24 @@ reason.
 
 Every imposed value is rounded down, so a target cannot exceed what another
 constraint permits and turn a guide into an infeasibility.
+}
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+
+# steer a second solve toward the first without pinning it
+tg   <- solution_targets(scen)
+mod2 <- apply_targets(mod, tg, horizon = getHorizon(mod), slack = 0.2)
+scen2 <- solve_model(mod2, name = "STEERED", solver = solver_options$glpk)
+}
 }
 \seealso{
 \code{\link[=solution_targets]{solution_targets()}}, \code{\link[=solve_guided]{solve_guided()}}, \code{\link[=apply_ledger]{apply_ledger()}}

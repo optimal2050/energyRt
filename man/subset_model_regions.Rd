@@ -5,14 +5,14 @@
 \title{Restrict a model to a region subset}
 \usage{
 subset_model_regions(
-  mod,
+  object,
   region,
   boundary_prices = NULL,
   verbose = isVerbose()
 )
 }
 \arguments{
-\item{mod}{a \link{model}.}
+\item{object}{a \link{model}.}
 
 \item{region}{character vector of regions to keep (must be a subset of the
 model's declared regions).}
@@ -40,6 +40,25 @@ endpoint. When the model carries a geoscale, it is filtered in step
 \details{
 The same behaviour is available without this verb by passing a
 \code{geoscales::filter_geoscale()} subset to \code{\link[=interpolate_model]{interpolate_model()}}.
+}
+\examples{
+repo <- newRepository(
+  "mini",
+  newCommodity("COA", unit = "MMBtu"),
+  newCommodity("ELC", unit = "MWh", timeframe = "ANNUAL"),
+  newSupply("SUP_COA", commodity = "COA", supply = data.frame(cost = 1)),
+  newTechnology("ECOA", input = list(comm = "COA"), output = list(comm = "ELC"),
+                cap2act = 1, invcost = list(invcost = 100),
+                olife = list(olife = 30)),
+  newDemand("DEM", commodity = "ELC",
+            demand = data.frame(region = c("W1", "W2"), year = 2020, demand = 10))
+)
+mod <- newModel("MINI", data = repo, calendar = calendars$annual,
+                region = c("W1", "W2"), horizon = horizons$Y2020_2060_by_5)
+
+# keep one region; demand, capacity and routes outside it are dropped
+sub <- subset_model_regions(mod, "W1")
+get_region(sub)
 }
 \seealso{
 Other interpolation:

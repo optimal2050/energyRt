@@ -5,7 +5,7 @@
 \title{Sweep a technology family's clusterings, to choose \code{k} by looking}
 \usage{
 process_cluster_sweep(
-  mod,
+  object,
   group,
   ks = NULL,
   geoscale = NULL,
@@ -14,7 +14,7 @@ process_cluster_sweep(
 )
 }
 \arguments{
-\item{mod}{a \code{model}.}
+\item{object}{a \code{model}.}
 
 \item{group}{a process group name, as \code{\link[=get_process_groups]{get_process_groups()}} reports it.}
 
@@ -51,6 +51,22 @@ and whose sizes are not one big cluster and a row of singletons. There is
 deliberately no "best k" here, and none in \code{nestedscales} either -- the
 number depends on what the model is for.
 }
+\examples{
+\dontrun{
+ek  <- topia$modules$electricity$R11
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions, horizon = topia$modules$horizons$base)
+
+# how a family's regions group at each k, and the spread left inside the
+# clusters -- the input to choosing `clusters` for
+# aggregate_model_regions(). The family needs parameters that actually
+# differ by region (site yields, site costs): one value for every region
+# leaves nothing to cluster on.
+process_cluster_sweep(mod, group = "EWIN", ks = 3:6,
+                      geoscale = topia$geoscales$honeycomb, level = "zone")
+}
+}
 \seealso{
 \code{\link[=get_process_groups]{get_process_groups()}}, \code{\link[=aggregate_model_regions]{aggregate_model_regions()}}
 
@@ -60,6 +76,6 @@ Other geoscale:
 \code{\link[=model_clusters]{model_clusters()}},
 \code{\link[=plot_geoscale]{plot_geoscale()}},
 \code{\link[=plot_map]{plot_map()}},
-\code{\link{setGeoscale,config-method}}
+\code{\link{setCalendar,config-method}}
 }
 \concept{geoscale}

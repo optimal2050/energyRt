@@ -2,13 +2,13 @@
 % Please edit documentation in R/class-subsidy.R
 \name{newSubsidy}
 \alias{newSubsidy}
-\alias{newSub}
 \title{Create a new subsidy object}
 \usage{
-newSub(
+newSubsidy(
   name,
   desc = "",
   comm = "",
+  geoframe = character(),
   region = character(),
   process = character(),
   process_ = character(),
@@ -30,6 +30,8 @@ newSub(
 \item{desc}{character. Description of the subsidy object.}
 
 \item{comm}{character. Commodity filter: the commodity or commodities the levy applies to. Empty means every commodity the chosen base reaches.}
+
+\item{geoframe}{character. Optional. The geoscale level this object's regions are expressed at; unset (the default) derives it from the region codes. See \code{technology@geoframe} for the full rule, including the consistency checks it turns on. A levy neither produces nor consumes a commodity, so the declaration is a region-membership check only.}
 
 \item{region}{character. Region filter. Empty means every region; otherwise the levy is restricted to the named regions.}
 

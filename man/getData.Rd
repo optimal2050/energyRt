@@ -21,10 +21,10 @@
 \alias{getData.repository}
 \title{Extract data from energyRt objects}
 \usage{
-getData(scen, ...)
+getData(object, ...)
 
 \method{getData}{scenario}(
-  scen,
+  object,
   name = NULL,
   ...,
   merge = FALSE,
@@ -50,7 +50,7 @@ getData(scen, ...)
   stringsAsFactors = FALSE,
   yearsAsFactors = FALSE,
   drop_duplicated_scenarios = TRUE,
-  scenNameInList = as.logical(length(scen) - 1),
+  scenNameInList = as.logical(length(object) - 1),
   unfold = TRUE,
   variants = TRUE,
   run = NULL,
@@ -58,7 +58,7 @@ getData(scen, ...)
 )
 
 \method{getData}{list}(
-  scen,
+  object,
   name = NULL,
   ...,
   merge = FALSE,
@@ -84,18 +84,18 @@ getData(scen, ...)
   stringsAsFactors = FALSE,
   yearsAsFactors = FALSE,
   drop_duplicated_scenarios = TRUE,
-  scenNameInList = as.logical(length(scen) - 1),
+  scenNameInList = as.logical(length(object) - 1),
   unfold = TRUE,
   variants = TRUE,
   run = NULL,
   verbose = FALSE
 )
 
-\method{getData}{character}(scen, ...)
+\method{getData}{character}(object, ...)
 
-\method{getData}{environment}(scen, ...)
+\method{getData}{environment}(object, ...)
 
-\method{getData}{default}(scen, ...)
+\method{getData}{default}(object, ...)
 
 \method{getData}{technology}(
   obj,
@@ -241,7 +241,8 @@ getData(scen, ...)
 )
 }
 \arguments{
-\item{scen}{Object scenario or list of scenarios.}
+\item{object}{the object whose data is returned, for the per-class methods
+(\code{technology}, \code{commodity}, \code{storage}, ...).}
 
 \item{...}{filters for various sets (setname = c(val1, val2) or setname_ = "matching pattern"), see details.}
 
@@ -321,9 +322,6 @@ their results are not like-for-like. Not to be confused with \code{variants},
 below, which is about technologies.}
 
 \item{verbose}{logical, print progress and diagnostic messages.}
-
-\item{obj}{the object whose data is returned, for the per-class methods
-(\code{technology}, \code{commodity}, \code{storage}, ...).}
 
 \item{interpolate}{if TRUE, expand year-bearing object slots over the target
 years using each parameter's default interpolation rule (for quick

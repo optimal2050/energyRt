@@ -5,12 +5,12 @@ Commodities associated with a processes
 ## Usage
 
 ``` r
-get_process_comm(scen, process = NULL, classes = NULL, return_list = TRUE)
+get_process_comm(object, process = NULL, classes = NULL, return_list = TRUE)
 ```
 
 ## Arguments
 
-- scen:
+- object:
 
   scenario object
 
@@ -30,3 +30,41 @@ get_process_comm(scen, process = NULL, classes = NULL, return_list = TRUE)
 ## Value
 
 a named list, or a data.frame with columns `process` and `comm`.
+
+## Examples
+
+``` r
+# \donttest{
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- interpolate_model(mod, name = "EX")
+
+# every commodity a process touches, whichever side it enters on
+get_process_comm(scen, process = c("ECOA", "STG_ELC"))
+#> $ECOA
+#> [1] "COA" "ELC"
+#> 
+#> $STG_ELC
+#> [1] "ELC"
+#> 
+
+# as a two-column table instead of a list
+head(get_process_comm(scen, classes = "technology", return_list = FALSE), 4)
+#> $EBIO
+#> [1] "BIO" "ELC"
+#> 
+#> $ECOA
+#> [1] "COA" "ELC"
+#> 
+#> $EGAS
+#> [1] "GAS" "ELC"
+#> 
+#> $EHYD
+#> [1] "HYD" "ELC"
+#> 
+# }
+```

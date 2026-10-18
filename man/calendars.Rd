@@ -58,7 +58,7 @@ template for \code{\link[=newCalendar]{newCalendar()}}.
 \details{
 Only GENERIC calendars are shipped. Calendars belonging to a particular
 model travel with it: the TOPIA teaching calendar is
-\code{topia$modules$calendars$topia_seasons}, and the unit kits' symmetric
+\code{topia$modules$calendars$s4_h24}, and the unit kits' symmetric
 calendars are \code{topia$modules$unit$calendars}.
 }
 \examples{

@@ -16,7 +16,7 @@ check_geoscale_regions(geoscale, region, level = NULL)
 - geoscale:
 
   A
-  [`geoscales::Geoscale`](https://optimal2050.github.io/geoscales/r/reference/Geoscale.html).
+  [`geoscales::GeoScale`](https://optimal2050.github.io/geoscales/r/reference/GeoScale.html).
 
 - region:
 
@@ -38,4 +38,13 @@ Other geoscale:
 [`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md),
 [`plot_map()`](https://energyRt.org/reference/plot_map.md),
 [`process_cluster_sweep()`](https://energyRt.org/reference/process_cluster_sweep.md),
-[`setGeoscale,config-method`](https://energyRt.org/reference/setGeoscale.md)
+[`setCalendar,config-method`](https://energyRt.org/reference/setGeoscale.md)
+
+## Examples
+
+``` r
+# returns the declared regions the geoscale cannot place, and warns about them
+gs <- topia$geoscales$squares
+check_geoscale_regions(gs, c("W1", "W2", "C1"))        # all placed: character(0)
+suppressWarnings(check_geoscale_regions(gs, c("W1", "NOWHERE")))
+```

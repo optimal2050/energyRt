@@ -5,7 +5,7 @@
 \title{Solve a model sequentially (myopic foresight)}
 \usage{
 solve_myopic(
-  mod,
+  object,
   name = NULL,
   ...,
   horizon = NULL,
@@ -22,7 +22,7 @@ solve_myopic(
 )
 }
 \arguments{
-\item{mod}{a model.}
+\item{object}{a model.}
 
 \item{name}{character, sequence name (default \code{"<model>_myopic"}); names
 the scenario (or the per-step scenario prefix).}
@@ -80,6 +80,24 @@ Because carried capacity pays no EAC, per-step objective values are not
 comparable to a perfect-foresight objective; the capacity and activity
 PATHS are the meaningful comparison, and \code{\link[=myopic_objective]{myopic_objective()}} recomputes
 a globally discounted total cost over the decided years.
+}
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+
+# one solve per milestone year, each blind to the next, with capacity
+# carried forward
+res <- solve_myopic(mod, name = "MYOPIC", step = 1L,
+                    solver = solver_options$glpk)
+myopic_objective(res, sdr = 0.05)
+}
 }
 \seealso{
 \code{\link[=horizon_windows]{horizon_windows()}}, \code{\link[=solution_ledger]{solution_ledger()}}, \code{\link[=apply_ledger]{apply_ledger()}},

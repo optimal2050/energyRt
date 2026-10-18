@@ -4,10 +4,10 @@
 \alias{isInMemory}
 \title{Is object stored in memory?}
 \usage{
-isInMemory(obj)
+isInMemory(object)
 }
 \arguments{
-\item{obj}{Object, checks}
+\item{object}{Object, checks}
 }
 \value{
 Logical value, TRUE if object is stored in memory, FALSE if on disk.

@@ -6,20 +6,20 @@ Return default value for one, several, or all parameters
 
 ``` r
 get_default_value(
-  scen = NULL,
+  object = NULL,
   pname = NULL,
   sname = NULL,
   oname = NULL,
   class = NULL,
   bound = NULL,
-  global = is.null(scen),
+  global = is.null(object),
   one_value = FALSE
 )
 ```
 
 ## Arguments
 
-- scen:
+- object:
 
   scenario object
 
@@ -63,3 +63,16 @@ get_default_value(
 
 A default value for one parameter, or a list of default values for
 several parameters.
+
+## Examples
+
+``` r
+# the package-wide default and bound of a parameter, without a model
+get_default_value(pname = c("pTechCap", "pTechAf"), global = TRUE)
+#> $pTechAf
+#> [1] 0 1
+#> 
+#> $pTechCap
+#> [1]   0 Inf
+#> 
+```

@@ -77,6 +77,6 @@ Other geoscale:
 \code{\link[=model_clusters]{model_clusters()}},
 \code{\link[=plot_geoscale]{plot_geoscale()}},
 \code{\link[=process_cluster_sweep]{process_cluster_sweep()}},
-\code{\link{setGeoscale,config-method}}
+\code{\link{setCalendar,config-method}}
 }
 \concept{geoscale}

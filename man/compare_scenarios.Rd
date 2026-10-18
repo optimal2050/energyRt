@@ -8,7 +8,7 @@
 \title{Compare solved scenarios (or runs of one scenario)}
 \usage{
 compare_scenarios(
-  scen,
+  object,
   runs = NULL,
   name = NULL,
   base = 1L,
@@ -37,8 +37,7 @@ compare_scenarios(
 \S4method{plot}{scenarios_cmp}(x, y, ...)
 }
 \arguments{
-\item{scen}{a \strong{named} list of solved scenarios, or a single scenario
-when \code{runs} is given.}
+\item{object}{a \code{scenarios_cmp} object.}
 
 \item{runs}{character, run ids of \code{scen} to compare (as listed by
 \code{\link[=scenario_runs]{scenario_runs()}}); each is read into a local copy via
@@ -69,8 +68,6 @@ against the base via \code{\link[=compare_inputs]{compare_inputs()}}.}
 \item{top}{integer, number of top differences to print.}
 
 \item{...}{ignored.}
-
-\item{object}{a \code{scenarios_cmp} object.}
 
 \item{type}{chart type: \code{"objective"} (bars per scenario), one of the
 \code{\link[=getMix]{getMix()}} types (\code{"generation"}, \code{"capacity"}, \code{"new_capacity"},
@@ -112,6 +109,30 @@ Variables default to the role-driven selection the scenario report uses:
 every solved variable the catalogue declares as a cost (minus
 \code{vObjective} / \code{vTotalCost}) plus the key quantity variables
 (\code{vTechCap}, \code{vTechNewCap}, \code{vTechOut}, \code{vEmsFuelTot}) that are present.
+}
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+
+base <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+cap  <- solve_model(add(mod, ek$CO2_CAP), name = "CAP",
+                    solver = solver_options$glpk)
+
+# a NAMED list, the first entry as the baseline
+cmp <- compare_scenarios(list(BASE = base, CAP = cap))
+cmp
+ggplot2::autoplot(cmp, type = "generation", comm = "ELC")
+
+# or several runs of ONE scenario folder, by run id
+compare_scenarios(base, runs = scenario_runs(base)$run)
+}
 }
 \seealso{
 \code{\link[=compare_inputs]{compare_inputs()}}, \code{\link[=compare_models]{compare_models()}}, \code{\link[=getMix]{getMix()}} (which also

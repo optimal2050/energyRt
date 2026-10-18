@@ -26,3 +26,11 @@ Path to the generated \code{.pdf} file (invisibly).
 \description{
 Thin wrapper around \code{\link{report}} that fixes \code{format = "pdf"}.
 }
+\examples{
+\dontrun{
+open_project(tempdir())
+
+# needs a LaTeX installation
+report_pdf(topia$modules$electricity$R3$ECOA)
+}
+}

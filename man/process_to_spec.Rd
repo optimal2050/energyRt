@@ -21,6 +21,17 @@ The reverse of \code{\link[=process_from_spec]{process_from_spec()}}: slot table
 (all-\code{NA} columns and empty tables are omitted; \code{NA} dimension values are
 omitted from rows, i.e. read back as "applies to ALL").
 }
+\examples{
+tech <- topia$modules$electricity$R3$ECOA
+
+# the object as a plain nested list: diffable, editable, writable as YAML
+spec <- process_to_spec(tech)
+names(spec)
+spec$efficiency
+
+# `process_from_spec()` is the way back
+identical(process_from_spec(spec)@name, tech@name)
+}
 \seealso{
 Other process spec:
 \code{\link[=process_from_spec]{process_from_spec()}},

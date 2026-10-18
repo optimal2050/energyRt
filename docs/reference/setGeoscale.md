@@ -8,6 +8,9 @@ the [geoscales](https://github.com/optimal2050/geoscales) package.
 
 ``` r
 # S4 method for class 'config'
+setCalendar(obj, ...)
+
+# S4 method for class 'config'
 setGeoscale(obj, geoscale, ...)
 
 # S4 method for class 'config'
@@ -41,20 +44,20 @@ getCalendar(obj)
 
   A `config`, `settings`, `model` or `scenario`.
 
-- geoscale:
-
-  A
-  [`geoscales::Geoscale`](https://optimal2050.github.io/geoscales/r/reference/Geoscale.html),
-  or `NULL` to clear it.
-
 - ...:
 
   Unused.
 
+- geoscale:
+
+  A
+  [`geoscales::GeoScale`](https://optimal2050.github.io/geoscales/r/reference/GeoScale.html),
+  or `NULL` to clear it.
+
 ## Value
 
 `setGeoscale()` returns the modified object; `getGeoscale()` returns a
-[`geoscales::Geoscale`](https://optimal2050.github.io/geoscales/r/reference/Geoscale.html)
+[`geoscales::GeoScale`](https://optimal2050.github.io/geoscales/r/reference/GeoScale.html)
 or `NULL`.
 
 ## Details

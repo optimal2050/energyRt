@@ -50,11 +50,53 @@ commodities. The creation of a commodity object is done with the
 
   character. The main unit of the commodity used in the model.
 
+- `cluster`:
+
+  data.frame. Declaration of the commodity's parallel grades. For a
+  commodity a cluster is a RESOURCE TIER: the same substance in grades
+  that must NOT pool, so tier-3 land cannot serve a tier-1 plant. Tiers
+  exist because the commodity balance is keyed on
+  `(comm, region, year, timeslice)` and carries no cluster – every
+  producer of one commodity name writes into the same cell. Declaring
+  tiers here expands the object into one commodity per tier (`LAND` tier
+  `T3` -\> `LAND_CLT3`), each with its own balance, and a reference from
+  a clustered process resolves BY CLUSTER NAME. A commodity with no
+  clusters is shared as before, which is why `ELC` needs no flag. Tiers
+  may differ in DATA, not only in name: `emis`, `agg` and `property`
+  carry a `cluster` column, so coal grades can differ in carbon content
+  and heat value. A row with no cluster is shared by every tier, as
+  elsewhere. Declared labels are authoritative – a label used in a data
+  slot but absent from this declaration is a typo and an error. The
+  declaration is REQUIRED whenever a data slot carries a label: labels
+  are never harvested. There is deliberately no `region` column: a
+  commodity has no `region` slot (only `geoframe`), and which tiers
+  exist in a region follows from the processes that reference them.
+
+  cluster
+
+  : character. Tier label, used in the expanded commodity name.
+
+  desc
+
+  : character. Description of the tier.
+
+  order
+
+  : integer. Reporting order, 1 = the best tier. Without it labels sort
+    alphabetically and "T10" would precede "T2".
+
 - `emis`:
 
   data.frame. Emissions factors related to the commodity consumption (if
   "combustion" parameter of a technology which consumes the commodity is
   \> 0).
+
+  cluster
+
+  : character. Tier this row applies to, NA for every tier. See the
+    `cluster` slot: grades of one commodity differ in exactly this kind
+    of data (carbon content, heat value), so a row may be shared or per
+    tier.
 
   comm
 
@@ -73,6 +115,13 @@ commodities. The creation of a commodity object is done with the
 
   data.frame. Used to define an aggregation of several commodities into
   the `name` commodity.
+
+  cluster
+
+  : character. Tier this row applies to, NA for every tier. See the
+    `cluster` slot: grades of one commodity differ in exactly this kind
+    of data (carbon content, heat value), so a row may be shared or per
+    tier.
 
   comm
 
@@ -101,6 +150,13 @@ commodities. The creation of a commodity object is done with the
   belongs in `emis`. See
   [`commodity_properties()`](https://energyRt.org/reference/commodity_properties.md)
   for the recognised names.
+
+  cluster
+
+  : character. Tier this row applies to, NA for every tier. See the
+    `cluster` slot: grades of one commodity differ in exactly this kind
+    of data (carbon content, heat value), so a row may be shared or per
+    tier.
 
   property
 

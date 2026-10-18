@@ -16,13 +16,7 @@
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Storage">
-<!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script>
+<script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -32,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9017</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9027</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -60,6 +54,7 @@
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
@@ -421,6 +416,7 @@ if energy may cross the boundary between the two days.</p>
 <span>  desc      <span class="op">=</span> <span class="st">"Electricity store, one cycle over the whole year"</span>,</span>
 <span>  commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
 <span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>out.invcost <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  duration  <span class="op">=</span> <span class="fl">1</span>,                              <span class="co"># the reservoir: one hour of discharge</span></span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">30L</span><span class="op">)</span>,</span>
 <span>  fullYear  <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
@@ -430,6 +426,7 @@ if energy may cross the boundary between the two days.</p>
 <span>  desc      <span class="op">=</span> <span class="st">"The same store, but cycling once per day"</span>,</span>
 <span>  commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
 <span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>out.invcost <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  duration  <span class="op">=</span> <span class="fl">1</span>,                              <span class="co"># the reservoir: one hour of discharge</span></span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">30L</span><span class="op">)</span>,</span>
 <span>  fullYear  <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
@@ -477,13 +474,13 @@ each gets its own repository and model:</p>
 <span><span class="co">#&gt; Solver directory:  scenarios/fy_year-d365_h24_1dpm/runs/glpk </span></span>
 <span><span class="co">#&gt; Writing files: 0.25s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.14s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.14s</span></span>
+<span><span class="co">#&gt; 0.2s</span></span>
+<span><span class="co">#&gt; Reading solution: 0.12s</span></span>
 <span><span class="va">scen_day</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod_day</span>, name <span class="op">=</span> <span class="st">"fy_day"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Solver directory:  scenarios/fy_day-d365_h24_1dpm/runs/glpk </span></span>
-<span><span class="co">#&gt; Writing files: 0.25s</span></span>
+<span><span class="co">#&gt; Writing files: 0.27s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.09s</span></span>
+<span><span class="co">#&gt; 0.16s</span></span>
 <span><span class="co">#&gt; Reading solution: 0.11s</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_year</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span></span>
@@ -514,6 +511,7 @@ receives its share, not the whole thing 365 times over.</p>
 <span>  name       <span class="op">=</span> <span class="st">"STG_HYD"</span>,</span>
 <span>  desc       <span class="op">=</span> <span class="st">"Reservoir hydro with an inherited initial filling"</span>,</span>
 <span>  commodity  <span class="op">=</span> <span class="st">"ELC"</span>,</span>
+<span>  capacity   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>stg.stock <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span>,  <span class="co"># the reservoir, MWh</span></span>
 <span>  startLevel <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    region     <span class="op">=</span> <span class="st">"R1"</span>,</span>
 <span>    year       <span class="op">=</span> <span class="fl">2020L</span>,</span>
@@ -556,37 +554,48 @@ lets the model choose:</p>
 <span><span class="co">#&gt;   vintage cluster region year duration duration.lo duration.up duration.fx</span></span>
 <span><span class="co">#&gt; 1    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA       NA           2           8          NA</span></span></code></pre></div>
 <p>A one-sided range opens the other side: <code>duration.up = 8</code>
-means “up to 8 hours” and does <strong>not</strong> quietly inherit a
-lower bound of 1.</p>
+means “up to 8 hours” with no lower bound. A link that is not declared
+does not exist: the parts it would tie are sized independently.</p>
 <p>An optimised ratio only means something when the reservoir is
 <em>priced</em> — with energy free the model simply takes the longest
 duration allowed. Given a cost on both sides, and both sides binding, it
 lands strictly inside the range.</p>
 <p><code>@inp2out</code> works the same way for the charger. Leave it
-out and the charger is sized with the discharger; give it a range and
+out and the charger and discharger are sized each for its own flow; fix
+it at 1 for one bidirectional inverter, or give it a range and
 asymmetric hardware — a fast charger with a slow fuel cell, or a pump
 smaller than its turbine — becomes a decision rather than an
 assumption.</p>
 <p><code>@inp2stg</code> rates the charger against the
 <strong>reservoir</strong> instead — the standard battery spec (a 0.5C
-charger fills in two hours: <code>inp2stg.up = 0.5</code>). Unlike the
-other two it has <strong>no binding default</strong>: say nothing and no
-constraint exists; the link is emitted only where a finite bound is
-declared and both the charging and storing parts carry capacity
-variables. Declaring all three ratios over-determines the triangle —
-<code><a href="../reference/storage.html">newStorage()</a></code> refuses a contradictory fixed triple and warns
-when all three carry ranges.</p>
+charger fills in two hours: <code>inp2stg.up = 0.5</code>). It is the
+link to use where there is no discharger: a tank filled by its own
+charger and emptied by a separate technology. Like the other two it
+binds only where a finite bound is declared. Declaring all three ratios
+over-determines the triangle — <code><a href="../reference/storage.html">newStorage()</a></code> refuses a
+contradictory fixed triple and warns when all three carry ranges.</p>
 <div class="section level3">
 <h3 id="structure-follows-data">Structure follows data<a class="anchor" aria-label="anchor" href="#structure-follows-data"></a>
 </h3>
-<p>A part carrying only a commodity name gets <strong>no capacity
-variable at all</strong>. Naming a commodity is metadata, not data; only
-a stock, a bound or a price materialises <code>vStorageInpCap</code> /
-<code>vStorageStgCap</code>. Everywhere else the ratio is inlined onto
-<code>vStorageOutCap</code>, which is exactly the older, smaller
-model.</p>
-<p>That is why adding all of this moved nothing: a storage written the
-old way keeps one capacity variable and its previous LP, to the row.</p>
+<p>The <strong>reservoir</strong> is the storage’s anchor:
+<code>vStorageStgCap</code> exists for every storage, and it must be
+determined — by a stock, a capacity bound or a price of its own
+(<code>stg.*</code>; <code>stg.invcost = 0</code> for a deliberately
+free reservoir), or by a link to a sized part (<code>duration</code> to
+a discharger, <code>inp2stg</code> to a charger). A storage whose
+reservoir nothing determines would be a free, unbounded energy store,
+and interpolation stops on it.</p>
+<p>The <strong>charger</strong> and <strong>discharger</strong> exist
+only with data. A part carrying only a commodity name gets no capacity
+variable: naming a commodity is metadata, not data; a stock, a bound or
+a price (<code>inp.*</code>, <code>out.*</code>) materialises
+<code>vStorageInpCap</code> / <code>vStorageOutCap</code>. Without them
+the charge and discharge are limited by the level alone, so a storage
+can be a reservoir between separate technologies — a pump and a turbine,
+an electrolyser and a fuel cell.</p>
+<p>Interpolation also stops on a declaration that has nothing to act on:
+an availability (<code>inp.af</code>, <code>out.af</code>) on a part
+that does not exist, or a link declared on one.</p>
 <table class="table">
 <thead><tr class="header">
 <th>variable</th>
@@ -950,6 +959,7 @@ that names the column to use instead.</p>
 <span>    out.stock   <span class="op">=</span> <span class="fl">120</span>,                        <span class="co"># already built</span></span>
 <span>    out.ncap.up <span class="op">=</span> <span class="fl">50</span>                          <span class="co"># at most 50 more in this year</span></span>
 <span>  <span class="op">)</span>,</span>
+<span>  duration  <span class="op">=</span> <span class="fl">2</span>,                              <span class="co"># two hours of storage per MW</span></span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">15L</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">STG_FLEET</span><span class="op">@</span><span class="va">capacity</span></span>
@@ -1154,6 +1164,8 @@ ambient-temperature derating drives the bounds. The coefficients mirror
 <span>    weather  <span class="op">=</span> <span class="st">"WHYD"</span>,                    <span class="co"># a newWeather() object in the repo</span></span>
 <span>    inp.waf.fx <span class="op">=</span> <span class="fl">1</span>                          <span class="co"># inflow drives charging</span></span>
 <span>  <span class="op">)</span>,</span>
+<span>  capacity  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inp.stock <span class="op">=</span> <span class="fl">300</span>,     <span class="co"># the intake, MW: the inflow scales its rating</span></span>
+<span>                         stg.stock <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span>,   <span class="co"># the reservoir, MWh</span></span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">60L</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>The weather object itself must be in the same repository.
@@ -1272,13 +1284,14 @@ in the evening.</p>
 <span>  desc      <span class="op">=</span> <span class="st">"Battery paired with the solar plant"</span>,</span>
 <span>  commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
 <span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>out.invcost <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  duration  <span class="op">=</span> <span class="fl">1</span>,                              <span class="co"># the reservoir: one hour of discharge</span></span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">30L</span><span class="op">)</span>,</span>
 <span>  fullYear  <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">repo_sol</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newRepository.html">newRepository</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"repo_sol"</span>,</span>
-<span>  <span class="va">SOL</span>, <span class="va">ELC</span>, <span class="va">SUP_SOL</span>, <span class="va">ESOL</span>, <span class="va">EPEAK</span>, <span class="va">STG_BTR_SOL</span>, <span class="va">DEM_EVE</span></span>
+<span>  <span class="va">SOL</span>, <span class="va">COA</span>, <span class="va">ELC</span>, <span class="va">SUP_SOL</span>, <span class="va">SUP_COA</span>, <span class="va">ESOL</span>, <span class="va">EPEAK</span>, <span class="va">STG_BTR_SOL</span>, <span class="va">DEM_EVE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">sol_mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span></span>
@@ -1293,10 +1306,10 @@ in the evening.</p>
 <span></span>
 <span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">sol_mod</span>, name <span class="op">=</span> <span class="st">"solar_battery"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Solver directory:  scenarios/solar_battery-d365_h24_1dpm/runs/glpk </span></span>
-<span><span class="co">#&gt; Writing files: 0.25s</span></span>
+<span><span class="co">#&gt; Writing files: 0.26s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.13s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.1s</span></span></code></pre></div>
+<span><span class="co">#&gt; 0.25s</span></span>
+<span><span class="co">#&gt; Reading solution: 0.11s</span></span></code></pre></div>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage_duration.html">storage_duration</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span>                 <span class="co"># 12h / 1d / 1w / 30d by default</span></span>
 <span></span>

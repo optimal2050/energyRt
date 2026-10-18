@@ -9,13 +9,7 @@ collects sets from the model objects, builds the membership / calendar /
 lifespan / value / constraint / cost mappings, extracts and interpolates the
 numeric parameters over the milestone years, and (optionally) folds, prunes
 and validates the result. The returned scenario is ready for solve_model() /
-solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.png"><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script></head><body>
+solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.png"><script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -23,7 +17,7 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9017</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9027</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,6 +41,7 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
@@ -89,7 +84,7 @@ and validates the result. The returned scenario is ready for <code><a href="solv
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">interpolate_model</span><span class="op">(</span></span>
-<span>  <span class="va">mod</span>,</span>
+<span>  <span class="va">object</span>,</span>
 <span>  name <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span>,</span>
 <span>  desc <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -103,6 +98,9 @@ and validates the result. The returned scenario is ready for <code><a href="solv
 <span>  kvl <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  boundary_prices <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  .prefilter <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  parent_levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"energyRt.parent_levels"</span>, <span class="cn">FALSE</span><span class="op">)</span>,</span>
+<span>  fx_equ <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"energyRt.fx_equ"</span>, <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>  on_missing_input <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"energyRt.on_missing_input"</span>, <span class="st">"stop"</span><span class="op">)</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="fu"><a href="isVerbose.html">isVerbose</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -114,8 +112,8 @@ and validates the result. The returned scenario is ready for <code><a href="solv
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-mod">mod<a class="anchor" aria-label="anchor" href="#arg-mod"></a></dt>
-<dd><p>a <a href="class-model.html">model</a> object, or a <a href="class-scenario.html">scenario</a> (its <code>@model</code> is re-interpolated).</p></dd>
+<dl><dt id="arg-object">object<a class="anchor" aria-label="anchor" href="#arg-object"></a></dt>
+<dd><p>as <code>mod</code>, for the method dispatched on a scenario.</p></dd>
 
 
 <dt id="arg-name">name<a class="anchor" aria-label="anchor" href="#arg-name"></a></dt>
@@ -223,6 +221,44 @@ relation from the full declared grid rather than from the calendar would
 see a narrower input. Compare objectives before relying on it.</p></dd>
 
 
+<dt id="arg-parent-levels">parent_levels<a class="anchor" aria-label="anchor" href="#arg-parent-levels"></a></dt>
+<dd><p>logical or character; give a variable rows at every
+timeslice / region level COARSER than the one it occupies, each defined by a
+roll-up of its finer rows, so a constraint can be written at a level the
+variable does not natively carry (<code>summand@timeframe</code> / <code>@geoframe</code>).
+<code>FALSE</code> (default) builds none; <code>TRUE</code> builds them for every SUPPORTED
+variable; a character vector selects among those. Naming an unsupported
+variable is an error listing what is supported – a parent row with no
+equation to define it would be a free variable.</p>
+<p><code>vOutTot</code> / <code>vInpTot</code> carry their parent rows unconditionally and are not
+affected: <code>eqOutTot</code> / <code>eqInpTot</code> are written against them.</p>
+<p>Defaults to <code>getOption("energyRt.parent_levels", FALSE)</code>, so a whole run or
+test suite can be switched in one place.</p></dd>
+
+
+<dt id="arg-fx-equ">fx_equ<a class="anchor" aria-label="anchor" href="#arg-fx-equ"></a></dt>
+<dd><p>logical; write a bound whose two sides coincide (<code>.fx</code>, or
+<code>.lo == .up</code>, with the same weather factors) as one equality row
+(<code>eq&lt;Family&gt;Fx</code>) instead of a pair of inequalities (<code>eq&lt;Family&gt;Lo</code> +
+<code>eq&lt;Family&gt;Up</code>). Applies to every bound family: technology availability
+(<code>af</code>, <code>afs</code>, <code>afc</code>), shares, capacity, new capacity and retirement of
+technologies, storages and trade, storage availability, charge,
+discharge, duration and part ratios, supply availability and reserve,
+trade flows and availability, import and export rows. The solution is the
+same; the model has fewer rows before presolve (-25% on an hourly
+full-year VRE model). <code>FALSE</code> writes the pairs. Defaults to
+<code>getOption("energyRt.fx_equ", TRUE)</code>.</p></dd>
+
+
+<dt id="arg-on-missing-input">on_missing_input<a class="anchor" aria-label="anchor" href="#arg-on-missing-input"></a></dt>
+<dd><p><code>"stop"</code> or <code>"warn"</code>: what to do when a process
+with existing capacity (stock, or a lower / fixed capacity bound) is
+declared in a region where one of its input commodities has no source.
+<code>"stop"</code> names the cells; <code>"warn"</code> drops them, as is always done for
+processes that could only be built new. Defaults to
+<code>getOption("energyRt.on_missing_input", "stop")</code>.</p></dd>
+
+
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
 <dd><p>logical; print per-step progress. This also governs the
 variant-expansion report – how many process objects were expanded and how
@@ -230,10 +266,6 @@ many constraints were generated for them. The generated constraints
 themselves are retrievable with <code>getObject(scen, class = "constraint")</code>;
 each carries a readable <code>desc</code> and, in <code>misc$.variant_source</code>, the object
 it was derived from.</p></dd>
-
-
-<dt id="arg-object">object<a class="anchor" aria-label="anchor" href="#arg-object"></a></dt>
-<dd><p>as <code>mod</code>, for the method dispatched on a scenario.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -248,6 +280,50 @@ it was derived from.</p></dd>
 <code><a href="with_solver_log.html">with_solver_log()</a></code></p></div>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span><span class="va">ek</span>  <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">repo</span>,</span></span>
+<span class="r-in"><span>                calendar <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span></span>
+<span class="r-in"><span>                region <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">regions</span>,</span></span>
+<span class="r-in"><span>                horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span></span>
+<span class="r-in"><span>                discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># build the solver-facing sets and parameters; nothing is solved yet</span></span></span>
+<span class="r-in"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu">interpolate_model</span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">scen</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Name:  BASE </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Model:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Name:  TOPIA </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># `fold = TRUE` substitutes constant parameters into the equations, which</span></span></span>
+<span class="r-in"><span><span class="co"># shrinks what the backend has to read</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="model_size.html">model_size</a></span><span class="op">(</span><span class="fu">interpolate_model</span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"FOLDED"</span>, fold <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> model_size: FOLDED</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   parameters : 189 value, 348 maps, 15 sets</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   param rows : 1,860  (fold step: 8,619 -&gt; 1,860, saved 6,759 = 78%)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   folded dims: region=23  timeslice=10  year=20</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   estimate   : ~55,216 variables, ~57,581 constraints (from gating maps)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   top parameters by rows:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pWeather           753</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pDemand            384</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTimesliceAgg      297</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTimesliceShare    101</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pExportRow         96</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechStock         46</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechFixom         28</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechInvcost       28</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechEac           20</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechStockSurv     16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechCinp2use      16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechCap2act       7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechOlife         7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pPeriodLen         4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     ordYear            4</span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

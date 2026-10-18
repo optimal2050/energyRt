@@ -5,7 +5,7 @@
 \title{Solve a model with guided perfect foresight}
 \usage{
 solve_guided(
-  mod,
+  object,
   name = NULL,
   ...,
   horizon = NULL,
@@ -23,7 +23,7 @@ solve_guided(
 )
 }
 \arguments{
-\item{mod}{a model object.}
+\item{object}{a model object.}
 
 \item{name}{character, the sequence name (a scenario folder).}
 
@@ -96,6 +96,24 @@ Targets bound the STANDING FLEET (\code{cap.lo}) by default. \code{basis = "ncap
 bounds the build rate instead and divides by the period length, because
 \verb{ncap.*} bounds are multiplied by \code{pPeriodLen} in the equations while the
 solved variable is already an annual rate.
+}
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+
+# the endpoint first, then each neighbouring pair, then the full horizon
+# with the guidance as bounds
+res <- solve_guided(mod, name = "GUIDED", slack = 0.2,
+                    solver = solver_options$glpk)
+sum(getData(res$final, "vObjective", merge = TRUE)$value)
+}
 }
 \seealso{
 \code{\link[=solve_myopic]{solve_myopic()}}, \code{\link[=apply_targets]{apply_targets()}}, \code{\link[=guided_gap]{guided_gap()}}

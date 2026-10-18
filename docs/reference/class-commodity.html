@@ -7,13 +7,7 @@ The creation of a commodity object is done with the newCommodity function."><met
 The commodity class is used to store information about the commodity.
 All processes in the model operate on commodities, i.e. they either generate,
 produce, consume, transform, store, or transport commodities.
-The creation of a commodity object is done with the newCommodity function."><meta property="og:image" content="https://energyRt.org/logo.png"><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script></head><body>
+The creation of a commodity object is done with the newCommodity function."><meta property="og:image" content="https://energyRt.org/logo.png"><script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -21,7 +15,7 @@ The creation of a commodity object is done with the newCommodity function."><met
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9017</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9027</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,6 +39,7 @@ The creation of a commodity object is done with the newCommodity function."><met
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
@@ -112,9 +107,30 @@ The creation of a commodity object is done with the <code>newCommodity</code> fu
 <dd><p>character. The main unit of the commodity used in the model.</p></dd>
 
 
+<dt><code>cluster</code></dt>
+<dd><p>data.frame. Declaration of the commodity's parallel grades. For a commodity a cluster is a RESOURCE TIER: the same substance in grades that must NOT pool, so tier-3 land cannot serve a tier-1 plant.
+Tiers exist because the commodity balance is keyed on <code>(comm, region, year, timeslice)</code> and carries no cluster – every producer of one commodity name writes into the same cell. Declaring tiers here expands the object into one commodity per tier (<code>LAND</code> tier <code>T3</code> -&gt; <code>LAND_CLT3</code>), each with its own balance, and a reference from a clustered process resolves BY CLUSTER NAME. A commodity with no clusters is shared as before, which is why <code>ELC</code> needs no flag.
+Tiers may differ in DATA, not only in name: <code>emis</code>, <code>agg</code> and <code>property</code> carry a <code>cluster</code> column, so coal grades can differ in carbon content and heat value. A row with no cluster is shared by every tier, as elsewhere. Declared labels are authoritative – a label used in a data slot but absent from this declaration is a typo and an error. The declaration is REQUIRED whenever a data slot carries a label: labels are never harvested.
+There is deliberately no <code>region</code> column: a commodity has no <code>region</code> slot (only <code>geoframe</code>), and which tiers exist in a region follows from the processes that reference them.</p>
+<dl><dt>cluster</dt>
+<dd><p>character. Tier label, used in the expanded commodity name.</p></dd>
+
+<dt>desc</dt>
+<dd><p>character. Description of the tier.</p></dd>
+
+<dt>order</dt>
+<dd><p>integer. Reporting order, 1 = the best tier. Without it labels sort alphabetically and "T10" would precede "T2".</p></dd>
+
+
+</dl></dd>
+
+
 <dt><code>emis</code></dt>
 <dd><p>data.frame. Emissions factors related to the commodity consumption (if "combustion" parameter of a technology which consumes the commodity is &gt; 0).</p>
-<dl><dt>comm</dt>
+<dl><dt>cluster</dt>
+<dd><p>character. Tier this row applies to, NA for every tier. See the <code>cluster</code> slot: grades of one commodity differ in exactly this kind of data (carbon content, heat value), so a row may be shared or per tier.</p></dd>
+
+<dt>comm</dt>
 <dd><p>character. Name of the emitted commodity.</p></dd>
 
 <dt>unit</dt>
@@ -129,7 +145,10 @@ The creation of a commodity object is done with the <code>newCommodity</code> fu
 
 <dt><code>agg</code></dt>
 <dd><p>data.frame. Used to define an aggregation of several commodities into the <code>name</code> commodity.</p>
-<dl><dt>comm</dt>
+<dl><dt>cluster</dt>
+<dd><p>character. Tier this row applies to, NA for every tier. See the <code>cluster</code> slot: grades of one commodity differ in exactly this kind of data (carbon content, heat value), so a row may be shared or per tier.</p></dd>
+
+<dt>comm</dt>
 <dd><p>character. Name of a commodity being aggregated.</p></dd>
 
 <dt>unit</dt>
@@ -144,7 +163,10 @@ The creation of a commodity object is done with the <code>newCommodity</code> fu
 
 <dt><code>property</code></dt>
 <dd><p>data.frame. Physical properties of the commodity – heating values, density, molar mass, composition. Reference data: it is never written to the model input, but it gives <code><a href="convert.html">convert()</a></code> the physics needed to move between measures of the same commodity (energy, mass, volume, amount). A property whose unit is a ratio of two dimensions, such as <code>lhv</code> in "GJ/t", acts as a conversion edge between them. Only properties of the commodity itself belong here – anything whose numerator is a <em>different</em> commodity, such as a CO2 emission factor, belongs in <code>emis</code>. See <code><a href="commodity_properties.html">commodity_properties()</a></code> for the recognised names.</p>
-<dl><dt>property</dt>
+<dl><dt>cluster</dt>
+<dd><p>character. Tier this row applies to, NA for every tier. See the <code>cluster</code> slot: grades of one commodity differ in exactly this kind of data (carbon content, heat value), so a row may be shared or per tier.</p></dd>
+
+<dt>property</dt>
 <dd><p>character. Name of the property, e.g. "lhv", "hhv", "density", "molar_mass", or "frac_C" for an element mass fraction. Unrecognised names are kept with a warning.</p></dd>
 
 <dt>value</dt>

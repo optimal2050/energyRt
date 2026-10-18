@@ -27,6 +27,16 @@ Costs object is used to define
 additional costs to add to the model's
 objective function.
 }
+\examples{
+# a per-unit fee on the activity of two technologies, stated as a rate table
+newCosts("ACTFEE", variable = "vTechAct",
+         mult = data.frame(tech = c("ECOA", "EGAS"), value = c(2, 3)),
+         desc = "Activity fee")
+
+# one rate for a subset of processes: `mult` scalar, `subset` picks the members
+newCosts("CAPFEE", variable = "vTechNewCap", mult = 1.5,
+         subset = list(tech = "ECOA"))
+}
 \seealso{
 Other class constraint policy:
 \code{\link{class-constraint}},

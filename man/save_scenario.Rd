@@ -5,8 +5,8 @@
 \title{Save scenario object on disk in parquet format using \code{arrow} package.}
 \usage{
 save_scenario(
-  scen,
-  path = scen@path,
+  object,
+  path = object@path,
   embed_model = NULL,
   embed_datasets = NULL,
   format = get_storage_format(),
@@ -17,7 +17,7 @@ save_scenario(
 )
 }
 \arguments{
-\item{scen}{scenario object.}
+\item{object}{scenario object.}
 
 \item{path}{character. Path to scenario directory.}
 

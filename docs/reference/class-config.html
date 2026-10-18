@@ -3,13 +3,7 @@
 It is stored in the model object and is used to initialize the
 scenario settings."><meta property="og:description" content="Config class is used to represent the default model configuration.
 It is stored in the model object and is used to initialize the
-scenario settings."><meta property="og:image" content="https://energyRt.org/logo.png"><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script></head><body>
+scenario settings."><meta property="og:image" content="https://energyRt.org/logo.png"><script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -17,7 +11,7 @@ scenario settings."><meta property="og:image" content="https://energyRt.org/logo
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9017</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9027</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,6 +35,7 @@ scenario settings."><meta property="og:image" content="https://energyRt.org/logo
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
@@ -99,7 +94,7 @@ scenario settings.</p>
 
 
 <dt><code>geoscale</code></dt>
-<dd><p>ANY. Optional <code><a href="https://optimal2050.github.io/geoscales/r/reference/Geoscale.html" class="external-link">geoscales::Geoscale</a></code> object describing the model's regions – their nesting into coarser levels, weights, and (optionally) geometry. <code>region</code> remains authoritative: it is always the finest level, and the geoscale adds the structure above it. Attaching one is inert on its own – it widens the model's region set with the coarser codes and enables level-aware plotting, reporting and subsetting – but it is also what makes <code>commodity@geoframe</code> possible, and a commodity balanced at a coarser level DOES change the optimisation model. <code>NULL</code> when unset. Typed <code>ANY</code> because <code>geoscales</code> is an optional (Suggests) dependency.</p></dd>
+<dd><p>ANY. Optional <code><a href="https://optimal2050.github.io/geoscales/r/reference/GeoScale.html" class="external-link">geoscales::GeoScale</a></code> object describing the model's regions – their nesting into coarser levels, weights, and (optionally) geometry. <code>region</code> remains authoritative: it is always the finest level, and the geoscale adds the structure above it. Attaching one is inert on its own – it widens the model's region set with the coarser codes and enables level-aware plotting, reporting and subsetting – but it is also what makes <code>commodity@geoframe</code> possible, and a commodity balanced at a coarser level DOES change the optimisation model. <code>NULL</code> when unset. Typed <code>ANY</code> because <code>geoscales</code> is an optional (Suggests) dependency.</p></dd>
 
 
 <dt><code>horizon</code></dt>

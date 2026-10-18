@@ -5,13 +5,7 @@ setCalendar(), inspect it with plot() / autoplot(), or use it as a
 template for newCalendar()."><meta property="og:description" content="A named list of ready-to-use calendar objects covering
 common sub-annual time resolutions. Pass any element to newModel() /
 setCalendar(), inspect it with plot() / autoplot(), or use it as a
-template for newCalendar()."><meta property="og:image" content="https://energyRt.org/logo.png"><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script></head><body>
+template for newCalendar()."><meta property="og:image" content="https://energyRt.org/logo.png"><script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -19,7 +13,7 @@ template for newCalendar()."><meta property="og:image" content="https://energyRt
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9017</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9027</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +37,7 @@ template for newCalendar()."><meta property="og:image" content="https://energyRt
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
@@ -76,7 +71,7 @@ template for newCalendar()."><meta property="og:image" content="https://energyRt
     <div class="ref-description section level2">
     <p>A named list of ready-to-use <a href="class-calendar.html">calendar</a> objects covering
 common sub-annual time resolutions. Pass any element to <code><a href="newModel.html">newModel()</a></code> /
-<code>setCalendar()</code>, inspect it with <code><a href="draw.html">plot()</a></code> / <code>autoplot()</code>, or use it as a
+<code><a href="setGeoscale.html">setCalendar()</a></code>, inspect it with <code><a href="draw.html">plot()</a></code> / <code>autoplot()</code>, or use it as a
 template for <code><a href="newCalendar.html">newCalendar()</a></code>.</p>
     </div>
 
@@ -162,7 +157,7 @@ generating script.</p>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Only GENERIC calendars are shipped. Calendars belonging to a particular
 model travel with it: the TOPIA teaching calendar is
-<code>topia$modules$calendars$topia_seasons</code>, and the unit kits' symmetric
+<code>topia$modules$calendars$s4_h24</code>, and the unit kits' symmetric
 calendars are <code>topia$modules$unit$calendars</code>.</p>
     </div>
     <div class="section level2">

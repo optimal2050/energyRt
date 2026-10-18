@@ -21,3 +21,10 @@ matter. As with models, a repository whose data slots were thinned to disk
 hashes differently from its in-memory original — hash before thinning
 (\code{save_repository()} does).
 }
+\examples{
+repo <- newRepository("r", newCommodity("ELC", unit = "MWh"))
+repository_hash(repo)
+
+# the hash follows the content: adding an object changes it
+repository_hash(add(repo, newCommodity("COA", unit = "MMBtu")))
+}

@@ -48,6 +48,25 @@ differ, or guarding a refactor of the interpolation pipeline.
 Data is compared as stored by default; \code{unfold = TRUE} collapses
 fold-vs-dense representation drift first (requires scenario inputs).
 }
+\examples{
+\donttest{
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+
+# the same model with a three-step gas supply curve instead of flat supply
+mod2 <- add(mod, ek$GAS_CURVE, overwrite = TRUE)
+a <- interpolate_model(mod,  name = "FLAT")
+b <- interpolate_model(mod2, name = "CURVE")
+
+cmp <- compare_inputs(a, b, names = c("flat", "curve"))
+cmp
+print(cmp, max_diffs = 3)
+}
+}
 \seealso{
 \code{\link[=compare_scenarios]{compare_scenarios()}} for solved-results comparison,
 \code{\link[=compare_models]{compare_models()}} for declaration-level model diffs.

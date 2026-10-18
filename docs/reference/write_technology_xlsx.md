@@ -81,3 +81,15 @@ Other technology process:
 [`newTechnology()`](https://energyRt.org/reference/technology.md),
 [`read_technology_xlsx()`](https://energyRt.org/reference/read_technology_xlsx.md),
 [`variantSummary()`](https://energyRt.org/reference/variantSummary.md)
+
+## Examples
+
+``` r
+tech <- topia$modules$electricity$R3$ECOA
+f <- tempfile(fileext = ".xlsx")
+
+# one sheet per slot that carries data, plus an `info` sheet
+write_technology_xlsx(tech, f)
+basename(f)
+#> [1] "fileb75877f01edc.xlsx"
+```

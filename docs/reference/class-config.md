@@ -28,7 +28,7 @@ settings.
 - `geoscale`:
 
   ANY. Optional
-  [`geoscales::Geoscale`](https://optimal2050.github.io/geoscales/r/reference/Geoscale.html)
+  [`geoscales::GeoScale`](https://optimal2050.github.io/geoscales/r/reference/GeoScale.html)
   object describing the model's regions – their nesting into coarser
   levels, weights, and (optionally) geometry. `region` remains
   authoritative: it is always the finest level, and the geoscale adds

@@ -35,3 +35,28 @@ print(x, ...)
 \description{
 Print methods for the energyRt classes
 }
+\examples{
+# every class prints a summary of what it carries, not its slots
+tech <- newTechnology(
+  "ECOAL",
+  desc    = "Coal power plant",
+  input   = data.frame(comm = "COA", unit = "MMBtu"),
+  output  = data.frame(comm = "ELC", unit = "MWh"),
+  ceff    = data.frame(comm = "COA", cinp2use = 0.4),
+  invcost = data.frame(invcost = 2000),
+  olife   = data.frame(olife = 30),
+  cap2act = 8760
+)
+print(tech)
+
+# a model lists its data, calendar, regions and horizon
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base)
+print(mod)
+
+# the configuration object behind it
+print(mod@config)
+}

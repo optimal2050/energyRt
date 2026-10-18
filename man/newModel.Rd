@@ -3,6 +3,8 @@
 \name{newModel}
 \alias{newModel}
 \alias{setHorizon,model-method}
+\alias{setHorizon}
+\alias{getHorizon}
 \alias{getHorizon,model-method}
 \title{Create new model object}
 \usage{

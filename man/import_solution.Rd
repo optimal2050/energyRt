@@ -5,7 +5,7 @@
 \title{Import a run's solution and make it stick}
 \usage{
 import_solution(
-  scen,
+  object,
   run,
   ...,
   restore_solver = TRUE,
@@ -16,7 +16,7 @@ import_solution(
 )
 }
 \arguments{
-\item{scen}{a scenario object.}
+\item{object}{a scenario object.}
 
 \item{run}{character, the run to import (\code{"<solve>"} or
 \code{"<variant>/<solve>"}).}
@@ -62,6 +62,19 @@ read \code{output/variable_list.csv} it returns the scenario \emph{unchanged},
 discarding the run switch. Saving that would write an empty \verb{modOut/}, which
 flips the run to "imported" and would let the solution's only copy be
 cleaned up. This refuses to save a read that produced no variables.
+}
+\examples{
+\dontrun{
+open_project("~/projects/mymodel")
+scen <- getScenario("BASE")
+
+# read a solve that ran elsewhere (a cluster or cloud run) back in
+scenario_runs(scen)
+scen <- import_solution(scen, run = "glpk")
+
+# `promote = TRUE` makes it the scenario's active solution
+scen <- import_solution(scen, run = "highs", promote = TRUE)
+}
 }
 \seealso{
 \code{\link[=scenario_solutions]{scenario_solutions()}}, \code{\link[=read_solution]{read_solution()}}, \code{\link[=drop_solver_outputs]{drop_solver_outputs()}}

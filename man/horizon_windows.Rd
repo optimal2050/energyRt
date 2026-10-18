@@ -26,6 +26,16 @@ interval rows (start/mid/end preserved exactly); \code{step} intervals are
 DECIDED per window and \code{overlap} further intervals are appended as
 look-ahead (solved for guidance, decisions discarded).
 }
+\examples{
+h <- topia$modules$horizons$base
+
+# one window per milestone year
+vapply(horizon_windows(h), function(x) x$horizon@name, character(1))
+
+# two years per window, overlapping by one
+vapply(horizon_windows(h, step = 2L, overlap = 1L),
+       function(x) x$horizon@name, character(1))
+}
 \seealso{
 \code{\link[=solve_myopic]{solve_myopic()}}
 }

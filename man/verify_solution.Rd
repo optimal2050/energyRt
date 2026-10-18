@@ -5,7 +5,7 @@
 \title{Verify accounting identities of a solved scenario}
 \usage{
 verify_solution(
-  scen,
+  object,
   checks = "default",
   tol_rel = 1e-06,
   tol_abs = 1e-06,
@@ -13,7 +13,7 @@ verify_solution(
 )
 }
 \arguments{
-\item{scen}{a solved \code{scenario} (must carry \code{modOut} variables).}
+\item{object}{a solved \code{scenario} (must carry \code{modOut} variables).}
 
 \item{checks}{character. Individual check names, or the sentinels
 \code{"default"} (the cheap set, run everywhere) and \code{"all"}. See

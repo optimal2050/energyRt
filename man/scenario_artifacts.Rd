@@ -4,10 +4,10 @@
 \alias{scenario_artifacts}
 \title{Solver artifacts of a stored scenario}
 \usage{
-scenario_artifacts(scen)
+scenario_artifacts(object)
 }
 \arguments{
-\item{scen}{a scenario object.
+\item{object}{a scenario object.
 
 Rows for the scenario-level derived tiers are listed too, distinguished by
 \code{kind}: \code{"reports"} for rendered reports and \code{"levcost"} for cached levcost
@@ -36,6 +36,20 @@ reached memory, not disk.
 sealed scenario suggests nothing. The \strong{active} run is suggested like any
 other — unlike \code{\link[=drop_scenario_run]{drop_scenario_run()}}, cleaning scratch keeps the record and
 the solution, so the run stays listed and readable.
+}
+\examples{
+\donttest{
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- interpolate_model(mod, name = "EX")
+
+# what exists on disk for this scenario, and what could be dropped
+scenario_artifacts(scen)
+}
 }
 \seealso{
 \code{\link[=drop_solver_outputs]{drop_solver_outputs()}}, \code{\link[=scenario_runs]{scenario_runs()}},

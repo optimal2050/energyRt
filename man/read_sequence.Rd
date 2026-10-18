@@ -4,10 +4,10 @@
 \alias{read_sequence}
 \title{Rebuild a solve sequence from the variants on disk}
 \usage{
-read_sequence(scen, sequence = NULL, type = NULL, verbose = TRUE)
+read_sequence(object, sequence = NULL, type = NULL, verbose = TRUE)
 }
 \arguments{
-\item{scen}{a scenario object, or the name of a stored scenario.}
+\item{object}{a scenario object, or the name of a stored scenario.}
 
 \item{sequence}{character, the sequence name to rebuild (as recorded in
 \code{variant.yml}). Needed only when the scenario holds more than one.}

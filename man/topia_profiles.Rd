@@ -52,6 +52,11 @@ Not to be confused with the near-namesake \code{\link[=topia_profile]{topia_prof
 TOPIA data at all: it generates a synthetic step / sine / cosine / hex shape
 over any calendar and returns a single data.frame.
 }
+\examples{
+# weather, demand and stock expanded to the regions of a model
+prof <- topia_profiles(c("W1", "W2"), calendar = "s4_h24")
+lapply(prof, head, 3)
+}
 \seealso{
 \link{topia}, \code{\link[=topia_profile]{topia_profile()}}, \link{calendars}
 

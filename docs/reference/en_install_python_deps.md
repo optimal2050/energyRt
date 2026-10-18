@@ -57,3 +57,15 @@ Other solver: [`en_check`](https://energyRt.org/reference/en_check.md),
 [`neos_gams_inline()`](https://energyRt.org/reference/neos_gams_inline.md),
 [`neos_job`](https://energyRt.org/reference/neos_job.md),
 [`set_solver_path()`](https://energyRt.org/reference/solver_path.md)
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+# create (or top up) the python environment the Pyomo backend uses
+en_install_python_deps()
+
+# a named environment and an explicit solver
+en_install_python_deps(env = "energyRt", solver = "highs")
+} # }
+```

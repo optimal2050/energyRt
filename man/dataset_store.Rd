@@ -111,3 +111,19 @@ warns (package drift is worth seeing), or errors with \code{strict = TRUE}.
 \verb{hash =}) via the registry first, then by scanning the store; \code{path}
 bypasses resolution. It returns the bare payload.
 }
+\examples{
+\dontrun{
+open_project(tempdir())
+
+# a table a model refers to, stored once and referenced by hash
+save_dataset(topia$weather, "topia_weather")
+dataset_hash(topia$weather)
+load_dataset("topia_weather")
+
+# or store the CALL that makes it -- `fun` is a namespaced name, and the
+# payload is left out entirely -- and materialize it on demand
+save_dataset(name = "profiles", fun = "energyRt::topia_profiles",
+             args = list(regions = c("W1", "W2")), materialize = FALSE)
+load_dataset("profiles", evaluate = TRUE)
+}
+}

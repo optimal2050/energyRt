@@ -4,10 +4,10 @@
 \alias{model_clusters}
 \title{The clustering behind an aggregated model}
 \usage{
-model_clusters(mod)
+model_clusters(object)
 }
 \arguments{
-\item{mod}{a \code{model} returned by \code{\link[=aggregate_model_regions]{aggregate_model_regions()}}.}
+\item{object}{a \code{model} returned by \code{\link[=aggregate_model_regions]{aggregate_model_regions()}}.}
 }
 \value{
 A named list, one element per process group, each with \code{k},
@@ -36,6 +36,6 @@ Other geoscale:
 \code{\link[=plot_geoscale]{plot_geoscale()}},
 \code{\link[=plot_map]{plot_map()}},
 \code{\link[=process_cluster_sweep]{process_cluster_sweep()}},
-\code{\link{setGeoscale,config-method}}
+\code{\link{setCalendar,config-method}}
 }
 \concept{geoscale}

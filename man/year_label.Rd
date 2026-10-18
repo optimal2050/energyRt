@@ -4,10 +4,10 @@
 \alias{year_label}
 \title{Display labels of the model's milestone years}
 \usage{
-year_label(obj)
+year_label(object)
 }
 \arguments{
-\item{obj}{a \code{horizon}, \code{calendar}, \code{config}, \code{settings}, \code{model} or
+\item{object}{a \code{horizon}, \code{calendar}, \code{config}, \code{settings}, \code{model} or
 \code{scenario} object. A bare \code{horizon} has no calendar, so it never yields
 fiscal labels.}
 }

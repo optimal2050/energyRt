@@ -11,6 +11,7 @@ newStorage(
   desc = "",
   commodity = character(),
   aux = data.frame(),
+  geoframe = character(),
   region = character(),
   start = data.frame(),
   end = data.frame(),
@@ -70,10 +71,35 @@ newStorage(
 
   : character. Unit of the auxiliary commodity.
 
+- geoframe:
+
+  character. Optional. The geoscale level this object's regions are
+  expressed at; unset (the default) derives it from the region codes.
+  See `technology@geoframe` for the full rule, including the consistency
+  checks it turns on. A storage both consumes and delivers, so its level
+  may be coarser than an input commodity's but never than the commodity
+  it outputs or holds.
+
 - region:
 
   character. Region where the storage technology exists or can be
-  installed.
+  installed. A region coarser than the finest geoscale level is allowed,
+  and makes the object operate at that coarser cell: its capacity,
+  activity and output live there, while an INPUT balanced at a finer
+  level is drawn from the cells beneath it and summed. A commodity the
+  object PRODUCES or STORES may never be finer than the object itself –
+  that would require disaggregating one coarse decision into several
+  fine ones, which energyRt does not do, and is refused. Coarsening is a
+  MODEL CHANGE, not a re-representation. The object's own constraints
+  bind at its own frame, so they are WEAKER than a finer declaration's
+  and the model is cheaper: the input/output ratio and the `@ceff` group
+  shares hold only in aggregate over the coarse cell, and availability
+  is sized against that longer slice. If a blend limit must hold within
+  the period, declare the object at that finer frame; an annual mandate
+  on a finely-operated object belongs in a user constraint with an
+  explicit `timeframe`. Coarsening also does NOT reduce flow variables –
+  those stay at the commodity's level; it removes activity variables and
+  equation rows.
 
 - start:
 
@@ -879,9 +905,9 @@ newStorage(
   sub-processes of the same storage with their own capacity,
   availability and costs. The motivating cases are site-constrained
   storage (pumped-hydro head classes, CAES caverns) and duration classes
-  via a per-cluster `duration`. Optional: when empty, cluster labels are
-  harvested from the other slots; when populated it is authoritative and
-  an undeclared label raises an error. The share columns are different
+  via a per-cluster `duration`. REQUIRED whenever another slot carries a
+  `cluster` label, and authoritative: an undeclared label raises an
+  error, and labels are never harvested. The share columns are different
   levers, not substitutes. `cap.share.fx` fixes the ratio of the
   variants' CAPACITIES in every year: loss tranches need it, because
   each tranche efficiency is calibrated to its place in the capacity
@@ -950,8 +976,8 @@ newStorage(
 
   data.frame. How long the store can run at its rated output: the ratio
   of storing capacity to (dis)charging capacity. `duration = 6` on an
-  hourly calendar is a 6-hour store. Renamed from `cap2stg` in v0.80,
-  which is still accepted with a warning. It is a BOUND on (storage,
+  hourly calendar is a 6-hour store. Renamed from `cap2stg` in v0.80;
+  the old spelling is refused since v0.90. It is a BOUND on (storage,
   region, year): `duration.fx` ties energy to power,
   `duration.lo`/`duration.up` let the model choose the ratio – which
   only bites when the storing side is priced, via `@storage$invcost`.

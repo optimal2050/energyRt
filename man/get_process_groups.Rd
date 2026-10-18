@@ -30,6 +30,17 @@ This is the first step of a clustered aggregation: it names the families
 \code{\link[=aggregate_model_regions]{aggregate_model_regions()}} can turn into clusters, and those names are the
 keys of its \code{clusters} argument.
 }
+\examples{
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+
+# families of processes that share a commodity signature, with their members
+head(get_process_groups(mod), 4)
+}
 \seealso{
 \code{\link[=process_cluster_sweep]{process_cluster_sweep()}} to choose each family's \code{k},
 \code{\link[=aggregate_model_regions]{aggregate_model_regions()}} to apply it.
@@ -40,6 +51,6 @@ Other geoscale:
 \code{\link[=plot_geoscale]{plot_geoscale()}},
 \code{\link[=plot_map]{plot_map()}},
 \code{\link[=process_cluster_sweep]{process_cluster_sweep()}},
-\code{\link{setGeoscale,config-method}}
+\code{\link{setCalendar,config-method}}
 }
 \concept{geoscale}

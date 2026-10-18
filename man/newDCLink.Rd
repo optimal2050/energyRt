@@ -50,6 +50,15 @@ A DC link carries NO reactance and is therefore never part of the KVL cycle
 basis, however the model is interpolated. \code{resistance} is recorded for
 round-tripping only; losses are the fixed fraction \code{teff}.
 }
+\examples{
+dc <- newDCLink("K_W1_C1", commodity = "ELC", from = "W1", to = "C1",
+                resistance = 0.001)
+dc@routes
+
+# a one-way link declares a single route
+newDCLink("K_ONE_WAY", commodity = "ELC", from = "W1", to = "C1",
+          bidirectional = FALSE)@routes
+}
 \seealso{
 \code{\link[=newACLine]{newACLine()}}, \code{\link[=newTrade]{newTrade()}}
 

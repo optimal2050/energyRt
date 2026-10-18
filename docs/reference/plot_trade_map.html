@@ -17,13 +17,7 @@ no geometry, so the geometry comes either from the model's geoscale (see
 setGeoscale()) or from a map supplied by the caller — an sf object with
 region, x, y (centroid) columns and polygon geometry, such as one of
 the topia$geoscales layouts (squares, honeycomb, island,
-continent)."><meta property="og:image" content="https://energyRt.org/logo.png"><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script></head><body>
+continent)."><meta property="og:image" content="https://energyRt.org/logo.png"><script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -31,7 +25,7 @@ continent)."><meta property="og:image" content="https://energyRt.org/logo.png"><
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9017</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9027</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -55,6 +49,7 @@ continent)."><meta property="og:image" content="https://energyRt.org/logo.png"><
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
@@ -124,7 +119,7 @@ the <code>topia$geoscales</code> layouts (<code>squares</code>, <code>honeycomb<
 
 <dt id="arg-map">map<a class="anchor" aria-label="anchor" href="#arg-map"></a></dt>
 <dd><p>An <code>sf</code>/data.frame with <code>region</code>, <code>x</code>, <code>y</code> and polygon <code>geometry</code>
-or a <code><a href="https://optimal2050.github.io/geoscales/r/reference/Geoscale.html" class="external-link">geoscales::Geoscale</a></code> (e.g. <code>topia$geoscales$honeycomb</code>). When <code>NULL</code>, the
+or a <code><a href="https://optimal2050.github.io/geoscales/r/reference/GeoScale.html" class="external-link">geoscales::GeoScale</a></code> (e.g. <code>topia$geoscales$honeycomb</code>). When <code>NULL</code>, the
 geoscale attached to <code>object</code> is used. Region polygons need <code>sf</code>; without
 it, only centroids and routes are drawn.</p></dd>
 

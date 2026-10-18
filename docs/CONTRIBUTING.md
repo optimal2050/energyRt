@@ -118,20 +118,23 @@ scen <- mod |> interpolate(name = "BASE") |> solve()
 **[`solve()`](https://rdrr.io/r/base/solve.html) does the whole solver
 stage**: it writes the script, runs the solver, waits (`wait = TRUE`)
 and reads the solution back (`read.solution = TRUE`). Do not append
-`read()` to a solve — the scenario it returns is already populated. The
-other two verbs exist for the cases where that is not what you want:
+[`read()`](https://energyRt.org/reference/read.md) to a solve — the
+scenario it returns is already populated. The other two verbs exist for
+the cases where that is not what you want:
 
 - [`write_script()`](https://energyRt.org/reference/write.md) /
   [`write_sc()`](https://energyRt.org/reference/write.md) — write the
   solver files without running them, to hand off or inspect.
-- `read()` / `read_solution(scen, run = )` — read a **different recorded
-  run** back into the scenario (`"<solve>"` or `"<variant>/<solve>"`,
-  see
+- [`read()`](https://energyRt.org/reference/read.md) /
+  `read_solution(scen, run = )` — read a **different recorded run** back
+  into the scenario (`"<solve>"` or `"<variant>/<solve>"`, see
   [`scenario_runs()`](https://energyRt.org/reference/scenario_runs.md)),
   or pick up a solve that ran with `wait = FALSE`.
 
-[`solve()`](https://rdrr.io/r/base/solve.html), `interpolate()` and
-`read()` are the S4 generics;
+[`solve()`](https://rdrr.io/r/base/solve.html),
+[`interpolate()`](https://energyRt.org/reference/interpolate_model.md)
+and [`read()`](https://energyRt.org/reference/read.md) are the S4
+generics;
 [`solve_model()`](https://energyRt.org/reference/solve_model.md),
 [`solve_scenario()`](https://energyRt.org/reference/solve_model.md),
 [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)

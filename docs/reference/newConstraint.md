@@ -17,22 +17,6 @@ newConstraint(
   interpolation = "inter",
   replace_zerros = 1e-20
 )
-
-newConstraintS(
-  name,
-  type,
-  eq = "==",
-  rhs = 0,
-  for.sum = list(),
-  for.each = list(),
-  defVal = 0,
-  rule = NULL,
-  comm = NULL,
-  cout = TRUE,
-  cinp = TRUE,
-  aout = TRUE,
-  ainp = TRUE
-)
 ```
 
 ## Arguments
@@ -96,41 +80,6 @@ newConstraintS(
 
   numeric value to replace zero values in `rhs` and `defVal`. Default is
   `1e-20`.
-
-- type:
-
-  character; the constraint kind, which selects the variable the
-  left-hand side is built from: a name containing `"inp"` or `"out"`
-  constrains technology input or output, `"capacity"` / `"newcapacity"`
-  the capacity variables, and `"balance"` the commodity balance. The two
-  special values `"tax"` and `"subs"` instead delegate to
-  [`newTax()`](https://energyRt.org/reference/newTax.md) /
-  [`newSubsidy()`](https://energyRt.org/reference/newSubsidy.md).
-
-- for.sum:
-
-  named list of sets to SUM the left-hand side over, as opposed to
-  `for.each`, whose sets index one constraint row each.
-
-- rule:
-
-  accepted for backward compatibility and currently unused.
-
-- comm:
-
-  commodity name; read only by the `"tax"` and `"subs"` types, which
-  pass it on to [`newTax()`](https://energyRt.org/reference/newTax.md) /
-  [`newSubsidy()`](https://energyRt.org/reference/newSubsidy.md).
-
-- cout, aout:
-
-  logical; for an output-type constraint, include the main (`vTechOut`)
-  and the auxiliary (`vTechAOut`) output variables.
-
-- cinp, ainp:
-
-  logical; for an input-type constraint, include the main (`vTechInp`)
-  and the auxiliary (`vTechAInp`) input variables.
 
 ## Value
 

@@ -5,12 +5,12 @@ Loads objects from disk to memory
 ## Usage
 
 ``` r
-obj2mem(obj, verbose = isVerbose())
+obj2mem(object, verbose = isVerbose())
 ```
 
 ## Arguments
 
-- obj:
+- object:
 
   Object of S4 class, saved on disk (scenario, model, etc.)
 

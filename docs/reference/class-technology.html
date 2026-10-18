@@ -9,13 +9,7 @@ commodities into output commodities with consumption or production of auxiliary
 commodities linked to other parameters or variables of the technology.
 A broad set of parameters provides flexibility to model various technological
 processes, including efficiency, availability, costs, and exogenous
-shocks (weather factors)."><meta property="og:image" content="https://energyRt.org/logo.png"><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script></head><body>
+shocks (weather factors)."><meta property="og:image" content="https://energyRt.org/logo.png"><script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -23,7 +17,7 @@ shocks (weather factors)."><meta property="og:image" content="https://energyRt.o
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9017</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9027</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,6 +41,7 @@ shocks (weather factors)."><meta property="og:image" content="https://energyRt.o
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
@@ -518,7 +513,7 @@ shocks (weather factors).</p>
 
 
 <dt><code>cluster</code></dt>
-<dd><p>data.frame. Declaration of the technology's clusters. A cluster is a parallel sub-process of the same technology – a resource class, geography or fleet type – with its own capacity, availability and costs. This slot declares WHAT the clusters are and WHERE they exist; the per-cluster values live in the <code>cluster</code> column of the variant-varying slots (<code>capacity</code>, <code>invcost</code>, <code>afs</code>, <code>weather</code>, ...), exactly as <code>group</code> declares input groups whose data lives in <code>input$group</code>. Optional: when empty, cluster labels are harvested from those columns. When populated it is authoritative – a label used in a slot but not declared here raises an error instead of silently creating an extra technology with default (often unbounded) parameters. The share columns are different levers, not substitutes. <code>cap.share.fx</code> fixes the ratio of the variants' CAPACITIES in every year: loss tranches need it, because each tranche efficiency is calibrated to its place in the capacity stack and the flow must stay free to fill the cheapest first. <code>act.share.lo/up/fx</code> bounds a variant share of the family THROUGHPUT instead, which is what stops a clustered family collapsing to its cheapest member once regional borders are aggregated away. Both are optional; a variant with neither sizes and runs freely.</p><dl><dt>cluster</dt>
+<dd><p>data.frame. Declaration of the technology's clusters. A cluster is a parallel sub-process of the same technology – a resource class, geography or fleet type – with its own capacity, availability and costs. This slot declares WHAT the clusters are and WHERE they exist; the per-cluster values live in the <code>cluster</code> column of the variant-varying slots (<code>capacity</code>, <code>invcost</code>, <code>afs</code>, <code>weather</code>, ...), exactly as <code>group</code> declares input groups whose data lives in <code>input$group</code>. REQUIRED whenever those columns carry a label, and authoritative – a label used in a slot but not declared here raises an error instead of silently creating an extra technology with default (often unbounded) parameters. The share columns are different levers, not substitutes. <code>cap.share.fx</code> fixes the ratio of the variants' CAPACITIES in every year: loss tranches need it, because each tranche efficiency is calibrated to its place in the capacity stack and the flow must stay free to fill the cheapest first. <code>act.share.lo/up/fx</code> bounds a variant share of the family THROUGHPUT instead, which is what stops a clustered family collapsing to its cheapest member once regional borders are aggregated away. Both are optional; a variant with neither sizes and runs freely.</p><dl><dt>cluster</dt>
 <dd><p>character. Cluster label. Must match the <code>cluster</code> column values used in the other slots.</p></dd>
 
 <dt>desc</dt>
@@ -616,8 +611,15 @@ shocks (weather factors).</p>
 <dd><p>character. Name of timeframe level the technology is operating. By default, the lowest level of timeframe of commodities used in the technology is applied.</p></dd>
 
 
+<dt><code>geoframe</code></dt>
+<dd><p>character. Optional. The geoscale level this object's regions are expressed at (e.g. "nation", "zone"). Unset (the default) DERIVES the level from the region codes themselves – the finest level any of them belongs to – which is what every model written before this slot existed relies on. Declared, it names the level, makes that level's own regions the object's default scope, and <code>region</code> may then narrow it; every code in <code>region</code> and in the data slots must be a member of the level, or it is an error rather than a silent reinterpretation.
+It adds those checks and that one default, never new behaviour: it does not aggregate, does not distribute, and does not by itself make a coarse process legal. The rule it makes checkable is that an object may be coarser than the commodities it CONSUMES, never than those it produces or stores – the balance layer rolls finer regions up into coarser ones and never splits a coarse quantity among children. So a technology at "nation" may burn a state-level fuel, but may not produce a state-level commodity.
+Requires a geoscale on the model config. Distinct from <code>commodity@geoframe</code>, which names the level a commodity is BALANCED at, and from <code>summand@geoframe</code>, which restricts the region dimension a constraint term is summed over.</p></dd>
+
+
 <dt><code>region</code></dt>
-<dd><p>character. Vector of regions where the technology exists or can be installed. Optional. If not specified, the technology is applied to all regions. If specified, must include all regions used in other slots.</p></dd>
+<dd><p>character. Vector of regions where the technology exists or can be installed. Optional. If not specified, the technology is applied to all regions. A region coarser than the finest geoscale level is allowed, and makes the object operate at that coarser cell: its capacity, activity and output live there, while an INPUT balanced at a finer level is drawn from the cells beneath it and summed. A commodity the object PRODUCES or STORES may never be finer than the object itself – that would require disaggregating one coarse decision into several fine ones, which energyRt does not do, and is refused.
+Coarsening is a MODEL CHANGE, not a re-representation. The object's own constraints bind at its own frame, so they are WEAKER than a finer declaration's and the model is cheaper: the input/output ratio and the <code>@ceff</code> group shares hold only in aggregate over the coarse cell, and availability is sized against that longer slice. If a blend limit must hold within the period, declare the object at that finer frame; an annual mandate on a finely-operated object belongs in a user constraint with an explicit <code>timeframe</code>. Coarsening also does NOT reduce flow variables – those stay at the commodity's level; it removes activity variables and equation rows. If specified, must include all regions used in other slots.</p></dd>
 
 
 <dt><code>misc</code></dt>

@@ -15,6 +15,12 @@ A single character string of R code.
 \description{
 Used by the designer's export tab.
 }
+\examples{
+spec <- process_to_spec(topia$modules$electricity$R3$ECOA)
+
+# the constructor call that would rebuild the object, as text
+cat(process_spec_code(spec))
+}
 \seealso{
 Other process spec:
 \code{\link[=process_from_spec]{process_from_spec()}},

@@ -73,6 +73,20 @@ TRUE if scenario is loaded, FALSE if not.
 
 a named list of scenarios, or (with `env=`) the loaded names, invisibly.
 
+## Slots stay on disk
+
+A loaded scenario keeps its data-frame slots in the Arrow store rather
+than in memory, so reading one directly — `obj@demand`, `obj@capacity` —
+returns an **empty frame** rather than the data, and
+[`isInMemory()`](https://energyRt.org/reference/isInMemory.md) is
+`FALSE`. [`getData()`](https://energyRt.org/reference/getData.md) goes
+through the lazy store and is unaffected, so it is the route to use;
+[`findData()`](https://energyRt.org/reference/findData.md) and
+[`get_variable()`](https://energyRt.org/reference/get_variable.md)
+likewise. This bites report and plotting code written against an
+in-memory model, where the symptom is an empty table rather than an
+error.
+
 ## Examples
 
 ``` r

@@ -4,10 +4,10 @@
 \alias{solution_ledger}
 \title{Extract the carry-forward ledger from a solved scenario}
 \usage{
-solution_ledger(scen, years = NULL, ledger = NULL)
+solution_ledger(object, years = NULL, ledger = NULL)
 }
 \arguments{
-\item{scen}{a solved scenario.}
+\item{object}{a solved scenario.}
 
 \item{years}{integer, the DECIDED milestone years to extract (default:
 all milestones of the scenario's horizon). With look-ahead windows,
@@ -27,6 +27,27 @@ retirements, the terminal exogenous-stock level, and cumulative supply
 use — into a \code{carry_ledger}. Pure read: nothing is modified. Ledgers of
 consecutive steps accumulate; \code{\link[=apply_ledger]{apply_ledger()}} turns the
 accumulated ledger into the next step's model.
+}
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+
+# what the step decided, as the input to the next one
+led <- solution_ledger(scen)
+names(led)
+
+# the accumulated ledger is what `solve_myopic()` writes into the next
+# step's model
+led$steps
+}
 }
 \seealso{
 \code{\link[=apply_ledger]{apply_ledger()}}, \code{\link[=solve_myopic]{solve_myopic()}}

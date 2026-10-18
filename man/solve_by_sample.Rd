@@ -5,7 +5,7 @@
 \title{Solve a model on samples of its calendar}
 \usage{
 solve_by_sample(
-  mod,
+  object,
   name = NULL,
   ...,
   samples = NULL,
@@ -23,7 +23,7 @@ solve_by_sample(
 )
 }
 \arguments{
-\item{mod}{a model object.}
+\item{object}{a model object.}
 
 \item{name}{character, the sequence name (one scenario folder).}
 
@@ -72,6 +72,26 @@ A sample must keep at least two members at every non-ANNUAL level of the
 calendar. A one-season (or one-week, or one-day) window collapses its outer
 level and is refused, because the only way to build it would rename the leaf
 timeslices and silently detach the model's data.
+}
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+
+# two random two-season samples of the calendar, each solved as a full year
+res <- solve_by_sample(mod, name = "BY_SAMPLE", level = "SEASON",
+                       sample_size = 2, n = 2, method = "random", seed = 1,
+                       solver = solver_options$glpk)
+
+# the spread across samples is the estimate's uncertainty, not a partition
+sample_summary(res, "vTechCap", by = "tech")
+}
 }
 \seealso{
 \code{\link[=calendar_samples]{calendar_samples()}}, \code{\link[=sample_summary]{sample_summary()}}, \code{\link[=solve_by_region]{solve_by_region()}}

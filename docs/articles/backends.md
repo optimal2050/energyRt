@@ -236,6 +236,8 @@ data):
 | mm_highs_barrier_bs3       | NA            | HiGHS       |        | default       |
 | mm_julia_highs_barrier     | NA            | HiGHS       |        | default       |
 | mm_julia_highs_barrier_bs3 | NA            | HiGHS       |        | default       |
+| mm_cuopt_wsl               | NA            | cuOpt       |        | default       |
+| mm_cuopt_wsl_crossover     | NA            | cuOpt       |        | default       |
 | mmcloud                    | NA            | HiGHS       |        | default       |
 | mmcloud_crossover          | NA            | HiGHS       |        | default       |
 | mmcloud_pyomo              | Python/Pyomo  | appsi_highs |        | default       |

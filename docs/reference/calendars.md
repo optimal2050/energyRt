@@ -4,9 +4,9 @@ A named list of ready-to-use
 [calendar](https://energyRt.org/reference/class-calendar.md) objects
 covering common sub-annual time resolutions. Pass any element to
 [`newModel()`](https://energyRt.org/reference/newModel.md) /
-`setCalendar()`, inspect it with
-[`plot()`](https://energyRt.org/reference/draw.md) / `autoplot()`, or
-use it as a template for
+[`setCalendar()`](https://energyRt.org/reference/setGeoscale.md),
+inspect it with [`plot()`](https://energyRt.org/reference/draw.md) /
+`autoplot()`, or use it as a template for
 [`newCalendar()`](https://energyRt.org/reference/newCalendar.md).
 
 ## Usage
@@ -104,8 +104,8 @@ would renormalise the shares) with the surviving `sum(share)` passed as
 
 Only GENERIC calendars are shipped. Calendars belonging to a particular
 model travel with it: the TOPIA teaching calendar is
-`topia$modules$calendars$topia_seasons`, and the unit kits' symmetric
-calendars are `topia$modules$unit$calendars`.
+`topia$modules$calendars$s4_h24`, and the unit kits' symmetric calendars
+are `topia$modules$unit$calendars`.
 
 ## See also
 

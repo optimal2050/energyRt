@@ -71,3 +71,13 @@ embedded — see \code{\link[=save_model]{save_model()}}'s \code{embed_repos}.
 \code{"name@hash8"}, or with \verb{hash =}) via the registry first, then by scanning
 the store; \code{path} bypasses resolution.
 }
+\examples{
+\dontrun{
+open_project(tempdir())
+
+repo <- newRepository("my_repo", newCommodity("ELC", unit = "MWh"))
+save_repository(repo)
+
+load_repository("my_repo")
+}
+}

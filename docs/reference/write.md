@@ -6,14 +6,14 @@ data files to a directory
 ## Usage
 
 ``` r
-write_script(scen, solver.dir = NULL, solver = NULL, ...)
+write_script(object, solver.dir = NULL, solver = NULL, ...)
 
 write_sc(x, solver.dir = NULL, solver = NULL, ...)
 ```
 
 ## Arguments
 
-- scen:
+- object:
 
   scenario object, must be interpolated
 
@@ -40,3 +40,23 @@ write_sc(x, solver.dir = NULL, solver = NULL, ...)
 [`solve()`](https://rdrr.io/r/base/solve.html) to run the script, solve
 the scenario. [read_solution](https://energyRt.org/reference/read.md) to
 read model solution.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+open_project(tempdir())
+
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- interpolate_model(mod, name = "BASE")
+
+# write the backend's model and data files without solving, to read them
+# or to run the solver by hand
+write_script(scen, solver = solver_options$glpk, solver.dir = tempdir())
+} # }
+```

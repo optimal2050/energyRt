@@ -77,7 +77,7 @@ anchor is the alphabetically first timeslice (rotate with \code{phase}).
 }
 \examples{
 # on/off resource on the 4-slice test calendar: free half the year
-topia_profile("step", levels = 2, calendar = "topia_seasons")
+topia_profile("step", levels = 2, calendar = "s4")
 
 # a diurnal sine for every season, phased across three regions
 head(topia_profile("sine", calendar = "s4_h24",

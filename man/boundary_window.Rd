@@ -5,7 +5,7 @@
 \title{A generic boundary trade window}
 \usage{
 boundary_window(
-  mod,
+  object,
   regions,
   share = 0.1,
   nsteps = 3,
@@ -15,7 +15,7 @@ boundary_window(
 )
 }
 \arguments{
-\item{mod}{a model object.}
+\item{object}{a model object.}
 
 \item{regions}{character, the regions being solved (the sample). Routes are
 priced at whichever endpoint is inside this set.}
@@ -54,6 +54,19 @@ demand, so the familiar "trade is at most 10\% of consumption" reading holds
 without needing an annual budget — which could not be expressed correctly
 anyway (a per-region reserve does not exist, and a constraint RHS averages
 across regions).
+}
+\examples{
+\dontrun{
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions, horizon = topia$modules$horizons$base)
+
+# the priced import/export stubs a sub-territory solve needs at its edge:
+# a share of the region's own demand, in `nsteps` price steps
+boundary_window(mod, regions = c("W1", "W2"), price = 60, share = 0.1,
+                nsteps = 3)
+}
 }
 \seealso{
 \code{\link[=subset_model_regions]{subset_model_regions()}}, \code{\link[=solve_by_region]{solve_by_region()}}, \code{\link[=asImportCurve]{asImportCurve()}}

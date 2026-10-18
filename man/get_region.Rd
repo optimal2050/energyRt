@@ -4,10 +4,10 @@
 \alias{get_region}
 \title{Collect the regions an object operates in}
 \usage{
-get_region(obj)
+get_region(object)
 }
 \arguments{
-\item{obj}{a model object (S4) such as \code{technology}, \code{storage}, \code{trade},
+\item{object}{a model object (S4) such as \code{technology}, \code{storage}, \code{trade},
 \code{import}, or \code{export}.}
 }
 \value{
@@ -26,6 +26,15 @@ The result is the set of unique, non-missing, non-empty region labels. The
 function is intentionally schema-agnostic so it keeps working as region
 information is added to classes that do not yet carry an explicit \verb{@region}
 slot (e.g. \code{import} / \code{export}).
+}
+\examples{
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+get_region(mod)
 }
 \seealso{
 Other model:

@@ -5,7 +5,7 @@
 \title{Aggregate a model to a coarser set of regions}
 \usage{
 aggregate_model_regions(
-  mod,
+  object,
   geoscale = NULL,
   level,
   clusters = NULL,
@@ -16,7 +16,7 @@ aggregate_model_regions(
 )
 }
 \arguments{
-\item{mod}{A \code{model}.}
+\item{object}{A \code{model}.}
 
 \item{geoscale}{A \link[geoscales:GeoScale]{geoscales::GeoScale} whose finest geoframe contains the
 model's regions. \code{NULL} (default) uses the model's own.}
@@ -108,6 +108,26 @@ A family that ALREADY has clusters -- wind by site grade -- keeps them: the
 two groupings compose, \code{GOOD} in \code{W1} becoming \code{GOOD_W1}.
 }
 
+\examples{
+repo <- newRepository(
+  "mini",
+  newCommodity("COA", unit = "MMBtu"),
+  newCommodity("ELC", unit = "MWh", timeframe = "ANNUAL"),
+  newSupply("SUP_COA", commodity = "COA", supply = data.frame(cost = 1)),
+  newTechnology("ECOA", input = list(comm = "COA"), output = list(comm = "ELC"),
+                cap2act = 1, invcost = list(invcost = 100),
+                olife = list(olife = 30)),
+  newDemand("DEM", commodity = "ELC",
+            demand = data.frame(region = c("W1", "W2"), year = 2020, demand = 10))
+)
+mod <- newModel("MINI", data = repo, calendar = calendars$annual,
+                region = c("W1", "W2"), horizon = horizons$Y2020_2060_by_5)
+
+# roll the two regions up into the zone they share
+agg <- aggregate_model_regions(mod, geoscale = topia$geoscales$squares,
+                               level = "zone")
+get_region(agg)
+}
 \seealso{
 \code{\link[=subset_model_regions]{subset_model_regions()}}, which takes a sub-territory at the
 model's own resolution instead of coarsening the whole of it;

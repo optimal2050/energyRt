@@ -7,7 +7,7 @@
 \title{Stepped supply, export and import curves}
 \usage{
 asSupplyCurve(
-  obj,
+  object,
   range = NULL,
   nsteps = NULL,
   shares = NULL,
@@ -17,7 +17,7 @@ asSupplyCurve(
 )
 
 asImportCurve(
-  obj,
+  object,
   range = NULL,
   nsteps = NULL,
   shares = NULL,
@@ -27,7 +27,7 @@ asImportCurve(
 )
 
 asExportCurve(
-  obj,
+  object,
   range = NULL,
   nsteps = NULL,
   shares = NULL,
@@ -37,7 +37,7 @@ asExportCurve(
 )
 }
 \arguments{
-\item{obj}{a \code{supply}, \code{export} or \code{import} object.}
+\item{object}{a \code{supply}, \code{export} or \code{import} object.}
 
 \item{range}{numeric of length 2, the first and last price of a linear curve.}
 

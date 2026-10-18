@@ -5,7 +5,7 @@
 \title{Remove machine and user information from a stored scenario}
 \usage{
 strip_user_info(
-  scen,
+  object,
   path = NULL,
   scope = c("share", "store"),
   keep_solver = FALSE,
@@ -14,7 +14,7 @@ strip_user_info(
 )
 }
 \arguments{
-\item{scen}{a scenario object.}
+\item{object}{a scenario object.}
 
 \item{path}{target directory for a cleaned copy, or \code{NULL} to edit in place.}
 
@@ -62,6 +62,16 @@ them with \code{\link[=clear_report_cache]{clear_report_cache()}} — they re-re
 Passing \code{path} writes a cleaned copy and leaves the original working.
 \code{path = NULL} edits in place, which is irreversible, so it is a dry run
 unless \code{confirm = TRUE}.
+}
+\examples{
+\dontrun{
+open_project("~/projects/mymodel")
+scen <- getScenario("BASE")
+
+# in place, on the scenario's own folder -- `confirm = TRUE` is required
+# because it rewrites what is on disk
+strip_user_info(scen, confirm = TRUE)
+}
 }
 \seealso{
 \code{\link[=prepare_for_sharing]{prepare_for_sharing()}}, \code{\link[=scenario_artifacts]{scenario_artifacts()}}

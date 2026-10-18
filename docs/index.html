@@ -19,13 +19,7 @@
 <meta name="description" content="A macro-language for energy system modeling in R. Describe an energy system as R objects (commodities, technologies, supply, demand, storage, trade), compile it into a capacity-expansion and dispatch optimization model, solve it on one of four interchangeable backends (GLPK/MathProg, Julia/JuMP, Python/Pyomo, or GAMS), and analyze tidy results with built-in tools for levelized costs, technology reports, and plotting.">
 <meta property="og:description" content="A macro-language for energy system modeling in R. Describe an energy system as R objects (commodities, technologies, supply, demand, storage, trade), compile it into a capacity-expansion and dispatch optimization model, solve it on one of four interchangeable backends (GLPK/MathProg, Julia/JuMP, Python/Pyomo, or GAMS), and analyze tidy results with built-in tools for levelized costs, technology reports, and plotting.">
 <meta property="og:image" content="https://energyRt.org/logo.png">
-<!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script>
+<script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -35,7 +29,7 @@
 
     <a class="navbar-brand me-2" href="index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9017</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9027</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -63,6 +57,7 @@
     <li><a class="dropdown-item" href="articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="articles/storage.html">Storage</a></li>
+    <li><a class="dropdown-item" href="articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
@@ -118,16 +113,46 @@
 </ul>
 </div>
 <div class="section level3">
+<h3 id="time-and-space-are-yours-to-define">Time and space are yours to define<a class="anchor" aria-label="anchor" href="#time-and-space-are-yours-to-define"></a>
+</h3>
+<p>Resolution is a modelling choice, not a fixed property of the framework. The calendar below nests <code>ANNUAL &gt; SEASON &gt; HOUR</code>; the geoscale nests <code>nation &gt; zone &gt; region</code>. Both are declared by the modeller, and each commodity balances at the level its data supports.</p>
+<table class="table">
+<tr>
+<td width="50%">
+<img src="reference/figures/readme-calendar.png" alt="A nested calendar: one annual slice over four seasons over 24 hours, sized by their share of the year">
+</td>
+<td width="50%">
+<img src="reference/figures/readme-geoscale.png" alt="A three-level geoscale: regions nested in zones nested in one nation">
+</td>
+</tr>
+<tr>
+<td>
+<em><code>autoplot(calendars<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>s</mi><msub><mn>4</mn><mi>h</mi></msub><mn>24</mn><mo stretchy="false" form="postfix">)</mo><mo>&lt;</mo><mi>/</mi><mi>c</mi><mi>o</mi><mi>d</mi><mi>e</mi><mo>&gt;</mo><mi>—</mi><mn>4</mn><mi>s</mi><mi>e</mi><mi>a</mi><mi>s</mi><mi>o</mi><mi>n</mi><mi>s</mi><mi>x</mi><mn>24</mn><mi>h</mi><mi>o</mi><mi>u</mi><mi>r</mi><mi>s</mi><mo>,</mo><mi>n</mi><mi>e</mi><mi>s</mi><mi>t</mi><mi>e</mi><mi>d</mi><mi>u</mi><mi>n</mi><mi>d</mi><mi>e</mi><mi>r</mi><mi>a</mi><mi>n</mi><mi>a</mi><mi>n</mi><mi>n</mi><mi>u</mi><mi>a</mi><mi>l</mi><mi>b</mi><mi>a</mi><mi>l</mi><mi>a</mi><mi>n</mi><mi>c</mi><mi>e</mi><mi>.</mi><mo>&lt;</mo><mi>/</mi><mi>e</mi><mi>m</mi><mo>&gt;</mo><mo>&lt;</mo><mi>/</mi><mi>t</mi><mi>d</mi><mo>&gt;</mo><mo>&lt;</mo><mi>t</mi><mi>d</mi><mo>&gt;</mo><mo>&lt;</mo><mi>e</mi><mi>m</mi><mo>&gt;</mo><mo>&lt;</mo><mi>c</mi><mi>o</mi><mi>d</mi><mi>e</mi><mo>&gt;</mo><mi>p</mi><mi>l</mi><mi>o</mi><msub><mi>t</mi><mi>g</mi></msub><mi>e</mi><mi>o</mi><mi>s</mi><mi>c</mi><mi>a</mi><mi>l</mi><mi>e</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mi>o</mi><mi>p</mi><mi>i</mi><mi>a</mi></mrow><annotation encoding="application/x-tex">s4_h24)&lt;/code&gt; — 4 seasons x 24 hours, nested
+under an annual balance.&lt;/em&gt;&lt;/td&gt;
+&lt;td&gt;&lt;em&gt;&lt;code&gt;plot_geoscale(topia</annotation></semantics></math>geoscales$continent)</code> — regions grouped into zones, coloured by zone.</em>
+</td>
+</tr>
+</table>
+<p><strong>Changing a dimension does not mean rewriting the model.</strong> A model is declared once at full resolution; a coarser or sampled calendar is passed at solve time, and the geography is attached, or filtered to a sub-territory, the same way. Three arguments decide the resolution of a run:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/newModel.html">newModel</a></span><span class="op">(</span><span class="va">...</span>, calendar <span class="op">=</span> <span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span><span class="op">)</span>   <span class="co"># declared: 4 seasons x 24 hours</span></span>
+<span><span class="fu"><a href="reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"sampled"</span>,           <span class="co"># solved on a subset of its slices</span></span>
+<span>            calendar <span class="op">=</span> <span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24_subset_2seasons</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">topia</span><span class="op">$</span><span class="va">geoscales</span><span class="op">$</span><span class="va">continent</span><span class="op">)</span>  <span class="co"># nation &gt; zone &gt; region</span></span></code></pre></div>
+<p>In a small gas-and-demand model on that calendar, sampling two of the four seasons cuts 101 timeslices to 51 and lands within 0.2% of the full solve (1759.7 against 1756.8) — the usual reason to sample while iterating and confirm at full resolution before reporting.</p>
+</div>
+<div class="section level3">
 <h3 id="whats-new-in-v090">What’s new in v0.90<a class="anchor" aria-label="anchor" href="#whats-new-in-v090"></a>
 </h3>
-<p>Version 0.90 is a major, breaking modernization on the way to v1.0. It brings nested time and geography into the core model, reworks interpolation and scenario storage, expands validation and analysis (<code><a href="reference/levcost.html">levcost()</a></code>, <code><a href="reference/report.html">report()</a></code>, and <code>autoplot()</code>), and adopts the Apache-2.0 license. The 0.8-series deprecation layer has been removed; see <a href="#upgrading-from-earlier-versions">Upgrading</a> before moving an existing model.</p>
+<p>Version 0.90 is the pre-release for v1.0 and the first release since <code>v0.50-beta</code>, consolidating three unreleased development cycles. It brings nested time and geography into the core model, re-models storage as three priced parts, makes vintages and clusters one mechanism (including graded resources that cannot pool), reworks interpolation and scenario storage, adds structural validation and solution verification, expands analysis and reporting (<code><a href="reference/levcost.html">levcost()</a></code>, <code><a href="reference/report.html">report()</a></code>, <code><a href="reference/draw.html">draw()</a></code>, <code>autoplot()</code>), and adopts the Apache-2.0 license.</p>
+<p>What remains before v1.0 is testing, debugging and visualisation rather than new structure. Upgrading from 0.50 is not a drop-in — see the <a href="https://energyrt.org/news/" class="external-link">release notes</a> and <a href="#upgrading-from-earlier-versions">Upgrading</a> first.</p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="quickstart">Quickstart<a class="anchor" aria-label="anchor" href="#quickstart"></a>
 </h2>
 <p>This complete model has one fuel, one power plant, and one demand. On Windows, GLPK is available with Rtools.</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://energyRt.org">energyRt</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">GAS</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/newCommodity.html">newCommodity</a></span><span class="op">(</span><span class="st">"GAS"</span>, timeframe <span class="op">=</span> <span class="st">"ANNUAL"</span><span class="op">)</span></span>
@@ -163,9 +188,9 @@
 <span><span class="fu"><a href="reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>  <span class="co"># discounted system cost</span></span>
 <span><span class="fu"><a href="reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechCap"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>    <span class="co"># installed capacity</span></span></code></pre></div>
 <p><code><a href="reference/solve_model.html">solve_model()</a></code> interpolates and solves in one call. To inspect or modify the interpolated scenario, use the composable stages instead:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="va">mod</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu">interpolate</span><span class="op">(</span>name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="reference/interpolate_model.html">interpolate</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/solve.html" class="external-link">solve</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>The <a href="https://energyrt.org/articles/energyRt.html" class="external-link">Get started</a> vignette explains the model and workflow step by step.</p>
 </div>
@@ -182,12 +207,124 @@
 <li>
 <strong>Nested geography</strong> using <a href="https://github.com/optimal2050/geoscales" class="external-link">geoscales</a>, so national, zonal, and nodal balances can coexist and results can be mapped or aggregated.</li>
 <li>
-<strong>Reusable scenarios</strong> with model variants, recorded runs, myopic and guided solve workflows, regional decomposition, and Arrow-backed persistence.</li>
+<strong>One object, many processes.</strong> A technology declares build <strong>vintages</strong> and parallel <strong>clusters</strong> — site grades, fleet types, tranches — and expands into ordinary processes, each with its own costs, efficiency and limits. Tiered commodities and tiered weather series give a graded resource its own balance and profile per grade, so the best sites run out before the next grade starts.</li>
 <li>
-<strong>Analysis and communication</strong> through tidy <code><a href="reference/getData.html">getData()</a></code> results, comparison helpers, <code>autoplot()</code>, levelized-cost analysis, technology diagrams, and HTML/PDF reports.</li>
+<strong>Storage as three parts.</strong> Charger, reservoir and discharger are sized and priced separately, tied by duration and C-rate, with flows bounded by the converter rating.</li>
+<li>
+<strong>Reusable scenarios</strong> with recorded runs, a project registry, myopic, sampled, regional and guided solve workflows, and Arrow-backed persistence for results larger than memory.</li>
+<li>
+<strong>Checks that catch silent nonsense.</strong> Structural validation refuses a model that would solve to a meaningless answer — a flow with no capacity link, a constraint with no data behind it — and <code><a href="reference/verify_solution.html">verify_solution()</a></code> re-derives the model’s own identities from the results.</li>
+<li>
+<strong>Analysis and communication</strong> through tidy <code><a href="reference/getData.html">getData()</a></code> results, scenario and input comparison, levelized costs for technologies, storage and trade without a solver, <code><a href="reference/draw.html">draw()</a></code> diagrams, <code>autoplot()</code>, maps, and HTML/PDF/Word reports for any object.</li>
 <li>
 <strong>A path from learning to application:</strong> the packaged TOPIA teaching model develops a multi-region power system step by step, while <a href="https://ideea-model.github.io/IDEEA/" class="external-link">IDEEA</a> demonstrates a production-scale application to India’s power system.</li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="a-tour-of-the-api">A tour of the API<a class="anchor" aria-label="anchor" href="#a-tour-of-the-api"></a>
+</h2>
+<p>Each block below is the call shape, not a complete script — the Quickstart above is the runnable one, and every topic has an article behind it.</p>
+<div class="section level3">
+<h3 id="processes-that-extend-rather-than-multiply">Processes that extend rather than multiply<a class="anchor" aria-label="anchor" href="#processes-that-extend-rather-than-multiply"></a>
+</h3>
+<p>A technology converts any number of inputs into any number of outputs, with auxiliary flows coupling its capacity or its flows to anything else — land per MW, water or an emission per unit of fuel. <code><a href="reference/update.html">update()</a></code> derives a variant instead of re-typing the object.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">EGAS</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/technology.html">newTechnology</a></span><span class="op">(</span><span class="st">"EGAS"</span>,</span>
+<span>  input   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"GAS"</span>, unit <span class="op">=</span> <span class="st">"PJ"</span><span class="op">)</span>,</span>
+<span>  output  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"GWh"</span><span class="op">)</span>,</span>
+<span>  aux     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>acomm <span class="op">=</span> <span class="st">"CO2"</span>, unit <span class="op">=</span> <span class="st">"kt"</span><span class="op">)</span>,</span>
+<span>  aeff    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>acomm <span class="op">=</span> <span class="st">"CO2"</span>, comm <span class="op">=</span> <span class="st">"GAS"</span>, cinp2aout <span class="op">=</span> <span class="fl">56</span><span class="op">)</span>,</span>
+<span>  af      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>af.up <span class="op">=</span> <span class="fl">0.85</span><span class="op">)</span>,</span>
+<span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>invcost <span class="op">=</span> <span class="fl">900</span><span class="op">)</span>,</span>
+<span>  cap2act <span class="op">=</span> <span class="fl">8.76</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">EGAS_CCS</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/update.html">update</a></span><span class="op">(</span><span class="va">EGAS</span>, name <span class="op">=</span> <span class="st">"EGAS_CCS"</span>,</span>
+<span>  aeff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>acomm <span class="op">=</span> <span class="st">"CO2"</span>, comm <span class="op">=</span> <span class="st">"GAS"</span>, cinp2aout <span class="op">=</span> <span class="fl">5.6</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="supply-curves-trade-and-the-model-boundary">Supply, curves, trade and the model boundary<a class="anchor" aria-label="anchor" href="#supply-curves-trade-and-the-model-boundary"></a>
+</h3>
+<p>A flat price becomes a stepped supply curve in one call; corridors carry a commodity between regions, with electrical wrappers and optional loop-flow physics; imports and exports price what crosses the model boundary.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">SUP_GAS</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/newSupply.html">newSupply</a></span><span class="op">(</span><span class="st">"SUP_GAS"</span>, commodity <span class="op">=</span> <span class="st">"GAS"</span>,</span>
+<span>                      supply <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>ava.up <span class="op">=</span> <span class="fl">400</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">SUP_GAS</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/supply-curve.html">asSupplyCurve</a></span><span class="op">(</span><span class="va">SUP_GAS</span>, price <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">6</span>, <span class="fl">9</span><span class="op">)</span><span class="op">)</span>   <span class="co"># three priced steps</span></span>
+<span></span>
+<span><span class="va">AC_R1_R2</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/newACLine.html">newACLine</a></span><span class="op">(</span><span class="st">"AC_R1_R2"</span>, commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
+<span>                      from <span class="op">=</span> <span class="st">"R1"</span>, to <span class="op">=</span> <span class="st">"R2"</span>, reactance <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span>
+<span><span class="va">IMP_ELC</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/newImport.html">newImport</a></span><span class="op">(</span><span class="st">"IMP_ELC"</span>, commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
+<span>                      import <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>price <span class="op">=</span> <span class="fl">5000</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="variants-similar-processes-as-one-family">Variants: similar processes as one family<a class="anchor" aria-label="anchor" href="#variants-similar-processes-as-one-family"></a>
+</h3>
+<p>Build <strong>vintages</strong> and parallel <strong>clusters</strong> live on one object and expand into ordinary processes, so a fleet or a graded resource is declared once and analysed together — including its levelized cost, member by member, without a solver.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">EWIN</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/technology.html">newTechnology</a></span><span class="op">(</span><span class="st">"EWIN"</span>,</span>
+<span>  output  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"GWh"</span><span class="op">)</span>,</span>
+<span>  cluster <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cluster <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"01"</span>, <span class="st">"02"</span>, <span class="st">"03"</span><span class="op">)</span>, order <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">)</span>,</span>
+<span>  capacity <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cluster <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"01"</span>, <span class="st">"02"</span>, <span class="st">"03"</span><span class="op">)</span>, cap.up <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">8</span>, <span class="fl">16</span>, <span class="fl">40</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  invcost  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cluster <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"01"</span>, <span class="st">"02"</span>, <span class="st">"03"</span><span class="op">)</span>, invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">600</span>, <span class="fl">900</span>, <span class="fl">1800</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  vintage  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">25L</span><span class="op">)</span>, cap2act <span class="op">=</span> <span class="fl">8.76</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/getVariants.html">getVariants</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span>                      <span class="co"># the names before interpolating</span></span>
+<span><span class="fu"><a href="reference/levcost.html">levcost</a></span><span class="op">(</span><span class="va">EWIN</span>, by_variant <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>      <span class="co"># USD/MWh per member</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="policy-instruments-and-constraints">Policy instruments and constraints<a class="anchor" aria-label="anchor" href="#policy-instruments-and-constraints"></a>
+</h3>
+<p>Taxes and subsidies levy on a commodity total or on named processes. Beyond the ~150 equation families energyRt generates from your data, <code><a href="reference/newConstraint.html">newConstraint()</a></code> writes an arbitrary linear restriction over declared summands — the two below are TOPIA’s own carbon-price and no-new-nuclear levers.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">CT_CO2</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/newTax.html">newTax</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"CT_CO2"</span>, comm <span class="op">=</span> <span class="st">"CO2"</span>,</span>
+<span>  tax <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>year <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2030</span>, <span class="fl">2050</span><span class="op">)</span>, bal <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.02</span>, <span class="fl">0.08</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">NO_NEW_NUC</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/newConstraint.html">newConstraint</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"NO_NEW_NUC"</span>, eq <span class="op">=</span> <span class="st">"&lt;="</span>,</span>
+<span>  for.each <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>year <span class="op">=</span> <span class="va">years</span>, tech <span class="op">=</span> <span class="st">"ENUC"</span><span class="op">)</span>,</span>
+<span>  term1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>variable <span class="op">=</span> <span class="st">"vTechNewCap"</span><span class="op">)</span>,</span>
+<span>  rhs <span class="op">=</span> <span class="fl">0</span>, defVal <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="solve-strategies">Solve strategies<a class="anchor" aria-label="anchor" href="#solve-strategies"></a>
+</h3>
+<p>The same model can be solved with perfect foresight or with any of four alternatives, each recorded as a run of the scenario.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">base</span>   <span class="op">&lt;-</span> <span class="fu"><a href="reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"base"</span><span class="op">)</span>                    <span class="co"># intertemporal</span></span>
+<span><span class="va">myopic</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/solve_myopic.html">solve_myopic</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"myopic"</span>, step <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span>      <span class="co"># window by window</span></span>
+<span><span class="va">sampled</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/solve_by_sample.html">solve_by_sample</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"sampled"</span><span class="op">)</span>            <span class="co"># sampled calendars</span></span>
+<span><span class="va">by_reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/solve_by_region.html">solve_by_region</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"by_region"</span><span class="op">)</span>           <span class="co"># region by region</span></span>
+<span><span class="va">guided</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/solve_guided.html">solve_guided</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"guided"</span><span class="op">)</span>                 <span class="co"># toward a target</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="model-size-control">Model size control<a class="anchor" aria-label="anchor" href="#model-size-control"></a>
+</h3>
+<p>Resolution is the first lever — a coarser timeframe or geoframe for a commodity, a sampled calendar, a subset of regions. Folding and sparse storage are the second: they drop what does not vary and what equals a default, losslessly.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, fold <span class="op">=</span> <span class="cn">TRUE</span>, sparse <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/model_size.html">model_size</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span>              <span class="co"># rows per parameter, largest first</span></span>
+<span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/trim_parameters.html">trim_parameters</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span> <span class="co"># drop rows no mapping indexes</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="scenarios-tracking-and-queries">Scenarios, tracking and queries<a class="anchor" aria-label="anchor" href="#scenarios-tracking-and-queries"></a>
+</h3>
+<p>A project registry keyed on path records every model, scenario and dataset, so a study with thousands of runs stays addressable by name. Content hashes say whether two things are really the same, and results are queried and compared without leaving R.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">reg</span>  <span class="op">&lt;-</span> <span class="fu"><a href="reference/registry.html">load_registry</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/accessors.html">getScenario</a></span><span class="op">(</span><span class="st">"base"</span><span class="op">)</span>                     <span class="co"># by name, from the registry</span></span>
+<span><span class="fu"><a href="reference/scenario_runs.html">scenario_runs</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span>                             <span class="co"># every solve of this scenario</span></span>
+<span><span class="fu"><a href="reference/model_hash.html">model_hash</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span>; <span class="fu"><a href="reference/model_hash.html">object_hash</a></span><span class="op">(</span><span class="va">EGAS</span><span class="op">)</span>              <span class="co"># content, not file names</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, name <span class="op">=</span> <span class="st">"vTechCap"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span>, variants <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/compare_scenarios.html">compare_scenarios</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>base <span class="op">=</span> <span class="va">base</span>, carbon_tax <span class="op">=</span> <span class="va">tax_run</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="visualisation-and-auto-reporting">Visualisation and auto-reporting<a class="anchor" aria-label="anchor" href="#visualisation-and-auto-reporting"></a>
+</h3>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/draw.html">draw</a></span><span class="op">(</span><span class="va">EGAS</span><span class="op">)</span>                                            <span class="co"># the process diagram</span></span>
+<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">scen</span>, type <span class="op">=</span> <span class="st">"generation"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, by <span class="op">=</span> <span class="st">"cluster"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/plot_map.html">plot_map</a></span><span class="op">(</span><span class="va">scen</span>, name <span class="op">=</span> <span class="st">"vTechNewCap"</span><span class="op">)</span>                  <span class="co"># any variable with a region</span></span>
+<span><span class="fu"><a href="reference/report.html">report</a></span><span class="op">(</span><span class="va">scen</span>, template <span class="op">=</span> <span class="st">"full"</span>, format <span class="op">=</span> <span class="st">"html"</span><span class="op">)</span>      <span class="co"># a full scenario datasheet</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="one-model-many-representations-and-solve-routes">One model, many representations and solve routes<a class="anchor" aria-label="anchor" href="#one-model-many-representations-and-solve-routes"></a>
@@ -242,11 +379,11 @@
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <p>Install the development release from GitHub:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"optimal2050/energyRt"</span><span class="op">)</span></span></code></pre></div>
 <p><code>pak</code> installs energyRt’s R dependencies, including the optimal2050 packages listed in <code>DESCRIPTION</code>. You also need at least one solver runtime. On Windows, Rtools includes GLPK; on other platforms, install GLPK separately or configure Julia/JuMP, Python/Pyomo, or GAMS.</p>
 <p>After installation, check the local setup:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://energyRt.org">energyRt</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/en_setup.html">en_setup</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/en_check.html">en_check_dependencies</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
@@ -263,7 +400,11 @@
 <li>
 <a href="https://energyrt.org/articles/time-resolution.html" class="external-link">Time resolution</a>, <a href="https://github.com/optimal2050/timescales" class="external-link">timescales</a>, and <a href="https://energyrt.org/articles/space-resolution.html" class="external-link">space resolution</a> — user-defined nested calendars and regional hierarchies.</li>
 <li>
-<a href="https://energyrt.org/articles/topia-build.html" class="external-link">TOPIA I</a> and <a href="https://energyrt.org/articles/topia-use.html" class="external-link">TOPIA II</a> — build and use a complete teaching model.</li>
+<a href="https://energyrt.org/articles/storage.html" class="external-link">Storage</a> and <a href="https://energyrt.org/articles/variants.html" class="external-link">Vintages &amp; clusters</a> — the two classes with the most structure, worked through end to end.</li>
+<li>
+<a href="https://energyrt.org/articles/units.html" class="external-link">Units</a> — stating units, and the capacity-to-activity conversion.</li>
+<li>
+<a href="https://energyrt.org/articles/topia-build.html" class="external-link">TOPIA I</a>, <a href="https://energyrt.org/articles/topia-use.html" class="external-link">II</a> and <a href="https://energyrt.org/articles/region-aggregation.html" class="external-link">III</a> — build a complete teaching model, run scenarios on it, then aggregate its regions.</li>
 <li>
 <a href="https://energyrt.org/articles/workflow.html" class="external-link">Workflow</a>, <a href="https://energyrt.org/articles/scenario-management.html" class="external-link">scenario management</a>, and <a href="https://energyrt.org/articles/reports.html" class="external-link">reports</a> — move from a model to a reproducible study.</li>
 <li>
@@ -275,7 +416,7 @@
 </h2>
 <p>v0.90 removes deprecated names and compatibility shims from the 0.8 series and changes several serialized model and scenario structures. Rebuild saved inputs from their source definitions and review the <a href="https://energyrt.org/news/" class="external-link">release notes</a> before comparing results.</p>
 <p>To reproduce a pre-2026 project without migrating it, install the frozen legacy release:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"optimal2050/energyRt@v0.50-beta"</span><span class="op">)</span></span></code></pre></div>
 <p>energyRt v0.90 is under active development. Please report bugs and proposed improvements in the <a href="https://github.com/optimal2050/energyRt/issues" class="external-link">issue tracker</a>. The package website is <a href="https://energyrt.org" class="external-link uri">https://energyrt.org</a>.</p>
 </div>

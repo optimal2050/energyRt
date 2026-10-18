@@ -5,18 +5,18 @@
 \title{Return default value for one, several, or all parameters}
 \usage{
 get_default_value(
-  scen = NULL,
+  object = NULL,
   pname = NULL,
   sname = NULL,
   oname = NULL,
   class = NULL,
   bound = NULL,
-  global = is.null(scen),
+  global = is.null(object),
   one_value = FALSE
 )
 }
 \arguments{
-\item{scen}{scenario object}
+\item{object}{scenario object}
 
 \item{pname}{character, parameter name, as it appears in the model}
 
@@ -44,4 +44,8 @@ A default value for one parameter, or a list of default values for several param
 }
 \description{
 Return default value for one, several, or all parameters
+}
+\examples{
+# the package-wide default and bound of a parameter, without a model
+get_default_value(pname = c("pTechCap", "pTechAf"), global = TRUE)
 }

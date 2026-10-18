@@ -3,13 +3,7 @@
 share band for each commodity in each constrained input or output group of
 the technology."><meta property="og:description" content="Purely geometric helper — no model solve required.  Returns the feasible
 share band for each commodity in each constrained input or output group of
-the technology."><meta property="og:image" content="https://energyRt.org/logo.png"><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script></head><body>
+the technology."><meta property="og:image" content="https://energyRt.org/logo.png"><script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -17,7 +11,7 @@ the technology."><meta property="og:image" content="https://energyRt.org/logo.pn
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9017</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9027</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,6 +35,7 @@ the technology."><meta property="og:image" content="https://energyRt.org/logo.pn
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
@@ -95,6 +90,29 @@ the technology.</p>
     <p>A <code>data.frame</code> or <code>NULL</code> if no constrained groups found.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># a co-firing plant whose biomass may cover at most 30% of the fuel group</span></span></span>
+<span class="r-in"><span><span class="va">chp</span> <span class="op">&lt;-</span> <span class="fu"><a href="technology.html">newTechnology</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="st">"CHP"</span>,</span></span>
+<span class="r-in"><span>  input   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"COA"</span>, <span class="st">"BIO"</span><span class="op">)</span>, group <span class="op">=</span> <span class="st">"fuel"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  output  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  group   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>group <span class="op">=</span> <span class="st">"fuel"</span>, unit <span class="op">=</span> <span class="st">"MMBtu"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  ceff    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"COA"</span>, <span class="st">"BIO"</span><span class="op">)</span>, cinp2use <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.40</span>, <span class="fl">0.35</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>                       grp.share.up <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0.3</span><span class="op">)</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  cap2act <span class="op">=</span> <span class="fl">8760</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># the feasible share band per commodity, and what it does to efficiency</span></span></span>
+<span class="r-in"><span><span class="fu">tech_share_frontier</span><span class="op">(</span><span class="va">chp</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   tech direction group comm others n_in_group share_lo share_hi share_lo_eff</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  CHP     input  fuel  COA    BIO          2        0      1.0          0.7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  CHP     input  fuel  BIO    COA          2        0      0.3          0.0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   share_hi_eff</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1          1.0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2          0.3</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

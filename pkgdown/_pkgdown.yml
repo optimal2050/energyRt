@@ -373,6 +373,7 @@ reference:
   - validate_scenario_parameters
   - verify_solution
   - verify_checks
+  - process_operability
   - audit_coefficients
   - en_check
   - en_check_packages

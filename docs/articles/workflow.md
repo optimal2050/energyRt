@@ -174,7 +174,7 @@ scenario and model sharing a name appear once):
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\Rtmp8i9b8k/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpuQCdcz/wf"
 basename(scen@path)
 #> [1] "BASE-TOPIA-s4_h24-base"
 ```
@@ -258,7 +258,7 @@ identical(getScenario("BASE")@name, ld@name)
 basename(saved@path)                                 # the scenario folder
 #> [1] "BASE-TOPIA-s4_h24-base"
 isInMemory(saved)                                    # FALSE -- data is on disk
-#> [1] FALSE
+#> [1] TRUE
 getData(ld, "vObjective", merge = TRUE)$value        # lazy read, no full load
 #> [1] 18279.84
 ```
@@ -341,9 +341,9 @@ in-memory footprint:
 
 model_size(scen)
 #> model_size: BASE
-#>   parameters : 179 value, 309 maps, 14 sets
+#>   parameters : 189 value, 348 maps, 15 sets
 #>   param rows : 6,715
-#>   estimate   : ~16,298 variables, ~16,972 constraints (from gating maps)
+#>   estimate   : ~16,310 variables, ~17,364 constraints (from gating maps)
 #>   top parameters by rows:
 #>     pTechCinp2use      1,536
 #>     pTimesliceAgg      1,188
@@ -361,7 +361,7 @@ model_size(scen)
 #>     pTechEac           20
 #>     pTechStock         14
 size(scen)
-#> [1] "7.2 Mb"
+#> [1] "7.7 Mb"
 ```
 
 For a systematic check that a build is correct *and* efficient,

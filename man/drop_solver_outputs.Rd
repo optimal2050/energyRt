@@ -4,10 +4,10 @@
 \alias{drop_solver_outputs}
 \title{Delete the regenerable part of a solve}
 \usage{
-drop_solver_outputs(scen, runs = NULL, dry_run = TRUE, verbose = TRUE)
+drop_solver_outputs(object, runs = NULL, dry_run = TRUE, verbose = TRUE)
 }
 \arguments{
-\item{scen}{a scenario object.}
+\item{object}{a scenario object.}
 
 \item{runs}{character, run identifiers (\code{"<solve>"} or \code{"<variant>/<solve>"})
 or \code{NULL} for every run \code{scenario_artifacts()} suggests.}
@@ -37,6 +37,17 @@ asked, because that directory is the only copy — see \code{\link[=scenario_art
 Only runs are touched. Rendered reports and cached levcost results are
 scenario-level, not part of a run; \code{\link[=clear_report_cache]{clear_report_cache()}} and
 \code{\link[=clear_levcost_cache]{clear_levcost_cache()}} remove those.
+}
+\examples{
+\dontrun{
+open_project("~/projects/mymodel")
+scen <- getScenario("BASE")
+
+# the solver's scratch files are the bulk of a scenario folder and are not
+# needed once the solution has been imported
+drop_solver_outputs(scen)                    # dry run: reports what it would do
+drop_solver_outputs(scen, dry_run = FALSE)
+}
 }
 \seealso{
 \code{\link[=scenario_artifacts]{scenario_artifacts()}}, \code{\link[=drop_scenario_run]{drop_scenario_run()}}

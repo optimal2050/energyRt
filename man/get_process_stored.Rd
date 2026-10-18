@@ -4,10 +4,10 @@
 \alias{get_process_stored}
 \title{Stored commodities of each process}
 \usage{
-get_process_stored(scen, process = NULL, classes = NULL)
+get_process_stored(object, process = NULL, classes = NULL)
 }
 \arguments{
-\item{scen}{scenario object}
+\item{object}{scenario object}
 
 \item{process}{optional character vector to restrict to}
 
@@ -27,4 +27,18 @@ output (hydrogen: ELC in, H2 stored, ELC out). Without this the stored
 commodity never reaches \code{get_process_comm()}, and the storage's timeframe
 would be derived from its ELC flows alone -- putting the level at the wrong
 resolution.
+}
+\examples{
+\donttest{
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- interpolate_model(mod, name = "EX")
+
+# only `storage` holds a commodity
+get_process_stored(scen)
+}
 }

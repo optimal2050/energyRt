@@ -5,7 +5,7 @@
 \title{Build a multimod model from an interpolated energyRt scenario}
 \usage{
 multimod_from_energyRt(
-  scen,
+  object,
   gms = NULL,
   prefer = c("spec", "hint"),
   inMemory = TRUE,
@@ -13,7 +13,7 @@ multimod_from_energyRt(
 )
 }
 \arguments{
-\item{scen}{An interpolated energyRt scenario.}
+\item{object}{An interpolated energyRt scenario.}
 
 \item{gms}{The GAMS model source. \code{NULL} (the default) reads the code
 energyRt ships in \code{.modelCode$GAMS}, which needs no source checkout and
@@ -29,12 +29,12 @@ folded scenario (the lazy path cannot expand wildcards) - see
 \item{verbose}{Logical; report progress.}
 }
 \value{
-A multimod model with data attached, ready for \code{\link[multimod:model_to_lp]{model_to_lp()}}.
+A multimod model with data attached, ready for \code{\link[=model_to_lp]{model_to_lp()}}.
 }
 \description{
 Structure is read from energyRt's GAMS template; data comes from the
 scenario. This is the entry point for the direct-matrix / MPS route -
-everything downstream (\code{\link[multimod:model_to_lp]{model_to_lp()}}, \code{\link[multimod:write_mps]{write_mps()}}, \code{\link[multimod:solve_highs]{solve_highs()}})
+everything downstream (\code{\link[=model_to_lp]{model_to_lp()}}, \code{\link[multimod:write_mps]{write_mps()}}, \code{\link[multimod:solve_highs]{solve_highs()}})
 takes the model this returns.
 }
 \examples{

@@ -38,8 +38,8 @@ slotNames("technology")
 #> [13] "afs"                "weather"            "fixom"             
 #> [16] "varom"              "invcost"            "cluster"           
 #> [19] "vintage"            "capacity"           "optimizeRetirement"
-#> [22] "fullYear"           "timeframe"          "region"            
-#> [25] "misc"              
+#> [22] "fullYear"           "timeframe"          "geoframe"          
+#> [25] "region"             "misc"              
 energyRt:::get_slot_doc("technology", "input") |> cat()
 #> data.frame. Main commodities input. Main commodities are linked to the process capacity and activity. Their parameters are defined in the `ceff` slot.
 #>   \describe{
@@ -80,6 +80,8 @@ energyRt:::get_slot_doc("commodity", "agg") |> cat()
 #> data.frame. Used to define an aggregation of several commodities into the `name` commodity.
 #> 
 #>   \describe{
+#>     \item{cluster}{character. Tier this row applies to, NA for every tier. See the `cluster` slot: grades of one commodity differ in exactly this kind of data (carbon content, heat value), so a row may be shared or per tier.
+#> }
 #>     \item{comm}{character. Name of a commodity being aggregated.}
 #>     \item{unit}{character. Unit of the commodity being aggregated.}
 #>     \item{agg}{numeric. weight of the commodity in the aggregation, must be set for all aggregated commodities.

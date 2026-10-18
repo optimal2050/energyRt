@@ -5,12 +5,12 @@
 \alias{write_sc}
 \title{Write scenario object as a Python, Julia, GAMS, or MathProg script with data files to a directory}
 \usage{
-write_script(scen, solver.dir = NULL, solver = NULL, ...)
+write_script(object, solver.dir = NULL, solver = NULL, ...)
 
 write_sc(x, solver.dir = NULL, solver = NULL, ...)
 }
 \arguments{
-\item{scen}{scenario object, must be interpolated}
+\item{object}{scenario object, must be interpolated}
 
 \item{solver.dir}{character, an external directory to write into; default
 (\code{NULL}) writes into the run's \verb{solver/} directory under the scenario
@@ -24,6 +24,23 @@ write_sc(x, solver.dir = NULL, solver = NULL, ...)
 }
 \description{
 Write scenario object as a Python, Julia, GAMS, or MathProg script with data files to a directory
+}
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- interpolate_model(mod, name = "BASE")
+
+# write the backend's model and data files without solving, to read them
+# or to run the solver by hand
+write_script(scen, solver = solver_options$glpk, solver.dir = tempdir())
+}
 }
 \seealso{
 \code{\link[=solve]{solve()}} to run the script, solve the scenario. \link{read_solution} to read model solution.

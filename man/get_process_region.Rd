@@ -4,10 +4,10 @@
 \alias{get_process_region}
 \title{Get regions for each process}
 \usage{
-get_process_region(scen, process = NULL, classes = NULL, return_list = TRUE)
+get_process_region(object, process = NULL, classes = NULL, return_list = TRUE)
 }
 \arguments{
-\item{scen}{scenario object}
+\item{object}{scenario object}
 
 \item{process}{character vector of process names, if not provided,
 all processes in the scenario are returned.}
@@ -27,4 +27,20 @@ pair. The data frame is unique and sorted by process and region.
 }
 \description{
 Get regions for each process
+}
+\examples{
+\donttest{
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- interpolate_model(mod, name = "EX")
+
+get_process_region(scen, process = "ECOA")
+
+# as a (process, region) table
+head(get_process_region(scen, return_list = FALSE), 4)
+}
 }

@@ -4,10 +4,10 @@
 \alias{get_process_invest_window}
 \title{Start and end years for process by region}
 \usage{
-get_process_invest_window(scen, process = NULL, classes = NULL)
+get_process_invest_window(object, process = NULL, classes = NULL)
 }
 \arguments{
-\item{scen}{scenario object}
+\item{object}{scenario object}
 
 \item{process}{character vector of process names, if not provided,}
 
@@ -18,4 +18,18 @@ data frame with columns \code{process}, \code{region}, \code{start}, \code{end}
 }
 \description{
 Start and end years for process by region
+}
+\examples{
+\donttest{
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- interpolate_model(mod, name = "EX")
+
+# the years a process may be invested in, by region
+get_process_invest_window(scen, process = c("ECOA", "EWIN"))
+}
 }

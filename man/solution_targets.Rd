@@ -4,10 +4,10 @@
 \alias{solution_targets}
 \title{Capacity targets from a solved scenario}
 \usage{
-solution_targets(scen, years = NULL, classes = NULL)
+solution_targets(object, years = NULL, classes = NULL)
 }
 \arguments{
-\item{scen}{a solved scenario.}
+\item{object}{a solved scenario.}
 
 \item{years}{integer, milestone years to harvest; \code{NULL} (default) takes
 every year present in the solution.}
@@ -25,6 +25,26 @@ solved scenario, for use as a guide on a later solve of the same model. The
 target counterpart of \code{\link[=solution_ledger]{solution_ledger()}}: where a ledger records decided
 capacity to be carried forward as sunk \code{stock}, a target records indicative
 capacity to be imposed as a \code{cap.lo} bound by \code{\link[=apply_targets]{apply_targets()}}.
+}
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+
+# the capacity the solved run decided, per process, region and year
+tg <- solution_targets(scen)
+tg
+
+# technologies only
+solution_targets(scen, classes = "technology")
+}
 }
 \seealso{
 \code{\link[=apply_targets]{apply_targets()}}, \code{\link[=solve_guided]{solve_guided()}}

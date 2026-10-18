@@ -27,3 +27,20 @@ Path to the generated \code{.html} file (invisibly).
 Thin wrapper around \code{\link{report}} that fixes \code{format = "html"}.
 Produces a portable single-file \code{.html} document with embedded assets.
 }
+\examples{
+\dontrun{
+open_project(tempdir())
+tech <- topia$modules$electricity$R3$ECOA
+
+# a portable single-file page under the project's reports/
+report_html(tech)
+
+# a scenario's report covers results, where an object's covers assumptions
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions, horizon = topia$modules$horizons$base)
+scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+report_html(scen)
+}
+}

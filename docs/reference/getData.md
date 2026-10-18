@@ -24,11 +24,11 @@ interpolation rule.
 ## Usage
 
 ``` r
-getData(scen, ...)
+getData(object, ...)
 
 # S3 method for class 'scenario'
 getData(
-  scen,
+  object,
   name = NULL,
   ...,
   merge = FALSE,
@@ -54,7 +54,7 @@ getData(
   stringsAsFactors = FALSE,
   yearsAsFactors = FALSE,
   drop_duplicated_scenarios = TRUE,
-  scenNameInList = as.logical(length(scen) - 1),
+  scenNameInList = as.logical(length(object) - 1),
   unfold = TRUE,
   variants = TRUE,
   run = NULL,
@@ -63,7 +63,7 @@ getData(
 
 # S3 method for class 'list'
 getData(
-  scen,
+  object,
   name = NULL,
   ...,
   merge = FALSE,
@@ -89,7 +89,7 @@ getData(
   stringsAsFactors = FALSE,
   yearsAsFactors = FALSE,
   drop_duplicated_scenarios = TRUE,
-  scenNameInList = as.logical(length(scen) - 1),
+  scenNameInList = as.logical(length(object) - 1),
   unfold = TRUE,
   variants = TRUE,
   run = NULL,
@@ -97,13 +97,13 @@ getData(
 )
 
 # S3 method for class 'character'
-getData(scen, ...)
+getData(object, ...)
 
 # S3 method for class 'environment'
-getData(scen, ...)
+getData(object, ...)
 
 # Default S3 method
-getData(scen, ...)
+getData(object, ...)
 
 # S3 method for class 'technology'
 getData(
@@ -262,9 +262,10 @@ getData(
 
 ## Arguments
 
-- scen:
+- object:
 
-  Object scenario or list of scenarios.
+  the object whose data is returned, for the per-class methods
+  (`technology`, `commodity`, `storage`, ...).
 
 - ...:
 
@@ -436,11 +437,6 @@ getData(
 - verbose:
 
   logical, print progress and diagnostic messages.
-
-- obj:
-
-  the object whose data is returned, for the per-class methods
-  (`technology`, `commodity`, `storage`, ...).
 
 - interpolate:
 

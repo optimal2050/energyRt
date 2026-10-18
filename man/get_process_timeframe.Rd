@@ -4,10 +4,10 @@
 \alias{get_process_timeframe}
 \title{Get operational timeframe of processes}
 \usage{
-get_process_timeframe(scen, process = NULL, comm_timeframe = NULL)
+get_process_timeframe(object, process = NULL, comm_timeframe = NULL)
 }
 \arguments{
-\item{scen}{scenario object}
+\item{object}{scenario object}
 
 \item{process}{character vector of process names, if not provided,
 all processes retrieved from the scenario object}
@@ -20,4 +20,18 @@ a named list mapping each process to its operational timeframe.
 }
 \description{
 Get operational timeframe of processes
+}
+\examples{
+\donttest{
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- interpolate_model(mod, name = "EX")
+
+# the timeframe a process is resolved at: the finest of its commodities
+get_process_timeframe(scen, process = c("ECOA", "SUP_COA"))
+}
 }

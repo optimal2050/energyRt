@@ -5,12 +5,12 @@
 \alias{object_hash}
 \title{Content hash of a model}
 \usage{
-model_hash(mod)
+model_hash(object)
 
 object_hash(x)
 }
 \arguments{
-\item{mod}{a model object.}
+\item{object}{a model object.}
 
 \item{x}{an S4 object (model and repository delegate to \code{\link[=model_hash]{model_hash()}} /
 \code{\link[=repository_hash]{repository_hash()}}).}

@@ -33,3 +33,10 @@ The scenario object is re-saved with rebased paths, \code{scenario.yml} (with
 its \verb{default:} run) and the \code{layout} marker are written, and the project
 registry is updated.
 }
+\examples{
+\dontrun{
+# migrate a scenario folder written by an older energyRt to the current
+# runs/<variant>/<solve>/ layout
+upgrade_scenario_layout("scenarios/BASE-TOPIA-s4_h24-base")
+}
+}

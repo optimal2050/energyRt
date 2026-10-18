@@ -34,3 +34,14 @@ report_tex(object, ...)
 ## Value
 
 Path to the generated `.tex` file (invisibly).
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+open_project(tempdir())
+
+# the LaTeX source, for inclusion in a larger document
+report_tex(topia$modules$electricity$R3$ECOA)
+} # }
+```

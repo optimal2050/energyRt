@@ -4,10 +4,10 @@
 \alias{variantSummary}
 \title{Summarise a result variable across technology variants}
 \usage{
-variantSummary(scen, name, by = character(), weight = NULL, ...)
+variantSummary(object, name, by = character(), weight = NULL, ...)
 }
 \arguments{
-\item{scen}{a solved \code{scenario}.}
+\item{object}{a solved \code{scenario}.}
 
 \item{name}{character, name of the variable or parameter (e.g. \code{"vTechCap"}).}
 
@@ -31,6 +31,26 @@ reports the spread across them: total, mean, standard deviation, min and max,
 plus the number of variants contributing. This is the "analyse by cluster and
 vintage" view -- e.g. the spread of capacity factors across wind resource
 clusters, or of capacity across vintages.
+}
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+
+# split wind into site grades, solve, then read the result BY GRADE rather
+# than by variant name
+mod  <- add(mod, ek$EWIN_SITES, overwrite = TRUE)
+scen <- solve_model(mod, name = "SITES", solver = solver_options$glpk)
+
+variantSummary(scen, "vTechCap", by = "cluster")
+variantSummary(scen, "vTechOut", by = c("cluster", "region"))
+}
 }
 \seealso{
 Other technology process:

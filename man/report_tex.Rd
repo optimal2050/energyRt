@@ -27,3 +27,11 @@ Path to the generated \code{.tex} file (invisibly).
 Thin wrapper around \code{\link{report}} that fixes \code{format = "tex"}.
 Produces a standalone \code{.tex} file without compiling to PDF.
 }
+\examples{
+\dontrun{
+open_project(tempdir())
+
+# the LaTeX source, for inclusion in a larger document
+report_tex(topia$modules$electricity$R3$ECOA)
+}
+}

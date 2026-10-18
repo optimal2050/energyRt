@@ -57,6 +57,18 @@ silently re-expanded by the calendar constructor. Each sample must also keep
 at least two members at every non-ANNUAL level, so \code{sample_size} of 1 is
 refused for the coarsest level.
 }
+\examples{
+cal <- topia$modules$calendars$s4_h24
+
+# two sequential blocks of timeslices, one row per (sample, timeslice)
+sam <- calendar_samples(cal, n = 2, seed = 1)
+sam
+head(as.data.frame(sam), 3)
+
+# two random samples of two seasons each, drawn without replacement
+calendar_samples(cal, level = "SEASON", sample_size = 2, n = 2,
+                 method = "random", seed = 42)
+}
 \seealso{
 \code{\link[=solve_by_sample]{solve_by_sample()}}
 }

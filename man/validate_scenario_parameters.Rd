@@ -5,13 +5,13 @@
 \title{Validate interpolated scenario parameters}
 \usage{
 validate_scenario_parameters(
-  scen,
+  object,
   fold = TRUE,
   action = c("warn", "stop", "silent")
 )
 }
 \arguments{
-\item{scen}{an interpolated scenario.}
+\item{object}{an interpolated scenario.}
 
 \item{fold}{logical or character; whether (or in which dimensions) the
 scenario is folded, so NA wildcards are allowed there.}
@@ -58,4 +58,18 @@ Structural findings always stop; \code{action} governs the advisory ones.
 \code{\link[=interpolate_model]{interpolate_model()}} runs this automatically (\code{validate = TRUE}, action
 \code{"warn"}); call it directly to re-check a scenario or to collect the
 findings table.
+}
+\examples{
+\donttest{
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- interpolate_model(mod, name = "EX")
+
+# no rows means every parameter's domain, bounds and defaults agree
+validate_scenario_parameters(scen, action = "silent")
+}
 }

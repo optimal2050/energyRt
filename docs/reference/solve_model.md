@@ -14,11 +14,18 @@ JuMP) work unchanged. The transitional names `solve_mod()` /
 ## Usage
 
 ``` r
-solve_model(obj, name = NULL, solver = NULL, ondisk = FALSE, fold = FALSE, ...)
+solve_model(
+  object,
+  name = NULL,
+  solver = NULL,
+  ondisk = FALSE,
+  fold = FALSE,
+  ...
+)
 
 solve_scenario(
-  obj,
-  name = obj@name,
+  object,
+  name = object@name,
   solver = NULL,
   solver.dir = NULL,
   transient = FALSE,
@@ -36,7 +43,7 @@ solve(a, b, ...)
 
 ## Arguments
 
-- obj:
+- object:
 
   a model object (`solve_model()`) or an interpolated scenario object
   (`solve_scenario()`).
@@ -136,3 +143,26 @@ a scenario object with the solution.
 
 [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md),
 [`read_solution()`](https://energyRt.org/reference/read.md)
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+open_project(tempdir())
+
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+
+sum(getData(scen, "vObjective", merge = TRUE)$value)
+
+# or in two steps, which is what you want when the inputs need inspecting
+# before the solver sees them
+scen <- interpolate_model(mod, name = "BASE2")
+scen <- solve_scenario(scen, solver = solver_options$glpk)
+} # }
+```

@@ -96,15 +96,14 @@ the model that binds them to a calendar, regions and a horizon.
 - [`newWeather()`](https://energyRt.org/reference/newWeather.md)
   [`update(`*`<weather>`*`)`](https://energyRt.org/reference/newWeather.md)
   : Create new weather object
-- [`newConstraint()`](https://energyRt.org/reference/newConstraint.md)
-  [`newConstraintS()`](https://energyRt.org/reference/newConstraint.md)
-  : Create constraint object to add custom constraints to the model.
+- [`newConstraint()`](https://energyRt.org/reference/newConstraint.md) :
+  Create constraint object to add custom constraints to the model.
 - [`newCosts()`](https://energyRt.org/reference/newCosts.md) : Create
   new costs object
 - [`newTax()`](https://energyRt.org/reference/newTax.md) : Create a new
   tax object
-- [`newSub()`](https://energyRt.org/reference/newSubsidy.md) : Create a
-  new subsidy object
+- [`newSubsidy()`](https://energyRt.org/reference/newSubsidy.md) :
+  Create a new subsidy object
 - [`newScenario()`](https://energyRt.org/reference/newScenario.md) :
   Generate a new scenario object
 - [`newRegistry()`](https://energyRt.org/reference/registry.md)
@@ -112,6 +111,7 @@ the model that binds them to a calendar, regions and a horizon.
   [`save_registry()`](https://energyRt.org/reference/registry.md)
   [`add_to_registry()`](https://energyRt.org/reference/registry.md)
   [`add(`*`<en_registry>`*`)`](https://energyRt.org/reference/registry.md)
+  [`summary(`*`<en_registry>`*`)`](https://energyRt.org/reference/registry.md)
   [`find_in_registry()`](https://energyRt.org/reference/registry.md)
   [`refresh_registry()`](https://energyRt.org/reference/registry.md) :
   Project registry of models, scenarios, and runs
@@ -167,7 +167,8 @@ your own.
 Multi-level regions. A commodity declares the level it balances on, and
 coarse balances roll up without a `trade` route for every pair.
 
-- [`setGeoscale(`*`<config>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+- [`setCalendar(`*`<config>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`setGeoscale(`*`<config>`*`)`](https://energyRt.org/reference/setGeoscale.md)
   [`getGeoscale(`*`<config>`*`)`](https://energyRt.org/reference/setGeoscale.md)
   [`setGeoscale(`*`<model>`*`)`](https://energyRt.org/reference/setGeoscale.md)
   [`getGeoscale(`*`<model>`*`)`](https://energyRt.org/reference/setGeoscale.md)
@@ -645,6 +646,7 @@ to hand a folder to somebody else.
   [`save_registry()`](https://energyRt.org/reference/registry.md)
   [`add_to_registry()`](https://energyRt.org/reference/registry.md)
   [`add(`*`<en_registry>`*`)`](https://energyRt.org/reference/registry.md)
+  [`summary(`*`<en_registry>`*`)`](https://energyRt.org/reference/registry.md)
   [`find_in_registry()`](https://energyRt.org/reference/registry.md)
   [`refresh_registry()`](https://energyRt.org/reference/registry.md) :
   Project registry of models, scenarios, and runs
@@ -692,6 +694,9 @@ re-derives the model’s identities from the results.
   Checks available to
   [`verify_solution()`](https://energyRt.org/reference/verify_solution.md)
 
+- [`process_operability()`](https://energyRt.org/reference/process_operability.md)
+  : Declared processes that cannot operate
+
 - [`audit_coefficients()`](https://energyRt.org/reference/audit_coefficients.md)
   : Coefficient-range audit of a written model
 
@@ -702,6 +707,7 @@ re-derives the model’s identities from the results.
   [`en_check_gams()`](https://energyRt.org/reference/en_check.md)
   [`en_check_gdx()`](https://energyRt.org/reference/en_check.md)
   [`en_check_julia_pkgs()`](https://energyRt.org/reference/en_check.md)
+  [`en_check_solve()`](https://energyRt.org/reference/en_check.md)
   [`en_check_dependencies()`](https://energyRt.org/reference/en_check.md)
   : Detect external solver software and dependencies
 

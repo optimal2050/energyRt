@@ -27,6 +27,18 @@ parts of the trade network (aka transmission lines).
 
   character. The traded commodity short name.
 
+- `geoframe`:
+
+  character. Optional. The geoscale level this object's regions are
+  expressed at; unset (the default) derives it from the region codes.
+  See `technology@geoframe` for the full rule, including the consistency
+  checks it turns on. `trade` has no `region` slot: the level is the one
+  its ROUTES are expressed at, checked against every `src` and `dst`. A
+  corridor delivers at `dst`, so its level may not be coarser than the
+  traded commodity's – moving a state-level commodity between nations
+  would have to distribute it among the destination's children, which
+  the balance layer does not do.
+
 - `routes`:
 
   data.frame. Source and destination regions. For bivariate trade define
@@ -366,16 +378,19 @@ parts of the trade network (aka transmission lines).
   object has no `region` slot – its scope comes from the route endpoints
   – so a region here could restrict nothing, and its absence rejects the
   mistake at construction rather than deep inside variant expansion.
-  Optional. When empty, tranche labels are harvested from the `cluster`
-  columns of the other slots. When populated it is AUTHORITATIVE. The
-  share columns are different levers, not substitutes. `cap.share.fx`
-  fixes the ratio of the variants' CAPACITIES in every year: loss
-  tranches need it, because each tranche efficiency is calibrated to its
-  place in the capacity stack and the flow must stay free to fill the
-  cheapest first. `act.share.lo/up/fx` bounds a variant share of the
-  family THROUGHPUT instead, which is what stops a clustered family
-  collapsing to its cheapest member once regional borders are aggregated
-  away. Both are optional; a variant with neither sizes and runs freely.
+  REQUIRED whenever any other slot carries a `cluster` label, and
+  AUTHORITATIVE: a label used in a slot but not declared here is a typo
+  and an error. Labels are never harvested from the data slots – a
+  misspelling would otherwise become a variant with defaults for
+  everything it does not carry (no cost, no bound). The share columns
+  are different levers, not substitutes. `cap.share.fx` fixes the ratio
+  of the variants' CAPACITIES in every year: loss tranches need it,
+  because each tranche efficiency is calibrated to its place in the
+  capacity stack and the flow must stay free to fill the cheapest first.
+  `act.share.lo/up/fx` bounds a variant share of the family THROUGHPUT
+  instead, which is what stops a clustered family collapsing to its
+  cheapest member once regional borders are aggregated away. Both are
+  optional; a variant with neither sizes and runs freely.
 
   cluster
 

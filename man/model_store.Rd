@@ -6,7 +6,7 @@
 \title{Save a model to / load a model from the model store}
 \usage{
 save_model(
-  mod,
+  object,
   path = NULL,
   embed_repos = NULL,
   embed_datasets = NULL,
@@ -20,7 +20,7 @@ save_model(
 load_model(name, hash = NULL, path = NULL, env = NULL, verbose = TRUE)
 }
 \arguments{
-\item{mod}{a model object.}
+\item{object}{a model object.}
 
 \item{path}{character, explicit store directory (bypasses the registry).}
 
@@ -78,4 +78,24 @@ registered in the project registry (see \code{\link[=load_registry]{load_registr
 \code{load_model()} resolves a stored model by \code{name} (optionally
 \code{"name@hash8"}, or with \verb{hash =}) via the registry first, then by scanning
 the store directory; \code{path} bypasses resolution and loads that directory.
+}
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base)
+
+# writes models/<name>/ and registers this version
+save_model(mod)
+
+# read it back by name (the newest version)
+mod2 <- load_model("TOPIA")
+
+# the registry lists every stored version, each addressable by its hash
+load_registry()
+}
 }

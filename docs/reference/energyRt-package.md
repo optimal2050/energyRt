@@ -3,9 +3,10 @@
 A macro-language for energy system modeling in R. Describe an energy
 system as R objects (commodities, technologies, supply, demand, storage,
 trade), compile it into a capacity-expansion and dispatch optimization
-model, solve it on one of four interchangeable backends (GLPK/MathProg,
-Julia/JuMP, Python/Pyomo, or GAMS), and analyze tidy results with
-built-in tools for levelized costs, technology reports, and plotting.
+model, solve it on one of four interchangeable backends
+('GLPK'/'MathProg', 'Julia'/'JuMP', 'Python'/'Pyomo', or 'GAMS'), and
+analyze tidy results with built-in tools for levelized costs, technology
+reports, and plotting.
 
 ## See also
 

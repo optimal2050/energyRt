@@ -4,10 +4,10 @@
 \alias{getVariants}
 \title{Process variants of a solved (or interpolated) scenario}
 \usage{
-getVariants(scen, class = NULL)
+getVariants(object, class = NULL)
 }
 \arguments{
-\item{scen}{a \code{scenario} object.}
+\item{object}{a \code{scenario} object, or a \code{model} to expand on the fly.}
 
 \item{class}{optional character, keep only variants of these process classes
 (e.g. \code{"technology"}, \code{"storage"}).}
@@ -25,6 +25,27 @@ represents.
 Variant names are an implementation detail of the solver-facing sets; use this
 table (or \code{getData(..., variants = TRUE)}) to analyse results by vintage or
 cluster rather than parsing the names.
+
+A \code{model} is accepted as well, which answers the same question \emph{before}
+interpolating: the names a constraint, levy or report will have to refer to.
+The expansion runs on a throwaway copy, so the model passed in is unchanged.
+}
+\examples{
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+
+# the base kit has no variants
+getVariants(mod)
+
+# add the clustered-wind and vintaged-nuclear modules and ask again: this is
+# the roster of names the solver-facing sets will carry
+mod <- add(mod, ek$EWIN_SITES, ek$ENUC_VINT, overwrite = TRUE)
+getVariants(mod)
+getVariants(mod, class = "technology")
 }
 \seealso{
 Other technology process:

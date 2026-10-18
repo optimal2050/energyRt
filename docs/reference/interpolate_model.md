@@ -15,7 +15,7 @@ scenario is ready for
 
 ``` r
 interpolate_model(
-  mod,
+  object,
   name = NULL,
   ...,
   desc = NULL,
@@ -29,6 +29,9 @@ interpolate_model(
   kvl = FALSE,
   boundary_prices = NULL,
   .prefilter = FALSE,
+  parent_levels = getOption("energyRt.parent_levels", FALSE),
+  fx_equ = getOption("energyRt.fx_equ", TRUE),
+  on_missing_input = getOption("energyRt.on_missing_input", "stop"),
   verbose = isVerbose()
 )
 
@@ -38,11 +41,9 @@ interpolate(object, ...)
 
 ## Arguments
 
-- mod:
+- object:
 
-  a [model](https://energyRt.org/reference/class-model.md) object, or a
-  [scenario](https://energyRt.org/reference/class-scenario.md) (its
-  `@model` is re-interpolated).
+  as `mod`, for the method dispatched on a scenario.
 
 - name:
 
@@ -158,6 +159,46 @@ interpolate(object, ...)
   relation from the full declared grid rather than from the calendar
   would see a narrower input. Compare objectives before relying on it.
 
+- parent_levels:
+
+  logical or character; give a variable rows at every timeslice / region
+  level COARSER than the one it occupies, each defined by a roll-up of
+  its finer rows, so a constraint can be written at a level the variable
+  does not natively carry (`summand@timeframe` / `@geoframe`). `FALSE`
+  (default) builds none; `TRUE` builds them for every SUPPORTED
+  variable; a character vector selects among those. Naming an
+  unsupported variable is an error listing what is supported – a parent
+  row with no equation to define it would be a free variable.
+
+  `vOutTot` / `vInpTot` carry their parent rows unconditionally and are
+  not affected: `eqOutTot` / `eqInpTot` are written against them.
+
+  Defaults to `getOption("energyRt.parent_levels", FALSE)`, so a whole
+  run or test suite can be switched in one place.
+
+- fx_equ:
+
+  logical; write a bound whose two sides coincide (`.fx`, or
+  `.lo == .up`, with the same weather factors) as one equality row
+  (`eq<Family>Fx`) instead of a pair of inequalities (`eq<Family>Lo` +
+  `eq<Family>Up`). Applies to every bound family: technology
+  availability (`af`, `afs`, `afc`), shares, capacity, new capacity and
+  retirement of technologies, storages and trade, storage availability,
+  charge, discharge, duration and part ratios, supply availability and
+  reserve, trade flows and availability, import and export rows. The
+  solution is the same; the model has fewer rows before presolve (-25%
+  on an hourly full-year VRE model). `FALSE` writes the pairs. Defaults
+  to `getOption("energyRt.fx_equ", TRUE)`.
+
+- on_missing_input:
+
+  `"stop"` or `"warn"`: what to do when a process with existing capacity
+  (stock, or a lower / fixed capacity bound) is declared in a region
+  where one of its input commodities has no source. `"stop"` names the
+  cells; `"warn"` drops them, as is always done for processes that could
+  only be built new. Defaults to
+  `getOption("energyRt.on_missing_input", "stop")`.
+
 - verbose:
 
   logical; print per-step progress. This also governs the
@@ -166,10 +207,6 @@ interpolate(object, ...)
   constraints themselves are retrievable with
   `getObject(scen, class = "constraint")`; each carries a readable
   `desc` and, in `misc$.variant_source`, the object it was derived from.
-
-- object:
-
-  as `mod`, for the method dispatched on a scenario.
 
 ## Value
 
@@ -185,3 +222,48 @@ an interpolated
 Other interpolation:
 [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md),
 [`with_solver_log()`](https://energyRt.org/reference/with_solver_log.md)
+
+## Examples
+
+``` r
+# \donttest{
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+
+# build the solver-facing sets and parameters; nothing is solved yet
+scen <- interpolate_model(mod, name = "BASE")
+scen
+#> Name:  BASE 
+#> Model:
+#> Name:  TOPIA 
+
+# `fold = TRUE` substitutes constant parameters into the equations, which
+# shrinks what the backend has to read
+model_size(interpolate_model(mod, name = "FOLDED", fold = TRUE))
+#> model_size: FOLDED
+#>   parameters : 189 value, 348 maps, 15 sets
+#>   param rows : 1,860  (fold step: 8,619 -> 1,860, saved 6,759 = 78%)
+#>   folded dims: region=23  timeslice=10  year=20
+#>   estimate   : ~55,216 variables, ~57,581 constraints (from gating maps)
+#>   top parameters by rows:
+#>     pWeather           753
+#>     pDemand            384
+#>     pTimesliceAgg      297
+#>     pTimesliceShare    101
+#>     pExportRow         96
+#>     pTechStock         46
+#>     pTechFixom         28
+#>     pTechInvcost       28
+#>     pTechEac           20
+#>     pTechStockSurv     16
+#>     pTechCinp2use      16
+#>     pTechCap2act       7
+#>     pTechOlife         7
+#>     pPeriodLen         4
+#>     ordYear            4
+# }
+```

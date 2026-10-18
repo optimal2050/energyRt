@@ -19,3 +19,8 @@ folder's \verb{levcost/} for saved objects, the project-level
 \code{\link[=get_levcost_cache_path]{get_levcost_cache_path()}} folder otherwise), or a directory given
 directly.
 }
+\examples{
+# drop every memoized levelised cost (they are keyed on the inputs that
+# produced them, so this is only needed after editing a scenario in place)
+clear_levcost_cache()
+}

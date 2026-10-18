@@ -5,7 +5,7 @@
 \title{Solve a model region by region}
 \usage{
 solve_by_region(
-  mod,
+  object,
   name = NULL,
   ...,
   regions = NULL,
@@ -24,7 +24,7 @@ solve_by_region(
 )
 }
 \arguments{
-\item{mod}{a model object.}
+\item{object}{a model object.}
 
 \item{name}{character, the sequence name (one scenario folder).}
 
@@ -88,6 +88,23 @@ cannot invent a price.
 With \code{trade != "none"} each region faces an exterior the others cannot see,
 so the objectives no longer sum to anything meaningful — the result's
 \code{additive} field records this.
+}
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+
+# one solve per region, each seeing priced boundary flows to its neighbours
+res <- solve_by_region(mod, name = "BY_REGION", trade = "auto", price = 60,
+                       solver = solver_options$glpk)
+res$summary
+}
 }
 \seealso{
 \code{\link[=subset_model_regions]{subset_model_regions()}}, \code{\link[=boundary_window]{boundary_window()}}, \code{\link[=solve_guided]{solve_guided()}}

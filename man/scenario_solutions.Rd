@@ -4,10 +4,10 @@
 \alias{scenario_solutions}
 \title{What solutions does this scenario have, and which is worth importing?}
 \usage{
-scenario_solutions(scen, peek = TRUE)
+scenario_solutions(object, peek = TRUE)
 }
 \arguments{
-\item{scen}{a scenario object.}
+\item{object}{a scenario object.}
 
 \item{peek}{logical; \code{FALSE} skips reading \verb{output/} and leaves
 \code{solver_status} / peeked objectives as \code{NA}. Faster on a scenario with

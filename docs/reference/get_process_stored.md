@@ -8,12 +8,12 @@ behaviour.
 ## Usage
 
 ``` r
-get_process_stored(scen, process = NULL, classes = NULL)
+get_process_stored(object, process = NULL, classes = NULL)
 ```
 
 ## Arguments
 
-- scen:
+- object:
 
   scenario object
 
@@ -37,3 +37,23 @@ stored commodity never reaches
 [`get_process_comm()`](https://energyRt.org/reference/get_process_comm.md),
 and the storage's timeframe would be derived from its ELC flows alone –
 putting the level at the wrong resolution.
+
+## Examples
+
+``` r
+# \donttest{
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- interpolate_model(mod, name = "EX")
+
+# only `storage` holds a commodity
+get_process_stored(scen)
+#> $STG_ELC
+#> [1] "ELC"
+#> 
+# }
+```

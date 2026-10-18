@@ -5,7 +5,7 @@
 \title{Prepare a stored scenario for sharing}
 \usage{
 prepare_for_sharing(
-  scen,
+  object,
   path,
   scope = c("share", "store"),
   keep_runs = FALSE,
@@ -15,7 +15,7 @@ prepare_for_sharing(
 )
 }
 \arguments{
-\item{scen}{a scenario object, or the path to a stored scenario.}
+\item{object}{a scenario object, or the path to a stored scenario.}
 
 \item{path}{target directory. Required.}
 
@@ -56,6 +56,19 @@ scenario writes only the shell and leaves the data behind.
 A scenario that \emph{references} a model or dataset store rather than embedding
 it cannot be made self-contained by copying alone; those references are
 listed in \code{unresolved} and the recipient will need the store too.
+}
+\examples{
+\dontrun{
+open_project("~/projects/mymodel")
+scen <- getScenario("BASE")
+
+# a copy with absolute paths, user names and solver scratch removed
+prepare_for_sharing(scen, path = file.path(tempdir(), "share"))
+
+# keep the runs and reports, for a colleague who will read them
+prepare_for_sharing(scen, path = file.path(tempdir(), "share"),
+                    keep_runs = TRUE, keep_reports = TRUE)
+}
 }
 \seealso{
 \code{\link[=strip_user_info]{strip_user_info()}}, \code{\link[=drop_solver_outputs]{drop_solver_outputs()}}

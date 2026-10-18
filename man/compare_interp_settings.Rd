@@ -5,7 +5,7 @@
 \title{Compare interpolation settings (size & build time) for a model}
 \usage{
 compare_interp_settings(
-  mod,
+  object,
   settings = NULL,
   ...,
   name = "cmp",
@@ -15,7 +15,7 @@ compare_interp_settings(
 )
 }
 \arguments{
-\item{mod}{a \code{model}.}
+\item{object}{a \code{model}.}
 
 \item{settings}{a \emph{named} list of setting combinations; each element is a list
 of arguments forwarded to \code{\link[=interpolate_model]{interpolate_model()}}, e.g.

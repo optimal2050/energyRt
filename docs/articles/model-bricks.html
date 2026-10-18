@@ -16,13 +16,7 @@
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Model bricks">
-<!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script>
+<script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -32,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9017</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9027</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -60,6 +54,7 @@
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
@@ -607,18 +602,31 @@ use is an economy-wide <strong>emission cap</strong>:</p>
 <span><span class="co">#&gt;   year  rhs</span></span>
 <span><span class="co">#&gt; 1 2030 5000</span></span>
 <span><span class="co">#&gt; 2 2050 2000</span></span></code></pre></div>
-<p><code><a href="../reference/newConstraint.html">newConstraintS()</a></code> is a higher-level shortcut: instead of
-naming variables you pass a semantic <code>type</code>
-(<code>"capacity"</code>, <code>"newcapacity"</code>,
-<code>"inp"</code>, <code>"out"</code>, <code>"share"</code>,
-<code>"growth"</code>, …) and a subset of processes, and it fills in the
-right variables for you — for instance capping the total new capacity of
-a technology:</p>
+<p>Each left-hand term names the variable it constrains, and
+<code>for.sum</code> says which members to sum over — so capping the new
+capacity of one technology reads:</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># limit total new coal capacity across the horizon</span></span>
-<span><span class="va">COALLIM</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newConstraint.html">newConstraintS</a></span><span class="op">(</span></span>
-<span>  name <span class="op">=</span> <span class="st">"COALLIM"</span>, type <span class="op">=</span> <span class="st">"newcapacity"</span>, eq <span class="op">=</span> <span class="st">"&lt;="</span>,</span>
-<span>  for.sum <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>tech <span class="op">=</span> <span class="st">"PLANT"</span><span class="op">)</span>, rhs <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">COALLIM</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newConstraint.html">newConstraint</a></span><span class="op">(</span></span>
+<span>  name <span class="op">=</span> <span class="st">"COALLIM"</span>, desc <span class="op">=</span> <span class="st">"Cap on new coal capacity"</span>, eq <span class="op">=</span> <span class="st">"&lt;="</span>,</span>
+<span>  cap <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>variable <span class="op">=</span> <span class="st">"vTechNewCap"</span>, for.sum <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>tech <span class="op">=</span> <span class="st">"PLANT"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  rhs <span class="op">=</span> <span class="fl">50</span>, defVal <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
+<span><span class="va">COALLIM</span><span class="op">@</span><span class="va">lhs</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">@</span><span class="va">for.sum</span><span class="op">$</span><span class="va">tech</span></span>
+<span><span class="co">#&gt; [1] "PLANT"</span></span></code></pre></div>
+<p>A term can also be <em>targeted</em> rather than enumerated.
+<code>process_</code> is a regular expression over process names,
+<code>vintage</code> and <code>cluster</code> select variants of a
+vintaged or clustered process, and <code>classes</code> restricts to a
+process class — the same filters <code><a href="../reference/newTax.html">newTax()</a></code> and
+<code><a href="../reference/newSubsidy.html">newSubsidy()</a></code> take. A name in <code>for.sum</code> that
+matches nothing is an error, never a silent zero, and a declared (base)
+name expands to all of its realized variants:</p>
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># every vintage of ECOA built in 2030, by regex and by vintage</span></span>
+<span><span class="fu"><a href="../reference/newConstraint.html">newConstraint</a></span><span class="op">(</span></span>
+<span>  name <span class="op">=</span> <span class="st">"ECOA30"</span>, eq <span class="op">=</span> <span class="st">"&lt;="</span>,</span>
+<span>  cap <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>variable <span class="op">=</span> <span class="st">"vTechCap"</span>, process_ <span class="op">=</span> <span class="st">"^ECOA"</span>, vintage <span class="op">=</span> <span class="st">"2030"</span><span class="op">)</span>,</span>
+<span>  for.each <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>year <span class="op">=</span> <span class="fl">2030</span><span class="op">)</span>, rhs <span class="op">=</span> <span class="fl">100</span>, defVal <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="structures">Structures<a class="anchor" aria-label="anchor" href="#structures"></a>
@@ -629,12 +637,12 @@ a technology:</p>
 </h3>
 <p>A <strong>repository</strong> is an unordered bag of commodities and
 processes — the reusable “parts library” you draw a model from. Pass
-objects straight to <code><a href="../reference/newRepository.html">newRepository()</a></code>, or <code>add()</code>
+objects straight to <code><a href="../reference/newRepository.html">newRepository()</a></code>, or <code><a href="../reference/add.html">add()</a></code>
 them later.</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">repo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newRepository.html">newRepository</a></span><span class="op">(</span><span class="st">"demo"</span>, <span class="va">COA</span>, <span class="va">GAS</span>, <span class="va">ELC</span>, <span class="va">HEAT</span>, <span class="va">CO2</span>,</span>
 <span>                      <span class="va">SUP_COA</span>, <span class="va">DEM_ELC</span>, <span class="va">IMP_GAS</span>, <span class="va">BOILER</span><span class="op">)</span></span>
-<span><span class="va">repo</span> <span class="op">&lt;-</span> <span class="fu">add</span><span class="op">(</span><span class="va">repo</span>, <span class="va">PLANT</span><span class="op">)</span>          <span class="co"># add more parts later</span></span>
+<span><span class="va">repo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/add.html">add</a></span><span class="op">(</span><span class="va">repo</span>, <span class="va">PLANT</span><span class="op">)</span>          <span class="co"># add more parts later</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">repo</span><span class="op">)</span></span>
 <span><span class="co">#&gt;  [1] "COA"     "GAS"     "ELC"     "HEAT"    "CO2"     "SUP_COA" "DEM_ELC"</span></span>
 <span><span class="co">#&gt;  [8] "IMP_GAS" "BOILER"  "PLANT"</span></span></code></pre></div>
@@ -650,7 +658,7 @@ solved over: a <code>region</code> set, a <code>calendar</code> (the
 sub-annual structure — see the <a href="time-resolution.html">time-resolution article</a>) and a
 <code>horizon</code> (the milestone years). See the <em>autoplot</em>
 article for plots of the calendar and horizon bricks.</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span></span>
 <span>  name     <span class="op">=</span> <span class="st">"demo"</span>,</span>
 <span>  data     <span class="op">=</span> <span class="va">repo</span>,</span>
@@ -669,7 +677,7 @@ run — parameters interpolated onto the horizon, settings attached, and
 one without touching a solver; the actual optimisation is
 <code><a href="../reference/solve_model.html">solve_scenario()</a></code>, covered in the <em>solver backends</em>
 article.</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span>   <span class="co"># no solver needed</span></span>
 <span><span class="co"># scen &lt;- solve_scenario(scen, solver = "GLPK") # the optimisation step</span></span></code></pre></div>
 </div>
@@ -684,7 +692,7 @@ commodities and supplies – and, from a model, the region / calendar /
 discount – from the container. On a <strong>solved scenario</strong> it
 instead reports the <em>realized</em> (ex-post) cost read from the
 solution.</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/levcost.html">levcost</a></span><span class="op">(</span><span class="va">mod</span>,  name <span class="op">=</span> <span class="st">"PLANT"</span><span class="op">)</span>                        <span class="co"># a-priori LCOE from the model</span></span>
 <span><span class="fu"><a href="../reference/levcost.html">levcost</a></span><span class="op">(</span><span class="va">mod</span>,  name <span class="op">=</span> <span class="st">"PLANT"</span>, autocomplete <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># if an input lacks a supply</span></span>
 <span><span class="fu"><a href="../reference/levcost.html">levcost</a></span><span class="op">(</span><span class="va">scen</span>, name <span class="op">=</span> <span class="st">"PLANT"</span><span class="op">)</span>                        <span class="co"># ex-post cost (solved scenario)</span></span>

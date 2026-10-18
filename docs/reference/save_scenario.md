@@ -6,8 +6,8 @@ Save scenario object on disk in parquet format using `arrow` package.
 
 ``` r
 save_scenario(
-  scen,
-  path = scen@path,
+  object,
+  path = object@path,
   embed_model = NULL,
   embed_datasets = NULL,
   format = get_storage_format(),
@@ -20,7 +20,7 @@ save_scenario(
 
 ## Arguments
 
-- scen:
+- object:
 
   scenario object.
 

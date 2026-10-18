@@ -5,6 +5,7 @@
 \alias{convert,numeric-method}
 \alias{add_to_convert,character,character,numeric-method}
 \alias{convert}
+\alias{add_to_convert}
 \title{Convert units}
 \usage{
 \S4method{convert}{character}(from, to, x = 1, database = "base", ...)

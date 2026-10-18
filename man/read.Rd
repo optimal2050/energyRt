@@ -3,14 +3,15 @@
 \name{read_solution}
 \alias{read_solution}
 \alias{read,scenario-method}
+\alias{read}
 \title{Read a solved run's solution into a scenario}
 \usage{
-read_solution(obj, run = NULL, ..., ondisk = !isInMemory(obj))
+read_solution(object, run = NULL, ..., ondisk = !isInMemory(object))
 
-\S4method{read}{scenario}(obj, run = NULL, ..., ondisk = !isInMemory(obj))
+\S4method{read}{scenario}(object, run = NULL, ..., ondisk = !isInMemory(object))
 }
 \arguments{
-\item{obj}{scenario object.}
+\item{object}{scenario object.}
 
 \item{run}{character, optional run to read: \code{"<solve>"} for a base-problem
 run or \code{"<variant>/<solve>"} — see \code{\link[=scenario_runs]{scenario_runs()}}. The scenario's

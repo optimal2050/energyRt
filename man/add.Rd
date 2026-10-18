@@ -3,6 +3,7 @@
 \name{add,repository-method}
 \alias{add,repository-method}
 \alias{add,model-method}
+\alias{add}
 \title{Add an object to the model's repository}
 \usage{
 \S4method{add}{repository}(obj, ..., overwrite = FALSE)

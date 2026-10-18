@@ -14,3 +14,9 @@ derived from) and \code{tier} (\code{"default"} or \code{"optin"}).
 \description{
 Checks available to \code{verify_solution()}
 }
+\examples{
+# the catalogue of checks `verify_solution()` can run, with their tiers
+checks <- verify_checks()
+head(checks, 4)
+table(checks$tier)
+}

@@ -502,19 +502,37 @@ CO2CAP@rhs        # the emission-cap path (interpolated over the horizon)
 #> 2 2050 2000
 ```
 
-[`newConstraintS()`](https://energyRt.org/reference/newConstraint.md) is
-a higher-level shortcut: instead of naming variables you pass a semantic
-`type` (`"capacity"`, `"newcapacity"`, `"inp"`, `"out"`, `"share"`,
-`"growth"`, …) and a subset of processes, and it fills in the right
-variables for you — for instance capping the total new capacity of a
-technology:
+Each left-hand term names the variable it constrains, and `for.sum` says
+which members to sum over — so capping the new capacity of one
+technology reads:
 
 ``` r
 
 # limit total new coal capacity across the horizon
-COALLIM <- newConstraintS(
-  name = "COALLIM", type = "newcapacity", eq = "<=",
-  for.sum = list(tech = "PLANT"), rhs = 50)
+COALLIM <- newConstraint(
+  name = "COALLIM", desc = "Cap on new coal capacity", eq = "<=",
+  cap = list(variable = "vTechNewCap", for.sum = list(tech = "PLANT")),
+  rhs = 50, defVal = 0)
+COALLIM@lhs[[1]]@for.sum$tech
+#> [1] "PLANT"
+```
+
+A term can also be *targeted* rather than enumerated. `process_` is a
+regular expression over process names, `vintage` and `cluster` select
+variants of a vintaged or clustered process, and `classes` restricts to
+a process class — the same filters
+[`newTax()`](https://energyRt.org/reference/newTax.md) and
+[`newSubsidy()`](https://energyRt.org/reference/newSubsidy.md) take. A
+name in `for.sum` that matches nothing is an error, never a silent zero,
+and a declared (base) name expands to all of its realized variants:
+
+``` r
+
+# every vintage of ECOA built in 2030, by regex and by vintage
+newConstraint(
+  name = "ECOA30", eq = "<=",
+  cap = list(variable = "vTechCap", process_ = "^ECOA", vintage = "2030"),
+  for.each = data.frame(year = 2030), rhs = 100, defVal = 0)
 ```
 
 ## Structures
@@ -526,7 +544,7 @@ The bricks above are collected into three nested containers.
 A **repository** is an unordered bag of commodities and processes — the
 reusable “parts library” you draw a model from. Pass objects straight to
 [`newRepository()`](https://energyRt.org/reference/newRepository.md), or
-`add()` them later.
+[`add()`](https://energyRt.org/reference/add.md) them later.
 
 ``` r
 

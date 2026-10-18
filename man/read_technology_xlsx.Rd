@@ -23,6 +23,16 @@ Inverse of \code{\link[=write_technology_xlsx]{write_technology_xlsx()}}. Reads 
 produced by that function and rebuilds \link{class-technology} objects, coercing each
 mini-table's columns back to the types declared by the class.
 }
+\examples{
+tech <- topia$modules$electricity$R3$ECOA
+f <- tempfile(fileext = ".xlsx")
+write_technology_xlsx(tech, f)
+
+# a named list of the technologies found in the workbook
+back <- read_technology_xlsx(f)
+names(back)
+identical(back[[1]]@name, tech@name)
+}
 \seealso{
 \code{\link[=write_technology_xlsx]{write_technology_xlsx()}}
 

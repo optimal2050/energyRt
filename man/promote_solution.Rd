@@ -4,10 +4,10 @@
 \alias{promote_solution}
 \title{Make a run's solution the scenario's own}
 \usage{
-promote_solution(scen, run = NULL, save = TRUE, verbose = TRUE)
+promote_solution(object, run = NULL, save = TRUE, verbose = TRUE)
 }
 \arguments{
-\item{scen}{a scenario object.}
+\item{object}{a scenario object.}
 
 \item{run}{character, the run to promote (\code{"<solve>"}). \code{NULL} (default)
 takes the scenario's active run.}

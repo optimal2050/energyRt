@@ -13,7 +13,7 @@ solve.
 
 ``` r
 compare_interp_settings(
-  mod,
+  object,
   settings = NULL,
   ...,
   name = "cmp",
@@ -25,7 +25,7 @@ compare_interp_settings(
 
 ## Arguments
 
-- mod:
+- object:
 
   a `model`.
 

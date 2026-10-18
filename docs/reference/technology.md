@@ -31,6 +31,7 @@ newTechnology(
   cluster = data.frame(),
   vintage = data.frame(),
   olife = data.frame(),
+  geoframe = character(),
   region = character(),
   start = data.frame(),
   end = data.frame(),
@@ -807,19 +808,18 @@ update(object, ...)
   the per-cluster values live in the `cluster` column of the
   variant-varying slots (`capacity`, `invcost`, `afs`, `weather`, ...),
   exactly as `group` declares input groups whose data lives in
-  `input$group`. Optional: when empty, cluster labels are harvested from
-  those columns. When populated it is authoritative – a label used in a
-  slot but not declared here raises an error instead of silently
-  creating an extra technology with default (often unbounded)
-  parameters. The share columns are different levers, not substitutes.
-  `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
-  year: loss tranches need it, because each tranche efficiency is
-  calibrated to its place in the capacity stack and the flow must stay
-  free to fill the cheapest first. `act.share.lo/up/fx` bounds a variant
-  share of the family THROUGHPUT instead, which is what stops a
-  clustered family collapsing to its cheapest member once regional
-  borders are aggregated away. Both are optional; a variant with neither
-  sizes and runs freely.
+  `input$group`. REQUIRED whenever those columns carry a label, and
+  authoritative – a label used in a slot but not declared here raises an
+  error instead of silently creating an extra technology with default
+  (often unbounded) parameters. The share columns are different levers,
+  not substitutes. `cap.share.fx` fixes the ratio of the variants'
+  CAPACITIES in every year: loss tranches need it, because each tranche
+  efficiency is calibrated to its place in the capacity stack and the
+  flow must stay free to fill the cheapest first. `act.share.lo/up/fx`
+  bounds a variant share of the family THROUGHPUT instead, which is what
+  stops a clustered family collapsing to its cheapest member once
+  regional borders are aggregated away. Both are optional; a variant
+  with neither sizes and runs freely.
 
   cluster
 
@@ -883,12 +883,50 @@ update(object, ...)
 
   deprecated, use the `olife` column of `vintage`.
 
+- geoframe:
+
+  character. Optional. The geoscale level this object's regions are
+  expressed at (e.g. "nation", "zone"). Unset (the default) DERIVES the
+  level from the region codes themselves – the finest level any of them
+  belongs to – which is what every model written before this slot
+  existed relies on. Declared, it names the level, makes that level's
+  own regions the object's default scope, and `region` may then narrow
+  it; every code in `region` and in the data slots must be a member of
+  the level, or it is an error rather than a silent reinterpretation. It
+  adds those checks and that one default, never new behaviour: it does
+  not aggregate, does not distribute, and does not by itself make a
+  coarse process legal. The rule it makes checkable is that an object
+  may be coarser than the commodities it CONSUMES, never than those it
+  produces or stores – the balance layer rolls finer regions up into
+  coarser ones and never splits a coarse quantity among children. So a
+  technology at "nation" may burn a state-level fuel, but may not
+  produce a state-level commodity. Requires a geoscale on the model
+  config. Distinct from `commodity@geoframe`, which names the level a
+  commodity is BALANCED at, and from `summand@geoframe`, which restricts
+  the region dimension a constraint term is summed over.
+
 - region:
 
   character. Vector of regions where the technology exists or can be
   installed. Optional. If not specified, the technology is applied to
-  all regions. If specified, must include all regions used in other
-  slots.
+  all regions. A region coarser than the finest geoscale level is
+  allowed, and makes the object operate at that coarser cell: its
+  capacity, activity and output live there, while an INPUT balanced at a
+  finer level is drawn from the cells beneath it and summed. A commodity
+  the object PRODUCES or STORES may never be finer than the object
+  itself – that would require disaggregating one coarse decision into
+  several fine ones, which energyRt does not do, and is refused.
+  Coarsening is a MODEL CHANGE, not a re-representation. The object's
+  own constraints bind at its own frame, so they are WEAKER than a finer
+  declaration's and the model is cheaper: the input/output ratio and the
+  `@ceff` group shares hold only in aggregate over the coarse cell, and
+  availability is sized against that longer slice. If a blend limit must
+  hold within the period, declare the object at that finer frame; an
+  annual mandate on a finely-operated object belongs in a user
+  constraint with an explicit `timeframe`. Coarsening also does NOT
+  reduce flow variables – those stay at the commodity's level; it
+  removes activity variables and equation rows. If specified, must
+  include all regions used in other slots.
 
 - start:
 

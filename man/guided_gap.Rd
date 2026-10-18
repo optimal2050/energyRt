@@ -22,6 +22,25 @@ full-horizon solve with extra bounds, the two objectives are directly
 comparable and the gap is non-negative by construction: bounds can only
 raise the optimum. A gap of zero means the guidance never bound.
 }
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+
+# what the guidance cost, against a true perfect-foresight run
+pf  <- solve_model(mod, name = "PF", solver = solver_options$glpk)
+res <- solve_guided(mod, name = "GUIDED", solver = solver_options$glpk)
+
+guided_gap(res, pf)        # 0 means the bounds never bound
+guided_gap(res, sum(getData(pf, "vObjective", merge = TRUE)$value))
+}
+}
 \seealso{
 \code{\link[=solve_guided]{solve_guided()}}
 }

@@ -6,14 +6,14 @@
 \alias{drop_scenario_run}
 \title{List, inspect, and drop a scenario's runs}
 \usage{
-scenario_runs(scen)
+scenario_runs(object)
 
-scenario_run_info(scen, run)
+scenario_run_info(object, run)
 
-drop_scenario_run(scen, run, force = FALSE)
+drop_scenario_run(object, run, force = FALSE)
 }
 \arguments{
-\item{scen}{a scenario object with a non-empty \verb{@path}.}
+\item{object}{a scenario object with a non-empty \verb{@path}.}
 
 \item{run}{character, run identifier: \code{"<solve>"} for a base-problem run
 or \code{"<variant>/<solve>"}.}
@@ -40,5 +40,19 @@ legacy \verb{script/<solver>/} directories from older layouts
 \item \code{scenario_run_info()} returns one run's full \code{run.yml} record as a list.
 \item \code{drop_scenario_run()} deletes a run directory. The active run (the one
 currently loaded in the scenario object) is refused unless \code{force = TRUE}.
+}
+}
+\examples{
+\donttest{
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+scen <- interpolate_model(mod, name = "EX")
+
+# a freshly interpolated scenario has no runs yet; each solve adds one
+scenario_runs(scen)
 }
 }

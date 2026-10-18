@@ -33,3 +33,13 @@ report_docx(object, ...)
 ## Value
 
 Path to the generated `.docx` file (invisibly).
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+open_project(tempdir())
+
+report_docx(topia$modules$electricity$R3$ECOA)
+} # }
+```

@@ -54,6 +54,14 @@ whose header row matches the columns of the corresponding data.frame slot
 leading \code{meta} block. The workbook can be read back with
 \code{\link[=read_technology_xlsx]{read_technology_xlsx()}}.
 }
+\examples{
+tech <- topia$modules$electricity$R3$ECOA
+f <- tempfile(fileext = ".xlsx")
+
+# one sheet per slot that carries data, plus an `info` sheet
+write_technology_xlsx(tech, f)
+basename(f)
+}
 \seealso{
 \code{\link[=read_technology_xlsx]{read_technology_xlsx()}}
 

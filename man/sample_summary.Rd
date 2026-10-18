@@ -29,6 +29,27 @@ Median and quantiles of a variable across the samples of a
 Each sample estimates the whole year, so these are quantiles of repeated
 estimates, not of a partitioned total.
 }
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+res <- solve_by_sample(mod, name = "BY_SAMPLE", level = "SEASON",
+                       sample_size = 2, n = 2, method = "random", seed = 1,
+                       solver = solver_options$glpk)
+
+sample_summary(res, "vTechCap", by = "tech")
+
+# a wider band, by region as well
+sample_summary(res, "vTechNewCap", probs = c(0.1, 0.5, 0.9),
+               by = c("tech", "region"))
+}
+}
 \seealso{
 \code{\link[=solve_by_sample]{solve_by_sample()}}
 }

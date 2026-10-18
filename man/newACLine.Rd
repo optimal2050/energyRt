@@ -60,6 +60,16 @@ a working model changes nothing until you ask for the physics.
 Where several physical circuits have been merged into one modelled line, pass
 the EQUIVALENT reactance \code{1/x_eq = sum(1/x_i)}, not any one circuit's.
 }
+\examples{
+ac <- newACLine("L_W1_W2", commodity = "ELC", from = "W1", to = "W2",
+                reactance = 0.02, resistance = 0.001)
+
+# an AC line is bidirectional: both directions are declared as routes
+ac@routes
+
+# the electrical parameters travel in @misc, where the KVL constraints read them
+ac@misc[c("reactance", "resistance")]
+}
 \seealso{
 \code{\link[=newDCLink]{newDCLink()}}, \code{\link[=newTrade]{newTrade()}}
 

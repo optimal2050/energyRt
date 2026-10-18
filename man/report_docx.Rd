@@ -26,3 +26,10 @@ Path to the generated \code{.docx} file (invisibly).
 \description{
 Thin wrapper around \code{\link{report}} that fixes \code{format = "docx"}.
 }
+\examples{
+\dontrun{
+open_project(tempdir())
+
+report_docx(topia$modules$electricity$R3$ECOA)
+}
+}

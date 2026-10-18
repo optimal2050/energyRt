@@ -5,13 +5,7 @@ than the model uses (a world map for a two-country model) is normal and
 useful."><meta property="og:description" content="Warns when the two disagree. This is deliberately a warning, not an error:
 config@region remains authoritative, and a geoscale covering more ground
 than the model uses (a world map for a two-country model) is normal and
-useful."><meta property="og:image" content="https://energyRt.org/logo.png"><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script></head><body>
+useful."><meta property="og:image" content="https://energyRt.org/logo.png"><script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -19,7 +13,7 @@ useful."><meta property="og:image" content="https://energyRt.org/logo.png"><!-- 
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9017</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9027</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +37,7 @@ useful."><meta property="og:image" content="https://energyRt.org/logo.png"><!-- 
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
@@ -90,7 +85,7 @@ useful.</p>
 
 
 <dl><dt id="arg-geoscale">geoscale<a class="anchor" aria-label="anchor" href="#arg-geoscale"></a></dt>
-<dd><p>A <code><a href="https://optimal2050.github.io/geoscales/r/reference/Geoscale.html" class="external-link">geoscales::Geoscale</a></code>.</p></dd>
+<dd><p>A <code><a href="https://optimal2050.github.io/geoscales/r/reference/GeoScale.html" class="external-link">geoscales::GeoScale</a></code>.</p></dd>
 
 
 <dt id="arg-region">region<a class="anchor" aria-label="anchor" href="#arg-region"></a></dt>
@@ -113,9 +108,17 @@ useful.</p>
 <code><a href="plot_geoscale.html">plot_geoscale()</a></code>,
 <code><a href="plot_map.html">plot_map()</a></code>,
 <code><a href="process_cluster_sweep.html">process_cluster_sweep()</a></code>,
-<code><a href="setGeoscale.html">setGeoscale,config-method</a></code></p></div>
+<code><a href="setGeoscale.html">setCalendar,config-method</a></code></p></div>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># returns the declared regions the geoscale cannot place, and warns about them</span></span></span>
+<span class="r-in"><span><span class="va">gs</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">geoscales</span><span class="op">$</span><span class="va">squares</span></span></span>
+<span class="r-in"><span><span class="fu">check_geoscale_regions</span><span class="op">(</span><span class="va">gs</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"W1"</span>, <span class="st">"W2"</span>, <span class="st">"C1"</span><span class="op">)</span><span class="op">)</span>        <span class="co"># all placed: character(0)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu">check_geoscale_regions</span><span class="op">(</span><span class="va">gs</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"W1"</span>, <span class="st">"NOWHERE"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 
