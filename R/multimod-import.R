@@ -511,6 +511,13 @@ convert_parameter <- function(en_param, orig_param = NULL, inMemory = FALSE,
 #' @noRd
 .unfold_param_data <- function(data, en_param, scenario) {
   if (is.null(scenario) || !.has_wildcard(data)) return(data)
+  # the matrix route looks numeric parameters up on their explicit columns
+  # (multimod's wildcard lookup), so their folded rows are passed as they are;
+  # maps, and every other multimod writer, still need them expanded
+  if (isTRUE(getOption("energyRt.mm_keep_wildcards", FALSE)) &&
+      as.character(en_param@type) %in% c("numpar", "bounds")) {
+    return(data)
+  }
   unfold1 <- tryCatch(
     unfold_scenario_parameter,
     error = function(e) NULL

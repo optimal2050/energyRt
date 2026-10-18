@@ -405,6 +405,11 @@ drop_na_cols <- function(x, unique = TRUE) {
 #' @examples
 #' energyRt:::is_any(c("ANY", "ANYREGION", "ANYTIMESLICE", "ANYYEAR", "A", "B"))
 #' @keywords internal
+# Rows of a data.frame without duplicates -- what `unique.data.frame()` returns
+# (same rows, order and row names), via data.table's radix `duplicated()`
+# instead of pasting every row into a string.
+.udf <- function(x) x[!duplicated(data.table::as.data.table(x)), , drop = FALSE]
+
 is_any <- function(x, na = TRUE, any_mask = "^ANY_?[A-Z]*$") {
   # x - vector
   # na - logical, if TRUE, NA values are included

@@ -539,7 +539,7 @@ map_mCommReg <- function(scen, fmp) {
   dims <- pp@dimSets
   d <- d[vapply(d, function(x) all(dims %in% colnames(x)), logical(1))]
   if (!length(d) || !all(key %in% colnames(w))) return(scen)
-  d <- unique(do.call(rbind, lapply(d, function(x) x[, dims, drop = FALSE])))
+  d <- .udf(do.call(rbind, lapply(d, function(x) x[, dims, drop = FALSE])))
   id <- function(x) do.call(paste, c(lapply(x[key], as.character), sep = "\r"))
   ents <- unique(id(w))
   p <- .gds(scen, par)
@@ -547,7 +547,7 @@ map_mCommReg <- function(scen, fmp) {
     ents <- setdiff(ents, unique(id(p[as.character(p$type) == side, , drop = FALSE])))
   }
   if (!length(ents)) return(scen)
-  rows <- unique(d[id(d) %in% ents, dims, drop = FALSE])
+  rows <- .udf(d[id(d) %in% ents, dims, drop = FALSE])
   if (!nrow(rows)) return(scen)
   # the parameter may still be folded here: a dimension NA in every row is a
   # wildcard. The new rows take the same wildcard, otherwise the column stops
@@ -556,7 +556,7 @@ map_mCommReg <- function(scen, fmp) {
   # over the domain, so the wildcard is exact.
   if (!is.null(p) && nrow(p) > 0) {
     for (dc in setdiff(dims, key)) if (all(is.na(p[[dc]]))) rows[[dc]] <- NA
-    rows <- unique(rows)
+    rows <- .udf(rows)
   }
   rows$type <- side
   rows$value <- 1
@@ -1902,7 +1902,7 @@ NULL
   if (nrow(add) == 0) return(df)
   add$region <- add$region.y
   add$region.y <- NULL
-  unique(rbind(df, add[, names(df), drop = FALSE]))
+  .udf(rbind(df, add[, names(df), drop = FALSE]))
 }
 
 # Comm-free transitive region ancestry: (regionp = node, region = ancestor)
@@ -1947,7 +1947,7 @@ NULL
   if (nrow(add) == 0) return(df)
   add$region <- add$region.y
   add$region.y <- NULL
-  unique(rbind(df, add[, names(df), drop = FALSE]))
+  .udf(rbind(df, add[, names(df), drop = FALSE]))
 }
 
 # Rewrite each (comm, region) pair to the commodity's OWN balancing level,

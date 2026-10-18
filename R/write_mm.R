@@ -39,7 +39,10 @@
          "skipped; something re-enabled it.", call. = FALSE)
   }
 
+  # folded numeric parameters stay folded when this multimod can look them up
+  op <- options(energyRt.mm_keep_wildcards = .mm_reads_wildcards())
   m <- multimod_from_energyRt(scen, verbose = isTRUE(arg$echo))
+  options(op)
 
   # `on_empty_row` defaults to "user_constraints": a `^eqCns` row with no
   # coefficients reads `0 <op> rhs`, binds nothing, and still solves to
@@ -228,4 +231,10 @@
   drv <- regmatches(x, regexpr("^[A-Za-z]:", x))
   if (!length(drv)) return(x)
   paste0("/mnt/", tolower(substr(drv, 1, 1)), substring(x, 3))
+}
+
+# Does the installed multimod look parameters up on their explicit columns when
+# some index columns are wildcards (NA)?
+.mm_reads_wildcards <- function() {
+  exists(".mx_param_wildcard", envir = asNamespace("multimod"), inherits = FALSE)
 }

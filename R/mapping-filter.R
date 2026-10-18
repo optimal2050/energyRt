@@ -961,7 +961,7 @@ map_mImport <- function(scen, fmp)
   if (nrow(add) == 0) return(df)
   add$timeslice <- add$parent
   add$parent <- NULL
-  unique(rbind(df, add[, names(df), drop = FALSE]))
+  .udf(rbind(df, add[, names(df), drop = FALSE]))
 }
 map_mvInpTot <- function(scen, fmp) {
   inptot <- .restrict_comm_timeslice(.bind_ry(

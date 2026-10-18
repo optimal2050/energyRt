@@ -896,7 +896,7 @@ interpolate_model <- function(object, name = NULL, ...,
   # The caller's value is restored on EVERY exit path. Leaking TRUE out of an
   # interpolation that errors inside the loop leaves every later interpolation in
   # the session in bulk mode, shipping a scenario whose parameters are still
-  # parked in `@misc$.pending_chunks`: it writes out with missing data and solves
+  # parked by `d2p()` (`.pending_chunks()`): it writes out with missing data and solves
   # to OPTIMAL with objective 0, silently.
   .bulk_prev <- getOption("en.bulk_param_write")
   if (!identical(.bulk_prev, FALSE)) options(en.bulk_param_write = TRUE)
@@ -4826,13 +4826,19 @@ setMethod("interpolate", signature(object = "scenario"),
     d <- as.data.frame(d)
     d[[s$key]] <- as.character(d[[s$key]])
     allowed <- .timeslice_allowed(scen, s$key)
-    share_of <- function(obj) {
-      if (is.null(allowed)) return(min_all)
-      ts <- as.character(allowed$timeslice[as.character(allowed[[s$key]]) == obj])
-      v <- sh$value[sh$timeslice %in% ts]
-      if (length(v) == 0) min_all else min(v, na.rm = TRUE)
+    # the finest share an object can run at: min over its allowed timeslices
+    d$share <- min_all
+    if (!is.null(allowed)) {
+      a <- data.table::data.table(obj = as.character(allowed[[s$key]]),
+                                  timeslice = as.character(allowed$timeslice))
+      a <- unique(a)[data.table::as.data.table(sh[, c("timeslice", "value")]),
+                     on = "timeslice", nomatch = NULL]
+      if (nrow(a)) {
+        m <- a[, list(v = suppressWarnings(min(value, na.rm = TRUE))), by = "obj"]
+        hit <- match(d[[s$key]], m$obj)
+        d$share[!is.na(hit)] <- m$v[hit[!is.na(hit)]]
+      }
     }
-    d$share <- vapply(d[[s$key]], share_of, numeric(1))
     d$scale <- d$value * d$share
     bad <- d[is.finite(d$scale) & (d$scale < lo | d$scale > hi), , drop = FALSE]
     if (nrow(bad) == 0) next

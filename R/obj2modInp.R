@@ -24,7 +24,7 @@ get_data_slot <- function(obj, optional = FALSE, dedup = TRUE) {
   # permanent once the object loop is done. `dedup = FALSE` is for `d2p()`
   # itself, which must not pay for the merge it is deferring.
   if (dedup) {
-    pend <- obj@misc[[".pending_chunks"]]
+    pend <- .pending_chunks(obj)
     if (length(pend) > 0) {
       data <- unique(rbindlist(c(list(data), pend),
         use.names = TRUE, ignore.attr = TRUE
@@ -152,8 +152,16 @@ setMethod(
       if (isOnDisk(obj) && !is.null(path) && is.null(getObjPath(obj))) {
         obj@misc[[".pending_path"]] <- path
       }
-      obj@misc[[".pending_chunks"]] <-
-        c(obj@misc[[".pending_chunks"]], list(unique(data)))
+      # The chunks live in a per-interpolation store, not in the object:
+      # appending to a list held in `@misc` copied the whole list on every
+      # write, quadratic in the number of writes per parameter. The object
+      # carries only its key, set on its first bulk write.
+      key <- obj@misc[[".pending_key"]]
+      if (is.null(key)) {
+        key <- .pending_new_key()
+        obj@misc[[".pending_key"]] <- key
+      }
+      .pending_add(key, unique(data))
       return(obj)
     }
     data_exist <- get_data_slot(obj, optional = TRUE, dedup = FALSE)
@@ -1524,6 +1532,54 @@ force_cols_classes <- function(dtf) {
   as.data.table(dtf)
 }
 
+# Store of the chunks `d2p()` parks in bulk mode: one environment per parameter
+# object, keyed by `@misc$.pending_key`, inside `.interp_clock` (dropped at the
+# start of every interpolation). Appending to an environment copies nothing.
+.pending_store <- function() {
+  st <- .interp_clock$pending
+  if (is.null(st)) {
+    st <- new.env(parent = emptyenv())
+    st$.n <- 0L
+    .interp_clock$pending <- st
+  }
+  st
+}
+.pending_new_key <- function() {
+  st <- .pending_store()
+  st$.n <- st$.n + 1L
+  key <- paste0("k", st$.n)
+  e <- new.env(parent = emptyenv())
+  e$n <- 0L
+  assign(key, e, envir = st)
+  key
+}
+.pending_add <- function(key, chunk) {
+  e <- get(key, envir = .pending_store())
+  e$n <- e$n + 1L
+  assign(as.character(e$n), chunk, envir = e)
+  invisible()
+}
+# The parked chunks of a parameter, in write order (legacy `@misc` list first).
+.pending_chunks <- function(obj) {
+  old <- obj@misc[[".pending_chunks"]]
+  key <- obj@misc[[".pending_key"]]
+  st <- .interp_clock$pending
+  if (is.null(key) || is.null(st) || !exists(key, envir = st, inherits = FALSE)) {
+    return(old)
+  }
+  e <- get(key, envir = st)
+  if (e$n == 0L) return(old)
+  c(old, unname(mget(as.character(seq_len(e$n)), envir = e)))
+}
+.pending_drop <- function(obj) {
+  key <- obj@misc[[".pending_key"]]
+  st <- .interp_clock$pending
+  if (!is.null(key) && !is.null(st) && exists(key, envir = st, inherits = FALSE)) {
+    rm(list = key, envir = st)
+  }
+  invisible()
+}
+
 # Merge the chunks `d2p()` parked in bulk mode into each parameter's `@data`.
 #
 # In bulk mode `d2p()` appends to `@misc$.pending_chunks` rather than rebuilding
@@ -1535,8 +1591,9 @@ force_cols_classes <- function(dtf) {
 .flush_pending_parameters <- function(scen) {
   for (nm in names(scen@modInp@parameters)) {
     p <- scen@modInp@parameters[[nm]]
-    pend <- p@misc[[".pending_chunks"]]
-    if (length(pend) == 0 && !isTRUE(p@misc[[".dedup_pending"]])) next
+    pend <- .pending_chunks(p)
+    if (length(pend) == 0 && !isTRUE(p@misc[[".dedup_pending"]]) &&
+        is.null(p@misc[[".pending_key"]])) next
     if (length(pend) > 0) {
       if (isOnDisk(p)) {
         # one disk write per parameter: existing store content + all parked
@@ -1564,7 +1621,9 @@ force_cols_classes <- function(dtf) {
     } else if (!isOnDisk(p) && !is.null(p@data) && nrow(p@data) > 0) {
       p@data <- unique(p@data)
     }
+    .pending_drop(p)
     p@misc[[".pending_chunks"]] <- NULL
+    p@misc[[".pending_key"]] <- NULL
     p@misc[[".pending_path"]] <- NULL
     p@misc[[".dedup_pending"]] <- NULL
     scen@modInp@parameters[[nm]] <- p
@@ -1576,7 +1635,7 @@ force_cols_classes <- function(dtf) {
   # objective 0 -- silently. Assert instead of hoping.
   .left <- names(scen@modInp@parameters)[vapply(
     scen@modInp@parameters,
-    function(p) length(p@misc[[".pending_chunks"]]) > 0L, logical(1))]
+    function(p) length(.pending_chunks(p)) > 0L, logical(1))]
   if (length(.left) > 0L) {
     stop("interpolation left ", length(.left),
          " parameter(s) unmaterialised after the final flush: ",

@@ -213,6 +213,7 @@ STG_YEAR <- newStorage(
   desc      = "Electricity store, one cycle over the whole year",
   commodity = "ELC",
   invcost   = list(out.invcost = 1),
+  duration  = 1,                              # the reservoir: one hour of discharge
   vintage   = data.frame(olife = 30L),
   fullYear  = TRUE
 )
@@ -222,6 +223,7 @@ STG_DAY <- newStorage(
   desc      = "The same store, but cycling once per day",
   commodity = "ELC",
   invcost   = list(out.invcost = 1),
+  duration  = 1,                              # the reservoir: one hour of discharge
   vintage   = data.frame(olife = 30L),
   fullYear  = FALSE
 )
@@ -296,6 +298,7 @@ STG_HYD <- newStorage(
   name       = "STG_HYD",
   desc       = "Reservoir hydro with an inherited initial filling",
   commodity  = "ELC",
+  capacity   = data.frame(stg.stock = 1000),  # the reservoir, MWh
   startLevel = data.frame(
     region     = "R1",
     year       = 2020L,
@@ -340,34 +343,46 @@ STG_FLEX@duration
 ```
 
 A one-sided range opens the other side: `duration.up = 8` means "up to 8 hours"
-and does **not** quietly inherit a lower bound of 1.
+with no lower bound. A link that is not declared does not exist: the parts it
+would tie are sized independently.
 
 An optimised ratio only means something when the reservoir is *priced* — with
 energy free the model simply takes the longest duration allowed. Given a cost on
 both sides, and both sides binding, it lands strictly inside the range.
 
-`@inp2out` works the same way for the charger. Leave it out and the charger is
-sized with the discharger; give it a range and asymmetric hardware — a fast
-charger with a slow fuel cell, or a pump smaller than its turbine — becomes a
-decision rather than an assumption.
+`@inp2out` works the same way for the charger. Leave it out and the charger and
+discharger are sized each for its own flow; fix it at 1 for one bidirectional
+inverter, or give it a range and asymmetric hardware — a fast charger with a
+slow fuel cell, or a pump smaller than its turbine — becomes a decision rather
+than an assumption.
 
 `@inp2stg` rates the charger against the **reservoir** instead — the standard
-battery spec (a 0.5C charger fills in two hours: `inp2stg.up = 0.5`). Unlike
-the other two it has **no binding default**: say nothing and no constraint
-exists; the link is emitted only where a finite bound is declared and both the
-charging and storing parts carry capacity variables. Declaring all three
-ratios over-determines the triangle — `newStorage()` refuses a contradictory
-fixed triple and warns when all three carry ranges.
+battery spec (a 0.5C charger fills in two hours: `inp2stg.up = 0.5`). It is the
+link to use where there is no discharger: a tank filled by its own charger and
+emptied by a separate technology. Like the other two it binds only where a
+finite bound is declared. Declaring all three ratios over-determines the
+triangle — `newStorage()` refuses a contradictory fixed triple and warns when
+all three carry ranges.
 
 ## Structure follows data
 
-A part carrying only a commodity name gets **no capacity variable at all**.
-Naming a commodity is metadata, not data; only a stock, a bound or a price
-materialises `vStorageInpCap` / `vStorageStgCap`. Everywhere else the ratio is
-inlined onto `vStorageOutCap`, which is exactly the older, smaller model.
+The **reservoir** is the storage's anchor: `vStorageStgCap` exists for every
+storage, and it must be determined — by a stock, a capacity bound or a price of
+its own (`stg.*`; `stg.invcost = 0` for a deliberately free reservoir), or by a
+link to a sized part (`duration` to a discharger, `inp2stg` to a charger). A
+storage whose reservoir nothing determines would be a free, unbounded energy
+store, and interpolation stops on it.
 
-That is why adding all of this moved nothing: a storage written the old way
-keeps one capacity variable and its previous LP, to the row.
+The **charger** and **discharger** exist only with data. A part carrying only a
+commodity name gets no capacity variable: naming a commodity is metadata, not
+data; a stock, a bound or a price (`inp.*`, `out.*`) materialises
+`vStorageInpCap` / `vStorageOutCap`. Without them the charge and discharge are
+limited by the level alone, so a storage can be a reservoir between separate
+technologies — a pump and a turbine, an electrolyser and a fuel cell.
+
+Interpolation also stops on a declaration that has nothing to act on: an
+availability (`inp.af`, `out.af`) on a part that does not exist, or a link
+declared on one.
 
 | variable | side | unit |
 |---|---|---|
@@ -588,6 +603,7 @@ STG_FLEET <- newStorage(
     out.stock   = 120,                        # already built
     out.ncap.up = 50                          # at most 50 more in this year
   ),
+  duration  = 2,                              # two hours of storage per MW
   vintage   = data.frame(olife = 15L)
 )
 STG_FLEET@capacity
@@ -705,6 +721,8 @@ STG_HYD_W <- newStorage(
     weather  = "WHYD",                    # a newWeather() object in the repo
     inp.waf.fx = 1                          # inflow drives charging
   ),
+  capacity  = data.frame(inp.stock = 300,     # the intake, MW: the inflow scales its rating
+                         stg.stock = 1000),   # the reservoir, MWh
   vintage   = data.frame(olife = 60L)
 )
 ```
@@ -817,13 +835,14 @@ STG_BTR_SOL <- newStorage(
   desc      = "Battery paired with the solar plant",
   commodity = "ELC",
   invcost   = list(out.invcost = 1),
+  duration  = 1,                              # the reservoir: one hour of discharge
   vintage   = data.frame(olife = 30L),
   fullYear  = TRUE
 )
 
 repo_sol <- newRepository(
   name = "repo_sol",
-  SOL, ELC, SUP_SOL, ESOL, EPEAK, STG_BTR_SOL, DEM_EVE
+  SOL, COA, ELC, SUP_SOL, SUP_COA, ESOL, EPEAK, STG_BTR_SOL, DEM_EVE
 )
 
 sol_mod <- newModel(

@@ -152,7 +152,12 @@ changes* first. The change-by-change log for the whole cycle (450 entries) is in
   reports what actually works; `en_check_packages()` / `en_install_deps()` /
   `en_install_julia_pkgs()` set the toolchains up.
 * `interpolate_model()` is about **6x faster** on large models, folds `year` as
-  well as `region` and `timeslice`, and logs its per-stage timings.
+  well as `region` and `timeslice`, and logs its per-stage timings. The
+  technology group and share maps are built once per run rather than once per
+  map, and the object loop no longer slows down with the number of objects:
+  a 48-country model interpolates in about 28 minutes instead of 48.
+* The `mm` route keeps folded numeric parameters folded when the installed
+  multimod looks wildcards up itself, instead of expanding them on import.
 * Remote solving: the NEOS server for GAMS/CPLEX without a local licence, and
   GPU execution in the cloud.
 * `interpolate_model(fx_equ = TRUE)` writes a fixed bound (`.fx`, or

@@ -1410,6 +1410,40 @@ recipe_value <- function(scen, names, fmp) {
 # preserves the per-technology grouping in the global join).
 # --------------------------------------------------------------------------- #
 .build_tech_group_maps <- function(scen, names, fmp) {
+  # The ten maps share every intermediate: build them once per interpolation
+  # and hand each wrapper its own table. The entry is dropped when the last
+  # table is taken, so no copy outlives the constraint stage.
+  key <- "tech_group_maps"
+  fp <- list(.interp_model_fp(scen),
+             lapply(.tech_group_inputs, function(nm) scen@modInp@parameters[[nm]]))
+  hit <- .interp_clock$memo[[key]]
+  if (is.null(hit) || !identical(hit$fp, fp) || !all(names %in% hit$left)) {
+    tabs <- .tech_group_tables(scen)
+    if (is.null(.interp_clock$memo)) .interp_clock$memo <- new.env(parent = emptyenv())
+    .interp_clock$memo[[key]] <- list(fp = fp, value = tabs, left = names(tabs))
+    hit <- .interp_clock$memo[[key]]
+  }
+  for (nm in names) {
+    df <- hit$value[[nm]]
+    if (!is.null(df) && nrow(df) > 0) scen <- .set_map(scen, nm, df, fmp)
+  }
+  left <- setdiff(hit$left, names)
+  if (length(left)) {
+    hit$value[names] <- NULL
+    hit$left <- left
+    .interp_clock$memo[[key]] <- hit
+  } else {
+    rm(list = key, envir = .interp_clock$memo)
+  }
+  scen
+}
+
+.tech_group_inputs <- c("mvTechAct", "mvTechInp", "mvTechOut", "mTechOneComm",
+                        "mTechInpGroup", "mTechOutGroup", "mTechGroupComm",
+                        "pTechShare", "pTechCinp2use", "pTechCact2cout")
+
+# All ten tech-group / share maps as a named list (NULL where empty).
+.tech_group_tables <- function(scen) {
   gdf <- function(nm) {
     p <- scen@modInp@parameters[[nm]]
     if (is.null(p)) return(NULL)
@@ -1500,29 +1534,33 @@ recipe_value <- function(scen, names, fmp) {
   mpTechShareLo <- if (has_groups) share_map("lo") else NULL
   mpTechShareUp <- if (has_groups) share_map("up") else NULL
 
-  set_if <- function(scen, nm, df) {
-    if (!(nm %in% names) || is.null(df) || nrow(df) == 0) return(scen)
-    .set_map(scen, nm, df, fmp)
+  out <- setNames(vector("list", 10), c(
+    "meqTechActSng", "meqTechActGrp", "meqTechGrp2Sng", "meqTechSng2Grp",
+    "meqTechSng2Sng", "meqTechGrp2Grp", "meqTechShareOutLo", "meqTechShareOutUp",
+    "meqTechShareInpLo", "meqTechShareInpUp"))
+  put <- function(out, nm, df) {
+    out[nm] <- list(df)
+    out
   }
 
   # Activity index maps.
-  scen <- set_if(scen, "meqTechActSng", lift(techSingOut))
+  out <- put(out, "meqTechActSng", lift(techSingOut))
   if (!is.null(mTechOutGroup) && !is.null(mvTechAct)) {
-    scen <- set_if(scen, "meqTechActGrp",
+    out <- put(out, "meqTechActGrp",
                    as.data.frame(merge0(mvTechAct, mTechOutGroup)))
   }
 
   # Cross input/output coupling maps.
   if (!is.null(mTechInpGroup) && !is.null(techSingOut)) {
-    scen <- set_if(scen, "meqTechGrp2Sng",
+    out <- put(out, "meqTechGrp2Sng",
                    as.data.frame(merge0(mTechInpGroup, techSingOut)))
   }
   if (!is.null(mTechOutGroup) && !is.null(techSingInp)) {
-    scen <- set_if(scen, "meqTechSng2Grp",
+    out <- put(out, "meqTechSng2Grp",
                    as.data.frame(merge0(mTechOutGroup, techSingInp)))
   }
   if (!is.null(techSingInp) && !is.null(techSingOut)) {
-    scen <- set_if(scen, "meqTechSng2Sng",
+    out <- put(out, "meqTechSng2Sng",
                    as.data.frame(merge0(
                      lift(techSingInp), lift(techSingOut),
                      by = c("tech", "region", "year", "timeslice"),
@@ -1534,16 +1572,16 @@ recipe_value <- function(scen, names, fmp) {
       as.data.frame(merge0(mTechInpGroup, mTechOutGroup,
                            by = "tech", suffixes = c("", ".1"))),
       mvTechAct))
-    scen <- set_if(scen, "meqTechGrp2Grp", g2g)
+    out <- put(out, "meqTechGrp2Grp", g2g)
   }
 
   # Share index maps.
   if (!is.null(mpTechShareLo) && !is.null(techGroupOut)) {
-    scen <- set_if(scen, "meqTechShareOutLo",
+    out <- put(out, "meqTechShareOutLo",
                    as.data.frame(merge0(mpTechShareLo, techGroupOut)))
   }
   if (!is.null(mpTechShareUp) && !is.null(techGroupOut)) {
-    scen <- set_if(scen, "meqTechShareOutUp",
+    out <- put(out, "meqTechShareOutUp",
                    as.data.frame(merge0(mpTechShareUp, techGroupOut)))
   }
   # A share relates flows to FLOWS, so it arguably belongs at the coarsest flow
@@ -1556,14 +1594,14 @@ recipe_value <- function(scen, names, fmp) {
   # second slice dimension on the domain. `.lift_to_group_level()` is the
   # domain half, kept and tested for when that lands.
   if (!is.null(mpTechShareLo) && !is.null(techGroupInp)) {
-    scen <- set_if(scen, "meqTechShareInpLo",
+    out <- put(out, "meqTechShareInpLo",
                    as.data.frame(merge0(mpTechShareLo, techGroupInp)))
   }
   if (!is.null(mpTechShareUp) && !is.null(techGroupInp)) {
-    scen <- set_if(scen, "meqTechShareInpUp",
+    out <- put(out, "meqTechShareInpUp",
                    as.data.frame(merge0(mpTechShareUp, techGroupInp)))
   }
-  scen
+  out
 }
 
 # Names handled by the C3 group/share builder.

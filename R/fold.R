@@ -637,7 +637,7 @@ unfold_parameters <- function(scen, dims = .foldable_dims,
     # Only act when a trimmable dimension actually carries a wildcard (NA / ANY).
     wild_dims <- intersect(dims, names(data))
     has_wild <- any(vapply(wild_dims, function(d) {
-      x <- data[[d]]
+      x <- unique(data[[d]])
       any(is.na(x) | is_any(x))
     }, logical(1)))
     if (!has_wild) next

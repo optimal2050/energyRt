@@ -1163,6 +1163,7 @@ merge0 <- function(x, y,
   .interp_clock$maps <- list()
   .interp_clock$params <- list()
   .interp_clock$memo <- NULL
+  .interp_clock$pending <- NULL
   invisible()
 }
 

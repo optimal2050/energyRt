@@ -111,7 +111,7 @@ PP <- newTechnology(
 
 `draw()` sketches what was just declared, before any model is built:
 
-```{r draw-vintage, fig.height = 3}
+```{r draw-vintage, fig.height = 3, fig.alt = "Flow diagram of the vintaged technology PP: one box with its fuel input and its output commodity."}
 draw(PP)
 ```
 
@@ -119,7 +119,7 @@ One box, because the vintages share a structure: same fuel in, same commodity
 out. What differs is the data, which is what `autoplot()` shows -- one series per
 member, over the years each one may be built in:
 
-```{r autoplot-vintage}
+```{r autoplot-vintage, fig.alt = "Declared data of PP by vintage: one series per vintage over the years it may be built in."}
 autoplot(object = PP)
 ```
 
@@ -378,7 +378,7 @@ is rejected when you build the object instead of silently doing nothing.
 `draw()` sketches one object's flow structure, which for a clustered technology
 is the structure every member shares:
 
-```{r draw, fig.height = 3}
+```{r draw, fig.height = 3, fig.alt = "Flow diagram of the clustered wind technology EWIN: one box shared by every cluster member."}
 draw(EWIN)
 ```
 
