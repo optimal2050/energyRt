@@ -173,6 +173,14 @@ cycle (450 entries) is in
   solves a sub-territory, and
   [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
   warns when sampling splits a cell a process spans.
+- **Auxiliary flows on a coarse process.** A `technology` or `storage`
+  declared at a region coarser than an auxiliary commodity it draws or
+  emits now holds that flow in every finer cell beneath it: the aux
+  variables sit at the commodity’s own regions while the coupling stays
+  at the process’s cell, and the equation sums the children. A
+  per-region limit on the aux commodity therefore binds without
+  splitting the process per region. Previously any `@aux` / `@aeff` row
+  made a process ineligible to be coarse at all.
 - **`@geoframe` on the region-carrying classes** (`weather`, `supply`,
   `demand`, `technology`, `storage`, `import`, `export`, `tax`,
   `subsidy`, `trade`) declares the geoscale level an object’s regions
@@ -216,6 +224,11 @@ cycle (450 entries) is in
   once per map, and the object loop no longer slows down with the number
   of objects: a model of 21,000 objects interpolates in about 20 minutes
   instead of 48.
+- [`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
+  and [`save_model()`](https://energyRt.org/reference/model_store.md)
+  keep tables below `getOption("energyRt.ondisk_min_rows", 1e5)` rows in
+  the object’s `.RData` instead of writing a file for each; saving a
+  model of many small objects no longer takes tens of minutes.
 - The `mm` route keeps folded numeric parameters folded when the
   installed multimod looks wildcards up itself, instead of expanding
   them on import.
@@ -306,15 +319,18 @@ cycle (450 entries) is in
   object**: 14 element classes plus model and scenario containers,
   rendered to HTML, PDF, Word or TeX, cached, with user-defined process
   groups, branding and a `report_*` helper family for custom templates.
+
 - **Levelized cost**:
   [`levcost()`](https://energyRt.org/reference/levcost.md) prices
   technologies, storages (LCOS) and trade routes (LCOT) analytically —
   no solver — per vintage, cluster and region, with results cached and
   plotted by
   [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html).
+
 - **[`draw()`](https://energyRt.org/reference/draw.md)** sketches a
   process as a diagram, including a storage’s three parts and its ratio
   couplings.
+
 - [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
   covers objects, calendars, horizons, scenarios and comparisons, with
   `by = "vintage"` / `"cluster"` fan-outs;
@@ -323,6 +339,18 @@ cycle (450 entries) is in
   and
   [`plot_trade_network()`](https://energyRt.org/reference/plot_trade_network.md)
   map any solved variable carrying a region.
+
+- **TOPIA is rebuilt around concentrated resources.** `COA` and `GAS`
+  are balanced per zone and traded between zones (`TBD_COA_*`,
+  `TBD_GAS_*`) while electricity trades region to region; the endowments
+  are finite (`ava.up`), with coal in `WEST`, gas in `EAST`, reservoir
+  hydro in `C4`/`E1`/`C1` and the one nuclear station in `C1`. A kit
+  model therefore needs its hierarchy – `setGeoscale(mod, kit$geoscale)`
+  – every process carries a `desc`, and costs are USD. `STG_ELC` is
+  respecified: `cap2act` puts its capacity in the same GW as the
+  technologies, `@duration` is reservoir energy per unit of power (four
+  hours is `4 * 0.0036` PJ/GW, not `4`), and the energy cost moves to
+  `stg.invcost`, which prices the reservoir.
 
 ### Deprecations
 
@@ -334,6 +362,10 @@ cycle (450 entries) is in
 
 Around 130 individual fixes are listed in the detailed log; most changed
 an answer rather than only the code. The classes worth knowing about:
+
+- [`report()`](https://energyRt.org/reference/report.md) without
+  `format` renders HTML only; model, scenario and comparison reports
+  rendered all four formats.
 
 - **A fixed weather factor fixed nothing.** `waf.fx` (and the storage
   and supply equivalents) entered only the upper bound unless the
@@ -377,6 +409,14 @@ an answer rather than only the code. The classes worth knowing about:
   stops double-counting coarse regions, and a non-interactive run no
   longer stops at a debugger prompt.
 
+- **`aeff$cout2ainp` and `aeff$cinp2aout` now bind.** Both looked their
+  main commodity up in the wrong flow domain — the output-driven
+  coupling in the input domain and vice versa — so on a process that
+  does not carry the same commodity on both sides the coupling was
+  dropped and the auxiliary flow came out zero. The ratio was in the
+  model inputs, which is why it looked set. Models that declare either
+  coupling will see the auxiliary flow, and its cost, appear.
+
 - **`get_process_*(process = )` is honoured.**
   [`get_process_inputs()`](https://energyRt.org/reference/get_process_inputs.md),
   `_outputs()`, `_aux()`, `_region()`, `_invest_window()` and
@@ -393,6 +433,18 @@ an answer rather than only the code. The classes worth knowing about:
   of every geoscale level. No answer moves — every backend reads the
   series through `mWeatherRegionAt` — but the parameter no longer claims
   it where nothing declared it.
+
+- **[`levcost()`](https://energyRt.org/reference/levcost.md) could not
+  price a technology whose commodity is balanced at a coarser
+  `@geoframe`.** The screening model carries no hierarchy, so the
+  declaration is now dropped on the way in, as `@emis` already was.
+
+- **[`levcost()`](https://energyRt.org/reference/levcost.md) replicated
+  every availability row into every screening region**, so a model
+  pricing one fuel differently by region produced a repeated key and
+  interpolation stopped with “multiplied a series”. Rows are now kept
+  where a region has its own, and collapsed to the cheapest where they
+  name regions (or a coarser level) the screening model does not have.
 
 ### Documentation
 

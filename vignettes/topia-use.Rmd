@@ -55,7 +55,7 @@ build the blocks yourself following *TOPIA I: building the model*.)
 names(topia$modules$electricity)          # available layouts
 um  <- topia$modules$electricity$R3     # the 3-region base case
 cal <- topia$modules$calendars$s4_h24
-hor <- topia$modules$horizons$base        # milestones 2020/2030/2040/2050
+hor <- topia$modules$horizons$base        # milestones 2025/2030/2040/2050
 ```
 
 # Assembling and solving the base model
@@ -117,9 +117,9 @@ scen_ERET <- interpolate_model(mod, "EARLY_RET", um$EARLY_RET) |>    # early fos
 The fifth lever, `EARLY_RET`, puts a declining per-region ceiling on installed
 coal and gas capacity -- the plants carry `optimizeRetirement = TRUE`, so the
 model chooses *which* units to close first while the constraint sets the pace.
-The ceiling bites hardest on gas -- generation falls from 251 to 81 PJ over the
-horizon -- and what replaces it is wind (147 -> 288 PJ), the remaining coal
-headroom and a little biomass. Not storage: the four-hour battery stays out of
+The ceiling bites hardest on gas -- generation falls from 108 to 51 PJ over the
+horizon -- and what replaces it is wind (86 -> 179 PJ) and a little biomass.
+Not storage: the four-hour battery stays out of
 every scenario in this vignette, which is a result worth reading rather than a
 missing feature. With a legacy gas fleet alive to 2050, unlimited LNG above the
 domestic cap and an export outlet for surplus, this system is never short of

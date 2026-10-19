@@ -9,7 +9,7 @@ If GDX path is not set, the GAMS path will be used. If GAMS path is not set, the
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9027</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9029</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,6 +27,7 @@ If GDX path is not set, the GAMS path will be used. If GAMS path is not set, the
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
+    <li><a class="dropdown-item" href="../articles/features.html">Features</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
@@ -116,10 +117,11 @@ to/from <code>energyRt</code> options.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>By default energyRt auto-detects the <code>glpsol</code> executable on the
-session <code>PATH</code> (via <code><a href="https://rdrr.io/r/base/Sys.which.html" class="external-link">base::Sys.which()</a></code>). On Windows this picks up the copy
-<strong>bundled with Rtools</strong> (Rtools ships the GLPK dev kit), so an Rtools user
-needs no separate GLPK install. Use <code>set_glpk_path()</code> only to point at a
+    <p>By default energyRt uses the GLPK binary bundled by the glpsol R
+package when it is installed, and otherwise auto-detects the <code>glpsol</code>
+executable on the session <code>PATH</code> (via <code><a href="https://rdrr.io/r/base/Sys.which.html" class="external-link">base::Sys.which()</a></code>). On Windows the
+latter picks up the copy <strong>bundled with Rtools</strong> (Rtools ships the GLPK dev
+kit), so an Rtools user needs no separate install. Use <code>set_glpk_path()</code> only to point at a
 standalone GLPK installation, which then takes precedence over auto-detection.</p>
     </div>
 

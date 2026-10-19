@@ -26,9 +26,10 @@ per-backend accessors (\code{\link[=set_gams_path]{set_gams_path()}}, \code{\lin
 thin wrappers around them.
 
 Setting a path is optional. When it is unset, each backend falls back to its
-own discovery: \code{glpk} searches the session \code{PATH} and well-known
-install locations (on Windows \code{glpsol} is found in Rtools, which bundles
-GLPK), while \code{gams}, \code{python} and \code{julia} simply invoke the bare command and
+own discovery: \code{glpk} uses the binary bundled by the glpsol R package when
+that is installed, then searches the session \code{PATH} and well-known install
+locations (on Windows \code{glpsol} is found in Rtools, which bundles GLPK),
+while \code{gams}, \code{python} and \code{julia} simply invoke the bare command and
 let the OS resolve it on \code{PATH}. Set a path only to override that, for
 instance to pick between several installed GAMS versions.
 }

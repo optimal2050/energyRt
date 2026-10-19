@@ -50,6 +50,7 @@ ek   <- topia$modules$electricity$R3
 mod  <- newModel("TOPIA", data = ek$repo,
                  calendar = topia$modules$calendars$s4_h24,
                  region = ek$regions, horizon = topia$modules$horizons$base)
+mod <- setGeoscale(mod, ek$geoscale)
 scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
 report_html(scen)
 } # }

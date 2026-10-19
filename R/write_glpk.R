@@ -5,10 +5,11 @@
 #'
 #' @return sets the path to the GLPK library in R options and returns NULL.
 #'
-#' @details By default energyRt auto-detects the `glpsol` executable on the
-#'   session `PATH` (via [base::Sys.which()]). On Windows this picks up the copy
-#'   **bundled with Rtools** (Rtools ships the GLPK dev kit), so an Rtools user
-#'   needs no separate GLPK install. Use `set_glpk_path()` only to point at a
+#' @details By default energyRt uses the GLPK binary bundled by the glpsol R
+#'   package when it is installed, and otherwise auto-detects the `glpsol`
+#'   executable on the session `PATH` (via [base::Sys.which()]). On Windows the
+#'   latter picks up the copy **bundled with Rtools** (Rtools ships the GLPK dev
+#'   kit), so an Rtools user needs no separate install. Use `set_glpk_path()` only to point at a
 #'   standalone GLPK installation, which then takes precedence over auto-detection.
 #'
 #' @rdname solver

@@ -17,7 +17,7 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9027</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9029</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,7 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
+    <li><a class="dropdown-item" href="../articles/features.html">Features</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
@@ -289,9 +290,14 @@ it was derived from.</p></dd>
 <span class="r-in"><span>                region <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">regions</span>,</span></span>
 <span class="r-in"><span>                horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span></span>
 <span class="r-in"><span>                discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">ek</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># build the solver-facing sets and parameters; nothing is solved yet</span></span></span>
 <span class="r-in"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu">interpolate_model</span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Cost declared at a coarse geoscale level:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_COA_WEST_CENTRAL@invcost: CENTRAL, WEST</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_GAS_WEST_CENTRAL@invcost: CENTRAL, WEST</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.</span>
 <span class="r-in"><span><span class="va">scen</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Name:  BASE </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Model:</span>
@@ -300,27 +306,31 @@ it was derived from.</p></dd>
 <span class="r-in"><span><span class="co"># `fold = TRUE` substitutes constant parameters into the equations, which</span></span></span>
 <span class="r-in"><span><span class="co"># shrinks what the backend has to read</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="model_size.html">model_size</a></span><span class="op">(</span><span class="fu">interpolate_model</span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"FOLDED"</span>, fold <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Cost declared at a coarse geoscale level:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_COA_WEST_CENTRAL@invcost: CENTRAL, WEST</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_GAS_WEST_CENTRAL@invcost: CENTRAL, WEST</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> model_size: FOLDED</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   parameters : 189 value, 348 maps, 15 sets</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   param rows : 1,860  (fold step: 8,619 -&gt; 1,860, saved 6,759 = 78%)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   folded dims: region=23  timeslice=10  year=20</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   estimate   : ~55,216 variables, ~57,581 constraints (from gating maps)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   parameters : 189 value, 352 maps, 15 sets</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   param rows : 2,111  (fold step: 8,741 -&gt; 2,111, saved 6,630 = 76%)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   folded dims: region=20  timeslice=11  year=19</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   estimate   : ~61,849 variables, ~63,464 constraints (from gating maps)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   top parameters by rows:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     pWeather           753</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     pDemand            384</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     pTimesliceAgg      297</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pExportRow         288</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     pTimesliceShare    101</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pExportRow         96</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechStock         46</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechStock         50</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     pTechFixom         28</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     pTechInvcost       28</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     pTechEac           20</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechStockSurv     16</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     pTechCinp2use      16</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechCap2act       7</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechOlife         7</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pPeriodLen         4</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     ordYear            4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pDiscountFactor    15</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechStockSurv     12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTradeIrVarom      8</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTradeIrEff        8</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pSupCost           7</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

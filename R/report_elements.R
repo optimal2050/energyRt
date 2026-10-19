@@ -115,10 +115,9 @@ NULL
 #' @noRd
 .report_element_method <- function(object, template = NULL,
     image_file = NULL, file = NULL,
-    format = c("html", "pdf", "tex", "docx"),
+    format = "html",
     levcost = NULL, cost_unit = NULL, open = interactive(),
     reports_path = NULL, force = FALSE, ...) {
-  if (missing(format)) format <- "html"
   cls <- class(object)[1]
   tmpl <- template %||% .report_misc_template(object) %||% cls
   dots <- list(...)

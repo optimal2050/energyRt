@@ -58,6 +58,8 @@ navbar:
       menu:
       - text: Installation
         href: articles/install.html
+      - text: Features
+        href: articles/features.html
       - text: Solver backends
         href: articles/backends.html
       # - text: Framework

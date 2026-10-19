@@ -33,6 +33,7 @@ mod <- newModel("TOPIA", data = um$repo,
                 calendar = topia$modules$calendars$s4_h24,
                 region   = um$regions,
                 horizon  = topia$modules$horizons$base, discount = 0.05)
+mod <- setGeoscale(mod, um$geoscale)
 ```
 
 ``` r
@@ -56,9 +57,9 @@ their data). By default it returns a named list keyed by object name;
 
 repo <- um$repo
 names(getObject(repo, class = "technology"))        # all technologies
-#> [1] "ECOA" "EGAS" "ENUC" "ESOL" "EWIN" "EHYD" "EBIO"
+#> [1] "ECOA" "EGAS" "ESOL" "EWIN" "EBIO"
 names(getObject(repo, class = "supply", region = "W1"))
-#> [1] "SUP_COA" "SUP_BIO" "SUP_NUC" "RES_SOL" "RES_WIN"
+#> [1] "SUP_BIO" "RES_SOL" "RES_WIN"
 getObject(repo, name = "ECOA", drop = TRUE)@invcost # the ECOA object itself
 #>   vintage cluster region year invcost wacc payback eac retcost
 #> 1    <NA>    <NA>   <NA>   NA    2000   NA      NA  NA      NA
@@ -80,17 +81,17 @@ otherwise); every frame carries a `scenario` and a `name` column.
 ``` r
 
 getData(scen, "vObjective", merge = TRUE)$value      # total system cost, MEUR
-#> [1] 18279.84
+#> [1] 18351.9
 
 gen <- getData(scen, "vTechOut", comm = "ELC", merge = TRUE)
 head(gen[, c("scenario", "tech", "region", "year", "timeslice", "value")], 4)
 #> # A tibble: 4 × 6
-#>   scenario tech  region  year timeslice  value
-#>   <chr>    <chr> <chr>  <int> <chr>      <dbl>
-#> 1 BASE     ECOA  W1      2020 WIN_h00   0.151 
-#> 2 BASE     ECOA  W1      2020 WIN_h01   0.0882
-#> 3 BASE     ECOA  W1      2020 WIN_h02   0.0501
-#> 4 BASE     ECOA  W1      2020 WIN_h03   0.0253
+#>   scenario tech  region  year timeslice value
+#>   <chr>    <chr> <chr>  <int> <chr>     <dbl>
+#> 1 BASE     ECOA  W1      2025 WIN_h00   0.799
+#> 2 BASE     ECOA  W1      2025 WIN_h01   0.736
+#> 3 BASE     ECOA  W1      2025 WIN_h02   0.698
+#> 4 BASE     ECOA  W1      2025 WIN_h03   0.673
 ```
 
 The `...` accept set filters, exact (`comm = "ELC"`) or regex
@@ -174,7 +175,7 @@ scenario and model sharing a name appear once):
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpuQCdcz/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpEdLL9G/wf"
 basename(scen@path)
 #> [1] "BASE-TOPIA-s4_h24-base"
 ```
@@ -260,7 +261,7 @@ basename(saved@path)                                 # the scenario folder
 isInMemory(saved)                                    # FALSE -- data is on disk
 #> [1] TRUE
 getData(ld, "vObjective", merge = TRUE)$value        # lazy read, no full load
-#> [1] 18279.84
+#> [1] 18351.9
 ```
 
 ``` r
@@ -328,7 +329,7 @@ emis |>
 sapply(list(BASE = scen, CO2CAP = scen_cap),
        function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
 #>   BASE CO2CAP 
-#>  18280  23529
+#>  18352  32669
 ```
 
 To reason about **model size** rather than results,
@@ -341,27 +342,27 @@ in-memory footprint:
 
 model_size(scen)
 #> model_size: BASE
-#>   parameters : 189 value, 348 maps, 15 sets
-#>   param rows : 6,715
-#>   estimate   : ~16,310 variables, ~17,364 constraints (from gating maps)
+#>   parameters : 189 value, 352 maps, 15 sets
+#>   param rows : 5,972
+#>   estimate   : ~20,012 variables, ~20,704 constraints (from gating maps)
 #>   top parameters by rows:
-#>     pTechCinp2use      1,536
 #>     pTimesliceAgg      1,188
+#>     pTechCinp2use      1,152
 #>     pWeather           1,004
 #>     pTimesliceWeight   404
 #>     pDemand            384
 #>     pExportRowPrice    384
 #>     pExportRow         384
-#>     pTechAf            384
 #>     pStorageInpEff     384
 #>     pStorageOutEff     384
 #>     pTimesliceShare    101
-#>     pTechFixom         24
-#>     pTechInvcost       24
-#>     pTechEac           20
+#>     pTechFixom         20
+#>     pTechInvcost       20
+#>     pTechEac           17
 #>     pTechStock         14
+#>     pWacc              12
 size(scen)
-#> [1] "7.7 Mb"
+#> [1] "10.9 Mb"
 ```
 
 For a systematic check that a build is correct *and* efficient,
@@ -407,7 +408,7 @@ scen_t <- interpolate_model(mod, "S2", cal2) |>
 sapply(list(full = scen, sampled = scen_t),
        function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
 #>    full sampled 
-#>   18280   20019
+#>   18352   20427
 ```
 
 Two traps: pass `year_fraction` **explicitly** (it is not recomputed

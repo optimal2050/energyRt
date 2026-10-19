@@ -233,9 +233,14 @@ mod <- newModel("TOPIA", data = ek$repo,
                 region = ek$regions,
                 horizon = topia$modules$horizons$base,
                 discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
 
 # build the solver-facing sets and parameters; nothing is solved yet
 scen <- interpolate_model(mod, name = "BASE")
+#> Cost declared at a coarse geoscale level:
+#>   TBD_COA_WEST_CENTRAL@invcost: CENTRAL, WEST
+#>   TBD_GAS_WEST_CENTRAL@invcost: CENTRAL, WEST
+#> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.
 scen
 #> Name:  BASE 
 #> Model:
@@ -244,26 +249,30 @@ scen
 # `fold = TRUE` substitutes constant parameters into the equations, which
 # shrinks what the backend has to read
 model_size(interpolate_model(mod, name = "FOLDED", fold = TRUE))
+#> Cost declared at a coarse geoscale level:
+#>   TBD_COA_WEST_CENTRAL@invcost: CENTRAL, WEST
+#>   TBD_GAS_WEST_CENTRAL@invcost: CENTRAL, WEST
+#> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.
 #> model_size: FOLDED
-#>   parameters : 189 value, 348 maps, 15 sets
-#>   param rows : 1,860  (fold step: 8,619 -> 1,860, saved 6,759 = 78%)
-#>   folded dims: region=23  timeslice=10  year=20
-#>   estimate   : ~55,216 variables, ~57,581 constraints (from gating maps)
+#>   parameters : 189 value, 352 maps, 15 sets
+#>   param rows : 2,111  (fold step: 8,741 -> 2,111, saved 6,630 = 76%)
+#>   folded dims: region=20  timeslice=11  year=19
+#>   estimate   : ~61,849 variables, ~63,464 constraints (from gating maps)
 #>   top parameters by rows:
 #>     pWeather           753
 #>     pDemand            384
 #>     pTimesliceAgg      297
+#>     pExportRow         288
 #>     pTimesliceShare    101
-#>     pExportRow         96
-#>     pTechStock         46
+#>     pTechStock         50
 #>     pTechFixom         28
 #>     pTechInvcost       28
 #>     pTechEac           20
-#>     pTechStockSurv     16
 #>     pTechCinp2use      16
-#>     pTechCap2act       7
-#>     pTechOlife         7
-#>     pPeriodLen         4
-#>     ordYear            4
+#>     pDiscountFactor    15
+#>     pTechStockSurv     12
+#>     pTradeIrVarom      8
+#>     pTradeIrEff        8
+#>     pSupCost           7
 # }
 ```

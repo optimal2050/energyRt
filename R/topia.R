@@ -51,7 +51,9 @@
 #'     cannot drive the shipped kits (`ELC` is balanced at the `HOUR` level
 #'     and [topia_profiles()] has no annual shapes); it ships as the
 #'     coarsest example calendar.}
-#'   \item{horizons}{planning horizons (`base` = 2020/2030/2040/2050;
+#'   \item{horizons}{planning horizons (`base` = 2025/2030/2040/2050, each
+#'     milestone the MID-point of its period, so that is where its costs are
+#'     discounted from;
 #'     `unit` = the single year 2025 for the unit kits).}
 #'   \item{electricity}{per region layout (`R1`, `R3`, `R7`, `R11` -- an
 #'     n-region layout is keyed `R<n>` and takes the first n regions of the

@@ -257,6 +257,9 @@ changes* first. The change-by-change log for the whole cycle (450 entries) is in
 Around 130 individual fixes are listed in the detailed log; most changed an
 answer rather than only the code. The classes worth knowing about:
 
+* `report()` without `format` renders HTML only; model, scenario and
+  comparison reports rendered all four formats.
+
 * **A fixed weather factor fixed nothing.** `waf.fx` (and the storage and
   supply equivalents) entered only the upper bound unless the process also
   declared `af.lo`, so VRE output could fall below the weather and curtailment

@@ -317,7 +317,7 @@ en_setup <- function(ref = "optimal2050/energyRt") {
     }
   } else {
     cli::cli_alert_success(
-      "No system libraries to install on {os} (on Windows, GLPK ships with Rtools).")
+      "No system libraries to install on {os} (GLPK comes with the glpsol package; on Windows it also ships with Rtools).")
   }
 
   # Dependency status: reuse the existing read-only reports.

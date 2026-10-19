@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9027</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9029</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,6 +48,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials">
 <li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
+    <li><a class="dropdown-item" href="../articles/features.html">Features</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
@@ -127,7 +128,8 @@ article.</p>
 <span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">repo</span>,</span>
 <span>                calendar <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span>
 <span>                region   <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">regions</span>,</span>
-<span>                horizon  <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>, discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></code></pre></div>
+<span>                horizon  <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>, discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
+<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">um</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># interpolate + solve on the bundled GLPK; echo = FALSE keeps the log quiet</span></span>
 <span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -146,9 +148,9 @@ object itself.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">repo</span> <span class="op">&lt;-</span> <span class="va">um</span><span class="op">$</span><span class="va">repo</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">repo</span>, class <span class="op">=</span> <span class="st">"technology"</span><span class="op">)</span><span class="op">)</span>        <span class="co"># all technologies</span></span>
-<span><span class="co">#&gt; [1] "ECOA" "EGAS" "ENUC" "ESOL" "EWIN" "EHYD" "EBIO"</span></span>
+<span><span class="co">#&gt; [1] "ECOA" "EGAS" "ESOL" "EWIN" "EBIO"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">repo</span>, class <span class="op">=</span> <span class="st">"supply"</span>, region <span class="op">=</span> <span class="st">"W1"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "SUP_COA" "SUP_BIO" "SUP_NUC" "RES_SOL" "RES_WIN"</span></span>
+<span><span class="co">#&gt; [1] "SUP_BIO" "RES_SOL" "RES_WIN"</span></span>
 <span><span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"ECOA"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">@</span><span class="va">invcost</span> <span class="co"># the ECOA object itself</span></span>
 <span><span class="co">#&gt;   vintage cluster region year invcost wacc payback eac retcost</span></span>
 <span><span class="co">#&gt; 1    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA    2000   NA      NA  NA      NA</span></span></code></pre></div>
@@ -169,17 +171,17 @@ otherwise); every frame carries a <code>scenario</code> and a
 <code>name</code> column.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span>      <span class="co"># total system cost, MEUR</span></span>
-<span><span class="co">#&gt; [1] 18279.84</span></span>
+<span><span class="co">#&gt; [1] 18351.9</span></span>
 <span></span>
 <span><span class="va">gen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechOut"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">gen</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"scenario"</span>, <span class="st">"tech"</span>, <span class="st">"region"</span>, <span class="st">"year"</span>, <span class="st">"timeslice"</span>, <span class="st">"value"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 6</span></span></span>
-<span><span class="co">#&gt;   scenario tech  region  year timeslice  value</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> BASE     ECOA  W1      <span style="text-decoration: underline;">2</span>020 WIN_h00   0.151 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> BASE     ECOA  W1      <span style="text-decoration: underline;">2</span>020 WIN_h01   0.088<span style="text-decoration: underline;">2</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> BASE     ECOA  W1      <span style="text-decoration: underline;">2</span>020 WIN_h02   0.050<span style="text-decoration: underline;">1</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> BASE     ECOA  W1      <span style="text-decoration: underline;">2</span>020 WIN_h03   0.025<span style="text-decoration: underline;">3</span></span></span></code></pre></div>
+<span><span class="co">#&gt;   scenario tech  region  year timeslice value</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> BASE     ECOA  W1      <span style="text-decoration: underline;">2</span>025 WIN_h00   0.799</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> BASE     ECOA  W1      <span style="text-decoration: underline;">2</span>025 WIN_h01   0.736</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> BASE     ECOA  W1      <span style="text-decoration: underline;">2</span>025 WIN_h02   0.698</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> BASE     ECOA  W1      <span style="text-decoration: underline;">2</span>025 WIN_h03   0.673</span></span></code></pre></div>
 <p>The <code>...</code> accept set filters, exact
 (<code>comm = "ELC"</code>) or regex (<code>comm_ = "^EL"</code>).
 <code>timeframe = c("lowest","highest","all")</code> controls how
@@ -251,7 +253,7 @@ valid names cannot contain; duplicate parts are dropped, so a scenario
 and model sharing a name appear once):</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/scenarios_path.html">get_scenarios_path</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpuQCdcz/wf"</span></span>
+<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpEdLL9G/wf"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">scen</span><span class="op">@</span><span class="va">path</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "BASE-TOPIA-s4_h24-base"</span></span></code></pre></div>
 <p>Saving a scenario writes an <strong>Arrow-backed</strong> folder that
@@ -320,7 +322,7 @@ resolves it through the project registry, and the cached accessor
 <span><span class="fu"><a href="../reference/isInMemory.html">isInMemory</a></span><span class="op">(</span><span class="va">saved</span><span class="op">)</span>                                    <span class="co"># FALSE -- data is on disk</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">ld</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span>        <span class="co"># lazy read, no full load</span></span>
-<span><span class="co">#&gt; [1] 18279.84</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 18351.9</span></span></code></pre></div>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ld</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/obj2mem.html">obj2mem</a></span><span class="op">(</span><span class="va">ld</span><span class="op">)</span>                                    <span class="co"># rehydrate fully into RAM</span></span></code></pre></div>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
@@ -367,7 +369,7 @@ from the registry on the fly.)</p>
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>BASE <span class="op">=</span> <span class="va">scen</span>, CO2CAP <span class="op">=</span> <span class="va">scen_cap</span><span class="op">)</span>,</span>
 <span>       <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   BASE CO2CAP </span></span>
-<span><span class="co">#&gt;  18280  23529</span></span></code></pre></div>
+<span><span class="co">#&gt;  18352  32669</span></span></code></pre></div>
 <p>To reason about <strong>model size</strong> rather than results,
 <code><a href="../reference/model_size.html">model_size()</a></code> estimates the parameter/variable/constraint
 counts of an interpolated scenario, and <code><a href="../reference/size.html">size()</a></code> reports its
@@ -375,27 +377,27 @@ in-memory footprint:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_size.html">model_size</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
 <span><span class="co">#&gt; model_size: BASE</span></span>
-<span><span class="co">#&gt;   parameters : 189 value, 348 maps, 15 sets</span></span>
-<span><span class="co">#&gt;   param rows : 6,715</span></span>
-<span><span class="co">#&gt;   estimate   : ~16,310 variables, ~17,364 constraints (from gating maps)</span></span>
+<span><span class="co">#&gt;   parameters : 189 value, 352 maps, 15 sets</span></span>
+<span><span class="co">#&gt;   param rows : 5,972</span></span>
+<span><span class="co">#&gt;   estimate   : ~20,012 variables, ~20,704 constraints (from gating maps)</span></span>
 <span><span class="co">#&gt;   top parameters by rows:</span></span>
-<span><span class="co">#&gt;     pTechCinp2use      1,536</span></span>
 <span><span class="co">#&gt;     pTimesliceAgg      1,188</span></span>
+<span><span class="co">#&gt;     pTechCinp2use      1,152</span></span>
 <span><span class="co">#&gt;     pWeather           1,004</span></span>
 <span><span class="co">#&gt;     pTimesliceWeight   404</span></span>
 <span><span class="co">#&gt;     pDemand            384</span></span>
 <span><span class="co">#&gt;     pExportRowPrice    384</span></span>
 <span><span class="co">#&gt;     pExportRow         384</span></span>
-<span><span class="co">#&gt;     pTechAf            384</span></span>
 <span><span class="co">#&gt;     pStorageInpEff     384</span></span>
 <span><span class="co">#&gt;     pStorageOutEff     384</span></span>
 <span><span class="co">#&gt;     pTimesliceShare    101</span></span>
-<span><span class="co">#&gt;     pTechFixom         24</span></span>
-<span><span class="co">#&gt;     pTechInvcost       24</span></span>
-<span><span class="co">#&gt;     pTechEac           20</span></span>
+<span><span class="co">#&gt;     pTechFixom         20</span></span>
+<span><span class="co">#&gt;     pTechInvcost       20</span></span>
+<span><span class="co">#&gt;     pTechEac           17</span></span>
 <span><span class="co">#&gt;     pTechStock         14</span></span>
+<span><span class="co">#&gt;     pWacc              12</span></span>
 <span><span class="fu"><a href="../reference/size.html">size</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "7.7 Mb"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "10.9 Mb"</span></span></code></pre></div>
 <p>For a systematic check that a build is correct <em>and</em>
 efficient, <code>compare_interp_settings(mod)</code> and
 <code>compare_solve_settings(mod, solvers = ...)</code> interpolate (and
@@ -436,7 +438,7 @@ representative:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>full <span class="op">=</span> <span class="va">scen</span>, sampled <span class="op">=</span> <span class="va">scen_t</span><span class="op">)</span>,</span>
 <span>       <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    full sampled </span></span>
-<span><span class="co">#&gt;   18280   20019</span></span></code></pre></div>
+<span><span class="co">#&gt;   18352   20427</span></span></code></pre></div>
 <p>Two traps: pass <code>year_fraction</code>
 <strong>explicitly</strong> (it is not recomputed from the subset), and
 <strong>subset the existing timetable</strong> rather than rebuilding

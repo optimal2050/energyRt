@@ -76,7 +76,8 @@ options::define_option(
   "glpk_path",
   desc = paste(
     "Path to a standalone GLPK installation containing the `glpsol`",
-    "executable. If unset, `glpsol` is auto-detected on the session PATH --",
+    "executable. If unset, the glpsol R package's bundled binary is used when",
+    "installed, otherwise `glpsol` is auto-detected on the session PATH --",
     "which on Windows finds the copy bundled with Rtools."
   ),
   default = NULL
@@ -409,9 +410,10 @@ get_option <- function(name, default = NULL) {
 #' thin wrappers around them.
 #'
 #' Setting a path is optional. When it is unset, each backend falls back to its
-#' own discovery: `glpk` searches the session `PATH` and well-known
-#' install locations (on Windows `glpsol` is found in Rtools, which bundles
-#' GLPK), while `gams`, `python` and `julia` simply invoke the bare command and
+#' own discovery: `glpk` uses the binary bundled by the glpsol R package when
+#' that is installed, then searches the session `PATH` and well-known install
+#' locations (on Windows `glpsol` is found in Rtools, which bundles GLPK),
+#' while `gams`, `python` and `julia` simply invoke the bare command and
 #' let the OS resolve it on `PATH`. Set a path only to override that, for
 #' instance to pick between several installed GAMS versions.
 #'

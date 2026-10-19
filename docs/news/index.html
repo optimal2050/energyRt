@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9027</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9029</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,6 +25,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
+    <li><a class="dropdown-item" href="../articles/features.html">Features</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
@@ -108,6 +109,8 @@
 <strong>Region aggregation with clustering</strong>: <code>aggregate_model_regions(clusters = )</code> partitions a corridor family into <code>k</code> groups, <code><a href="../reference/get_process_groups.html">get_process_groups()</a></code> reports what may be merged, <code><a href="../reference/process_cluster_sweep.html">process_cluster_sweep()</a></code> sweeps the admissible range and <code><a href="../reference/model_clusters.html">model_clusters()</a></code> reports what an aggregation did.</li>
 <li>A filtered geoscale passed to <code><a href="../reference/interpolate_model.html">interpolate_model()</a></code> solves a sub-territory, and <code><a href="../reference/subset_model_regions.html">subset_model_regions()</a></code> warns when sampling splits a cell a process spans.</li>
 <li>
+<strong>Auxiliary flows on a coarse process.</strong> A <code>technology</code> or <code>storage</code> declared at a region coarser than an auxiliary commodity it draws or emits now holds that flow in every finer cell beneath it: the aux variables sit at the commodity’s own regions while the coupling stays at the process’s cell, and the equation sums the children. A per-region limit on the aux commodity therefore binds without splitting the process per region. Previously any <code>@aux</code> / <code>@aeff</code> row made a process ineligible to be coarse at all.</li>
+<li>
 <strong><code>@geoframe</code> on the region-carrying classes</strong> (<code>weather</code>, <code>supply</code>, <code>demand</code>, <code>technology</code>, <code>storage</code>, <code>import</code>, <code>export</code>, <code>tax</code>, <code>subsidy</code>, <code>trade</code>) declares the geoscale level an object’s regions are expressed at. Optional: left unset the level is derived from the region codes, as before. Declared, it scopes an object that names no regions of its own to that level’s regions, and every code it does name must be a member of the level — <code>geoframe = "nation"</code> beside <code>region = "R1"</code> is now an error instead of quietly meaning something else. It adds that one default and those checks, nothing more: an object may still be coarser only than the commodities it consumes, never than those it produces or stores, enforced where it always was.</li>
 </ul></div>
 <div class="section level4">
@@ -122,6 +125,8 @@
 <code><a href="../reference/en_check.html">en_check_solve()</a></code> solves a tiny model on every configured backend and reports what actually works; <code><a href="../reference/en_check_packages.html">en_check_packages()</a></code> / <code><a href="../reference/en_install_deps.html">en_install_deps()</a></code> / <code><a href="../reference/en_install_julia_pkgs.html">en_install_julia_pkgs()</a></code> set the toolchains up.</li>
 <li>
 <code><a href="../reference/interpolate_model.html">interpolate_model()</a></code> is about <strong>6x faster</strong> on large models, folds <code>year</code> as well as <code>region</code> and <code>timeslice</code>, and logs its per-stage timings. The technology group and share maps are built once per run rather than once per map, and the object loop no longer slows down with the number of objects: a model of 21,000 objects interpolates in about 20 minutes instead of 48.</li>
+<li>
+<code><a href="../reference/save_scenario.html">save_scenario()</a></code> and <code><a href="../reference/model_store.html">save_model()</a></code> keep tables below <code>getOption("energyRt.ondisk_min_rows", 1e5)</code> rows in the object’s <code>.RData</code> instead of writing a file for each; saving a model of many small objects no longer takes tens of minutes.</li>
 <li>The <code>mm</code> route keeps folded numeric parameters folded when the installed multimod looks wildcards up itself, instead of expanding them on import.</li>
 <li>Remote solving: the NEOS server for GAMS/CPLEX without a local licence, and GPU execution in the cloud.</li>
 <li>
@@ -149,14 +154,11 @@
 </ul></div>
 <div class="section level4">
 <h4 id="reporting-and-visualisation-0-90-0">Reporting and visualisation<a class="anchor" aria-label="anchor" href="#reporting-and-visualisation-0-90-0"></a></h4>
-<ul><li>
-<strong><code><a href="../reference/report.html">report()</a></code> for every object</strong>: 14 element classes plus model and scenario containers, rendered to HTML, PDF, Word or TeX, cached, with user-defined process groups, branding and a <code>report_*</code> helper family for custom templates.</li>
-<li>
-<strong>Levelized cost</strong>: <code><a href="../reference/levcost.html">levcost()</a></code> prices technologies, storages (LCOS) and trade routes (LCOT) analytically — no solver — per vintage, cluster and region, with results cached and plotted by <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code>.</li>
-<li>
-<strong><code><a href="../reference/draw.html">draw()</a></code></strong> sketches a process as a diagram, including a storage’s three parts and its ratio couplings.</li>
-<li>
-<code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> covers objects, calendars, horizons, scenarios and comparisons, with <code>by = "vintage"</code> / <code>"cluster"</code> fan-outs; <code><a href="../reference/plot_map.html">plot_map()</a></code>, <code><a href="../reference/plot_trade_map.html">plot_trade_map()</a></code> and <code><a href="../reference/plot_trade_network.html">plot_trade_network()</a></code> map any solved variable carrying a region.</li>
+<ul><li><p><strong><code><a href="../reference/report.html">report()</a></code> for every object</strong>: 14 element classes plus model and scenario containers, rendered to HTML, PDF, Word or TeX, cached, with user-defined process groups, branding and a <code>report_*</code> helper family for custom templates.</p></li>
+<li><p><strong>Levelized cost</strong>: <code><a href="../reference/levcost.html">levcost()</a></code> prices technologies, storages (LCOS) and trade routes (LCOT) analytically — no solver — per vintage, cluster and region, with results cached and plotted by <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code>.</p></li>
+<li><p><strong><code><a href="../reference/draw.html">draw()</a></code></strong> sketches a process as a diagram, including a storage’s three parts and its ratio couplings.</p></li>
+<li><p><code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> covers objects, calendars, horizons, scenarios and comparisons, with <code>by = "vintage"</code> / <code>"cluster"</code> fan-outs; <code><a href="../reference/plot_map.html">plot_map()</a></code>, <code><a href="../reference/plot_trade_map.html">plot_trade_map()</a></code> and <code><a href="../reference/plot_trade_network.html">plot_trade_network()</a></code> map any solved variable carrying a region.</p></li>
+<li><p><strong>TOPIA is rebuilt around concentrated resources.</strong> <code>COA</code> and <code>GAS</code> are balanced per zone and traded between zones (<code>TBD_COA_*</code>, <code>TBD_GAS_*</code>) while electricity trades region to region; the endowments are finite (<code>ava.up</code>), with coal in <code>WEST</code>, gas in <code>EAST</code>, reservoir hydro in <code>C4</code>/<code>E1</code>/<code>C1</code> and the one nuclear station in <code>C1</code>. A kit model therefore needs its hierarchy – <code>setGeoscale(mod, kit$geoscale)</code> – every process carries a <code>desc</code>, and costs are USD. <code>STG_ELC</code> is respecified: <code>cap2act</code> puts its capacity in the same GW as the technologies, <code>@duration</code> is reservoir energy per unit of power (four hours is <code>4 * 0.0036</code> PJ/GW, not <code>4</code>), and the energy cost moves to <code>stg.invcost</code>, which prices the reservoir.</p></li>
 </ul></div>
 </div>
 <div class="section level3">
@@ -166,7 +168,8 @@
 <div class="section level3">
 <h3 id="bug-fixes-0-90-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-90-0"></a></h3>
 <p>Around 130 individual fixes are listed in the detailed log; most changed an answer rather than only the code. The classes worth knowing about:</p>
-<ul><li><p><strong>A fixed weather factor fixed nothing.</strong> <code>waf.fx</code> (and the storage and supply equivalents) entered only the upper bound unless the process also declared <code>af.lo</code>, so VRE output could fall below the weather and curtailment never reached <code>vBalance</code>. It now binds from both sides.</p></li>
+<ul><li><p><code><a href="../reference/report.html">report()</a></code> without <code>format</code> renders HTML only; model, scenario and comparison reports rendered all four formats.</p></li>
+<li><p><strong>A fixed weather factor fixed nothing.</strong> <code>waf.fx</code> (and the storage and supply equivalents) entered only the upper bound unless the process also declared <code>af.lo</code>, so VRE output could fall below the weather and curtailment never reached <code>vBalance</code>. It now binds from both sides.</p></li>
 <li><p><strong><code>wafs</code> and <code>wafc</code>.</strong> <code>wafs</code> multiplies <code>afs</code>: without <code>afs</code> it is now an error, and its weather must have a value at each <code>afs</code> timeslice (a weather at another timeframe read as 0 and shut the technology down). <code>wafc</code> acts like <code>waf</code> at the commodity’s timeframe: with no <code>afc</code> it implies <code>afc = 1</code> on the sides it sets (it was silently ignored).</p></li>
 <li><p><strong>Parameters that never reached the solver.</strong> Several slots were declared but not wired (<code>pTradeIrEff</code>, per-part storage <code>fixom</code>/<code>eac</code>, aux couplings on an unpriced part), so a cost or a limit was silently dropped and the model solved without it.</p></li>
 <li><p><strong>Equations instantiated where no data stood behind them</strong>, which made the solver read its own default — a bound of 0 shutting a process down, or an unbounded flow where the user expected a rating.</p></li>
@@ -174,8 +177,11 @@
 <li><p><strong>Levies and constraints</strong>: a levy on a timeslice-indexed base is weighted, taxes survive folding, and a summand’s <code>timeframe</code> / <code>geoframe</code> is resolved per member instead of from the pooled index.</p></li>
 <li><p><strong>Levelized cost</strong>: priced variants no longer return <code>NA</code>, a vintage outside the priced horizon is handled, a trade corridor is priced at what the model actually pays, and a repository is priced process by process.</p></li>
 <li><p><strong>Reporting the truth</strong>: an infeasible or unbounded model is a result rather than an error, <code><a href="../reference/verify_solution.html">verify_solution()</a></code> stops double-counting coarse regions, and a non-interactive run no longer stops at a debugger prompt.</p></li>
+<li><p><strong><code>aeff$cout2ainp</code> and <code>aeff$cinp2aout</code> now bind.</strong> Both looked their main commodity up in the wrong flow domain — the output-driven coupling in the input domain and vice versa — so on a process that does not carry the same commodity on both sides the coupling was dropped and the auxiliary flow came out zero. The ratio was in the model inputs, which is why it looked set. Models that declare either coupling will see the auxiliary flow, and its cost, appear.</p></li>
 <li><p><strong><code>get_process_*(process = )</code> is honoured.</strong> <code><a href="../reference/get_process_inputs.html">get_process_inputs()</a></code>, <code>_outputs()</code>, <code>_aux()</code>, <code>_region()</code>, <code>_invest_window()</code> and <code>_timeframe()</code> accepted the argument and ignored it, returning every process in the model; <code><a href="../reference/get_process_comm.html">get_process_comm()</a></code> inherited it. The returned shape was right, so the answer looked right.</p></li>
 <li><p><strong>A weather series whose data omits <code>region</code> is stored where it is declared.</strong> <code>pWeather</code> took its regions from the data column while the two weather maps took theirs from <code>@region</code>, so a region-agnostic profile declared at a coarse region was materialised at every region of every geoscale level. No answer moves — every backend reads the series through <code>mWeatherRegionAt</code> — but the parameter no longer claims it where nothing declared it.</p></li>
+<li><p><strong><code><a href="../reference/levcost.html">levcost()</a></code> could not price a technology whose commodity is balanced at a coarser <code>@geoframe</code>.</strong> The screening model carries no hierarchy, so the declaration is now dropped on the way in, as <code>@emis</code> already was.</p></li>
+<li><p><strong><code><a href="../reference/levcost.html">levcost()</a></code> replicated every availability row into every screening region</strong>, so a model pricing one fuel differently by region produced a repeated key and interpolation stopped with “multiplied a series”. Rows are now kept where a region has its own, and collapsed to the cheapest where they name regions (or a coarser level) the screening model does not have.</p></li>
 </ul></div>
 <div class="section level3">
 <h3 id="documentation-0-90-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-90-0"></a></h3>

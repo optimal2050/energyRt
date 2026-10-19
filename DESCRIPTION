@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.90.0.9028
-Date: 2026-10-18
+Version: 0.90.0.9029
+Date: 2026-10-19
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -21,12 +21,14 @@ Authors@R:
           comment = c(ORCID = "0000-0003-3636-2858")))
 URL: https://energyRt.org, https://github.com/optimal2050/energyRt
 BugReports: https://github.com/optimal2050/energyRt/issues
-Description: A macro-language for energy system modeling in R. Describe an
-    energy system as R objects (commodities, technologies, supply, demand,
-    storage, trade), compile it into a capacity-expansion and dispatch
-    optimization model, solve it on one of four interchangeable backends
-    ('GLPK'/'MathProg', 'Julia'/'JuMP', 'Python'/'Pyomo', or 'GAMS'), and
-    analyze tidy results with built-in tools for levelized costs, technology
+Description: A macro-language for energy system modeling in R. Describe the
+    system as reusable building blocks (commodities, technologies, supply,
+    demand, storage, trade); energyRt compiles them into a least-cost
+    capacity-expansion and dispatch optimization model, solves it in
+    'GLPK'/'MathProg', 'Julia'/'JuMP', 'Python'/'Pyomo' or 'GAMS', or through
+    a direct LP matrix, and returns tidy results. Time resolution, geography
+    and solver are separate choices, so one can change without rewriting the
+    model. Built-in tools cover structural validation, levelized costs,
     reports, and plotting.
 Depends: R (>= 4.3)
 Imports: methods, grid, stats, generics, data.table, tibble, tidyr, dplyr, rlang,

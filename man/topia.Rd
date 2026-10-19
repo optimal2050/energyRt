@@ -60,7 +60,9 @@ the \code{topia-use} vignette).
 cannot drive the shipped kits (\code{ELC} is balanced at the \code{HOUR} level
 and \code{\link[=topia_profiles]{topia_profiles()}} has no annual shapes); it ships as the
 coarsest example calendar.}
-\item{horizons}{planning horizons (\code{base} = 2020/2030/2040/2050;
+\item{horizons}{planning horizons (\code{base} = 2025/2030/2040/2050, each
+milestone the MID-point of its period, so that is where its costs are
+discounted from;
 \code{unit} = the single year 2025 for the unit kits).}
 \item{electricity}{per region layout (\code{R1}, \code{R3}, \code{R7}, \code{R11} -- an
 n-region layout is keyed \verb{R<n>} and takes the first n regions of the

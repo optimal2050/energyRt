@@ -1,9 +1,9 @@
 # Installation and Settings
 
 energyRt formulates an optimization model once and hands it to one of
-several mathematical-programming **backends**. You only need *one* of
-them to get started; you can add more later and cross-check results
-between them.
+several mathematical-programming **backends**. One backend is sufficient
+to start; others can be added later and results cross-checked between
+them.
 
 | Backend | Software to install | License | Notes |
 |----|----|----|----|
@@ -12,18 +12,18 @@ between them.
 | **Python / Pyomo** | Python + `pyomo` + `highspy` | open-source | Fast (HiGHS barrier), low start-up overhead. Needs a **current** HiGHS — see below. |
 | **GAMS** | GAMS distribution | proprietary | Needs a license; also enables GDX I/O. |
 
-The package ships helpers to **detect** what you have and **auto-install
-the library layer** (R/Julia/Python packages). The *system software*
-itself (Julia, Python, conda, GAMS) is installed by you, with guidance
-below.
+The package ships helpers to **detect** installed runtimes and
+**auto-install the library layer** (R/Julia/Python packages). The
+*system software* itself (Julia, Python, conda, GAMS) is installed
+manually, with guidance below.
 
 ## 1. Install R and energyRt
 
 Install R (≥ 4.3) — platform installers:
 [Windows](https://cran.r-project.org/bin/windows/base/),
 [macOS](https://cran.r-project.org/bin/macosx/),
-[Ubuntu/Debian](https://cran.r-project.org/bin/linux/ubuntu/). We
-recommend [RStudio](https://posit.co/download/rstudio-desktop/) as the
+[Ubuntu/Debian](https://cran.r-project.org/bin/linux/ubuntu/).
+[RStudio](https://posit.co/download/rstudio-desktop/) is the recommended
 IDE.
 
 The quickest install is one line — it sets up `pak`, reports any Linux
@@ -44,10 +44,10 @@ To track the development version instead, pass a branch —
 install_energyRt(branch = "dev")
 ```
 
-Then verify your setup in a fresh session with
+The setup is then verified in a fresh session with
 [`library(energyRt); en_setup()`](https://energyRt.org).
 
-Prefer to install directly? energyRt’s CRAN dependencies are pulled in
+For a direct install, energyRt’s CRAN dependencies are pulled in
 automatically by `pak` (no local sibling packages are required):
 
 ``` r
@@ -60,12 +60,12 @@ pak::pkg_install("optimal2050/energyRt")
 # remotes::install_github("optimal2050/energyRt")
 ```
 
-Installing energyRt does not install a solver: you still need at least
-one backend (below). The GAMS GDX bridge (`gdxtools`) is pulled later by
+Installing energyRt does not install a solver: at least one backend
+(below) is required. The GAMS GDX bridge (`gdxtools`) is pulled later by
 [`en_install_deps()`](https://energyRt.org/reference/en_install_deps.md)
-if you use the GAMS backend.
+when the GAMS backend is used.
 
-**Install fails on Linux?** If the install stops with
+**Install failure on Linux.** If the install stops with
 `dependencies '...' are not available for package 'energyRt'`, one CRAN
 import (often one that needs a system library) failed and aborted the
 rest. Install the imports one by one so the failure is isolated and
@@ -109,8 +109,8 @@ if (length(failed) == 0) {
 ```
 
 On Linux, a package that fails to compile is missing a system library.
-Ask `pak` which apt packages are required, install them, then re-run the
-loop:
+`pak` lists the apt packages required; once they are installed, the loop
+is re-run:
 
 ``` r
 
@@ -118,7 +118,7 @@ pak::pkg_sysreqs("optimal2050/energyRt")   # lists the apt packages
 # e.g. sudo apt install libcurl4-openssl-dev libssl-dev libxml2-dev
 ```
 
-## 2. Check what you already have
+## 2. Check the installed runtimes
 
 ``` r
 
@@ -129,8 +129,8 @@ en_check_packages()       # R packages, optional extras, LaTeX engine, MuseScore
 
 [`en_check_dependencies()`](https://energyRt.org/reference/en_check.md)
 prints a status table — for each backend: installed?, version, path, and
-a hint for what to do next — and tells you whether at least one solver
-is ready. Each backend also has its own detector, e.g.
+a hint for the next step — and states whether at least one solver is
+ready. Each backend also has its own detector, e.g.
 [`en_check_julia()`](https://energyRt.org/reference/en_check.md),
 [`en_check_python()`](https://energyRt.org/reference/en_check.md),
 [`en_check_pyomo()`](https://energyRt.org/reference/en_check.md),
@@ -143,18 +143,19 @@ complements it by checking energyRt’s R dependencies, optional packages
 
 ## 3. Install the system software (one or more backends)
 
-Pick at least one. These are the only manual steps; commands are grouped
-by operating system.
+At least one is required. These are the only manual steps; commands are
+grouped by operating system.
 
-- **GLPK** — the `glpsol` executable.
-  - *Windows*: **already included** — `glpsol.exe` ships with **Rtools
-    4.5** (which you already have, since Rtools is needed to build
-    energyRt from source), at
-    `C:/rtools45/x86_64-w64-mingw32.static.posix/bin`. No separate
-    install.
+- **GLPK** — the `glpsol` executable. The simplest route on every
+  platform is the [glpsol](https://cran.r-project.org/package=glpsol) R
+  package, which bundles the GLPK binary: `install.packages("glpsol")`.
+  energyRt uses it first whenever it is installed, so a first model
+  needs no system solver. A system GLPK also works:
+  - *Windows*: `glpsol.exe` ships with **Rtools 4.5** at
+    `C:/rtools45/x86_64-w64-mingw32.static.posix/bin`.
   - *macOS*: `brew install glpk`.
   - *Ubuntu/Debian*: `sudo apt install glpk-utils`.
-  - If `glpsol` is not detected, set the path —
+  - If a system `glpsol` is not detected, set its path —
     `set_glpk_path("C:/rtools45/x86_64-w64-mingw32.static.posix/bin")`
     (macOS/Ubuntu package managers put it on the `PATH` automatically).
 - **Julia** — install via
@@ -168,7 +169,7 @@ by operating system.
     the `PATH`.
 - **Python** — install
   [Miniforge](https://github.com/conda-forge/miniforge) (recommended;
-  gives you `conda`).
+  provides `conda`).
   - *Windows*: run the `Miniforge3` installer; avoid the Microsoft Store
     “App execution alias” python —
     [`en_check_python()`](https://energyRt.org/reference/en_check.md)
@@ -198,7 +199,8 @@ en_install_deps()   # detects runtimes, then installs Julia + Python + R libs
 [`en_install_deps()`](https://energyRt.org/reference/en_install_deps.md)
 runs a dependency check, installs only the safe library layer for the
 runtimes it finds (skipping — with a warning — any runtime that is
-missing), and re-checks at the end. You can also install per backend:
+missing), and re-checks at the end. Each backend can also be installed
+separately:
 
 ``` r
 
@@ -209,7 +211,7 @@ en_install_python_deps(use_conda = FALSE)  # pip into the configured python
 
 ### Manual alternative
 
-If a helper fails, run the same steps by hand.
+If a helper fails, the same steps can be run by hand.
 
 R layer — the GAMS GDX bridge (not on CRAN) plus optional I/O helpers:
 
@@ -261,8 +263,8 @@ conda run -n energyRt python -m pip install --upgrade pyomo highspy pandas pyarr
 
 `highspy` is the **only** way Pyomo reaches HiGHS:
 `SolverFactory("highs")` resolves to a shell solver that looks for a
-`highs` executable and reports itself unavailable. Install a current
-`highspy` and check what you actually got:
+`highs` executable and reports itself unavailable. A current `highspy`
+is required, and the installed version should be verified:
 
 ``` bash
 python -c "import highspy; h=highspy.Highs(); print(h.versionMajor(), h.versionMinor(), h.versionPatch())"
@@ -272,30 +274,30 @@ On **HiGHS 1.7.2** the interior-point option — `solver = "ipm"`, which
 `solver_options$pyomo_highs_barrier` sets — **hangs before the solver
 starts**: no HiGHS banner, no CPU use, and a `time_limit` cannot
 interrupt it, because HiGHS is never reached. The same models solve
-normally on **HiGHS 1.13+**. If you are stuck on an old `highspy`, use
-`solver_options$pyomo_highs` (simplex defaults), which works on 1.7.2 —
-but expect it to be several times slower than barrier on a large LP.
+normally on **HiGHS 1.13+**. Where an old `highspy` cannot be replaced,
+`solver_options$pyomo_highs` (simplex defaults) works on 1.7.2, at
+several times the barrier solve time on a large LP.
 
 ## 5. Point energyRt at the installations
 
-If a runtime is not on your `PATH`, set its path. For Python/Pyomo,
-point at the conda environment created above:
+If a runtime is not on the `PATH`, its path is set explicitly. For
+Python/Pyomo, the path is the conda environment created above:
 
 ``` r
 
 set_julia_path("~/.juliaup/bin/")             # same on all platforms
-set_python_path("~/.conda/envs/energyRt")     # or the env you created
+set_python_path("~/.conda/envs/energyRt")     # or the environment created above
 set_glpk_path("C:/rtools45/x86_64-w64-mingw32.static.posix/bin")  # Windows (Rtools 4.5); unneeded on macOS/Ubuntu
 set_gams_path("C:/GAMS/<version>/")           # see step 3 for macOS/Ubuntu paths
 ```
 
 These are equivalent to `set_solver_path("julia", ...)`,
-`set_solver_path("gams", ...)` and so on — use whichever reads better.
+`set_solver_path("gams", ...)` and so on; either form is accepted.
 
-### Make it stick
+### Persisting the settings
 
-The calls above last for the current session. Save them once and every
-later session starts configured:
+The calls above last for the current session. Saved once, they apply to
+every later session:
 
 ``` r
 
@@ -304,12 +306,12 @@ en_config_write()        # -> ~/.energyRt/config.yml
 
 [`en_config_write()`](https://energyRt.org/reference/en_config.md) with
 no arguments writes every option that differs from the package default.
-Use `en_config_write(global = FALSE)` to write `.energyRt.yml` in the
-current project instead, when one project needs a different GAMS version
-from the rest.
+`en_config_write(global = FALSE)` writes `.energyRt.yml` in the current
+project instead, for a project that needs a different GAMS version from
+the rest.
 
-To see what is actually in effect — and, when a solver is not found,
-where the wrong value came from:
+To show what is in effect — and, when a solver is not found, where the
+wrong value came from:
 
 ``` r
 
@@ -323,8 +325,8 @@ in that order. `?energyRt-options` lists them all.
 
 ## 6. Verify end-to-end
 
-Re-check (everything you installed should now be green), choose a
-default solver, and solve a tiny model:
+A re-check (every installed backend should now report ready), a default
+solver, and a small model solve complete the setup:
 
 ``` r
 
@@ -336,8 +338,7 @@ set_default_solver(solver_options$julia_highs_barrier)  # or solver_options$glpk
 ```
 
 If two or more backends are installed, solving the same scenario with
-each and comparing objectives is the strongest check that your setup is
-correct.
+each and comparing objectives is the strongest check of a correct setup.
 
 ## 7. Optional extras
 

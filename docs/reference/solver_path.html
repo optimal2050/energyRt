@@ -3,17 +3,19 @@
 per-backend accessors (set_gams_path(), set_julia_path(), ...), which are
 thin wrappers around them.
 Setting a path is optional. When it is unset, each backend falls back to its
-own discovery: glpk searches the session PATH and well-known
-install locations (on Windows glpsol is found in Rtools, which bundles
-GLPK), while gams, python and julia simply invoke the bare command and
+own discovery: glpk uses the binary bundled by the glpsol R package when
+that is installed, then searches the session PATH and well-known install
+locations (on Windows glpsol is found in Rtools, which bundles GLPK),
+while gams, python and julia simply invoke the bare command and
 let the OS resolve it on PATH. Set a path only to override that, for
 instance to pick between several installed GAMS versions."><meta property="og:description" content="set_solver_path() and get_solver_path() are the generic form of the
 per-backend accessors (set_gams_path(), set_julia_path(), ...), which are
 thin wrappers around them.
 Setting a path is optional. When it is unset, each backend falls back to its
-own discovery: glpk searches the session PATH and well-known
-install locations (on Windows glpsol is found in Rtools, which bundles
-GLPK), while gams, python and julia simply invoke the bare command and
+own discovery: glpk uses the binary bundled by the glpsol R package when
+that is installed, then searches the session PATH and well-known install
+locations (on Windows glpsol is found in Rtools, which bundles GLPK),
+while gams, python and julia simply invoke the bare command and
 let the OS resolve it on PATH. Set a path only to override that, for
 instance to pick between several installed GAMS versions."><meta property="og:image" content="https://energyRt.org/logo.png"><script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -23,7 +25,7 @@ instance to pick between several installed GAMS versions."><meta property="og:im
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9027</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9029</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,6 +43,7 @@ instance to pick between several installed GAMS versions."><meta property="og:im
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
+    <li><a class="dropdown-item" href="../articles/features.html">Features</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
@@ -83,9 +86,10 @@ instance to pick between several installed GAMS versions."><meta property="og:im
 per-backend accessors (<code><a href="solver.html">set_gams_path()</a></code>, <code><a href="solver.html">set_julia_path()</a></code>, ...), which are
 thin wrappers around them.</p>
 <p>Setting a path is optional. When it is unset, each backend falls back to its
-own discovery: <code>glpk</code> searches the session <code>PATH</code> and well-known
-install locations (on Windows <code>glpsol</code> is found in Rtools, which bundles
-GLPK), while <code>gams</code>, <code>python</code> and <code>julia</code> simply invoke the bare command and
+own discovery: <code>glpk</code> uses the binary bundled by the glpsol R package when
+that is installed, then searches the session <code>PATH</code> and well-known install
+locations (on Windows <code>glpsol</code> is found in Rtools, which bundles GLPK),
+while <code>gams</code>, <code>python</code> and <code>julia</code> simply invoke the bare command and
 let the OS resolve it on <code>PATH</code>. Set a path only to override that, for
 instance to pick between several installed GAMS versions.</p>
     </div>

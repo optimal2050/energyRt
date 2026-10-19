@@ -445,7 +445,7 @@ Electricity demand follows the deterministic load shape, weighted by each
 timeslice's share of the year and grown over the milestone years.
 
 ```{r demand}
-years  <- c(2020, 2030, 2040, 2050)
+years  <- c(2025, 2030, 2040, 2050)
 growth <- c(1, 1.2, 1.4, 1.6)
 annual_demand <- 100                                   # base-year PJ per region
 
@@ -474,12 +474,12 @@ Two views of the demand object: aggregated annual totals by region
 year (`type = "line"`) -- note the morning ramp and the evening peak:
 
 ```{r demand-area, fig.height = 3.5}
-autoplot(DEM_ELC, years = 2020:2050)
+autoplot(DEM_ELC, years = 2025:2055)
 ```
 
 ```{r demand-line, fig.height = 5.5}
-# autoplot(DEM_ELC, style = "line", years = c(2020, 2050))
-# autoplot(DEM_ELC, style = "heatmap", years = c(2020, 2050))
+# autoplot(DEM_ELC, style = "line", years = c(2025, 2050))
+# autoplot(DEM_ELC, style = "heatmap", years = c(2025, 2050))
 ```
 
 # Technologies
@@ -489,12 +489,15 @@ at an efficiency; renewables convert a free resource capped by weather.
 
 Two modeling choices run through all of them:
 
-* **Existing stock retires on a schedule.** `capacity$stock` is declared not
-  just for the base year but as a *declining path*: energyRt interpolates
-  between the anchors, so the base-year fleet fades out naturally -- faster for
-  solar and wind (mid-life already), ~30 years for thermal plants, longer for
-  nuclear, longest for hydro. `optimizeRetirement = TRUE` additionally lets the
-  model retire capacity *earlier* when that saves money.
+* **How existing stock leaves the system is a modelling choice.**
+  `capacity$stock` is an exogenous SERIES, not a one-off installation: a value
+  declared only in the base year leaves every later milestone at the
+  parameter's default of zero, and the fleet simply disappears. Declare both
+  ends. A flat path (hydro and nuclear above) says the plant is refurbished
+  and never forced out; a falling path (coal to 30% of its base-year fleet,
+  gas to 60%) is a moderate age-related ceiling. Either way
+  `optimizeRetirement = TRUE` lets the model close a plant *earlier* when the
+  economics say so, so the path is a ceiling rather than a schedule.
 * **Investment windows.** `start` and `end` bound the years when *new* capacity
   can be built -- coal is phase-limited, nuclear needs a lead time, hydro sites
   are nearly exhausted. We chart all the windows after assembling the model.
@@ -532,8 +535,8 @@ ECOA <- newTechnology(
   ),
   capacity = data.frame(                  # fleet clusters near the mines (W1)
     region = c("W1", "W2", "C1", "W1", "W2", "C1"),
-    year   = c(2020, 2020, 2020, 2050, 2050, 2050),
-    stock  = c(   8,    3,    3,    0,    0,    0)
+    year   = c(2025, 2025, 2025, 2050, 2050, 2050),
+    stock  = c( 8.0,  4.0,  1.0,  2.4,  1.2,  0.3)   # ageing out to 30%
   ),
   start = list(start = 2010),
   end   = list(end   = 2030),             # no new coal after 2030
@@ -579,8 +582,8 @@ EGAS <- newTechnology(
   ),
   capacity = data.frame(                  # gas plants sit on the gas (W2)
     region = c("W1", "W2", "C1", "W1", "W2", "C1"),
-    year   = c(2020, 2020, 2020, 2050, 2050, 2050),
-    stock  = c(   1,    6,    1,    0,    0,    0)
+    year   = c(2025, 2025, 2025, 2050, 2050, 2050),
+    stock  = c( 1.0,  2.0,  1.0,  0.6,  1.2,  0.6)   # ageing out to 60%
   ),
   start = list(start = 2010),
   olife = list(olife = 30),
@@ -629,10 +632,10 @@ ENUC <- newTechnology(
   region = "C1",                          # the only nuclear site in TOPIA
   capacity = data.frame(
     region = c("C1", "C1"),
-    year   = c(2020, 2060),
-    stock  = c(   4,     0)               # 4 GW, retiring by 2060
+    year   = c(2025, 2050),
+    stock  = c(   4,     4)               # 4 GW, refurbished, not retired
   ),
-  start = list(start = 2025),
+  start = list(start = 2030),             # licensing/construction lead
   olife = list(olife = 50)
 )
 draw(ENUC)
@@ -674,9 +677,9 @@ ESOL <- newTechnology(
   fixom = list(
     fixom = 12
   ),
-  capacity = data.frame(  # young but small fleet, out by 2040
+  capacity = data.frame(  # young but small fleet, out by 2050
     region = c("W1", "W2", "C1", "W1", "W2", "C1"),
-    year   = c(2020, 2020, 2020, 2040, 2040, 2040),
+    year   = c(2025, 2025, 2025, 2050, 2050, 2050),
     stock  = c(   1,    1,    1,    0,    0,    0)
   ),
   start = list(start = 2015),
@@ -712,8 +715,8 @@ EHYD <- update(EWIN,
   fixom = list(fixom = 45),
   capacity = data.frame(                  # the hydro endowment sits in C1
     region = c("C1", "C1"),
-    year   = c(2020, 2070),
-    stock  = c(  12,    0)
+    year   = c(2025, 2050),
+    stock  = c(   3,    3)                # refurbished, never retired here
   ),
   start = list(start = 2010),
   end   = list(end   = 2010),             # window closed: NO new hydro at all
@@ -972,7 +975,7 @@ Policies and pathways are **pre-built objects** layered onto the base model when
 running scenarios (mirroring IDEEA's `CO2_CAP` etc.):
 
 - `CO2_CAP` -- a declining cap on CO2 emissions (`newConstraint` on `vEmsFuelTot`;
-  starts near BASE emissions (~5,000 kt/region in 2020) and tightens to a deep
+  starts near BASE emissions (~5,000 kt/region in 2025) and tightens to a deep
   cut by 2050);
 - `CT_CO2` -- a rising carbon tax (`newTax`; costs are MUSD and emissions kt, so
   **20-80 USD/t reads as 0.02-0.08 MUSD/kt** -- watch the units);
@@ -1025,11 +1028,11 @@ NO_NEW_NUC <- newConstraint(
 # on GAS -- without it the model builds gas out as the flexible VRE backstop;
 # coal already phases out on economics. A full fossil exit is infeasible here
 # (must-run nuclear + limited transmission need firm capacity for peak), so the
-# schedule keeps a backup floor. defVal = Inf leaves 2020 unbound.
+# schedule keeps a backup floor. defVal = Inf leaves 2025 unbound.
 EARLY_RET <- newConstraint(
   name = "EARLY_RET",
   eq = "<=",
-  # scope to 2030+ only: adding the 2020 milestone (even unbound) makes the LP
+  # scope to 2030+ only: adding the 2025 milestone (even unbound) makes the LP
   # infeasible through rhs interpolation.
   for.each = expand.grid(year = c(2030, 2040, 2050), tech = c("ECOA", "EGAS"),
                          stringsAsFactors = FALSE),
@@ -1065,8 +1068,9 @@ summary(repo)
 ```
 
 ```{r model}
-hor <- newHorizon(period = 2020:2050, intervals = c(1, 10, 10, 10),
-                  mid_is_end = TRUE, name = "base")
+hor <- newHorizon(period = 2025:2055, intervals = c(1, 10, 10, 10),
+                  name = "base")
+hor@intervals                               # start | mid | end | label
 mod <- newModel("TOPIA", data = repo, calendar = cal,
                 region = regions, horizon = hor, discount = 0.05)
 # the zone-balanced fuels need the hierarchy: without it the model sees

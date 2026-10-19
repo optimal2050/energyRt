@@ -29,12 +29,12 @@ folded scenario (the lazy path cannot expand wildcards) - see
 \item{verbose}{Logical; report progress.}
 }
 \value{
-A multimod model with data attached, ready for \code{\link[=model_to_lp]{model_to_lp()}}.
+A multimod model with data attached, ready for \code{\link[multimod:model_to_lp]{model_to_lp()}}.
 }
 \description{
 Structure is read from energyRt's GAMS template; data comes from the
 scenario. This is the entry point for the direct-matrix / MPS route -
-everything downstream (\code{\link[=model_to_lp]{model_to_lp()}}, \code{\link[multimod:write_mps]{write_mps()}}, \code{\link[multimod:solve_highs]{solve_highs()}})
+everything downstream (\code{\link[multimod:model_to_lp]{model_to_lp()}}, \code{\link[multimod:write_mps]{write_mps()}}, \code{\link[multimod:solve_highs]{solve_highs()}})
 takes the model this returns.
 }
 \examples{

@@ -113,8 +113,8 @@ topia_calendars <- c(calendars,
 build_topia <- function(regions = .topia_regions[1:3],
                          calendar = "s4_h24",
                          annual_demand = 100,
-                         years = c(2020, 2030, 2040, 2050),
-                         demand_growth = c(1, 1.2, 1.4, 1.6)) {
+                         years = c(2025, 2030, 2040, 2050),
+                         demand_growth = c(1, 1.1, 1.3, 1.5)) {
   stopifnot(is.character(regions), length(regions) > 0)
   cal  <- topia_calendars[[calendar]]
   if (is.null(cal)) stop("unknown calendar '", calendar, "'")
@@ -231,18 +231,42 @@ build_topia <- function(regions = .topia_regions[1:3],
     demand = dem_rows)
 
   # ---- technologies (names are UPPER-CASE set elements; no prefix required) ----
-  # Existing stock is a DECLINING path (base year -> 0 at `ret_year`): the fleet
-  # retires on a schedule -- ~20y for solar/wind, ~30y thermal, 40y nuclear,
-  # 50y hydro. The fleets follow the geography above: the coal plants stand on
-  # the coal, the gas plants on the gas, hydro and nuclear only where they
-  # exist. `start`/`end` bound the years new capacity can be built.
+  # Three ways an existing fleet leaves the system, and the choice carries the
+  # modelling story:
+  #
+  #   stk_keep()    a stock declared in the base year and nothing more. It
+  #                 survives to its `olife`, which for hydro and nuclear is
+  #                 beyond the horizon -- those plants are refurbished, not
+  #                 retired, and nothing in the model forces them out.
+  #   stk_decline() a MODERATE exogenous path: the ceiling falls to `share` of
+  #                 the base-year fleet by the last milestone. Coal ages out
+  #                 faster than gas. Combined with `optimizeRetirement = TRUE`
+  #                 it is a ceiling, not a schedule: the model closes a plant
+  #                 earlier when the economics say so, and the path only stops
+  #                 an ageing fleet from standing forever.
+  #   nothing       solar and wind carry no legacy stock worth tracking.
+  #
+  # The fleets follow the geography above: the coal plants stand on the coal,
+  # the gas plants on the gas, hydro and nuclear only where they exist.
+  # `start`/`end` bound the years new capacity can be built.
   by <- min(years)
-  stk <- function(gw_by_region, ret_year) {
+  ey <- max(years)
+  stk_keep <- function(gw_by_region) {
+    gw <- gw_by_region[gw_by_region > 0]
+    if (length(gw) == 0) return(data.frame())
+    # BOTH ends, at the same value: `stock` is an exogenous series, and a row
+    # in the base year alone leaves every later milestone at the parameter's
+    # default of zero -- the fleet would simply disappear after 2025.
+    data.frame(region = rep(names(gw), 2),
+               year   = rep(c(by, ey), each = length(gw)),
+               stock  = rep(unname(gw), 2))
+  }
+  stk_decline <- function(gw_by_region, share) {
     gw <- gw_by_region[gw_by_region > 0]
     if (length(gw) == 0) return(data.frame())
     data.frame(region = rep(names(gw), 2),
-               year   = rep(c(by, ret_year), each = length(gw)),
-               stock  = c(unname(gw), rep(0, length(gw))))
+               year   = rep(c(by, ey), each = length(gw)),
+               stock  = c(unname(gw), unname(gw) * share))
   }
   # a fleet table -> GW per region of THIS layout, `base` where unnamed
   fleet <- function(tbl, base = 0) stats::setNames(
@@ -255,18 +279,18 @@ build_topia <- function(regions = .topia_regions[1:3],
     optimizeRetirement = TRUE, ...)
   ECOA <- thermal("ECOA", "COA", "Coal-fired power plant, subcritical",
     0.40, mg(2000), 55, end = 2030L,                  # no new coal after 2030
-    capacity = stk(fleet(.TOPIA_COAL_GW, 1), by + 30))
+    capacity = stk_decline(fleet(.TOPIA_COAL_GW, 1), 0.3))
   EGAS <- thermal("EGAS", "GAS", "Gas-fired combined-cycle plant",
     0.58, mg(900), 25,
-    capacity = stk(fleet(.TOPIA_GAS_GW, 1), by + 30))
+    capacity = stk_decline(fleet(.TOPIA_GAS_GW, 1), 0.6))
   ENUC <- if (length(nuc_regs) > 0) newTechnology("ENUC",
     desc = "Nuclear power plant",
     input = list(comm = "NUC"), output = list(comm = "ELC"),
     ceff = data.frame(comm = "NUC", cinp2use = 0.35), af = data.frame(af.lo = 0.7),
     cap2act = 31.536, fixom = 120, invcost = list(invcost = mg(8000)),
-    olife = 50L, start = 2025L,                       # licensing/construction lead
+    olife = 50L, start = 2030L,                       # licensing/construction lead
     region = nuc_regs,
-    capacity = stk(fleet(.TOPIA_NUC_GW), by + 40))
+    capacity = stk_keep(fleet(.TOPIA_NUC_GW)))
   vre <- function(nm, comm, wname, desc, inv, fixom, olife = 25L, start = 2015L, ...)
     newTechnology(nm, desc = desc,
       input = list(comm = comm), output = list(comm = "ELC"),
@@ -275,19 +299,19 @@ build_topia <- function(regions = .topia_regions[1:3],
       cap2act = 31.536, fixom = fixom, invcost = list(invcost = inv),
       olife = olife, start = start, ...)
   ESOL <- vre("ESOL", "SOL", "WSOL", "Solar photovoltaic plant", mg(650), 12,
-              capacity = stk(fleet(c(), 1), by + 20))
+              capacity = stk_decline(fleet(c(), 1), 0))
   EWIN <- vre("EWIN", "WIN", "WWIN", "Onshore wind farm", mg(1300), 35,
-              capacity = stk(fleet(c(), 1), by + 20))
+              capacity = stk_decline(fleet(c(), 1), 0))
   EHYD <- if (length(hyd_regs) > 0)
     vre("EHYD", "HYD", "WHYD", "Reservoir hydropower plant", mg(3000), 45,
         region = hyd_regs,
-        capacity = stk(fleet(.TOPIA_HYD_GW), by + 50),
+        capacity = stk_keep(fleet(.TOPIA_HYD_GW)),
         start = 2010L, end = 2010L, olife = 60L)  # window closed: legacy only
   EBIO <- newTechnology("EBIO", desc = "Biomass power plant (carbon-neutral)",
     input  = list(comm = "BIO", combustion = 1), output = list(comm = "ELC"),
     ceff   = data.frame(comm = "BIO", cinp2use = 0.35),
     cap2act = 31.536, fixom = 60, invcost = list(invcost = mg(2200)),
-    olife = 30L, start = 2025L, optimizeRetirement = TRUE)
+    olife = 30L, start = 2030L, optimizeRetirement = TRUE)
 
   # ---- storage (STG_*, 4-hour battery on a declining cost path) --------------
   # UNITS, which the pre-0.92 object got wrong: `cap2act` makes the power
@@ -406,8 +430,9 @@ build_topia <- function(regions = .topia_regions[1:3],
   # transmission need some firm fossil capacity for peak), so the schedule keeps
   # a firm-backup floor while cutting system CO2 ~40%.
   # for.each = full year x tech grid (expand.grid); rhs = declining ceiling.
-  # NOTE: scope for.each to 2030+ only -- including the 2020 milestone (even with
-  # an unbound Inf ceiling) makes the LP infeasible via rhs interpolation.
+  # NOTE: scope for.each to the milestones AFTER the base year -- including the
+  # base-year milestone (even with an unbound Inf ceiling) makes the LP
+  # infeasible via rhs interpolation.
   EARLY_RET <- newConstraint(name = "EARLY_RET", eq = "<=",
     for.each = expand.grid(year = c(2030, 2040, 2050), tech = c("ECOA", "EGAS"),
                            stringsAsFactors = FALSE),
@@ -476,7 +501,7 @@ build_topia <- function(regions = .topia_regions[1:3],
     invcost = data.frame(vintage = c("v2025", "v2040"),
                          invcost = mg(c(8000, 5500))),
     region = nuc_regs,
-    capacity = stk(fleet(.TOPIA_NUC_GW), by + 40))
+    capacity = stk_keep(fleet(.TOPIA_NUC_GW)))
 
   list(regions = regions, calendar = calendar, repo = repo, geoscale = gscale,
        repo_comm = repo_comm, repo_supply = repo_supply,
@@ -585,9 +610,15 @@ build_unit <- function(regions = .topia_regions[1], calendar = "unit_s4") {
        SOLAR = SOLAR, STG_ELC = STG_ELC, SUP_CURVE = SUP_CURVE)
 }
 
-base_horizon <- newHorizon(period = 2020:2050, intervals = c(1, 10, 10, 10),
-                           mid_is_end = TRUE, name = "base",
-                           desc = "2020-2050, milestones 2020/2030/2040/2050")
+# The milestone is the MIDDLE of its period, which is what `newHorizon()` does
+# by default: 2025 alone is the base year, then 2026-2035, 2036-2045 and
+# 2046-2055 are represented by 2030, 2040 and 2050. The pre-0.92 horizon passed
+# `mid_is_end = TRUE`, so each period's costs were discounted from its LAST
+# year -- about five extra years of discounting per period, against everything
+# built late.
+base_horizon <- newHorizon(period = 2025:2055, intervals = c(1, 10, 10, 10),
+                           name = "base",
+                           desc = "2025-2055, milestones 2025/2030/2040/2050")
 unit_horizon <- newHorizon(period = 2025, name = "unit",
                            desc = "single-year horizon (2025) for the unit kits")
 

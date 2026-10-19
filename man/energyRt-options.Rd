@@ -45,7 +45,7 @@ Path to the Julia installation used by the JuMP backend. Prefixed to the \code{j
 }}
 
 \item{glpk_path}{\describe{
-Path to a standalone GLPK installation containing the \code{glpsol} executable. If unset, \code{glpsol} is auto-detected on the session PATH -- which on Windows finds the copy bundled with Rtools.\item{default: }{\preformatted{NULL}}
+Path to a standalone GLPK installation containing the \code{glpsol} executable. If unset, the glpsol R package's bundled binary is used when installed, otherwise \code{glpsol} is auto-detected on the session PATH -- which on Windows finds the copy bundled with Rtools.\item{default: }{\preformatted{NULL}}
 \item{option: }{en.glpk_path}
 \item{envvar: }{ENERGYRT_GLPK_PATH (evaluated if possible, raw string otherwise)}
 }}
