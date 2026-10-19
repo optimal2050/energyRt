@@ -382,9 +382,11 @@ map_mStorageOutTot <- function(scen, fmp) {
   mTechCap2AOut     = list("pTechCap2AOut",     "mvTechAOut",      FALSE),
   mTechNCap2AInp    = list("pTechNCap2AInp",    "mvTechAInp",      FALSE),
   mTechNCap2AOut    = list("pTechNCap2AOut",    "mvTechAOut",      FALSE),
+  # the domain follows the MAIN commodity's side: `cinp*` multiplies an input
+  # flow, `cout*` an output flow, whichever aux side the coupling feeds
   mTechCinp2AInp    = list("pTechCinp2AInp",    "mvTechInp",      TRUE),
-  mTechCinp2AOut    = list("pTechCinp2AOut",    "mvTechOut",      TRUE),
-  mTechCout2AInp    = list("pTechCout2AInp",    "mvTechInp",      TRUE),
+  mTechCinp2AOut    = list("pTechCinp2AOut",    "mvTechInp",      TRUE),
+  mTechCout2AInp    = list("pTechCout2AInp",    "mvTechOut",      TRUE),
   mTechCout2AOut    = list("pTechCout2AOut",    "mvTechOut",      TRUE),
   mStorageStg2AInp  = list("pStorageStg2AInp",  ".storage_aux_proc_AInp",  FALSE),
   mStorageStg2AOut  = list("pStorageStg2AOut",  ".storage_aux_proc_AOut",  FALSE),

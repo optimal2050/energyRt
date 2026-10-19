@@ -269,6 +269,13 @@ answer rather than only the code. The classes worth knowing about:
 * **Reporting the truth**: an infeasible or unbounded model is a result rather
   than an error, `verify_solution()` stops double-counting coarse regions, and
   a non-interactive run no longer stops at a debugger prompt.
+* **`aeff$cout2ainp` and `aeff$cinp2aout` now bind.** Both looked their main
+  commodity up in the wrong flow domain — the output-driven coupling in the
+  input domain and vice versa — so on a process that does not carry the same
+  commodity on both sides the coupling was dropped and the auxiliary flow came
+  out zero. The ratio was in the model inputs, which is why it looked set.
+  Models that declare either coupling will see the auxiliary flow, and its
+  cost, appear.
 * **`get_process_*(process = )` is honoured.** `get_process_inputs()`,
   `_outputs()`, `_aux()`, `_region()`, `_invest_window()` and `_timeframe()`
   accepted the argument and ignored it, returning every process in the model;

@@ -103,6 +103,23 @@ test_that("family tech-aux-flows: output-commodity-driven aux output", {
           "pTechCout2AOut", 12, 0, aux_var = "vTechAOut")
 })
 
+# @covers pTechCout2AInp vTechAInp eqTechAInp depth=S backends=glpk
+test_that("family tech-aux-flows: output-commodity-driven aux INPUT", {
+  skip_if_no_solver()
+  # the aux INPUT side driven by the main OUTPUT: 0.3 x 40 = 12 units of WAT
+  ax_case(data.frame(acomm = "WAT", comm = "ELC", cout2ainp = 0.3),
+          "ax_coutin", "pTechCout2AInp", 12, 24)
+})
+
+# @covers pTechCinp2AOut vTechAOut eqTechAOut depth=S backends=glpk
+test_that("family tech-aux-flows: input-commodity-driven aux OUTPUT", {
+  skip_if_no_solver()
+  # the aux OUTPUT side driven by the main INPUT: 0.3 x 40 = 12 units of HET,
+  # free disposal so the objective does not move
+  ax_case(data.frame(acomm = "HET", comm = "COA", cinp2aout = 0.3),
+          "ax_cinpout", "pTechCinp2AOut", 12, 0, aux_var = "vTechAOut")
+})
+
 # @covers pTechCap2AOut pTechNCap2AOut pTechCout2AInp pTechCinp2AOut depth=I backends=glpk
 test_that("family tech-aux-flows: remaining direction ratios land in modInp", {
   scen <- suppressMessages(suppressWarnings(interpolate_model(
