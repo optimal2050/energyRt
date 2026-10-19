@@ -1,6 +1,6 @@
 # Coverage matrix summary
 
-Generated: 2026-10-07 15:48 | energyRt 0.90.0.9016
+Generated: 2026-10-18 20:55 | energyRt 0.90.0.9028
 
 ## Rows by kind x depth
 
@@ -8,12 +8,12 @@ Generated: 2026-10-07 15:48 | energyRt 0.90.0.9016
 Key: <kind>
      kind  none     C     I     S     X
    <char> <int> <int> <int> <int> <int>
-   bounds     4     2     3    19    10
- equation   109     2     1    27    11
-      map   217     1    45    31    15
-   numpar    29     2    23    52    35
-      set     0     0     0     1    13
- variable    26     0     0    42    27
+   bounds     3     2     4    18    11
+ equation   129     2     2    38    11
+      map   216     2    52    57    25
+   numpar    17     2    13    80    39
+      set     0     0     0     2    13
+ variable    24     0     0    45    26
 ```
 
 ## Numeric parameters: family x depth
@@ -29,7 +29,7 @@ Key: <family>
                  dummy-debug     0     0     0     2     0
            horizon-periodlen     1     0     0     0     2
            import-export-row     0     0     1     1     4
-           storage-aux-flows    13     0     5     5     0
+           storage-aux-flows     1     0     0    22     0
            storage-costs-eac     9     0     3    11     5
             storage-duration     0     0     0     0     1
           storage-efficiency     0     0     0     3     0
@@ -40,15 +40,15 @@ Key: <family>
                storage-varom     0     0     0     3     0
              storage-weather     1     1     0     1     0
                       supply     0     0     1     3     0
-                 tax-subsidy     0     0     2     4     0
-              tech-aux-flows     4     0     4     5     1
+                 tax-subsidy     4     0     2     6     4
+              tech-aux-flows     0     0     0    13     1
            tech-availability     0     0     1     1     2
         tech-capacity-bounds     0     1     0     1     1
                   tech-costs     0     2     0     1     2
        tech-eac-wacc-payback     0     0     0     1     2
              tech-efficiency     0     0     2     3     1
                    tech-emis     0     0     0     1     0
-           tech-share-bounds     1     0     0     0     0
+           tech-share-bounds     0     0     0     0     1
        tech-stock-retirement     0     0     1     0     5
                 tech-weather     0     0     2     1     0
       trade-capacity-vintage     2     0     1     4     7
@@ -59,83 +59,33 @@ Key: <family>
                       <char> <int> <int> <int> <int> <int>
 ```
 
-## Zero-coverage numeric parameters (33)
+## Zero-coverage numeric parameters (20)
 
 ```
-                 name                   family      class     slot
-               <char>                   <char>     <char>   <char>
-             cardYear        horizon-periodlen                    
-  pStorageInpCap2AInp        storage-aux-flows    storage     aeff
-  pStorageInpCap2AOut        storage-aux-flows    storage     aeff
- pStorageInpNCap2AInp        storage-aux-flows    storage     aeff
- pStorageInpNCap2AOut        storage-aux-flows    storage     aeff
-     pStorageNCap2Stg        storage-aux-flows    storage     aeff
-  pStorageOutCap2AOut        storage-aux-flows    storage     aeff
- pStorageOutNCap2AOut        storage-aux-flows    storage     aeff
-     pStoragePho2AInp        storage-aux-flows    storage     aeff
-     pStoragePho2AOut        storage-aux-flows    storage     aeff
-     pStorageRet2AInp        storage-aux-flows    storage     aeff
-     pStorageRet2AOut        storage-aux-flows    storage     aeff
-  pStorageStgCap2AOut        storage-aux-flows    storage     aeff
- pStorageStgNCap2AOut        storage-aux-flows    storage     aeff
-   pStorageInpRetCost        storage-costs-eac    storage  invcost
-  pStorageInpStockNew        storage-costs-eac                    
- pStorageInpStockSurv        storage-costs-eac                    
-   pStorageOutRetCost        storage-costs-eac    storage  invcost
-  pStorageOutStockNew        storage-costs-eac                    
- pStorageOutStockSurv        storage-costs-eac                    
-   pStorageStgRetCost        storage-costs-eac    storage  invcost
-  pStorageStgStockNew        storage-costs-eac                    
- pStorageStgStockSurv        storage-costs-eac                    
-    pStorageOutNewCap storage-roles-capacities    storage capacity
-    pStorageStgNewCap storage-roles-capacities    storage capacity
- pStorageWeatherOutAf          storage-weather    storage  weather
-        pTechPho2AInp           tech-aux-flows technology     aeff
-        pTechPho2AOut           tech-aux-flows technology     aeff
-        pTechRet2AInp           tech-aux-flows technology     aeff
-        pTechRet2AOut           tech-aux-flows technology     aeff
-           pTechShare        tech-share-bounds technology     ceff
-       pTradeStockNew   trade-capacity-vintage                    
-      pTradeStockSurv   trade-capacity-vintage                    
-                 name                   family      class     slot
-               <char>                   <char>     <char>   <char>
-       colName
-        <char>
-              
-  inp.cap2ainp
-  inp.cap2aout
- inp.ncap2ainp
- inp.ncap2aout
-      ncap2stg
-  out.cap2aout
- out.ncap2aout
-      pho2ainp
-      pho2aout
-      ret2ainp
-      ret2aout
-  stg.cap2aout
- stg.ncap2aout
-   inp.retcost
-              
-              
-   out.retcost
-              
-              
-   stg.retcost
-              
-              
-      out.ncap
-      stg.ncap
-       out.waf
-      pho2ainp
-      pho2aout
-      ret2ainp
-      ret2aout
-     grp.share
-              
-              
-       colName
-        <char>
+                 name                   family   class     slot     colName
+               <char>                   <char>  <char>   <char>      <char>
+             cardYear        horizon-periodlen                             
+     pStorageNCap2Stg        storage-aux-flows storage     aeff    ncap2stg
+   pStorageInpRetCost        storage-costs-eac storage  invcost inp.retcost
+  pStorageInpStockNew        storage-costs-eac                             
+ pStorageInpStockSurv        storage-costs-eac                             
+   pStorageOutRetCost        storage-costs-eac storage  invcost out.retcost
+  pStorageOutStockNew        storage-costs-eac                             
+ pStorageOutStockSurv        storage-costs-eac                             
+   pStorageStgRetCost        storage-costs-eac storage  invcost stg.retcost
+  pStorageStgStockNew        storage-costs-eac                             
+ pStorageStgStockSurv        storage-costs-eac                             
+    pStorageOutNewCap storage-roles-capacities storage capacity    out.ncap
+    pStorageStgNewCap storage-roles-capacities storage capacity    stg.ncap
+ pStorageWeatherOutAf          storage-weather storage  weather     out.waf
+          pSubProcAct              tax-subsidy                             
+          pSubProcCap              tax-subsidy                             
+          pSubProcInp              tax-subsidy                             
+          pSubProcOut              tax-subsidy                             
+       pTradeStockNew   trade-capacity-vintage                             
+      pTradeStockSurv   trade-capacity-vintage                             
+                 name                   family   class     slot     colName
+               <char>                   <char>  <char>   <char>      <char>
 ```
 
-Tagged rows: 185 | inferred: 177 | uncovered: 385 of 747
+Tagged rows: 247 | inferred: 197 | uncovered: 389 of 833
