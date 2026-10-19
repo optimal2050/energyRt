@@ -311,6 +311,7 @@ as.data.frame.variable <- function(x, ...) as.data.frame(get_data_slot(x), ...)
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
 #'
 #' # the solved values

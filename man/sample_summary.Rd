@@ -39,6 +39,7 @@ mod <- newModel("TOPIA", data = ek$repo,
                 region = ek$regions,
                 horizon = topia$modules$horizons$base,
                 discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
 res <- solve_by_sample(mod, name = "BY_SAMPLE", level = "SEASON",
                        sample_size = 2, n = 2, method = "random", seed = 1,
                        solver = solver_options$glpk)

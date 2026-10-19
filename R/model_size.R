@@ -50,6 +50,7 @@
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' model_size(scen, top_n = 5)

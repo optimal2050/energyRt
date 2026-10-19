@@ -282,6 +282,7 @@
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # a freshly interpolated scenario has no runs yet; each solve adds one

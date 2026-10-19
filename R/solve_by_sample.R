@@ -330,6 +330,7 @@ calendar_samples <- function(calendar, level = NULL, sample_size = NULL,
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #'
 #' # two random two-season samples of the calendar, each solved as a full year
 #' res <- solve_by_sample(mod, name = "BY_SAMPLE", level = "SEASON",
@@ -507,6 +508,7 @@ solve_by_sample <- function(object, name = NULL, ...,
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' res <- solve_by_sample(mod, name = "BY_SAMPLE", level = "SEASON",
 #'                        sample_size = 2, n = 2, method = "random", seed = 1,
 #'                        solver = solver_options$glpk)

@@ -235,6 +235,17 @@ changes* first. The change-by-change log for the whole cycle (450 entries) is in
   `plot_trade_map()` and `plot_trade_network()` map any solved variable
   carrying a region.
 
+* **TOPIA is rebuilt around concentrated resources.** `COA` and `GAS` are
+  balanced per zone and traded between zones (`TBD_COA_*`, `TBD_GAS_*`) while
+  electricity trades region to region; the endowments are finite (`ava.up`),
+  with coal in `WEST`, gas in `EAST`, reservoir hydro in `C4`/`E1`/`C1` and the
+  one nuclear station in `C1`. A kit model therefore needs its hierarchy --
+  `setGeoscale(mod, kit$geoscale)` -- every process carries a `desc`, and costs
+  are USD. `STG_ELC` is respecified: `cap2act` puts its capacity in the same GW
+  as the technologies, `@duration` is reservoir energy per unit of power (four
+  hours is `4 * 0.0036` PJ/GW, not `4`), and the energy cost moves to
+  `stg.invcost`, which prices the reservoir.
+
 ## Deprecations
 
 * None pending. The 0.5-era deprecation layer and its `?energyRt-deprecated`

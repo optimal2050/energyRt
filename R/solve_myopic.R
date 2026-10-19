@@ -179,6 +179,7 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #'
 #' # one solve per milestone year, each blind to the next, with capacity
 #' # carried forward
@@ -395,6 +396,7 @@ getData.myopic <- function(object, name = NULL, ..., merge = TRUE) {
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' res <- solve_myopic(mod, name = "MYOPIC", solver = solver_options$glpk)
 #'
 #' # per-step objectives are discounted to their own base years, so they do

@@ -83,6 +83,7 @@ mod <- newModel("TOPIA", data = ek$repo,
                 region = ek$regions,
                 horizon = topia$modules$horizons$base,
                 discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
 
 # two random two-season samples of the calendar, each solved as a full year
 res <- solve_by_sample(mod, name = "BY_SAMPLE", level = "SEASON",

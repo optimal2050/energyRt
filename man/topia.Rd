@@ -66,16 +66,29 @@ coarsest example calendar.}
 n-region layout is keyed \verb{R<n>} and takes the first n regions of the
 canonical west-to-east order \code{W1}, \code{W2}, \code{C1}..\code{C6}, \code{E1}..\code{E3}),
 each a "kit":
-\code{repo} (the base repository), the individual blocks (\code{repo_comm},
+\code{repo} (the base repository), \code{geoscale} (the layout's slice of the
+\code{nation -> zone -> region} hierarchy, without geometry -- a kit model
+MUST carry it, see the examples), the individual blocks (\code{repo_comm},
 \code{repo_supply}, \code{DEM_ELC}, \code{WSOL}/\code{WWIN}/\code{WHYD}, the technologies,
 \code{STG_ELC}), the scenario levers \code{CO2_CAP}, \code{CT_CO2}, \code{RES_SHARE},
 \code{NO_NEW_NUC}, \code{EARLY_RET}, and the add-on modules -- re-declared
 objects that REPLACE their base counterpart when added with
 \code{add(mod, ., overwrite = TRUE)}: \code{GAS_CURVE} (domestic gas as a
-3-step \code{\link[=asSupplyCurve]{asSupplyCurve()}}, absent in the \code{R1} kit, whose single region
-has no gas),
+3-step \code{\link[=asSupplyCurve]{asSupplyCurve()}}),
 \code{EWIN_SITES} (wind in two site-grade clusters, finite GOOD +
-down-rated POOR), \code{ENUC_VINT} (nuclear in two build vintages).}
+down-rated POOR), \code{ENUC_VINT} (nuclear in two build vintages, absent
+from the \code{R1} kit, which reaches no nuclear region).
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{The resources are CONCENTRATED, which is what drives trade: `COA` and
+`GAS` are balanced per ZONE (`commodity@geoframe`) and traded between
+zones on `TBD_COA_*` / `TBD_GAS_*` corridors, with finite `ava.up`
+endowments -- coal cheap and plentiful in `WEST`, gas in `EAST` --
+above which `IMP_COA` / `IMP_GAS` are the unbounded backstop.
+Electricity is balanced and traded at the region level (`TBD_ELC_*`).
+Reservoir hydro sits in `C4` (12 GW), `E1` (6) and `C1` (3), and the
+single nuclear station in `C1`. Costs are USD (MUSD/GW, MUSD/PJ).\}
+}\if{html}{\out{</div>}}
+
 \item{unit}{the "unit model" kits (\code{U1}, \code{U3}): every input is 1 on the
 symmetric \code{unit_s4} calendar, single-year \code{unit} horizon,
 \code{discount = 0}, so each variant's objective is a small hand-checkable
@@ -105,6 +118,7 @@ mod <- newModel("TOPIA", data = um$repo,
                 region = um$regions,
                 horizon = topia$modules$horizons$base,
                 discount = 0.05)
+mod <- setGeoscale(mod, um$geoscale)
 scen <- solve_scenario(interpolate_model(mod, "BASE"),
                        solver = solver_options$glpk)
 

@@ -174,6 +174,7 @@ mod <- newModel("TOPIA", data = ek$repo,
                 region = ek$regions,
                 horizon = topia$modules$horizons$base,
                 discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
 
 # build the solver-facing sets and parameters; nothing is solved yet
 scen <- interpolate_model(mod, name = "BASE")

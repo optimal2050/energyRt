@@ -30,6 +30,7 @@ mod  <- newModel("TOPIA", data = ek$repo,
                  region = ek$regions,
                  horizon = topia$modules$horizons$base,
                  discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
 scen <- interpolate_model(mod, name = "EX")
 
 # every commodity a process touches, whichever side it enters on

@@ -28,6 +28,7 @@ mod  <- newModel("TOPIA", data = ek$repo,
                  region = ek$regions,
                  horizon = topia$modules$horizons$base,
                  discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
 scen <- interpolate_model(mod, name = "EX")
 
 # a process with no auxiliary flow reports an empty vector, not a missing entry

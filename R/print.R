@@ -26,6 +26,7 @@
 #'                 calendar = topia$modules$calendars$s4_h24,
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' print(mod)
 #'
 #' # the configuration object behind it

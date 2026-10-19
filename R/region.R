@@ -652,6 +652,7 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
 #' mod <- newModel("TOPIA", data = ek$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
 #'                 region = ek$regions, horizon = topia$modules$horizons$base)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #'
 #' # the priced import/export stubs a sub-territory solve needs at its edge:
 #' # a share of the region's own demand, in `nsteps` price steps
@@ -1488,6 +1489,7 @@ Aggregating between two non-atom levels needs a level-aware ",
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' get_region(mod)
 get_region <- function(object) {
   if (!isS4(object)) {

@@ -99,6 +99,7 @@
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #'
 #' # one solve per region, each seeing priced boundary flows to its neighbours
 #' res <- solve_by_region(mod, name = "BY_REGION", trade = "auto", price = 60,

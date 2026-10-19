@@ -240,6 +240,7 @@ guided_windows <- function(horizon, direction = c("backward", "forward"),
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #'
 #' # the endpoint first, then each neighbouring pair, then the full horizon
 #' # with the guidance as bounds
@@ -482,6 +483,7 @@ getData.guided <- function(object, name = NULL, ..., merge = TRUE) {
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #'
 #' # what the guidance cost, against a true perfect-foresight run
 #' pf  <- solve_model(mod, name = "PF", solver = solver_options$glpk)

@@ -29,6 +29,7 @@ mod  <- newModel("TOPIA", data = ek$repo,
                  region = ek$regions,
                  horizon = topia$modules$horizons$base,
                  discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
 scen <- interpolate_model(mod, name = "EX")
 
 # the timeframe a process is resolved at: the finest of its commodities

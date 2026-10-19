@@ -172,6 +172,7 @@ NULL
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #'
 #' # families of processes that share a commodity signature, with their members
 #' head(get_process_groups(mod), 4)
@@ -642,6 +643,7 @@ get_process_groups <- function(x, regions = NULL) {
 #' mod <- newModel("TOPIA", data = ek$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
 #'                 region = ek$regions, horizon = topia$modules$horizons$base)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #'
 #' # how a family's regions group at each k, and the spread left inside the
 #' # clusters -- the input to choosing `clusters` for

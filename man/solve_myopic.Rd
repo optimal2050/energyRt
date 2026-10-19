@@ -91,6 +91,7 @@ mod <- newModel("TOPIA", data = ek$repo,
                 region = ek$regions,
                 horizon = topia$modules$horizons$base,
                 discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
 
 # one solve per milestone year, each blind to the next, with capacity
 # carried forward

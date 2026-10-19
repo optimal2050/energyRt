@@ -1843,6 +1843,7 @@ expand_tech_variants <- function(mod, prefix = .variant_prefix(mod),
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #'
 #' # the base kit has no variants
 #' getVariants(mod)
@@ -1904,6 +1905,7 @@ getVariants <- function(object, class = NULL) {
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #'
 #' # split wind into site grades, solve, then read the result BY GRADE rather
 #' # than by variant name

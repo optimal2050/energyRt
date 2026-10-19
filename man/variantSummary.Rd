@@ -42,6 +42,7 @@ mod <- newModel("TOPIA", data = ek$repo,
                 region = ek$regions,
                 horizon = topia$modules$horizons$base,
                 discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
 
 # split wind into site grades, solve, then read the result BY GRADE rather
 # than by variant name

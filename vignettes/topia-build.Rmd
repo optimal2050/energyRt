@@ -44,11 +44,11 @@ have_sf <- requireNamespace("sf", quietly = TRUE)   # region maps need the sf pa
 set_default_solver(solver_options$glpk)   # used by levcost() screening below
 ```
 
-**Units.** Capacity in **GW**, energy/activity in **PJ**, costs in **MEUR**,
+**Units.** Capacity in **GW**, energy/activity in **PJ**, costs in **MUSD**,
 emissions in **kt**; `cap2act = 31.536` (1 GW x 8760 h = 31.536 PJ). Cost figures
 are rounded, catalogue-range values (Danish Energy Agency / NREL ATB): capex in
-EUR/kW (= MEUR/GW via `convert()`), fixed O&M in EUR/kW/yr, fuel in EUR/GJ
-(= MEUR/PJ).
+USD/kW (= MUSD/GW via `convert()`), fixed O&M in USD/kW/yr, fuel in USD/GJ
+(= MUSD/PJ).
 
 # Conventions
 
@@ -116,11 +116,32 @@ The eleven regions nest into three **zones** and one **nation**. The codes carry
 the zone (`W` west, `C` central, `E` east), and every layout holds that same
 hierarchy:
 
-```{r geoscale, eval = have_sf}
+The shipped layouts carry the hierarchy *and* their polygons. The hierarchy is
+what a model needs; the geometry is for the maps, so the model's own geoscale
+is built from the region table alone and needs no `sf`:
+
+```{r geoscale}
+regions <- c("W1", "W2", "C1")              # this vignette's three regions
+
+leaf <- geoscales::geoscale_leaftable(topia$geoscales$honeycomb)
+head(leaf, 3)                               # nation | zone | region | name
+
+gs_mod <- geoscales::geoscale_from_leaftable(
+  leaf[leaf$region %in% regions, ],
+  geoframes = c("nation", "zone", "region"),
+  key = "region",
+  name = "topia_R3"
+)
+geoscales::geoscale_geoframes(gs_mod)       # nation > zone > region
+geoscales::geoscale_children(gs_mod, "zone", "WEST")
+```
+
+With the polygons attached there is more to look at -- children, areas, and a
+subset that keeps the geometry:
+
+```{r geoscale-map, eval = have_sf}
 gs <- topia$geoscales$honeycomb
-geoscales::geoscale_geoframes(gs)           # nation > zone > region
 geoscales::geoscale_children(gs, "zone", "WEST")
-geoscales::geoscale_leaftable(gs)           # the region table
 
 # a model's own regions: subset, keeping the geometry and the area weight
 geoscales::filter_geoscale(gs, "region", c("W1", "W2", "C1"))
@@ -159,8 +180,6 @@ TOPIA maps. Deterministic capacity-factor and load profiles come from
 [`topia_profiles()`].
 
 ```{r inputs}
-regions <- c("W1", "W2", "C1")
-
 prof <- topia_profiles(regions, calendar = "s4_h24")
 str(prof, max.level = 1)
 ```
@@ -171,17 +190,27 @@ Energy carriers, the three renewable resource carriers (`SOL`/`WIN`/`HYD`) and
 the `CO2` emission commodity. Fossil fuels carry an emission factor (`emis`);
 biomass is carbon-neutral. All names are upper-case set elements.
 
+`COA` and `GAS` are declared with `geoframe = "zone"`: the two fuels are
+balanced once per zone rather than once per region, so a plant anywhere in
+`WEST` draws on the same coal pool, and moving coal *between* zones is a trade
+(below). Electricity keeps the default -- the finest level -- so it is balanced
+and traded region by region. The model therefore carries two spatial
+resolutions at once, which is the point of `@geoframe`: declare where a
+commodity is balanced, and the equations follow.
+
 ```{r commodities}
 COA <- newCommodity(
   name = "COA",
   desc = "Steam coal",
   timeframe = "ANNUAL",
+  geoframe = "zone",                      # one coal balance per zone
   emis = data.frame(comm = "CO2", unit = "kt/PJ", emis = 95)
 )
 GAS <- newCommodity(
   name = "GAS",
   desc = "Natural gas",
   timeframe = "ANNUAL",
+  geoframe = "zone",                      # one gas balance per zone
   emis = data.frame(comm = "CO2", unit = "kt/PJ", emis = 56)
 )
 BIO <- newCommodity(
@@ -229,36 +258,49 @@ autoplot(COA, GAS)
 
 # Supply and resources
 
-Fuel **supplies** (`SUP_*`) are priced in EUR/GJ (= MEUR/PJ); renewable
+Fuel **supplies** (`SUP_*`) are priced in USD/GJ (= MUSD/PJ); renewable
 **resources** (`RES_*`) are free and weather-limited.
 
-**Endowments differ by region** -- that is what makes a multi-region model
-interesting: `W1` mines coal, `W2` produces gas, `C1` has the hydro. Regions
-without a domestic fuel must import it (next section) or buy electricity over
-the grid -- regional diversity *stimulates trade*. The `region` column of
-`availability` is where an endowment lives. The first two supplies in full:
+**Endowments are concentrated, and finite** -- that is what makes a
+multi-region model interesting. `WEST` is the coal zone (cheap and large,
+mined around `W1`), `EAST` is the gas zone, the big reservoir hydro sits in
+`C4` with a small legacy plant in `C1`, and the single nuclear station is in
+`C1`. A zone that runs out of its own fuel buys it from another zone (a
+corridor), from the rest of the world (`IMP_*`), or buys electricity over the
+grid -- scarcity is what *stimulates trade*.
+
+Two slots carry that: `@region` says where the endowment lives -- at the
+**zone** for `COA` and `GAS`, because that is the level they are balanced at --
+and `ava.up` caps what can be drawn per year. An unbounded supply would make
+every region face the same price and nothing would ever flow.
+
+The first two supplies in full:
 
 ```{r supply}
 SUP_COA <- newSupply(
   name = "SUP_COA",
-  desc = "Coal supply (mined in W1)",
+  desc = "Domestic coal, pooled within a zone",
   commodity = "COA",
   unit = "PJ",
+  region = c("WEST", "CENTRAL"),          # the ZONES that mine coal
   supply = data.frame(
-    region = "W1",                        # coal exists only in W1
-    cost = 2.5
+    region = c("WEST", "CENTRAL"),
+    cost = c(1.8, 2.8),                   # USD/GJ: WEST is the cheap basin
+    ava.up = c(300, 40)                   # PJ/yr each zone can draw
   )
 )
 draw(SUP_COA)
 
 SUP_GAS <- newSupply(
   name = "SUP_GAS",
-  desc = "Natural gas supply (produced in W2)",
+  desc = "Domestic gas, pooled within a zone",
   commodity = "GAS",
   unit = "PJ",
+  region = "WEST",                        # this layout reaches no EAST region
   supply = data.frame(
-    region = "W2",                        # gas exists only in W2
-    cost = 6.0
+    region = "WEST",
+    cost = 6.0,
+    ava.up = 50
   )
 )
 
@@ -270,22 +312,32 @@ helper is the idiomatic advanced pattern (the packaged kit is built exactly
 this way):
 
 ```{r supply-helper}
-sup <- function(nm, comm, cost, reg = regions) newSupply(nm, commodity = comm,
-  supply = data.frame(region = reg, cost = cost))
+sup <- function(nm, comm, desc, cost, reg = regions, ava = NULL) {
+  d <- data.frame(region = reg, cost = cost)
+  if (!is.null(ava)) d$ava.up <- ava
+  newSupply(nm, desc = desc, commodity = comm, region = reg, supply = d)
+}
 
-SUP_BIO <- sup("SUP_BIO", "BIO", 8.0)              # biomass: everywhere
-SUP_NUC <- sup("SUP_NUC", "NUC", 0.9)              # nuclear fuel: world market
-RES_SOL <- sup("RES_SOL", "SOL", 0)                # sun shines everywhere...
-RES_WIN <- sup("RES_WIN", "WIN", 0)                # ...wind blows everywhere
-RES_HYD <- sup("RES_HYD", "HYD", 0, reg = "C1")    # hydro inflow: only C1
+SUP_BIO <- sup("SUP_BIO", "BIO", "Biomass residues, collected locally",
+               8.0, ava = 15)                      # finite, every region
+SUP_NUC <- sup("SUP_NUC", "NUC", "Nuclear fuel assemblies",
+               0.9, reg = "C1")                     # only where the station is
+RES_SOL <- sup("RES_SOL", "SOL", "Solar resource", 0)
+RES_WIN <- sup("RES_WIN", "WIN", "Wind resource", 0)
+RES_HYD <- sup("RES_HYD", "HYD", "River inflow to the reservoirs",
+               0, reg = "C1")                       # this layout's hydro region
 ```
 
 # Rest-of-world trade: imports and exports
 
-Any region can buy fuel from the rest of the world -- at a premium over the
-domestic source. `IMP_*` objects add an external supply at a price; `EXP_*`
+Any zone can buy fuel from the rest of the world -- at a premium over its
+domestic source, and without a ceiling, so the imports are the backstop above
+every `ava.up`. `IMP_*` objects add an external supply at a price; `EXP_*`
 objects add an external market that *buys* at a price (capped, so exports stay
-a side business, not the objective):
+a side business, not the objective). Note the `region` column: an import of a
+zone-balanced fuel is declared at the **zone**, like its supply -- a strict
+class (supply, import, export, trade, demand, storage) must sit exactly where
+its commodity is balanced, and energyRt refuses it otherwise.
 
 ```{r row-trade}
 IMP_COA <- newImport(
@@ -293,9 +345,10 @@ IMP_COA <- newImport(
   desc = "Coal import from the rest of the world",
   commodity = "COA",
   unit = "PJ",
+  region = c("WEST", "CENTRAL"),          # declared where COA is balanced
   import = data.frame(
-    region = regions,                     # available to every region
-    price = 3.5                           # vs 2.5 domestic in W1
+    region = c("WEST", "CENTRAL"),
+    price = 3.5                           # vs 1.8 domestic in WEST
   )
 )
 draw(IMP_COA)
@@ -304,9 +357,10 @@ IMP_GAS <- update(IMP_COA,
   name = "IMP_GAS",
   desc = "LNG import from the rest of the world",
   commodity = "GAS",
+  region = c("WEST", "CENTRAL"),
   import = data.frame(
-    region = regions,
-    price = 9.0                           # vs 6.0 domestic in W2
+    region = c("WEST", "CENTRAL"),
+    price = 9.0                           # vs 6.0 domestic in WEST
   )
 )
 
@@ -471,7 +525,7 @@ ECOA <- newTechnology(
     afs.lo = 0.4
   ),
   invcost = list(
-    invcost = convert("EUR/kW", "MEUR/GW", 2000)
+    invcost = convert("USD/kW", "MUSD/GW", 2000)
   ),
   fixom = list(
     fixom = 55
@@ -518,7 +572,7 @@ EGAS <- newTechnology(
     afs.lo = 0.4
   ),
   invcost = list(
-    invcost = convert("EUR/kW", "MEUR/GW", 900)
+    invcost = convert("USD/kW", "MUSD/GW", 900)
   ),
   fixom = list(
     fixom = 25
@@ -567,15 +621,16 @@ ENUC <- newTechnology(
     afs.lo = 0.8
   ), 
   invcost = list(
-    invcost = convert("EUR/kW", "MEUR/GW", 8000)   # recent Western builds
+    invcost = convert("USD/kW", "MUSD/GW", 8000)   # recent Western builds
   ),
   fixom = list(
     fixom = 120
   ),
+  region = "C1",                          # the only nuclear site in TOPIA
   capacity = data.frame(
-    region = c("W1", "W2", "C1", "W1", "W2", "C1"),
-    year   = c(2020, 2020, 2020, 2060, 2060, 2060),
-    stock  = c(   2,    2,    2,    0,    0,    0)
+    region = c("C1", "C1"),
+    year   = c(2020, 2060),
+    stock  = c(   4,     0)               # 4 GW, retiring by 2060
   ),
   start = list(start = 2025),
   olife = list(olife = 50)
@@ -614,7 +669,7 @@ ESOL <- newTechnology(
     # waf.up = 1 # or set upper limit (ignore curtailments)
   ),
   invcost = list(
-    invcost = convert("EUR/kW", "MEUR/GW", 650)
+    invcost = convert("USD/kW", "MUSD/GW", 650)
   ),
   fixom = list(
     fixom = 12
@@ -643,7 +698,7 @@ EWIN <- update(ESOL,
   input = list(comm = "WIN", unit = "PJ"),
   ceff = data.frame(comm = "WIN", cinp2use = 1),
   weather = list(weather = "WWIN", comm = "WIN", waf.fx = 1),
-  invcost = list(invcost = convert("EUR/kW", "MEUR/GW", 1300)),
+  invcost = list(invcost = convert("USD/kW", "MUSD/GW", 1300)),
   fixom = list(fixom = 35)
 )
 
@@ -653,7 +708,7 @@ EHYD <- update(EWIN,
   input = list(comm = "HYD", unit = "PJ"),
   ceff = data.frame(comm = "HYD", cinp2use = 1),
   weather = list(weather = "WHYD", comm = "HYD", waf.fx = 1),
-  invcost = list(invcost = convert("EUR/kW", "MEUR/GW", 3000)),
+  invcost = list(invcost = convert("USD/kW", "MUSD/GW", 3000)),
   fixom = list(fixom = 45),
   capacity = data.frame(                  # the hydro endowment sits in C1
     region = c("C1", "C1"),
@@ -701,7 +756,7 @@ EBIO <- newTechnology(
   ),
   cap2act = 31.536,
   invcost = list(
-    invcost = convert("EUR/kW", "MEUR/GW", 2200)
+    invcost = convert("USD/kW", "MUSD/GW", 2200)
   ),
   fixom = list(
     fixom = 60
@@ -714,7 +769,7 @@ draw(EBIO)
 ```
 
 Its **levelized cost** (`levcost()` builds and solves a tiny single-technology
-model; annual commodities make the LCOE read in MEUR/PJ):
+model; annual commodities make the LCOE read in MUSD/PJ):
 
 ```{r ebio-levcost}
 lc <- levcost(EBIO, discount = 0.05, verbose = TRUE,
@@ -748,17 +803,36 @@ technologies enforce their input-output balance.
 
 # Storage
 
-A 4-hour battery (`STG_*`) shifts electricity between timeslices:
+A 4-hour battery (`STG_*`) shifts electricity between timeslices. Three of its
+slots have to agree, and this is where a storage object is easiest to get
+wrong:
+
+* `cap2act` converts the **power** capacity to an annual flow, exactly as a
+  technology's does. Leave it out and it defaults to 8760, which makes the
+  capacity "PJ per hour" -- not the GW every other process in this model is
+  measured in.
+* `duration` is reservoir **energy per unit of power capacity**, not hours:
+  the equation is `vStorageStgCap = pStorageDuration * vStorageOutCap`, with no
+  conversion of its own. With capacity in GW and energy in PJ, one hour is
+  0.0036 PJ/GW, so a four-hour battery is `4 * 0.0036`.
+* `stg.invcost` prices the reservoir (measured in energy) and `out.invcost` the
+  discharger (per GW). An energy price put on `out.invcost` describes a free
+  reservoir behind an expensive converter, which is a different machine.
+
+Costs fall over the horizon, so the `invcost` table carries a `year` column:
 
 ```{r storage}
 STG_ELC <- newStorage(
   name = "STG_ELC",
-  desc = "Grid battery, 4-hour",
+  desc = "Lithium-ion battery, four-hour reservoir",
   commodity = "ELC",
-  invcost = list(
-    out.invcost = convert("EUR/kWh", "MEUR/PJ", 200)
+  cap2act = 31.536,                       # GW -> PJ/yr, as the technologies
+  duration = 4 * 0.0036,                  # 4 h of reservoir per GW
+  invcost = data.frame(
+    year = years,
+    stg.invcost = convert("USD/kWh", "MUSD/PJ", c(200, 140, 90, 60)),
+    out.invcost = convert("USD/kW",  "MUSD/GW", c(150, 130, 110,  90))
   ),
-  duration = 4,                            # 4 hours of storage per GW
   seff = data.frame(
     inpeff = 0.95,
     outeff = 0.95                         # ~90% round trip
@@ -775,7 +849,14 @@ Trade objects open **routes** between regions for a commodity. TOPIA's three
 regions form a line, so two **bi-directional** transmission links (`TBD_`)
 connect them. Each `newTrade` lists its routes (both directions), the transfer
 efficiency (`teff` -- losses), and an endogenous capacity with investment cost,
-so the model may expand the line:
+so the model may expand the line.
+
+Electricity trades at the finest level, region to region. The fuels trade at
+the **mid** level: `COA` and `GAS` are balanced per zone, so their routes are
+written in zone codes and a corridor moves fuel from one zone's pool to the
+next. A corridor *inside* a zone would be a no-op -- both ends would be the
+same balance -- which is the practical meaning of "trade happens between
+balances, at the level the commodity is balanced at".
 
 ```{r trade, fig.height = 4.5}
 TBD_ELC_W1_W2 <- newTrade(
@@ -796,7 +877,7 @@ TBD_ELC_W1_W2 <- newTrade(
   ),
   invcost = data.frame(
     region = c("W1", "W2"),
-    invcost = 350                         # MEUR/GW (per line end)
+    invcost = 350                         # MUSD/GW (per line end)
   ),
   olife = list(olife = 50)
 )
@@ -821,6 +902,61 @@ TBD_ELC_W2_C1 <- update(TBD_ELC_W1_W2,
 draw(TBD_ELC_W1_W2)
 ```
 
+The fuel corridors, written in **zone** codes. Coal moves by rail (cheap, low
+loss), gas by pipeline (dearer to build, 2% loss). `WEST` is the coal basin and
+`CENTRAL` has little of its own, so the expected flow is eastward:
+
+```{r trade-fuels}
+TBD_COA_WEST_CENTRAL <- newTrade(
+  name = "TBD_COA_WEST_CENTRAL",
+  desc = "Coal rail corridor WEST-CENTRAL",
+  commodity = "COA",
+  routes = data.frame(
+    src = c("WEST", "CENTRAL"),
+    dst = c("CENTRAL", "WEST")
+  ),
+  trade = data.frame(
+    src = c("WEST", "CENTRAL"),
+    dst = c("CENTRAL", "WEST"),
+    teff = 0.99                           # 1% loss in handling
+  ),
+  capacity = data.frame(
+    stock = 60                            # PJ/yr of existing rail capacity
+  ),
+  invcost = data.frame(
+    region = c("WEST", "CENTRAL"),
+    invcost = 20
+  ),
+  varom = data.frame(
+    src = c("WEST", "CENTRAL"),
+    dst = c("CENTRAL", "WEST"),
+    varom = 0.3                           # haulage, USD/GJ
+  ),
+  olife = list(olife = 40)
+)
+
+TBD_GAS_WEST_CENTRAL <- update(TBD_COA_WEST_CENTRAL,
+  name = "TBD_GAS_WEST_CENTRAL",
+  desc = "Gas pipeline WEST-CENTRAL",
+  commodity = "GAS",
+  trade = data.frame(
+    src = c("WEST", "CENTRAL"),
+    dst = c("CENTRAL", "WEST"),
+    teff = 0.98
+  ),
+  capacity = data.frame(stock = 40),
+  invcost = data.frame(
+    region = c("WEST", "CENTRAL"),
+    invcost = 60
+  ),
+  varom = data.frame(
+    src = c("WEST", "CENTRAL"),
+    dst = c("CENTRAL", "WEST"),
+    varom = 0.2
+  )
+)
+```
+
 `draw()` shows one link's schematic; `autoplot()` (or `plot_trade_map()`) puts the
 whole network **on the map** — pass the layout to draw over. Bidirectional links
 render as double-headed arrows:
@@ -838,8 +974,8 @@ running scenarios (mirroring IDEEA's `CO2_CAP` etc.):
 - `CO2_CAP` -- a declining cap on CO2 emissions (`newConstraint` on `vEmsFuelTot`;
   starts near BASE emissions (~5,000 kt/region in 2020) and tightens to a deep
   cut by 2050);
-- `CT_CO2` -- a rising carbon tax (`newTax`; costs are MEUR and emissions kt, so
-  **20-80 EUR/t reads as 0.02-0.08 MEUR/kt** -- watch the units);
+- `CT_CO2` -- a rising carbon tax (`newTax`; costs are MUSD and emissions kt, so
+  **20-80 USD/t reads as 0.02-0.08 MUSD/kt** -- watch the units);
 - `RES_SHARE` -- a growing renewable-generation floor;
 - `NO_NEW_NUC` -- no new nuclear capacity;
 - `EARLY_RET` -- forced early retirement of the coal and gas fleets (a declining
@@ -860,7 +996,7 @@ CO2_CAP <- newConstraint(
 CT_CO2 <- newTax(
   name = "CT_CO2",
   comm = "CO2",
-  tax = data.frame(year = range(years), bal = c(0.02, 0.08))  # 20-80 EUR/t
+  tax = data.frame(year = range(years), bal = c(0.02, 0.08))  # 20-80 USD/t
 )
 
 ren <- c("ESOL", "EWIN", "EHYD")
@@ -921,7 +1057,8 @@ repo <- newRepository("topia",
   WSOL, WWIN, WHYD,                                     # weather
   ECOA, EGAS, ENUC, ESOL, EWIN, EHYD, EBIO,             # technologies
   STG_ELC,                                              # storage
-  TBD_ELC_W1_W2, TBD_ELC_W2_C1,                         # interregional trade
+  TBD_ELC_W1_W2, TBD_ELC_W2_C1,                         # electricity, region
+  TBD_COA_WEST_CENTRAL, TBD_GAS_WEST_CENTRAL,           # fuels, zone
   DEM_ELC)                                              # demand
 length(repo); names(repo)
 summary(repo)
@@ -932,6 +1069,9 @@ hor <- newHorizon(period = 2020:2050, intervals = c(1, 10, 10, 10),
                   mid_is_end = TRUE, name = "base")
 mod <- newModel("TOPIA", data = repo, calendar = cal,
                 region = regions, horizon = hor, discount = 0.05)
+# the zone-balanced fuels need the hierarchy: without it the model sees
+# `WEST`/`CENTRAL` as undeclared regions and refuses to interpolate
+mod <- setGeoscale(mod, gs_mod)
 mod
 ```
 
@@ -961,14 +1101,14 @@ so capacity is sized to serve demand at that factor (textbook LCOE).
 techs <- c("ECOA", "EGAS", "ENUC", "ESOL", "EWIN", "EHYD")
 lcoe  <- sapply(techs, function(tn)
   as.numeric(levcost(mod, name = tn, verbose = FALSE)$levcost_npv))
-round(sort(lcoe), 1)                       # MEUR/PJ  (x3.6 ~ EUR/MWh)
+round(sort(lcoe), 1)                       # MUSD/PJ  (x3.6 ~ USD/MWh)
 ```
 
 ```{r screen-plot}
 data.frame(tech = names(lcoe), lcoe = lcoe) |>
   ggplot(aes(reorder(tech, lcoe), lcoe, fill = tech)) +
   geom_col(show.legend = FALSE) + coord_flip() +
-  labs(x = NULL, y = "levelized cost, MEUR/PJ",
+  labs(x = NULL, y = "levelized cost, MUSD/PJ",
        title = "A-priori technology cost (annual LCOE)") + theme_bw()
 ```
 

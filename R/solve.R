@@ -716,6 +716,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
 #'
 #' sum(getData(scen, "vObjective", merge = TRUE)$value)

@@ -166,6 +166,7 @@
 #' mod <- newModel("TOPIA", data = ek$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
 #'                 region = ek$regions, horizon = topia$modules$horizons$base)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' report(tech, model = mod)
 #'
 #' # and as a solved scenario realized it, against that ex-ante estimate
@@ -188,7 +189,7 @@
 setGeneric(
   "report",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("html", "pdf", "tex", "docx"),
+           format = "html",
            levcost = NULL, cost_unit = NULL, open = interactive(), ...) {
     standardGeneric("report")
   }
@@ -555,7 +556,7 @@ setMethod(
   "report",
   "technology",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("html", "pdf", "tex", "docx"),
+           format = "html",
            levcost = NULL, cost_unit = NULL, levcost_peers = NULL,
            open = interactive(), geoscale = NULL, model = NULL,
            scenario = NULL, reports_path = NULL, force = FALSE, ...) {
@@ -567,8 +568,7 @@ setMethod(
                            scenario = scenario)
 
     # default = html only (pdf/tex need LaTeX); explicit requests are honoured
-    format <- if (missing(format)) "html" else
-      match.arg(format, c("html", "pdf", "tex", "docx"), several.ok = TRUE)
+    format <- match.arg(format, c("html", "pdf", "tex", "docx"), several.ok = TRUE)
     format <- .report_check_formats(format)
 
     # -- resolve template --------------------------------------------------
@@ -958,7 +958,7 @@ setMethod(
   "report",
   "storage",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("html", "pdf", "tex", "docx"),
+           format = "html",
            levcost = NULL, cost_unit = NULL, open = interactive(),
            geoscale = NULL, model = NULL, scenario = NULL,
            reports_path = NULL, force = FALSE, ...) {
@@ -966,8 +966,7 @@ setMethod(
     ctx <- .report_context(object, geoscale = geoscale, model = model,
                            scenario = scenario)
 
-    format <- if (missing(format)) "html" else
-      match.arg(format, c("html", "pdf", "tex", "docx"), several.ok = TRUE)
+    format <- match.arg(format, c("html", "pdf", "tex", "docx"), several.ok = TRUE)
     format <- .report_check_formats(format)
 
     # Levelized cost of storage (LCOS): energyRt >= 0.89 computes levcost()
@@ -2720,10 +2719,9 @@ Levelized cost section will be omitted.")
 #' @export
 setMethod("report", "repository",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("html", "pdf", "tex", "docx"), levcost = NULL, cost_unit = NULL,
+           format = "html", levcost = NULL, cost_unit = NULL,
            open = interactive(), reports_path = NULL, force = FALSE,
            logos = NULL, figure = NULL, groups = NULL, ...) {
-    if (missing(format)) format <- "html"
     dots <- list(...); name <- dots[["name"]]; dots[["name"]] <- NULL
     if (is.null(name)) {
       return(.report_model(object, template, file, format, dots, open = open,
@@ -2741,11 +2739,10 @@ setMethod("report", "repository",
 #' @export
 setMethod("report", "model",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("html", "pdf", "tex", "docx"), levcost = NULL, cost_unit = NULL,
+           format = "html", levcost = NULL, cost_unit = NULL,
            open = interactive(), reports_path = NULL, force = FALSE,
            logos = NULL, figure = NULL, groups = NULL,
            interpolate = FALSE, scenario = NULL, ...) {
-    if (missing(format)) format <- "html"
     dots <- list(...); name <- dots[["name"]]; dots[["name"]] <- NULL
     if (is.null(name)) {
       return(.report_model(object, template, file, format, dots, open = open,
@@ -2764,11 +2761,10 @@ setMethod("report", "model",
 #' @export
 setMethod("report", "scenario",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("html", "pdf", "tex", "docx"), levcost = NULL, cost_unit = NULL,
+           format = "html", levcost = NULL, cost_unit = NULL,
            open = interactive(), reports_path = NULL, force = FALSE,
            run = NULL, verify = TRUE, logos = NULL, badges = NULL,
            groups = NULL, ...) {
-    if (missing(format)) format <- "html"
     dots <- list(...); name <- dots[["name"]]; dots[["name"]] <- NULL
     if (is.null(name)) {
       return(.report_scenario(object, template, file, format, dots, open = open,
@@ -2827,6 +2823,7 @@ setMethod("report_pdf", "ANY", function(object, ...) {
 #' mod  <- newModel("TOPIA", data = ek$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
 #'                  region = ek$regions, horizon = topia$modules$horizons$base)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
 #' report_html(scen)
 #' }

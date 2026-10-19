@@ -57,6 +57,7 @@ ek  <- topia$modules$electricity$R11
 mod <- newModel("TOPIA", data = ek$repo,
                 calendar = topia$modules$calendars$s4_h24,
                 region = ek$regions, horizon = topia$modules$horizons$base)
+mod <- setGeoscale(mod, ek$geoscale)
 
 # how a family's regions group at each k, and the spread left inside the
 # clusters -- the input to choosing `clusters` for

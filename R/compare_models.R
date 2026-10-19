@@ -36,6 +36,7 @@
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #'
 #' # swap domestic gas for a three-step supply curve and see what moved
 #' mod2 <- add(mod, ek$GAS_CURVE, overwrite = TRUE)

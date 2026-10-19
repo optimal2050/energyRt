@@ -45,6 +45,7 @@ getData <- function(object, ...) UseMethod("getData")
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
 #'
 #' # which parameters carry a `tech` set, and what their dimensions are

@@ -129,6 +129,7 @@
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #'
 #' # build the solver-facing sets and parameters; nothing is solved yet
 #' scen <- interpolate_model(mod, name = "BASE")
@@ -2463,6 +2464,7 @@ interpolate_bounds <- function(
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # drop the approximation context the scenario no longer needs; the
@@ -2607,6 +2609,7 @@ trim_parameters <- function(object, verbose = FALSE) {
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # no rows means every parameter's domain, bounds and defaults agree
@@ -3418,6 +3421,7 @@ map_comm_geoframe <- function(scen, comm = NULL) {
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # the timeframe a process is resolved at: the finest of its commodities
@@ -3621,6 +3625,7 @@ get_process_timeframe <- function(object, process = NULL,
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # the class of the processes asked for, or of every one of them
@@ -3677,6 +3682,7 @@ get_process_class <- function(object, process = NULL, classes = NULL) {
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' get_process_inputs(scen, process = c("ECOA", "EGAS"))
@@ -3763,6 +3769,7 @@ get_process_inputs <- function(object, process = NULL, classes = NULL) {
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' get_process_outputs(scen, process = c("ECOA", "SUP_COA"))
@@ -3891,6 +3898,7 @@ get_process_outputs <- function(object, process = NULL, classes = NULL) {
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # a process with no auxiliary flow reports an empty vector, not a missing entry
@@ -3955,6 +3963,7 @@ get_process_aux <- function(object, process = NULL, classes = NULL) {
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # only `storage` holds a commodity
@@ -3998,6 +4007,7 @@ get_process_stored <- function(object, process = NULL, classes = NULL) {
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # every commodity a process touches, whichever side it enters on
@@ -4108,6 +4118,7 @@ nl2df <- named_list_to_df
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' get_process_region(scen, process = "ECOA")
@@ -4243,6 +4254,7 @@ get_process_region <- function(object, process = NULL, classes = NULL,
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # the years a process may be invested in, by region

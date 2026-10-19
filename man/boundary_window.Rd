@@ -61,6 +61,7 @@ ek  <- topia$modules$electricity$R3
 mod <- newModel("TOPIA", data = ek$repo,
                 calendar = topia$modules$calendars$s4_h24,
                 region = ek$regions, horizon = topia$modules$horizons$base)
+mod <- setGeoscale(mod, ek$geoscale)
 
 # the priced import/export stubs a sub-territory solve needs at its edge:
 # a share of the region's own demand, in `nsteps` price steps

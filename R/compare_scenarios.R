@@ -69,6 +69,7 @@ NULL
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #'
 #' base <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
 #' cap  <- solve_model(add(mod, ek$CO2_CAP), name = "CAP",
@@ -486,10 +487,9 @@ setMethod("plot", c("scenarios_cmp", "ANY"), function(x, y, ...) {
 #' @export
 setMethod("report", "list",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("html", "pdf", "tex", "docx"), levcost = NULL,
+           format = "html", levcost = NULL,
            cost_unit = NULL, open = interactive(), reports_path = NULL,
            force = FALSE, ...) {
-    if (missing(format)) format <- "html"
     ok <- vapply(object, function(x) methods::is(x, "scenario"), logical(1))
     if (length(object) < 2 || !all(ok)) {
       stop("report() on a list expects a named list of two or more solved ",
@@ -514,10 +514,9 @@ setMethod("report", "list",
 #' @export
 setMethod("report", "scenarios_cmp",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("html", "pdf", "tex", "docx"), levcost = NULL,
+           format = "html", levcost = NULL,
            cost_unit = NULL, open = interactive(), reports_path = NULL,
            force = FALSE, ...) {
-    if (missing(format)) format <- "html"
     dots <- list(...)
     .report_scenarios(object, template, image_file, file, format, dots,
                       open = open, reports_path = reports_path,

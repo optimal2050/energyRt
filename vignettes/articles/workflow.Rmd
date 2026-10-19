@@ -42,6 +42,7 @@ mod <- newModel("TOPIA", data = um$repo,
                 calendar = topia$modules$calendars$s4_h24,
                 region   = um$regions,
                 horizon  = topia$modules$horizons$base, discount = 0.05)
+mod <- setGeoscale(mod, um$geoscale)
 ```
 
 ```{r base-solve}

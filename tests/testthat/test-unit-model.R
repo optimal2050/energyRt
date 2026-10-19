@@ -63,6 +63,7 @@ test_that("TOPIA add-on modules land as clusters/vintages (R3)", {
                   calendar = topia$modules$calendars$s4_h24,
                   region = k3$regions,
                   horizon = topia$modules$horizons$base, discount = 0.05)
+  mod <- setGeoscale(mod, k3$geoscale)
   mod <- add(mod, k3$GAS_CURVE, overwrite = TRUE)
   mod <- add(mod, k3$EWIN_SITES, overwrite = TRUE)
   mod <- add(mod, k3$ENUC_VINT, overwrite = TRUE)

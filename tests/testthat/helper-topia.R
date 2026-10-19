@@ -18,6 +18,9 @@ ut_build <- function(layout = "R3", calendar = "topia_seasons", lever = NULL) {
     region = um$regions,
     horizon = topia$modules$horizons$base,
     discount = 0.05)
+  # COA and GAS are balanced at the zone, so every kit model carries the
+  # hierarchy it was built against (`nation -> zone -> region`, no geometry)
+  mod <- setGeoscale(mod, um$geoscale)
   if (!is.null(lever)) {
     lv <- um[[lever]]
     stopifnot(!is.null(lv))
@@ -31,13 +34,15 @@ ut_build <- function(layout = "R3", calendar = "topia_seasons", lever = NULL) {
 # all entries run on that calendar. R3 base ~seconds; the five levers run on
 # the single-region R1 layout to keep the fast tier quick. The larger R7/R11
 # layouts live in the `topia_full` suite below (test-full-deep.R).
+# `NO_NEW_NUC` runs on R3: nuclear sits in C1 alone, so the R1 layout carries
+# no ENUC for the constraint to bind on.
 ut_entries <- function() list(
   base_R1      = list(layout = "R1", calendar = "s4_h24"),
   base_R3      = list(layout = "R3", calendar = "s4_h24"),
   co2cap_R1    = list(layout = "R1", calendar = "s4_h24", lever = "CO2_CAP"),
   ctco2_R1     = list(layout = "R1", calendar = "s4_h24", lever = "CT_CO2"),
   resshare_R1  = list(layout = "R1", calendar = "s4_h24", lever = "RES_SHARE"),
-  nonewnuc_R1  = list(layout = "R1", calendar = "s4_h24", lever = "NO_NEW_NUC"),
+  nonewnuc_R3  = list(layout = "R3", calendar = "s4_h24", lever = "NO_NEW_NUC"),
   earlyret_R1  = list(layout = "R1", calendar = "s4_h24", lever = "EARLY_RET")
 )
 

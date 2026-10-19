@@ -32,6 +32,7 @@ mod <- newModel("TOPIA", data = ek$repo,
                 region = ek$regions,
                 horizon = topia$modules$horizons$base,
                 discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
 
 # what the guidance cost, against a true perfect-foresight run
 pf  <- solve_model(mod, name = "PF", solver = solver_options$glpk)

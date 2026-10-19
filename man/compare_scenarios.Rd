@@ -120,6 +120,7 @@ mod <- newModel("TOPIA", data = ek$repo,
                 region = ek$regions,
                 horizon = topia$modules$horizons$base,
                 discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
 
 base <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
 cap  <- solve_model(add(mod, ek$CO2_CAP), name = "CAP",

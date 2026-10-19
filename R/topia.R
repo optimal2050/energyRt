@@ -57,16 +57,27 @@
 #'     n-region layout is keyed `R<n>` and takes the first n regions of the
 #'     canonical west-to-east order `W1`, `W2`, `C1`..`C6`, `E1`..`E3`),
 #'     each a "kit":
-#'     `repo` (the base repository), the individual blocks (`repo_comm`,
+#'     `repo` (the base repository), `geoscale` (the layout's slice of the
+#'     `nation -> zone -> region` hierarchy, without geometry -- a kit model
+#'     MUST carry it, see the examples), the individual blocks (`repo_comm`,
 #'     `repo_supply`, `DEM_ELC`, `WSOL`/`WWIN`/`WHYD`, the technologies,
 #'     `STG_ELC`), the scenario levers `CO2_CAP`, `CT_CO2`, `RES_SHARE`,
 #'     `NO_NEW_NUC`, `EARLY_RET`, and the add-on modules -- re-declared
 #'     objects that REPLACE their base counterpart when added with
 #'     `add(mod, ., overwrite = TRUE)`: `GAS_CURVE` (domestic gas as a
-#'     3-step [asSupplyCurve()], absent in the `R1` kit, whose single region
-#'     has no gas),
+#'     3-step [asSupplyCurve()]),
 #'     `EWIN_SITES` (wind in two site-grade clusters, finite GOOD +
-#'     down-rated POOR), `ENUC_VINT` (nuclear in two build vintages).}
+#'     down-rated POOR), `ENUC_VINT` (nuclear in two build vintages, absent
+#'     from the `R1` kit, which reaches no nuclear region).
+#'
+#'     The resources are CONCENTRATED, which is what drives trade: `COA` and
+#'     `GAS` are balanced per ZONE (`commodity@geoframe`) and traded between
+#'     zones on `TBD_COA_*` / `TBD_GAS_*` corridors, with finite `ava.up`
+#'     endowments -- coal cheap and plentiful in `WEST`, gas in `EAST` --
+#'     above which `IMP_COA` / `IMP_GAS` are the unbounded backstop.
+#'     Electricity is balanced and traded at the region level (`TBD_ELC_*`).
+#'     Reservoir hydro sits in `C4` (12 GW), `E1` (6) and `C1` (3), and the
+#'     single nuclear station in `C1`. Costs are USD (MUSD/GW, MUSD/PJ).}
 #'   \item{unit}{the "unit model" kits (`U1`, `U3`): every input is 1 on the
 #'     symmetric `unit_s4` calendar, single-year `unit` horizon,
 #'     `discount = 0`, so each variant's objective is a small hand-checkable
@@ -98,6 +109,7 @@
 #'                 region = um$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
+#' mod <- setGeoscale(mod, um$geoscale)
 #' scen <- solve_scenario(interpolate_model(mod, "BASE"),
 #'                        solver = solver_options$glpk)
 #'

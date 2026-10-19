@@ -43,6 +43,7 @@
 #'                 region = ek$regions,
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #'
 #' # the same model with a three-step gas supply curve instead of flat supply
 #' mod2 <- add(mod, ek$GAS_CURVE, overwrite = TRUE)

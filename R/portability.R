@@ -197,6 +197,7 @@ NULL
 #'                  region = ek$regions,
 #'                  horizon = topia$modules$horizons$base,
 #'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # what exists on disk for this scenario, and what could be dropped

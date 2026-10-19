@@ -168,5 +168,25 @@ for (nm in names(topia_geoscales)) {
     nrow(geoscales::geoscale_geometry(gs, "zone")) == 3L
   )
 }
+# -- the hierarchy a MODEL is solved on --------------------------------------
+# The same nation -> zone -> region table with NO geometry: `setGeoscale()` only
+# needs the membership, and the kits narrow this to their own regions. Keeping
+# it separate means a model carries no polygons, and the four layouts' maps
+# stay the dataset's single copy of the geometry.
+topia_model_geoscale <- geoscales::geoscale_from_leaftable(
+  geo,
+  geoframes = c("nation", "zone", "region"),
+  key = "region",
+  weights = character(),
+  name = "topia",
+  desc = "TOPIA hierarchy (nation -> zone -> region), no geometry",
+  labels = "name"
+)
+stopifnot(
+  inherits(topia_model_geoscale, "geoscales::GeoScale"),
+  identical(geoscales::geoscale_geoframes(topia_model_geoscale),
+            c("nation", "zone", "region"))
+)
+
 cat("topia$geoscales: ", length(topia_geoscales), " layouts x ", nrow(geo),
     " regions in ", length(unique(geo$zone)), " zones\n", sep = "")

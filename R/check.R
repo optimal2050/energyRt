@@ -332,10 +332,14 @@ en_check_julia_pkgs <- function(pkgs = c("JuMP", "HiGHS", "Arrow")) {
                     horizon  = topia$modules$horizons$unit, discount = 0))
   }
   kit <- topia$modules$electricity$R1
-  newModel("EN_PROBE_FULL", data = kit$repo,
-           calendar = topia$modules$calendars$s4_h24,
-           region   = kit$regions,
-           horizon  = topia$modules$horizons$unit, discount = 0)
+  # the electricity kits balance COA and GAS at the zone, so the model needs
+  # the hierarchy the kit was built against
+  setGeoscale(
+    newModel("EN_PROBE_FULL", data = kit$repo,
+             calendar = topia$modules$calendars$s4_h24,
+             region   = kit$regions,
+             horizon  = topia$modules$horizons$unit, discount = 0),
+    kit$geoscale)
 }
 
 #' @rdname en_check

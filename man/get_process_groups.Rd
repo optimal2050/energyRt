@@ -37,6 +37,7 @@ mod <- newModel("TOPIA", data = ek$repo,
                 region = ek$regions,
                 horizon = topia$modules$horizons$base,
                 discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
 
 # families of processes that share a commodity signature, with their members
 head(get_process_groups(mod), 4)
