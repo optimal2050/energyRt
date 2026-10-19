@@ -1344,6 +1344,12 @@ levcost_chain_ <- function(
       cm_obj <- repo_comms[[cm]]
       if (isS4(cm_obj) && .hasSlot(cm_obj, "emis") && nrow(cm_obj@emis) > 0)
         cm_obj@emis <- cm_obj@emis[0L, , drop = FALSE]
+      # A screening model is one region with no hierarchy, so a commodity
+      # balanced at a coarser `@geoframe` would be refused outright ("no
+      # geoscale with coarser levels"). Drop the declaration, as `@emis` is
+      # dropped: what is screened here is the technology, per region.
+      if (isS4(cm_obj) && .hasSlot(cm_obj, "geoframe"))
+        cm_obj@geoframe <- character(0)
       commodity_objects[[cm]] <- cm_obj
     } else {
       unit_val <- ""
@@ -1705,17 +1711,52 @@ levcost_chain_ <- function(
 # With a region per variant the rows must exist in each, otherwise only the first
 # cell sees the supply and the rest are unservable.
 #' @noRd
+# Re-point a parent model's availability table at the screening regions.
+#
+# Three cases, and only the first one is a plain spread:
+#
+#   * the table says nothing region-specific for this screening model (one row,
+#     or rows keyed only by year / timeslice): give every region a copy;
+#   * every screening region has its OWN row: keep them, so a region is priced
+#     at its own price rather than at some average;
+#   * the rows name regions this model does not have -- another region's price,
+#     or a COARSER level such as a zone, since the screening model carries no
+#     hierarchy: they cannot be told apart here, so screening takes the
+#     cheapest. A levelized cost is an a-priori lower bound, and the
+#     alternative (replicating every row into every region) wrote a repeated
+#     (sup, comm, region, year, timeslice) key and interpolation stopped with
+#     "multiplied a series".
+#
+# Rows that differ by year or timeslice are preserved in every case: the
+# collapse happens WITHIN such a group, never across it.
+#' @noRd
 .levcost_spread_region <- function(df, regions) {
   if (is.null(df) || nrow(df) == 0 || length(regions) == 0) return(df)
   if (!"region" %in% names(df)) return(df)
-  if (length(regions) == 1L) {
-    df$region <- regions
-    return(df)
+  own <- df[!is.na(df$region) & df$region %in% regions, , drop = FALSE]
+  if (nrow(own) > 0 && all(regions %in% own$region)) {
+    rownames(own) <- NULL
+    return(own)
   }
-  base <- df[rep(seq_len(nrow(df)), times = length(regions)), , drop = FALSE]
-  base$region <- rep(regions, each = nrow(df))
-  rownames(base) <- NULL
-  base
+  price <- intersect(c("cost", "price"), names(df))
+  # group on DIMENSIONS only: `ava.up` and friends are values, and treating one
+  # as a key would keep the duplicate rows this function exists to collapse
+  grp <- intersect(c("year", "timeslice", "vintage", "cluster", "comm",
+                     "group"), names(df))
+  cheapest <- function(d) {
+    if (nrow(d) <= 1) return(d)
+    if (length(price) > 0) d[which.min(d[[price[1]]]), , drop = FALSE]
+    else d[1, , drop = FALSE]
+  }
+  base <- if (length(grp) > 0 && nrow(unique(df[grp])) > 1) {
+    key <- do.call(paste, c(lapply(grp, function(g) as.character(df[[g]])),
+                            list(sep = "")))
+    do.call(rbind, lapply(split(df, key), cheapest))
+  } else cheapest(df)
+  out <- base[rep(seq_len(nrow(base)), times = length(regions)), , drop = FALSE]
+  out$region <- rep(regions, each = nrow(base))
+  rownames(out) <- NULL
+  out
 }
 
 # Unit labels of a technology; shared by the plain and per-variant return paths.
@@ -2298,6 +2339,12 @@ Price it with `timeframe = \"native\"` and a matching `calendar = `.",
       # calendar (mCommTimeslice).
       if (identical(timeframe, "ANNUAL") && .hasSlot(cm_obj, "timeframe"))
         cm_obj@timeframe <- "ANNUAL"
+      # A screening model is one region with no hierarchy, so a commodity
+      # balanced at a coarser `@geoframe` would be refused outright ("no
+      # geoscale with coarser levels"). Drop the declaration, as `@emis` is
+      # dropped: what is screened here is the technology, per region.
+      if (isS4(cm_obj) && .hasSlot(cm_obj, "geoframe"))
+        cm_obj@geoframe <- character(0)
       commodity_objects[[cm]] <- cm_obj
     } else {
       unit_val <- ""

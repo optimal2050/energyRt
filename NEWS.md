@@ -296,6 +296,16 @@ answer rather than only the code. The classes worth knowing about:
   `mWeatherRegionAt` — but the parameter no longer claims it where nothing
   declared it.
 
+* **`levcost()` could not price a technology whose commodity is balanced at a
+  coarser `@geoframe`.** The screening model carries no hierarchy, so the
+  declaration is now dropped on the way in, as `@emis` already was.
+
+* **`levcost()` replicated every availability row into every screening
+  region**, so a model pricing one fuel differently by region produced a
+  repeated key and interpolation stopped with "multiplied a series". Rows are
+  now kept where a region has its own, and collapsed to the cheapest where they
+  name regions (or a coarser level) the screening model does not have.
+
 ## Documentation
 
 * A rebuilt [pkgdown site](https://energyRt.org) with tutorial articles for
