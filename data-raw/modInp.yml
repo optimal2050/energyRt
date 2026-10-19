@@ -4450,6 +4450,24 @@ mvTechOut:
   - region
   - year
   - timeslice
+meqTechAInp:
+  name: meqTechAInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+meqTechAOut:
+  name: meqTechAOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
 mvTechAInp:
   name: mvTechAInp
   type: map
@@ -4496,6 +4514,24 @@ mvOutTot:
   name: mvOutTot
   type: map
   dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageAInp:
+  name: meqStorageAInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageAOut:
+  name: meqStorageAOut
+  type: map
+  dimSets:
+  - stg
   - comm
   - region
   - year

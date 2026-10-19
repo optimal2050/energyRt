@@ -162,8 +162,6 @@
 # slice that will lift it, so the error can say what is missing rather than
 # just refusing.
 .coarse_unsupported <- list(
-  list(slot = "aux", cols = NULL, what = "auxiliary flows"),
-  list(slot = "aeff", cols = NULL, what = "auxiliary flows"),
   list(slot = "inp2out", cols = NULL, what = "storage inp2out coupling"),
   list(slot = "inp2stg", cols = NULL, what = "storage inp2stg coupling"),
   list(slot = "af", cols = c("rampup", "rampdown"), what = "ramp limits"),

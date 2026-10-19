@@ -126,6 +126,13 @@ changes* first. The change-by-change log for the whole cycle (450 entries) is in
 * A filtered geoscale passed to `interpolate_model()` solves a sub-territory,
   and `subset_model_regions()` warns when sampling splits a cell a process
   spans.
+* **Auxiliary flows on a coarse process.** A `technology` or `storage`
+  declared at a region coarser than an auxiliary commodity it draws or emits
+  now holds that flow in every finer cell beneath it: the aux variables sit at
+  the commodity's own regions while the coupling stays at the process's cell,
+  and the equation sums the children. A per-region limit on the aux commodity
+  therefore binds without splitting the process per region. Previously any
+  `@aux` / `@aeff` row made a process ineligible to be coarse at all.
 * **`@geoframe` on the region-carrying classes** (`weather`, `supply`,
   `demand`, `technology`, `storage`, `import`, `export`, `tax`, `subsidy`,
   `trade`) declares the geoscale level an object's regions are expressed at.

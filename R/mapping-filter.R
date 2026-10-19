@@ -142,10 +142,18 @@ map_mTechProcAggTimeslice <- function(scen, fmp)
   dplyr::distinct(x)
 }
 
+# An aux flow sits at the aux commodity's SLICE (.lift_to_comm_slice) and at
+# the aux commodity's REGIONS (.flow_region_spread) -- the two axes are
+# mirrors: the slice lift moves the flow UP to a coarser commodity, the region
+# spread moves it DOWN to a finer one. A process coarser than its aux
+# commodity therefore draws it in each finer cell beneath its own, exactly as
+# it draws a main input (map_mvTechInp). Both are no-ops without a coarse
+# process.
 map_mvTechAInp <- function(scen, fmp) {
   act <- .gds(scen, "mvTechAct"); ainp <- .gds(scen, "mTechAInp")
   if (is.null(act) || is.null(ainp)) return(scen)
   d <- .lift_to_comm_slice(scen, as.data.frame(merge0(act, ainp)))
+  d <- .flow_region_spread(scen, d, "tech")
   .set_map(scen, "mvTechAInp", .filt_cr(scen, d), fmp)
 }
 
@@ -153,7 +161,31 @@ map_mvTechAOut <- function(scen, fmp) {
   act <- .gds(scen, "mvTechAct"); aout <- .gds(scen, "mTechAOut")
   if (is.null(act) || is.null(aout)) return(scen)
   d <- .lift_to_comm_slice(scen, as.data.frame(merge0(act, aout)))
+  d <- .flow_region_spread(scen, d, "tech")
   .set_map(scen, "mvTechAOut", .filt_cr(scen, d), fmp)
+}
+
+# Equation domains for the aux flows. The VARIABLE may sit at the commodity's
+# finer regions; the EQUATION stays on the process's own cell, because every
+# term on its right-hand side (capacity, activity, the main flows) lives
+# there -- one equation per (process, acomm, process region, year, aux slice),
+# whose left side sums the child variables over m*ProcAggRegion.
+#
+# Only the REGION axis is lifted. The timeslice axis is deliberately left at
+# the aux commodity's slice, which is what the equation's own `timeslicep` sum
+# is written against.
+map_meqTechAInp <- function(scen, fmp) {
+  d <- .gds(scen, "mvTechAInp")
+  if (is.null(d) || !nrow(d)) return(scen)
+  .set_map(scen, "meqTechAInp",
+           .lift_flow_to_proc_region(scen, as.data.frame(d), "tech"), fmp)
+}
+
+map_meqTechAOut <- function(scen, fmp) {
+  d <- .gds(scen, "mvTechAOut")
+  if (is.null(d) || !nrow(d)) return(scen)
+  .set_map(scen, "meqTechAOut",
+           .lift_flow_to_proc_region(scen, as.data.frame(d), "tech"), fmp)
 }
 
 # -- supply core ----------------------------------------------------------- #
@@ -239,16 +271,32 @@ map_mvStorageOut <- function(scen, fmp) {
   .filt_cr(scen, as.data.frame(merge0(base, sa)))
 }
 
+map_meqStorageAInp <- function(scen, fmp) {
+  d <- .gds(scen, "mvStorageAInp")
+  if (is.null(d) || !nrow(d)) return(scen)
+  .set_map(scen, "meqStorageAInp",
+           .lift_flow_to_proc_region(scen, as.data.frame(d), "stg"), fmp)
+}
+
+map_meqStorageAOut <- function(scen, fmp) {
+  d <- .gds(scen, "mvStorageAOut")
+  if (is.null(d) || !nrow(d)) return(scen)
+  .set_map(scen, "meqStorageAOut",
+           .lift_flow_to_proc_region(scen, as.data.frame(d), "stg"), fmp)
+}
+
 map_mvStorageAInp <- function(scen, fmp) {
   d <- .storage_aux_proc(scen, "AInp")
   if (is.null(d)) return(scen)
-  .set_map(scen, "mvStorageAInp", .lift_to_comm_slice(scen, d), fmp)
+  d <- .flow_region_spread(scen, .lift_to_comm_slice(scen, d), "stg")
+  .set_map(scen, "mvStorageAInp", d, fmp)
 }
 
 map_mvStorageAOut <- function(scen, fmp) {
   d <- .storage_aux_proc(scen, "AOut")
   if (is.null(d)) return(scen)
-  .set_map(scen, "mvStorageAOut", .lift_to_comm_slice(scen, d), fmp)
+  d <- .flow_region_spread(scen, .lift_to_comm_slice(scen, d), "stg")
+  .set_map(scen, "mvStorageAOut", d, fmp)
 }
 
 # =========================================================================== #
@@ -427,10 +475,21 @@ map_mStorageOutTot <- function(scen, fmp) {
   dom <- if (startsWith(sp[[2]], ".storage_aux_proc_"))
     .storage_aux_proc(scen, sub(".storage_aux_proc_", "", sp[[2]], fixed = TRUE)) else .gds(scen, sp[[2]])
   m <- .aux_conv_map(.gds(scen, sp[[1]]), dom, second_comm = sp[[3]])
+  # A conversion coefficient lives at the PROCESS's cell: the equation reads
+  # `pTechCap2AInp(tech, comm, region, ...)` at the region its capacity and
+  # activity variables sit in. A coarse process's flow domains sit at the
+  # commodity's finer regions, so lift the materialised rows back up. Both
+  # steps are no-ops without a coarse process.
+  key <- if (startsWith(name, "mStorage")) "stg" else "tech"
+  m <- .filt_cr_or_beneath(scen, m, key)
+  m <- .lift_flow_to_proc_region(scen, m, key)
   # A per-part coupling can only fire where that part's capacity variable
   # exists; a declared coefficient on an unpriced part is dropped with a
   # warning rather than emitted (the solver would index the variable out of
-  # its domain -- and silence here would hide a costless coupling).
+  # its domain -- and silence here would hide a costless coupling). The part
+  # capacity domains are keyed at the storage's own region, so this runs AFTER
+  # the lift: against the unlifted rows it would drop every coupling of a
+  # coarse storage.
   if (length(sp) >= 4L && !is.null(m) && nrow(m) > 0) {
     req <- .gds(scen, sp[[4]])
     n0 <- nrow(m)
@@ -442,7 +501,28 @@ map_mStorageOutTot <- function(scen, fmp) {
               "priced or bounded).", call. = FALSE)
     }
   }
-  .set_map(scen, name, .filt_cr(scen, m), fmp)
+  .set_map(scen, name, m, fmp)
+}
+
+# The reachability cut for an aux coupling: the commodity must exist where the
+# row sits, OR anywhere beneath it. A coarse process's coupling row is keyed at
+# the process's own region while the aux commodity is balanced in the finer
+# cells below, so the plain (comm, region) test would drop every such row and
+# the coupling would vanish without a word -- the term's `$` guard fails and a
+# multiplicative coefficient silently reads zero.
+#' @noRd
+.filt_cr_or_beneath <- function(scen, df, key) {
+  if (is.null(df) || nrow(df) == 0) return(df)
+  df <- as.data.frame(df)
+  here <- .filt_cr(scen, df)
+  ag <- .flow_region_agg(scen)
+  if (is.null(ag) || nrow(ag) == 0) return(here)
+  below_keys <- unique(data.frame(ag$process, ag$comm, ag$region,
+                                  stringsAsFactors = FALSE))
+  names(below_keys) <- c(key, "comm", "region")
+  if (!all(names(below_keys) %in% names(df))) return(here)
+  below <- dplyr::semi_join(df, below_keys, by = c(key, "comm", "region"))
+  unique(dplyr::bind_rows(here, below))
 }
 map_mTechAct2AInp     <- function(scen, fmp) .filter_aux_conv(scen, "mTechAct2AInp", fmp)
 map_mTechAct2AOut     <- function(scen, fmp) .filter_aux_conv(scen, "mTechAct2AOut", fmp)
@@ -1022,12 +1102,17 @@ map_mvBalance <- function(scen, fmp)
   mStorageProcAggRegion = map_mStorageProcAggRegion,
   mvTechAInp     = map_mvTechAInp,
   mvTechAOut     = map_mvTechAOut,
+  meqTechAInp    = map_meqTechAInp,
+  meqTechAOut    = map_meqTechAOut,
   mSupAva        = map_mSupAva,
   mvStorageLevel = map_mvStorageLevel,
   mvStorageInp   = map_mvStorageInp,
   mvStorageOut   = map_mvStorageOut,
   mvStorageAInp  = map_mvStorageAInp,
   mvStorageAOut  = map_mvStorageAOut,
+  # after BOTH variable domains: each lifts the one of the same name
+  meqStorageAInp = map_meqStorageAInp,
+  meqStorageAOut = map_meqStorageAOut,
   # derived totals
   mvDemInp       = map_mvDemInp,
   mTechInpTot    = map_mTechInpTot,

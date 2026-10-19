@@ -122,6 +122,7 @@ NULL
   # Roles, for the coarse-direction exemption below. `outstg` is the union of
   # produced and stored commodities: both must stay at-or-coarser.
   inp_of <- tryCatch(get_process_inputs(scen), error = function(e) list())
+  aux_of <- tryCatch(get_process_aux(scen), error = function(e) list())
   outstg_of <- local({
     o <- tryCatch(get_process_outputs(scen), error = function(e) list())
     st <- tryCatch(get_process_stored(scen), error = function(e) list())
@@ -167,9 +168,17 @@ NULL
       allowed_r <- lv[[cm]]$regions
       if (!is.null(allowed_r) && length(regions) > 0) {
         off <- setdiff(intersect(regions, known_regions), allowed_r)
+        # An AUXILIARY commodity is exempt in BOTH directions, unlike a main
+        # flow. Its equation is written at the process's own cell and pins the
+        # SUM of the child variables to the coefficient, so the aggregation
+        # path this message is about exists either way: nothing is written at a
+        # cell that is never read. A main output has no such equation, which is
+        # why it stays strict.
+        is_aux <- cm %in% aux_of[[nm]] &&
+          !(cm %in% inp_of[[nm]]) && !(cm %in% outstg_of[[nm]])
         if (length(off) > 0 && .coarse_axis_ready("region") &&
             cls %in% .coarse_classes_supported &&
-            cm %in% inp_of[[nm]] && !(cm %in% outstg_of[[nm]])) {
+            (is_aux || (cm %in% inp_of[[nm]] && !(cm %in% outstg_of[[nm]])))) {
           off <- off[!.region_is_coarser(scen, off, allowed_r)]
         }
         if (length(off) > 0) {

@@ -135,10 +135,12 @@ solve_demo <- function(name, ...) {
 |---|---|
 | **commodity** at a coarse level | ✅ demo 1 |
 | **supply**, **demand**, **storage** at a coarse level | ✅ demo 2 |
-| **technology** at a coarse level | ✅ if its commodities are at that level or coarser — demo 3 |
+| **technology** at a coarse level | ✅ demo 3 |
 | **trade between two coarse regions** | ✅ demo 4 |
 | costs (`invcost`, `fixom`) on a coarse cell | ✅ charged once — demo 5 |
-| **technology** coarser than a commodity it uses | ❌ refused — demo 3 |
+| **technology** / **storage** coarser than a commodity it CONSUMES | ✅ drawn from the cells beneath and summed — demo 3 |
+| **technology** / **storage** coarser than a commodity it PRODUCES or STORES | ❌ refused — demo 3 |
+| an **auxiliary** flow finer than the process that draws or emits it | ✅ held in the cells beneath, summed at the process's own cell |
 | **trade between atoms** for a coarse commodity | ❌ refused — demo 4 |
 | rest-of-world **import** / **export** at a coarse level | ❌ refused — demo 6 |
 | **weather** at a coarse region, read by child processes | ✅ one series serves every child — demo 7 |
@@ -272,7 +274,10 @@ solve_demo("d3a",
 #> 20
 ```
 
-Give that same national mill a **region-level** input and it is refused:
+Give that same national mill a **region-level input** and it still works: the
+input is drawn from the finer cells beneath the mill and summed back, which is
+an aggregation and needs no disaggregation. What is refused is a region-level
+**output** — splitting one national decision across the states below it:
 
 ```{r d3b}
 solve_demo("d3b",
@@ -286,12 +291,32 @@ solve_demo("d3b",
   newDemand("D", commodity = "STL", region = "NA1",
             demand = data.frame(region = "NA1", timeslice = "ANNUAL",
                                 demand = 10)))
+#> 20
+```
+
+Make `STL` region-level instead — so the national mill would have to *produce*
+into four state balances — and it is refused:
+
+```{r d3c}
+solve_demo("d3c",
+  newCommodity("GAS", timeframe = "ANNUAL", geoframe = "nation"),
+  newCommodity("STL", timeframe = "ANNUAL"),
+  newSupply("S", commodity = "GAS", region = "NA1",
+            supply = data.frame(region = "NA1", cost = 2)),
+  newTechnology("MILL", input = list(comm = "GAS"), output = list(comm = "STL"),
+                region = "NA1", invcost = data.frame(invcost = 0),
+                vintage = data.frame(olife = 30L), cap2act = 1),
+  newDemand("D", commodity = "STL",
+            demand = data.frame(region = c("R1", "R2", "R3", "R4"),
+                                timeslice = "ANNUAL", demand = 10)))
 #> Error: Process(es) placed at a region level COARSER than a commodity they
 #> use, whose flows could never reach that commodity's balance
 ```
 
-A technology may always sit *finer* than its commodities — a mill in one state
-making national steel, as in demo 1 — never coarser.
+So: a process may sit *finer* than its commodities — a mill in one state making
+national steel, as in demo 1 — and *coarser* than the ones it consumes. Coarser
+than what it produces or stores is what the balance layer cannot do, because it
+aggregates and never splits.
 
 ## Demo 4 — trade between coarse regions, not between atoms
 

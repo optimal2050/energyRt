@@ -468,6 +468,8 @@ mvTechInpCommSameTimeslice(tech, comm, region, year, timeslice)
 mvTechOut(tech, comm, region, year, timeslice)
 mvTechAInp(tech, comm, region, year, timeslice)
 mvTechAOut(tech, comm, region, year, timeslice)
+meqTechAInp(tech, comm, region, year, timeslice)
+meqTechAOut(tech, comm, region, year, timeslice)
 mvDemInp(comm, region, year, timeslice)
 mvBalance(comm, region, year, timeslice)
 mvInpTot(comm, region, year, timeslice)
@@ -485,6 +487,8 @@ mTechRetUp(tech, region, year)
 
 mvStorageAInp(stg, comm, region, year, timeslice)
 mvStorageAOut(stg, comm, region, year, timeslice)
+meqStorageAInp(stg, comm, region, year, timeslice)
+meqStorageAOut(stg, comm, region, year, timeslice)
 mvStorageLevel(stg, comm, region, year, timeslice)
 * Flow domains follow their OWN commodity, the level follows what is stored.
 mvStorageInp(stg, comm, region, year, timeslice)   Storage input flow domain
@@ -1167,8 +1171,14 @@ eqTechAOut(tech, comm, region, year, timeslice)   Technology auxiliary commodity
 * type terms are per-YEAR coefficients booked as the slice's share of the year;
 * flow-type terms are summed over the child slices (intensive weight
 * pTimesliceAgg, 1 on a full calendar). No coefficient is a division.
-eqTechAInp(tech, comm, region, year, timeslice)$mvTechAInp(tech, comm, region, year, timeslice)..
-  vTechAInp(tech, comm, region, year, timeslice) =e=
+eqTechAInp(tech, comm, region, year, timeslice)$meqTechAInp(tech, comm, region, year, timeslice)..
+  vTechAInp(tech, comm, region, year, timeslice)$mvTechAInp(tech, comm, region, year, timeslice)
+* A process COARSER than this aux commodity draws/emits it in every finer cell
+* beneath its own: the variables live there, the equation and its coefficients
+* here. The sum is empty for every process at its commodity's level.
+  + sum(regionp$(mTechProcAggRegion(tech, comm, region, regionp) and
+                 mvTechAInp(tech, comm, regionp, year, timeslice)),
+        vTechAInp(tech, comm, regionp, year, timeslice)) =e=
   pTimesliceShare(timeslice) * (
   (vTechCap(tech, region, year) *
     pTechCap2AInp(tech, comm, region, year, timeslice))$mTechCap2AInp(tech, comm, region, year, timeslice) +
@@ -1197,8 +1207,14 @@ eqTechAInp(tech, comm, region, year, timeslice)$mvTechAInp(tech, comm, region, y
 * type terms are per-YEAR coefficients booked as the slice's share of the year;
 * flow-type terms are summed over the child slices (intensive weight
 * pTimesliceAgg, 1 on a full calendar). No coefficient is a division.
-eqTechAOut(tech, comm, region, year, timeslice)$mvTechAOut(tech, comm, region, year, timeslice)..
-  vTechAOut(tech, comm, region, year, timeslice) =e=
+eqTechAOut(tech, comm, region, year, timeslice)$meqTechAOut(tech, comm, region, year, timeslice)..
+  vTechAOut(tech, comm, region, year, timeslice)$mvTechAOut(tech, comm, region, year, timeslice)
+* A process COARSER than this aux commodity draws/emits it in every finer cell
+* beneath its own: the variables live there, the equation and its coefficients
+* here. The sum is empty for every process at its commodity's level.
+  + sum(regionp$(mTechProcAggRegion(tech, comm, region, regionp) and
+                 mvTechAOut(tech, comm, regionp, year, timeslice)),
+        vTechAOut(tech, comm, regionp, year, timeslice)) =e=
   pTimesliceShare(timeslice) * (
   (vTechCap(tech, region, year) *
     pTechCap2AOut(tech, comm, region, year, timeslice))$mTechCap2AOut(tech, comm, region, year, timeslice) +
@@ -2109,8 +2125,14 @@ eqStorageOutFx(stg, comm, region, year, timeslice)  Storage output lower constra
 * terms are per-YEAR (x pTimesliceShare), the flows (level, charge, discharge)
 * are summed over the storage's own child slices with pTimesliceAgg. Each flow
 * follows its OWN role's commodity set; the capacity terms sit outside the sums.
-eqStorageAInp(stg, comm, region, year, timeslice)$mvStorageAInp(stg, comm, region, year, timeslice)..
-  vStorageAInp(stg, comm, region, year, timeslice) =e=
+eqStorageAInp(stg, comm, region, year, timeslice)$meqStorageAInp(stg, comm, region, year, timeslice)..
+  vStorageAInp(stg, comm, region, year, timeslice)$mvStorageAInp(stg, comm, region, year, timeslice)
+* A process COARSER than this aux commodity draws/emits it in every finer cell
+* beneath its own: the variables live there, the equation and its coefficients
+* here. The sum is empty for every process at its commodity's level.
+  + sum(regionp$(mStorageProcAggRegion(stg, comm, region, regionp) and
+                 mvStorageAInp(stg, comm, regionp, year, timeslice)),
+        vStorageAInp(stg, comm, regionp, year, timeslice)) =e=
   pTimesliceShare(timeslice) * (
     (pStorageOutCap2AInp(stg, comm, region, year, timeslice)
        * vStorageOutCap(stg, region, year)
@@ -2165,8 +2187,14 @@ eqStorageAInp(stg, comm, region, year, timeslice)$mvStorageAInp(stg, comm, regio
 * terms are per-YEAR (x pTimesliceShare), the flows (level, charge, discharge)
 * are summed over the storage's own child slices with pTimesliceAgg. Each flow
 * follows its OWN role's commodity set; the capacity terms sit outside the sums.
-eqStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, region, year, timeslice)..
-  vStorageAOut(stg, comm, region, year, timeslice) =e=
+eqStorageAOut(stg, comm, region, year, timeslice)$meqStorageAOut(stg, comm, region, year, timeslice)..
+  vStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, region, year, timeslice)
+* A process COARSER than this aux commodity draws/emits it in every finer cell
+* beneath its own: the variables live there, the equation and its coefficients
+* here. The sum is empty for every process at its commodity's level.
+  + sum(regionp$(mStorageProcAggRegion(stg, comm, region, regionp) and
+                 mvStorageAOut(stg, comm, regionp, year, timeslice)),
+        vStorageAOut(stg, comm, regionp, year, timeslice)) =e=
   pTimesliceShare(timeslice) * (
     (pStorageOutCap2AOut(stg, comm, region, year, timeslice)
        * vStorageOutCap(stg, region, year)

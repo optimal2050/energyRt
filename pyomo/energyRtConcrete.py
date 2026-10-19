@@ -891,8 +891,13 @@ if verbose:
     print("eqTechAInp ", end="")
 sys.stdout.flush()
 model.eqTechAInp = Constraint(
-    mvTechAInp,
-    rule=lambda model, t, c, r, y, s: model.vTechAInp[t, c, r, y, s]
+    meqTechAInp,
+    # a process coarser than this aux commodity holds the flow in the finer
+    # cells beneath its own; the sum is empty at the commodity's own level
+    rule=lambda model, t, c, r, y, s: (model.vTechAInp[t, c, r, y, s] if (t, c, r, y, s) in mvTechAInp else 0)
+    + sum(model.vTechAInp[t, c, rp, y, s]
+          for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+          if (t, c, rp, y, s) in mvTechAInp)
     == pTimesliceShare.get((s)) * (
         ((model.vTechCap[t, r, y] * pTechCap2AInp.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechCap2AInp else 0)
         + ((model.vTechNewCap[t, r, y] * pTechNCap2AInp.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechNCap2AInp else 0)
@@ -923,8 +928,13 @@ if verbose:
     print("eqTechAOut ", end="")
 sys.stdout.flush()
 model.eqTechAOut = Constraint(
-    mvTechAOut,
-    rule=lambda model, t, c, r, y, s: model.vTechAOut[t, c, r, y, s]
+    meqTechAOut,
+    # a process coarser than this aux commodity holds the flow in the finer
+    # cells beneath its own; the sum is empty at the commodity's own level
+    rule=lambda model, t, c, r, y, s: (model.vTechAOut[t, c, r, y, s] if (t, c, r, y, s) in mvTechAOut else 0)
+    + sum(model.vTechAOut[t, c, rp, y, s]
+          for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+          if (t, c, rp, y, s) in mvTechAOut)
     == pTimesliceShare.get((s)) * (
         ((model.vTechCap[t, r, y] * pTechCap2AOut.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechCap2AOut else 0)
         + ((model.vTechNewCap[t, r, y] * pTechNCap2AOut.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechNCap2AOut else 0)
@@ -2356,8 +2366,13 @@ if verbose:
     print("eqStorageAInp ", end="")
 sys.stdout.flush()
 model.eqStorageAInp = Constraint(
-    mvStorageAInp,
-    rule=lambda model, st1, c, r, y, s: model.vStorageAInp[st1, c, r, y, s]
+    meqStorageAInp,
+    # a process coarser than this aux commodity holds the flow in the finer
+    # cells beneath its own; the sum is empty at the commodity's own level
+    rule=lambda model, st1, c, r, y, s: (model.vStorageAInp[st1, c, r, y, s] if (st1, c, r, y, s) in mvStorageAInp else 0)
+    + sum(model.vStorageAInp[st1, c, rp, y, s]
+          for rp in mStorageProcAggRegion_ix.get((st1, c, r), ())
+          if (st1, c, rp, y, s) in mvStorageAInp)
     == pTimesliceShare.get((s)) * (
         ((pStorageOutCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutCap[st1, r, y]) if (st1, c, r, y, s) in mStorageOutCap2AInp else 0)
         + ((pStorageOutNCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y]) if (st1, c, r, y, s) in mStorageOutNCap2AInp else 0)
@@ -2393,8 +2408,13 @@ if verbose:
     print("eqStorageAOut ", end="")
 sys.stdout.flush()
 model.eqStorageAOut = Constraint(
-    mvStorageAOut,
-    rule=lambda model, st1, c, r, y, s: model.vStorageAOut[st1, c, r, y, s]
+    meqStorageAOut,
+    # a process coarser than this aux commodity holds the flow in the finer
+    # cells beneath its own; the sum is empty at the commodity's own level
+    rule=lambda model, st1, c, r, y, s: (model.vStorageAOut[st1, c, r, y, s] if (st1, c, r, y, s) in mvStorageAOut else 0)
+    + sum(model.vStorageAOut[st1, c, rp, y, s]
+          for rp in mStorageProcAggRegion_ix.get((st1, c, r), ())
+          if (st1, c, rp, y, s) in mvStorageAOut)
     == pTimesliceShare.get((s)) * (
         ((pStorageOutCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutCap[st1, r, y]) if (st1, c, r, y, s) in mStorageOutCap2AOut else 0)
         + ((pStorageOutNCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y]) if (st1, c, r, y, s) in mStorageOutNCap2AOut else 0)

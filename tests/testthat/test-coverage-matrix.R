@@ -59,8 +59,13 @@ test_that("matrix rows assemble from package metadata with expected arithmetic",
   # description entry and is not counted, 2026-10-16)
   # (348 maps = + mStorageOutCap, mStorageOutNew, mStorageInpOutCap: the
   # discharger exists only with data, 2026-10-17)
+  # (352 maps = + meqTechAInp/AOut and meqStorageAInp/AOut, the equation
+  # domains of the aux flows: a process coarser than its aux commodity holds
+  # the variables in the finer cells beneath it while the equation stays on
+  # its own cell, so the two domains part company. No equation is added --
+  # the four aux equations gained a summed term, 2026-10-18)
   expect_equal(unname(counts[["set"]]), 15)
-  expect_equal(unname(counts[["map"]]), 348)
+  expect_equal(unname(counts[["map"]]), 352)
   expect_equal(unname(counts[["numpar"]]), 151)
   expect_equal(unname(counts[["bounds"]]), 38)
   expect_equal(unname(counts[["equation"]]), 182)

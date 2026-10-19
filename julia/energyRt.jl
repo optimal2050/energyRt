@@ -777,8 +777,12 @@ print(
 print("eqTechAInp(tech, comm, region, year, timeslice)...")
 @constraint(
     model,
-    [(t, c, r, y, s) in mvTechAInp],
-    vTechAInp[(t, c, r, y, s)] ==
+    [(t, c, r, y, s) in meqTechAInp],
+    # a process coarser than this aux commodity holds the flow in the finer
+    # cells beneath its own; the sum is empty at the commodity's own level
+    (if (t, c, r, y, s) in mvTechAInp; vTechAInp[(t, c, r, y, s)]; else; 0; end) +
+    sum(vTechAInp[(t, c, rp, y, s)] for rp in get(mTechProcAggRegion_ix, (t, c, r), ())
+        if (t, c, rp, y, s) in mvTechAInp; init = 0) ==
     (if haskey(pTimesliceShare, (s)) pTimesliceShare[(s)] else pTimesliceShareDef end) * (
         (if (t, c, r, y, s) in mTechCap2AInp; vTechCap[(t, r, y)] * (if haskey(pTechCap2AInp, (t, c, r, y, s)) pTechCap2AInp[(t, c, r, y, s)] else pTechCap2AInpDef end); else; 0; end) +
         (if (t, c, r, y, s) in mTechNCap2AInp; vTechNewCap[(t, r, y)] * (if haskey(pTechNCap2AInp, (t, c, r, y, s)) pTechNCap2AInp[(t, c, r, y, s)] else pTechNCap2AInpDef end); else; 0; end) +
@@ -806,8 +810,12 @@ print(
 print("eqTechAOut(tech, comm, region, year, timeslice)...")
 @constraint(
     model,
-    [(t, c, r, y, s) in mvTechAOut],
-    vTechAOut[(t, c, r, y, s)] ==
+    [(t, c, r, y, s) in meqTechAOut],
+    # a process coarser than this aux commodity holds the flow in the finer
+    # cells beneath its own; the sum is empty at the commodity's own level
+    (if (t, c, r, y, s) in mvTechAOut; vTechAOut[(t, c, r, y, s)]; else; 0; end) +
+    sum(vTechAOut[(t, c, rp, y, s)] for rp in get(mTechProcAggRegion_ix, (t, c, r), ())
+        if (t, c, rp, y, s) in mvTechAOut; init = 0) ==
     (if haskey(pTimesliceShare, (s)) pTimesliceShare[(s)] else pTimesliceShareDef end) * (
         (if (t, c, r, y, s) in mTechCap2AOut; vTechCap[(t, r, y)] * (if haskey(pTechCap2AOut, (t, c, r, y, s)) pTechCap2AOut[(t, c, r, y, s)] else pTechCap2AOutDef end); else; 0; end) +
         (if (t, c, r, y, s) in mTechNCap2AOut; vTechNewCap[(t, r, y)] * (if haskey(pTechNCap2AOut, (t, c, r, y, s)) pTechNCap2AOut[(t, c, r, y, s)] else pTechNCap2AOutDef end); else; 0; end) +
@@ -3355,8 +3363,12 @@ print(
 print("eqStorageAInp(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
-    [(st1, c, r, y, s) in mvStorageAInp],
-    vStorageAInp[(st1, c, r, y, s)] ==
+    [(st1, c, r, y, s) in meqStorageAInp],
+    # a process coarser than this aux commodity holds the flow in the finer
+    # cells beneath its own; the sum is empty at the commodity's own level
+    (if (st1, c, r, y, s) in mvStorageAInp; vStorageAInp[(st1, c, r, y, s)]; else; 0; end) +
+    sum(vStorageAInp[(st1, c, rp, y, s)] for rp in get(mStorageProcAggRegion_ix, (st1, c, r), ())
+        if (st1, c, rp, y, s) in mvStorageAInp; init = 0) ==
     (if haskey(pTimesliceShare, (s)) pTimesliceShare[(s)] else pTimesliceShareDef end) * (
         (if (st1, c, r, y, s) in mStorageOutCap2AInp; (if haskey(pStorageOutCap2AInp, (st1, c, r, y, s)) pStorageOutCap2AInp[(st1, c, r, y, s)] else pStorageOutCap2AInpDef end) * vStorageOutCap[(st1, r, y)]; else; 0; end) +
         (if (st1, c, r, y, s) in mStorageOutNCap2AInp; (if haskey(pStorageOutNCap2AInp, (st1, c, r, y, s)) pStorageOutNCap2AInp[(st1, c, r, y, s)] else pStorageOutNCap2AInpDef end) * vStorageOutNewCap[(st1, r, y)]; else; 0; end) +
@@ -3389,8 +3401,12 @@ print(
 print("eqStorageAOut(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
-    [(st1, c, r, y, s) in mvStorageAOut],
-    vStorageAOut[(st1, c, r, y, s)] ==
+    [(st1, c, r, y, s) in meqStorageAOut],
+    # a process coarser than this aux commodity holds the flow in the finer
+    # cells beneath its own; the sum is empty at the commodity's own level
+    (if (st1, c, r, y, s) in mvStorageAOut; vStorageAOut[(st1, c, r, y, s)]; else; 0; end) +
+    sum(vStorageAOut[(st1, c, rp, y, s)] for rp in get(mStorageProcAggRegion_ix, (st1, c, r), ())
+        if (st1, c, rp, y, s) in mvStorageAOut; init = 0) ==
     (if haskey(pTimesliceShare, (s)) pTimesliceShare[(s)] else pTimesliceShareDef end) * (
         (if (st1, c, r, y, s) in mStorageOutCap2AOut; (if haskey(pStorageOutCap2AOut, (st1, c, r, y, s)) pStorageOutCap2AOut[(st1, c, r, y, s)] else pStorageOutCap2AOutDef end) * vStorageOutCap[(st1, r, y)]; else; 0; end) +
         (if (st1, c, r, y, s) in mStorageOutNCap2AOut; (if haskey(pStorageOutNCap2AOut, (st1, c, r, y, s)) pStorageOutNCap2AOut[(st1, c, r, y, s)] else pStorageOutNCap2AOutDef end) * vStorageOutNewCap[(st1, r, y)]; else; 0; end) +
