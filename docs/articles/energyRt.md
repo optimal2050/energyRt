@@ -1,6 +1,6 @@
 # Get started with energyRt
 
-## Model systems, not implementations
+## Describe the energy system with reusable components
 
 > **A comprehensive, modular energy system modeling framework with an R
 > interface.**
@@ -12,20 +12,19 @@ to build it, and how to operate it while meeting demand and respecting
 physical and policy constraints.
 
 **energyRt** is a framework and macro-language for stating that problem
-in R. Modelers describe the system with reusable components—commodities,
-technologies, supply, demand, storage, and trade—rather than writing the
-optimization equations for every application. energyRt generates the
-sets, mappings, equations, and solver files, runs the model, and returns
-results ready for analysis in R.
+in R. Modelers describe commodities, technologies, supply, demand,
+storage, and trade as reusable objects. energyRt uses those objects to
+generate the sets, mappings, equations, and solver inputs required by
+its implementations, then reads the solution back into R.
 
 The package provides **modeling machinery rather than a fixed model,
 dataset, or scenario**. The same components can support a small teaching
 example, a national planning model, or a detailed multi-sector study.
 
-## How it works: bricks and axes
+## How it works: bricks, time, and space
 
-An energyRt model combines reusable bricks with independent structural
-axes:
+An energyRt model combines reusable bricks with explicit time and space
+structures:
 
 - **Bricks** describe commodities and processes. They are inspectable R
   objects that can be drawn, updated, reused, and combined in
@@ -38,14 +37,13 @@ axes:
 - **Space** comes from a nested
   [geoscales](https://github.com/optimal2050/geoscales) hierarchy.
   National, zonal, and nodal balances can coexist, with each commodity
-  and process placed where its data belongs.
-- **Solve routes** are interchangeable. The same model can write
-  MathProg, JuMP, Pyomo, or GAMS, assemble a direct LP matrix, and solve
-  locally or remotely.
-
-Time, space, horizon, and solver are inputs to the model workflow rather
-than assumptions embedded in every process. Define the system once, then
-adapt those axes to the question.
+  and process placed where its data belongs. Time, space, and the
+  planning horizon belong to the model configuration rather than to
+  every process definition. A technology can therefore be reused with a
+  different calendar or geographical hierarchy when its data support
+  that change. Solver backends are discussed separately below: they are
+  maintained implementations of the energyRt formulation, not another
+  structural axis.
 
 The central object types are:
 
@@ -219,50 +217,269 @@ The model built 1.59 GW of gas capacity—enough to supply 50 PJ per year
 under the declared conversion efficiency. The solved scenario also
 contains every underlying flow, cost, and balance.
 
-## Change an axis, not the model
+## Plot solved results
 
-Changing the solver does not change the bricks or model definition. For
-example, the same `HELLO` object can be sent to Julia and HiGHS:
+[`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+uses the same result tables returned by
+[`getData()`](https://energyRt.org/reference/getData.md). On a solved
+scenario it can show annual generation, capacity, new capacity, fuel
+use, or storage operation. The annual electricity balance from `BASE`
+is:
 
 ``` r
 
-BASE_HIGHS <- solve_model(
-  object = HELLO,
-  name = "BASE_HIGHS",
-  solver = solver_options$julia_highs
+generation_plot <- autoplot(
+  object = BASE,
+  type = "generation",
+  comm = "ELC"
+)
+generation_plot
+```
+
+![](energyRt_files/figure-html/plot-generation-1.png)
+
+The capacity view reads the same scenario without another solve:
+
+``` r
+
+capacity_plot <- autoplot(
+  object = BASE,
+  type = "capacity"
+)
+capacity_plot
+```
+
+![](energyRt_files/figure-html/plot-capacity-1.png)
+
+Sub-annual models add a dispatch view by selecting timeslices, for
+example
+`autoplot(object = scenario, type = "generation", timeslice = "^SUM_")`.
+
+## Save, find, and reload scenarios
+
+An energyRt project stores scenarios, their runs, and references to
+their model inputs.
+[`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
+writes the scenario and adds it to the project registry. The name can
+then be used instead of a path:
+
+``` r
+
+BASE <- save_scenario(
+  object = BASE,
+  verbose = FALSE
+)
+#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpGAKjLm/energyRt-intro/BASE-HELLO-HELLO_HORIZON'
+#> Directory size: 0.24 MB
+
+project_registry <- load_registry()
+project_registry[, c("type", "name", "parent")]
+#> # A tibble: 9 × 3
+#>   type     name  parent
+#>   <chr>    <chr> <chr> 
+#> 1 model    HELLO ""    
+#> 2 scenario BASE  ""    
+#> 3 run      glpk  "BASE"
+#> 4 scenario BASE  ""    
+#> 5 run      glpk  "BASE"
+#> 6 scenario BASE  ""    
+#> 7 run      glpk  "BASE"
+#> 8 scenario BASE  ""    
+#> 9 run      glpk  "BASE"
+
+BASE <- load_scenario(
+  path = "BASE",
+  env = NULL,
+  verbose = FALSE
+)
+
+registered_objective <- getData(
+  object = "BASE",
+  name = "vObjective",
+  merge = TRUE
+)
+registered_objective
+#> # A tibble: 1 × 3
+#>   scenario name       value
+#>   <chr>    <chr>      <dbl>
+#> 1 BASE     vObjective 6677.
+```
+
+[`load_scenarios()`](https://energyRt.org/reference/load_scenario.md)
+loads several registered scenarios as a named list, while
+[`scenario_runs()`](https://energyRt.org/reference/scenario_runs.md)
+lists the solves recorded inside one scenario. Arrow-backed storage
+allows result tables to remain on disk until they are queried. See
+[Scenario
+management](https://energyrt.org/articles/scenario-management.html) for
+the registry, object stores, variants, and portable project bundles.
+
+## Sample a calendar
+
+Sampling changes the temporal representation of a scenario. It is useful
+for rapid exploration, but it is an approximation unless the chosen
+slices are representative. A sample must retain complete members of a
+calendar level;
+[`calendar_samples()`](https://energyRt.org/reference/calendar_samples.md)
+builds valid sample specifications and records how much of the year each
+one covers.
+
+``` r
+
+data(
+  list = "topia",
+  package = "energyRt"
+)
+s4_h24 <- topia$modules$calendars$s4_h24
+
+SEASON_SAMPLES <- calendar_samples(
+  calendar = s4_h24,
+  level = "SEASON",
+  sample_size = 2,
+  n = 2,
+  method = "random",
+  seed = 2050
+)
+SEASON_SAMPLES
+#> calendar_samples: 2 sample(s), method = random
+#>   slices per sample: 48-48 | distinct slices used: 96
+```
+
+[`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md)
+interpolates and solves each sample, preserving the sample definition
+and its runs. This larger TOPIA example is not executed while the
+introductory vignette builds:
+
+``` r
+
+TOPIA_KIT <- topia$modules$electricity$R1
+TOPIA_SAMPLING <- newModel(
+  name = "TOPIA_SAMPLING",
+  desc = "TOPIA model used to demonstrate calendar sampling",
+  data = TOPIA_KIT$repo,
+  calendar = s4_h24,
+  region = TOPIA_KIT$regions,
+  horizon = topia$modules$horizons$base,
+  discount = 0.05
+)
+TOPIA_SAMPLING <- setGeoscale(
+  obj = TOPIA_SAMPLING,
+  geoscale = TOPIA_KIT$geoscale
+)
+
+TOPIA_SAMPLES <- solve_by_sample(
+  object = TOPIA_SAMPLING,
+  name = "TOPIA_SAMPLES",
+  samples = SEASON_SAMPLES,
+  solver = solver_options$glpk,
+  echo = FALSE,
+  verbose = FALSE
+)
+sample_summary(
+  x = TOPIA_SAMPLES,
+  name = "vTechCap",
+  by = "tech"
 )
 ```
 
-The same principle applies to time and space. A model can use a compact
-sampled calendar while it is being developed, then move to a full hourly
-calendar or a different user-defined hierarchy. A sub-territory or
-aggregated geography can be solved from the same system description.
-Those choices change the model instance, not the meaning of every
-technology.
-
 See [Time
 resolution](https://energyrt.org/articles/time-resolution.html) and
-[Space resolution](https://energyrt.org/articles/space-resolution.html)
-for worked examples.
+[Workflow](https://energyrt.org/articles/workflow.html) for manual
+calendar subsets, weighting, repeated samples, and comparisons with a
+full solve.
 
-## Modeling languages and solve routes
+## One formulation, several maintained backends
 
-energyRt separates the system definition from the software used to
-compile and solve it:
+energyRt contains implementations of its formulation in several modeling
+languages. A model object can be compiled through any implementation
+available in the local environment, but this is concrete package support
+rather than backend independence in the abstract: each route works
+because energyRt ships and maintains code for it.
 
-| Route | What it does | Good fit |
+| Route | What the energyRt implementation does | Good fit |
 |----|----|----|
-| GLPK / MathProg | writes transparent MathProg and solves with bundled `glpsol` | first models, teaching, reproducible local runs |
-| Julia / JuMP | writes JuMP for HiGHS, CBC, GLPK, CPLEX, or cuOpt | larger local models and solver choice |
+| GLPK / MathProg | writes MathProg and solves with bundled `glpsol` | first models, teaching, reproducible local runs |
+| Julia / JuMP | writes JuMP for HiGHS, CBC, GLPK, CPLEX, or cuOpt | larger local models and Julia solver environments |
 | Python / Pyomo | writes Pyomo for HiGHS, CBC, GLPK, or CPLEX | Python-based solver environments |
-| GAMS | writes GAMS for institutional solver stacks | established GAMS workflows |
-| [multimod](https://github.com/optimal2050/multimod) *(experimental)* | converts the model to a language-neutral representation, assembles LP/MPS matrices, solves with HiGHS, or renders the formulation as LaTeX | large linear problems, inspection, and mathematical documentation |
-| [mmcloud](https://github.com/optimal2050/mmcloud) *(experimental)* | sends large matrix problems to cloud infrastructure and solves them with GPU-capable backends | models that exceed local memory or compute capacity |
+| GAMS | writes the formulation in GAMS | established institutional GAMS workflows |
+| [multimod](https://github.com/optimal2050/multimod) *(experimental)* | constructs an in-memory model in multimod’s R DSL/AST, then assembles an LP/MPS matrix, solves with HiGHS, or renders equations as LaTeX; it is not a separate text modeling language | matrix workflows, inspection, and mathematical documentation |
+| [mmcloud](https://github.com/optimal2050/mmcloud) *(experimental)* | submits large matrix problems to cloud infrastructure and solves them with GPU-capable backends | models that exceed local memory or compute capacity |
+
+Check the toolchains before selecting an optional route.
+[`en_check_dependencies()`](https://energyRt.org/reference/en_check.md)
+is read-only; `solve = TRUE` additionally verifies configured backends
+by solving a small test model.
+
+``` r
+
+backend_status <- en_check_dependencies(
+  solver_pkgs = TRUE,
+  solve = FALSE
+)
+
+julia_components <- c("Julia", "Julia packages")
+julia_rows <- backend_status$component %in% julia_components
+julia_found <- backend_status$found[julia_rows]
+julia_ready <- length(julia_found) == length(julia_components)
+julia_ready <- julia_ready && all(julia_found)
+
+if (julia_ready) {
+  BASE_JULIA <- solve_model(
+    object = HELLO,
+    name = "BASE_JULIA",
+    solver = solver_options$julia_highs,
+    echo = FALSE
+  )
+}
+
+pyomo_rows <- backend_status$component == "Pyomo"
+pyomo_ready <- isTRUE(backend_status$found[pyomo_rows])
+
+if (pyomo_ready) {
+  BASE_PYOMO <- solve_model(
+    object = HELLO,
+    name = "BASE_PYOMO",
+    solver = solver_options$pyomo_cbc,
+    echo = FALSE
+  )
+}
+```
 
 [NEOS](https://neos-server.org/) provides another remote route for
 supported solvers without a local license. The [solver backends
 article](https://energyrt.org/articles/backends.html) covers
-installation, presets, and operational limits.
+installation, presets, dependency checks, and operational limits.
+
+## Generate reports
+
+[`report()`](https://energyRt.org/reference/report.md) renders object
+datasheets and model or scenario reports. A scenario report includes
+solve status, generation and capacity charts, costs, and other available
+results; a process report documents its declared parameters and diagram.
+HTML reports require Pandoc, so these calls are shown but not executed
+during the vignette build:
+
+``` r
+
+base_report <- report(
+  object = BASE,
+  format = "html",
+  open = FALSE
+)
+
+gas_plant_report <- report(
+  object = HELLO,
+  name = "EGAS",
+  format = "html",
+  open = FALSE
+)
+```
+
+Reports are cached against the object, template, and arguments;
+unchanged inputs do not trigger another render. The
+[Reports](https://energyrt.org/articles/reports.html) article covers
+full scenario reports, process groups, levelized costs, and
+HTML/PDF/Word output.
 
 ## From one solve to a study
 
@@ -310,5 +527,9 @@ storage, trade, capacity expansion, dispatch, and policy scenarios.
     covers local, direct-matrix, GPU, and cloud routes.
 6.  [Workflow](https://energyrt.org/articles/workflow.html) moves from
     one solve to reproducible scenario studies.
-7.  [Features](https://energyrt.org/articles/features.html) is the full
+7.  [Scenario
+    management](https://energyrt.org/articles/scenario-management.html)
+    and [Reports](https://energyrt.org/articles/reports.html) cover
+    persistent projects and automated outputs.
+8.  [Features](https://energyrt.org/articles/features.html) is the full
     capability inventory.

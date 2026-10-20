@@ -13,7 +13,7 @@ template for newCalendar()."><meta property="og:image" content="https://energyRt
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9029</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -143,6 +143,15 @@ resolution (288 timeslices, <code>year_fraction</code> ~ 12/365).</p></dd>
 resolution (d015/d105/d196/d288, 96 timeslices,
 <code>year_fraction</code> ~ 4/365).</p></dd>
 
+<dt>m12_d365_h24</dt>
+<dd><p>IRREGULAR: <code>d365_h24</code> with months (28-31 days)
+above the days of the year; same day and hour timeslices, so a
+commodity can balance by month.</p></dd>
+
+<dt>m12_d365_h24_1dpm</dt>
+<dd><p>SAMPLED: <code>m12_d365_h24</code> on the twelve days
+of <code>d365_h24_1dpm</code> (288 timeslices).</p></dd>
+
 
 </dl><p>The mainstream designs (<code>m12</code> .. <code>w52_h24</code> and the first three sampled
 entries) are generated from the <code>timescales</code> catalog at DATA-BUILD time
@@ -174,7 +183,8 @@ calendars are <code>topia$modules$unit$calendars</code>.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  [7] "s4"                     "s4_h24"                 "m12_h24"               </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [10] "wd7_h24"                "w52_h24"                "s4_h24_subset_2seasons"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [13] "m12_h24_subset_4months" "m12_subset_q1"          "d365_h24_1dps"         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [16] "d365_h24_1dpm"          "s4_hp3"                </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [16] "d365_h24_1dpm"          "s4_hp3"                 "m12_d365_h24"          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [19] "m12_d365_h24_1dpm"     </span>
 <span class="r-in"><span><span class="fu"><a href="draw.html">plot</a></span><span class="op">(</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_hp3</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="calendars-1.png" alt="" width="700" height="433"></span>
 </code></pre></div>

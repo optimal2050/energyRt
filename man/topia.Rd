@@ -81,16 +81,14 @@ objects that REPLACE their base counterpart when added with
 down-rated POOR), \code{ENUC_VINT} (nuclear in two build vintages, absent
 from the \code{R1} kit, which reaches no nuclear region).
 
-\if{html}{\out{<div class="sourceCode">}}\preformatted{The resources are CONCENTRATED, which is what drives trade: `COA` and
-`GAS` are balanced per ZONE (`commodity@geoframe`) and traded between
-zones on `TBD_COA_*` / `TBD_GAS_*` corridors, with finite `ava.up`
-endowments -- coal cheap and plentiful in `WEST`, gas in `EAST` --
-above which `IMP_COA` / `IMP_GAS` are the unbounded backstop.
-Electricity is balanced and traded at the region level (`TBD_ELC_*`).
-Reservoir hydro sits in `C4` (12 GW), `E1` (6) and `C1` (3), and the
-single nuclear station in `C1`. Costs are USD (MUSD/GW, MUSD/PJ).\}
-}\if{html}{\out{</div>}}
-
+The resources are CONCENTRATED, which is what drives trade: \code{COA} and
+\code{GAS} are balanced per ZONE (\code{commodity@geoframe}) and traded between
+zones on \verb{TBD_COA_*} / \verb{TBD_GAS_*} corridors, with finite \code{ava.up}
+endowments -- coal cheap and plentiful in \code{WEST}, gas in \code{EAST} --
+above which \code{IMP_COA} / \code{IMP_GAS} are the unbounded backstop.
+Electricity is balanced and traded at the region level (\verb{TBD_ELC_*}).
+Reservoir hydro sits in \code{C4} (12 GW), \code{E1} (6) and \code{C1} (3), and the
+single nuclear station in \code{C1}. Costs are USD (MUSD/GW, MUSD/PJ).}
 \item{unit}{the "unit model" kits (\code{U1}, \code{U3}): every input is 1 on the
 symmetric \code{unit_s4} calendar, single-year \code{unit} horizon,
 \code{discount = 0}, so each variant's objective is a small hand-checkable

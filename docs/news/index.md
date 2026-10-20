@@ -155,6 +155,16 @@ cycle (450 entries) is in
 
 #### Time and space
 
+- **Irregular calendars.** A parent may have any number of children, so
+  a calendar can nest the days of the year under months of 28-31 days. A
+  timeslice is named by the shortest unique part of its path (`m01`,
+  `d001`, `d001_h00`); regular calendars are built as before. A
+  hand-built sample for
+  [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md)
+  no longer has to be a complete cross and keeps the full calendar’s
+  names. A timetable whose rows are out of time order is refused. New
+  calendars `m12_d365_h24` and `m12_d365_h24_1dpm` put months above the
+  days of `d365_h24`.
 - Calendars gained `year_start` and `utc_offset_minutes`, milestone
   years can carry display labels, and sampled calendars (one
   representative day per month, `d365_h24_1dps`) are first-class — a

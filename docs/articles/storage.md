@@ -276,14 +276,14 @@ scen_year <- solve_model(mod_year, name = "fy_year")
 #> Solver directory:  scenarios/fy_year-d365_h24_1dpm/runs/glpk 
 #> Writing files: 0.25s
 #> Starting  GLPK 
-#> 0.22s
+#> 0.24s
 #> Reading solution: 0.11s
 scen_day <- solve_model(mod_day, name = "fy_day")
 #> Solver directory:  scenarios/fy_day-d365_h24_1dpm/runs/glpk 
 #> Writing files: 0.25s
 #> Starting  GLPK 
-#> 0.16s
-#> Reading solution: 0.11s
+#> 0.17s
+#> Reading solution: 0.13s
 
 getData(scen_year, "vObjective", merge = TRUE)$value
 #> [1] 9962.545

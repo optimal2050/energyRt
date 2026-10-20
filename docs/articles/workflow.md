@@ -175,7 +175,7 @@ scenario and model sharing a name appear once):
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpEdLL9G/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpkT6RsE/wf"
 basename(scen@path)
 #> [1] "BASE-TOPIA-s4_h24-base"
 ```
@@ -598,12 +598,11 @@ sample_summary(ens, "vTechCap", probs = c(0.05, 0.5, 0.95))
 ```
 
 Samples are drawn as whole members of a calendar level — seasons, weeks,
-days — because a calendar sample has to be a complete cross; a ragged
-pick of individual timeslices is silently re-expanded by the calendar
-constructor.
+days. A hand-edited sample need not be a complete cross: its calendar is
+irregular and keeps the full calendar’s timeslice names.
 [`calendar_samples()`](https://energyRt.org/reference/calendar_samples.md)
-builds that specification on its own if you want to look at it or edit
-it first.
+builds the specification on its own, so it can be inspected or edited
+first.
 
 Two rules follow from how a sampled calendar works, and both are
 enforced rather than left to be discovered. A sample must keep **at

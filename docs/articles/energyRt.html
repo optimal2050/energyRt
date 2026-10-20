@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9029</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -362,12 +362,12 @@ contains every underlying flow, cost, and balance.</p>
 <div class="section level2">
 <h2 id="plot-solved-results">Plot solved results<a class="anchor" aria-label="anchor" href="#plot-solved-results"></a>
 </h2>
-<p><code>autoplot()</code> uses the same result tables returned by
+<p><code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> uses the same result tables returned by
 <code><a href="../reference/getData.html">getData()</a></code>. On a solved scenario it can show annual
 generation, capacity, new capacity, fuel use, or storage operation. The
 annual electricity balance from <code>BASE</code> is:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">generation_plot</span> <span class="op">&lt;-</span> <span class="fu">autoplot</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">generation_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span></span>
 <span>  object <span class="op">=</span> <span class="va">BASE</span>,</span>
 <span>  type <span class="op">=</span> <span class="st">"generation"</span>,</span>
 <span>  comm <span class="op">=</span> <span class="st">"ELC"</span></span>
@@ -376,7 +376,7 @@ annual electricity balance from <code>BASE</code> is:</p>
 <p><img src="energyRt_files/figure-html/plot-generation-1.png" class="r-plt" alt="" width="672"></p>
 <p>The capacity view reads the same scenario without another solve:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">capacity_plot</span> <span class="op">&lt;-</span> <span class="fu">autoplot</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">capacity_plot</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span></span>
 <span>  object <span class="op">=</span> <span class="va">BASE</span>,</span>
 <span>  type <span class="op">=</span> <span class="st">"capacity"</span></span>
 <span><span class="op">)</span></span>
@@ -398,12 +398,12 @@ path:</p>
 <span>  object <span class="op">=</span> <span class="va">BASE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpETqnEr/energyRt-intro/BASE-HELLO-HELLO_HORIZON'</span></span>
+<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpGAKjLm/energyRt-intro/BASE-HELLO-HELLO_HORIZON'</span></span>
 <span><span class="co">#&gt; Directory size: 0.24 MB</span></span>
 <span></span>
 <span><span class="va">project_registry</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">load_registry</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">project_registry</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"type"</span>, <span class="st">"name"</span>, <span class="st">"parent"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 7 × 3</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 9 × 3</span></span></span>
 <span><span class="co">#&gt;   type     name  parent</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> model    HELLO <span style="color: #949494;">""</span>    </span></span>
@@ -413,6 +413,8 @@ path:</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">8</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">9</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
 <span></span>
 <span><span class="va">BASE</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_scenario.html">load_scenario</a></span><span class="op">(</span></span>
 <span>  path <span class="op">=</span> <span class="st">"BASE"</span>,</span>
@@ -654,7 +656,7 @@ scenario folders keep results addressable and allow larger-than-memory
 analysis.</li>
 <li>
 <strong>Inspect and validate.</strong> <code><a href="../reference/draw.html">draw()</a></code>,
-<code>autoplot()</code>, <code><a href="../reference/report.html">report()</a></code>, and
+<code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code>, <code><a href="../reference/report.html">report()</a></code>, and
 <code><a href="../reference/verify_solution.html">verify_solution()</a></code> expose both declared objects and solved
 behavior.</li>
 <li>

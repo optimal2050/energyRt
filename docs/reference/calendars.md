@@ -90,6 +90,17 @@ A named list of `calendar` objects:
   SAMPLED: one day per season at hourly resolution (d015/d105/d196/d288,
   96 timeslices, `year_fraction` ~ 4/365).
 
+- m12_d365_h24:
+
+  IRREGULAR: `d365_h24` with months (28-31 days) above the days of the
+  year; same day and hour timeslices, so a commodity can balance by
+  month.
+
+- m12_d365_h24_1dpm:
+
+  SAMPLED: `m12_d365_h24` on the twelve days of `d365_h24_1dpm` (288
+  timeslices).
+
 The mainstream designs (`m12` .. `w52_h24` and the first three sampled
 entries) are generated from the `timescales` catalog at DATA-BUILD time
 only – timescales is not a runtime dependency. Sampled calendars carry
@@ -122,6 +133,7 @@ names(calendars)
 #>  [7] "s4"                     "s4_h24"                 "m12_h24"               
 #> [10] "wd7_h24"                "w52_h24"                "s4_h24_subset_2seasons"
 #> [13] "m12_h24_subset_4months" "m12_subset_q1"          "d365_h24_1dps"         
-#> [16] "d365_h24_1dpm"          "s4_hp3"                
+#> [16] "d365_h24_1dpm"          "s4_hp3"                 "m12_d365_h24"          
+#> [19] "m12_d365_h24_1dpm"     
 plot(calendars$s4_hp3)
 ```

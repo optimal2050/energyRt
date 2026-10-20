@@ -35,7 +35,8 @@ names(calendars)
 #>  [7] "s4"                     "s4_h24"                 "m12_h24"               
 #> [10] "wd7_h24"                "w52_h24"                "s4_h24_subset_2seasons"
 #> [13] "m12_h24_subset_4months" "m12_subset_q1"          "d365_h24_1dps"         
-#> [16] "d365_h24_1dpm"          "s4_hp3"
+#> [16] "d365_h24_1dpm"          "s4_hp3"                 "m12_d365_h24"          
+#> [19] "m12_d365_h24_1dpm"
 ```
 
 [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)

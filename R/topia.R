@@ -72,14 +72,14 @@
 #'     down-rated POOR), `ENUC_VINT` (nuclear in two build vintages, absent
 #'     from the `R1` kit, which reaches no nuclear region).
 #'
-#'     The resources are CONCENTRATED, which is what drives trade: `COA` and
-#'     `GAS` are balanced per ZONE (`commodity@geoframe`) and traded between
-#'     zones on `TBD_COA_*` / `TBD_GAS_*` corridors, with finite `ava.up`
-#'     endowments -- coal cheap and plentiful in `WEST`, gas in `EAST` --
-#'     above which `IMP_COA` / `IMP_GAS` are the unbounded backstop.
-#'     Electricity is balanced and traded at the region level (`TBD_ELC_*`).
-#'     Reservoir hydro sits in `C4` (12 GW), `E1` (6) and `C1` (3), and the
-#'     single nuclear station in `C1`. Costs are USD (MUSD/GW, MUSD/PJ).}
+#'   The resources are CONCENTRATED, which is what drives trade: `COA` and
+#'   `GAS` are balanced per ZONE (`commodity@geoframe`) and traded between
+#'   zones on `TBD_COA_*` / `TBD_GAS_*` corridors, with finite `ava.up`
+#'   endowments -- coal cheap and plentiful in `WEST`, gas in `EAST` --
+#'   above which `IMP_COA` / `IMP_GAS` are the unbounded backstop.
+#'   Electricity is balanced and traded at the region level (`TBD_ELC_*`).
+#'   Reservoir hydro sits in `C4` (12 GW), `E1` (6) and `C1` (3), and the
+#'   single nuclear station in `C1`. Costs are USD (MUSD/GW, MUSD/PJ).}
 #'   \item{unit}{the "unit model" kits (`U1`, `U3`): every input is 1 on the
 #'     symmetric `unit_s4` calendar, single-year `unit` horizon,
 #'     `discount = 0`, so each variant's objective is a small hand-checkable

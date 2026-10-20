@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9029</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -104,7 +104,9 @@
 </ul></div>
 <div class="section level4">
 <h4 id="time-and-space-0-90-0">Time and space<a class="anchor" aria-label="anchor" href="#time-and-space-0-90-0"></a></h4>
-<ul><li>Calendars gained <code>year_start</code> and <code>utc_offset_minutes</code>, milestone years can carry display labels, and sampled calendars (one representative day per month, <code>d365_h24_1dps</code>) are first-class — a full model solved on a subset of slices.</li>
+<ul><li>
+<strong>Irregular calendars.</strong> A parent may have any number of children, so a calendar can nest the days of the year under months of 28-31 days. A timeslice is named by the shortest unique part of its path (<code>m01</code>, <code>d001</code>, <code>d001_h00</code>); regular calendars are built as before. A hand-built sample for <code><a href="../reference/solve_by_sample.html">solve_by_sample()</a></code> no longer has to be a complete cross and keeps the full calendar’s names. A timetable whose rows are out of time order is refused. New calendars <code>m12_d365_h24</code> and <code>m12_d365_h24_1dpm</code> put months above the days of <code>d365_h24</code>.</li>
+<li>Calendars gained <code>year_start</code> and <code>utc_offset_minutes</code>, milestone years can carry display labels, and sampled calendars (one representative day per month, <code>d365_h24_1dps</code>) are first-class — a full model solved on a subset of slices.</li>
 <li>
 <strong>Region aggregation with clustering</strong>: <code>aggregate_model_regions(clusters = )</code> partitions a corridor family into <code>k</code> groups, <code><a href="../reference/get_process_groups.html">get_process_groups()</a></code> reports what may be merged, <code><a href="../reference/process_cluster_sweep.html">process_cluster_sweep()</a></code> sweeps the admissible range and <code><a href="../reference/model_clusters.html">model_clusters()</a></code> reports what an aggregation did.</li>
 <li>A filtered geoscale passed to <code><a href="../reference/interpolate_model.html">interpolate_model()</a></code> solves a sub-territory, and <code><a href="../reference/subset_model_regions.html">subset_model_regions()</a></code> warns when sampling splits a cell a process spans.</li>
