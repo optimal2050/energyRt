@@ -326,4 +326,4 @@ invisible(lapply(horizons,  validObject))
 message("calendars: ", paste(names(calendars), collapse = ", "))
 message("horizons:  ", paste(names(horizons),  collapse = ", "))
 
-usethis::use_data(calendars, horizons, overwrite = TRUE)
+usethis::use_data(calendars, horizons, overwrite = TRUE, compress = "xz")
