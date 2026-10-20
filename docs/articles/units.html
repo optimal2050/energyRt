@@ -40,8 +40,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-development">
-<li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
-    <li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+<li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
   </ul>
 </li>
 <li class="active nav-item dropdown">
@@ -265,8 +264,8 @@ and a volume of coal becomes an energy. Given the properties,
 <code><a href="../reference/convert.html">convert()</a></code> can find that chain itself:</p>
 <blockquote>
 <p><strong>Not in this build.</strong> Commodity-aware conversion is not
-available in energyRt 0.90.0.9029. The calls below are shown for
-reference; their output will appear here once the feature lands.</p>
+available in energyRt 0.90.0. The calls below are shown for reference;
+their output will appear here once the feature lands.</p>
 </blockquote>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="fl">1</span>, <span class="st">"t"</span>,  <span class="st">"GJ"</span>, commodity <span class="op">=</span> <span class="va">COA</span><span class="op">)</span>   <span class="co"># 25.8   — via lhv</span></span>
@@ -331,8 +330,8 @@ of 1000 EUR is not one number, it is one number and a year.</p>
 <p>Write the year into the unit:</p>
 <blockquote>
 <p><strong>Not in this build.</strong> Year-tagged currency is not
-available in energyRt 0.90.0.9029. The calls below are shown for
-reference; their output will appear here once the feature lands.</p>
+available in energyRt 0.90.0. The calls below are shown for reference;
+their output will appear here once the feature lands.</p>
 </blockquote>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="fl">1</span>, <span class="st">"MEUR2020"</span>, <span class="st">"MUSD2020"</span><span class="op">)</span>   <span class="co"># an exchange-rate question</span></span>
@@ -399,8 +398,8 @@ well as processes. So declare it, and let interpolation do the
 arithmetic:</p>
 <blockquote>
 <p><strong>Not in this build.</strong> A model-level unit target is not
-available in energyRt 0.90.0.9029. The calls below are shown for
-reference; their output will appear here once the feature lands.</p>
+available in energyRt 0.90.0. The calls below are shown for reference;
+their output will appear here once the feature lands.</p>
 </blockquote>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"demo"</span>, units <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>costs <span class="op">=</span> <span class="st">"MUSD2020"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>

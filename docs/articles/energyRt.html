@@ -40,8 +40,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-development">
-<li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
-    <li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+<li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -398,23 +397,25 @@ path:</p>
 <span>  object <span class="op">=</span> <span class="va">BASE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpGAKjLm/energyRt-intro/BASE-HELLO-HELLO_HORIZON'</span></span>
+<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpCqD0se/energyRt-intro/BASE-HELLO-HELLO_HORIZON'</span></span>
 <span><span class="co">#&gt; Directory size: 0.24 MB</span></span>
 <span></span>
 <span><span class="va">project_registry</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">load_registry</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">project_registry</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"type"</span>, <span class="st">"name"</span>, <span class="st">"parent"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 9 × 3</span></span></span>
-<span><span class="co">#&gt;   type     name  parent</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> model    HELLO <span style="color: #949494;">""</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">8</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">9</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 11 × 3</span></span></span>
+<span><span class="co">#&gt;    type     name  parent</span></span>
+<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span> model    HELLO <span style="color: #949494;">""</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">11</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
 <span></span>
 <span><span class="va">BASE</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_scenario.html">load_scenario</a></span><span class="op">(</span></span>
 <span>  path <span class="op">=</span> <span class="st">"BASE"</span>,</span>

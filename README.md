@@ -236,8 +236,6 @@ platform-specific steps.
   a reproducible study.
 - [reneuro](https://github.com/optimal2050/reneuro/) — the same machinery applied
   to Europe + Neighbors power system at production scale.
-- [Roadmap](https://energyrt.org/articles/roadmap.html) — status and priorities
-  on the way to v1.0.
 
 ## Status
 

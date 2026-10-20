@@ -314,7 +314,7 @@ model definition does not change between them.
   a backend or a change.
 - **Articles** for installation, backends, model bricks, units, time and space
   resolution, storage, vintages and clusters, workflow, scenario management,
-  reports, `autoplot()`, and the roadmap.
+  reports and `autoplot()`.
 - **A production example.** [IDEEA](https://ideea-model.github.io/IDEEA/)
   applies the same machinery to India's power system at full resolution.
 
