@@ -284,6 +284,36 @@ if (requireNamespace("timescales", quietly = TRUE) &&
   )
 }
 
+# ── 2d. Months above the days of the year ────────────────────────────────────
+# d365_h24 with a MONTH level between ANNUAL and YDAY (months of 28-31 days,
+# an irregular calendar). The leaf timeslices and the day labels are those of
+# d365_h24, so data keyed on d365_h24 fits unchanged; a commodity can then
+# balance by month. The sampled twin keeps the twelve days of d365_h24_1dpm.
+if (!is.null(calendars[["d365_h24"]])) {
+  .tt <- as.data.frame(calendars[["d365_h24"]]@timetable)
+  .doy <- as.integer(sub("^d", "", .tt$YDAY))
+  .tt$MONTH <- sprintf("m%02d", as.integer(format(
+    as.Date(.doy - 1, origin = "2025-01-01"), "%m")))
+  .tt <- .tt[, c("ANNUAL", "MONTH", "YDAY", "HOUR", "timeslice", "share")]
+  calendars[["m12_d365_h24"]] <- newCalendar(
+    name = "m12_d365_h24",
+    desc = paste0("d365_h24 with months (28-31 days) above the days of the ",
+                  "year; same day and hour timeslices as d365_h24"),
+    timetable = data.table::as.data.table(.tt)
+  )
+  if (!is.null(calendars[["d365_h24_1dpm"]])) {
+    .days <- unique(as.character(calendars[["d365_h24_1dpm"]]@timetable$YDAY))
+    .st <- .tt[.tt$YDAY %in% .days, ]
+    calendars[["m12_d365_h24_1dpm"]] <- newCalendar(
+      name = "m12_d365_h24_1dpm",
+      desc = paste0("m12_d365_h24 sampled to the days of d365_h24_1dpm (",
+                    paste(.days, collapse = "/"), ")"),
+      timetable = data.table::as.data.table(.st),
+      year_fraction = sum(.st$share)
+    )
+  }
+}
+
 # ── 3. Validate & store ──────────────────────────────────────────────────────
 stopifnot(
   length(calendars) > 0,

@@ -20,12 +20,11 @@
 # and solves to zero without warning. A sample must retain at least two members
 # at every non-ANNUAL level.
 #
-# Samples are RECTANGULAR: whole members of one level, with the full cross of
-# finer levels beneath. A ragged selection is silently re-expanded to the full
-# cross (24 scattered leaves of s4_h24 come back as 64), which leaves the
-# scaled shares attached to only some rows and the interpolation reports
-# duplicate keys and NA indices. Sampling therefore draws members of `level`,
-# and `.sample_calendar()` refuses a ragged hand-built selection.
+# Samples keep the full calendar's timeslice names. A selection need not be a
+# complete cross: the constructor builds an irregular calendar from the rows
+# chosen, and `.sample_calendar()` names its timeslices after the full
+# calendar, so a label that becomes unique in the sample is not shortened.
+# `calendar_samples()` still draws whole members of `level`.
 # =============================================================================#
 
 # The calendar's level columns, coarsest first, excluding ANNUAL.
@@ -60,11 +59,11 @@
 #'   holds each timeslice once), so repeats are carried as a `count` and become
 #'   a scaled share when the sample's calendar is built.
 #'
-#' Samples are drawn as whole members of `level` because a calendar sample must
-#' be a complete cross: a ragged selection of individual leaf timeslices is
-#' silently re-expanded by the calendar constructor. Each sample must also keep
-#' at least two members at every non-ANNUAL level, so `sample_size` of 1 is
-#' refused for the coarsest level.
+#' Samples are drawn as whole members of `level`. A hand-built selection need
+#' not be a complete cross: its calendar is irregular and keeps the full
+#' calendar's timeslice names. Each sample must keep at least two members at
+#' every non-ANNUAL level, so `sample_size` of 1 is refused for the coarsest
+#' level.
 #'
 #' @param calendar a calendar object.
 #' @param level character, the level whose members are drawn; the coarsest
@@ -240,25 +239,10 @@ calendar_samples <- function(calendar, level = NULL, sample_size = NULL,
            "model's data would silently stop matching.", call. = FALSE)
     }
   }
-  # the selection must be a complete cross of the surviving level members:
-  # a ragged one is re-expanded by .complete_calendar(), which puts back rows
-  # the sample never chose and leaves the scaled shares on only some of them
-  lvs <- intersect(.cal_levels(cal), names(sub))
-  if (length(lvs)) {
-    want <- prod(vapply(lvs, function(l)
-      length(unique(as.character(sub[[l]]))), numeric(1)))
-    if (nrow(sub) != want) {
-      stop("A calendar sample must be a complete cross of its level members: ",
-           "this one selects ", nrow(sub), " timeslice(s) where the surviving ",
-           "members of ", paste(lvs, collapse = " x "), " span ", want, ".
-",
-           "  Draw whole members of a level (calendar_samples(level = )) ",
-           "rather than individual timeslices.", call. = FALSE)
-    }
-  }
   sub <- sub[, setdiff(names(sub), "weight"), with = FALSE]
-  newCalendar(name = name, timetable = sub,
-              year_fraction = sum(sub$share))
+  x <- newCalendar(name = name, timetable = sub,
+                   year_fraction = sum(sub$share))
+  .complete_calendar(x, year_fraction = x@year_fraction, ref = cal@timetable)
 }
 
 # add/refresh driver metadata in a variant.yml written by save_scenario()

@@ -75,6 +75,11 @@
 #'   \item{d365_h24_1dps}{SAMPLED: one day per season at hourly
 #'     resolution (d015/d105/d196/d288, 96 timeslices,
 #'     `year_fraction` ~ 4/365).}
+#'   \item{m12_d365_h24}{IRREGULAR: `d365_h24` with months (28-31 days)
+#'     above the days of the year; same day and hour timeslices, so a
+#'     commodity can balance by month.}
+#'   \item{m12_d365_h24_1dpm}{SAMPLED: `m12_d365_h24` on the twelve days
+#'     of `d365_h24_1dpm` (288 timeslices).}
 #' }
 #' The mainstream designs (`m12` .. `w52_h24` and the first three sampled
 #' entries) are generated from the `timescales` catalog at DATA-BUILD time

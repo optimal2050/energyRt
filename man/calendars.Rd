@@ -35,6 +35,11 @@ resolution (288 timeslices, \code{year_fraction} ~ 12/365).}
 \item{d365_h24_1dps}{SAMPLED: one day per season at hourly
 resolution (d015/d105/d196/d288, 96 timeslices,
 \code{year_fraction} ~ 4/365).}
+\item{m12_d365_h24}{IRREGULAR: \code{d365_h24} with months (28-31 days)
+above the days of the year; same day and hour timeslices, so a
+commodity can balance by month.}
+\item{m12_d365_h24_1dpm}{SAMPLED: \code{m12_d365_h24} on the twelve days
+of \code{d365_h24_1dpm} (288 timeslices).}
 }
 The mainstream designs (\code{m12} .. \code{w52_h24} and the first three sampled
 entries) are generated from the \code{timescales} catalog at DATA-BUILD time

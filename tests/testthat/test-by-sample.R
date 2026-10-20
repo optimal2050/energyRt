@@ -5,9 +5,8 @@
 #     region driver's disjoint samples;
 #   * a sample keeps >= 2 members at every level -- dropping a collapsed level
 #     renames the leaf timeslices, and the model's data stops matching them;
-#   * a sample is a complete cross of its level members -- the calendar
-#     constructor re-expands a ragged selection, so the requested slices and
-#     the resulting calendar would disagree.
+#   * a sample keeps the full calendar's timeslice names -- a ragged
+#     selection builds an irregular calendar of exactly the slices chosen.
 
 bs_path <- function(name) {
   gsub("[\\/]+", "/", file.path(tempdir(), "by-sample", name))
@@ -78,7 +77,7 @@ test_that("calendar_samples refuses a sample that would collapse a level", {
   expect_true(all(sizes >= 2 * 24))
 })
 
-test_that(".sample_calendar keeps two members and a complete cross", {
+test_that(".sample_calendar keeps two members and the chosen slices", {
   cal <- bs_cal()
   leaf <- bs_leaf()
 
@@ -86,9 +85,12 @@ test_that(".sample_calendar keeps two members and a complete cross", {
   expect_error(.sample_calendar(cal, grep("^WIN_", leaf, value = TRUE)),
                "at least two members")
 
-  # a ragged selection would be re-expanded by the constructor
+  # a ragged selection is an irregular calendar of exactly those slices
   ragged <- setdiff(leaf, "WIN_h00")
-  expect_error(.sample_calendar(cal, ragged), "complete cross")
+  rc <- .sample_calendar(cal, ragged)
+  expect_identical(as.character(rc@timeframes[[length(rc@timeframes)]]),
+                   ragged)
+  expect_equal(sum(rc@timetable$share), rc@year_fraction)
 
   # two whole seasons are fine, and the leaf labels are preserved
   ok <- .sample_calendar(cal, grep("^(WIN|SUM)_", leaf, value = TRUE))

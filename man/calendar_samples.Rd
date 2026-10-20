@@ -51,11 +51,11 @@ holds each timeslice once), so repeats are carried as a \code{count} and become
 a scaled share when the sample's calendar is built.
 }
 
-Samples are drawn as whole members of \code{level} because a calendar sample must
-be a complete cross: a ragged selection of individual leaf timeslices is
-silently re-expanded by the calendar constructor. Each sample must also keep
-at least two members at every non-ANNUAL level, so \code{sample_size} of 1 is
-refused for the coarsest level.
+Samples are drawn as whole members of \code{level}. A hand-built selection need
+not be a complete cross: its calendar is irregular and keeps the full
+calendar's timeslice names. Each sample must keep at least two members at
+every non-ANNUAL level, so \code{sample_size} of 1 is refused for the coarsest
+level.
 }
 \examples{
 cal <- topia$modules$calendars$s4_h24

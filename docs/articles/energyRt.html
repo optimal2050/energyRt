@@ -102,7 +102,7 @@
     
     
 <div class="section level2">
-<h2 id="model-systems-not-implementations">Model systems, not implementations<a class="anchor" aria-label="anchor" href="#model-systems-not-implementations"></a>
+<h2 id="describe-the-energy-system-with-reusable-components">Describe the energy system with reusable components<a class="anchor" aria-label="anchor" href="#describe-the-energy-system-with-reusable-components"></a>
 </h2>
 <blockquote>
 <p><strong>A comprehensive, modular energy system modeling framework
@@ -114,22 +114,21 @@ useful energy. Planning that system means deciding what to build, when
 to build it, and how to operate it while meeting demand and respecting
 physical and policy constraints.</p>
 <p><strong>energyRt</strong> is a framework and macro-language for
-stating that problem in R. Modelers describe the system with reusable
-components—commodities, technologies, supply, demand, storage, and
-trade—rather than writing the optimization equations for every
-application. energyRt generates the sets, mappings, equations, and
-solver files, runs the model, and returns results ready for analysis in
-R.</p>
+stating that problem in R. Modelers describe commodities, technologies,
+supply, demand, storage, and trade as reusable objects. energyRt uses
+those objects to generate the sets, mappings, equations, and solver
+inputs required by its implementations, then reads the solution back
+into R.</p>
 <p>The package provides <strong>modeling machinery rather than a fixed
 model, dataset, or scenario</strong>. The same components can support a
 small teaching example, a national planning model, or a detailed
 multi-sector study.</p>
 </div>
 <div class="section level2">
-<h2 id="how-it-works-bricks-and-axes">How it works: bricks and axes<a class="anchor" aria-label="anchor" href="#how-it-works-bricks-and-axes"></a>
+<h2 id="how-it-works-bricks-time-and-space">How it works: bricks, time, and space<a class="anchor" aria-label="anchor" href="#how-it-works-bricks-time-and-space"></a>
 </h2>
-<p>An energyRt model combines reusable bricks with independent
-structural axes:</p>
+<p>An energyRt model combines reusable bricks with explicit time and
+space structures:</p>
 <ul>
 <li>
 <strong>Bricks</strong> describe commodities and processes. They are
@@ -143,15 +142,14 @@ one possible calendar; it is not a fixed requirement or ceiling.</li>
 <li>
 <strong>Space</strong> comes from a nested <a href="https://github.com/optimal2050/geoscales" class="external-link">geoscales</a> hierarchy.
 National, zonal, and nodal balances can coexist, with each commodity and
-process placed where its data belongs.</li>
-<li>
-<strong>Solve routes</strong> are interchangeable. The same model
-can write MathProg, JuMP, Pyomo, or GAMS, assemble a direct LP matrix,
-and solve locally or remotely.</li>
+process placed where its data belongs. Time, space, and the planning
+horizon belong to the model configuration rather than to every process
+definition. A technology can therefore be reused with a different
+calendar or geographical hierarchy when its data support that change.
+Solver backends are discussed separately below: they are maintained
+implementations of the energyRt formulation, not another structural
+axis.</li>
 </ul>
-<p>Time, space, horizon, and solver are inputs to the model workflow
-rather than assumptions embedded in every process. Define the system
-once, then adapt those axes to the question.</p>
 <p>The central object types are:</p>
 <table class="table">
 <colgroup>
@@ -362,32 +360,154 @@ year under the declared conversion efficiency. The solved scenario also
 contains every underlying flow, cost, and balance.</p>
 </div>
 <div class="section level2">
-<h2 id="change-an-axis-not-the-model">Change an axis, not the model<a class="anchor" aria-label="anchor" href="#change-an-axis-not-the-model"></a>
+<h2 id="plot-solved-results">Plot solved results<a class="anchor" aria-label="anchor" href="#plot-solved-results"></a>
 </h2>
-<p>Changing the solver does not change the bricks or model definition.
-For example, the same <code>HELLO</code> object can be sent to Julia and
-HiGHS:</p>
+<p><code>autoplot()</code> uses the same result tables returned by
+<code><a href="../reference/getData.html">getData()</a></code>. On a solved scenario it can show annual
+generation, capacity, new capacity, fuel use, or storage operation. The
+annual electricity balance from <code>BASE</code> is:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">BASE_HIGHS</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span></span>
-<span>  object <span class="op">=</span> <span class="va">HELLO</span>,</span>
-<span>  name <span class="op">=</span> <span class="st">"BASE_HIGHS"</span>,</span>
-<span>  solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<p>The same principle applies to time and space. A model can use a
-compact sampled calendar while it is being developed, then move to a
-full hourly calendar or a different user-defined hierarchy. A
-sub-territory or aggregated geography can be solved from the same system
-description. Those choices change the model instance, not the meaning of
-every technology.</p>
-<p>See <a href="https://energyrt.org/articles/time-resolution.html" class="external-link">Time
-resolution</a> and <a href="https://energyrt.org/articles/space-resolution.html" class="external-link">Space
-resolution</a> for worked examples.</p>
+<code class="sourceCode R"><span><span class="va">generation_plot</span> <span class="op">&lt;-</span> <span class="fu">autoplot</span><span class="op">(</span></span>
+<span>  object <span class="op">=</span> <span class="va">BASE</span>,</span>
+<span>  type <span class="op">=</span> <span class="st">"generation"</span>,</span>
+<span>  comm <span class="op">=</span> <span class="st">"ELC"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">generation_plot</span></span></code></pre></div>
+<p><img src="energyRt_files/figure-html/plot-generation-1.png" class="r-plt" alt="" width="672"></p>
+<p>The capacity view reads the same scenario without another solve:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">capacity_plot</span> <span class="op">&lt;-</span> <span class="fu">autoplot</span><span class="op">(</span></span>
+<span>  object <span class="op">=</span> <span class="va">BASE</span>,</span>
+<span>  type <span class="op">=</span> <span class="st">"capacity"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">capacity_plot</span></span></code></pre></div>
+<p><img src="energyRt_files/figure-html/plot-capacity-1.png" class="r-plt" alt="" width="672"></p>
+<p>Sub-annual models add a dispatch view by selecting timeslices, for
+example
+<code>autoplot(object = scenario, type = "generation", timeslice = "^SUM_")</code>.</p>
 </div>
 <div class="section level2">
-<h2 id="modeling-languages-and-solve-routes">Modeling languages and solve routes<a class="anchor" aria-label="anchor" href="#modeling-languages-and-solve-routes"></a>
+<h2 id="save-find-and-reload-scenarios">Save, find, and reload scenarios<a class="anchor" aria-label="anchor" href="#save-find-and-reload-scenarios"></a>
 </h2>
-<p>energyRt separates the system definition from the software used to
-compile and solve it:</p>
+<p>An energyRt project stores scenarios, their runs, and references to
+their model inputs. <code><a href="../reference/save_scenario.html">save_scenario()</a></code> writes the scenario and
+adds it to the project registry. The name can then be used instead of a
+path:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">BASE</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/save_scenario.html">save_scenario</a></span><span class="op">(</span></span>
+<span>  object <span class="op">=</span> <span class="va">BASE</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpETqnEr/energyRt-intro/BASE-HELLO-HELLO_HORIZON'</span></span>
+<span><span class="co">#&gt; Directory size: 0.24 MB</span></span>
+<span></span>
+<span><span class="va">project_registry</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">load_registry</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">project_registry</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"type"</span>, <span class="st">"name"</span>, <span class="st">"parent"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 7 × 3</span></span></span>
+<span><span class="co">#&gt;   type     name  parent</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> model    HELLO <span style="color: #949494;">""</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
+<span></span>
+<span><span class="va">BASE</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_scenario.html">load_scenario</a></span><span class="op">(</span></span>
+<span>  path <span class="op">=</span> <span class="st">"BASE"</span>,</span>
+<span>  env <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">registered_objective</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span></span>
+<span>  object <span class="op">=</span> <span class="st">"BASE"</span>,</span>
+<span>  name <span class="op">=</span> <span class="st">"vObjective"</span>,</span>
+<span>  merge <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">registered_objective</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 3</span></span></span>
+<span><span class="co">#&gt;   scenario name       value</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> BASE     vObjective <span style="text-decoration: underline;">6</span>677.</span></span></code></pre></div>
+<p><code><a href="../reference/load_scenario.html">load_scenarios()</a></code> loads several registered scenarios as a
+named list, while <code><a href="../reference/scenario_runs.html">scenario_runs()</a></code> lists the solves recorded
+inside one scenario. Arrow-backed storage allows result tables to remain
+on disk until they are queried. See <a href="https://energyrt.org/articles/scenario-management.html" class="external-link">Scenario
+management</a> for the registry, object stores, variants, and portable
+project bundles.</p>
+</div>
+<div class="section level2">
+<h2 id="sample-a-calendar">Sample a calendar<a class="anchor" aria-label="anchor" href="#sample-a-calendar"></a>
+</h2>
+<p>Sampling changes the temporal representation of a scenario. It is
+useful for rapid exploration, but it is an approximation unless the
+chosen slices are representative. A sample must retain complete members
+of a calendar level; <code><a href="../reference/calendar_samples.html">calendar_samples()</a></code> builds valid sample
+specifications and records how much of the year each one covers.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span></span>
+<span>  list <span class="op">=</span> <span class="st">"topia"</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"energyRt"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">s4_h24</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span></span>
+<span></span>
+<span><span class="va">SEASON_SAMPLES</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calendar_samples.html">calendar_samples</a></span><span class="op">(</span></span>
+<span>  calendar <span class="op">=</span> <span class="va">s4_h24</span>,</span>
+<span>  level <span class="op">=</span> <span class="st">"SEASON"</span>,</span>
+<span>  sample_size <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  n <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"random"</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">2050</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">SEASON_SAMPLES</span></span>
+<span><span class="co">#&gt; calendar_samples: 2 sample(s), method = random</span></span>
+<span><span class="co">#&gt;   slices per sample: 48-48 | distinct slices used: 96</span></span></code></pre></div>
+<p><code><a href="../reference/solve_by_sample.html">solve_by_sample()</a></code> interpolates and solves each sample,
+preserving the sample definition and its runs. This larger TOPIA example
+is not executed while the introductory vignette builds:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">TOPIA_KIT</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R1</span></span>
+<span><span class="va">TOPIA_SAMPLING</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span></span>
+<span>  name <span class="op">=</span> <span class="st">"TOPIA_SAMPLING"</span>,</span>
+<span>  desc <span class="op">=</span> <span class="st">"TOPIA model used to demonstrate calendar sampling"</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">TOPIA_KIT</span><span class="op">$</span><span class="va">repo</span>,</span>
+<span>  calendar <span class="op">=</span> <span class="va">s4_h24</span>,</span>
+<span>  region <span class="op">=</span> <span class="va">TOPIA_KIT</span><span class="op">$</span><span class="va">regions</span>,</span>
+<span>  horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span>
+<span>  discount <span class="op">=</span> <span class="fl">0.05</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">TOPIA_SAMPLING</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/setGeoscale.html">setGeoscale</a></span><span class="op">(</span></span>
+<span>  obj <span class="op">=</span> <span class="va">TOPIA_SAMPLING</span>,</span>
+<span>  geoscale <span class="op">=</span> <span class="va">TOPIA_KIT</span><span class="op">$</span><span class="va">geoscale</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">TOPIA_SAMPLES</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_by_sample.html">solve_by_sample</a></span><span class="op">(</span></span>
+<span>  object <span class="op">=</span> <span class="va">TOPIA_SAMPLING</span>,</span>
+<span>  name <span class="op">=</span> <span class="st">"TOPIA_SAMPLES"</span>,</span>
+<span>  samples <span class="op">=</span> <span class="va">SEASON_SAMPLES</span>,</span>
+<span>  solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span>,</span>
+<span>  echo <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/sample_summary.html">sample_summary</a></span><span class="op">(</span></span>
+<span>  x <span class="op">=</span> <span class="va">TOPIA_SAMPLES</span>,</span>
+<span>  name <span class="op">=</span> <span class="st">"vTechCap"</span>,</span>
+<span>  by <span class="op">=</span> <span class="st">"tech"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>See <a href="https://energyrt.org/articles/time-resolution.html" class="external-link">Time
+resolution</a> and <a href="https://energyrt.org/articles/workflow.html" class="external-link">Workflow</a> for
+manual calendar subsets, weighting, repeated samples, and comparisons
+with a full solve.</p>
+</div>
+<div class="section level2">
+<h2 id="one-formulation-several-maintained-backends">One formulation, several maintained backends<a class="anchor" aria-label="anchor" href="#one-formulation-several-maintained-backends"></a>
+</h2>
+<p>energyRt contains implementations of its formulation in several
+modeling languages. A model object can be compiled through any
+implementation available in the local environment, but this is concrete
+package support rather than backend independence in the abstract: each
+route works because energyRt ships and maintains code for it.</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -396,21 +516,20 @@ compile and solve it:</p>
 </colgroup>
 <thead><tr class="header">
 <th>Route</th>
-<th>What it does</th>
+<th>What the energyRt implementation does</th>
 <th>Good fit</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td>GLPK / MathProg</td>
-<td>writes transparent MathProg and solves with bundled
-<code>glpsol</code>
+<td>writes MathProg and solves with bundled <code>glpsol</code>
 </td>
 <td>first models, teaching, reproducible local runs</td>
 </tr>
 <tr class="even">
 <td>Julia / JuMP</td>
 <td>writes JuMP for HiGHS, CBC, GLPK, CPLEX, or cuOpt</td>
-<td>larger local models and solver choice</td>
+<td>larger local models and Julia solver environments</td>
 </tr>
 <tr class="odd">
 <td>Python / Pyomo</td>
@@ -419,34 +538,97 @@ compile and solve it:</p>
 </tr>
 <tr class="even">
 <td>GAMS</td>
-<td>writes GAMS for institutional solver stacks</td>
-<td>established GAMS workflows</td>
+<td>writes the formulation in GAMS</td>
+<td>established institutional GAMS workflows</td>
 </tr>
 <tr class="odd">
 <td>
 <a href="https://github.com/optimal2050/multimod" class="external-link">multimod</a>
 <em>(experimental)</em>
 </td>
-<td>converts the model to a language-neutral representation, assembles
-LP/MPS matrices, solves with HiGHS, or renders the formulation as
-LaTeX</td>
-<td>large linear problems, inspection, and mathematical
-documentation</td>
+<td>constructs an in-memory model in multimod’s R DSL/AST, then
+assembles an LP/MPS matrix, solves with HiGHS, or renders equations as
+LaTeX; it is not a separate text modeling language</td>
+<td>matrix workflows, inspection, and mathematical documentation</td>
 </tr>
 <tr class="even">
 <td>
 <a href="https://github.com/optimal2050/mmcloud" class="external-link">mmcloud</a>
 <em>(experimental)</em>
 </td>
-<td>sends large matrix problems to cloud infrastructure and solves them
-with GPU-capable backends</td>
+<td>submits large matrix problems to cloud infrastructure and solves
+them with GPU-capable backends</td>
 <td>models that exceed local memory or compute capacity</td>
 </tr>
 </tbody>
 </table>
+<p>Check the toolchains before selecting an optional route.
+<code><a href="../reference/en_check.html">en_check_dependencies()</a></code> is read-only;
+<code>solve = TRUE</code> additionally verifies configured backends by
+solving a small test model.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">backend_status</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/en_check.html">en_check_dependencies</a></span><span class="op">(</span></span>
+<span>  solver_pkgs <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  solve <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">julia_components</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Julia"</span>, <span class="st">"Julia packages"</span><span class="op">)</span></span>
+<span><span class="va">julia_rows</span> <span class="op">&lt;-</span> <span class="va">backend_status</span><span class="op">$</span><span class="va">component</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">julia_components</span></span>
+<span><span class="va">julia_found</span> <span class="op">&lt;-</span> <span class="va">backend_status</span><span class="op">$</span><span class="va">found</span><span class="op">[</span><span class="va">julia_rows</span><span class="op">]</span></span>
+<span><span class="va">julia_ready</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">julia_found</span><span class="op">)</span> <span class="op">==</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">julia_components</span><span class="op">)</span></span>
+<span><span class="va">julia_ready</span> <span class="op">&lt;-</span> <span class="va">julia_ready</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">julia_found</span><span class="op">)</span></span>
+<span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="va">julia_ready</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">BASE_JULIA</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span></span>
+<span>    object <span class="op">=</span> <span class="va">HELLO</span>,</span>
+<span>    name <span class="op">=</span> <span class="st">"BASE_JULIA"</span>,</span>
+<span>    solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs</span>,</span>
+<span>    echo <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">pyomo_rows</span> <span class="op">&lt;-</span> <span class="va">backend_status</span><span class="op">$</span><span class="va">component</span> <span class="op">==</span> <span class="st">"Pyomo"</span></span>
+<span><span class="va">pyomo_ready</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE</a></span><span class="op">(</span><span class="va">backend_status</span><span class="op">$</span><span class="va">found</span><span class="op">[</span><span class="va">pyomo_rows</span><span class="op">]</span><span class="op">)</span></span>
+<span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="va">pyomo_ready</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">BASE_PYOMO</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span></span>
+<span>    object <span class="op">=</span> <span class="va">HELLO</span>,</span>
+<span>    name <span class="op">=</span> <span class="st">"BASE_PYOMO"</span>,</span>
+<span>    solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">pyomo_cbc</span>,</span>
+<span>    echo <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 <p><a href="https://neos-server.org/" class="external-link">NEOS</a> provides another remote
 route for supported solvers without a local license. The <a href="https://energyrt.org/articles/backends.html" class="external-link">solver backends
-article</a> covers installation, presets, and operational limits.</p>
+article</a> covers installation, presets, dependency checks, and
+operational limits.</p>
+</div>
+<div class="section level2">
+<h2 id="generate-reports">Generate reports<a class="anchor" aria-label="anchor" href="#generate-reports"></a>
+</h2>
+<p><code><a href="../reference/report.html">report()</a></code> renders object datasheets and model or scenario
+reports. A scenario report includes solve status, generation and
+capacity charts, costs, and other available results; a process report
+documents its declared parameters and diagram. HTML reports require
+Pandoc, so these calls are shown but not executed during the vignette
+build:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">base_report</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/report.html">report</a></span><span class="op">(</span></span>
+<span>  object <span class="op">=</span> <span class="va">BASE</span>,</span>
+<span>  format <span class="op">=</span> <span class="st">"html"</span>,</span>
+<span>  open <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">gas_plant_report</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/report.html">report</a></span><span class="op">(</span></span>
+<span>  object <span class="op">=</span> <span class="va">HELLO</span>,</span>
+<span>  name <span class="op">=</span> <span class="st">"EGAS"</span>,</span>
+<span>  format <span class="op">=</span> <span class="st">"html"</span>,</span>
+<span>  open <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Reports are cached against the object, template, and arguments;
+unchanged inputs do not trigger another render. The <a href="https://energyrt.org/articles/reports.html" class="external-link">Reports</a> article
+covers full scenario reports, process groups, levelized costs, and
+HTML/PDF/Word output.</p>
 </div>
 <div class="section level2">
 <h2 id="from-one-solve-to-a-study">From one solve to a study<a class="anchor" aria-label="anchor" href="#from-one-solve-to-a-study"></a>
@@ -472,7 +654,7 @@ scenario folders keep results addressable and allow larger-than-memory
 analysis.</li>
 <li>
 <strong>Inspect and validate.</strong> <code><a href="../reference/draw.html">draw()</a></code>,
-<code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code>, <code><a href="../reference/report.html">report()</a></code>, and
+<code>autoplot()</code>, <code><a href="../reference/report.html">report()</a></code>, and
 <code><a href="../reference/verify_solution.html">verify_solution()</a></code> expose both declared objects and solved
 behavior.</li>
 <li>
@@ -507,6 +689,10 @@ backends</a> covers local, direct-matrix, GPU, and cloud routes.</li>
 <li>
 <a href="https://energyrt.org/articles/workflow.html" class="external-link">Workflow</a>
 moves from one solve to reproducible scenario studies.</li>
+<li>
+<a href="https://energyrt.org/articles/scenario-management.html" class="external-link">Scenario
+management</a> and <a href="https://energyrt.org/articles/reports.html" class="external-link">Reports</a> cover
+persistent projects and automated outputs.</li>
 <li>
 <a href="https://energyrt.org/articles/features.html" class="external-link">Features</a>
 is the full capability inventory.</li>
