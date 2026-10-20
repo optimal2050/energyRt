@@ -19,6 +19,7 @@ A wrapper with \code{dplyr} functions to drop columns with no information (all \
 }
 \examples{
 x <- data.frame(a = c(1, 2, NA), b = c(NA, NA, NA), c = c(NA, 2, 3))
-drop_na_cols(x)
+energyRt:::drop_na_cols(x)
 
 }
+\keyword{internal}

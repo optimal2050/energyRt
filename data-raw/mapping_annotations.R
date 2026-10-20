@@ -35,7 +35,7 @@
     "mTechInpCommAggTimeslice", "mTechOutCommAggTimeslice",
     "mTechAInpCommAggTimeslice", "mTechAOutCommAggTimeslice",
     "mTechEmsFuel",
-    "mStorageAInp", "mStorageAOut", "mWeatherRegion"
+    "mStorageAInp", "mStorageAOut", "mWeatherRegion", "mWeatherRegionAt"
   ),
   calendar = c(
     "mTimesliceNext", "mTimesliceFYearNext", "mSameRegion", "mSameTimeslice",
@@ -66,7 +66,8 @@
     # UNCLASSIFIED. Recovered from the previous mapping_spec.yml.
     "mStorageInpCap", "mStorageInpEac", "mStorageInpFixom", "mStorageInpNew",
     "mStorageNoInpCap", "mStorageNoStgCap", "mStorageStgCap", "mStorageStgEac",
-    "mStorageStgFixom", "mStorageStgNew",
+    "mStorageStgFixom", "mStorageStgNew", "mStorageInpStgCap",
+    "mStorageOutCap", "mStorageOutNew", "mStorageInpOutCap",
 
     "mTechInv", "mTechFixom", "mTechVarom", "mTechRetCost", "mTechRetirement",
     "mStorageRetCost", "mTradeRetCost",
@@ -107,9 +108,13 @@
     "mTechCout2AInp", "mTechAct2AOut", "mTechCap2AOut", "mTechNCap2AOut",
     "mTechCinp2AOut", "mTechCout2AOut",
     "mStorageStg2AInp", "mStorageCinp2AInp", "mStorageCout2AInp",
-    "mStorageCap2AInp", "mStorageNCap2AInp",
+    "mStorageInpCap2AInp", "mStorageInpNCap2AInp",
+    "mStorageStgCap2AInp", "mStorageStgNCap2AInp",
+    "mStorageOutCap2AInp", "mStorageOutNCap2AInp",
     "mStorageStg2AOut", "mStorageCinp2AOut", "mStorageCout2AOut",
-    "mStorageCap2AOut", "mStorageNCap2AOut",
+    "mStorageInpCap2AOut", "mStorageInpNCap2AOut",
+    "mStorageStgCap2AOut", "mStorageStgNCap2AOut",
+    "mStorageOutCap2AOut", "mStorageOutNCap2AOut",
     "mTechPho2AInp", "mTechPho2AOut", "mTechRet2AInp", "mTechRet2AOut",
     "mStoragePho2AInp", "mStoragePho2AOut", "mStorageRet2AInp", "mStorageRet2AOut",
     "mTradeIrCsrc2Ainp", "mTradeIrCdst2Ainp",
@@ -120,6 +125,7 @@
     # never registered here, so a spec regeneration dropped them to
     # UNCLASSIFIED. Recovered from the previous mapping_spec.yml.
     "mStorageDurationLo", "mStorageDurationUp", "mStorageInp2outLo", "mStorageInp2outUp",
+    "mStorageInp2stgLo", "mStorageInp2stgUp",
     "mStorageInpCapLo", "mStorageInpCapUp", "mStorageInpNewCapLo", "mStorageInpNewCapUp",
     "mStorageStgCapLo", "mStorageStgCapUp", "mStorageStgNewCapLo", "mStorageStgNewCapUp",
 
@@ -129,7 +135,8 @@
     "meqStorageInpUp", "meqStorageOutLo", "meqStorageOutUp", "meqStorageLevel",
     "meqSupAvaLo", "meqSupReserveLo", "meqTechActGrp", "meqTechActSng",
     "meqTechAfcInpLo", "meqTechAfcInpUp", "meqTechAfcOutLo", "meqTechAfcOutUp",
-    "meqTechAfLo", "meqTechAfsLo", "meqTechAfsUp", "meqTechAfUp",
+    "meqTechAfLo", "meqTechAfsLo", "meqTechAfsUp", "meqTechAfUp", "meqTechAfFx",
+    "meqTechAfsFx", "meqTechAfcInpFx", "meqTechAfcOutFx", "meqTechShareInpFx", "meqTechShareOutFx", "mTechCapFx", "mTechNewCapFx", "mTechRetFx", "meqStorageAfFx", "meqStorageInpFx", "meqStorageOutFx", "mStorageDurationFx", "mStorageInp2outFx", "mStorageInp2stgFx", "mStorageInpCapFx", "mStorageInpNewCapFx", "mStorageInpRetFx", "mStorageOutCapFx", "mStorageOutNewCapFx", "mStorageOutRetFx", "mStorageStgCapFx", "mStorageStgNewCapFx", "mStorageStgRetFx", "meqSupAvaFx", "meqSupReserveFx", "meqTradeFlowFx", "meqTradeIrAfFx", "mTradeCapFx", "mTradeNewCapFx", "mTradeRetFx", "meqImportRowFx", "meqExportRowFx",
     "meqTechGrp2Grp", "meqTechGrp2Sng", "meqTechShareInpLo", "meqTechShareInpUp",
     "meqTechShareOutLo", "meqTechShareOutUp", "meqTechSng2Grp", "meqTechSng2Sng",
     "meqTradeCapFlow", "meqTradeFlowLo", "meqTradeFlowUp",

@@ -2,60 +2,97 @@
 # solve.R -- solver framework (write / run / read) + the interp_mod pipeline
 # entry points solve_model()/solve_scenario() (merged here from the former solve_new.R).
 # The shared framework (.executeScenario) is also used by the archived legacy
-# entry points (depreciated/R/solve_legacy.R). The public legacy names
-# interpolate_model()/solve_model()/solve_scenario()/`solve` are repurposed in
-# R/legacy_api_shims.R.
+# entry points (depreciated/R/solve_legacy.R). The public names
+# interpolate_model()/solve_model()/solve_scenario()/`solve` are defined in this
+# file; the shim layer that once held them went at the deprecation sunset.
 # =============================================================================#
 
 # ---- "smart" path helpers ----------------------------------------------------
-# Build a filesystem-safe slug from parts, dropping empty/NA and case-insensitive
+
+# Consult a user path-builder hook (see ?path_builders) or run the default.
+# A hook's return is VALIDATED — one non-empty, filesystem-safe string —
+# and an invalid return errors naming the contract: a broken hook must be
+# heard, never silently papered over.
+.path_hook <- function(kind, default, ...) {
+  fn <- tryCatch(get_path_builder(kind), error = function(e) NULL)
+  if (!is.function(fn)) return(default(...))
+  out <- fn(...)
+  if (!is.character(out) || length(out) != 1L || is.na(out) ||
+      !nzchar(out) || grepl("[/\\\\]", out) ||
+      grepl("[^A-Za-z0-9._-]", out)) {
+    stop("The `", kind, "` path builder must return one non-empty, ",
+         "filesystem-safe string (letters, digits, '.', '_', '-'; no path ",
+         "separators); got ",
+         if (is.character(out) && length(out) == 1L && !is.na(out))
+           paste0("'", out, "'") else paste0("<", class(out)[1], ">"),
+         ". See ?path_builders.", call. = FALSE)
+  }
+  out
+}
+
+# Build a filesystem-safe slug from parts, dropping empty/NA and
 # duplicate components (e.g. when the scenario and model share a name).
-.path_slug <- function(..., sep = "_") {
-  parts <- unlist(list(...), use.names = FALSE)
-  parts <- parts[!is.na(parts)]
-  parts <- trimws(as.character(parts))
-  parts <- parts[nzchar(parts)]
-  parts <- gsub("[^A-Za-z0-9]+", "-", parts) # path-safe
-  parts <- gsub("(^-+)|(-+$)", "", parts)
-  parts <- parts[nzchar(parts)]
-  parts <- parts[!duplicated(parts)] # drop exact repeats (e.g. scenario==model)
-  paste(parts, collapse = sep)
+# Parts are joined by "-", which VALID OBJECT NAMES cannot contain (see
+# check_name(): letters, digits, underscore) — so the separator is
+# unambiguous and underscores inside names pass through VERBATIM
+# ("s4_h24" stays "s4_h24"). Unsafe characters inside a part collapse to
+# "_", never to the separator. Overridable via the `slug` path builder
+# (which receives the RAW parts and does its own sanitizing).
+.path_slug <- function(..., sep = "-") {
+  raw <- unlist(list(...), use.names = FALSE)
+  raw <- trimws(as.character(raw[!is.na(raw)]))
+  raw <- raw[nzchar(raw)]
+  if (!length(raw)) return("") # nothing to slug; callers have fallbacks
+  .path_hook("slug", function(parts) {
+    parts <- gsub("[^A-Za-z0-9_]+", "_", parts) # path-safe, "_" preserved
+    parts <- gsub("(^-+)|(-+$)", "", parts)
+    parts <- parts[nzchar(parts)]
+    parts <- parts[!duplicated(parts)] # drop repeats (e.g. scenario==model)
+    paste(parts, collapse = sep)
+  }, raw)
 }
 
 # Smart solver-directory name: {backend}_{solver}_{method}. Prefers an explicit
 # `solver$name` (curated, e.g. "julia_highs"); otherwise derives from the
 # backend (solver$backend or solver$lang), solver, and method (solver$method or
-# inferred from a "barrier"/"simplex" hint).
+# inferred from a "barrier"/"simplex" hint). Overridable via the `run_label`
+# path builder (receives the solver spec list, possibly NULL).
 .solver_dir_name <- function(solver) {
-  if (is.null(solver)) {
-    return("")
-  }
-  if (!is.null(solver$name) && nzchar(solver$name)) {
-    return(solver$name)
-  }
-  method <- solver$method
-  if (is.null(method) || !nzchar(method)) {
-    hint <- paste(c(solver$name, names(solver)), collapse = " ")
-    method <- if (grepl("barrier", hint, ignore.case = TRUE)) {
-      "barrier"
-    } else if (grepl("simplex", hint, ignore.case = TRUE)) {
-      "simplex"
-    } else {
-      NULL
+  .path_hook("run_label", function(solver) {
+    if (is.null(solver)) {
+      return("")
     }
-  }
-  backend <- solver$backend
-  if (is.null(backend) || !nzchar(backend)) backend <- solver$lang
-  nm <- .path_slug(backend, solver$solver, method)
-  if (!nzchar(nm)) "solver" else nm
+    if (!is.null(solver$name) && nzchar(solver$name)) {
+      return(solver$name)
+    }
+    method <- solver$method
+    if (is.null(method) || !nzchar(method)) {
+      hint <- paste(c(solver$name, names(solver)), collapse = " ")
+      method <- if (grepl("barrier", hint, ignore.case = TRUE)) {
+        "barrier"
+      } else if (grepl("simplex", hint, ignore.case = TRUE)) {
+        "simplex"
+      } else {
+        NULL
+      }
+    }
+    backend <- solver$backend
+    if (is.null(backend) || !nzchar(backend)) backend <- solver$lang
+    nm <- .path_slug(backend, solver$solver, method)
+    if (!nzchar(nm)) "solver" else nm
+  }, solver)
 }
 
-# Smart scenario-folder name: {scenario}_{model}_{calendar}_{horizon}.
-# Empty and duplicate components are dropped.
+# Smart scenario-folder name: {scenario}-{model}-{calendar}-{horizon}.
+# Empty and duplicate components are dropped. Overridable via the
+# `scenario_dir` path builder.
 .scenario_dir_name <- function(scenario_name, model_name = "",
                                calendar_name = "", horizon_name = "") {
-  nm <- .path_slug(scenario_name, model_name, calendar_name, horizon_name)
-  if (!nzchar(nm)) as.character(scenario_name)[1] else nm
+  .path_hook("scenario_dir", function(scenario_name, model_name,
+                                      calendar_name, horizon_name) {
+    nm <- .path_slug(scenario_name, model_name, calendar_name, horizon_name)
+    if (!nzchar(nm)) as.character(scenario_name)[1] else nm
+  }, scenario_name, model_name, calendar_name, horizon_name)
 }
 
 # Map the deprecated tmp.* argument names onto the current vocabulary.
@@ -170,16 +207,6 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     # read.solution = FALSE,
     # write = FALSE
     ) {
-  # - solves scen, interpolate if required (NULL), force (TRUE), or no interpolation (FALSE, error if not interpolated)
-  ## arguments
-  # solver.dir - external solver working directory (default: the run's solver/)
-  # echo = TRUE - print working data
-  # open.folder = FALSE - open folder before the run
-  # show.output.on.console = FALSE & invisible = FALSE arg for command system
-  # only.listing = FALSE (!depreciated?) generate only listing file (works for gams only)
-  # read.solution = TRUE read result
-  # transient - throwaway solver dir, deleted after the solve
-  # browser()
   arg <- .solver_dir_aliases(list(...))
   # if (is_empty(arg[["solver.dir"]])) arg[["solver.dir"]] <- NULL
   # if (is_empty(arg[["solver"]])) arg[["solver"]] <- NULL
@@ -188,10 +215,8 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 
   # arg <- get_tmp_dir(scen, arg)
   # if (is.null(arg$solver.dir)) {
-  #   browser()
   #   stop("tmp.dir is not specified")
   # }
-  # browser()
   if (is_empty(arg$echo)) arg$echo <- TRUE
   if (is_empty(arg[["solver"]])) {
     if (is_empty(scen@settings@solver)) {
@@ -250,19 +275,6 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   if (is_empty(arg[["run"]])) arg[["run"]] <- TRUE
   if (is_empty(arg$n.threads)) arg$n.threads <- 1
 
-  # if (is.null(arg$onefile)) arg$onefile <- FALSE
-  # if (!is.null(arg$dir.result)) {
-  #   warning("solve_model: parameter `dir.result` is depreciated, use `tmp.dir` instead")
-  #   if (is.null(arg$solver.dir)) {
-  #     arg$solver.dir <- arg$dir.result
-  #   } else {
-  #     stop("check `dir.result` and `tmp.dir` - only one should be used")
-  #   }
-  # } else {
-  #   # temporary - will be depreciated
-  #   arg$dir.result <- arg$solver.dir
-  # }
-  # browser()
   arg <- .resolve_solver_dir(scen, arg)
 
   if (is.null(scen)) {
@@ -288,19 +300,8 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   # arg$solver.dir <- .fix_path(arg$solver.dir)
   # if (!is.null(scen)) scen@misc$tmp.dir <- .fix_path(scen@misc$tmp.dir)
 
-  # if (is.null(arg$solver.dir)) {
-  #   arg$solver.dir <- .fp(
-  #     fp(getwd(), "solwork"),
-  #     paste(arg[["solver"]]$lang, tmp_name, # scen@name,
-  #       format(Sys.time(), "%Y%m%d%H%M%S%Z", tz = Sys.timezone()),
-  #       sep = "_"
-  #     )
-  #   )
-  # }
-  # arg$dir.result <- arg$solver.dir
 
   # interpolate
-  # browser()
   if (isTRUE(arg$interpolate)) {
     scen <- energyRt::interpolate(scen, ...)
     arg$write <- TRUE
@@ -309,7 +310,6 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   }
 
   # write
-  # browser()
   # dir.create(arg$solver.dir, recursive = TRUE, showWarnings = FALSE)
   # if (arg$open.folder) shell.exec(arg$solver.dir)
   if (is.null(arg$solver.dir) || length(arg$solver.dir) == 0) {
@@ -323,6 +323,31 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
       ))
   }
   if (arg$write) {
+    # A folded scenario keeps its wildcards as NA in the value parameters; the
+    # model source must index the artificial set member instead. Do it HERE, on
+    # the common write path, so every caller gets it -- `write_script()` reaches
+    # this function without passing through `solve_scenario()`, and writing a
+    # folded scenario without the substitution emits a model whose every folded
+    # lookup misses and silently takes the parameter default (0 for costs and
+    # discount rates; Inf for the afs upper bound, which at least fails loudly
+    # as `-Inf * vTechCap` under JuMP). Idempotent: the set member is added only
+    # if absent, NA->member touches only NAs, and re-indexing an already
+    # substituted position rewrites it to the same literal.
+    # GAMS: the `year` wildcard is materialised first. Its member would be a
+    # `0` label in the year set, which the storage equations rank with
+    # `ord(year)`; the other dims are inert there (every equation is map-gated)
+    # and their members are known at compile time via `sets.gms`.
+    # `NA` means the route takes the folded parameters as they are and resolves
+    # the wildcards itself (`mm`); substituting here would desynchronise its
+    # model text from its data. See `.fold_code_block()`.
+    .blk_w <- .fold_code_block(scen@settings@solver$lang)
+    if (!is.na(.blk_w)) {
+      if (.blk_w == "GAMS") {
+        scen <- unfold_parameters(scen, dims = "year",
+                                           types = c("numpar", "bounds"))
+      }
+      scen <- apply_fold_artificial(scen, backends = .blk_w)
+    }
     dir.create(arg$solver.dir, recursive = TRUE, showWarnings = FALSE)
     if (arg$echo) cat("Solver directory: ", arg$solver.dir, "\n")
     if (arg$echo) cat("Writing files: ")
@@ -339,6 +364,10 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
       scen <- .write_model_PYOMO(arg, scen)
     } else if (any(grep("^jump$", scen@settings@solver$lang, ignore.case = TRUE))) {
       scen <- .write_model_JuMP(arg, scen)
+    } else if (any(grep("^(mm|multimod)$", scen@settings@solver$lang,
+      ignore.case = TRUE
+    ))) {
+      scen <- .write_model_MM(arg, scen)
     } else {
       stop("Unknown solver ", scen@settings@solver$lang)
     }
@@ -360,13 +389,20 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
       name = paste0("code", seq_along(scen@settings@solver$code)),
       value = scen@settings@solver$code, stringsAsFactors = FALSE
     ))
-    write.csv(tmp, file = fp(arg$solver.dir, "solver"), row.names = FALSE)
+    # Named `solver.csv`, not `solver`: with the run folder flattened this file
+    # sits where layout 3 kept the `solver/` DIRECTORY, and two things of the
+    # same name in the same place is a trap even though `dir.exists()` tells
+    # them apart. `.read_solver_meta()` still reads the old name.
+    write.csv(tmp, file = fp(arg$solver.dir, "solver.csv"), row.names = FALSE)
 
     if (arg$echo) {
       cat(round(proc.time()[3] - solver_solver_time, 2), "s\n", sep = "")
       flush.console()
     }
     scen@status$script <- TRUE
+    # The artificial member belongs to the WRITTEN files only: put the NA
+    # wildcard back so the returned scenario reads, and re-writes, as folded.
+    scen <- revert_fold_artificial(scen)
   }
   record <- isTRUE(arg$run.record) && isTRUE(arg[["run"]])
   if (record) .run_record_start(scen, arg)
@@ -407,7 +443,6 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 }
 
 .call_solver <- function(arg, scen) {
-  # browser()
   HOMEDIR <- getwd()
   if (!arg[["run"]]) {
     return()
@@ -423,6 +458,28 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   if (identical(scen@settings@solver$backend, "neos")) {
     rs <- .neos_call_solver(arg, scen)
     if (rs != 0) stop(paste("NEOS solve error code", rs))
+    if (arg$echo) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")
+    return(invisible())
+  }
+
+  # Local backend, no solver process: the matrix written by multimod is solved
+  # in this session by HiGHS and decoded through the index files into
+  # tmp.dir/output/, so read_solution() is unchanged.
+  if (identical(scen@settings@solver$backend, "mm")) {
+    rs <- .mm_call_solver(arg, scen)
+    if (rs != 0) stop(paste("multimod solve error code", rs))
+    if (arg$echo) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")
+    return(invisible())
+  }
+
+  # Remote backend: solve on a rented GPU via Hugging Face Jobs. The WRITE phase
+  # already produced model.mps in arg$solver.dir -- by multimod for lang = "mm",
+  # or by the preset's inc4 hook for lang = "PYOMO". .cloud_call_solver ships
+  # it, waits, and decodes the returned solution into tmp.dir/output/ so
+  # read_solution() is unchanged.
+  if (identical(scen@settings@solver$backend, "mmcloud")) {
+    rs <- .cloud_call_solver(arg, scen)
+    if (rs != 0) stop(paste("Cloud solve error code", rs))
     if (arg$echo) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")
     return(invisible())
   }
@@ -523,7 +580,12 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   ux <- file.path(arg$solver.dir, "_neos_unzip")
   unlink(ux, recursive = TRUE); dir.create(ux, showWarnings = FALSE)
   utils::unzip(zf, exdir = ux)
+  # Clear `output/` first. `file.copy(overwrite = TRUE)` only replaces what the
+  # NEW payload contains, so a per-variable CSV (or log.csv) from a PREVIOUS
+  # solve of the same scenario survives and is read back as part of this one --
+  # a stale mixture that looks like a complete solution.
   outdir <- file.path(arg$solver.dir, "output")
+  unlink(outdir, recursive = TRUE)
   dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
   csvs <- list.files(ux, pattern = "\\.csv$", full.names = TRUE, recursive = TRUE)
   if (!length(csvs)) {
@@ -594,9 +656,15 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 #' work unchanged. The transitional names `solve_mod()` / `solve_scen()` are
 #' deprecated aliases.
 #'
-#' @param obj a model object (`solve_model()`) or an interpolated scenario
+#' @param object a model object (`solve_model()`) or an interpolated scenario
 #'   object (`solve_scenario()`).
 #' @param name character name of the scenario to create / return.
+#' @param kvl logical or `NULL`; what the caller expects of Kirchhoff's
+#'   voltage law. It GUARDS rather than builds -- the cycle constraints are
+#'   baked in at interpolation time, so this is the last chance to notice that
+#'   a solve is about to differ from what was asked for. `NULL` reports what
+#'   the scenario actually carries.
+#' @param a,b the `solve()` S4 signature: `a` the model, `b` the scenario name.
 #' @param solver a character or list with solver settings. When `NULL`, the
 #'   scenario's own solver settings or `get_default_solver()` are used.
 #' @param ondisk,fold passed to [interpolate_model()]. Defaults (`FALSE`/`FALSE`) keep
@@ -604,7 +672,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 #' @param solver.dir character, an EXTERNAL solver working directory. When
 #'   set, the solve runs there verbatim and records no run; the default
 #'   (`NULL`) solves into the scenario's own run directory
-#'   `runs/[<variant>/]<label>/solver/`.
+#'   `runs/[<variant>/]<label>/`.
 #' @param transient logical, use a throwaway timestamp directory deleted
 #'   after the run (no run record).
 #' @param tmp.dir,tmp.del deprecated aliases of `solver.dir` / `transient`.
@@ -638,18 +706,38 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 #' @return a scenario object with the solution.
 #' @rdname solve_model
 #' @export
-solve_model <- function(obj, name = NULL, solver = NULL,
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
+#' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+#'
+#' sum(getData(scen, "vObjective", merge = TRUE)$value)
+#'
+#' # or in two steps, which is what you want when the inputs need inspecting
+#' # before the solver sees them
+#' scen <- interpolate_model(mod, name = "BASE2")
+#' scen <- solve_scenario(scen, solver = solver_options$glpk)
+#' }
+solve_model <- function(object, name = NULL, solver = NULL,
                         ondisk = FALSE, fold = FALSE, ...) {
-  if (inherits(obj, "scenario")) {
+  if (inherits(object, "scenario")) {
     # convenience: interpolate an un-interpolated scenario before solving; an
     # already-interpolated scenario is solved as-is (its build knobs preserved)
-    if (!isTRUE(obj@status$interpolated)) {
-      obj <- interpolate_model(obj@model, name = obj@name)
+    if (!isTRUE(object@status$interpolated)) {
+      object <- interpolate_model(object@model, name = object@name)
     }
-    return(do.call(solve_scenario, c(list(obj = obj, solver = solver),
+    return(do.call(solve_scenario, c(list(object = object, solver = solver),
                                      list(...))))
   }
-  if (!inherits(obj, "model")) {
+  if (!inherits(object, "model")) {
     stop("`solve_model()` expects a model or scenario object. ",
          "Use `solve_scenario()` for an interpolated scenario.")
   }
@@ -666,24 +754,24 @@ solve_model <- function(obj, name = NULL, solver = NULL,
 
   scen <- do.call(
     interpolate_model,
-    c(list(mod = obj, name = name, ondisk = ondisk, fold = fold), iarg)
+    c(list(object = object, name = name, ondisk = ondisk, fold = fold), iarg)
   )
 
-  do.call(solve_scenario, c(list(obj = scen, solver = solver), sarg))
+  do.call(solve_scenario, c(list(object = scen, solver = solver), sarg))
 }
 
 #' @rdname solve_model
 #' @export
-solve_scenario <- function(obj, name = obj@name, solver = NULL, solver.dir = NULL,
+solve_scenario <- function(object, name = object@name, solver = NULL, solver.dir = NULL,
                        transient = FALSE, force = FALSE, kvl = NULL,
                        variant = NULL, ...,
                        tmp.dir = NULL, tmp.del = NULL) {
   if (!is.null(variant)) {
-    # own-problem variant: the interpolated problem in `obj` belongs to this
+    # own-problem variant: the interpolated problem in `object` belongs to this
     # named variant — its solves land in runs/<variant>/<solve>/ and
     # save_scenario() stores its modInp under runs/<variant>/modInp/
     stopifnot(is.character(variant), length(variant) == 1L)
-    obj@misc$variant <- if (nzchar(variant)) variant else NULL
+    object@misc$variant <- if (nzchar(variant)) variant else NULL
   }
   .log_t0 <- Sys.time()
   if (!is.null(tmp.dir)) {
@@ -698,11 +786,11 @@ solve_scenario <- function(obj, name = obj@name, solver = NULL, solver.dir = NUL
       .frequency = "once", .frequency_id = "energyRt-tmp.del-deprecated")
     transient <- tmp.del
   }
-  if (!inherits(obj, "scenario")) {
+  if (!inherits(object, "scenario")) {
     stop("`solve_scenario()` expects a scenario built by `interpolate_model()`. ",
          "Use `solve_model()` for a model object.")
   }
-  if (!isTRUE(obj@status$interpolated)) {
+  if (!isTRUE(object@status$interpolated)) {
     stop("Scenario is not interpolated. Build it with `interpolate_model()` ",
          "or call `solve_model()` on the model.")
   }
@@ -711,14 +799,14 @@ solve_scenario <- function(obj, name = obj@name, solver = NULL, solver.dir = NUL
   # about to differ from what was asked for. KVL changes the answer, and the
   # difference is silent otherwise: a scenario built without it simply solves
   # the transport relaxation and reports nothing unusual.
-  .kvl_guard(obj, kvl)
-  if (isTRUE(obj@status$optimal) && !isTRUE(force)) {
+  .kvl_guard(object, kvl)
+  if (isTRUE(object@status$optimal) && !isTRUE(force)) {
     message("The scenario is already solved to optimal.\n",
             "Use 'force = TRUE' to solve it again.")
-    return(obj)
+    return(object)
   }
 
-  scen <- .finalize_interp(obj)
+  scen <- .finalize_interp(object)
   scen@name <- name
 
   # The `write_*` helpers read each parameter's in-memory `@data` slot. For an
@@ -726,19 +814,6 @@ solve_scenario <- function(obj, name = obj@name, solver = NULL, solver.dir = NUL
   # so the model would be written out empty. Load the parameter data back into
   # memory before writing.
   scen <- .materialize_modInp(scen)
-
-  # A folded scenario (interp_mod(fold = TRUE)) carries NA wildcards in the
-  # trimmable dimensions. Make it solver-ready by replacing the wildcard with the
-  # artificial set member and substituting it into the chosen backend's model
-  # code. No-op for an unfolded scenario. Substitution is implemented for GLPK
-  # (`[]`), JuMP (`[(...)]` / `haskey`) and Pyomo (`.get((...))`); GAMS still needs
-  # declaration-aware `()` handling.
-  .blk <- .fold_code_block(if (!is.null(solver)) {
-    if (is.list(solver)) solver$lang else solver
-  } else scen@settings@solver$lang)
-  if (.blk %in% c("GLPK", "JuMP", "PYOMOConcrete")) {
-    scen <- apply_fold_artificial(scen, backends = .blk)
-  }
 
   arg <- list(...)
   arg$interpolate <- FALSE
@@ -783,3 +858,28 @@ solve_scenario <- function(obj, name = obj@name, solver = NULL, solver.dir = NUL
             error = function(e) NA_real_))
   scen
 }
+
+# ---- S4 method layer ---------------------------------------------------------
+# The `solve` generic''s methods, dispatching onto the canonical
+# solve_model() / solve_scenario(). These are LIVE API and live beside the
+# implementations: they used to sit in R/legacy_api_shims.R, which is deleted
+# wholesale at the deprecation sunset -- taking these with it.
+
+.solve_model_method    <- function(a, b, ...) solve_model(a, ...)
+.solve_scenario_method <- function(a, b, ...) solve_scenario(a, ...)
+
+#' @rdname solve_model
+#' @export
+setMethod("solve", signature(a = "model", b = "character"), .solve_model_method)
+setMethod("solve", signature(a = "model", b = "missing"),   .solve_model_method)
+setMethod("solve", signature(a = "scenario", b = "character"),
+          .solve_scenario_method)
+setMethod("solve", signature(a = "scenario", b = "missing"),
+          .solve_scenario_method)
+setMethod("solve", signature(a = "missing", b = "missing"), function(...) {
+  arg <- list(...)
+  if (is.null(arg$obj)) return(do.call(NextMethod, arg))
+  if (is(arg$obj, "scenario")) return(do.call(solve_scenario, arg))
+  if (is(arg$obj, "model"))    return(do.call(solve_model, arg))
+  NextMethod(arg)
+})

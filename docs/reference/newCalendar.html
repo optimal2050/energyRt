@@ -7,8 +7,12 @@ The number of rows in timetable is equal to the total number
 of time-timeslices on the lowest level.
 Every timeframe is a set of timeslices ("timeslices") - a named fragment
 of time with a year-share. Timeframes have nested structure.
-Currently, every "parent"-timeframe must have the same number of
-elements as the "child"-timeframe. (This may change in the future.)
+A parent may have any number of children, so a level can be irregular
+(months of 28-31 days above the days of the year). Each timeslice is named
+by the shortest trailing part of its path of labels that is unique (a day
+numbered through the year keeps its own label under a month; an hour needs
+its day), and the lowest level keeps the timeslice column of the
+timetable when it names every row uniquely.
 ANNUAL
 character, annual, the top level of timeframes
 
@@ -34,8 +38,12 @@ The number of rows in timetable is equal to the total number
 of time-timeslices on the lowest level.
 Every timeframe is a set of timeslices ("timeslices") - a named fragment
 of time with a year-share. Timeframes have nested structure.
-Currently, every "parent"-timeframe must have the same number of
-elements as the "child"-timeframe. (This may change in the future.)
+A parent may have any number of children, so a level can be irregular
+(months of 28-31 days above the days of the year). Each timeslice is named
+by the shortest trailing part of its path of labels that is unique (a day
+numbered through the year keeps its own label under a month; an hour needs
+its day), and the lowest level keeps the timeslice column of the
+timetable when it names every row uniquely.
 ANNUAL
 character, annual, the top level of timeframes
 
@@ -53,13 +61,7 @@ character, name of the timeslices used in sets to refer to the lowest level of t
 
 
 
-'><meta property="og:image" content="https://energyRt.org/logo.png"><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script></head><body>
+'><meta property="og:image" content="https://energyRt.org/logo.png"><script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -67,7 +69,7 @@ character, name of the timeslices used in sets to refer to the lowest level of t
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -76,19 +78,25 @@ character, name of the timeslices used in sets to refer to the lowest level of t
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development"><li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
+    <li><a class="dropdown-item" href="../articles/features.html">Features</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -125,8 +133,12 @@ The number of rows in <code>timetable</code> is equal to the total number
 of time-timeslices on the lowest level.
 Every timeframe is a set of timeslices ("timeslices") - a named fragment
 of time with a year-share. Timeframes have nested structure.
-Currently, every "parent"-timeframe must have the same number of
-elements as the "child"-timeframe. (This may change in the future.)</p><dl><dt>ANNUAL</dt>
+A parent may have any number of children, so a level can be irregular
+(months of 28-31 days above the days of the year). Each timeslice is named
+by the shortest trailing part of its path of labels that is unique (a day
+numbered through the year keeps its own label under a month; an hour needs
+its day), and the lowest level keeps the <code>timeslice</code> column of the
+timetable when it names every row uniquely.</p><dl><dt>ANNUAL</dt>
 <dd><p>character, annual, the top level of timeframes</p></dd>
 
 <dt>TIMEFRAME2</dt>
@@ -151,6 +163,8 @@ elements as the "child"-timeframe. (This may change in the future.)</p><dl><dt>A
 <span>  desc <span class="op">=</span> <span class="st">""</span>,</span>
 <span>  timetable <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  year_fraction <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  year_start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>month <span class="op">=</span> <span class="fl">1L</span>, day <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span>,</span>
+<span>  utc_offset_minutes <span class="op">=</span> <span class="fl">0L</span>,</span>
 <span>  default_timeframe <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  misc <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>pTimesliceWeight <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -175,6 +189,14 @@ elements as the "child"-timeframe. (This may change in the future.)</p><dl><dt>A
 
 <dt id="arg-year-fraction">year_fraction<a class="anchor" aria-label="anchor" href="#arg-year-fraction"></a></dt>
 <dd><p>numeric. The fraction of a year covered by the calendar, e.g. 1 for annual calendar (default), 0.5 for semi-annual, 0.25 for quarterly, etc. Currently must be specified manually for subset calendars to validate the sum of the shares.</p></dd>
+
+
+<dt id="arg-year-start">year_start<a class="anchor" aria-label="anchor" href="#arg-year-start"></a></dt>
+<dd><p>list. <code>list(month = , day = )</code> giving the first day of the model year; defaults to January 1. A non-January anchor makes model year <code>y</code> span <code>[year_start(y), year_start(y + 1))</code>, and <code>y</code> is the STARTING Gregorian year – Indian "FY 2021-22" is model year 2021 – which is the convention <code><a href="https://optimal2050.github.io/timescales/r/reference/calendar_build.html" class="external-link">timescales::calendar_build()</a></code> uses. The anchor is carried and reported only: it sets the default milestone labels (see <code><a href="year_label.html">year_label()</a></code>) and does NOT yet drive timeslice-to-timestamp alignment or <code>year_fraction</code>.</p></dd>
+
+
+<dt id="arg-utc-offset-minutes">utc_offset_minutes<a class="anchor" aria-label="anchor" href="#arg-utc-offset-minutes"></a></dt>
+<dd><p>integer. Constant offset of local time from UTC, in minutes; defaults to 0 (UTC). E.g. 330 for IST (UTC+5:30). Carried for provenance alongside <code>year_start</code>; Olson time zones and DST are not supported.</p></dd>
 
 
 <dt id="arg-default-timeframe">default_timeframe<a class="anchor" aria-label="anchor" href="#arg-default-timeframe"></a></dt>
@@ -211,6 +233,17 @@ elements as the "child"-timeframe. (This may change in the future.)</p><dl><dt>A
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Slot "year_fraction":</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Slot "year_start":</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $month</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $day</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Slot "utc_offset_minutes":</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Slot "timetable":</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    ANNUAL timeslice share weight</span>

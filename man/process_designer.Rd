@@ -2,16 +2,13 @@
 % Please edit documentation in R/process_designer.R
 \name{process_designer}
 \alias{process_designer}
-\alias{tech_designer}
 \title{Launch the process designer}
 \usage{
 process_designer(spec = NULL, dir = NULL, launch.browser = NULL, ...)
-
-tech_designer(spec = NULL, dir = NULL, launch.browser = NULL, ...)
 }
 \arguments{
 \item{spec}{Optional process spec to open — a path to a \code{.yml} file or
-a spec list (see \code{\link[=read_procspec]{read_procspec()}}).}
+a spec list (see \code{\link[=read_process_spec]{read_process_spec()}}).}
 
 \item{dir}{Optional directory of process-spec \code{.yml} files (e.g. specs
 exported from a workbook import) added to the app's template gallery

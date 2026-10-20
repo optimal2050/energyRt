@@ -65,7 +65,10 @@ test_that("tm_core builds the trade-Ir chain and core value maps", {
   # Core value maps.
   expect_equal(map_nrow(scen, "mTechInv"), 4)
   expect_equal(map_nrow(scen, "mvSupCost"), 2)
-  expect_equal(map_nrow(scen, "mSupSpan"), 2)
+  # tm_SUP_COA is declared for R1 only (via its @supply region column) in a
+  # two-region model, so its span is ONE row. This expected 2 while the span
+  # widened a data-scoped supply onto every region, which made coal free in R2.
+  expect_equal(map_nrow(scen, "mSupSpan"), 1)
 })
 
 test_that("tm_flows builds aux-conversion, emission and aggregate maps", {

@@ -15,7 +15,7 @@ scenario is ready for
 
 ``` r
 interpolate_model(
-  mod,
+  object,
   name = NULL,
   ...,
   desc = NULL,
@@ -29,17 +29,21 @@ interpolate_model(
   kvl = FALSE,
   boundary_prices = NULL,
   .prefilter = FALSE,
+  parent_levels = getOption("energyRt.parent_levels", FALSE),
+  fx_equ = getOption("energyRt.fx_equ", TRUE),
+  on_missing_input = getOption("energyRt.on_missing_input", "stop"),
   verbose = isVerbose()
 )
+
+# S4 method for class 'model'
+interpolate(object, ...)
 ```
 
 ## Arguments
 
-- mod:
+- object:
 
-  a [model](https://energyRt.org/reference/class-model.md) object, or a
-  [scenario](https://energyRt.org/reference/class-scenario.md) (its
-  `@model` is re-interpolated).
+  as `mod`, for the method dispatched on a scenario.
 
 - name:
 
@@ -73,26 +77,46 @@ interpolate_model(
 - fold:
 
   logical or character; whole-column "fold" of trimmable dimensions to
-  NA wildcards to shrink the data. `TRUE` folds `region` + `timeslice`;
-  `FALSE` (default) folds nothing; a character vector selects dims among
-  `region`, `timeslice`, `year`, `comm`, `tech`, `stg`, `trade`. A
-  folded scenario is expanded to solver-ready form at solve time.
+  NA wildcards to shrink the data. `TRUE` folds `region` + `timeslice` +
+  `year`; `FALSE` (default) folds nothing; a character vector selects
+  dims among `region`, `timeslice`, `year`, `comm`, `tech`, `stg`,
+  `trade`. The wildcards are substituted by an artificial set member in
+  the written model files only; the scenario object keeps them and
+  [`getData()`](https://energyRt.org/reference/getData.md) expands them.
+
+  A dimension folds only where the value is uniform across its WHOLE
+  set, so folding never changes the solution — it changes how the same
+  numbers are stored. `year` matters most in weather-heavy models: one
+  weather series repeated across milestone years is usually the largest
+  parameter, and `region`/`timeslice` alone do not touch it. Measured on
+  a 4-region `d365_h24` model over 7 milestones, adding `year` took
+  `pWeather` from 245,259 to 35,037 rows (-85.7%) with a bit-identical
+  objective on GLPK and Pyomo/HiGHS. A model whose weather genuinely
+  differs by year simply does not fold.
 
 - sparse:
 
-  logical; the storage knob. `TRUE` drops `value == defVal` rows (and
-  folds); `FALSE` materialises the default over each parameter's full
-  domain (and unfolds).
+  logical; the storage knob, and the user-facing switch between
+  `drop_default_values()` and `expand_default_values()`. `TRUE` drops
+  `value == defVal` rows; `FALSE` materialises the default over each
+  parameter's full domain (the form GAMS needs) and then trims rows no
+  map indexes. Folding applies to either.
 
 - prune:
 
-  logical; drop interpolated rows that fall outside the equation-domain
-  maps (no effect on the solution, smaller data).
+  logical; apply the per-parameter `misc$prune$value` filter via
+  `drop_default_values()` - rows whose interpolated value equals that
+  parameter's flagged value are dropped (lossless: an absent tuple reads
+  as the default, which equals the dropped value). One parameter is
+  flagged today (`pWeather`). Superseded by `sparse`'s `value =` form;
+  retained for compatibility.
 
 - validate:
 
-  logical; run post-interpolation consistency checks (schema, duplicate
-  keys, map/parameter coverage).
+  logical; run
+  [`validate_scenario_parameters()`](https://energyRt.org/reference/validate_scenario_parameters.md)
+  after interpolation (schema, duplicate keys, map/parameter coverage,
+  missing governing constraints, calendar chronology).
 
 - code:
 
@@ -101,6 +125,12 @@ interpolate_model(
   or a character vector of lines. Lets a model-script version be
   supplied at interpolation time without rebuilding `sysdata` (handy to
   A/B templates).
+
+- kvl:
+
+  logical or `NULL`; build the Kirchhoff voltage-law cycle constraints
+  for meshed trade networks. `NULL` (default) engages them when the
+  network has cycles and reactances to use.
 
 - boundary_prices:
 
@@ -129,6 +159,46 @@ interpolate_model(
   relation from the full declared grid rather than from the calendar
   would see a narrower input. Compare objectives before relying on it.
 
+- parent_levels:
+
+  logical or character; give a variable rows at every timeslice / region
+  level COARSER than the one it occupies, each defined by a roll-up of
+  its finer rows, so a constraint can be written at a level the variable
+  does not natively carry (`summand@timeframe` / `@geoframe`). `FALSE`
+  (default) builds none; `TRUE` builds them for every SUPPORTED
+  variable; a character vector selects among those. Naming an
+  unsupported variable is an error listing what is supported – a parent
+  row with no equation to define it would be a free variable.
+
+  `vOutTot` / `vInpTot` carry their parent rows unconditionally and are
+  not affected: `eqOutTot` / `eqInpTot` are written against them.
+
+  Defaults to `getOption("energyRt.parent_levels", FALSE)`, so a whole
+  run or test suite can be switched in one place.
+
+- fx_equ:
+
+  logical; write a bound whose two sides coincide (`.fx`, or
+  `.lo == .up`, with the same weather factors) as one equality row
+  (`eq<Family>Fx`) instead of a pair of inequalities (`eq<Family>Lo` +
+  `eq<Family>Up`). Applies to every bound family: technology
+  availability (`af`, `afs`, `afc`), shares, capacity, new capacity and
+  retirement of technologies, storages and trade, storage availability,
+  charge, discharge, duration and part ratios, supply availability and
+  reserve, trade flows and availability, import and export rows. The
+  solution is the same; the model has fewer rows before presolve (-25%
+  on an hourly full-year VRE model). `FALSE` writes the pairs. Defaults
+  to `getOption("energyRt.fx_equ", TRUE)`.
+
+- on_missing_input:
+
+  `"stop"` or `"warn"`: what to do when a process with existing capacity
+  (stock, or a lower / fixed capacity bound) is declared in a region
+  where one of its input commodities has no source. `"stop"` names the
+  cells; `"warn"` drops them, as is always done for processes that could
+  only be built new. Defaults to
+  `getOption("energyRt.on_missing_input", "stop")`.
+
 - verbose:
 
   logical; print per-step progress. This also governs the
@@ -152,3 +222,57 @@ an interpolated
 Other interpolation:
 [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md),
 [`with_solver_log()`](https://energyRt.org/reference/with_solver_log.md)
+
+## Examples
+
+``` r
+# \donttest{
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
+
+# build the solver-facing sets and parameters; nothing is solved yet
+scen <- interpolate_model(mod, name = "BASE")
+#> Cost declared at a coarse geoscale level:
+#>   TBD_COA_WEST_CENTRAL@invcost: CENTRAL, WEST
+#>   TBD_GAS_WEST_CENTRAL@invcost: CENTRAL, WEST
+#> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.
+scen
+#> Name:  BASE 
+#> Model:
+#> Name:  TOPIA 
+
+# `fold = TRUE` substitutes constant parameters into the equations, which
+# shrinks what the backend has to read
+model_size(interpolate_model(mod, name = "FOLDED", fold = TRUE))
+#> Cost declared at a coarse geoscale level:
+#>   TBD_COA_WEST_CENTRAL@invcost: CENTRAL, WEST
+#>   TBD_GAS_WEST_CENTRAL@invcost: CENTRAL, WEST
+#> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.
+#> model_size: FOLDED
+#>   parameters : 189 value, 352 maps, 15 sets
+#>   param rows : 2,111  (fold step: 8,741 -> 2,111, saved 6,630 = 76%)
+#>   folded dims: region=20  timeslice=11  year=19
+#>   estimate   : ~61,849 variables, ~63,464 constraints (from gating maps)
+#>   top parameters by rows:
+#>     pWeather           753
+#>     pDemand            384
+#>     pTimesliceAgg      297
+#>     pExportRow         288
+#>     pTimesliceShare    101
+#>     pTechStock         50
+#>     pTechFixom         28
+#>     pTechInvcost       28
+#>     pTechEac           20
+#>     pTechCinp2use      16
+#>     pDiscountFactor    15
+#>     pTechStockSurv     12
+#>     pTradeIrVarom      8
+#>     pTradeIrEff        8
+#>     pSupCost           7
+# }
+```

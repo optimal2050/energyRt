@@ -64,8 +64,8 @@ res.lo: 0.0
 res.up: .inf
 reserve: .inf
 rhs: 0.0
-share.lo: 0.0
-share.up: 1.0
+grp.share.lo: 0.0
+grp.share.up: 1.0
 stg2ainp: 0.0
 stg2aout: 0.0
 stgcost: 0.0

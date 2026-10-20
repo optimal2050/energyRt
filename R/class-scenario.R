@@ -16,7 +16,7 @@
 #' @include class-modOut.R class-settings.R
 #' @family class scenario
 #'
-#' @seealso `interpolate()`, `solve()`, `register()`, `summary()`, `newScenario()`
+#' @seealso `interpolate()`, `solve()`, `add_to_registry()`, `summary()`, `newScenario()`
 #'
 #' @export
 setClass("scenario",
@@ -64,6 +64,8 @@ setMethod("initialize", "scenario", function(.Object, ...) {
 #'
 #' @param name `r get_slot_doc("scenario", "name")`
 #' @param path `r get_slot_doc("scenario", "path")`
+#' @param model the `model` object the scenario is built from; `NULL` leaves
+#'   it unset, to be assigned later.
 #' @param ... any model objects or settings to be assigned to the scenario.
 #' @param env_name,registry,replace deprecated and ignored — the in-memory
 #'   registry has been replaced by the persisted project registry (see
@@ -102,7 +104,6 @@ newScenario <- function(
 # summary <- function(...) UseMethod("summary")
 
 summary.scenario <- function(object, ...) {
-  # browser()
   scen <- object
   cat("Scenario:", scen@name, "\n")
   cat("desc:", scen@desc, "\n")
@@ -112,7 +113,6 @@ summary.scenario <- function(object, ...) {
   if (scen@status$interpolated) {
     if (!is.null(scen@modOut) && scen@modOut@stage == "solved") {
       cat("Solution status: ", ifelse(scen@status$optimal, "", "NOT "), "optimal\n", sep = "")
-      # browser()
       vObj <- getData(scen, "vObjective", merge = TRUE)
       cat("vObjective: ", vObj$value, "\n")
       # `vDummyCost` has never existed -- the variables are `vDummyImportCost`
@@ -143,9 +143,7 @@ summary.scenario <- function(object, ...) {
 #' @param object a `model` or `scenario` object.
 #' @param ... additional arguments (currently unused).
 #' @return The `object`, invisibly; called for its printed summary.
-#' @name summary
 #' @rdname summary
-#' @method summary scenario
 #' @export
 setMethod("summary", signature(object = "scenario"),
           definition = summary.scenario)
@@ -168,7 +166,6 @@ setMethod("setHorizon", signature(obj = "scenario"),
   function(obj, ...) {
     args <- list(...)
     has_h <- sapply(args, function(x) inherits(x, "horizon"))
-    # browser()
     if (any(has_h)) {
       if (sum(has_h) > 1) stop("Only one horizon object is allowed.")
       obj@settings@horizon <- args[[which(has_h)]]
@@ -183,50 +180,11 @@ setMethod("setHorizon", signature(obj = "scenario"),
   }
 )
 
-# @export
-# setMethod(
-#   "setHorizon",
-#   signature(obj = "scenario", horizon = "horizon"),
-#   function(obj, horizon) {
-#     # obj@model <- setHorizon(obj@model, period, intervals)
-#     browser()
-#     obj
-#   }
-# )
 
 #' @export
 setMethod("getHorizon", signature(obj = "scenario"), function(obj) {
   # getHorizon(obj@model)
   obj@settings@horizon
-  # browser()
 })
 
-# .modelCode <- list(
-#   GAMS = readLines("gams/energyRt.gms"),
-#   JuMP = readLines("julia/energyRt.jl"),
-#   JuMPOutput = readLines("julia/energyRtOutput.jl"),
-#   PYOMOConcrete = readLines("pyomo/energyRtConcrete.py"),
-#   PYOMOConcreteOutput = readLines("pyomo/energyRtConcreteOutput.py"),
-#   PYOMOAbstract = readLines("pyomo/energyRtAbstract.py"),
-#   PYOMOAbstractOutput = readLines("pyomo/energyRtAbstractOutput.py"),
-#   GLPK = readLines("glpk/energyRt.mod"),
-#   GAMS_output = readLines("gams/output.gms"),
-#   checkGAMS = readLines("gams/check.gms"),
-#   checkJULIA = readLines("julia/check.jl"),
-#   checkPYOMO = readLines("pyomo/check.py"),
-#   checkGLPK = readLines("glpk/check.mod")
-# )
 
-# @method add scenario
-# @rdname add
-#
-# @return scenario object with added objects.
-# @export
-# setMethod(
-#   "add",
-#   "scenario",
-#   function(obj, ..., overwrite = FALSE, repo_name = NULL) {
-#     stop("'add' method is not implemented yet for scenario.\n",
-#          "You can add objects to a new scenario on 'interpolation' stage.")
-#   }
-# )

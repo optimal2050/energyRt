@@ -42,7 +42,44 @@
       if (k %in% names(df)) df <- df[, setdiff(names(df), k), drop = FALSE]
     }
   }
-  dplyr::left_join(df, src[, unique(src_keep), drop = FALSE], by = use)
+  src <- src[, unique(src_keep), drop = FALSE]
+  # A key can be PARTLY wild: one process's cost explicit at a region, another's
+  # folded to NA ("every region"). An exact join on that key silently drops the
+  # wildcard rows -- measured: a technology with a region-less invcost beside
+  # one at a coarse region got no EAC at all, i.e. free capital. Join each row
+  # pattern on the keys it actually holds, most specific first, so an explicit
+  # row wins and a wildcard fills what is left.
+  wild <- if (length(use)) vapply(use, function(k) any(is.na(src[[k]])), logical(1)) else logical(0)
+  if (!any(wild)) {
+    return(dplyr::left_join(df, src, by = use))
+  }
+  pat <- do.call(paste, c(lapply(use, function(k) ifelse(is.na(src[[k]]), "0", "1")), sep = ""))
+  pats <- unique(pat)
+  pats <- pats[order(-nchar(gsub("0", "", pats)))]          # most explicit keys first
+  df$.eac_row <- seq_len(nrow(df))
+  done <- integer(0)
+  parts <- list()
+  for (p in pats) {
+    ek <- use[strsplit(p, "")[[1]] == "1"]
+    sp <- src[pat == p, setdiff(names(src), setdiff(use, ek)), drop = FALSE]
+    rest <- df[!df$.eac_row %in% done, , drop = FALSE]
+    if (!nrow(rest)) break
+    j <- if (length(ek)) dplyr::inner_join(rest, sp, by = ek) else
+      dplyr::cross_join(rest, sp)
+    if (nrow(j)) {
+      parts[[length(parts) + 1L]] <- j
+      done <- c(done, unique(j$.eac_row))
+    }
+  }
+  rest <- df[!df$.eac_row %in% done, , drop = FALSE]
+  if (nrow(rest)) {
+    for (v in setdiff(names(src), names(rest))) rest[[v]] <- NA
+    parts[[length(parts) + 1L]] <- rest
+  }
+  out <- dplyr::bind_rows(parts)
+  out <- out[order(out$.eac_row), setdiff(names(out), ".eac_row"), drop = FALSE]
+  rownames(out) <- NULL
+  out
 }
 
 # Join one parameter's values onto `df` under `nm`, or fill NA if it is absent.
@@ -89,6 +126,23 @@
   invisible(NULL)
 }
 
+# A perpetual annuity at a zero rate is undefined, not zero. `.crf()` computes
+# it as 1/Inf, so an `invcost` with no rate and no life would silently become
+# free capital -- the charge simply leaves the objective. Checked after the
+# user-supplied EAC is coalesced in, so a row that carries its own `eac` (the
+# annuitised-upstream case) is not refused for a figure it never uses.
+.check_perpetual_annuity <- function(df, key) {
+  bad <- df$rate == 0 & !is.finite(df$life) &
+    !is.na(df$invcost) & df$invcost != 0 & is.na(df$ueac)
+  if (!any(bad)) return(invisible(NULL))
+  stop("zero discount rate and no operational life leave the annualised ",
+       "capital cost undefined, and it would be charged as 0 (", key, " ",
+       paste(unique(df[[key]][bad]), collapse = ", "), ").\n",
+       "  Set `@vintage$olife` (technical life), `@invcost$payback` ",
+       "(cost-recovery period), or a non-zero `@invcost$wacc` / model ",
+       "discount rate.", call. = FALSE)
+}
+
 # Compute one family's EAC param from its invcost / wacc / olife / payback.
 # `wacc_par` / `payback_par` may be character VECTORS tried in order (a
 # storage part passes c(part-specific, storage-wide)): the first non-NA value
@@ -114,6 +168,37 @@
   }
   if (nrow(df) == 0) return(scen)
 
+  # A cost with no region means "each place this process touches bears this
+  # rate" -- which is what lets a sampled sub-model stay consistent with the
+  # full one: declare 1/3 on a three-node corridor, sample two nodes, and the
+  # charge follows the endpoints that survive.
+  #
+  # A technology's window carries its regions, so the merge above already
+  # landed them. A TRADE's window is `(trade, year)` with no region at all, so
+  # an unregioned rate arrives here with nothing to carry it, and the dense
+  # `pTradeEac{trade, region, year}` would then materialise one row per region
+  # OF THE MODEL -- six charges on a six-region model for a two-ended corridor,
+  # growing with the model rather than with the route. Expand over the
+  # process's own regions instead: for a trade those are its route endpoints.
+  if (!"region" %in% names(df) || all(is.na(df$region))) {
+    preg <- tryCatch(get_process_region(scen, return_list = TRUE),
+                     error = function(e) NULL)
+    ends <- if (is.null(preg)) NULL else
+      do.call(rbind, lapply(unique(as.character(df[[key]])), function(k) {
+        rg <- preg[[k]]
+        rg <- rg[!is.na(rg) & nzchar(rg)]
+        if (!length(rg)) return(NULL)
+        data.frame(.proc = k, region = as.character(rg),
+                   stringsAsFactors = FALSE)
+      }))
+    if (!is.null(ends) && nrow(ends) > 0) {
+      names(ends)[1] <- key
+      df <- df[, setdiff(names(df), "region"), drop = FALSE]
+      df <- dplyr::inner_join(df, ends, by = key)
+    }
+  }
+  if (nrow(df) == 0) return(scen)
+
   # Rate: process-specific cost of capital (first supplied of the given
   # parameters, in order), else the model-wide one. NA means "not supplied" --
   # an explicit 0 is a legitimate zero-interest rate and is kept (hence
@@ -123,6 +208,22 @@
     df <- .eac_join(scen, df, wacc_par[i], wacc_cols[i], c(key, "region", "year"))
   }
   df <- .eac_join(scen, df, "pWacc", "mwacc", c("region", "year"))
+  # A process at a coarse geoscale cell whose children declare different rates,
+  # with no rate declared for the cell itself and none of its own, has no
+  # defensible rate: refuse rather than annuitise at 0.
+  atoms <- as.character(scen@settings@region)
+  no_rate <- is.na(df$mwacc) & !is.na(df$region) & !(as.character(df$region) %in% atoms)
+  for (wc in wacc_cols) no_rate <- no_rate & is.na(df[[wc]])
+  if (any(no_rate)) {
+    bad <- unique(df[no_rate, c(key, "region"), drop = FALSE])
+    stop("No investment rate for ", paste(sprintf("'%s' at '%s'", bad[[key]], bad$region),
+                                          collapse = ", "),
+         ": the coarse region declares no `wacc` and its child regions do not ",
+         "share one.
+  Declare a rate for the coarse region in `discount` ",
+         "(a row with `region` = it), give the process its own `wacc` in ",
+         "`@invcost`, or give the child regions a common rate.", call. = FALSE)
+  }
   df$rate <- dplyr::coalesce(!!!df[c(wacc_cols, "mwacc")], 0)
 
   # Period: cost-recovery life if given (first supplied, in order), else
@@ -145,6 +246,7 @@
   # wildcard-aware way as everything else: the seed is region-FOLDED at this
   # stage while `df` is region-explicit, so an exact join would match nothing.
   df <- .eac_join(scen, df, eac_par, "ueac", c(key, "region", "year"))
+  .check_perpetual_annuity(df, key)
   df$eac <- dplyr::coalesce(df$ueac, df$eac)
 
   dims <- P[[eac_par]]@dimSets
@@ -224,7 +326,7 @@
 }
 
 # `pXPayback` narrows the eqXEac charging window. GLPK, GAMS, JuMP/Julia and
-# Pyomo-Concrete all implement it (ported from GLPK 2026-08-19).
+# Pyomo-Concrete all implement it.
 #
 # Pyomo-ABSTRACT does not, and cannot without a bigger change: its eqXEac is
 # still the pre-vintaging `pXEac * vXCap` form, which charges the annuity on

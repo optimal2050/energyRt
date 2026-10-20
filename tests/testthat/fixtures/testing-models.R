@@ -183,6 +183,8 @@ tm_EWIN_weather <- newTechnology(
     wafs.up = c(0.8, NA),   # -> mTechWeatherAfsUp
     wafc.up = c(NA, 0.9)    # -> mTechWeatherAfcUp  (commodity-specific)
   ),
+  # wafs multiplies afs, at the weather's (SEASON) timeframe
+  afs = data.frame(timeslice = c("WIN", "SUM"), afs.up = 1),
   invcost = data.frame(region = "R1", invcost = 1500),
   olife = list(olife = 25),
   cap2act = 1
@@ -209,6 +211,8 @@ tm_STG_ELC <- newStorage(
   desc = "Electricity storage",
   commodity = "ELC",
   invcost = list(out.invcost = 50),
+  # the reservoir is the anchor: one hour at the discharger's rating
+  duration = 1,
   olife = list(olife = 15)
 )
 
@@ -226,12 +230,14 @@ tm_STG_ELC_aux <- newStorage(
     unit  = c("Mm3", "TJ")
   ),
   aeff = rbind(
-    data.frame(acomm = "WAT", stg2ainp = 0.02, cap2ainp = 0.05,
+    data.frame(acomm = "WAT", stg2ainp = 0.02, out.cap2ainp = 0.05,
                stg2aout = NA_real_),
-    data.frame(acomm = "HET", stg2ainp = NA_real_, cap2ainp = NA_real_,
+    data.frame(acomm = "HET", stg2ainp = NA_real_, out.cap2ainp = NA_real_,
                stg2aout = 0.01)
   ),
   invcost = list(out.invcost = 50),
+  # the reservoir is the anchor: one hour at the discharger's rating
+  duration = 1,
   olife = list(olife = 15)
 )
 
@@ -247,9 +253,9 @@ tm_STG_ELC_weather <- newStorage(
     unit  = c("Mm3", "TJ")
   ),
   aeff = rbind(
-    data.frame(acomm = "WAT", stg2ainp = 0.02, cap2ainp = 0.05,
+    data.frame(acomm = "WAT", stg2ainp = 0.02, out.cap2ainp = 0.05,
                stg2aout = NA_real_),
-    data.frame(acomm = "HET", stg2ainp = NA_real_, cap2ainp = NA_real_,
+    data.frame(acomm = "HET", stg2ainp = NA_real_, out.cap2ainp = NA_real_,
                stg2aout = 0.01)
   ),
   weather = data.frame(
@@ -259,6 +265,8 @@ tm_STG_ELC_weather <- newStorage(
     out.waf.up = 0.8   # -> mStorageWeatherOutAfUp
   ),
   invcost = list(out.invcost = 50),
+  # the reservoir is the anchor: one hour at the discharger's rating
+  duration = 1,
   olife = list(olife = 15)
 )
 

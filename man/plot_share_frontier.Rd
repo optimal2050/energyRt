@@ -21,3 +21,20 @@ Builds the diagonal share-mix chart from a \code{\link{tech_share_frontier}}
 data.frame.  Returns a named list of class \code{"share_frontier_plots"} of
 \code{ggplot2} objects, one per (direction × group).
 }
+\examples{
+# a co-firing plant whose biomass may cover at most 30\% of the fuel group
+chp <- newTechnology(
+  "CHP",
+  input   = data.frame(comm = c("COA", "BIO"), group = "fuel"),
+  output  = data.frame(comm = "ELC"),
+  group   = data.frame(group = "fuel", unit = "MMBtu"),
+  ceff    = data.frame(comm = c("COA", "BIO"), cinp2use = c(0.40, 0.35),
+                       grp.share.up = c(1, 0.3)),
+  cap2act = 8760
+)
+
+# one ggplot per (direction x group)
+p <- plot_share_frontier(tech_share_frontier(chp))
+names(p)
+p[[1]]
+}

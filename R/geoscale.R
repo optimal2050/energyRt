@@ -10,6 +10,8 @@
 #
 #  * PRESENTATION (plot_map.R, plot.R, reporting, subsetting). Needs nothing
 #    from the optimisation model and never did.
+#    NOTE: this is the PRESENTATION half only -- see MODEL STRUCTURE below,
+#    which is emphatically not inert once a commodity names a `@geoframe`.
 #
 #  * MODEL STRUCTURE. `sets$region` becomes the union of every level, so a
 #    coarse region such as a nation is a member alongside the states, and a
@@ -33,9 +35,17 @@ NULL
 #'
 #' A geoscale describes the model's regions -- their nesting into coarser
 #' levels, their weights, and optionally their geometry. It is built with the
-#' [geoscales](https://github.com/optimal2050/geoscales) package and is used
-#' for plotting, reporting and subsetting only: attaching one never changes the
-#' optimisation model.
+#' [geoscales](https://github.com/optimal2050/geoscales) package.
+#'
+#' Attaching one is inert by itself: it widens the model's region set with the
+#' coarser codes and enables level-aware plotting, reporting and subsetting
+#' (`getData(geoframe = )`), but the extra members stay unused and the model
+#' solves exactly as before. It is also the prerequisite for
+#' `newCommodity(geoframe = )`, which balances a commodity at a coarser level
+#' and does change the optimisation model -- see
+#' `vignette("space-resolution")`. The geoframes must NEST: adjacent levels
+#' have to refine one another, or a region would be aggregated into two
+#' parents.
 #'
 #' `setGeoscale()` stores it on a `config` (and therefore on a `settings`, which
 #' inherits from `config`) or on a `model`. `getGeoscale()` reads it back;
@@ -43,11 +53,11 @@ NULL
 #' `@config`, matching how `@calendar` is resolved.
 #'
 #' @param obj A `config`, `settings`, `model` or `scenario`.
-#' @param geoscale A `geoscales::Geoscale`, or `NULL` to clear it.
+#' @param geoscale A `geoscales::GeoScale`, or `NULL` to clear it.
 #' @param ... Unused.
 #'
 #' @return `setGeoscale()` returns the modified object; `getGeoscale()` returns
-#'   a `geoscales::Geoscale` or `NULL`.
+#'   a `geoscales::GeoScale` or `NULL`.
 #'
 #' @examples
 #' \dontrun{
@@ -61,7 +71,7 @@ NULL
 #'
 #' @family geoscale
 #' @name setGeoscale
-#' @aliases setGeoscale getGeoscale getCalendar
+#' @aliases setGeoscale getGeoscale getCalendar setCalendar
 NULL
 
 #' @rdname setGeoscale
@@ -125,7 +135,7 @@ setMethod("getCalendar", signature(obj = "scenario"), function(obj) {
 #' than the model uses (a world map for a two-country model) is normal and
 #' useful.
 #'
-#' @param geoscale A `geoscales::Geoscale`.
+#' @param geoscale A `geoscales::GeoScale`.
 #' @param region Character vector of declared model regions.
 #' @param level Level of the geoscale to match against. Defaults to the finest.
 #'
@@ -133,6 +143,11 @@ setMethod("getCalendar", signature(obj = "scenario"), function(obj) {
 #'
 #' @family geoscale
 #' @export
+#' @examples
+#' # returns the declared regions the geoscale cannot place, and warns about them
+#' gs <- topia$geoscales$squares
+#' check_geoscale_regions(gs, c("W1", "W2", "C1"))        # all placed: character(0)
+#' suppressWarnings(check_geoscale_regions(gs, c("W1", "NOWHERE")))
 check_geoscale_regions <- function(geoscale, region, level = NULL) {
   if (is.null(geoscale)) return(invisible(character()))
   check_package("geoscales")
@@ -216,17 +231,69 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
   keep[[finest]] <- intersect(geoscales::geoscale_regions(geoscale, finest),
                               declared)
   pairs <- list()
+  selfish <- character()
   for (i in rev(seq_len(length(levels) - 1L))) {
     pl <- levels[i]
     cl <- levels[i + 1L]
     f <- fam[fam_parent_level == pl & fam_child_level == cl &
                fam$child %in% keep[[cl]], , drop = FALSE]
+    # `keep` is taken BEFORE self-pairs are dropped: a code repeated across two
+    # geoframes is still a legitimate child for the level above it.
     keep[[pl]] <- unique(f$parent)
+    # A code repeated across adjacent geoframes parents ITSELF (`LU` under `LU`,
+    # the shape Eurostat pads away as LU -> LU0 -> LU00). The pair needs no
+    # roll-up -- the coarse cell IS the atom -- and emitting it would make
+    # eqOutTot read `vOutTot[c,r] = <real terms> + vOutTot[c,r]`, which cancels
+    # the cell out of its own equation: the real terms are forced to zero and
+    # the cell is left free and costless. Silent, feasible, and wrong.
+    self <- as.character(f$parent) == as.character(f$child)
+    if (any(self)) {
+      selfish <- c(selfish, unique(as.character(f$parent)[self]))
+      f <- f[!self, , drop = FALSE]
+    }
     if (nrow(f) > 0L) {
       pairs[[length(pairs) + 1L]] <-
         data.frame(region = as.character(f$parent),
                    regionp = as.character(f$child),
                    stringsAsFactors = FALSE)
+    }
+  }
+  if (length(selfish)) {
+    selfish <- unique(selfish)
+    message("Geoscale: ", length(selfish), " region(s) carry the same code at ",
+            "two adjacent geoframes (", paste(utils::head(selfish, 5),
+                                              collapse = ", "),
+            if (length(selfish) > 5) ", ..." else "",
+            "). No aggregation is needed for them; the self-pairs are dropped.")
+  }
+
+  # Every child must have exactly ONE parent. More than one means two adjacent
+  # geoframes CROSS-CUT -- parallel groupings of the same atoms, which geoscales
+  # permits by design but this roll-up cannot represent: the up-aggregation term
+  # in eqOutTot/eqInpTot is a plain unweighted sum, so a child with two parents
+  # is added into both. Where a commodity is balanced at or above the cut that
+  # silently widens the balance into a copperplate; below it, the coarse totals
+  # overlap and no longer sum to the system total. Refuse rather than solve a
+  # different problem.
+  .fam_all <- if (length(pairs)) do.call(rbind, pairs) else NULL
+  if (!is.null(.fam_all) && nrow(.fam_all) > 0L) {
+    np <- tapply(.fam_all$region, .fam_all$regionp,
+                 function(z) length(unique(z)))
+    bad <- names(np)[np > 1L]
+    if (length(bad)) {
+      shown <- utils::head(bad, 5)
+      det <- vapply(shown, function(b) paste0(
+        b, " <- ", paste(sort(unique(.fam_all$region[.fam_all$regionp == b])),
+                         collapse = " + ")), character(1))
+      stop("The geoscale's `geoframes` do not nest: ", length(bad),
+           " region(s) have more than one parent.\n   ",
+           paste(det, collapse = "\n   "),
+           if (length(bad) > 5) "\n   ..." else "",
+           "\nAdjacent geoframes must refine one another. Parallel groupings ",
+           "of the same regions (e.g. trade blocs alongside national borders) ",
+           "are not supported in one chain: keep a single hierarchy in ",
+           "`geoframes`. Diagnose with `geoscales::geoscale_nests()`.",
+           call. = FALSE)
     }
   }
 
@@ -297,6 +364,40 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
   hier$members[[level]]
 }
 
+# The geoscale level an object DECLARES its regions at, or NA when it declares
+# none. `@geoframe` is optional on every region-carrying class: left unset, the
+# level is DERIVED from the region codes themselves (`.flow_levels()` takes the
+# finest level any of them belongs to), which is what every model written
+# before the slot existed relies on.
+#
+# Distinct from `commodity@geoframe` (the level a commodity is BALANCED at) and
+# `summand@geoframe` (a restriction of the summed region dimension), which read
+# their own slot directly.
+#' @noRd
+.obj_geoframe <- function(obj) {
+  if (!isS4(obj) || !methods::.hasSlot(obj, "geoframe")) {
+    return(NA_character_)
+  }
+  g <- as.character(methods::slot(obj, "geoframe"))
+  g <- g[!is.na(g) & nzchar(g)]
+  if (length(g) == 0) NA_character_ else g[1]
+}
+
+# The regions a declared level covers, or `default` when no level is declared.
+#
+# This is the ONE default `@geoframe` sets: an object that names no regions of
+# its own spans its LEVEL instead of every region in the model. Everything else
+# the slot does is a check. For a weather series that is the difference between
+# one stored row and one per region of every level.
+#' @noRd
+.obj_level_members <- function(obj, hier, default) {
+  lv <- .obj_geoframe(obj)
+  if (is.na(lv) || is.null(hier)) {
+    return(default)
+  }
+  .geo_level_regions(hier, lv)
+}
+
 # Resolve a geoscale from an explicit argument, else from the object.
 #' @noRd
 .resolve_geoscale <- function(x, geoscale = NULL, required = TRUE) {
@@ -310,7 +411,7 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
   }
   if (!is.null(gs)) {
     if (!is_geoscale(gs)) {
-      stop("`geoscale` must be a `geoscales::Geoscale` object.", call. = FALSE)
+      stop("`geoscale` must be a `geoscales::GeoScale` object.", call. = FALSE)
     }
     check_package("geoscales")
   }

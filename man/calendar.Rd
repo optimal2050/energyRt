@@ -13,6 +13,8 @@ make_timetable(
 \arguments{
 \item{struct}{named list of timeframes with sets of timeslices and optional shares of every timeslice or frame in the nest}
 
+\item{year_fraction}{numeric. The fraction of a year covered by the calendar, e.g. 1 for annual calendar (default), 0.5 for semi-annual, 0.25 for quarterly, etc. Currently must be specified manually for subset calendars to validate the sum of the shares.}
+
 \item{warn}{logical, if TRUE, warning will be issued if \code{ANNUAL} level does not exists in the given structure. The level will be auto-created to complete the time-structure.}
 }
 \value{

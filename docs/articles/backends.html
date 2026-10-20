@@ -16,13 +16,7 @@
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Solver backends and solver_options">
-<!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script>
+<script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -32,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,20 +36,28 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development">
+<li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul>
+</li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials">
 <li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
+    <li><a class="dropdown-item" href="../articles/features.html">Features</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -149,13 +151,24 @@ slow on large models.</td>
 <td>HiGHS barrier is fast; recommended for large models.</td>
 </tr>
 <tr class="even">
+<td>
+<strong>Julia / cuOpt</strong> (GPU)</td>
+<td><code>JuMP</code></td>
+<td>NVIDIA cuOpt</td>
+<td>open-source</td>
+<td>
+<strong>Linux only.</strong> First-order (PDLP) needs no
+factorization, so it fits models whose barrier does not; add crossover
+for duals.</td>
+</tr>
+<tr class="odd">
 <td><strong>GAMS</strong></td>
 <td><code>GAMS</code></td>
 <td>CPLEX, CBC</td>
 <td>proprietary</td>
 <td>Needs a GAMS license; supports GDX I/O and fine solver tuning.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>
 <strong>NEOS</strong> (remote)</td>
 <td>
@@ -165,6 +178,17 @@ slow on large models.</td>
 <td>free service</td>
 <td>Solve on the <a href="https://neos-server.org" class="external-link">NEOS server</a> — no
 local commercial solver needed.</td>
+</tr>
+<tr class="odd">
+<td>
+<strong>mmcloud_pyomo</strong> (cloud GPU)</td>
+<td>
+<code>PYOMO</code> (as MPS)</td>
+<td>HiGHS / cuOpt on a cloud GPU</td>
+<td>service</td>
+<td>
+<strong>Experimental.</strong> Writes the problem as MPS and solves
+it remotely, for models too large for local RAM.</td>
 </tr>
 </tbody>
 </table>
@@ -218,10 +242,13 @@ models.</p>
 <div class="section level3">
 <h3 id="python-pyomo">Python / Pyomo<a class="anchor" aria-label="anchor" href="#python-pyomo"></a>
 </h3>
-<p>energyRt writes a Pyomo <code>ConcreteModel</code> (data exchanged as
-SQLite by default, or Arrow/feather with the <code>*_arrow</code>
-presets) and solves it with the configured solver. CBC is the
-open-source default; CPLEX and GLPK are also available.</p>
+<p>energyRt writes a Pyomo <code>ConcreteModel</code> and solves it with
+the configured solver. CBC is the open-source default; CPLEX and GLPK
+are also available. Model data and the solution are exchanged as Arrow
+files, which needs <code>pyarrow</code> in the Python environment
+(<code><a href="../reference/en_install_python_deps.html">en_install_python_deps()</a></code> installs it);
+<code>solver_options$pyomo_cbc_sqlite</code> selects the older SQLite
+exchange instead.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">pyomo_cbc</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">pyomo_cplex_barrier</span><span class="op">)</span>   <span class="co"># CPLEX barrier</span></span></code></pre></div>
@@ -233,11 +260,54 @@ open-source default; CPLEX and GLPK are also available.</p>
 <strong>HiGHS</strong> (open-source) is fast and the recommended choice
 for large models; <code>*_barrier</code>, <code>*_simplex</code> and
 <code>*_parallel</code> presets select the HiGHS algorithm. Cbc, GLPK
-and CPLEX are also available.</p>
+and CPLEX are also available. Model data and the solution are exchanged
+as Arrow files, read and written by <code>Arrow.jl</code>
+(<code><a href="../reference/en_install_julia_pkgs.html">en_install_julia_pkgs()</a></code> installs it);
+<code>solver_options$julia_highs_rdata</code> selects the older RData
+exchange instead.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs</span><span class="op">)</span>           <span class="co"># default (auto)</span></span>
 <span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs_barrier</span><span class="op">)</span>   <span class="co"># interior point</span></span>
 <span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs_parallel</span><span class="op">)</span>  <span class="co"># parallel simplex</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="nvidia-cuopt-gpu">NVIDIA cuOpt (GPU)<a class="anchor" aria-label="anchor" href="#nvidia-cuopt-gpu"></a>
+</h3>
+<p><strong>Linux only.</strong> cuOpt solves the same JuMP model on an
+NVIDIA GPU through <a href="https://github.com/jump-dev/cuOpt.jl" class="external-link"><code>cuOpt.jl</code></a>.
+It ships no Windows build, so on Windows the Julia process must run
+inside WSL. Install cuOpt itself first
+(<code>pip install --extra-index-url=https://pypi.nvidia.com cuopt-cu12</code>),
+put <code>libcuopt.so</code> on <code>LD_LIBRARY_PATH</code>, then add
+the wrapper with <code>en_install_julia_pkgs("cuOpt")</code>.
+<code>cuOpt.jl</code> supports one cuOpt release at a time, so the
+installed <code>cuopt-cu12</code> must match it.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_cuopt_pdlp</span><span class="op">)</span>      <span class="co"># first-order, GPU</span></span>
+<span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_cuopt_crossover</span><span class="op">)</span> <span class="co"># + basic solution</span></span>
+<span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_cuopt_concurrent</span><span class="op">)</span><span class="co"># race all three</span></span></code></pre></div>
+<p><code>method</code> selects the algorithm: <code>0</code> races PDLP
+and barrier on the GPU against dual simplex on the CPU and returns
+whichever finishes first, <code>1</code> is PDLP alone. Which preset to
+use follows from how the solution is consumed:</p>
+<ul>
+<li>
+<strong><code>julia_cuopt_pdlp</code></strong> – PDLP never
+factorizes, so GPU memory grows linearly with non-zeros. This is the
+preset for models whose barrier factorization does not fit in GPU
+memory. The solution carries a duality gap of about <code>1e-4</code>,
+which is fine for capacities and dispatch but not for prices.</li>
+<li>
+<strong><code>julia_cuopt_crossover</code></strong> – adds a
+crossover to a basic solution, which is what duals (and therefore shadow
+prices) require. Costs a little extra time and recovers the exact
+optimum.</li>
+<li>
+<strong><code>julia_cuopt_concurrent</code></strong> – fastest on
+small and medium models, but the barrier leg dominates GPU memory and
+the winning algorithm can differ between runs, so the same model may not
+return byte-identical results twice.</li>
+</ul>
 </div>
 <div class="section level3">
 <h3 id="gams">GAMS<a class="anchor" aria-label="anchor" href="#gams"></a>
@@ -247,7 +317,7 @@ The <code>gams_gdx_*</code> presets exchange data as GDX (fast, native);
 the <code>gams_csv_*</code> presets use text/CSV. The
 <code>*_barrier</code> and <code>*_parallel</code> presets inject a
 tuned <code>cplex.opt</code> (LP method, threads, crossover, …).</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">gams_gdx_cplex</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">gams_gdx_cplex_barrier</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -266,7 +336,7 @@ install is needed).</p>
 one energyRt setting whose environment variable is <em>not</em> prefixed
 <code>ENERGYRT_</code>, because the Pyomo subprocess reads
 <code>NEOS_EMAIL</code> directly):</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/neos_email.html">set_neos_email</a></span><span class="op">(</span><span class="st">"you@example.org"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">neos_gams_cplex</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">neos_pyomo_cplex_barrier</span><span class="op">)</span></span></code></pre></div>
@@ -274,19 +344,38 @@ one energyRt setting whose environment variable is <em>not</em> prefixed
 …) is also exported — see <code><a href="../reference/neos.html">?neos</a></code> and the <code>neos_*</code>
 functions.</p>
 </div>
+<div class="section level3">
+<h3 id="mmcloud_pyomo-cloud-gpu">mmcloud_pyomo (cloud GPU)<a class="anchor" aria-label="anchor" href="#mmcloud_pyomo-cloud-gpu"></a>
+</h3>
+<p><strong>Experimental — in testing.</strong> Where NEOS dispatches the
+<em>model text</em>, this route writes the problem as an <strong>MPS
+file locally</strong> and sends that to a GPU solver in the cloud,
+decoding the solution back into the scenario. It exists for models whose
+build or solve does not fit a laptop: the MPS is produced by the Pyomo
+formulation, so nothing new has to be written for the model itself.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">mmcloud_pyomo</span><span class="op">)</span></span>
+<span><span class="co"># or, to recover duals from a first-order solve:</span></span>
+<span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">mmcloud_pyomo_crossover</span><span class="op">)</span></span></code></pre></div>
+<p>Being experimental, treat results as provisional and cross-check a
+smaller variant against a local backend before relying on them. Access
+is via a token (<code><a href="../reference/hf_token.html">get_hf_token()</a></code>), and the preset carries the
+machine flavour and a wall-clock timeout, so a run that exceeds it
+returns nothing rather than partial results.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="all-preset-solver_options">All preset <code>solver_options</code><a class="anchor" aria-label="anchor" href="#all-preset-solver_options"></a>
 </h2>
 <p>The presets shipped with the package (generated from the installed
 data):</p>
-<table style="width:100%;" class="table">
+<table class="table">
 <colgroup>
-<col width="34%">
-<col width="19%">
+<col width="36%">
+<col width="18%">
 <col width="16%">
 <col width="9%">
-<col width="19%">
+<col width="18%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">preset</th>
@@ -308,70 +397,154 @@ data):</p>
 <td align="left">Python/Pyomo</td>
 <td align="left">cbc</td>
 <td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">default</td>
 </tr>
 <tr class="odd">
-<td align="left">pyomo_cbc_arrow</td>
+<td align="left">pyomo_cbc_sqlite</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">cbc</td>
 <td align="left"></td>
-<td align="left">feather</td>
+<td align="left">SQLite</td>
 </tr>
 <tr class="even">
 <td align="left">pyomo_cplex</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">cplex</td>
 <td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">default</td>
 </tr>
 <tr class="odd">
 <td align="left">pyomo_cplex_barrier</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">cplex</td>
 <td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">default</td>
 </tr>
 <tr class="even">
 <td align="left">pyomo_glpk</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">glpk</td>
 <td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">default</td>
 </tr>
 <tr class="odd">
 <td align="left">pyomo_highs</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">appsi_highs</td>
 <td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">default</td>
 </tr>
 <tr class="even">
 <td align="left">pyomo_highs_barrier</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">appsi_highs</td>
 <td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">default</td>
+</tr>
+<tr class="odd">
+<td align="left">pyomo_mps</td>
+<td align="left">Python/Pyomo</td>
+<td align="left">appsi_highs</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="even">
+<td align="left">mm_highs</td>
+<td align="left">NA</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="odd">
+<td align="left">mm_highs_barrier</td>
+<td align="left">NA</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="even">
+<td align="left">mm_highs_barrier_bs3</td>
+<td align="left">NA</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="odd">
+<td align="left">mm_julia_highs_barrier</td>
+<td align="left">NA</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="even">
+<td align="left">mm_julia_highs_barrier_bs3</td>
+<td align="left">NA</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="odd">
+<td align="left">mm_cuopt_wsl</td>
+<td align="left">NA</td>
+<td align="left">cuOpt</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="even">
+<td align="left">mm_cuopt_wsl_crossover</td>
+<td align="left">NA</td>
+<td align="left">cuOpt</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="odd">
+<td align="left">mmcloud</td>
+<td align="left">NA</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="even">
+<td align="left">mmcloud_crossover</td>
+<td align="left">NA</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="odd">
+<td align="left">mmcloud_pyomo</td>
+<td align="left">Python/Pyomo</td>
+<td align="left">appsi_highs</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="even">
+<td align="left">mmcloud_pyomo_crossover</td>
+<td align="left">Python/Pyomo</td>
+<td align="left">appsi_highs</td>
+<td align="left"></td>
+<td align="left">default</td>
 </tr>
 <tr class="odd">
 <td align="left">neos_pyomo_cplex</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">—</td>
-<td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">NEOS</td>
+<td align="left">default</td>
 </tr>
 <tr class="even">
 <td align="left">neos_pyomo_cplex_barrier</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">—</td>
-<td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">NEOS</td>
+<td align="left">default</td>
 </tr>
 <tr class="odd">
 <td align="left">neos_pyomo_cbc</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">—</td>
-<td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">NEOS</td>
+<td align="left">default</td>
 </tr>
 <tr class="even">
 <td align="left">julia_cbc</td>
@@ -402,11 +575,11 @@ data):</p>
 <td align="left">default</td>
 </tr>
 <tr class="even">
-<td align="left">julia_highs_arrow</td>
+<td align="left">julia_highs_rdata</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
-<td align="left">feather</td>
+<td align="left">RData</td>
 </tr>
 <tr class="odd">
 <td align="left">julia_highs_barrier</td>
@@ -416,83 +589,132 @@ data):</p>
 <td align="left">default</td>
 </tr>
 <tr class="even">
+<td align="left">julia_highs_barrier_bs3</td>
+<td align="left">Julia/JuMP</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="odd">
 <td align="left">julia_glpk</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">GLPK</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_highs_simplex</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_highs_parallel</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
+<tr class="even">
+<td align="left">julia_highs_pdlp</td>
+<td align="left">Julia/JuMP</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
 <tr class="odd">
+<td align="left">julia_highs_hipdlp</td>
+<td align="left">Julia/JuMP</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="even">
+<td align="left">julia_cuopt</td>
+<td align="left">Julia/JuMP</td>
+<td align="left">cuOpt</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="odd">
+<td align="left">julia_cuopt_concurrent</td>
+<td align="left">Julia/JuMP</td>
+<td align="left">cuOpt</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="even">
+<td align="left">julia_cuopt_pdlp</td>
+<td align="left">Julia/JuMP</td>
+<td align="left">cuOpt</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="odd">
+<td align="left">julia_cuopt_crossover</td>
+<td align="left">Julia/JuMP</td>
+<td align="left">cuOpt</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="even">
 <td align="left">gams_cplex</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">gams_gdx_cplex</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">GDX</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">gams_gdx_cplex_barrier</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">GDX</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">gams_gdx_cplex_parallel</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">GDX</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">gams_cbc</td>
 <td align="left">GAMS</td>
 <td align="left">CBC</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">gams_gdx_cbc</td>
 <td align="left">GAMS</td>
 <td align="left">CBC</td>
 <td align="left"></td>
 <td align="left">GDX</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">neos_gams_cplex</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left">NEOS</td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">neos_gams_cplex_barrier</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left">NEOS</td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">neos_gams_cbc</td>
 <td align="left">GAMS</td>
 <td align="left">CBC</td>
@@ -501,6 +723,40 @@ data):</p>
 </tr>
 </tbody>
 </table>
+<p>A <code>default</code> in the last column means the preset names no
+format and follows the <code>exchange_format</code> option — Arrow IPC
+unless you change it.</p>
+</div>
+<div class="section level2">
+<h2 id="data-exchange-and-storage">Data exchange and storage<a class="anchor" aria-label="anchor" href="#data-exchange-and-storage"></a>
+</h2>
+<p>Two separate option families, easy to confuse because both once
+shared one option:</p>
+<ul>
+<li>
+<strong>exchange</strong> — the files handed to a solver for one
+solve, in
+<code>runs/[&lt;variant&gt;/]&lt;solve&gt;/input|output/</code>. Written
+once, read once, deleted with the run.
+<code><a href="../reference/exchange_format.html">get_exchange_format()</a></code> (<code>"feather"</code>),
+<code><a href="../reference/exchange_format.html">get_exchange_compression()</a></code> (<code>"lz4"</code> — the codec
+is cheap because nothing here is kept).</li>
+<li>
+<strong>storage</strong> — the tables that outlive the session: a
+scenario’s parameter and variable stores, and the model / repository /
+dataset stores. <code><a href="../reference/storage_format.html">get_storage_format()</a></code>
+(<code>"feather"</code>), <code><a href="../reference/storage_format.html">get_storage_compression()</a></code>
+(<code>"zstd"</code>, level 15).</li>
+</ul>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/exchange_format.html">set_exchange_format</a></span><span class="op">(</span><span class="st">"parquet"</span><span class="op">)</span>     <span class="co"># Pyomo only; Arrow.jl cannot read parquet</span></span>
+<span><span class="fu"><a href="../reference/exchange_format.html">set_exchange_compression</a></span><span class="op">(</span><span class="st">"uncompressed"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/storage_format.html">set_storage_format</a></span><span class="op">(</span><span class="st">"parquet"</span><span class="op">)</span>      <span class="co"># smaller on disk; feather reads faster</span></span></code></pre></div>
+<p>A solver preset’s <code>export_format</code> /
+<code>import_format</code> overrides the exchange option for that solve.
+A store records the format it was written in and keeps it when
+rewritten, so changing the option never mixes codecs inside an existing
+store — it applies to what you write next.</p>
 </div>
 <div class="section level2">
 <h2 id="anatomy-of-a-preset">Anatomy of a preset<a class="anchor" aria-label="anchor" href="#anatomy-of-a-preset"></a>
@@ -536,8 +792,11 @@ fields:</p>
 <td>
 <code>export_format</code> / <code>import_format</code>
 </td>
-<td>data exchange: <code>SQLite</code>, <code>feather</code> (Arrow),
-<code>GDX</code>, CSV/text</td>
+<td>data exchange in / out: <code>feather</code> (Arrow, the default),
+<code>parquet</code> (Pyomo only), <code>SQLite</code> /
+<code>RData</code> (legacy input), <code>GDX</code>, CSV/text. Unset on
+a JuMP/Pyomo preset means “follow <code><a href="../reference/exchange_format.html">get_exchange_format()</a></code>”;
+the two directions are independent</td>
 </tr>
 <tr class="odd">
 <td><code>backend</code></td>
@@ -558,7 +817,7 @@ fields:</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># start from a preset and customise</span></span>
 <span><span class="va">my_solver</span> <span class="op">&lt;-</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs</span></span>
 <span><span class="va">my_solver</span><span class="op">$</span><span class="va">name</span> <span class="op">&lt;-</span> <span class="st">"julia_highs_custom"</span></span>

@@ -2,7 +2,7 @@
 % Please edit documentation in R/class-model.R, R/class-scenario.R
 \name{summary,model-method}
 \alias{summary,model-method}
-\alias{summary}
+\alias{summary,scenario-method}
 \title{Summarize a model or scenario}
 \usage{
 \S4method{summary}{model}(object, ...)

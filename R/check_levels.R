@@ -25,7 +25,7 @@
 #
 # NA / empty timeslices and regions are wildcards ("all of them") and always pass.
 
-#' @include geoscale.R map_region.R
+#' @include geoscale.R mapping-builders.R
 NULL
 
 # Timeslices appearing in an object's data.frame slots.
@@ -119,6 +119,17 @@ NULL
   }
 
   objs <- .level_check_objects(scen)
+  # Roles, for the coarse-direction exemption below. `outstg` is the union of
+  # produced and stored commodities: both must stay at-or-coarser.
+  inp_of <- tryCatch(get_process_inputs(scen), error = function(e) list())
+  aux_of <- tryCatch(get_process_aux(scen), error = function(e) list())
+  outstg_of <- local({
+    o <- tryCatch(get_process_outputs(scen), error = function(e) list())
+    st <- tryCatch(get_process_stored(scen), error = function(e) list())
+    ks <- union(names(o), names(st))
+    stats::setNames(lapply(ks, function(k)
+      unique(c(as.character(o[[k]]), as.character(st[[k]])))), ks)
+  })
   for (nm in names(objs)) {
     cls <- pclass[[nm]]
     if (is.null(cls) || !(cls %in% .STRICT_LEVEL_CLASSES)) next
@@ -143,9 +154,33 @@ NULL
           add(nm, cls, cm, "timeslice", off, allowed_s)
         }
       }
+      # The REGION axis is per-class: a storage may sit at a region level
+      # COARSER than its input, which .assert_process_geoframe() admits and the
+      # mStorageProcAggRegion branch sums. A region FINER than the commodity is
+      # still a mismatch for every strict class, so only the coarse direction
+      # is exempt, and only for storage.
+      # The REGION axis is exempt in the COARSE direction for a commodity the
+      # object only CONSUMES -- the no-disaggregation rule (R/process-levels.R):
+      # the input is drawn from the finer cells beneath the object and summed.
+      # The test is on the ROLE, not on check ordering: a commodity that is
+      # also produced or stored keeps the strict match, so widening this never
+      # silently admits an output.
       allowed_r <- lv[[cm]]$regions
       if (!is.null(allowed_r) && length(regions) > 0) {
         off <- setdiff(intersect(regions, known_regions), allowed_r)
+        # An AUXILIARY commodity is exempt in BOTH directions, unlike a main
+        # flow. Its equation is written at the process's own cell and pins the
+        # SUM of the child variables to the coefficient, so the aggregation
+        # path this message is about exists either way: nothing is written at a
+        # cell that is never read. A main output has no such equation, which is
+        # why it stays strict.
+        is_aux <- cm %in% aux_of[[nm]] &&
+          !(cm %in% inp_of[[nm]]) && !(cm %in% outstg_of[[nm]])
+        if (length(off) > 0 && .coarse_axis_ready("region") &&
+            cls %in% .coarse_classes_supported &&
+            (is_aux || (cm %in% inp_of[[nm]] && !(cm %in% outstg_of[[nm]])))) {
+          off <- off[!.region_is_coarser(scen, off, allowed_r)]
+        }
         if (length(off) > 0) {
           add(nm, cls, cm, "region", off, allowed_r)
         }
@@ -242,24 +277,105 @@ NULL
   unique(as.character(as.data.frame(d)[[dim]]))
 }
 
+# Rows of a variable's domain (its gate map), as already built.
+#' @noRd
+.variable_domain_rows <- function(prec, variable) {
+  nm <- .variable_gate_map(variable)
+  if (is.null(nm)) return(NULL)
+  p <- prec@parameters[[nm]]
+  if (is.null(p)) return(NULL)
+  d <- get_data_slot(p)
+  if (is.null(d) || nrow(d) == 0) return(NULL)
+  as.data.frame(d)
+}
+
 # Resolve `level` to the indices of `variable`'s `dim` that represent it.
 #
 # `members` is a named list level -> its own members (coarsest first);
-# `descend` maps any index to the set of levels it belongs to.
+# `descendants` is `level`'s own members plus everything beneath them.
+#
+# The decision is made PER GROUP -- the distinct combinations of the variable's
+# OTHER dimensions -- because the pooled column cannot tell two situations
+# apart. `mvOutTot` for one commodity carries rows at several levels and the
+# coarse row IS the roll-up, so pinning is right and summing both levels would
+# double count. `mvTechOut` in a model with one annual and one seasonal
+# commodity carries both levels too, but across DIFFERENT technologies, where
+# nothing aggregates anything and pinning silently drops the seasonal one.
+#
+# Only groups with a row AT `level` OR FINER take part. "Finer" means deeper in
+# the hierarchy -- with ANNUAL < SEASON < HOUR, the set for SEASON is the seasons
+# and the hours under them, NOT the annual slice. A group sitting entirely
+# COARSER than `level` has nothing at that resolution and correctly contributes
+# nothing: `tm_core` asked at SEASON has no seasonal coal, which is not an error.
+#
+#   every participating group has a row AT `level` -> pin
+#   none does                                      -> sum what lies beneath
+#   some do and some do not                        -> ambiguous; caller errors
+#
+# Returns `list(mode, values, missing)`; `missing` names the groups that lack a
+# row at `level` so the caller can report them.
 #' @noRd
-.resolve_level_indices <- function(domain, level, members, descendants) {
+.resolve_level_indices <- function(domain, level, members, descendants,
+                                   rows = NULL, dim = NULL) {
   own <- members[[level]]
-  if (is.null(own)) return(NULL)
-  if (is.null(domain)) return(own)          # domain unknown: take the level as-is
-
-  occupied <- names(members)[vapply(members, function(m) any(domain %in% m),
-                                    logical(1))]
-  if (length(occupied) > 1L && level %in% occupied) {
-    # multi-level variable: pin to the named level, never sum across levels
-    return(intersect(own, domain))
+  if (is.null(own)) return(list(mode = "pin", values = NULL, missing = character()))
+  if (is.null(domain)) {
+    return(list(mode = "pin", values = own, missing = character()))
   }
-  # single-level variable: everything under the named level, summed
-  intersect(descendants, domain)
+  .pin <- list(mode = "pin", values = intersect(own, domain), missing = character())
+  .sum <- list(mode = "sum", values = intersect(descendants, domain),
+               missing = character())
+
+  if (is.null(rows) || is.null(dim) || !(dim %in% names(rows))) return(.sum)
+  other <- setdiff(names(rows), c(dim, "value"))
+  if (length(other) == 0) return(.pin)
+
+  vals <- as.character(rows[[dim]])
+  key <- do.call(paste, c(lapply(rows[other], as.character), list(sep = " / ")))
+  keep <- vals %in% descendants
+  part <- unique(key[keep])                    # groups at `level` or finer
+  at <- unique(key[vals %in% own])             # groups with a row AT `level`
+  if (length(part) == 0) return(.sum)          # nothing there; caller errors
+
+  # Pinning is right for a group that HAS a row at the level: by the roll-up
+  # that row already equals its finer ones. So if every participating group has
+  # one, pin -- and never sum across the two, which would double count.
+  if (all(part %in% at)) return(.pin)
+
+  # Otherwise summing the whole descendant set is right UNLESS some group holds
+  # rows at two levels within it, which is the only way a sum can count the same
+  # quantity twice. A group sitting at exactly one level contributes its own
+  # rows once, whatever level that is -- so a variable whose members each live
+  # at a single level aggregates correctly even when the members disagree about
+  # which level that is. That is the common case for a per-process variable in a
+  # model mixing annual and sub-annual commodities, and it needs no parent rows.
+  lvl_of <- rep(NA_character_, length(vals))
+  for (lv in names(members)) lvl_of[vals %in% members[[lv]]] <- lv
+  spans <- tapply(lvl_of[keep], key[keep],
+                  function(z) length(unique(z[!is.na(z)])) > 1L)
+  if (!any(spans, na.rm = TRUE)) return(.sum)
+
+  # Some group has only finer rows while another holds several levels: pinning
+  # drops the first, summing double counts the second, and a flat `for.sum`
+  # cannot do both.
+  list(mode = "mixed", values = character(),
+       missing = utils::head(sort(names(spans)[which(spans)]), 8))
+}
+
+# Is each of `regs` at a level COARSER than the commodity's own regions? Used
+# to exempt the coarse direction from the strict level check for a class whose
+# flows are summed over the finer cells beneath it.
+#' @noRd
+.region_is_coarser <- function(scen, regs, comm_regs) {
+  h <- tryCatch(.scen_geo_hierarchy(scen), error = function(e) NULL)
+  rr <- .geo_region_rank(h)
+  if (is.null(rr) || length(comm_regs) == 0) {
+    return(rep(FALSE, length(regs)))
+  }
+  cr <- suppressWarnings(min(rr[unique(as.character(comm_regs))], na.rm = TRUE))
+  if (!is.finite(cr)) return(rep(FALSE, length(regs)))
+  r <- unname(rr[as.character(regs)])
+  !is.na(r) & r < cr
 }
 
 # Expand coarse indices named in `for.sum` down to the variable's own.

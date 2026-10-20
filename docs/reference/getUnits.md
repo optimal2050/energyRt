@@ -19,7 +19,20 @@ getUnits(object, slots = NULL, ...)
 # S4 method for class 'technology'
 getUnits(object, slots = NULL, complete = FALSE, ...)
 
-get_units(object, ...)
+# S4 method for class 'supply'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+# S4 method for class 'demand'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+# S4 method for class 'import'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+# S4 method for class 'export'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+# S4 method for class 'storage'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
 ```
 
 ## Arguments
@@ -44,6 +57,12 @@ get_units(object, ...)
   then resolved from the declared ports when unambiguous and left as
   placeholder tokens otherwise. Default `FALSE` (populated parameters
   only).
+
+- units:
+
+  named list of base units (`capacity`, `activity`, `use`, `costs`) for
+  the classes that carry no `@units` slot. `NULL` (default) resolves
+  what it can from the object and leaves the rest as placeholder tokens.
 
 ## Value
 

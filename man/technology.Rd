@@ -27,6 +27,7 @@ newTechnology(
   cluster = data.frame(),
   vintage = data.frame(),
   olife = data.frame(),
+  geoframe = character(),
   region = character(),
   start = data.frame(),
   end = data.frame(),
@@ -86,7 +87,7 @@ newTechnology(
 \item{geff}{data.frame. Input-commodity-group efficiency parameters.
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Name of region to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Name of timeslice to apply the parameter, NA for every timeslice.}
@@ -97,7 +98,7 @@ newTechnology(
 \item{ceff}{data.frame. Main commodity and activity efficiency parameters.
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Name of timeslice to apply the parameter, NA for every timeslice.}
@@ -106,9 +107,9 @@ newTechnology(
 \item{use2cact}{numeric. Use-to-commodity-activity coefficient, default is 1.}
 \item{cact2cout}{numeric. Commodity-activity-to-commodity-output coefficient, default is 1.}
 \item{cinp2ginp}{numeric. Commodity-input-to-group-input coefficient, default is 1.}
-\item{share.lo}{numeric. Lower bound on a share of commodity within a group, default is 0.}
-\item{share.up}{numeric. Upper bound on a share of commodity within a group, default is 1.}
-\item{share.fx}{numeric. Fixed share of commodity within a group, ignored if NA. This parameter overrides \code{share.lo} and \code{share.up}.}
+\item{grp.share.lo}{numeric. Lower bound on a share of commodity within a group, default is 0.}
+\item{grp.share.up}{numeric. Upper bound on a share of commodity within a group, default is 1.}
+\item{grp.share.fx}{numeric. Fixed share of commodity within a group, ignored if NA. This parameter overrides \code{grp.share.lo} and \code{grp.share.up}.}
 \item{afc.lo}{numeric. Lower bound on the per-commodity availability factor: bounds this commodity's input or output flow relative to installed capacity (times \code{cap2act}), the commodity-level analogue of \code{af.lo}. Ignored if NA.
 }
 \item{afc.up}{numeric. Upper bound on the per-commodity availability factor: bounds this commodity's input or output flow relative to installed capacity (times \code{cap2act}), the commodity-level analogue of \code{af.up}. Ignored if NA.
@@ -117,10 +118,10 @@ newTechnology(
 }
 }}
 
-\item{aeff}{data.frame. Parameters linking main commodities, activities, and capacities to auxiliary commodities.
+\item{aeff}{data.frame. Parameters linking main commodities, activities, and capacities to auxiliary commodities. Rows can be assigned to a single variant via the \code{vintage} and/or \code{cluster} key columns; each variant then carries only its own couplings (e.g. one land-pool input per cluster), and the auxiliary membership maps are built from these coefficient rows alone.
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Name of timeslice to apply the parameter, NA for every timeslice.}
@@ -146,11 +147,11 @@ newTechnology(
 }
 }}
 
-\item{af}{data.frame. Timeslice-level availability factor parameters, bounding activity in each timeslice relative to installed capacity. \code{af.up} is the maximum capacity factor per timeslice (what PyPSA calls \code{p_max_pu} and OSeMOSYS calls \code{CapacityFactor}); \code{af.lo} is a must-run floor. See \code{afs} for timeframe-level (e.g. annual) bounds and \verb{ceff$afc.*} for per-commodity bounds.
+\item{af}{data.frame. Timeslice-level availability factor parameters, bounding activity in each timeslice relative to installed capacity. \code{af.up} is the maximum capacity factor per timeslice; \code{af.lo} is a must-run floor. See \code{afs} for timeframe-level (e.g. annual) bounds and \verb{ceff$afc.*} for per-commodity bounds.
 
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Name of timeslice to apply the parameter, NA for every timeslice.}
@@ -161,11 +162,11 @@ newTechnology(
 \item{rampdown}{numeric. Ramping-down time constraint RHS value, ignored if NA. Depends on the technology timeframe.}
 }}
 
-\item{afs}{data.frame. Timeframe-level availability factor constraints, bounding activity summed over all child timeslices of the named timeslice relative to installed capacity. With \code{timeslice = "ANNUAL"} this is the annual capacity-factor bound (TIMES \code{NCAP_AFS}, OSeMOSYS \code{AvailabilityFactor}), e.g. \code{afs.lo = 0.4} requires at least 40\% annual utilization. Unlike \code{af}, \code{afs} rows are not disaggregated to finer timeslices; they always constrain the sum over the given timeframe.
+\item{afs}{data.frame. Timeframe-level availability factor constraints, bounding activity summed over all child timeslices of the named timeslice relative to installed capacity. With \code{timeslice = "ANNUAL"} this is the annual capacity-factor bound, e.g. \code{afs.lo = 0.4} requires at least 40\% annual utilization. Unlike \code{af}, \code{afs} rows are not disaggregated to finer timeslices; they always constrain the sum over the given timeframe.
 
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Name of timeslice to apply the parameter, required.}
@@ -178,7 +179,7 @@ newTechnology(
 \item{weather}{data.frame. Parameters linking \verb{weather factors} (external shocks specified by \code{weather} class) to the availability parameters \code{af}, \code{afs}, and \code{afc}.
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{weather}{character. Name of the applied weather factor, required, must match the weather factor names in a \code{weather} class in the model.}
 \item{comm}{character. Name of the commodity with specified \verb{afc.*} to be affected by the weather factor, required if \verb{afc.*} parameters are specified.}
 \item{wafc.lo}{numeric. Multiplying coefficient to the lower bound on the commodity availability parameter \code{afc.lo}, ignored if NA.}
@@ -195,7 +196,7 @@ newTechnology(
 \item{capacity}{data.frame. Capacity of the installed technology (in units of capacity).
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, required, values between specified years will be interpolated.}
 \item{stock}{numeric. Predefined capacity of the technology in units of capacity, default is 0. This parameter also defines the exogenous capacity retirement (age-based), or exogenous capacity additions, not optimized by the model, and not included in investment costs.
@@ -214,7 +215,7 @@ newTechnology(
 \item{invcost}{data.frame. Total overnight investment costs of the project (per unit of capacity).
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{invcost}{numeric. Total overnight investment costs of the project (per unit of capacity), default is 0.}
@@ -227,7 +228,7 @@ newTechnology(
 \item{fixom}{data.frame. Fixed operational and maintenance cost (per unit of capacity a year).
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{fixom}{numeric. Fixed operational and maintenance cost, default is 0.}
@@ -236,7 +237,7 @@ newTechnology(
 \item{varom}{data.frame. Variable operational and maintenance cost (per unit of activity or commodity).
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Name of the time-timeslice or (grand-)parent timeframe to apply the parameter, NA for every time-timeslice of the technology timeframe.}
@@ -247,7 +248,7 @@ newTechnology(
 \item{avarom}{numeric. Variable operational and maintenance cost per unit of auxilary commodity, default is 0.}
 }}
 
-\item{cluster}{data.frame. Declaration of the technology's clusters. A cluster is a parallel sub-process of the same technology -- a resource class, geography or fleet type -- with its own capacity, availability and costs. This slot declares WHAT the clusters are and WHERE they exist; the per-cluster values live in the \code{cluster} column of the variant-varying slots (\code{capacity}, \code{invcost}, \code{afs}, \code{weather}, ...), exactly as \code{group} declares input groups whose data lives in \code{input$group}. Optional: when empty, cluster labels are harvested from those columns. When populated it is authoritative -- a label used in a slot but not declared here raises an error instead of silently creating an extra technology with default (often unbounded) parameters.
+\item{cluster}{data.frame. Declaration of the technology's clusters. A cluster is a parallel sub-process of the same technology -- a resource class, geography or fleet type -- with its own capacity, availability and costs. This slot declares WHAT the clusters are and WHERE they exist; the per-cluster values live in the \code{cluster} column of the variant-varying slots (\code{capacity}, \code{invcost}, \code{afs}, \code{weather}, ...), exactly as \code{group} declares input groups whose data lives in \code{input$group}. REQUIRED whenever those columns carry a label, and authoritative -- a label used in a slot but not declared here raises an error instead of silently creating an extra technology with default (often unbounded) parameters. The share columns are different levers, not substitutes. \code{cap.share.fx} fixes the ratio of the variants' CAPACITIES in every year: loss tranches need it, because each tranche efficiency is calibrated to its place in the capacity stack and the flow must stay free to fill the cheapest first. \code{act.share.lo/up/fx} bounds a variant share of the family THROUGHPUT instead, which is what stops a clustered family collapsing to its cheapest member once regional borders are aggregated away. Both are optional; a variant with neither sizes and runs freely.
 \describe{
 \item{cluster}{character. Cluster label. Must match the \code{cluster} column values used in the other slots.}
 \item{desc}{character. Human-readable description of the cluster, used in reports.}
@@ -267,7 +268,12 @@ newTechnology(
 
 \item{olife}{deprecated, use the \code{olife} column of \code{vintage}.}
 
-\item{region}{character. Vector of regions where the technology exists or can be installed. Optional. If not specified, the technology is applied to all regions. If specified, must include all regions used in other slots.}
+\item{geoframe}{character. Optional. The geoscale level this object's regions are expressed at (e.g. "nation", "zone"). Unset (the default) DERIVES the level from the region codes themselves -- the finest level any of them belongs to -- which is what every model written before this slot existed relies on. Declared, it names the level, makes that level's own regions the object's default scope, and \code{region} may then narrow it; every code in \code{region} and in the data slots must be a member of the level, or it is an error rather than a silent reinterpretation.
+It adds those checks and that one default, never new behaviour: it does not aggregate, does not distribute, and does not by itself make a coarse process legal. The rule it makes checkable is that an object may be coarser than the commodities it CONSUMES, never than those it produces or stores -- the balance layer rolls finer regions up into coarser ones and never splits a coarse quantity among children. So a technology at "nation" may burn a state-level fuel, but may not produce a state-level commodity.
+Requires a geoscale on the model config. Distinct from \code{commodity@geoframe}, which names the level a commodity is BALANCED at, and from \code{summand@geoframe}, which restricts the region dimension a constraint term is summed over.}
+
+\item{region}{character. Vector of regions where the technology exists or can be installed. Optional. If not specified, the technology is applied to all regions. A region coarser than the finest geoscale level is allowed, and makes the object operate at that coarser cell: its capacity, activity and output live there, while an INPUT balanced at a finer level is drawn from the cells beneath it and summed. A commodity the object PRODUCES or STORES may never be finer than the object itself -- that would require disaggregating one coarse decision into several fine ones, which energyRt does not do, and is refused.
+Coarsening is a MODEL CHANGE, not a re-representation. The object's own constraints bind at its own frame, so they are WEAKER than a finer declaration's and the model is cheaper: the input/output ratio and the \verb{@ceff} group shares hold only in aggregate over the coarse cell, and availability is sized against that longer slice. If a blend limit must hold within the period, declare the object at that finer frame; an annual mandate on a finely-operated object belongs in a user constraint with an explicit \code{timeframe}. Coarsening also does NOT reduce flow variables -- those stay at the commodity's level; it removes activity variables and equation rows. If specified, must include all regions used in other slots.}
 
 \item{start}{deprecated, use the \code{start} column of \code{vintage}.}
 

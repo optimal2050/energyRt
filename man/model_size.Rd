@@ -4,10 +4,10 @@
 \alias{model_size}
 \title{Size estimate of an interpolated scenario and the result of folding}
 \usage{
-model_size(scen, top_n = 15L)
+model_size(object, top_n = 15L)
 }
 \arguments{
-\item{scen}{a scenario built by \code{\link[=interpolate_model]{interpolate_model()}}.}
+\item{object}{a scenario built by \code{\link[=interpolate_model]{interpolate_model()}}.}
 
 \item{top_n}{number of largest parameters to list.}
 }
@@ -16,4 +16,18 @@ an S3 \code{model_size} object (see \code{print.model_size()}).
 }
 \description{
 Size estimate of an interpolated scenario and the result of folding
+}
+\examples{
+\donttest{
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
+scen <- interpolate_model(mod, name = "EX")
+
+model_size(scen, top_n = 5)
+}
 }

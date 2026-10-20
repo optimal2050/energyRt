@@ -50,7 +50,7 @@
       arg = "ceff",
       cols = c("vintage", "cluster", "region", "year", "timeslice", "comm",
                "cinp2use", "use2cact", "cact2cout", "cinp2ginp",
-               "share.lo", "share.up", "share.fx",
+               "grp.share.lo", "grp.share.up", "grp.share.fx",
                "afc.lo", "afc.up", "afc.fx"),
       dims = c("vintage", "cluster", "region", "year", "timeslice")),
     group_efficiency = list(
@@ -83,7 +83,7 @@
       dims = c("vintage", "cluster", "region", "year", "timeslice")),
     weather = list(
       arg = "weather",
-      cols = c("vintage", "cluster", "weather", "comm",
+      cols = c("vintage", "cluster", "weather", "transform", "comm",
                "wafc.lo", "wafc.up", "wafc.fx",
                "waf.lo", "waf.up", "waf.fx",
                "wafs.lo", "wafs.up", "wafs.fx"),
@@ -108,7 +108,8 @@
       dims = c("region", "cluster")),
     clusters = list(
       arg = "cluster",
-      cols = c("cluster", "desc", "region", "order"),
+      cols = c("cluster", "desc", "region", "cap.share.fx",
+               "act.share.lo", "act.share.up", "act.share.fx", "order"),
       dims = c("region")),
     capacity = list(
       arg = "capacity",
@@ -145,7 +146,9 @@
       cols = c("vintage", "cluster", "acomm", "region", "year", "timeslice",
                "stg2ainp", "cinp2ainp", "cout2ainp",
                "stg2aout", "cinp2aout", "cout2aout",
-               "cap2ainp", "cap2aout", "ncap2ainp", "ncap2aout",
+               "inp.cap2ainp", "inp.cap2aout", "inp.ncap2ainp", "inp.ncap2aout",
+               "stg.cap2ainp", "stg.cap2aout", "stg.ncap2ainp", "stg.ncap2aout",
+               "out.cap2ainp", "out.cap2aout", "out.ncap2ainp", "out.ncap2aout",
                "pho2ainp", "pho2aout", "ret2ainp", "ret2aout", "ncap2stg"),
       dims = c("vintage", "cluster", "region", "year", "timeslice")),
     availability = list(
@@ -169,9 +172,14 @@
       cols = c("vintage", "cluster", "region", "year",
                "inp2out", "inp2out.lo", "inp2out.up", "inp2out.fx"),
       dims = c("vintage", "cluster", "region", "year")),
+    inp2stg = list(
+      arg = "inp2stg",
+      cols = c("vintage", "cluster", "region", "year",
+               "inp2stg", "inp2stg.lo", "inp2stg.up", "inp2stg.fx"),
+      dims = c("vintage", "cluster", "region", "year")),
     weather = list(
       arg = "weather",
-      cols = c("vintage", "cluster", "weather",
+      cols = c("vintage", "cluster", "weather", "transform",
                "waf.lo", "waf.up", "waf.fx",
                "inp.waf.lo", "inp.waf.up", "inp.waf.fx",
                "out.waf.lo", "out.waf.up", "out.waf.fx"),
@@ -202,7 +210,8 @@
       dims = c("region", "cluster")),
     clusters = list(
       arg = "cluster",
-      cols = c("cluster", "desc", "region", "order"),
+      cols = c("cluster", "desc", "region", "cap.share.fx",
+               "act.share.lo", "act.share.up", "act.share.fx", "order"),
       dims = c("region")),
     capacity = list(
       arg = "capacity",
@@ -255,13 +264,17 @@
       cols = c("vintage", "cluster", "src", "dst", "year", "timeslice",
                "varom", "markup"),
       dims = c("vintage", "cluster", "src", "dst", "year", "timeslice")),
+    # No `region`, as for `@capacity` above: a trade's lifespan belongs to the
+    # route. `pTradeOlife` is indexed by trade alone and the span maps are
+    # (trade, year), so the slot carries no region column to write into.
     vintages = list(
       arg = "vintage",
-      cols = c("vintage", "region", "cluster", "start", "end", "olife"),
-      dims = c("region", "cluster")),
+      cols = c("vintage", "cluster", "start", "end", "olife"),
+      dims = c("cluster")),
     clusters = list(
       arg = "cluster",
-      cols = c("cluster", "desc", "share", "order"),
+      cols = c("cluster", "desc", "cap.share.fx",
+               "act.share.lo", "act.share.up", "act.share.fx", "order"),
       dims = character()),
     capacity = list(
       arg = "capacity",
@@ -343,7 +356,15 @@
 #'   [process_spec_issues()] for the report).
 #' @family process spec
 #' @export
-read_procspec <- function(spec) {
+#' @examples
+#' spec <- process_to_spec(topia$modules$electricity$R3$ECOA)
+#'
+#' # a spec already in memory is returned as-is, so the same call accepts
+#' # either a list or the path to a YAML file written by `process_to_spec()`
+#' f <- tempfile(fileext = ".yml")
+#' process_to_spec(topia$modules$electricity$R3$ECOA, file = f)
+#' identical(read_process_spec(f)$name, spec$name)
+read_process_spec <- function(spec) {
   if (is.character(spec) && length(spec) == 1) {
     if (!file.exists(spec)) stop("process spec file not found: ", spec)
     spec <- if (grepl("[.]json$", spec, ignore.case = TRUE)) {
@@ -361,13 +382,6 @@ read_procspec <- function(spec) {
   spec
 }
 
-#' @rdname read_procspec
-#' @export
-read_techspec <- function(spec) {
-  .Deprecated("read_procspec")
-  read_procspec(spec)
-}
-
 #' @noRd
 .techspec_need_jsonlite <- function(what) {
   if (!requireNamespace("jsonlite", quietly = TRUE)) {
@@ -383,7 +397,7 @@ read_techspec <- function(spec) {
 #' per-vintage values covering only a subset of the declared vintages are
 #' reported (never silently filled); nothing is auto-invented.
 #'
-#' @param spec Path or list (see [read_procspec()]).
+#' @param spec Path or list (see [read_process_spec()]).
 #' @return A `data.frame` with columns `severity` (`"error"`/`"warning"`),
 #'   `section`, and `message`. Zero rows means a clean spec.
 #' @family process spec
@@ -393,7 +407,7 @@ read_techspec <- function(spec) {
 #' if (nzchar(f)) process_spec_issues(f)
 #' @export
 process_spec_issues <- function(spec) {
-  spec <- read_procspec(spec)
+  spec <- read_process_spec(spec)
   iss <- list()
   add <- function(severity, section, message) {
     iss[[length(iss) + 1L]] <<- data.frame(
@@ -490,12 +504,15 @@ process_spec_issues <- function(spec) {
                  "three parts) or at least one of: ",
                  paste(parts, collapse = ", ")))
     }
-    if (!is.null(spec$duration) && !is.null(spec$inp2out) &&
-        length(spec$duration) > 0 && length(spec$inp2out) > 0) {
+    n_ratios <- sum(vapply(spec[c("duration", "inp2out", "inp2stg")],
+                           function(x) !is.null(x) && length(x) > 0,
+                           logical(1)))
+    if (n_ratios >= 2) {
       add("warning", "duration",
-          paste0("both `duration` and `inp2out` are given: the three parts ",
-                 "are then fully determined by the discharger, which may ",
-                 "over-constrain the model"))
+          paste0("two or more of `duration`, `inp2out`, `inp2stg` are ",
+                 "given: the ratios form a triangle over the three parts ",
+                 "(inp2stg = inp2out / duration), so any two determine the ",
+                 "third and all three may over-constrain the model"))
     }
 
   } else if (identical(cls, "trade")) {
@@ -573,13 +590,6 @@ process_spec_issues <- function(spec) {
   done()
 }
 
-#' @rdname process_spec_issues
-#' @export
-tech_spec_issues <- function(spec) {
-  .Deprecated("process_spec_issues")
-  process_spec_issues(spec)
-}
-
 #' Rows of one spec section as a data.frame
 #'
 #' `"ALL"` in a dimension column becomes `NA` (the energyRt wildcard); a
@@ -629,7 +639,7 @@ tech_spec_issues <- function(spec) {
 #' spec's `class`. Errors in the issue report stop the build (warnings are
 #' shown).
 #'
-#' @param spec Path or list (see [read_procspec()]).
+#' @param spec Path or list (see [read_process_spec()]).
 #' @param strict Stop on warnings too? Default `FALSE`.
 #' @return A `technology`, `storage` or `trade` object.
 #' @family process spec
@@ -639,7 +649,7 @@ tech_spec_issues <- function(spec) {
 #' if (nzchar(f)) process_from_spec(f)
 #' @export
 process_from_spec <- function(spec, strict = FALSE) {
-  spec <- read_procspec(spec)
+  spec <- read_process_spec(spec)
   iss <- process_spec_issues(spec)
   errs <- iss[iss$severity == "error", , drop = FALSE]
   wrns <- iss[iss$severity == "warning", , drop = FALSE]
@@ -680,13 +690,6 @@ process_from_spec <- function(spec, strict = FALSE) {
   do.call(.SPEC_CTOR[[cls]], args)
 }
 
-#' @rdname process_from_spec
-#' @export
-tech_from_spec <- function(spec, strict = FALSE) {
-  .Deprecated("process_from_spec")
-  process_from_spec(spec, strict = strict)
-}
-
 #' Export a process object as a spec list
 #'
 #' The reverse of [process_from_spec()]: slot tables become row lists
@@ -700,6 +703,16 @@ tech_from_spec <- function(spec, strict = FALSE) {
 #' @return The spec list (invisibly when `file` is given).
 #' @family process spec
 #' @export
+#' @examples
+#' tech <- topia$modules$electricity$R3$ECOA
+#'
+#' # the object as a plain nested list: diffable, editable, writable as YAML
+#' spec <- process_to_spec(tech)
+#' names(spec)
+#' spec$efficiency
+#'
+#' # `process_from_spec()` is the way back
+#' identical(process_from_spec(spec)@name, tech@name)
 process_to_spec <- function(object, file = NULL) {
   cls <- .SPEC_CLASSES[vapply(.SPEC_CLASSES, function(k) is(object, k),
                               logical(1))]
@@ -776,23 +789,21 @@ process_to_spec <- function(object, file = NULL) {
   spec
 }
 
-#' @rdname process_to_spec
-#' @export
-tech_to_spec <- function(object, file = NULL) {
-  .Deprecated("process_to_spec")
-  process_to_spec(object, file)
-}
-
 #' The constructor call equivalent to a process spec, as text
 #'
 #' Used by the designer's export tab.
 #'
-#' @param spec Path or list (see [read_procspec()]).
+#' @param spec Path or list (see [read_process_spec()]).
 #' @return A single character string of R code.
 #' @family process spec
 #' @export
+#' @examples
+#' spec <- process_to_spec(topia$modules$electricity$R3$ECOA)
+#'
+#' # the constructor call that would rebuild the object, as text
+#' cat(process_spec_code(spec))
 process_spec_code <- function(spec) {
-  spec <- read_procspec(spec)
+  spec <- read_process_spec(spec)
   cls  <- .spec_class(spec)
   SECS <- .spec_sections(cls)
   if (is.null(SECS)) {
@@ -853,9 +864,3 @@ process_spec_code <- function(spec) {
   paste0(.SPEC_CTOR[[cls]], "(\n", paste(parts, collapse = ",\n"), "\n)")
 }
 
-#' @rdname process_spec_code
-#' @export
-tech_spec_code <- function(spec) {
-  .Deprecated("process_spec_code")
-  process_spec_code(spec)
-}

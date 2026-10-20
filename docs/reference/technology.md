@@ -31,6 +31,7 @@ newTechnology(
   cluster = data.frame(),
   vintage = data.frame(),
   olife = data.frame(),
+  geoframe = character(),
   region = character(),
   start = data.frame(),
   end = data.frame(),
@@ -63,21 +64,21 @@ update(object, ...)
 
   comm
 
-  :   character. Name of the input commodity.
+  : character. Name of the input commodity.
 
   unit
 
-  :   character. Unit of the input commodity.
+  : character. Unit of the input commodity.
 
   group
 
-  :   character. Name of input-commodities-group.
+  : character. Name of input-commodities-group.
 
   combustion
 
-  :   numeric. combustion factor from 0 to 1 (default 1) to calculate
-      emissions from fuels combustion (commodities intermediate
-      consumption, more broadly)
+  : numeric. combustion factor from 0 to 1 (default 1) to calculate
+    emissions from fuels combustion (commodities intermediate
+    consumption, more broadly)
 
 - output:
 
@@ -87,15 +88,15 @@ update(object, ...)
 
   comm
 
-  :   character. Name of the output commodity.
+  : character. Name of the output commodity.
 
   unit
 
-  :   character. Unit of the output commodity.
+  : character. Unit of the output commodity.
 
   group
 
-  :   character. Name of output-commodities-group.
+  : character. Name of output-commodities-group.
 
 - group:
 
@@ -104,16 +105,16 @@ update(object, ...)
 
   group
 
-  :   character. Name of the group. Must match the group names in the
-      input and output slots.
+  : character. Name of the group. Must match the group names in the
+    input and output slots.
 
   desc
 
-  :   character. Description of the group.
+  : character. Description of the group.
 
   unit
 
-  :   character. Unit of the group.
+  : character. Unit of the group.
 
 - aux:
 
@@ -122,11 +123,11 @@ update(object, ...)
 
   acomm
 
-  :   character. Name of the auxilary commodity.
+  : character. Name of the auxilary commodity.
 
   unit
 
-  :   character. Unit of the auxilary commodity.
+  : character. Unit of the auxilary commodity.
 
 - units:
 
@@ -135,19 +136,19 @@ update(object, ...)
 
   capacity
 
-  :   character. Unit of capacity
+  : character. Unit of capacity
 
   use
 
-  :   character. Unit of 'use' (grouped input) if applicable.
+  : character. Unit of 'use' (grouped input) if applicable.
 
   activity
 
-  :   character. Unit of activity variable of the technology.
+  : character. Unit of activity variable of the technology.
 
   costs
 
-  :   character. Currency of costs variable of the technology.
+  : character. Currency of costs variable of the technology.
 
 - cap2act:
 
@@ -161,36 +162,36 @@ update(object, ...)
 
   vintage
 
-  :   character. Vintage label selecting the technology variant this row
-      applies to, NA for every vintage. See the `vintage` slot.
+  : character. Vintage label selecting the technology variant this row
+    applies to, NA for every vintage. See the `vintage` slot.
 
   cluster
 
-  :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+  : character. Cluster label selecting the technology variant this row
+    applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
-  :   character. Name of region to apply the parameter, NA for every
-      region.
+  : character. Name of region to apply the parameter, NA for every
+    region.
 
   year
 
-  :   integer. Year to apply the parameter, NA for every year.
+  : integer. Year to apply the parameter, NA for every year.
 
   timeslice
 
-  :   character. Name of timeslice to apply the parameter, NA for every
-      timeslice.
+  : character. Name of timeslice to apply the parameter, NA for every
+    timeslice.
 
   group
 
-  :   character. Name of group to apply the parameter. Required, must
-      match the group names in the input and output slots.
+  : character. Name of group to apply the parameter. Required, must
+    match the group names in the input and output slots.
 
   ginp2use
 
-  :   numeric. Group-input-to-use coefficient, default is 1.
+  : numeric. Group-input-to-use coefficient, default is 1.
 
 - ceff:
 
@@ -198,322 +199,317 @@ update(object, ...)
 
   vintage
 
-  :   character. Vintage label selecting the technology variant this row
-      applies to, NA for every vintage. See the `vintage` slot.
+  : character. Vintage label selecting the technology variant this row
+    applies to, NA for every vintage. See the `vintage` slot.
 
   cluster
 
-  :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+  : character. Cluster label selecting the technology variant this row
+    applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  : character. Region name to apply the parameter, NA for every region.
 
   year
 
-  :   integer. Year to apply the parameter, NA for every year.
+  : integer. Year to apply the parameter, NA for every year.
 
   timeslice
 
-  :   character. Name of timeslice to apply the parameter, NA for every
-      timeslice.
+  : character. Name of timeslice to apply the parameter, NA for every
+    timeslice.
 
   comm
 
-  :   character. Name of commodity to apply the parameter, different
-      parameters require specification either input or output commodity.
+  : character. Name of commodity to apply the parameter, different
+    parameters require specification either input or output commodity.
 
   cinp2use
 
-  :   numeric. Commodity-input-to-use coefficient, default is 1.
+  : numeric. Commodity-input-to-use coefficient, default is 1.
 
   use2cact
 
-  :   numeric. Use-to-commodity-activity coefficient, default is 1.
+  : numeric. Use-to-commodity-activity coefficient, default is 1.
 
   cact2cout
 
-  :   numeric. Commodity-activity-to-commodity-output coefficient,
-      default is 1.
+  : numeric. Commodity-activity-to-commodity-output coefficient, default
+    is 1.
 
   cinp2ginp
 
-  :   numeric. Commodity-input-to-group-input coefficient, default is 1.
+  : numeric. Commodity-input-to-group-input coefficient, default is 1.
 
-  share.lo
+  grp.share.lo
 
-  :   numeric. Lower bound on a share of commodity within a group,
-      default is 0.
+  : numeric. Lower bound on a share of commodity within a group, default
+    is 0.
 
-  share.up
+  grp.share.up
 
-  :   numeric. Upper bound on a share of commodity within a group,
-      default is 1.
+  : numeric. Upper bound on a share of commodity within a group, default
+    is 1.
 
-  share.fx
+  grp.share.fx
 
-  :   numeric. Fixed share of commodity within a group, ignored if NA.
-      This parameter overrides `share.lo` and `share.up`.
+  : numeric. Fixed share of commodity within a group, ignored if NA.
+    This parameter overrides `grp.share.lo` and `grp.share.up`.
 
   afc.lo
 
-  :   numeric. Lower bound on the per-commodity availability factor:
-      bounds this commodity's input or output flow relative to installed
-      capacity (times `cap2act`), the commodity-level analogue of
-      `af.lo`. Ignored if NA.
+  : numeric. Lower bound on the per-commodity availability factor:
+    bounds this commodity's input or output flow relative to installed
+    capacity (times `cap2act`), the commodity-level analogue of `af.lo`.
+    Ignored if NA.
 
   afc.up
 
-  :   numeric. Upper bound on the per-commodity availability factor:
-      bounds this commodity's input or output flow relative to installed
-      capacity (times `cap2act`), the commodity-level analogue of
-      `af.up`. Ignored if NA.
+  : numeric. Upper bound on the per-commodity availability factor:
+    bounds this commodity's input or output flow relative to installed
+    capacity (times `cap2act`), the commodity-level analogue of `af.up`.
+    Ignored if NA.
 
   afc.fx
 
-  :   numeric. Fixed per-commodity availability factor, ignored if NA.
-      This parameter overrides `afc.lo` and `afc.up`.
+  : numeric. Fixed per-commodity availability factor, ignored if NA.
+    This parameter overrides `afc.lo` and `afc.up`.
 
 - aeff:
 
   data.frame. Parameters linking main commodities, activities, and
-  capacities to auxiliary commodities.
+  capacities to auxiliary commodities. Rows can be assigned to a single
+  variant via the `vintage` and/or `cluster` key columns; each variant
+  then carries only its own couplings (e.g. one land-pool input per
+  cluster), and the auxiliary membership maps are built from these
+  coefficient rows alone.
 
   vintage
 
-  :   character. Vintage label selecting the technology variant this row
-      applies to, NA for every vintage. See the `vintage` slot.
+  : character. Vintage label selecting the technology variant this row
+    applies to, NA for every vintage. See the `vintage` slot.
 
   cluster
 
-  :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+  : character. Cluster label selecting the technology variant this row
+    applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  : character. Region name to apply the parameter, NA for every region.
 
   year
 
-  :   integer. Year to apply the parameter, NA for every year.
+  : integer. Year to apply the parameter, NA for every year.
 
   timeslice
 
-  :   character. Name of timeslice to apply the parameter, NA for every
-      timeslice.
+  : character. Name of timeslice to apply the parameter, NA for every
+    timeslice.
 
   acomm
 
-  :   character. Name of auxilary commodity to apply the parameter.
+  : character. Name of auxilary commodity to apply the parameter.
 
   cinp2ainp
 
-  :   numeric. Main-commodity-input-to-auxilary-commodity-input
-      coefficient, ignored if NA.
+  : numeric. Main-commodity-input-to-auxilary-commodity-input
+    coefficient, ignored if NA.
 
   cinp2aout
 
-  :   numeric. Main-commodity-input-to-auxilary-commodity-output
-      coefficient, ignored if NA.
+  : numeric. Main-commodity-input-to-auxilary-commodity-output
+    coefficient, ignored if NA.
 
   cout2ainp
 
-  :   numeric. Main-commodity-output-to-auxilary-commodity-input
-      coefficient, ignored if NA.
+  : numeric. Main-commodity-output-to-auxilary-commodity-input
+    coefficient, ignored if NA.
 
   cout2aout
 
-  :   numeric. Main-commodity-output-to-auxilary-commodity-output
-      coefficient, ignored if NA.
+  : numeric. Main-commodity-output-to-auxilary-commodity-output
+    coefficient, ignored if NA.
 
   act2ainp
 
-  :   numeric. Technology-activity-to-auxilary-commodity-input
-      coefficient, ignored if NA.
+  : numeric. Technology-activity-to-auxilary-commodity-input
+    coefficient, ignored if NA.
 
   act2aout
 
-  :   numeric. Technology-activity-to-auxilary-commodity-output
-      coefficient, ignored if NA.
+  : numeric. Technology-activity-to-auxilary-commodity-output
+    coefficient, ignored if NA.
 
   cap2ainp
 
-  :   numeric. Technology-capacity-to-auxilary-commodity-input
-      coefficient, ignored if NA.
+  : numeric. Technology-capacity-to-auxilary-commodity-input
+    coefficient, ignored if NA.
 
   cap2aout
 
-  :   numeric. Technology-capacity-to-auxilary-commodity-output
-      coefficient, ignored if NA.
+  : numeric. Technology-capacity-to-auxilary-commodity-output
+    coefficient, ignored if NA.
 
   ncap2ainp
 
-  :   numeric. Aux commodity consumed per unit of NEW capacity – a
-      one-time charge at construction (materials, embodied energy),
-      ignored if NA. NO `pTimesliceShare` is applied and the aux balance
-      is PER TIMESLICE, so a value given with `timeslice = NA` applies
-      in EVERY slice and the annual total comes out multiplied by the
-      slice count – 8760x on an hourly calendar. Give a per-slice value,
-      or name a single slice.
+  : numeric. Aux commodity consumed per unit of NEW capacity – a
+    one-time charge at construction (materials, embodied energy),
+    ignored if NA. NO `pTimesliceShare` is applied and the aux balance
+    is PER TIMESLICE, so a value given with `timeslice = NA` applies in
+    EVERY slice and the annual total comes out multiplied by the slice
+    count – 8760x on an hourly calendar. Give a per-slice value, or name
+    a single slice.
 
   ncap2aout
 
-  :   numeric. Technology-new-capacity-to-auxilary-commodity-output
-      coefficient, ignored if NA.
+  : numeric. Technology-new-capacity-to-auxilary-commodity-output
+    coefficient, ignored if NA.
 
   pho2ainp
 
-  :   numeric. Aux commodity CONSUMED when capacity reaches the END OF
-      ITS LIFE (demolition energy, labour). Multiplies the per-year
-      phase-out FLOW, so the charge lands ONCE – in the milestone where
-      the capacity disappears – not every year it stood. NO
-      `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
-      so a value given with `timeslice = NA` applies in EVERY slice and
-      the annual total comes out multiplied by the slice count – 8760x
-      on an hourly calendar. Give a per-slice value, or name a single
-      slice.
+  : numeric. Aux commodity CONSUMED when capacity reaches the END OF ITS
+    LIFE (demolition energy, labour). Multiplies the per-year phase-out
+    FLOW, so the charge lands ONCE – in the milestone where the capacity
+    disappears – not every year it stood. NO `pTimesliceShare` is
+    applied and the aux balance is PER TIMESLICE, so a value given with
+    `timeslice = NA` applies in EVERY slice and the annual total comes
+    out multiplied by the slice count – 8760x on an hourly calendar.
+    Give a per-slice value, or name a single slice.
 
   pho2aout
 
-  :   numeric. Aux commodity RELEASED when capacity reaches the END OF
-      ITS LIFE (demolition waste, recovered material). Fires even when
-      `optimizeRetirement` is FALSE, which is the usual case. NO
-      `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
-      so a value given with `timeslice = NA` applies in EVERY slice and
-      the annual total comes out multiplied by the slice count – 8760x
-      on an hourly calendar. Give a per-slice value, or name a single
-      slice.
+  : numeric. Aux commodity RELEASED when capacity reaches the END OF ITS
+    LIFE (demolition waste, recovered material). Fires even when
+    `optimizeRetirement` is FALSE, which is the usual case. NO
+    `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+    so a value given with `timeslice = NA` applies in EVERY slice and
+    the annual total comes out multiplied by the slice count – 8760x on
+    an hourly calendar. Give a per-slice value, or name a single slice.
 
   ret2ainp
 
-  :   numeric. Aux commodity CONSUMED when capacity is retired EARLY.
-      Separate from `pho2ainp` because the two differ physically:
-      scrapping an intact plant is not the same job as demolishing a
-      worn-out one. NO `pTimesliceShare` is applied and the aux balance
-      is PER TIMESLICE, so a value given with `timeslice = NA` applies
-      in EVERY slice and the annual total comes out multiplied by the
-      slice count – 8760x on an hourly calendar. Give a per-slice value,
-      or name a single slice.
+  : numeric. Aux commodity CONSUMED when capacity is retired EARLY.
+    Separate from `pho2ainp` because the two differ physically:
+    scrapping an intact plant is not the same job as demolishing a
+    worn-out one. NO `pTimesliceShare` is applied and the aux balance is
+    PER TIMESLICE, so a value given with `timeslice = NA` applies in
+    EVERY slice and the annual total comes out multiplied by the slice
+    count – 8760x on an hourly calendar. Give a per-slice value, or name
+    a single slice.
 
   ret2aout
 
-  :   numeric. Aux commodity RELEASED when capacity is retired EARLY
-      (scrap). Usually LARGER than `pho2aout`: a plant retired before
-      its time is still largely intact, so more material is recoverable.
-      NO `pTimesliceShare` is applied and the aux balance is PER
-      TIMESLICE, so a value given with `timeslice = NA` applies in EVERY
-      slice and the annual total comes out multiplied by the slice count
-      – 8760x on an hourly calendar. Give a per-slice value, or name a
-      single slice.
+  : numeric. Aux commodity RELEASED when capacity is retired EARLY
+    (scrap). Usually LARGER than `pho2aout`: a plant retired before its
+    time is still largely intact, so more material is recoverable. NO
+    `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+    so a value given with `timeslice = NA` applies in EVERY slice and
+    the annual total comes out multiplied by the slice count – 8760x on
+    an hourly calendar. Give a per-slice value, or name a single slice.
 
 - af:
 
   data.frame. Timeslice-level availability factor parameters, bounding
   activity in each timeslice relative to installed capacity. `af.up` is
-  the maximum capacity factor per timeslice (what PyPSA calls `p_max_pu`
-  and OSeMOSYS calls `CapacityFactor`); `af.lo` is a must-run floor. See
-  `afs` for timeframe-level (e.g. annual) bounds and `ceff$afc.*` for
-  per-commodity bounds.
+  the maximum capacity factor per timeslice; `af.lo` is a must-run
+  floor. See `afs` for timeframe-level (e.g. annual) bounds and
+  `ceff$afc.*` for per-commodity bounds.
 
   vintage
 
-  :   character. Vintage label selecting the technology variant this row
-      applies to, NA for every vintage. See the `vintage` slot.
+  : character. Vintage label selecting the technology variant this row
+    applies to, NA for every vintage. See the `vintage` slot.
 
   cluster
 
-  :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+  : character. Cluster label selecting the technology variant this row
+    applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  : character. Region name to apply the parameter, NA for every region.
 
   year
 
-  :   integer. Year to apply the parameter, NA for every year.
+  : integer. Year to apply the parameter, NA for every year.
 
   timeslice
 
-  :   character. Name of timeslice to apply the parameter, NA for every
-      timeslice.
+  : character. Name of timeslice to apply the parameter, NA for every
+    timeslice.
 
   af.lo
 
-  :   numeric. Lower bound on the availability factor, default is 0.
+  : numeric. Lower bound on the availability factor, default is 0.
 
   af.up
 
-  :   numeric. Upper bound on the availability factor, default is 1.
+  : numeric. Upper bound on the availability factor, default is 1.
 
   af.fx
 
-  :   numeric. Fixed availability factor, ignored if NA. This parameter
-      overrides `af.lo` and `af.up`.
+  : numeric. Fixed availability factor, ignored if NA. This parameter
+    overrides `af.lo` and `af.up`.
 
   rampup
 
-  :   numeric. Ramping-up time constraint RHS value, ignored if NA.
-      Depends on the technology timeframe.
+  : numeric. Ramping-up time constraint RHS value, ignored if NA.
+    Depends on the technology timeframe.
 
   rampdown
 
-  :   numeric. Ramping-down time constraint RHS value, ignored if NA.
-      Depends on the technology timeframe.
+  : numeric. Ramping-down time constraint RHS value, ignored if NA.
+    Depends on the technology timeframe.
 
 - afs:
 
   data.frame. Timeframe-level availability factor constraints, bounding
   activity summed over all child timeslices of the named timeslice
   relative to installed capacity. With `timeslice = "ANNUAL"` this is
-  the annual capacity-factor bound (TIMES `NCAP_AFS`, OSeMOSYS
-  `AvailabilityFactor`), e.g. `afs.lo = 0.4` requires at least 40%
-  annual utilization. Unlike `af`, `afs` rows are not disaggregated to
-  finer timeslices; they always constrain the sum over the given
-  timeframe.
+  the annual capacity-factor bound, e.g. `afs.lo = 0.4` requires at
+  least 40% annual utilization. Unlike `af`, `afs` rows are not
+  disaggregated to finer timeslices; they always constrain the sum over
+  the given timeframe.
 
   vintage
 
-  :   character. Vintage label selecting the technology variant this row
-      applies to, NA for every vintage. See the `vintage` slot.
+  : character. Vintage label selecting the technology variant this row
+    applies to, NA for every vintage. See the `vintage` slot.
 
   cluster
 
-  :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+  : character. Cluster label selecting the technology variant this row
+    applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  : character. Region name to apply the parameter, NA for every region.
 
   year
 
-  :   integer. Year to apply the parameter, NA for every year.
+  : integer. Year to apply the parameter, NA for every year.
 
   timeslice
 
-  :   character. Name of timeslice to apply the parameter, required.
+  : character. Name of timeslice to apply the parameter, required.
 
   afs.lo
 
-  :   numeric. Lower bound on the availability factor for the timeframe,
-      default is 0.
+  : numeric. Lower bound on the availability factor for the timeframe,
+    default is 0.
 
   afs.up
 
-  :   numeric. Upper bound on the availability factor for the timeframe,
-      default is `Inf` (unbounded), in contrast to `af.up` which
-      defaults to 1.
+  : numeric. Upper bound on the availability factor for the timeframe,
+    default is `Inf` (unbounded), in contrast to `af.up` which defaults
+    to 1.
 
   afs.fx
 
-  :   numeric. Fixed availability factor for the timeframe, ignored if
-      NA. This parameter overrides `afs.lo` and `afs.up`.
+  : numeric. Fixed availability factor for the timeframe, ignored if NA.
+    This parameter overrides `afs.lo` and `afs.up`.
 
 - weather:
 
@@ -523,72 +519,72 @@ update(object, ...)
 
   vintage
 
-  :   character. Vintage label selecting the technology variant this row
-      applies to, NA for every vintage. See the `vintage` slot.
+  : character. Vintage label selecting the technology variant this row
+    applies to, NA for every vintage. See the `vintage` slot.
 
   cluster
 
-  :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+  : character. Cluster label selecting the technology variant this row
+    applies to, NA for every cluster. See the `cluster` slot.
 
   weather
 
-  :   character. Name of the applied weather factor, required, must
-      match the weather factor names in a `weather` class in the model.
+  : character. Name of the applied weather factor, required, must match
+    the weather factor names in a `weather` class in the model.
 
   comm
 
-  :   character. Name of the commodity with specified `afc.*` to be
-      affected by the weather factor, required if `afc.*` parameters are
-      specified.
+  : character. Name of the commodity with specified `afc.*` to be
+    affected by the weather factor, required if `afc.*` parameters are
+    specified.
 
   wafc.lo
 
-  :   numeric. Multiplying coefficient to the lower bound on the
-      commodity availability parameter `afc.lo`, ignored if NA.
+  : numeric. Multiplying coefficient to the lower bound on the commodity
+    availability parameter `afc.lo`, ignored if NA.
 
   wafc.up
 
-  :   numeric. Multiplying coefficient to the upper bound on the
-      commodity availability parameter `afc.up`, ignored if NA.
+  : numeric. Multiplying coefficient to the upper bound on the commodity
+    availability parameter `afc.up`, ignored if NA.
 
   wafc.fx
 
-  :   numeric. Multiplying coefficient to the fixed value of the
-      commodity availability parameter `afc.fx`, ignored if NA. This
-      parameter overrides `wafc.lo` and `wafc.up`.
+  : numeric. Multiplying coefficient to the fixed value of the commodity
+    availability parameter `afc.fx`, ignored if NA. This parameter
+    overrides `wafc.lo` and `wafc.up`.
 
   waf.lo
 
-  :   numeric. Multiplying coefficient to the lower bound on the
-      availability factor parameter `af.lo`, ignored if NA.
+  : numeric. Multiplying coefficient to the lower bound on the
+    availability factor parameter `af.lo`, ignored if NA.
 
   waf.up
 
-  :   numeric. Multiplying coefficient to the upper bound on the
-      availability factor parameter `af.up`, ignored if NA.
+  : numeric. Multiplying coefficient to the upper bound on the
+    availability factor parameter `af.up`, ignored if NA.
 
   waf.fx
 
-  :   numeric. Multiplying coefficient to the fixed value on the
-      availability factor parameter `af.fx`, ignored if NA. This
-      parameter overrides `waf.lo` and `waf.up`.
+  : numeric. Multiplying coefficient to the fixed value on the
+    availability factor parameter `af.fx`, ignored if NA. This parameter
+    overrides `waf.lo` and `waf.up`.
 
   wafs.up
 
-  :   numeric. Multiplying coefficient to the upper bound on the
-      availability factor parameter `afs.up`, ignored if NA.
+  : numeric. Multiplying coefficient to the upper bound on the
+    availability factor parameter `afs.up`, ignored if NA.
 
   wafs.lo
 
-  :   numeric. Multiplying coefficient to the lower bound on the
-      availability factor parameter `afs.lo`, ignored if NA.
+  : numeric. Multiplying coefficient to the lower bound on the
+    availability factor parameter `afs.lo`, ignored if NA.
 
   wafs.fx
 
-  :   numeric. Multiplying coefficient to the fixed value on the
-      availability factor parameter `afs.fx`, ignored if NA. This
-      parameter overrides `wafs.lo` and `wafs.up`.
+  : numeric. Multiplying coefficient to the fixed value on the
+    availability factor parameter `afs.fx`, ignored if NA. This
+    parameter overrides `wafs.lo` and `wafs.up`.
 
 - capacity:
 
@@ -597,76 +593,75 @@ update(object, ...)
 
   vintage
 
-  :   character. Vintage label selecting the technology variant this row
-      applies to, NA for every vintage. See the `vintage` slot.
+  : character. Vintage label selecting the technology variant this row
+    applies to, NA for every vintage. See the `vintage` slot.
 
   cluster
 
-  :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+  : character. Cluster label selecting the technology variant this row
+    applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  : character. Region name to apply the parameter, NA for every region.
 
   year
 
-  :   integer. Year to apply the parameter, required, values between
-      specified years will be interpolated.
+  : integer. Year to apply the parameter, required, values between
+    specified years will be interpolated.
 
   stock
 
-  :   numeric. Predefined capacity of the technology in units of
-      capacity, default is 0. This parameter also defines the exogenous
-      capacity retirement (age-based), or exogenous capacity additions,
-      not optimized by the model, and not included in investment costs.
+  : numeric. Predefined capacity of the technology in units of capacity,
+    default is 0. This parameter also defines the exogenous capacity
+    retirement (age-based), or exogenous capacity additions, not
+    optimized by the model, and not included in investment costs.
 
   cap.lo
 
-  :   numeric. Lower bound on the total capacity (preexisting stock and
-      new installations), ignored if NA.
+  : numeric. Lower bound on the total capacity (preexisting stock and
+    new installations), ignored if NA.
 
   cap.up
 
-  :   numeric. Upper bound on the total capacity (preexisting stock and
-      new installations), ignored if NA.
+  : numeric. Upper bound on the total capacity (preexisting stock and
+    new installations), ignored if NA.
 
   cap.fx
 
-  :   numeric. Fixed total capacity (preexisting stock and new
-      installations), ignored if NA. This parameter overrides `cap.lo`
-      and `cap.up`.
+  : numeric. Fixed total capacity (preexisting stock and new
+    installations), ignored if NA. This parameter overrides `cap.lo` and
+    `cap.up`.
 
   ncap.lo
 
-  :   numeric. Lower bound on the new capacity (new installations),
-      ignored if NA.
+  : numeric. Lower bound on the new capacity (new installations),
+    ignored if NA.
 
   ncap.up
 
-  :   numeric. Upper bound on the new capacity (new installations),
-      ignored if NA.
+  : numeric. Upper bound on the new capacity (new installations),
+    ignored if NA.
 
   ncap.fx
 
-  :   numeric. Fixed new capacity (new installations), ignored if NA.
-      This parameter overrides `ncap.lo` and `ncap.up`.
+  : numeric. Fixed new capacity (new installations), ignored if NA. This
+    parameter overrides `ncap.lo` and `ncap.up`.
 
   ret.lo
 
-  :   numeric. Lower bound on the capacity retirement (age-based),
-      ignored if NA.
+  : numeric. Lower bound on the capacity retirement (age-based), ignored
+    if NA.
 
   ret.up
 
-  :   numeric. Upper bound on the capacity retirement (age-based),
-      ignored if NA.
+  : numeric. Upper bound on the capacity retirement (age-based), ignored
+    if NA.
 
   ret.fx
 
-  :   numeric. Fixed capacity retirement (age-based), ignored if NA.
-      This parameter overrides `ret.lo` and `ret.up`.
+  : numeric. Fixed capacity retirement (age-based), ignored if NA. This
+    parameter overrides `ret.lo` and `ret.up`.
 
 - invcost:
 
@@ -675,55 +670,53 @@ update(object, ...)
 
   vintage
 
-  :   character. Vintage label selecting the technology variant this row
-      applies to, NA for every vintage. See the `vintage` slot.
+  : character. Vintage label selecting the technology variant this row
+    applies to, NA for every vintage. See the `vintage` slot.
 
   cluster
 
-  :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+  : character. Cluster label selecting the technology variant this row
+    applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  : character. Region name to apply the parameter, NA for every region.
 
   year
 
-  :   integer. Year to apply the parameter, NA for every year.
+  : integer. Year to apply the parameter, NA for every year.
 
   invcost
 
-  :   numeric. Total overnight investment costs of the project (per unit
-      of capacity), default is 0.
+  : numeric. Total overnight investment costs of the project (per unit
+    of capacity), default is 0.
 
   wacc
 
-  :   numeric. Weighted average cost of capital used to annuitise
-      `invcost` for this technology. Overrides the model-wide `wacc`
-      (see the model `discount` argument). The social discount rate is
-      never used here.
+  : numeric. Weighted average cost of capital used to annuitise
+    `invcost` for this technology. Overrides the model-wide `wacc` (see
+    the model `discount` argument). The social discount rate is never
+    used here.
 
   payback
 
-  :   numeric. Cost-recovery period in years. Where given it replaces
-      `olife` in the annuity AND in the years over which the annuity is
-      charged, so the investment is repaid over `payback` years while
-      the capacity keeps operating for its full operational life. Must
-      be positive and not exceed `olife`. Unset (or 0) means recover
-      over `olife`. Implemented for the GLPK solver only.
+  : numeric. Cost-recovery period in years. Where given it replaces
+    `olife` in the annuity AND in the years over which the annuity is
+    charged, so the investment is repaid over `payback` years while the
+    capacity keeps operating for its full operational life. Must be
+    positive and not exceed `olife`. Unset (or 0) means recover over
+    `olife`. Implemented for the GLPK solver only.
 
   eac
 
-  :   numeric. Equivalent annual cost, supplied directly instead of
-      being computed from `invcost`, `wacc` and the lifetime. Where
-      given it wins; where absent the annuity is computed. Mutually
-      exclusive with `invcost` per row.
+  : numeric. Equivalent annual cost, supplied directly instead of being
+    computed from `invcost`, `wacc` and the lifetime. Where given it
+    wins; where absent the annuity is computed. Mutually exclusive with
+    `invcost` per row.
 
   retcost
 
-  :   numeric. Costs of early retirement of the technology, default is
-      0.
+  : numeric. Costs of early retirement of the technology, default is 0.
 
 - fixom:
 
@@ -732,26 +725,25 @@ update(object, ...)
 
   vintage
 
-  :   character. Vintage label selecting the technology variant this row
-      applies to, NA for every vintage. See the `vintage` slot.
+  : character. Vintage label selecting the technology variant this row
+    applies to, NA for every vintage. See the `vintage` slot.
 
   cluster
 
-  :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+  : character. Cluster label selecting the technology variant this row
+    applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  : character. Region name to apply the parameter, NA for every region.
 
   year
 
-  :   integer. Year to apply the parameter, NA for every year.
+  : integer. Year to apply the parameter, NA for every year.
 
   fixom
 
-  :   numeric. Fixed operational and maintenance cost, default is 0.
+  : numeric. Fixed operational and maintenance cost, default is 0.
 
 - varom:
 
@@ -760,53 +752,52 @@ update(object, ...)
 
   vintage
 
-  :   character. Vintage label selecting the technology variant this row
-      applies to, NA for every vintage. See the `vintage` slot.
+  : character. Vintage label selecting the technology variant this row
+    applies to, NA for every vintage. See the `vintage` slot.
 
   cluster
 
-  :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+  : character. Cluster label selecting the technology variant this row
+    applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  : character. Region name to apply the parameter, NA for every region.
 
   year
 
-  :   integer. Year to apply the parameter, NA for every year.
+  : integer. Year to apply the parameter, NA for every year.
 
   timeslice
 
-  :   character. Name of the time-timeslice or (grand-)parent timeframe
-      to apply the parameter, NA for every time-timeslice of the
-      technology timeframe.
+  : character. Name of the time-timeslice or (grand-)parent timeframe to
+    apply the parameter, NA for every time-timeslice of the technology
+    timeframe.
 
   varom
 
-  :   numeric. Variable operational and maintenance cost per unit of
-      activity, default is 0.
+  : numeric. Variable operational and maintenance cost per unit of
+    activity, default is 0.
 
   comm
 
-  :   character. Name of the commodity for which the parameter will be
-      applied, required for `cvarom` parameter.
+  : character. Name of the commodity for which the parameter will be
+    applied, required for `cvarom` parameter.
 
   cvarom
 
-  :   numeric. Variable operational and maintenance cost per unit of
-      commodity, default is 0.
+  : numeric. Variable operational and maintenance cost per unit of
+    commodity, default is 0.
 
   acomm
 
-  :   character. Name of the auxilary commodity for which the `avarom`
-      will be applied, required for `avarom` parameter.
+  : character. Name of the auxilary commodity for which the `avarom`
+    will be applied, required for `avarom` parameter.
 
   avarom
 
-  :   numeric. Variable operational and maintenance cost per unit of
-      auxilary commodity, default is 0.
+  : numeric. Variable operational and maintenance cost per unit of
+    auxilary commodity, default is 0.
 
 - cluster:
 
@@ -817,32 +808,38 @@ update(object, ...)
   the per-cluster values live in the `cluster` column of the
   variant-varying slots (`capacity`, `invcost`, `afs`, `weather`, ...),
   exactly as `group` declares input groups whose data lives in
-  `input$group`. Optional: when empty, cluster labels are harvested from
-  those columns. When populated it is authoritative – a label used in a
-  slot but not declared here raises an error instead of silently
-  creating an extra technology with default (often unbounded)
-  parameters.
+  `input$group`. REQUIRED whenever those columns carry a label, and
+  authoritative – a label used in a slot but not declared here raises an
+  error instead of silently creating an extra technology with default
+  (often unbounded) parameters. The share columns are different levers,
+  not substitutes. `cap.share.fx` fixes the ratio of the variants'
+  CAPACITIES in every year: loss tranches need it, because each tranche
+  efficiency is calibrated to its place in the capacity stack and the
+  flow must stay free to fill the cheapest first. `act.share.lo/up/fx`
+  bounds a variant share of the family THROUGHPUT instead, which is what
+  stops a clustered family collapsing to its cheapest member once
+  regional borders are aggregated away. Both are optional; a variant
+  with neither sizes and runs freely.
 
   cluster
 
-  :   character. Cluster label. Must match the `cluster` column values
-      used in the other slots.
+  : character. Cluster label. Must match the `cluster` column values
+    used in the other slots.
 
   desc
 
-  :   character. Human-readable description of the cluster, used in
-      reports.
+  : character. Human-readable description of the cluster, used in
+    reports.
 
   region
 
-  :   character. Region the cluster exists in, NA for every region.
-      Several rows restrict a cluster to several regions.
+  : character. Region the cluster exists in, NA for every region.
+    Several rows restrict a cluster to several regions.
 
   order
 
-  :   integer. Optional display/ranking order (e.g. best to worst
-      resource class); controls the order variants are created and
-      reported in.
+  : integer. Optional display/ranking order (e.g. best to worst resource
+    class); controls the order variants are created and reported in.
 
 - vintage:
 
@@ -855,44 +852,81 @@ update(object, ...)
 
   vintage
 
-  :   character. Vintage label, normally the build year as a string. NA
-      for an un-vintaged technology (a single variant).
+  : character. Vintage label, normally the build year as a string. NA
+    for an un-vintaged technology (a single variant).
 
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  : character. Region name to apply the parameter, NA for every region.
 
   cluster
 
-  :   character. Cluster label, NA for every cluster.
+  : character. Cluster label, NA for every cluster.
 
   start
 
-  :   integer. The first year the technology can be installed. NA means
-      unbounded (all horizon years up to `end`); windows are
-      user-defined and may overlap across vintages.
+  : integer. The first year the technology can be installed. NA means
+    unbounded (all horizon years up to `end`); windows are user-defined
+    and may overlap across vintages.
 
   end
 
-  :   integer. The last year the technology can be installed. NA means
-      unbounded (all horizon years from `start` on).
+  : integer. The last year the technology can be installed. NA means
+    unbounded (all horizon years from `start` on).
 
   olife
 
-  :   integer. Operational life of the technology if installed during
-      optimization, in years, default is 1.
+  : integer. Operational life of the technology if installed during
+    optimization, in years, default is 1.
 
 - olife:
 
   deprecated, use the `olife` column of `vintage`.
 
+- geoframe:
+
+  character. Optional. The geoscale level this object's regions are
+  expressed at (e.g. "nation", "zone"). Unset (the default) DERIVES the
+  level from the region codes themselves – the finest level any of them
+  belongs to – which is what every model written before this slot
+  existed relies on. Declared, it names the level, makes that level's
+  own regions the object's default scope, and `region` may then narrow
+  it; every code in `region` and in the data slots must be a member of
+  the level, or it is an error rather than a silent reinterpretation. It
+  adds those checks and that one default, never new behaviour: it does
+  not aggregate, does not distribute, and does not by itself make a
+  coarse process legal. The rule it makes checkable is that an object
+  may be coarser than the commodities it CONSUMES, never than those it
+  produces or stores – the balance layer rolls finer regions up into
+  coarser ones and never splits a coarse quantity among children. So a
+  technology at "nation" may burn a state-level fuel, but may not
+  produce a state-level commodity. Requires a geoscale on the model
+  config. Distinct from `commodity@geoframe`, which names the level a
+  commodity is BALANCED at, and from `summand@geoframe`, which restricts
+  the region dimension a constraint term is summed over.
+
 - region:
 
   character. Vector of regions where the technology exists or can be
   installed. Optional. If not specified, the technology is applied to
-  all regions. If specified, must include all regions used in other
-  slots.
+  all regions. A region coarser than the finest geoscale level is
+  allowed, and makes the object operate at that coarser cell: its
+  capacity, activity and output live there, while an INPUT balanced at a
+  finer level is drawn from the cells beneath it and summed. A commodity
+  the object PRODUCES or STORES may never be finer than the object
+  itself – that would require disaggregating one coarse decision into
+  several fine ones, which energyRt does not do, and is refused.
+  Coarsening is a MODEL CHANGE, not a re-representation. The object's
+  own constraints bind at its own frame, so they are WEAKER than a finer
+  declaration's and the model is cheaper: the input/output ratio and the
+  `@ceff` group shares hold only in aggregate over the coarse cell, and
+  availability is sized against that longer slice. If a blend limit must
+  hold within the period, declare the object at that finer frame; an
+  annual mandate on a finely-operated object belongs in a user
+  constraint with an explicit `timeframe`. Coarsening also does NOT
+  reduce flow variables – those stay at the commodity's level; it
+  removes activity variables and equation rows. If specified, must
+  include all regions used in other slots.
 
 - start:
 

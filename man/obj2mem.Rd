@@ -4,10 +4,10 @@
 \alias{obj2mem}
 \title{Loads objects from disk to memory}
 \usage{
-obj2mem(obj, verbose = TRUE)
+obj2mem(object, verbose = isVerbose())
 }
 \arguments{
-\item{obj}{Object of S4 class, saved on disk (scenario, model, etc.)}
+\item{object}{Object of S4 class, saved on disk (scenario, model, etc.)}
 
 \item{verbose}{If TRUE, prints messages}
 }

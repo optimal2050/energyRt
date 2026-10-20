@@ -14,7 +14,7 @@ skip_if_no_pandoc <- function() {
     output = data.frame(comm = "ELC", unit = "GWh"),
     geff = data.frame(group = "FUEL", ginp2use = 0.42),
     ceff = data.frame(comm = c("COA", "BIO"),
-                      share.lo = c(0.2, 0.1), share.up = c(0.9, 0.8)),
+                      grp.share.lo = c(0.2, 0.1), grp.share.up = c(0.9, 0.8)),
     vintage = data.frame(vintage = c("2025", "2035"),
                          start = c(2025L, 2035L), end = c(2034L, NA),
                          olife = c(25L, 30L)),
@@ -65,7 +65,10 @@ test_that("generic html: vintaged tech gets the by-vintage levcost section", {
 .rep_vint_storage <- function() {
   newStorage(
     "STGX", desc = "Battery storage (test fixture)",
-    commodity = "ELC",
+    # units live on the role declarations (storage has no `@units` slot)
+    input = data.frame(comm = "ELC", unit = "GWh"),
+    output = data.frame(comm = "ELC", unit = "GWh"),
+    storage = data.frame(comm = "ELC", unit = "GWh"),
     vintage = data.frame(vintage = c("2025", "2035"),
                          start = c(2025L, 2035L), end = c(2034L, NA),
                          olife = c(12L, 15L)),
@@ -95,6 +98,24 @@ test_that("generic html: storage renders with parts, seff, and costs", {
   expect_match(h, "Investment cost \\(stg\\)")
   expect_match(h, "8081")
   expect_match(h, "Fixed O&amp;M \\(inp\\)|Fixed O&M \\(inp\\)")
+  expect_false(grepl(">NA</td>", h, fixed = TRUE))
+})
+
+test_that("storage report renders an LCOS section (levcost for storage)", {
+  skip_if_no_pandoc()
+  stg <- .rep_vint_storage()
+  fb <- tempfile(pattern = "rep_stg_lcos_")
+  f <- suppressMessages(suppressWarnings(
+    report(stg, format = "html", file = fb, open = FALSE,
+           levcost = TRUE, cost_unit = "MUSD",
+           discount = 0.06, base_year = 2025, verbose = FALSE)))
+  expect_true(file.exists(f))
+  h <- paste(readLines(f, warn = FALSE), collapse = "
+")
+  # the by-vintage LCOS table, unit-labelled from units_costs / units_act
+  expect_match(h, "by vintage")
+  expect_match(h, "levcost [(]NPV[)], MUSD/GWh")
+  expect_match(h, "STGX_VIN2025")
   expect_false(grepl(">NA</td>", h, fixed = TRUE))
 })
 
@@ -176,7 +197,7 @@ test_that("levcost report params carry the vintage tables", {
   lc <- levcost(tech, fuel_costs = c(COA = 8, BIO = 20), discount = 0.06,
                 base_year = 2025, verbose = FALSE)
   expect_s3_class(lc, "levcost_variants")
-  df <- energyRt:::.report_drop_empty_cols(levcost_by_variant(lc, "npv"))
+  df <- energyRt:::.report_drop_empty_cols(levcost(lc, by_variant = "npv"))
   expect_true(all(c("variant", "vintage", "levcost_npv") %in% names(df)))
   expect_equal(nrow(df), 2L)
   inst <- energyRt:::.report_pick_instance(lc)
@@ -262,5 +283,5 @@ test_that("report helpers: emitters branch per output (pandoc-free)", {
   hd <- paste(capture.output(report_header("N", "d", output = "html")),
               collapse = "\n")
   expect_match(hd, "<h1")
-  expect_match(hd, "ert-rule")
+  expect_match(hd, "en-rule")
 })

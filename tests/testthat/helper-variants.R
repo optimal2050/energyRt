@@ -15,6 +15,7 @@ skip_if_no_solver <- function() {
   if (!has_glpsol()) {
     testthat::skip("glpsol not available (PATH or ~/.energyRt/config.yml)")
   }
+  skip_if_probe_failed("glpk")
 }
 
 # A minimal two-region electricity model used across the variant tests.

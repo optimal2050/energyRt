@@ -7,13 +7,7 @@ clusters, or of capacity across vintages.'><meta property="og:description" conte
 reports the spread across them: total, mean, standard deviation, min and max,
 plus the number of variants contributing. This is the "analyse by cluster and
 vintage" view – e.g. the spread of capacity factors across wind resource
-clusters, or of capacity across vintages.'><meta property="og:image" content="https://energyRt.org/logo.png"><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script></head><body>
+clusters, or of capacity across vintages.'><meta property="og:image" content="https://energyRt.org/logo.png"><script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -21,7 +15,7 @@ clusters, or of capacity across vintages.'><meta property="og:image" content="ht
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -30,19 +24,25 @@ clusters, or of capacity across vintages.'><meta property="og:image" content="ht
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development"><li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
+    <li><a class="dropdown-item" href="../articles/features.html">Features</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -80,14 +80,14 @@ clusters, or of capacity across vintages.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">variantSummary</span><span class="op">(</span><span class="va">scen</span>, <span class="va">name</span>, by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>, weight <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">variantSummary</span><span class="op">(</span><span class="va">object</span>, <span class="va">name</span>, by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>, weight <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-scen">scen<a class="anchor" aria-label="anchor" href="#arg-scen"></a></dt>
+<dl><dt id="arg-object">object<a class="anchor" aria-label="anchor" href="#arg-object"></a></dt>
 <dd><p>a solved <code>scenario</code>.</p></dd>
 
 
@@ -125,6 +125,29 @@ the mean (e.g. <code>"vTechCap"</code> to capacity-weight a per-unit quantity). 
 <code><a href="write_technology_xlsx.html">write_technology_xlsx()</a></code></p></div>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="accessors.html">open_project</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">ek</span>  <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">repo</span>,</span></span>
+<span class="r-in"><span>                calendar <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span></span>
+<span class="r-in"><span>                region <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">regions</span>,</span></span>
+<span class="r-in"><span>                horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span></span>
+<span class="r-in"><span>                discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">ek</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># split wind into site grades, solve, then read the result BY GRADE rather</span></span></span>
+<span class="r-in"><span><span class="co"># than by variant name</span></span></span>
+<span class="r-in"><span><span class="va">mod</span>  <span class="op">&lt;-</span> <span class="fu"><a href="add.html">add</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">ek</span><span class="op">$</span><span class="va">EWIN_SITES</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"SITES"</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="fu">variantSummary</span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechCap"</span>, by <span class="op">=</span> <span class="st">"cluster"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">variantSummary</span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechOut"</span>, by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"cluster"</span>, <span class="st">"region"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

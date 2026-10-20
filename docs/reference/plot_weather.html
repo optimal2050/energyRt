@@ -4,7 +4,8 @@ of a weather object, in one of three styles:
 &quot;heatmap&quot; (default) — a calendar heatmap (finest timeframe on y, next on
 x), faceted by region; the value's unit is on the fill legend;
 &quot;line&quot; — the factor against the finest time level (e.g. hour), one line per
-coarser level (e.g. season), faceted by region;
+coarser level (e.g. season), faceted by region; the coarse level is coloured
+with a viridis &quot;H&quot; gradient (continuous when numeric, e.g. day of year);
 &quot;area&quot; — the same as &quot;line&quot; with filled areas.
 
 
@@ -14,18 +15,13 @@ of a weather object, in one of three styles:
 &quot;heatmap&quot; (default) — a calendar heatmap (finest timeframe on y, next on
 x), faceted by region; the value's unit is on the fill legend;
 &quot;line&quot; — the factor against the finest time level (e.g. hour), one line per
-coarser level (e.g. season), faceted by region;
+coarser level (e.g. season), faceted by region; the coarse level is coloured
+with a viridis &quot;H&quot; gradient (continuous when numeric, e.g. day of year);
 &quot;area&quot; — the same as &quot;line&quot; with filled areas.
 
 
 The value axis (fill for the heatmap, y for line/area) is labelled with the
-object's @unit (or &quot;capacity factor&quot; if unset)."><meta property="og:image" content="https://energyRt.org/logo.png"><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script></head><body>
+object's @unit (or &quot;capacity factor&quot; if unset)."><meta property="og:image" content="https://energyRt.org/logo.png"><script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -33,7 +29,7 @@ object's @unit (or &quot;capacity factor&quot; if unset)."><meta property="og:im
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,19 +38,25 @@ object's @unit (or &quot;capacity factor&quot; if unset)."><meta property="og:im
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development"><li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
+    <li><a class="dropdown-item" href="../articles/features.html">Features</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -87,7 +89,8 @@ object's @unit (or &quot;capacity factor&quot; if unset)."><meta property="og:im
 of a <code>weather</code> object, in one of three styles:</p><ul><li><p><code>"heatmap"</code> (default) — a calendar heatmap (finest timeframe on <code>y</code>, next on
 <code>x</code>), faceted by region; the value's unit is on the fill legend;</p></li>
 <li><p><code>"line"</code> — the factor against the finest time level (e.g. hour), one line per
-coarser level (e.g. season), faceted by region;</p></li>
+coarser level (e.g. season), faceted by region; the coarse level is coloured
+with a viridis <code>"H"</code> gradient (continuous when numeric, e.g. day of year);</p></li>
 <li><p><code>"area"</code> — the same as <code>"line"</code> with filled areas.</p></li>
 </ul><p>The value axis (fill for the heatmap, <code>y</code> for line/area) is labelled with the
 object's <code>@unit</code> (or <code>"capacity factor"</code> if unset).</p>
@@ -143,8 +146,9 @@ facets.</p></dd>
 
 <dt id="arg-datetime">datetime<a class="anchor" aria-label="anchor" href="#arg-datetime"></a></dt>
 <dd><p>Logical (line/area only). If <code>TRUE</code>, place the profile on a
-real datetime axis via <code><a href="timeslices.html">tsl2dtm()</a></code>; if the timeslice type is not yet supported
-the categorical axis is kept (with a warning).</p></dd>
+real datetime axis via <code><a href="https://optimal2050.github.io/timescales/r/reference/timeslice_datetime.html" class="external-link">timescales::tsl2dtm()</a></code>, which needs both a
+<code>calendar</code> and a <code>year</code> column; without them the categorical axis is kept
+(with a warning).</p></dd>
 
 
 <dt id="arg-angle">angle<a class="anchor" aria-label="anchor" href="#arg-angle"></a></dt>
@@ -173,7 +177,7 @@ unreadable.</p></dd>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"calendars"</span>, package <span class="op">=</span> <span class="st">"energyRt"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">W</span> <span class="op">&lt;-</span> <span class="fu"><a href="getObject.html">getObject</a></span><span class="op">(</span><span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span><span class="op">$</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"WSOL"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">W</span> <span class="op">&lt;-</span> <span class="fu"><a href="getObject.html">getObject</a></span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span><span class="op">$</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"WSOL"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">autoplot</span><span class="op">(</span><span class="va">W</span>, calendar <span class="op">=</span> <span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span><span class="op">)</span>                     <span class="co"># heatmap</span></span></span>
 <span class="r-in"><span><span class="fu">autoplot</span><span class="op">(</span><span class="va">W</span>, style <span class="op">=</span> <span class="st">"line"</span>, calendar <span class="op">=</span> <span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>

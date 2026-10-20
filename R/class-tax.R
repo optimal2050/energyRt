@@ -6,7 +6,16 @@
 #' @slot name `r get_slot_doc("tax", "name")`
 #' @slot desc `r get_slot_doc("tax", "desc")`
 #' @slot comm `r get_slot_doc("tax", "comm")`
+#' @slot geoframe `r get_slot_doc("tax", "geoframe")`
 #' @slot region `r get_slot_doc("tax", "region")`
+#' @slot process `r get_slot_doc("tax", "process")`
+#' @slot process_ `r get_slot_doc("tax", "process_")`
+#' @slot classes `r get_slot_doc("tax", "classes")`
+#' @slot vintage `r get_slot_doc("tax", "vintage")`
+#' @slot vintage_ `r get_slot_doc("tax", "vintage_")`
+#' @slot cluster `r get_slot_doc("tax", "cluster")`
+#' @slot cluster_ `r get_slot_doc("tax", "cluster_")`
+#' @slot variable `r get_slot_doc("tax", "variable")`
 #' @slot defVal `r get_slot_doc("tax", "defVal")`
 #' @slot tax `r get_slot_doc("tax", "tax")`
 #' @slot misc `r get_slot_doc("tax", "misc")`
@@ -20,26 +29,48 @@ setClass("tax",
     name = "character", #
     desc = "character", #
     comm = "character", #
+    geoframe = "character",
     region = "character", #
+    process = "character", #
+    process_ = "character", #
+    classes = "character", #
+    vintage = "character", #
+    vintage_ = "character", #
+    cluster = "character", #
+    cluster_ = "character", #
+    variable = "character", #
     defVal = "numeric", #
     tax = "data.frame", #
     misc = "list"
   ),
-  # !!! add slot "tax" = data.frame(comm, year, timeslice, tax)
-  # !!! add slot @variable = factor("output", "balance")
   prototype(
     name = "", # Short name
     comm = "",
     desc = "",
+    geoframe = character(),
     region = character(), #
+    process = character(), #
+    process_ = character(), #
+    classes = character(), #
+    vintage = character(), #
+    vintage_ = character(), #
+    cluster = character(), #
+    cluster_ = character(), #
+    variable = character(), #
     defVal = 0, #
     tax = data.frame(
       region = character(),
       year = integer(),
       timeslice = character(),
+      process = character(),
+      comm = character(),
       inp = numeric(),
       out = numeric(),
       bal = numeric(),
+      act = numeric(),
+      cap = numeric(),
+      ncap = numeric(),
+      rate = numeric(),
       stringsAsFactors = FALSE
     ),
     # ! Misc
@@ -59,11 +90,21 @@ setClass("tax",
 #' @param name `r get_slot_doc("tax", "name")`
 #' @param desc `r get_slot_doc("tax", "desc")`
 #' @param comm `r get_slot_doc("tax", "comm")`
+#' @param geoframe `r get_slot_doc("tax", "geoframe")`
 #' @param region `r get_slot_doc("tax", "region")`
+#' @param process `r get_slot_doc("tax", "process")`
+#' @param process_ `r get_slot_doc("tax", "process_")`
+#' @param classes `r get_slot_doc("tax", "classes")`
+#' @param vintage `r get_slot_doc("tax", "vintage")`
+#' @param vintage_ `r get_slot_doc("tax", "vintage_")`
+#' @param cluster `r get_slot_doc("tax", "cluster")`
+#' @param cluster_ `r get_slot_doc("tax", "cluster_")`
+#' @param variable `r get_slot_doc("tax", "variable")`
 #' @param defVal `r get_slot_doc("tax", "defVal")`
 #' @param tax `r get_slot_doc("tax", "tax")`
 #' @param misc `r get_slot_doc("tax", "misc")`
 #'
+#' @param ... further named slots of the class, set on the new object.
 #' @return An object of class `tax`
 #' @family class constraint policy
 #' @rdname newTax
@@ -91,7 +132,16 @@ newTax <- function(
   name,
   desc = "",
   comm = "",
+  geoframe = character(),
   region = character(),
+  process = character(),
+  process_ = character(),
+  classes = character(),
+  vintage = character(),
+  vintage_ = character(),
+  cluster = character(),
+  cluster_ = character(),
+  variable = character(),
   defVal = 0,
   tax = data.frame(),
   misc = list(),
@@ -102,7 +152,16 @@ newTax <- function(
     name,
     desc = desc,
     comm = comm,
+    geoframe = geoframe,
     region = region,
+    process = process,
+    process_ = process_,
+    classes = classes,
+    vintage = vintage,
+    vintage_ = vintage_,
+    cluster = cluster,
+    cluster_ = cluster_,
+    variable = variable,
     defVal = defVal,
     tax = tax,
     misc = misc,

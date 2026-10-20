@@ -45,7 +45,7 @@ Path to the Julia installation used by the JuMP backend. Prefixed to the \code{j
 }}
 
 \item{glpk_path}{\describe{
-Path to a standalone GLPK installation containing the \code{glpsol} executable. If unset, \code{glpsol} is auto-detected on the session PATH -- which on Windows finds the copy bundled with Rtools.\item{default: }{\preformatted{NULL}}
+Path to a standalone GLPK installation containing the \code{glpsol} executable. If unset, the glpsol R package's bundled binary is used when installed, otherwise \code{glpsol} is auto-detected on the session PATH -- which on Windows finds the copy bundled with Rtools.\item{default: }{\preformatted{NULL}}
 \item{option: }{en.glpk_path}
 \item{envvar: }{ENERGYRT_GLPK_PATH (evaluated if possible, raw string otherwise)}
 }}
@@ -81,19 +81,19 @@ Path to the project registry CSV indexing saved models, scenarios and runs. Kept
 }}
 
 \item{models_path}{\describe{
-Root directory for the model store. save_model() writes content-addressed model folders (\if{html}{\out{<name>}}@\if{html}{\out{<hash8>}}) underneath it.\item{default: }{\preformatted{"models/"}}
+Root directory for the model store, a sibling of the scenarios/ store. save_model() writes one folder per model name underneath it, updated in place; the content hash lives in the entry's model.yml. Scenarios saved with the default embed_model = NULL store their model here and reference it.\item{default: }{\preformatted{"models/"}}
 \item{option: }{en.models_path}
 \item{envvar: }{ENERGYRT_MODELS_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{repositories_path}{\describe{
-Root directory for the repository store. save_repository() writes content-addressed repository folders (\if{html}{\out{<name>}}@\if{html}{\out{<hash8>}}) underneath it.\item{default: }{\preformatted{"repositories/"}}
+Root directory for the repository store. save_repository() writes one folder per repository name underneath it, updated in place; the content hash lives in the entry's repository.yml.\item{default: }{\preformatted{"repositories/"}}
 \item{option: }{en.repositories_path}
 \item{envvar: }{ENERGYRT_REPOSITORIES_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{datasets_path}{\describe{
-Root directory for the dataset store. save_dataset() writes content-addressed dataset folders (\if{html}{\out{<name>}}@\if{html}{\out{<hash8>}}) underneath it.\item{default: }{\preformatted{"datasets/"}}
+Root directory for the dataset store. save_dataset() writes one folder per dataset name underneath it, updated in place; the content hash lives in the entry's dataset.yml.\item{default: }{\preformatted{"datasets/"}}
 \item{option: }{en.datasets_path}
 \item{envvar: }{ENERGYRT_DATASETS_PATH (evaluated if possible, raw string otherwise)}
 }}
@@ -104,10 +104,10 @@ Optional operation-log CSV. Empty (default) = logging off; a path makes interpol
 \item{envvar: }{ENERGYRT_LOG_FILE (evaluated if possible, raw string otherwise)}
 }}
 
-\item{store_versioning}{\describe{
-How the model/repository/dataset stores name their entries. "none" (default): one human-readable folder per name (models/UTOPIA/), updated in place; the content hash lives in the manifest and misc$hash for no-op detection and reference verification. "hash": content-addressed \if{html}{\out{<name>}}@\if{html}{\out{<hash8>}} folders; every content change is a NEW entry and versions coexist.\item{default: }{\preformatted{"none"}}
-\item{option: }{en.store_versioning}
-\item{envvar: }{ENERGYRT_STORE_VERSIONING (evaluated if possible, raw string otherwise)}
+\item{profile_dir}{\describe{
+Directory for the interpolation profile log (interp_runs.csv, interp_stages.csv, interp_maps.csv, interp_params.csv -- per-run timing and memory tables, appended after every interpolation). Empty (default) = fall back to the operation log's directory, then to \if{html}{\out{<project>}}/logs/ when a project registry exists; no sink = no files written.\item{default: }{\preformatted{""}}
+\item{option: }{en.profile_dir}
+\item{envvar: }{ENERGYRT_PROFILE_DIR (evaluated if possible, raw string otherwise)}
 }}
 
 \item{reports_path}{\describe{
@@ -122,22 +122,46 @@ Default directory for cached levcost results of IN-MEMORY objects (treated as te
 \item{envvar: }{ENERGYRT_LEVCOST_CACHE_PATH (evaluated if possible, raw string otherwise)}
 }}
 
-\item{arrow_format}{\describe{
-Default Arrow exchange format for the JuMP/Pyomo solvers: 'feather' (IPC), 'parquet', or 'csv'.\item{default: }{\preformatted{"feather"}}
-\item{option: }{en.arrow_format}
-\item{envvar: }{ENERGYRT_ARROW_FORMAT (evaluated if possible, raw string otherwise)}
+\item{path_builders}{\describe{
+Named list of user functions overriding the built-in folder-name derivations (session-local; set with set_path_builder()). Hookable kinds: scenario_dir, store_entry, run_label, slug — see ?path_builders for the contracts.\item{default: }{\preformatted{list()}}
+\item{option: }{en.path_builders}
+\item{envvar: }{ENERGYRT_PATH_BUILDERS (evaluated if possible, raw string otherwise)}
 }}
 
-\item{arrow_compression}{\describe{
-Arrow compression codec: 'zstd', 'lz4', or 'uncompressed'.\item{default: }{\preformatted{"zstd"}}
-\item{option: }{en.arrow_compression}
-\item{envvar: }{ENERGYRT_ARROW_COMPRESSION (evaluated if possible, raw string otherwise)}
+\item{storage_format}{\describe{
+On-disk table storage format: 'feather' (IPC), 'parquet', or 'csv'; 'arrow' and 'ipc' are aliases for feather. Both support lazy filtered reads. Size depends far more on DICTIONARY ENCODING than on the container: parquet dictionary-encodes repeated strings itself, feather only if the caller passes factors. Measured on a 543k-row table with zstd-15: plain feather 11.8 MB, parquet 1.10 MB either way, feather with factor columns 1.03 MB and 4.5x faster to read.\item{default: }{\preformatted{"feather"}}
+\item{option: }{en.storage_format}
+\item{envvar: }{ENERGYRT_STORAGE_FORMAT (evaluated if possible, raw string otherwise)}
 }}
 
-\item{arrow_compression_level}{\describe{
-Arrow compression level (codec-dependent; ZSTD supports 1-22).\item{default: }{\preformatted{15L}}
-\item{option: }{en.arrow_compression_level}
-\item{envvar: }{ENERGYRT_ARROW_COMPRESSION_LEVEL (evaluated if possible, raw string otherwise)}
+\item{storage_compression}{\describe{
+Storage compression codec: 'zstd', 'lz4', or 'uncompressed'.\item{default: }{\preformatted{"zstd"}}
+\item{option: }{en.storage_compression}
+\item{envvar: }{ENERGYRT_STORAGE_COMPRESSION (evaluated if possible, raw string otherwise)}
+}}
+
+\item{storage_compression_level}{\describe{
+Storage compression level (codec-dependent; ZSTD supports 1-22).\item{default: }{\preformatted{15L}}
+\item{option: }{en.storage_compression_level}
+\item{envvar: }{ENERGYRT_STORAGE_COMPRESSION_LEVEL (evaluated if possible, raw string otherwise)}
+}}
+
+\item{exchange_format}{\describe{
+Data-exchange format for the JuMP/Pyomo solvers: 'feather' (IPC), 'parquet', or 'csv'. Julia's Arrow.jl reads IPC only. A solver's \code{export_format}/\code{import_format} overrides this per solve.\item{default: }{\preformatted{"feather"}}
+\item{option: }{en.exchange_format}
+\item{envvar: }{ENERGYRT_EXCHANGE_FORMAT (evaluated if possible, raw string otherwise)}
+}}
+
+\item{exchange_compression}{\describe{
+Exchange compression codec: 'zstd', 'lz4', or 'uncompressed'. Exchange files are written and read within the same solve, so the default trades size for speed.\item{default: }{\preformatted{"lz4"}}
+\item{option: }{en.exchange_compression}
+\item{envvar: }{ENERGYRT_EXCHANGE_COMPRESSION (evaluated if possible, raw string otherwise)}
+}}
+
+\item{exchange_compression_level}{\describe{
+Exchange compression level (codec-dependent; ZSTD supports 1-22). Ignored for lz4.\item{default: }{\preformatted{15L}}
+\item{option: }{en.exchange_compression_level}
+\item{envvar: }{ENERGYRT_EXCHANGE_COMPRESSION_LEVEL (evaluated if possible, raw string otherwise)}
 }}
 
 \item{verbose}{\describe{

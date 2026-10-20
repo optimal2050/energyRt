@@ -3,36 +3,23 @@
 \name{neos}
 \alias{neos}
 \alias{neos_ping}
-\alias{neos_list_categories}
 \alias{neos_list_solvers}
-\alias{neos_get_template}
 \title{NEOS Server client (query the remote solver service)}
 \usage{
 neos_ping(timeout = 30)
 
-neos_list_categories(timeout = 30)
-
 neos_list_solvers(category, timeout = 30)
-
-neos_get_template(category, solver, inputMethod = "GAMS", timeout = 30)
 }
 \arguments{
 \item{timeout}{request timeout in seconds.}
 
 \item{category}{NEOS solver category abbreviation, e.g. \code{"milp"}, \code{"lp"},
-\code{"nco"} (see \code{\link[=neos_list_categories]{neos_list_categories()}}).}
-
-\item{solver}{NEOS solver name, e.g. \code{"CPLEX"}, \code{"Gurobi"} (see
-\code{\link[=neos_list_solvers]{neos_list_solvers()}}).}
-
-\item{inputMethod}{input format, e.g. \code{"GAMS"}, \code{"MPS"}, \code{"AMPL"}.}
+\code{"nco"}.}
 }
 \value{
 \itemize{
 \item \code{neos_ping()}: a status string (invisibly), \code{TRUE} if the server is alive.
-\item \code{neos_list_categories()}: a named character vector (abbrev -> full name).
 \item \code{neos_list_solvers()}: a character vector of \code{solver:inputMethod} strings.
-\item \code{neos_get_template()}: the XML job template as a single string.
 }
 }
 \description{
@@ -50,9 +37,7 @@ Please cite NEOS in publications.
 \examples{
 \dontrun{
 neos_ping()
-head(neos_list_categories())
 neos_list_solvers("milp")
-cat(neos_get_template("milp", "CPLEX", "GAMS"))
 }
 }
 \seealso{

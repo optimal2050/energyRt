@@ -1,0 +1,51 @@
+---
+title: "`r params$title`"
+report-class: costs
+output:
+  html_document:
+    self_contained: true
+    md_extensions: "-native_divs-native_spans"
+  pdf_document:
+    latex_engine: xelatex
+  word_document: default
+params:
+  title:      "User costs"
+  name:       ""
+  desc:       ""
+  class:      "costs"
+  image_file: NULL
+  logos:      NULL
+  info_df:    NULL
+  subset_df:  NULL
+  mult_df:    NULL
+header-includes:
+  - \usepackage{booktabs}
+---
+
+```{r en-setup, include=FALSE}
+fmt <- energyRt::report_setup()
+tbl <- function(df, caption = NULL, digits = 4L, ...)
+  energyRt::report_tbl(df, caption, digits, output = fmt, ...)
+```
+
+```{r en-css, results='asis'}
+energyRt::report_css(fmt)
+```
+
+```{r en-header, results='asis'}
+energyRt::report_header(params$name, params$desc,
+                        image_file = params$image_file, output = fmt)
+```
+
+```{r en-info, results='asis'}
+energyRt::report_sec("Key facts", output = fmt)
+tbl(params$info_df)
+```
+
+```{r en-subset, results='asis', eval=!is.null(params$subset_df)}
+tbl(params$subset_df, caption = "Subset", max_rows = 30)
+```
+
+```{r en-mult, results='asis', eval=!is.null(params$mult_df)}
+tbl(params$mult_df, caption = "Multipliers", max_rows = 30)
+```

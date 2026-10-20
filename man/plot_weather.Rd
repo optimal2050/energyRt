@@ -39,8 +39,9 @@ facets.}
 \item{palette}{Viridis color option for the heatmap fill.}
 
 \item{datetime}{Logical (line/area only). If \code{TRUE}, place the profile on a
-real datetime axis via \code{\link[=tsl2dtm]{tsl2dtm()}}; if the timeslice type is not yet supported
-the categorical axis is kept (with a warning).}
+real datetime axis via \code{\link[timescales:tsl2dtm]{timescales::tsl2dtm()}}, which needs both a
+\code{calendar} and a \code{year} column; without them the categorical axis is kept
+(with a warning).}
 
 \item{angle}{Rotation (degrees) for the x-axis tick labels; overlapping labels
 are dropped so dense sub-annual axes stay legible. Default \code{45}; \code{0} = flat.}
@@ -63,7 +64,8 @@ of a \code{weather} object, in one of three styles:
 \item \code{"heatmap"} (default) — a calendar heatmap (finest timeframe on \code{y}, next on
 \code{x}), faceted by region; the value's unit is on the fill legend;
 \item \code{"line"} — the factor against the finest time level (e.g. hour), one line per
-coarser level (e.g. season), faceted by region;
+coarser level (e.g. season), faceted by region; the coarse level is coloured
+with a viridis \code{"H"} gradient (continuous when numeric, e.g. day of year);
 \item \code{"area"} — the same as \code{"line"} with filled areas.
 }
 
@@ -73,7 +75,7 @@ object's \verb{@unit} (or \code{"capacity factor"} if unset).
 \examples{
 \dontrun{
 data("calendars", package = "energyRt")
-W <- getObject(utopia_modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
+W <- getObject(topia$modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
 autoplot(W, calendar = calendars$s4_h24)                     # heatmap
 autoplot(W, style = "line", calendar = calendars$s4_h24)
 }

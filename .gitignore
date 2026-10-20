@@ -14,10 +14,16 @@ solwork
 #doc
 Meta
 #docs
+# project stores + registry, created in the working directory by a solve or a
+# save when no open_project() has set a project root
 scenarios/
+models/
+repositories/
+datasets/
 levcost/
 levcosts/
 reports/
+energyRt_registry.csv
 .archive/
 drafts/
 .formatted/
@@ -31,5 +37,35 @@ dev/
 dev-scripts/
 .positai
 #temporary:
-man/
 docs/
+inst/templates/*.pdf
+tests/testthat/*.pdf
+
+# python bytecode caches (inst/ ships, so these would be installed)
+__pycache__/
+*.pyc
+
+# editor/tooling backups (sysdata rebakes, etc.)
+*.bak
+*.bak[0-9]
+
+# dead code kept locally, not published
+depreciated/
+
+# stray graphics from non-interactive runs: R's default device writes
+# Rplots.pdf into the working directory, and knitr's default fig.path is
+# figure/ -- neither belongs in the repo
+Rplots.pdf
+figure/
+
+# the test preamble's backend-probe verdict: a snapshot of THIS machine's
+# backends, rewritten on every suite run (tools/test/lib/runner.R)
+tools/test/.backend-probe.json
+
+# roadmap and testing articles withheld pending reconsideration (kept locally)
+vignettes/articles/roadmap.Rmd
+docs/articles/roadmap.html
+docs/articles/articles/roadmap.html
+vignettes/articles/testing.Rmd
+docs/articles/testing.html
+docs/articles/articles/testing.html

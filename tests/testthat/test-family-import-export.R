@@ -107,3 +107,70 @@ test_that("family import-export: import reserve lands in modInp", {
     ie_build(imp_reserve = data.frame(res.up = 500)), name = "ie_impres")))
   expect_equal(unique(ff_param(scen, "pImportRowRes")$value), 500)
 })
+
+# ---- per-slice fixed exchange: a zero slice must not remove the others ----- #
+# @covers pImportRow pExportRow vImportRow vExportRow depth=S backends=glpk forks=fx
+test_that("family import-export: per-slice imp.fx/exp.fx with zero slices", {
+  skip_if_no_solver()
+  cal <- newCalendar(
+    timetable = make_timetable(struct = list(ANNUAL = "ANNUAL", HOUR = c("h1", "h2"))),
+    name = "ie_cal2")
+  mod <- newModel("ie2",
+    repo = newRepository("ie2_repo",
+      newCommodity("ELC"),
+      newDemand("DEM_ELC", commodity = "ELC",
+                demand = data.frame(timeslice = c("h1", "h2"), demand = c(10, 10))),
+      newSupply("SUP_ELC", commodity = "ELC", supply = data.frame(cost = 1)),
+      newImport("IMP_ELC", commodity = "ELC",
+                import = data.frame(timeslice = c("h1", "h2"), imp.fx = c(0, 4), price = 0)),
+      newExport("EXP_ELC", commodity = "ELC",
+                export = data.frame(timeslice = c("h1", "h2"), exp.fx = c(3, 0), price = 0))),
+    calendar = cal, region = "R1", horizon = newHorizon(2025), discount = 0)
+  scen <- suppressMessages(suppressWarnings(interpolate_model(mod, name = "ie_slice")))
+  scen <- .fork_solve(scen, solver_options$glpk)
+  expect_true(verify_solution(scen)$ok)
+  expect_equal(ff_solution_sum(scen, "vImportRow"), 4, tolerance = 1e-6)
+  expect_equal(ff_solution_sum(scen, "vExportRow"), 3, tolerance = 1e-6)
+  # supply covers demand 20 - import 4 + export 3
+  expect_equal(.fork_objective(scen), 19, tolerance = 1e-6)
+})
+
+# ---- region scope: a populated @region confines the import / export --------- #
+# IMP_A (price 1) is declared for R1 only; IMP_ALL (price 10) has no @region.
+# R2's demand must be met from IMP_ALL: 100*1 + 100*10 = 1100. Before the scope
+# was applied, IMP_A had row cells in R2 too (unpriced there), and R2 drew from it.
+# @covers mImportRow mExportRow depth=S backends=glpk
+test_that("family import-export: @region scopes import and export rows", {
+  cal <- newCalendar(
+    timetable = make_timetable(struct = list(ANNUAL = "ANNUAL")),
+    name = "ie_scope_cal")
+  mod <- newModel("ie_scope",
+    repo = newRepository("ie_scope_repo",
+      newCommodity("ELC", timeframe = "ANNUAL"),
+      newCommodity("GAS", timeframe = "ANNUAL"),
+      newDemand("DEM_ELC", commodity = "ELC",
+                demand = data.frame(region = c("R1", "R2"), demand = 100)),
+      newImport("IMP_A", commodity = "ELC", region = "R1",
+                import = data.frame(price = 1)),
+      newImport("IMP_ALL", commodity = "ELC",
+                import = data.frame(price = 10)),
+      newSupply("SUP_GAS", commodity = "GAS", supply = data.frame(cost = 2)),
+      newExport("EXP_B", commodity = "GAS", region = "R2",
+                export = data.frame(price = 5, exp.up = 40))),
+    calendar = cal, region = c("R1", "R2"), horizon = newHorizon(2025),
+    discount = 0)
+  scen <- suppressMessages(suppressWarnings(
+    interpolate_model(mod, name = "ie_scope")))
+
+  ir <- as.data.frame(.gds(scen, "mImportRow"))
+  expect_setequal(unique(ir$region[ir$imp == "IMP_A"]), "R1")
+  expect_setequal(unique(ir$region[ir$imp == "IMP_ALL"]), c("R1", "R2"))
+  er <- as.data.frame(.gds(scen, "mExportRow"))
+  expect_setequal(unique(er$region[er$expp == "EXP_B"]), "R2")
+
+  skip_if_no_solver()
+  scen <- .fork_solve(scen, solver_options$glpk)
+  expect_true(verify_solution(scen)$ok)
+  # 100*1 + 100*10 + 40*2 - 40*5
+  expect_equal(.fork_objective(scen), 1100 + 80 - 200, tolerance = 1e-6)
+})

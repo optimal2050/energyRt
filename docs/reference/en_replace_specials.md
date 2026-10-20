@@ -41,8 +41,8 @@ character vector with special characters replaced
 ## Examples
 
 ``` r
-en_replace_specials(c("valid", "invalid!", "in-valid", "valid_1", "invalid.2"))
+energyRt:::en_replace_specials(c("valid", "invalid!", "in-valid", "valid_1", "invalid.2"))
 #> [1] "valid"     "invalid_"  "in_valid"  "valid_1"   "invalid_2"
-en_replace_specials(c("valid", "invalid!"), "[\\.\\^\\$\\*\\+\\?\\!]", "_fixed")
+energyRt:::en_replace_specials(c("valid", "invalid!"), "[\\.\\^\\$\\*\\+\\?\\!]", "_fixed")
 #> [1] "valid"         "invalid_fixed"
 ```

@@ -7,7 +7,7 @@
 }
 
 # A "large" model in miniature: 4 process structures x n regions of
-# region-prefixed technologies (the USENSYS pattern), all sharing 4 fuels.
+# region-prefixed technologies, all sharing 4 fuels.
 .rs_big_model <- function(n_regions = 3) {
   regs <- paste0("R", seq_len(n_regions))
   fuels <- c(coal = "COA", gas = "GAS", bio = "BIO", oil = "OIL")
@@ -96,11 +96,11 @@ test_that(".legend_compact thresholds", {
 test_that("report_tbl scrolls in html and caps elsewhere", {
   d <- data.frame(i = 1:40, v = rnorm(40))
   h <- paste(capture.output(report_tbl(d, output = "html")), collapse = "\n")
-  expect_match(h, "class='ert-scroll'")
+  expect_match(h, "class='en-scroll'")
   expect_equal(lengths(regmatches(h, gregexpr("<tr", h))), 41L)  # 40 + head
   h2 <- paste(capture.output(report_tbl(d, output = "html", scroll = FALSE)),
               collapse = "\n")
-  expect_false(grepl("ert-scroll", h2))
+  expect_false(grepl("en-scroll", h2))
   w <- paste(capture.output(report_tbl(d, output = "word", max_rows = 10)),
              collapse = "\n")
   expect_match(w, "\\.\\.\\. 30 more rows \\(of 40\\)")
@@ -136,6 +136,29 @@ test_that(".proc_groups groups region-replicated processes by structure", {
   expect_false(grepl(" - ", inv))
   expect_true(is.data.frame(g1$detail_df) && nrow(g1$detail_df) == 3L)
   expect_match(g1$label, "-> ELC")
+  # index stamped in display order
+  expect_equal(vapply(grps, function(g) g$index, character(1)),
+               paste0("G", seq_along(grps)))
+  idx <- energyRt:::.proc_group_index_df(grps)
+  expect_equal(idx$index, paste0("G", seq_along(grps)))
+  expect_true(all(c("structure", "class", "n") %in% names(idx)))
+})
+
+test_that(".plot_windows_grouped labels rows by the group index", {
+  skip_if_not_installed("ggplot2")
+  mod <- .rs_big_model(2)
+  grps <- energyRt:::.proc_groups(getObjects(mod, "technology"),
+                                  draw = FALSE)
+  w <- tryCatch(energyRt:::.proc_windows(mod), error = function(e) NULL)
+  skip_if(is.null(w) || nrow(w) == 0, "no windows data from fixture")
+  p <- energyRt:::.plot_windows_grouped(w, grps)
+  expect_s3_class(p, "ggplot")
+  expect_true(all(grepl("^G\\d+ \\(\\d+\\)$", levels(p$data$grp))))
+  # user groups label rows by their names
+  ug <- energyRt:::.report_groups_resolve(
+    mod, list(Coal = "_coal_"), getObjects(mod, "technology"), draw = FALSE)
+  pu <- energyRt:::.plot_windows_grouped(w, ug)
+  expect_true(any(grepl("^Coal \\(", levels(pu$data$grp))))
 })
 
 test_that(".proc_groups renders one schematic per group", {
@@ -152,26 +175,152 @@ test_that(".proc_groups renders one schematic per group", {
 # renders (pandoc-gated)
 # --------------------------------------------------------------------------- #
 
-test_that("default model report shows topology groups, not processes", {
+test_that("default model report shows a sample of processes", {
+  .rs_skip_if_no_pandoc()
+  mod <- .rs_big_model(4)                        # 16 techs > the sample cap
+  f <- suppressMessages(suppressWarnings(report(
+    mod, format = "html", file = tempfile("rs_model_"), open = FALSE)))
+  h <- paste(gsub("\\s+", " ", readLines(f, warn = FALSE)), collapse = " ")
+  n_proc <- lengths(regmatches(h, gregexpr("_pp \\(technology\\)", h)))
+  expect_equal(n_proc, 12L)                      # the sample, never all 16
+  expect_match(h, "Sample of 12 of 16 processes")
+  expect_false(grepl("Process-group index", h, fixed = TRUE))
+  # pandoc figure captions: figcaption (pandoc 3) or p.caption (pandoc 2)
+  expect_match(h, "figcaption|class=\"caption\"")
+  expect_lt(file.size(f), 5e6)
+})
+
+test_that("report(groups=) renders named group sections", {
+  .rs_skip_if_no_pandoc()
+  mod <- .rs_big_model(2)
+  f <- suppressMessages(suppressWarnings(report(
+    mod, groups = list(Coal = "_coal_pp$", Gas = c("R1_gas_pp", "R2_gas_pp")),
+    format = "html", file = tempfile("rs_grp_"), open = FALSE)))
+  h <- paste(gsub("\\s+", " ", readLines(f, warn = FALSE)), collapse = " ")
+  expect_match(h, "Coal \\(technology, n = 2\\)")
+  expect_match(h, "Gas \\(technology, n = 2\\)")
+  expect_match(h, "Ungrouped \\(sample of|Ungrouped \\(technology")
+  expect_match(h, "Process-group index")
+  expect_match(h, "Members")
+})
+
+test_that("misc$report_groups is the default; groups = FALSE ignores it", {
+  .rs_skip_if_no_pandoc()
+  mod <- .rs_big_model(2)
+  mod@misc$report_groups <- list(Bio = "_bio_")
+  f <- suppressMessages(suppressWarnings(report(
+    mod, format = "html", file = tempfile("rs_misc_"), open = FALSE)))
+  h <- paste(gsub("\\s+", " ", readLines(f, warn = FALSE)), collapse = " ")
+  expect_match(h, "Bio \\(technology, n = 2\\)")
+  f2 <- suppressMessages(suppressWarnings(report(
+    mod, groups = FALSE, format = "html", file = tempfile("rs_nogrp_"),
+    open = FALSE)))
+  h2 <- paste(gsub("\\s+", " ", readLines(f2, warn = FALSE)), collapse = " ")
+  expect_false(grepl("Bio (technology", h2, fixed = TRUE))
+  # the spec is part of the render key: a different spec re-renders
+  fb <- tempfile("rs_key_")
+  suppressMessages(suppressWarnings(report(
+    mod, groups = list(A = "_coal_"), format = "html", file = fb,
+    open = FALSE)))
+  expect_message(suppressWarnings(report(
+    mod, groups = list(A = "_coal_"), format = "html", file = fb,
+    open = FALSE)), "up to date")
+  expect_no_message(suppressWarnings(report(
+    mod, groups = list(B = "_gas_"), format = "html", file = fb,
+    open = FALSE)), message = "up to date")
+})
+
+test_that("groups = 'topology' restores automatic grouping", {
   .rs_skip_if_no_pandoc()
   mod <- .rs_big_model(3)
   f <- suppressMessages(suppressWarnings(report(
-    mod, format = "html", file = tempfile("rs_model_"), open = FALSE)))
+    mod, groups = "topology", format = "html", file = tempfile("rs_topo_"),
+    open = FALSE)))
+  h <- paste(gsub("\\s+", " ", readLines(f, warn = FALSE)), collapse = " ")
+  expect_match(h, "G1")
+  expect_match(h, "n = 3")
+  expect_match(h, "Process-group index")
+})
+
+test_that(".proc_sample is breadth-first over structures", {
+  mod <- .rs_big_model(4)                        # 4 structures x 4 regions
+  procs <- getObjects(mod, "technology")
+  s <- energyRt:::.proc_sample(procs, 6L)
+  expect_length(s, 6L)
+  keys <- vapply(s, energyRt:::.proc_topology_key, character(1))
+  expect_length(unique(keys), 4L)                # every structure represented
+  expect_identical(energyRt:::.proc_sample(procs[1:3], 6L), procs[1:3])
+})
+
+test_that(".report_groups_resolve matches names and patterns", {
+  mod <- .rs_big_model(2)
+  procs <- getObjects(mod, "technology")
+  g <- energyRt:::.report_groups_resolve(
+    mod, list(Coal = "_coal_", One = "R1_gas_pp"), procs, draw = FALSE)
+  expect_equal(vapply(g, function(x) x$index, character(1)),
+               c("Coal", "One", "Ungrouped"))
+  expect_setequal(g[[1]]$members, c("R1_coal_pp", "R2_coal_pp"))
+  expect_equal(g[[2]]$members, "R1_gas_pp")
+  expect_length(g[[3]]$members, 5L)              # the rest, all sampled
+  expect_warning(energyRt:::.report_groups_resolve(
+    mod, list(None = "nomatch"), procs, draw = FALSE), "matches no")
+  expect_length(energyRt:::.report_groups_resolve(mod, FALSE, procs), 0L)
+})
+
+test_that("model report renders the weather CF table and heatmaps", {
+  .rs_skip_if_no_pandoc()
+  ts <- paste0("s1_h0", 1:4)
+  objs <- list(
+    newCommodity("ELC", unit = "GWh", timeframe = "ANNUAL"),
+    newDemand("DEM_TS", commodity = "ELC", unit = "GWh",
+              demand = data.frame(region = rep(c("R1", "R2"), each = 4),
+                                  timeslice = rep(ts, 2), demand = 1:8)))
+  for (i in 1:3) objs <- c(objs, list(newWeather(
+    paste0("WWIN_c", i), unit = "1",
+    weather = data.frame(region = rep(c("R1", "R2"), each = 4),
+                         timeslice = rep(ts, 2),
+                         wval = i * seq(0.1, 0.8, length.out = 8)))))
+  mod <- newModel("RSW", region = c("R1", "R2"),
+                  horizon = newHorizon(2025:2030, intervals = 3),
+                  data = do.call(newRepository, c(list("rw_repo"), objs)))
+  f <- suppressMessages(suppressWarnings(report(
+    mod, format = "html", file = tempfile("rs_wh_"), open = FALSE)))
+  h <- paste(gsub("\\s+", " ", readLines(f, warn = FALSE)), collapse = " ")
+  expect_match(h, "Average factors")
+  expect_match(h, "unweighted mean over timeslices")
+})
+
+test_that("model report renders the ex-ante levcost comparison", {
+  .rs_skip_if_no_pandoc()
+  mod <- .rs_big_model(2)
+  f <- suppressMessages(suppressWarnings(report(
+    mod, levcost = TRUE, format = "html", file = tempfile("rs_lc_"),
+    open = FALSE)))
   h <- paste(readLines(f, warn = FALSE), collapse = "\n")
-  n_h3 <- lengths(regmatches(h, gregexpr("<h3", h)))
-  expect_lte(n_h3, 6L)                          # ~4 groups, never 12
-  expect_match(h, "3 x")                        # member counts in headings
-  expect_match(h, "Members")
-  expect_match(h, "Parameter ranges across members")
-  expect_lt(file.size(f), 5e6)
+  expect_match(h, "Levelized costs \\(ex-ante\\)")
+  expect_match(h, "most expensive first")
+})
+
+test_that("a tech datasheet from a container carries the peers chart", {
+  .rs_skip_if_no_pandoc()
+  mod <- .rs_big_model(2)
+  nm1 <- names(getObjects(mod, "technology"))[1]
+  f <- suppressMessages(suppressWarnings(report(
+    mod, name = nm1, format = "html", file = tempfile("rs_peer_"),
+    open = FALSE)))
+  # pandoc reflows long lines: collapse whitespace before matching
+  h <- paste(gsub("\\s+", " ", readLines(f, warn = FALSE)), collapse = " ")
+  expect_match(h, "Levelized cost vs peers")
+  # the section note is HTML text (the chart caption lives in the PNG)
+  expect_match(h, "same structure, priced with the same assumptions")
 })
 
 test_that("template='full' resolves the full model template", {
   .rs_skip_if_no_pandoc()
   mod <- .rs_big_model(2)
   f <- suppressMessages(suppressWarnings(report(
-    mod, template = "full", format = "html", file = tempfile("rs_full_"),
-    open = FALSE)))
+    mod, template = "full", groups = "topology", format = "html",
+    file = tempfile("rs_full_"), open = FALSE)))
   h <- paste(readLines(f, warn = FALSE), collapse = "\n")
   expect_match(h, "Per-member parameters")
 })
@@ -231,6 +380,18 @@ test_that("autoplot(scenario) builds with the default lumping", {
   expect_s3_class(p, "ggplot")
   b <- ggplot2::ggplot_build(p)
   expect_true(nrow(b$data[[1]]) > 0)
+})
+
+test_that("scenario report renders the ex-post levcost comparison", {
+  .rs_skip_if_no_pandoc()
+  skip_if_no_solver()
+  sol <- .rs_solved()
+  f <- suppressMessages(suppressWarnings(report(
+    sol, levcost = TRUE, format = "html", file = tempfile("rs_slc_"),
+    open = FALSE)))
+  h <- paste(readLines(f, warn = FALSE), collapse = "\n")
+  expect_match(h, "Levelized costs \\(ex-post\\)")
+  expect_match(h, "most expensive first")
 })
 
 test_that("scenario summary template renders its sections", {

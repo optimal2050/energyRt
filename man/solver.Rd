@@ -63,10 +63,11 @@ This (optional) function sets path to GAMS directory to R-options. It might be u
 If GDX path is not set, the GAMS path will be used. If GAMS path is not set, the default system GAMS-path (OS environment variables) instead.
 }
 \details{
-By default energyRt auto-detects the \code{glpsol} executable on the
-session \code{PATH} (via \code{\link[base:Sys.which]{base::Sys.which()}}). On Windows this picks up the copy
-\strong{bundled with Rtools} (Rtools ships the GLPK dev kit), so an Rtools user
-needs no separate GLPK install. Use \code{set_glpk_path()} only to point at a
+By default energyRt uses the GLPK binary bundled by the glpsol R
+package when it is installed, and otherwise auto-detects the \code{glpsol}
+executable on the session \code{PATH} (via \code{\link[base:Sys.which]{base::Sys.which()}}). On Windows the
+latter picks up the copy \strong{bundled with Rtools} (Rtools ships the GLPK dev
+kit), so an Rtools user needs no separate install. Use \code{set_glpk_path()} only to point at a
 standalone GLPK installation, which then takes precedence over auto-detection.
 }
 \examples{

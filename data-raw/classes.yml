@@ -34,17 +34,65 @@ class:
         level (e.g. balancing steel nationally while electricity stays
         state-level) asserts free, unlimited transport of the commodity within
         that level, so it suits goods with a genuinely integrated market and
-        never a network-constrained carrier such as electricity. Requires a
-        geoscale on the model config; GLPK and GAMS only.
+        never a network-constrained carrier such as electricity. The coarse
+        balance is the plain SUM of its children: regional quantities are
+        extensive, so no weighting is applied. Requires a geoscale on the model
+        config whose geoframes NEST -- adjacent levels must refine one another,
+        or a region would be counted into two parents. Supported by all
+        back-ends.
     unit:
       type: character
       description: The main unit of the commodity used in the model.
+    cluster:
+      type: data.frame
+      description: >
+        Declaration of the commodity's parallel grades. For a commodity a
+        cluster is a RESOURCE TIER: the same substance in grades that must NOT
+        pool, so tier-3 land cannot serve a tier-1 plant.
+
+        Tiers exist because the commodity balance is keyed on
+        `(comm, region, year, timeslice)` and carries no cluster -- every
+        producer of one commodity name writes into the same cell. Declaring
+        tiers here expands the object into one commodity per tier (`LAND` tier
+        `T3` -> `LAND_CLT3`), each with its own balance, and a reference from a
+        clustered process resolves BY CLUSTER NAME. A commodity with no
+        clusters is shared as before, which is why `ELC` needs no flag.
+
+        Tiers may differ in DATA, not only in name: `emis`, `agg` and
+        `property` carry a `cluster` column, so coal grades can differ in
+        carbon content and heat value. A row with no cluster is shared by every
+        tier, as elsewhere. Declared labels are authoritative -- a label used in
+        a data slot but absent from this declaration is a typo and an error.
+        The declaration is REQUIRED whenever a data slot carries a label:
+        labels are never harvested.
+
+        There is deliberately no `region` column: a commodity has no `region`
+        slot (only `geoframe`), and which tiers exist in a region follows from
+        the processes that reference them.
+      columns:
+        cluster:
+          type: character
+          description: Tier label, used in the expanded commodity name.
+        desc:
+          type: character
+          description: Description of the tier.
+        order:
+          type: integer
+          description: >
+            Reporting order, 1 = the best tier. Without it labels sort
+            alphabetically and "T10" would precede "T2".
     emis:
       type: data.frame
       description: >
         Emissions factors related to the commodity consumption
         (if "combustion" parameter of a technology which consumes the commodity is > 0).
       columns:
+        cluster:
+          type: character
+          description: >
+            Tier this row applies to, NA for every tier. See the `cluster`
+            slot: grades of one commodity differ in exactly this kind of data
+            (carbon content, heat value), so a row may be shared or per tier.
         comm:
           type: character
           description: Name of the emitted commodity.
@@ -60,6 +108,12 @@ class:
       description: >
         Used to define an aggregation of several commodities into the `name` commodity.
       columns:
+        cluster:
+          type: character
+          description: >
+            Tier this row applies to, NA for every tier. See the `cluster`
+            slot: grades of one commodity differ in exactly this kind of data
+            (carbon content, heat value), so a row may be shared or per tier.
         comm:
           type: character
           description: Name of a commodity being aggregated.
@@ -82,6 +136,12 @@ class:
         numerator is a *different* commodity, such as a CO2 emission factor, belongs
         in `emis`. See `commodity_properties()` for the recognised names.
       columns:
+        cluster:
+          type: character
+          description: >
+            Tier this row applies to, NA for every tier. See the `cluster`
+            slot: grades of one commodity differ in exactly this kind of data
+            (carbon content, heat value), so a row may be shared or per tier.
         property:
           type: character
           description: >
@@ -260,8 +320,27 @@ class:
         `asSupplyCurve()`, which also computes the costs and checks that the
         curve rises.
 
-        Optional. When empty, labels are harvested from the `cluster` columns of
-        the other slots. When populated it is AUTHORITATIVE.
+        REQUIRED whenever any other slot carries a `cluster` label, and
+        AUTHORITATIVE: a label used in a slot but not declared here is a
+        typo and an error. Labels are never harvested from the data slots --
+        a misspelling would otherwise become a variant with defaults for
+        everything it does not carry (no cost, no bound).
+        LIMITATION -- there is deliberately no `cap.share.fx` column. A
+        capacity share ties the variants' capacities to fixed proportions, and
+        this class has no capacity variable for the tie to act on. The column
+        is absent rather than present-and-ignored, so the mistake is rejected
+        at construction instead of silently doing nothing. Bound the split
+        with `act.share.lo/up/fx`, which acts on the quantity this class does
+        have, or fix it directly in the per-step bounds.
+        The share columns are different levers, not substitutes.
+        `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
+        year: loss tranches need it, because each tranche efficiency is
+        calibrated to its place in the capacity stack and the flow must stay
+        free to fill the cheapest first. `act.share.lo/up/fx` bounds a
+        variant share of the family THROUGHPUT instead, which is what stops a
+        clustered family collapsing to its cheapest member once regional
+        borders are aggregated away. Both are optional; a variant with
+        neither sizes and runs freely.
       columns:
         cluster:
           type: character
@@ -286,6 +365,13 @@ class:
           description: >
             Fill order, 1 = the cheapest grade. Without it labels sort
             alphabetically and "S10" would precede "S2".
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. A supply DELIVERS its commodity, so its level may not be coarser than the commodity's balance level.
     region:
       type: character
       description: >
@@ -328,6 +414,65 @@ class:
         demand:
           type: numeric
           description: Value of the demand.
+    cluster:
+      type: data.frame
+      description: >
+        Declaration of the demand's parallel parts. REQUIRED whenever `demand`
+        carries a `cluster` label, and authoritative: labels are never
+        harvested from the data slot.
+
+        For demand a cluster is a
+        SUB-REGIONAL SHARE: the object carries one total, declared at a coarse
+        region, and each cluster takes a fixed fraction of it in one finer
+        region. Variant expansion mints one `dem` set member per cluster and
+        `pDemand` is indexed by `dem`, so `eqDemInp` sums the parts back -- the
+        coarse figure is the AGGREGATE of its children and stays the number you
+        edit.
+
+        LIMITATION -- only `dem.share.fx`, deliberately. A `lo`/`up` split
+        would need the LP to CHOOSE where load sits inside the region, and
+        nothing indexed by `dem` is a variable for such a bound to act on:
+        `pDemand` sits on the right-hand side of an equality. There is no
+        `cap.share.fx` either (a demand has no capacity) and no `act.share.*`
+        (same reason -- no variable per demand object).
+
+        Shares are fractions of THIS object's total and must sum to 1, so one
+        demand object is one coarse region. Several zones are several demand
+        objects, the same way one `lossTranches()` object is one line.
+
+        Note the commodity's own `@geoframe` is a different question: a
+        commodity balanced at the coarse level cannot read region-level demand
+        at all, and declaring both is refused. Split the demand when the
+        commodity stays at the finer level.
+      columns:
+        cluster:
+          type: character
+          description: Cluster label, referenced by the `cluster` column of `@demand`.
+        desc:
+          type: character
+          description: Optional description of the share.
+        region:
+          type: character
+          description: >
+            The finer region this share lands in. Required -- it is where the
+            share of the demand goes.
+        dem.share.fx:
+          type: numeric
+          description: >
+            This cluster's fixed fraction of the object's total demand. Must be
+            positive, and the shares of one object must sum to 1.
+        order:
+          type: integer
+          description: >
+            Optional ordering for reporting. Without it labels sort
+            alphabetically and "R10" would precede "R2".
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. A demand CONSUMES, so it may sit at a coarser level than the commodity it takes.
     region:
       type: character
       description: >
@@ -427,7 +572,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Name of region to apply the parameter, NA for every region.
@@ -452,7 +597,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -477,15 +622,15 @@ class:
         cinp2ginp:
           type: numeric
           description: Commodity-input-to-group-input coefficient, default is 1.
-        share.lo:
+        grp.share.lo:
           type: numeric
           description: Lower bound on a share of commodity within a group, default is 0.
-        share.up:
+        grp.share.up:
           type: numeric
           description: Upper bound on a share of commodity within a group, default is 1.
-        share.fx:
+        grp.share.fx:
           type: numeric
-          description: Fixed share of commodity within a group, ignored if NA. This parameter overrides `share.lo` and `share.up`.
+          description: Fixed share of commodity within a group, ignored if NA. This parameter overrides `grp.share.lo` and `grp.share.up`.
         afc.lo:
           type: numeric
           description: >
@@ -507,14 +652,14 @@ class:
             This parameter overrides `afc.lo` and `afc.up`.
     aeff:
       type: data.frame
-      description: Parameters linking main commodities, activities, and capacities to auxiliary commodities.
+      description: Parameters linking main commodities, activities, and capacities to auxiliary commodities. Rows can be assigned to a single variant via the `vintage` and/or `cluster` key columns; each variant then carries only its own couplings (e.g. one land-pool input per cluster), and the auxiliary membership maps are built from these coefficient rows alone.
       columns:
         vintage:
           type: character
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -609,8 +754,7 @@ class:
       description: >
         Timeslice-level availability factor parameters, bounding activity in each
         timeslice relative to installed capacity. `af.up` is the maximum capacity
-        factor per timeslice (what PyPSA calls `p_max_pu` and OSeMOSYS calls
-        `CapacityFactor`); `af.lo` is a must-run floor. See `afs` for
+        factor per timeslice; `af.lo` is a must-run floor. See `afs` for
         timeframe-level (e.g. annual) bounds and `ceff$afc.*` for per-commodity
         bounds.
       columns:
@@ -619,7 +763,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -650,7 +794,7 @@ class:
         Timeframe-level availability factor constraints, bounding activity summed
         over all child timeslices of the named timeslice relative to installed
         capacity. With `timeslice = "ANNUAL"` this is the annual capacity-factor
-        bound (TIMES `NCAP_AFS`, OSeMOSYS `AvailabilityFactor`), e.g.
+        bound, e.g.
         `afs.lo = 0.4` requires at least 40% annual utilization. Unlike `af`,
         `afs` rows are not disaggregated to finer timeslices; they always
         constrain the sum over the given timeframe.
@@ -660,7 +804,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -690,7 +834,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         weather:
           type: character
           description: Name of the applied weather factor, required, must match the weather factor names in a `weather` class in the model.
@@ -733,7 +877,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -752,7 +896,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -786,7 +930,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -831,10 +975,19 @@ class:
         values live in the `cluster` column of the variant-varying slots
         (`capacity`, `invcost`, `afs`, `weather`, ...), exactly as `group`
         declares input groups whose data lives in `input$group`.
-        Optional: when empty, cluster labels are harvested from those columns.
-        When populated it is authoritative -- a label used in a slot but not
-        declared here raises an error instead of silently creating an extra
+        REQUIRED whenever those columns carry a label, and authoritative -- a
+        label used in a slot but not declared here raises an error instead of
+        silently creating an extra
         technology with default (often unbounded) parameters.
+        The share columns are different levers, not substitutes.
+        `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
+        year: loss tranches need it, because each tranche efficiency is
+        calibrated to its place in the capacity stack and the flow must stay
+        free to fill the cheapest first. `act.share.lo/up/fx` bounds a
+        variant share of the family THROUGHPUT instead, which is what stops a
+        clustered family collapsing to its cheapest member once regional
+        borders are aggregated away. Both are optional; a variant with
+        neither sizes and runs freely.
       columns:
         cluster:
           type: character
@@ -885,7 +1038,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -944,11 +1097,54 @@ class:
       description: >
         Name of timeframe level the technology is operating. By default,
         the lowest level of timeframe of commodities used in the technology is applied.
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at
+        (e.g. "nation", "zone"). Unset (the default) DERIVES the level from the
+        region codes themselves -- the finest level any of them belongs to --
+        which is what every model written before this slot existed relies on.
+        Declared, it names the level, makes that level's own regions the
+        object's default scope, and `region` may then narrow it; every code in
+        `region` and in the data slots must be a member of the level, or it is
+        an error rather than a silent reinterpretation.
+
+        It adds those checks and that one default, never new behaviour: it does
+        not aggregate, does not distribute, and does not by itself make a
+        coarse process legal. The rule it makes checkable is that an object may
+        be coarser than the commodities it CONSUMES, never than those it
+        produces or stores -- the balance layer rolls finer regions up into
+        coarser ones and never splits a coarse quantity among children. So a
+        technology at "nation" may burn a state-level fuel, but may not produce
+        a state-level commodity.
+
+        Requires a geoscale on the model config. Distinct from
+        `commodity@geoframe`, which names the level a commodity is BALANCED at,
+        and from `summand@geoframe`, which restricts the region dimension a
+        constraint term is summed over.
     region:
       type: character
       description: >
         Vector of regions where the technology exists or can be installed.
         Optional. If not specified, the technology is applied to all regions.
+        A region coarser than the finest geoscale level is allowed, and makes
+        the object operate at that coarser cell: its capacity, activity and
+        output live there, while an INPUT balanced at a finer level is drawn
+        from the cells beneath it and summed. A commodity the object PRODUCES
+        or STORES may never be finer than the object itself -- that would
+        require disaggregating one coarse decision into several fine ones,
+        which energyRt does not do, and is refused.
+
+        Coarsening is a MODEL CHANGE, not a re-representation. The object's own
+        constraints bind at its own frame, so they are WEAKER than a finer
+        declaration's and the model is cheaper: the input/output ratio and the
+        `@ceff` group shares hold only in aggregate over the coarse cell, and
+        availability is sized against that longer slice. If a blend limit must
+        hold within the period, declare the object at that finer frame; an
+        annual mandate on a finely-operated object belongs in a user constraint
+        with an explicit `timeframe`. Coarsening also does NOT reduce flow
+        variables -- those stay at the commodity's level; it removes activity
+        variables and equation rows.
         If specified, must include all regions used in other slots.
     misc:
       type: list
@@ -1054,9 +1250,18 @@ class:
         Declaration of the storage clusters -- parallel sub-processes of the same
         storage with their own capacity, availability and costs. The motivating
         cases are site-constrained storage (pumped-hydro head classes, CAES
-        caverns) and duration classes via a per-cluster `duration`. Optional: when
-        empty, cluster labels are harvested from the other slots; when populated
-        it is authoritative and an undeclared label raises an error.
+        caverns) and duration classes via a per-cluster `duration`. REQUIRED
+        whenever another slot carries a `cluster` label, and authoritative: an
+        undeclared label raises an error, and labels are never harvested.
+        The share columns are different levers, not substitutes.
+        `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
+        year: loss tranches need it, because each tranche efficiency is
+        calibrated to its place in the capacity stack and the flow must stay
+        free to fill the cheapest first. `act.share.lo/up/fx` bounds a
+        variant share of the family THROUGHPUT instead, which is what stops a
+        clustered family collapsing to its cheapest member once regional
+        borders are aggregated away. Both are optional; a variant with
+        neither sizes and runs freely.
       columns:
         cluster:
           type: character
@@ -1122,7 +1327,6 @@ class:
         part of a year endows that fraction, consistently.
         It is FREE to the model, by design and unavoidably -- a store that ends a
         cycle below where it started has consumed an endowment nobody paid for.
-        PyPSA's `state_of_charge_initial` has the same property.
         Being additive, the level at the first timeslice is `startLevel` PLUS
         whatever carried over from the previous cycle, i.e. at least `startLevel`
         rather than exactly it; the model may end the cycle empty to make it exact.
@@ -1249,7 +1453,7 @@ class:
             This parameter overrides `out.af.lo` and `out.af.up`.
     aeff:
       type: data.frame
-      description: Auxiliary commodities efficiency parameters.
+      description: Auxiliary commodities efficiency parameters. Rows can be assigned to a single variant via the `vintage` and/or `cluster` key columns; each variant then carries only its own couplings.
       columns:
         vintage:
           type: character
@@ -1287,18 +1491,50 @@ class:
         cout2aout:
           type: numeric
           description: Output-commodity-to-auxiliary-output-commodity coefficient (multiplier).
-        cap2ainp:
+        inp.cap2ainp:
           type: numeric
-          description: Capacity-to-auxiliary-input-commodity coefficient (multiplier).
-        cap2aout:
+          description: Charging (input-part) capacity to auxiliary input, per unit of vStorageInpCap.
+        inp.cap2aout:
           type: numeric
-          description: Capacity-to-auxiliary-output-commodity coefficient (multiplier).
-        ncap2ainp:
+          description: Charging (input-part) capacity to auxiliary output, per unit of vStorageInpCap.
+        inp.ncap2ainp:
           type: numeric
-          description: New-capacity-to-auxiliary-input-commodity coefficient (multiplier).
-        ncap2aout:
+          description: NEW charging capacity to auxiliary input, per unit of vStorageInpNewCap (lands once, at construction).
+        inp.ncap2aout:
           type: numeric
-          description: New-capacity-to-auxiliary-output-commodity coefficient (multiplier).
+          description: NEW charging capacity to auxiliary output, per unit of vStorageInpNewCap (lands once, at construction).
+        stg.cap2ainp:
+          type: numeric
+          description: Energy (storing-part) capacity to auxiliary input, per unit of vStorageStgCap.
+        stg.cap2aout:
+          type: numeric
+          description: Energy (storing-part) capacity to auxiliary output, per unit of vStorageStgCap.
+        stg.ncap2ainp:
+          type: numeric
+          description: >
+            NEW energy capacity to auxiliary input, per unit of
+            vStorageStgNewCap (lands once, at construction) -- e.g. battery
+            material per GWh of reservoir. This is what the pre-rename
+            `ncap2ainp` was often ASSUMED to mean; that column actually
+            coupled the discharger and is now `out.ncap2ainp`.
+        stg.ncap2aout:
+          type: numeric
+          description: NEW energy capacity to auxiliary output, per unit of vStorageStgNewCap (lands once, at construction).
+        out.cap2ainp:
+          type: numeric
+          description: >
+            Discharging (output-part) capacity to auxiliary input, per unit of
+            vStorageOutCap. RENAMED from `cap2ainp`, which coupled only this
+            part; the bare name is refused with a rename hint.
+        out.cap2aout:
+          type: numeric
+          description: Discharging (output-part) capacity to auxiliary output, per unit of vStorageOutCap. Renamed from `cap2aout`.
+        out.ncap2ainp:
+          type: numeric
+          description: NEW discharging capacity to auxiliary input, per unit of vStorageOutNewCap (lands once, at construction). Renamed from `ncap2ainp`.
+        out.ncap2aout:
+          type: numeric
+          description: NEW discharging capacity to auxiliary output, per unit of vStorageOutNewCap (lands once, at construction). Renamed from `ncap2aout`.
         pho2ainp:
           type: numeric
           description: >
@@ -1469,16 +1705,42 @@ class:
         If FALSE, the cycle is closed within each parent timeframe: the preceding time-timeslice of
         the first time-timeslice of a group is the LAST time-timeslice of the SAME group, so every
         group is an independent loop with no energy carried between them.
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. A storage both consumes and delivers, so its level may be coarser than an input commodity's but never than the commodity it outputs or holds.
     region:
       type: character
-      description: Region where the storage technology exists or can be installed.
+      description: >
+        Region where the storage technology exists or can be installed.
+        A region coarser than the finest geoscale level is allowed, and makes
+        the object operate at that coarser cell: its capacity, activity and
+        output live there, while an INPUT balanced at a finer level is drawn
+        from the cells beneath it and summed. A commodity the object PRODUCES
+        or STORES may never be finer than the object itself -- that would
+        require disaggregating one coarse decision into several fine ones,
+        which energyRt does not do, and is refused.
+
+        Coarsening is a MODEL CHANGE, not a re-representation. The object's own
+        constraints bind at its own frame, so they are WEAKER than a finer
+        declaration's and the model is cheaper: the input/output ratio and the
+        `@ceff` group shares hold only in aggregate over the coarse cell, and
+        availability is sized against that longer slice. If a blend limit must
+        hold within the period, declare the object at that finer frame; an
+        annual mandate on a finely-operated object belongs in a user constraint
+        with an explicit `timeframe`. Coarsening also does NOT reduce flow
+        variables -- those stay at the commodity's level; it removes activity
+        variables and equation rows.
     duration:
       type: data.frame
       description: >
         How long the store can run at its rated output: the ratio of storing
         capacity to (dis)charging capacity. `duration = 6` on an hourly calendar
-        is a 6-hour store. Renamed from `cap2stg` in v0.80, which is still
-        accepted with a warning.
+        is a 6-hour store. Renamed from `cap2stg` in v0.80; the old spelling
+        is refused since v0.90.
         It is a BOUND on (storage, region, year): `duration.fx` ties energy to
         power, `duration.lo`/`duration.up` let the model choose the ratio -- which
         only bites when the storing side is priced, via `@storage$invcost`.
@@ -1552,6 +1814,46 @@ class:
         inp2out.fx:
           type: numeric
           description: Fixed charge-to-discharge capacity ratio.
+
+    inp2stg:
+      type: data.frame
+      description: >
+        The charging C-rate, in 1/hours: charging capacity per unit of storing
+        (energy) capacity. `inp2stg.fx` ties the charger to the reservoir
+        exactly, `inp2stg.lo`/`.up` bound the ratio, and the bare `inp2stg`
+        column is the scalar shorthand, normalised to `.fx` at construction; a
+        one-sided range opens the other side. Unlike `duration` and `inp2out`
+        there is NO binding default: the constraint exists only where a finite
+        bound is declared, and only for storages whose charging AND storing
+        parts both carry capacity variables (priced or bounded). The three
+        ratios form a triangle over the parts -- `inp2out` = inp/out,
+        `inp2stg` = inp/stg, `duration` = stg/out -- so any two determine the
+        third; `newStorage()` refuses a contradictory fixed triangle.
+      columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for all.
+        cluster:
+          type: character
+          description: Cluster label selecting the variant this row applies to, NA for all.
+        region:
+          type: character
+          description: Region the row applies to, NA for all.
+        year:
+          type: integer
+          description: Year the row applies to, NA for all.
+        inp2stg:
+          type: numeric
+          description: Scalar shorthand, normalised to `inp2stg.fx`.
+        inp2stg.lo:
+          type: numeric
+          description: Lower bound on the charging C-rate, 1/hours.
+        inp2stg.up:
+          type: numeric
+          description: Upper bound on the charging C-rate, 1/hours.
+        inp2stg.fx:
+          type: numeric
+          description: Fixed charging C-rate, 1/hours.
 
     weather:
       type: data.frame
@@ -1731,6 +2033,13 @@ class:
     commodity:
       type: character
       description: The traded commodity short name.
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. `trade` has no `region` slot: the level is the one its ROUTES are expressed at, checked against every `src` and `dst`. A corridor delivers at `dst`, so its level may not be coarser than the traded commodity's -- moving a state-level commodity between nations would have to distribute it among the destination's children, which the balance layer does not do.
     routes:
       type: data.frame
       description: Source and destination regions. For bivariate trade define both directions in separate rows.
@@ -1830,8 +2139,8 @@ class:
           type: numeric
           description: >
             Series resistance `r` of the line, same units and same symmetry
-            requirement as `reactance`. Recorded for round-tripping with
-            power-system models (PyPSA's `Line` carries both). It does not drive
+            requirement as `reactance`. Recorded so a line keeps both
+            parameters through a round trip. It does not drive
             losses by itself -- losses are the per-route `teff` -- but it is the
             input `lossTranches()` turns into a piecewise-linear loss curve:
             pass it with the rating it was measured against, since
@@ -1849,7 +2158,7 @@ class:
           description: Unit of the auxiliary commodity.
     aeff:
       type: data.frame
-      description: Auxiliary commodity efficiency parameters.
+      description: Auxiliary commodity efficiency parameters. Rows can be assigned to a single variant via the `vintage` and/or `cluster` key columns; each variant then carries only its own couplings.
       columns:
         vintage:
           type: character
@@ -1900,9 +2209,9 @@ class:
           type: character
           description: >
             Endpoint region bearing this rate. NA applies the rate at every
-            endpoint of the route; name the regions to vary it between them. Must
-            be one of the model's own regions -- a coarser geoscale level is
-            accepted by validation but never reaches the objective.
+            endpoint of the route; name the regions to vary it between them. A
+            coarser geoscale level is accepted and charged ONCE at that cell,
+            not once per child region.
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
@@ -1986,8 +2295,20 @@ class:
         could restrict nothing, and its absence rejects the mistake at
         construction rather than deep inside variant expansion.
 
-        Optional. When empty, tranche labels are harvested from the `cluster`
-        columns of the other slots. When populated it is AUTHORITATIVE.
+        REQUIRED whenever any other slot carries a `cluster` label, and
+        AUTHORITATIVE: a label used in a slot but not declared here is a
+        typo and an error. Labels are never harvested from the data slots --
+        a misspelling would otherwise become a variant with defaults for
+        everything it does not carry (no cost, no bound).
+        The share columns are different levers, not substitutes.
+        `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
+        year: loss tranches need it, because each tranche efficiency is
+        calibrated to its place in the capacity stack and the flow must stay
+        free to fill the cheapest first. `act.share.lo/up/fx` bounds a
+        variant share of the family THROUGHPUT instead, which is what stops a
+        clustered family collapsing to its cheapest member once regional
+        borders are aggregated away. Both are optional; a variant with
+        neither sizes and runs freely.
       columns:
         cluster:
           type: character
@@ -2034,7 +2355,7 @@ class:
                       Charged where the flow ORIGINATES (`src`) and added to
                       total system cost, exactly as `technology@varom` is. Use
                       it for wheeling fees, transit taxes or any real charge per
-                      unit shipped. Becomes `pTradeIrCost`.
+                      unit shipped. Becomes `pTradeIrVarom`.
 
           `markup` -- a border price or bilateral charge: a TRANSFER. The
                       importing region pays it and the exporting region
@@ -2142,8 +2463,27 @@ class:
         `cluster` column of the other slots. Build both with `asImportCurve()`, which
         also computes the prices and checks the direction of the curve.
 
-        Optional. When empty, step labels are harvested from the `cluster`
-        columns of the other slots. When populated it is AUTHORITATIVE.
+        REQUIRED whenever any other slot carries a `cluster` label, and
+        AUTHORITATIVE: a label used in a slot but not declared here is a
+        typo and an error. Labels are never harvested from the data slots --
+        a misspelling would otherwise become a variant with defaults for
+        everything it does not carry (no cost, no bound).
+        LIMITATION -- there is deliberately no `cap.share.fx` column. A
+        capacity share ties the variants' capacities to fixed proportions, and
+        this class has no capacity variable for the tie to act on. The column
+        is absent rather than present-and-ignored, so the mistake is rejected
+        at construction instead of silently doing nothing. Bound the split
+        with `act.share.lo/up/fx`, which acts on the quantity this class does
+        have, or fix it directly in the per-step bounds.
+        The share columns are different levers, not substitutes.
+        `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
+        year: loss tranches need it, because each tranche efficiency is
+        calibrated to its place in the capacity stack and the flow must stay
+        free to fill the cheapest first. `act.share.lo/up/fx` bounds a
+        variant share of the family THROUGHPUT instead, which is what stops a
+        clustered family collapsing to its cheapest member once regional
+        borders are aggregated away. Both are optional; a variant with
+        neither sizes and runs freely.
       columns:
         cluster:
           type: character
@@ -2163,6 +2503,20 @@ class:
           description: >
             Fill order, 1 = the cheapest step (or, for export, the best paid).
             Without it labels sort alphabetically and "S10" would precede "S2".
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. An import DELIVERS into the model, so its level may not be coarser than the commodity's balance level.
+    region:
+      type: character
+      description: >
+        Regions where the import process exists. Empty (or NA) means every
+        region of the model. A region named in any other slot must be one of
+        these; the other slots place VALUES and never change where the
+        process exists.
     misc:
       type: list
       description: Additional information.
@@ -2250,8 +2604,27 @@ class:
         `cluster` column of the other slots. Build both with `asExportCurve()`, which
         also computes the prices and checks the direction of the curve.
 
-        Optional. When empty, step labels are harvested from the `cluster`
-        columns of the other slots. When populated it is AUTHORITATIVE.
+        REQUIRED whenever any other slot carries a `cluster` label, and
+        AUTHORITATIVE: a label used in a slot but not declared here is a
+        typo and an error. Labels are never harvested from the data slots --
+        a misspelling would otherwise become a variant with defaults for
+        everything it does not carry (no cost, no bound).
+        LIMITATION -- there is deliberately no `cap.share.fx` column. A
+        capacity share ties the variants' capacities to fixed proportions, and
+        this class has no capacity variable for the tie to act on. The column
+        is absent rather than present-and-ignored, so the mistake is rejected
+        at construction instead of silently doing nothing. Bound the split
+        with `act.share.lo/up/fx`, which acts on the quantity this class does
+        have, or fix it directly in the per-step bounds.
+        The share columns are different levers, not substitutes.
+        `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
+        year: loss tranches need it, because each tranche efficiency is
+        calibrated to its place in the capacity stack and the flow must stay
+        free to fill the cheapest first. `act.share.lo/up/fx` bounds a
+        variant share of the family THROUGHPUT instead, which is what stops a
+        clustered family collapsing to its cheapest member once regional
+        borders are aggregated away. Both are optional; a variant with
+        neither sizes and runs freely.
       columns:
         cluster:
           type: character
@@ -2271,6 +2644,20 @@ class:
           description: >
             Fill order, 1 = the cheapest step (or, for export, the best paid).
             Without it labels sort alphabetically and "S10" would precede "S2".
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. An export CONSUMES, so it may sit at a coarser level than the commodity it takes.
+    region:
+      type: character
+      description: >
+        Regions where the export process exists. Empty (or NA) means every
+        region of the model. A region named in any other slot must be one of
+        these; the other slots place VALUES and never change where the
+        process exists.
     misc:
       type: list
       description: Additional information.
@@ -2285,19 +2672,86 @@ class:
     unit:
       type: character
       description: Unit of the weather factor.
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. A weather factor is multiplicative and balances nothing, so no commodity rule applies. This is the class where declaring the level matters most: left unset, a series whose data names no region spans every region of every level, where naming the level scopes it to that level alone.
     region:
       type: character
-      description: Region where the weather factor is applied.
+      description: >
+        Region(s) the weather factor is declared at. May be a COARSER region of
+        the model's geoscale than the processes that use it: a process reads the
+        series at its own region when the object serves it, otherwise at the
+        NEAREST ancestor that does. One profile declared at a parent therefore
+        feeds every child region from a single stored series instead of being
+        copied per child. Unset means every region. A process whose region the
+        object neither serves nor has an ancestor for is an error -- the factor
+        is multiplicative and defaults to 0, so an unresolved link would shut
+        the process down silently.
     timeframe:
       type: character
       description: Timeframe of the weather factor.
     defVal:
       type: numeric
       description: Default value of the weather factor, 0 by default.
+    cluster:
+      type: data.frame
+      description: >
+        Declaration of the object's parallel series. For weather a cluster is a
+        RESOURCE TIER -- one profile per grade of the same resource, so a single
+        object covers a whole tier set instead of one hand-named object per
+        tier.
+
+        This slot declares WHAT the tiers are; the per-tier values live in the
+        `cluster` column of `weather`. It is REQUIRED whenever that column
+        carries a label, and authoritative: labels are never harvested from the
+        series, so a misspelled tier is an error rather than a series nobody
+        asked for. At interpolation each tier referenced by
+        a process is cloned into an ordinary weather object named with the
+        model's cluster prefix (`WWIN` tier `T3` -> `WWIN_CLT3`), so the
+        backends only ever see plain series.
+
+        A consumer finds its tier BY CLUSTER NAME: a `weather` link row of a
+        technology, storage or supply carrying `cluster = "T3"` reads this
+        object's `T3` rows. A link row with no cluster reads an unclustered
+        object whole, as before, and is an ERROR against a clustered one --
+        the factor is multiplicative, so "every tier at once" has no reading.
+
+        LIMITATION -- there are deliberately no share columns. A share ties
+        parallel parts' capacity or activity to fixed proportions, and a
+        capacity-factor series has neither. Size the tiers on the processes
+        that read them.
+      columns:
+        cluster:
+          type: character
+          description: Tier label, used in the expanded object name.
+        desc:
+          type: character
+          description: Description of the tier.
+        region:
+          type: character
+          description: >
+            Region(s) the tier's series is declared for, NA for everywhere.
+            Intersected with the object's own `region` slot. A process whose
+            region no tier series covers (directly or through the nearest
+            ancestor) is an error, not a silent zero.
+        order:
+          type: integer
+          description: >
+            Reporting order, 1 = the best tier. Without it labels sort
+            alphabetically and "T10" would precede "T2".
     weather:
       type: data.frame
       description: Weather factor values.
       columns:
+        cluster:
+          type: character
+          description: >
+            Tier this row belongs to, NA for every tier. See the `cluster`
+            slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -2385,6 +2839,39 @@ class:
         is taken at (e.g. "zone", "nation"), restricting the variable's
         `region` dimension to that level's regions. `NA` (default) applies no
         restriction. Requires a geoscale on the model configuration.
+    process_:
+      type: character
+      description: >
+        Process filter, as a regular expression over process names (the `_`
+        suffix convention of `getData()`). Matched against the declared (base)
+        name as well as the realized variant name, so a pattern naming a
+        vintaged process selects all of its variants. A pattern that matches
+        nothing is an error, never a silent zero. Exact names belong in
+        `for.sum`, where a base name expands to its variants.
+    classes:
+      type: character
+      description: >
+        Process class filter, e.g. "technology" or "storage": restricts the
+        variable's process dimension to processes of these classes. Spelled
+        `classes` to match the `get_process_*()` family; `class` is a reserved
+        S4 slot name.
+    vintage:
+      type: character
+      description: >
+        Vintage filter for vintaged processes. Resolved by joining the variant
+        provenance table, NOT by parsing the mangled variant name -- the name
+        separator is configurable, so a pattern over names is not stable.
+    vintage_:
+      type: character
+      description: Vintage filter as a regular expression.
+    cluster:
+      type: character
+      description: >
+        Cluster filter for clustered processes, resolved from the variant
+        provenance table in the same way as `vintage`.
+    cluster_:
+      type: character
+      description: Cluster filter as a regular expression.
     mult:
       type: data.frame
       description: >
@@ -2424,25 +2911,79 @@ class:
   tax:
     name:
       type: character
-      description: Name of the tax object, used in sets.
+      description: >
+        Name of the tax object. It is the instrument's own identity and is
+        reported against, so two tax objects never merge.
     desc:
       type: character
       description: Description of the tax object.
     comm:
       type: character
-      description: Name of the taxed commodity.
+      description: >
+        Commodity filter: the commodity or commodities the levy applies to.
+        Empty means every commodity the chosen base reaches.
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. A levy neither produces nor consumes a commodity, so the declaration is a region-membership check only.
     region:
       type: character
-      description: Region where the tax is applied.
-    year:
-      type: integer
-      description: Year when the tax is applied.
+      description: >
+        Region filter. Empty means every region; otherwise the levy is
+        restricted to the named regions.
+    process:
+      type: character
+      description: >
+        Process filter, by name. Matched against both the declared (base) name
+        and the realized variant name, so naming a vintaged or clustered
+        process selects all of its variants. A name that matches nothing is an
+        error, never a silent zero.
+    process_:
+      type: character
+      description: >
+        Process filter, as a regular expression over process names (the `_`
+        suffix convention of `getData()`). Matched against the base name as
+        well as the realized one. A pattern that matches nothing is an error.
+    classes:
+      type: character
+      description: >
+        Process class filter, e.g. "technology" or "storage". Restricts the
+        levy to processes of these classes. Spelled `classes` to match the
+        `get_process_*()` family; `class` is a reserved S4 slot name.
+    vintage:
+      type: character
+      description: >
+        Vintage filter for vintaged processes. Resolved by joining the variant
+        provenance table, NOT by parsing the mangled variant name -- the name
+        separator is configurable, so a pattern over names is not stable.
+    vintage_:
+      type: character
+      description: Vintage filter as a regular expression.
+    cluster:
+      type: character
+      description: >
+        Cluster filter for clustered processes, resolved from the variant
+        provenance table in the same way as `vintage`.
+    cluster_:
+      type: character
+      description: Cluster filter as a regular expression.
+    variable:
+      type: character
+      description: >
+        Escape hatch: the name of a model variable to levy directly, for a
+        target no base shorthand reaches. Mutually exclusive with the base rate
+        columns; the rate then goes in the data slot's `rate` column.
     defVal:
       type: numeric
       description: Default value of the tax for not specified sets, 0 if not specified.
     tax:
       type: data.frame
-      description: Tax values.
+      description: >
+        Rate table. The key columns filter, the rate columns say what is
+        levied; a row carries one or more rates.
       columns:
         region:
           type: character
@@ -2453,38 +2994,128 @@ class:
         timeslice:
           type: character
           description: Time timeslice to apply the parameter, NA for every timeslice.
+        process:
+          type: character
+          description: Process name to apply the parameter to, NA for every selected process.
+        comm:
+          type: character
+          description: Commodity to apply the parameter to, NA for every selected commodity.
         inp:
           type: numeric
-          description: Input tax, e.g., per unit of commodity consumed by all processes.
+          description: >
+            Per unit of commodity consumed. Without a process filter this is the
+            commodity total over every process; with one it is that process's own
+            input.
         out:
           type: numeric
-          description: Output tax, e.g., per unit of commodity produced by all processes.
+          description: >
+            Per unit of commodity produced. Without a process filter this is the
+            commodity total over every process; with one it is that process's own
+            output.
         bal:
           type: numeric
-          description: Balance tax, e.g., per unit of commodity balance (production - consumption).
+          description: >
+            Per unit of commodity balance (production - consumption). Commodity
+            level only: the balance belongs to no single process, so `bal`
+            cannot be combined with a process filter.
+        act:
+          type: numeric
+          description: Per unit of process activity.
+        cap:
+          type: numeric
+          description: >
+            Per unit of installed capacity, charged in every year the capacity
+            stands.
+        ncap:
+          type: numeric
+          description: >
+            Per unit of capacity added in a period, charged once at
+            commissioning rather than annualised.
+        rate:
+          type: numeric
+          description: >
+            Per unit of the variable named in `variable`. Used only with the
+            escape hatch.
     misc:
       type: list
-      description: Additional information.
+      description: Any additional information or data to store in the tax object.
 ## subsidy ######################################################################
   subsidy:
     name:
       type: character
-      description: Name of the subsidy object, used in sets.
+      description: >
+        Name of the subsidy object. It is the instrument's own identity and is
+        reported against, so two subsidy objects never merge.
     desc:
       type: character
       description: Description of the subsidy object.
     comm:
       type: character
-      description: Name of the subsidized commodity.
+      description: >
+        Commodity filter: the commodity or commodities the levy applies to.
+        Empty means every commodity the chosen base reaches.
+    geoframe:
+      type: character
+      description: >
+        Optional. The geoscale level this object's regions are expressed at;
+        unset (the default) derives it from the region codes. See
+        `technology@geoframe` for the full rule, including the consistency
+        checks it turns on. A levy neither produces nor consumes a commodity, so the declaration is a region-membership check only.
     region:
       type: character
-      description: Region where the subsidy is applied.
+      description: >
+        Region filter. Empty means every region; otherwise the levy is
+        restricted to the named regions.
+    process:
+      type: character
+      description: >
+        Process filter, by name. Matched against both the declared (base) name
+        and the realized variant name, so naming a vintaged or clustered
+        process selects all of its variants. A name that matches nothing is an
+        error, never a silent zero.
+    process_:
+      type: character
+      description: >
+        Process filter, as a regular expression over process names (the `_`
+        suffix convention of `getData()`). Matched against the base name as
+        well as the realized one. A pattern that matches nothing is an error.
+    classes:
+      type: character
+      description: >
+        Process class filter, e.g. "technology" or "storage". Restricts the
+        levy to processes of these classes. Spelled `classes` to match the
+        `get_process_*()` family; `class` is a reserved S4 slot name.
+    vintage:
+      type: character
+      description: >
+        Vintage filter for vintaged processes. Resolved by joining the variant
+        provenance table, NOT by parsing the mangled variant name -- the name
+        separator is configurable, so a pattern over names is not stable.
+    vintage_:
+      type: character
+      description: Vintage filter as a regular expression.
+    cluster:
+      type: character
+      description: >
+        Cluster filter for clustered processes, resolved from the variant
+        provenance table in the same way as `vintage`.
+    cluster_:
+      type: character
+      description: Cluster filter as a regular expression.
+    variable:
+      type: character
+      description: >
+        Escape hatch: the name of a model variable to levy directly, for a
+        target no base shorthand reaches. Mutually exclusive with the base rate
+        columns; the rate then goes in the data slot's `rate` column.
     defVal:
       type: numeric
-      description: Default value of the subsidy.
+      description: Default value of the subsidy for not specified sets, 0 if not specified.
     subsidy:
       type: data.frame
-      description: Subsidy values.
+      description: >
+        Rate table. The key columns filter, the rate columns say what is
+        levied; a row carries one or more rates.
       columns:
         region:
           type: character
@@ -2495,15 +3126,48 @@ class:
         timeslice:
           type: character
           description: Time timeslice to apply the parameter, NA for every timeslice.
+        process:
+          type: character
+          description: Process name to apply the parameter to, NA for every selected process.
+        comm:
+          type: character
+          description: Commodity to apply the parameter to, NA for every selected commodity.
         inp:
           type: numeric
-          description: Input subsidy, e.g., per unit of commodity consumed by all processes.
+          description: >
+            Per unit of commodity consumed. Without a process filter this is the
+            commodity total over every process; with one it is that process's own
+            input.
         out:
           type: numeric
-          description: Output subsidy, e.g., per unit of commodity produced by all processes.
+          description: >
+            Per unit of commodity produced. Without a process filter this is the
+            commodity total over every process; with one it is that process's own
+            output.
         bal:
           type: numeric
-          description: Balance subsidy, e.g., per unit of commodity balance (production - consumption).
+          description: >
+            Per unit of commodity balance (production - consumption). Commodity
+            level only: the balance belongs to no single process, so `bal`
+            cannot be combined with a process filter.
+        act:
+          type: numeric
+          description: Per unit of process activity.
+        cap:
+          type: numeric
+          description: >
+            Per unit of installed capacity, charged in every year the capacity
+            stands.
+        ncap:
+          type: numeric
+          description: >
+            Per unit of capacity added in a period, charged once at
+            commissioning rather than annualised.
+        rate:
+          type: numeric
+          description: >
+            Per unit of the variable named in `variable`. Used only with the
+            escape hatch.
     misc:
       type: list
       description: Any additional information or data to store in the subsidy object.
@@ -2570,6 +3234,22 @@ class:
         The fraction of a year covered by the calendar, e.g. 1 for annual calendar
         (default), 0.5 for semi-annual, 0.25 for quarterly, etc. Currently must be
         specified manually for subset calendars to validate the sum of the shares.
+    year_start:
+      type: list
+      description: >
+        `list(month = , day = )` giving the first day of the model year; defaults
+        to January 1. A non-January anchor makes model year `y` span
+        `[year_start(y), year_start(y + 1))`, and `y` is the STARTING Gregorian
+        year -- Indian "FY 2021-22" is model year 2021 -- which is the convention
+        `timescales::calendar_build()` uses. The anchor is carried and reported
+        only: it sets the default milestone labels (see `year_label()`) and does
+        NOT yet drive timeslice-to-timestamp alignment or `year_fraction`.
+    utc_offset_minutes:
+      type: integer
+      description: >
+        Constant offset of local time from UTC, in minutes; defaults to 0 (UTC).
+        E.g. 330 for IST (UTC+5:30). Carried for provenance alongside
+        `year_start`; Olson time zones and DST are not supported.
     timeslice_share:
       type: data.frame
       description: >
@@ -2647,10 +3327,13 @@ class:
     intervals:
       type: data.frame
       description: >
-        Data frame with three columns, representing start, middle, and the end year
-        of every interval. The first column is the start year of the interval, the
-        second column is the middle year of the interval, the third column is the end
-        year of the interval.
+        Data frame with the start, middle, and end year of every modelled interval,
+        plus an optional display `label`. `start`, `mid` and `end` are integer years;
+        `mid` is the milestone and the model's key for the period. `label` is a
+        character display name, unique across intervals, filled from `mid` when not
+        given, and rendered fiscally (`FY2025-26`) when the calendar carries a
+        non-January `year_start`. The label is presentation only and never reaches
+        the solver -- see `year_label()`.
 ## config #######################################################################
   config:
     name:
@@ -2673,11 +3356,14 @@ class:
     geoscale:
       type: ANY
       description: >
-        Optional `geoscales::Geoscale` object describing the model's regions --
+        Optional `geoscales::GeoScale` object describing the model's regions --
         their nesting into coarser levels, weights, and (optionally) geometry.
-        Purely additional information about the labels in `region`, which
-        remains authoritative; the geoscale is used for plotting, reporting and
-        subsetting and never changes the optimisation model. `NULL` when unset.
+        `region` remains authoritative: it is always the finest level, and the
+        geoscale adds the structure above it. Attaching one is inert on its own
+        -- it widens the model's region set with the coarser codes and enables
+        level-aware plotting, reporting and subsetting -- but it is also what
+        makes `commodity@geoframe` possible, and a commodity balanced at a
+        coarser level DOES change the optimisation model. `NULL` when unset.
         Typed `ANY` because `geoscales` is an optional (Suggests) dependency.
     horizon:
       type: horizon

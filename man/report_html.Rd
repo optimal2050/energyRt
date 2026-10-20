@@ -17,26 +17,8 @@ report_html(object, ...)
 \code{levcost = NULL} and levcost parameters are provided) and/or to
 \code{rmarkdown::render()}.  Known \code{levcost} parameter names are
 intercepted automatically; everything else is passed to the renderer.
-
-The \code{scenario} method additionally accepts \code{run} (character or
-\code{NULL}): the run id to report, as listed by
-\code{\link{scenario_runs}} (\code{"<solve>"} or
-\code{"<variant>/<solve>"}).  The default \code{NULL} reports the active
-run; a different run is read into a local copy, so the caller's scenario
-keeps its active run.  It also accepts \code{verify} (logical, default
-\code{TRUE}): include the \code{\link{verify_solution}} checks section.
 For a whole-scenario report, \code{levcost = TRUE} adds an ex-post
-levelized-cost table via \code{levcost(scenario)}.
-
-The model, repository and scenario methods accept branding arguments:
-\code{logos} (character vector of image paths rendered as a banner
-row; default from \code{misc$logos}, then the scalar \code{misc$logo}
-/ \code{misc$image} -- a scenario shows its model's logos first, then
-its own), the model method \code{figure} (an optional half-page hero
-figure, default \code{misc$figure}), and the scenario method
-\code{badges} (small property-indicator images, default
-\code{misc$badges}). Branding content enters the render key, so a
-changed logo re-renders an otherwise up-to-date report.}
+levelized-cost table via \code{levcost(scenario)}.}
 }
 \value{
 Path to the generated \code{.html} file (invisibly).
@@ -44,4 +26,22 @@ Path to the generated \code{.html} file (invisibly).
 \description{
 Thin wrapper around \code{\link{report}} that fixes \code{format = "html"}.
 Produces a portable single-file \code{.html} document with embedded assets.
+}
+\examples{
+\dontrun{
+open_project(tempdir())
+tech <- topia$modules$electricity$R3$ECOA
+
+# a portable single-file page under the project's reports/
+report_html(tech)
+
+# a scenario's report covers results, where an object's covers assumptions
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions, horizon = topia$modules$horizons$base)
+mod <- setGeoscale(mod, ek$geoscale)
+scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+report_html(scen)
+}
 }

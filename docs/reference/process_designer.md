@@ -11,8 +11,6 @@ partial vintage coverage is reported), and YAML / R-code export.
 
 ``` r
 process_designer(spec = NULL, dir = NULL, launch.browser = NULL, ...)
-
-tech_designer(spec = NULL, dir = NULL, launch.browser = NULL, ...)
 ```
 
 ## Arguments
@@ -21,7 +19,7 @@ tech_designer(spec = NULL, dir = NULL, launch.browser = NULL, ...)
 
   Optional process spec to open — a path to a `.yml` file or a spec list
   (see
-  [`read_procspec()`](https://energyRt.org/reference/read_procspec.md)).
+  [`read_process_spec()`](https://energyRt.org/reference/read_process_spec.md)).
 
 - dir:
 

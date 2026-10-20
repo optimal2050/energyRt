@@ -50,7 +50,9 @@ draw(object, ...)
 
 - ...:
 
-  Additional arguments passed to the specific method.
+  Additional arguments passed to the specific method. The `trade` method
+  takes `region` (alias `node`), the node to draw the trade process for,
+  defaulting to the first node in the trade object.
 
 - vintage:
 
@@ -80,16 +82,15 @@ draw(object, ...)
   with the selection filled, `"deck"` slivers at the box edge suggesting
   a stack of cards, or `"none"`.
 
+- box_width:
+
+  width of the process box, in plot units.
+
 - max_facets:
 
   refuse to lay out more than this many panels for `vintage = "all"` /
   `cluster = "all"`. A full 11 x 4 grid is unreadable, and silently
   drawing it is worse than saying so.
-
-- region:
-
-  A node to draw the trade process for. `node` is an alias for `region`.
-  Default is the first node in the trade object.
 
 ## Value
 
@@ -141,8 +142,8 @@ TECH01 <- newTechnology(
     cinp2use = c(NA, NA, .5, NA, NA, NA, rep(NA, 3)),
     use2cact = c(rep(NA, 6), .36, .4, .36),
     cact2cout = c(rep(NA, 6), .3, NA, .6),
-    share.lo = c(.01, .02, NA, .07, .08, .0, .03, NA, .06),
-    share.up = c(.91, .92, NA, .97, .98, 1, .83, NA, .96)
+    grp.share.lo = c(.01, .02, NA, .07, .08, .0, .03, NA, .06),
+    grp.share.up = c(.91, .92, NA, .97, .98, 1, .83, NA, .96)
   ),
   aeff = data.frame(
     acomm = c("AUX1", "AUX2", "AUX3", "AUX4"),
@@ -183,7 +184,9 @@ STG_ELC <- newStorage(
   ),
   aeff = data.frame(
     acomm = "LITHIUM", # track lithium use for battery production
-    ncap2ainp = convert(4 * 250, "Wh/kg", "GWh/kt") # lithium per energy capacity
+    # lithium per unit of NEW energy (reservoir) capacity -- `stg.` couples
+    # the storing part; the bare `ncap2ainp` coupled only the discharger
+    stg.ncap2ainp = convert(4 * 250, "Wh/kg", "GWh/kt")
   ),
   af = data.frame(
     # af.lo = 0., # lower bound for the capacity factor
@@ -197,7 +200,8 @@ STG_ELC <- newStorage(
   duration = 4, # four-hours of storage
   invcost = data.frame(
     region = c("R1", NA), # region R1 and all other regions
-    out.invcost = c(1e3, 1.1e3) # investment cost in MUSD/GWh of 4-hour storage
+    out.invcost = c(1e3, 1.1e3), # discharger cost, MUSD/GW
+    stg.invcost = c(120, 130) # reservoir cost, MUSD/GWh (materialises stg)
   ),
   fullYear = TRUE, # full year storage cycle
   weather = data.frame(
@@ -236,12 +240,12 @@ DSTEEL <- newDemand(
   commodity = "STEEL",
   unit = "Mt",
   demand = data.frame(
-    region = "UTOPIA", # NA for every region
+    region = "TOPIA", # NA for every region
     year = c(2020, 2030, 2050),
     timeslice = "ANNUAL",
     demand = c(100, 200, 300)
   ),
-  region = "UTOPIA", # optional, to narrow the specification of the demand
+  region = "TOPIA", # optional, to narrow the specification of the demand
 )
 draw(DSTEEL)
 

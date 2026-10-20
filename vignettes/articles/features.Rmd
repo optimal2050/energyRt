@@ -1,0 +1,329 @@
+---
+title: "Features"
+description: "The full inventory of energyRt's capabilities, organised by axis and workflow stage."
+editor_options:
+  chunk_output_type: console
+---
+
+This is the full inventory, organised around the three independent axes the
+front page introduces — the bricks a system is described with, the time and
+space it is resolved on, and the route it is solved by — followed by what
+happens after a solve. Functions named here are exported; items marked
+*(experimental)* work but may change shape before 1.0. What *changed* in a
+release is in the [release notes](https://energyrt.org/news/).
+
+## Bricks: describing a system
+
+**Component classes.** `commodity`, `supply`, `demand`, `technology`,
+`storage`, `trade`, `weather`, `constraint`, `tax`, `subsidy`, `costs`, plus
+`import` / `export` for flows across the model boundary. Each is built by its
+`newX()` constructor, carries its data in slots, and is edited with `update()`,
+which derives a variant instead of re-typing the object.
+
+- **Technologies** convert any number of input commodities into any number of
+  outputs, with conversion given per commodity (`ceff`), per group of
+  commodities (`@group`), or as process activity (`cap2act`); availability by
+  timeslice (`af`), by summed slices (`afs`) and per commodity (`afc`); ramping
+  limits; capacity and retirement bounds; investment, fixed and variable costs.
+- **Auxiliary flows** (`@aux` / `@aeff`) couple a process's capacity, new
+  capacity, retirement, activity or any of its flows to a further commodity —
+  land per MW, water per MWh, an emission per unit of fuel. They sit at the
+  auxiliary commodity's own timeframe, so an annual emission of an hourly plant
+  is one variable per year.
+- **Storage** is three parts — charger, reservoir, discharger — each with its
+  own capacity variable (`vStorageInpCap`, `vStorageStgCap`, `vStorageOutCap`),
+  costs and availability. `@duration` sets reservoir hours per unit of
+  discharge power, `@inp2out` the charger/discharger ratio and `@inp2stg` the
+  charging C-rate; `@seff` holds charge, discharge and self-discharge
+  efficiency; `@startLevel` the initial state. A storage may store one
+  commodity and charge or discharge another.
+- **Trade** carries a commodity between regions on declared routes, with
+  efficiency, capacity, costs, availability and lifetime. `newACLine()` and
+  `newDCLink()` wrap the two common electrical cases; `lossTranches()`
+  approximates quadratic losses by capacity tranches; an opt-in Kirchhoff
+  voltage law constrains loop flows.
+- **Weather** supplies an exogenous time series that multiplies a process's
+  availability — capacity factors, inflows, a charging window. One series can
+  serve many processes, be declared at a coarser region than its users, and
+  derive further series through registered transforms
+  (`register_weather_transform()`).
+- **Policy objects.** A `constraint` writes an arbitrary linear restriction over
+  declared summands; `tax` and `subsidy` levy on a commodity total or on a named
+  process; `costs` adds a user-defined cost term to the objective.
+- **Commodity properties.** `@property` carries physical data (heating values,
+  densities, carbon content) as a tidy table; `@emis` emission factors; `@agg`
+  aggregation into reporting groups; `@limtype` the balance direction.
+- **Units** are declared on flows and capacities, with `cap2act` making the
+  capacity-to-activity conversion explicit, and `getUnits()` reporting what a
+  model carries.
+- **Portable definitions.** `process_to_spec()` / `process_from_spec()` write
+  and read a process as YAML or JSON; `process_spec_issues()` lints one;
+  `process_designer()` is an interactive Shiny editor;
+  `read_technology_xlsx()` / `write_technology_xlsx()` round-trip through Excel.
+
+### Variants and graded resources
+
+- **Two axes on one object.** `@vintage` declares build years with their
+  investment window and operational life; `@cluster` declares parallel members
+  that exist simultaneously — site grades, fleet types, tranches. Interpolation
+  expands them into ordinary processes (`EWIN_VIN2030_CL01`), so every equation
+  stays as it is.
+- **Per-member data.** Every parameter slot carries `vintage` and `cluster`
+  columns; a row leaving them `NA` broadcasts to all members. A roster must be
+  declared before a label may be used, which turns a typo into an error rather
+  than a phantom member built from defaults.
+- **Region-scoped members.** `@cluster$region` scopes a member, so a tier set
+  of a different size in each region is one object.
+- **Family-level bounds.** `cap.share.fx` and `act.share.lo/up/fx` bound how a
+  family splits between its members; `"TOTAL"` in a selector column bounds the
+  family as a whole.
+- **Graded resources.** A `commodity` declaring `@cluster` becomes one
+  commodity per tier, each with its own balance, so grades cannot pool; a
+  `weather` object declaring `@cluster` becomes one series per tier. Consumers
+  resolve their tier by cluster name; unclustered objects are untouched.
+- **Supply curves.** `asSupplyCurve()`, `asImportCurve()` and `asExportCurve()`
+  turn a single price into a stepped curve with its own roster.
+- **Reading a family back.** `getVariants()` (on a scenario or, before
+  interpolating, on a model), `getData(variants = TRUE)` and
+  `variantSummary()` — the provenance table is authoritative, so names are
+  never parsed.
+
+## Axis one: time
+
+- **User-defined nested calendars** from
+  [timescales](https://github.com/optimal2050/timescales): the modeller states
+  the hierarchy (`ANNUAL > SEASON > DAY > HOUR`, or whatever the question
+  needs), the timeslices and their durations. There is no fixed 8,760-slice
+  ceiling and no built-in assumption about what a "slice" is.
+- **Mixed timeframes in one model.** Each commodity balances at its own
+  timeframe, so an annual fuel market, a seasonal reservoir and an hourly power
+  balance coexist; a process may be declared coarser than the commodities it
+  touches, and the equations aggregate.
+- **Shipped designs.** `calendars` carries generic layouts — `m12`, `q4`,
+  `s4_h24`, `d365_h24` and sampled variants such as `d365_h24_1dps` (one
+  representative day per month) and `s4_h24_subset_2seasons`.
+- **Sampled calendars.** A model declared on a full calendar can be
+  interpolated and solved on a subset of its slices, with annual quantities
+  kept on a full-year basis — the usual way to iterate quickly and confirm at
+  full resolution before reporting.
+- **Horizons** with uneven milestone years, interval weights and display labels
+  (`newHorizon()`), and a calendar anchored to a `year_start` and a UTC offset.
+- **Conversions and layout** come from the sibling package: `make_timetable()`,
+  `tsl_sets()`, `autoplot()` on a calendar, and the timescales API for label
+  conversion.
+
+## Axis two: space
+
+- **Nested geography** from [geoscales](https://github.com/optimal2050/geoscales):
+  a `Geoscale` describes how regions nest (nation > zone > node), attached with
+  `setGeoscale()` or `newModel(geoscale = )`.
+- **Multi-level balances.** A commodity declares the level it balances on, so a
+  national fuel market and nodal electricity live in one model without a trade
+  route for every pair; coarse balances roll up.
+- **Coarse processes.** A technology or storage may sit at a level coarser than
+  a commodity it uses, with its flows aggregated to the level where the balance
+  is written.
+- **Region aggregation.** `aggregate_model_regions()` merges regions, including
+  `clusters = ` to partition a corridor family into `k` groups;
+  `get_process_groups()` reports what may be merged, `process_cluster_sweep()`
+  sweeps the admissible range of `k`, and `model_clusters()` reports what an
+  aggregation did.
+- **Sub-territory solves.** A filtered geoscale handed to `interpolate_model()`
+  solves part of a model's territory; `subset_model_regions()` samples regions
+  and warns when a sample splits a cell a process spans.
+- **Maps.** `plot_geoscale()`, `plot_map()` for any solved variable carrying a
+  region, `plot_trade_map()` and `plot_trade_network()` for flows.
+
+## Axis three: the solve route
+
+Four modelling languages, one direct-matrix route, and remote execution. The
+model definition does not change between them.
+
+| Route | What it writes | Notes |
+|---|---|---|
+| GLPK / MathProg | `.mod` + `.dat`, solved by `glpsol` | The transparent default. The `glpsol` R package bundles the binary on every platform and is used first when installed, so a first model needs no system solver |
+| Julia / JuMP | JuMP code for HiGHS, CBC, GLPK, CPLEX, cuOpt | The usual choice for mid-size and large models |
+| Python / Pyomo | Pyomo for HiGHS, CBC, GLPK, CPLEX; MPS output | For Python-based solver stacks |
+| GAMS | GAMS for CPLEX, CBC and others | For institutional GAMS workflows |
+| multimod *(experimental)* | A language-neutral AST → LaTeX, backend code, or a direct LP/MPS matrix | `lang = "mm"` skips the symbolic model build |
+
+- **Presets, not flags.** `solver_options` carries named presets per backend —
+  barrier, simplex, PDLP, crossover on or off, tolerances — including the
+  first-order CPU preset `julia_highs_pdlp` and the GPU presets `julia_cuopt`
+  and `mm_cuopt_wsl`.
+- **GPU solving.** NVIDIA cuOpt runs through JuMP on Linux, or on Windows
+  through WSL; the same presets run on cloud hardware through the experimental
+  mmcloud route below. See [Solver backends](backends.html) for setup and the
+  validation required before a first-order solution is trusted.
+- **Remote execution.** [NEOS](https://neos-server.org/) runs supported solver
+  jobs without a local licence; the *(experimental)*
+  mmcloud route ships the problem to
+  cloud hardware, streams progress and retrieves the solution.
+- **Solutions from elsewhere.** `read_solution()` decodes a solution produced
+  outside energyRt, so a model written here can be solved anywhere and read
+  back.
+- **Toolchain checks.** `en_setup()`, `en_check_dependencies()`,
+  `en_check_packages()`, `en_install_deps()`, `en_install_julia_pkgs()`, and
+  `en_check_solve()`, which solves a tiny model on every configured backend and
+  reports what actually works.
+
+## Generating the model
+
+- `interpolate_model()` resolves declarations into solver-ready parameters:
+  interpolating over years, expanding variants, materialising tiers and weather
+  transforms, building sets and mappings, and checking the result.
+- **The model it writes** has about 185 equation blocks over 93 variables (as
+  written in `glpk/energyRt.mod`), extendable with `newConstraint()`.
+- **Sparse or dense**, folded or explicit: `sparse = ` drops rows equal to a
+  default, `fold = ` collapses dimensions that do not vary (region, timeslice,
+  year), both losslessly.
+- **On-disk interpolation** writes parameters to an Arrow store, so a model too
+  large for memory still builds.
+- **Performance and transparency.** The release notes record interpolation
+  about six times faster than the 0.8 series on a 41-node hourly case, and
+  every call appends per-stage and per-map timings to a log.
+- **Model inspection.** `model_size()` / `size()`, `summary()`,
+  `find_in_model()`, `findData()`, `findDuplicates()`, `audit_coefficients()`
+  for the written coefficient ranges, and `compare_inputs()` to diff two
+  interpolated models.
+
+## Solve strategies
+
+- `solve_model()` — the whole pipeline, or the verbs separately
+  (`interpolate_model()`, `write_script()`, `read_solution()`).
+- `solve_myopic()` — window by window with limited foresight, built on an
+  exported solution ledger (`solution_ledger()`, `apply_ledger()`,
+  `horizon_windows()`, `myopic_objective()`).
+- `solve_by_sample()` — one solve per sampled calendar (`calendar_samples()`,
+  `sample_summary()`).
+- `solve_by_region()` — regional decomposition with boundary windows.
+- `solve_guided()` — iterate toward a target (`solution_targets()`,
+  `apply_targets()`, `guided_gap()`).
+- Every driver records its runs under the scenario, with the parameters it was
+  called with.
+
+## Scenarios, storage and provenance
+
+- **A project registry** keyed on path records models, repositories, scenarios
+  and datasets: `newRegistry()`, `load_registry()`, `refresh_registry()`,
+  `add_to_registry()`, and `summary()` for counts and staleness. Objects are
+  reachable by name — `getScenario("base")`, `getObject()` — so a study with
+  thousands of solved runs stays addressable.
+- **Lifecycle.** `seal_model()` / `unseal_*()` freeze an entry; `mark_delete()`
+  and `delete_marked()` stage removals and refuse to break a reference;
+  `store_dependents()` says what points at an object.
+- **Runs and artefacts.** `scenario_runs()`, `scenario_solutions()`,
+  `scenario_artifacts()` report what each solve produced and left on disk;
+  `promote_solution()` and `import_solution()` choose which solution counts;
+  `drop_solver_outputs()` and `drop_scenario_run()` clean up;
+  `upgrade_scenario_layout()` migrates older folders.
+- **Arrow-backed results.** Solutions and inputs live in Parquet/Arrow stores
+  with lazy reading, so results larger than memory stay usable;
+  `isInMemory()` / `isOnDisk()` / `obj2mem()` move between the two.
+- **Hashes and reproducibility.** `model_hash()`, `repository_hash()`,
+  `dataset_hash()`, `object_hash()`; an optional operation log
+  (`set_log_file()`); `run.yml` recording a solve's memory footprint and
+  timings.
+- **Sharing.** `prepare_for_sharing()` writes a cleaned, trimmed copy of a
+  stored scenario; `strip_user_info()` removes the machine it was built on.
+
+## Results and analysis
+
+- `getData()` returns tidy data for any parameter or variable, with
+  `merge = TRUE` for set labels, `variants = TRUE` for provenance,
+  `interpolate = TRUE` for the interpolated series, `run = ` to read several
+  runs at once, and `timeframe = ` to aggregate.
+- `get_variable()`, `getMix()` (with `top_n` lumping), `get_weather()`,
+  `read_sequence()` for a driver's sequence of solves.
+- **Levelized cost.** `levcost()` prices a technology, a storage (LCOS) or a
+  trade route (LCOT) analytically — no solver — per vintage, cluster and
+  region, from either a declared object or a solved scenario; results are
+  cached on disk. `tech_share_frontier()` and `plot_share_frontier()` show how
+  the merit order shifts with a share constraint.
+- **Comparison.** `compare_scenarios()` (solved results, or runs of one
+  scenario), `compare_models()` (declarations) and `compare_inputs()`
+  (interpolated inputs), each with an `autoplot()` method.
+- **Decomposition drivers** sum by region and average by sample, so a multi-run
+  study aggregates correctly.
+
+## Validation and diagnostics
+
+- `validate_scenario_parameters()` separates **structural** findings — the
+  model would solve to a meaningless answer — from advisory ones, and names
+  them: a populated flow with no capacity link (`free_meal`), constraint tuples
+  with no data behind them, coefficient ranges that will hurt a solver,
+  duplicate keys, and variant provenance that disagrees with the process names.
+- `verify_solution()` re-derives the model's own identities from the results —
+  balances, capacity limits, storage dynamics, emissions, costs — with check
+  groups (`checks = "all"`) and `verify_checks()` listing them.
+- `audit_coefficients()` reports coefficient ranges per equation of a written
+  model, which is where a scaling problem shows up before the solver struggles.
+- Structural refusals at build time: an undeclared weather link, a geoscale
+  whose levels do not nest, a commodity finer than the process producing it, a
+  variant name colliding with an existing object, a tier a consumer asks for
+  but the resource does not declare.
+- `en_check_dependencies()` / `en_check_packages()` for the environment, and
+  `trim_parameters()` / `update_parameter()` for surgery on an interpolated
+  model.
+
+## Visualisation and reporting
+
+- **Diagrams.** `draw()` sketches a process's flow structure — inputs, outputs,
+  auxiliary flows, groups, and a storage's three parts with their ratio
+  couplings.
+- **`autoplot()`** on objects (declared data as points, interpolated as lines),
+  calendars, horizons, levelized costs, comparisons, and solved scenarios
+  (`type = "generation"`, `"capacity"`, `"new_capacity"`, `"fuel"`,
+  `"storage"`, with `by = "vintage"` / `"cluster"` fan-outs, faceting and
+  `top_n`).
+- **Maps** — see the space axis above — and `plot_heatmap()` for a timeslice ×
+  region view.
+- **Reports.** `report()` renders any energyRt object — fourteen element
+  classes plus the model, repository and scenario containers — to HTML, PDF,
+  Word or TeX. Reports are cached, follow user-defined process groups, carry
+  branding (`misc$logos`, `misc$badges`), and are built from an exported
+  `report_*` helper family so a template can be replaced. `report_templates()`
+  lists what ships.
+- `theme_energyRt()`, `object_image()` and `design()` for consistent styling.
+
+## Interoperability
+
+- **multimod** turns an interpolated scenario into a language-neutral model —
+  `multimod_from_energyRt()` — from which it renders LaTeX, emits code for other
+  modelling languages, or assembles the LP matrix directly without the symbolic
+  model-build step that can dominate time and memory on large problems.
+  `multimod_import_data()` and `multimod_unmatched()` bring results and
+  diagnostics back.
+- **OSeMOSYS / TIMES conventions** are followed where they exist — the
+  `timeslice` dimension, the parameter naming style — so a model is legible to
+  users of those frameworks.
+- **The sibling stack**: `timescales` (time), `geoscales` (space),
+  `nestedscales` (the nested-set core these two are built on), `glpsol` (the
+  bundled GLPK binary) and `mmcloud` (remote execution).
+- Tidy in, tidy out: everything crosses the boundary as a data frame, so the
+  usual tidyverse and arrow tooling applies.
+
+## Learning and examples
+
+- **TOPIA**, the packaged teaching model: a multi-region power system built up
+  step by step over three articles (build, run scenarios, multi-level regions),
+  with scenario levers (CO2 cap, carbon tax, renewable share, no new nuclear,
+  early retirement) and add-on modules.
+- **Unit kits** (`topia$modules$unit`): minimal models whose every input is an
+  integer, so the objective can be computed by hand — the fastest way to check
+  a backend or a change.
+- **Articles** for installation, backends, model bricks, units, time and space
+  resolution, storage, vintages and clusters, workflow, scenario management,
+  reports and `autoplot()`.
+- **A production example.** [IDEEA](https://ideea-model.github.io/IDEEA/)
+  applies the same machinery to India's power system at full resolution.
+
+## Engineering
+
+- **A tiered test suite** — `check < fast < cross < full` — with a coverage
+  matrix tying tests to the model entities they exercise (`@covers`), tracked
+  goldens for interpolated inputs and solved results, cross-backend equivalence
+  tests, and a backend probe that skips what the machine cannot solve.
+- **Deterministic builds.** `data-raw/` drivers are idempotent; bundled datasets
+  are regenerated rather than hand-edited.
+- **Apache-2.0 licensed**, with the sibling packages under the same terms.

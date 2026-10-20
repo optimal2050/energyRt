@@ -44,7 +44,9 @@ draw.technology(
 \item{object}{The object to draw: \code{technology}, \code{storage}, \code{trade}, \code{demand}, \code{supply},
 \code{export}, or \code{import}.}
 
-\item{...}{Additional arguments passed to the specific method.}
+\item{...}{Additional arguments passed to the specific method. The \code{trade}
+method takes \code{region} (alias \code{node}), the node to draw the trade process
+for, defaulting to the first node in the trade object.}
 
 \item{vintage}{which vintage to draw in full for a vintaged technology: a
 level name, an index, \code{NULL} (the default, the newest one), or \code{"all"} to
@@ -65,13 +67,11 @@ named list of overrides.}
 strip of ticks with the selection filled, \code{"deck"} slivers at the box edge
 suggesting a stack of cards, or \code{"none"}.}
 
+\item{box_width}{width of the process box, in plot units.}
+
 \item{max_facets}{refuse to lay out more than this many panels for
 \code{vintage = "all"} / \code{cluster = "all"}. A full 11 x 4 grid is unreadable, and
 silently drawing it is worse than saying so.}
-
-\item{region}{A node to draw the trade process for.
-\code{node} is an alias for \code{region}.
-Default is the first node in the trade object.}
 }
 \value{
 displays a schematic representation of the process, returns \code{NULL}.
@@ -118,8 +118,8 @@ TECH01 <- newTechnology(
     cinp2use = c(NA, NA, .5, NA, NA, NA, rep(NA, 3)),
     use2cact = c(rep(NA, 6), .36, .4, .36),
     cact2cout = c(rep(NA, 6), .3, NA, .6),
-    share.lo = c(.01, .02, NA, .07, .08, .0, .03, NA, .06),
-    share.up = c(.91, .92, NA, .97, .98, 1, .83, NA, .96)
+    grp.share.lo = c(.01, .02, NA, .07, .08, .0, .03, NA, .06),
+    grp.share.up = c(.91, .92, NA, .97, .98, 1, .83, NA, .96)
   ),
   aeff = data.frame(
     acomm = c("AUX1", "AUX2", "AUX3", "AUX4"),
@@ -159,7 +159,9 @@ STG_ELC <- newStorage(
   ),
   aeff = data.frame(
     acomm = "LITHIUM", # track lithium use for battery production
-    ncap2ainp = convert(4 * 250, "Wh/kg", "GWh/kt") # lithium per energy capacity
+    # lithium per unit of NEW energy (reservoir) capacity -- `stg.` couples
+    # the storing part; the bare `ncap2ainp` coupled only the discharger
+    stg.ncap2ainp = convert(4 * 250, "Wh/kg", "GWh/kt")
   ),
   af = data.frame(
     # af.lo = 0., # lower bound for the capacity factor
@@ -173,7 +175,8 @@ STG_ELC <- newStorage(
   duration = 4, # four-hours of storage
   invcost = data.frame(
     region = c("R1", NA), # region R1 and all other regions
-    out.invcost = c(1e3, 1.1e3) # investment cost in MUSD/GWh of 4-hour storage
+    out.invcost = c(1e3, 1.1e3), # discharger cost, MUSD/GW
+    stg.invcost = c(120, 130) # reservoir cost, MUSD/GWh (materialises stg)
   ),
   fullYear = TRUE, # full year storage cycle
   weather = data.frame(
@@ -210,12 +213,12 @@ DSTEEL <- newDemand(
   commodity = "STEEL",
   unit = "Mt",
   demand = data.frame(
-    region = "UTOPIA", # NA for every region
+    region = "TOPIA", # NA for every region
     year = c(2020, 2030, 2050),
     timeslice = "ANNUAL",
     demand = c(100, 200, 300)
   ),
-  region = "UTOPIA", # optional, to narrow the specification of the demand
+  region = "TOPIA", # optional, to narrow the specification of the demand
 )
 draw(DSTEEL)
 EXPOIL <- newExport(

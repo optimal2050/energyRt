@@ -58,30 +58,30 @@ if (!is.null(params$image_file)) emit_img(params$image_file, 0.25)
 tbl(params$overview_df)
 ```
 
-```{r en-objective, fig.width=6, fig.height=3.5, eval=!is.null(params$objective_plot)}
-params$objective_plot
+```{r en-objective, results='asis', eval=!is.null(params$objective_plot)}
+energyRt::report_fig(params$objective_plot, 6, 3.5, caption = "Total discounted cost by scenario", output = fmt)
 ```
 
 ## Results
 
-```{r en-gen, fig.width=8, fig.height=4.5, eval=!is.null(params$gen_plot)}
-params$gen_plot
+```{r en-gen, results='asis', eval=!is.null(params$gen_plot)}
+energyRt::report_fig(params$gen_plot, 8, caption = "Generation mix by year", output = fmt)
 ```
 
-```{r en-cap, fig.width=8, fig.height=4.5, eval=!is.null(params$cap_plot)}
-params$cap_plot
+```{r en-cap, results='asis', eval=!is.null(params$cap_plot)}
+energyRt::report_fig(params$cap_plot, 8, caption = "Installed capacity by year", output = fmt)
 ```
 
-```{r en-newcap, fig.width=8, fig.height=4.5, eval=!is.null(params$newcap_plot)}
-params$newcap_plot
+```{r en-newcap, results='asis', eval=!is.null(params$newcap_plot)}
+energyRt::report_fig(params$newcap_plot, 8, caption = "New capacity by year", output = fmt)
 ```
 
 ```{r en-emis-header, results='asis', eval=!is.null(params$emis_df) || !is.null(params$emis_plot)}
 cat("## Emissions\n")
 ```
 
-```{r en-emis-plot, fig.width=7, fig.height=4, eval=!is.null(params$emis_plot)}
-params$emis_plot
+```{r en-emis-plot, results='asis', eval=!is.null(params$emis_plot)}
+energyRt::report_fig(params$emis_plot, 7, 4, caption = "Emissions by scenario", output = fmt)
 ```
 
 ```{r en-emis, results='asis', eval=!is.null(params$emis_df)}
@@ -90,8 +90,8 @@ tbl(params$emis_df)
 
 ## Costs
 
-```{r en-costs-plot, fig.width=7, fig.height=4, eval=!is.null(params$costs_plot)}
-params$costs_plot
+```{r en-costs-plot, results='asis', eval=!is.null(params$costs_plot)}
+energyRt::report_fig(params$costs_plot, 7, 4, caption = "Costs by component", output = fmt)
 ```
 
 ```{r en-costs, results='asis', eval=!is.null(params$cost_df)}

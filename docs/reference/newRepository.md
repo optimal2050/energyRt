@@ -40,3 +40,24 @@ newRepository(
 
 Other repository model data:
 [`class-repository`](https://energyRt.org/reference/class-repository.md)
+
+## Examples
+
+``` r
+repo <- newRepository(
+  "my_repo",
+  newCommodity("ELC", unit = "MWh"),
+  newCommodity("COA", unit = "MMBtu"),
+  desc = "Two commodities and nothing else"
+)
+repo
+#> repository 'my_repo': 2 objects.
+#>  Two commodities and nothing else 
+
+# objects can be added afterwards; `add()` returns the updated repository
+repo <- add(repo, newSupply("SUP_COA", commodity = "COA",
+                            supply = data.frame(cost = 2)))
+repo
+#> repository 'my_repo': 3 objects.
+#>  Two commodities and nothing else 
+```

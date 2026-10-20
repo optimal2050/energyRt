@@ -22,14 +22,32 @@ and can be added or replaced for different scenarios.
 
 \item{\code{unit}}{character. Unit of the weather factor.}
 
-\item{\code{region}}{character. Region where the weather factor is applied.}
+\item{\code{geoframe}}{character. Optional. The geoscale level this object's regions are expressed at; unset (the default) derives it from the region codes. See \code{technology@geoframe} for the full rule, including the consistency checks it turns on. A weather factor is multiplicative and balances nothing, so no commodity rule applies. This is the class where declaring the level matters most: left unset, a series whose data names no region spans every region of every level, where naming the level scopes it to that level alone.}
+
+\item{\code{region}}{character. Region(s) the weather factor is declared at. May be a COARSER region of the model's geoscale than the processes that use it: a process reads the series at its own region when the object serves it, otherwise at the NEAREST ancestor that does. One profile declared at a parent therefore feeds every child region from a single stored series instead of being copied per child. Unset means every region. A process whose region the object neither serves nor has an ancestor for is an error -- the factor is multiplicative and defaults to 0, so an unresolved link would shut the process down silently.}
 
 \item{\code{timeframe}}{character. Timeframe of the weather factor.}
 
 \item{\code{defVal}}{numeric. Default value of the weather factor, 0 by default.}
 
+\item{\code{cluster}}{data.frame. Declaration of the object's parallel series. For weather a cluster is a RESOURCE TIER -- one profile per grade of the same resource, so a single object covers a whole tier set instead of one hand-named object per tier.
+This slot declares WHAT the tiers are; the per-tier values live in the \code{cluster} column of \code{weather}. It is REQUIRED whenever that column carries a label, and authoritative: labels are never harvested from the series, so a misspelled tier is an error rather than a series nobody asked for. At interpolation each tier referenced by a process is cloned into an ordinary weather object named with the model's cluster prefix (\code{WWIN} tier \code{T3} -> \code{WWIN_CLT3}), so the backends only ever see plain series.
+A consumer finds its tier BY CLUSTER NAME: a \code{weather} link row of a technology, storage or supply carrying \code{cluster = "T3"} reads this object's \code{T3} rows. A link row with no cluster reads an unclustered object whole, as before, and is an ERROR against a clustered one -- the factor is multiplicative, so "every tier at once" has no reading.
+LIMITATION -- there are deliberately no share columns. A share ties parallel parts' capacity or activity to fixed proportions, and a capacity-factor series has neither. Size the tiers on the processes that read them.
+
+\describe{
+\item{cluster}{character. Tier label, used in the expanded object name.}
+\item{desc}{character. Description of the tier.}
+\item{region}{character. Region(s) the tier's series is declared for, NA for everywhere. Intersected with the object's own \code{region} slot. A process whose region no tier series covers (directly or through the nearest ancestor) is an error, not a silent zero.
+}
+\item{order}{integer. Reporting order, 1 = the best tier. Without it labels sort alphabetically and "T10" would precede "T2".
+}
+}}
+
 \item{\code{weather}}{data.frame. Weather factor values.
 \describe{
+\item{cluster}{character. Tier this row belongs to, NA for every tier. See the \code{cluster} slot.
+}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}

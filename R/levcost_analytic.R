@@ -18,8 +18,7 @@
 # polytope {sum(s) = 1, lo <= s <= up}, every vertex of which has at most one
 # fractional coordinate. `.levcost_share_vertices()` enumerates them all, the
 # base result takes the cost-minimal vertex, and `$frontier_vertices` reports
-# every corner (user request 2026-08-13: all corner solutions, not just the
-# minimum).
+# every corner, not only the minimum.
 #
 # Anything the closed form cannot represent is REFUSED -- never approximated
 # (no-auto-invention policy): cheap static checks live in
@@ -169,7 +168,7 @@
   lo <- pmax(ifelse(is.na(lo), 0, lo), 0)
   up <- pmin(ifelse(is.na(up), 1, up), 1)
   if (any(lo > up + 1e-9))
-    stop("share.lo above share.up for: ",
+    stop("grp.share.lo above grp.share.up for: ",
          paste(nm[lo > up + 1e-9], collapse = ", "), call. = FALSE)
   if (sum(lo) > 1 + 1e-9 || sum(up) < 1 - 1e-9)
     stop("infeasible share bounds: sum(lo) = ", round(sum(lo), 4),
@@ -432,8 +431,9 @@
           co <- .la_series_key(ae, "acomm", a, col, years, region,
                                default = 0, what = col)
           if (all(co == 0)) next
-          base <- switch(spec[2], act = act, ncap = newcap,
-                         cap = cap / cap2act)
+          # capacity-type couplings are per-year coefficients (the aux
+          # equation books them as each aux slice's share of the year)
+          base <- switch(spec[2], act = act, ncap = newcap, cap = cap)
           tgt <- if (grepl("ainp$", col)) "in" else "out"
           if (tgt == "in") ax_in[, a] <- ax_in[, a] + co * base
           else             ax_out[, a] <- ax_out[, a] + co * base
@@ -874,9 +874,9 @@
         for (grp in inp_groups) {
           grp_comms <- ctx$in_group_comms[[grp]]
           already_fixed <- character(0)
-          if ("share.fx" %in% names(ce0)) {
+          if ("grp.share.fx" %in% names(ce0)) {
             for (cm in grp_comms)
-              if (any(ce0$comm == cm & !is.na(ce0$share.fx)))
+              if (any(ce0$comm == cm & !is.na(ce0$grp.share.fx)))
                 already_fixed <- c(already_fixed, cm)
           }
           vary_comms <- setdiff(grp_comms, already_fixed)

@@ -34,3 +34,8 @@ add(obj, ..., overwrite = FALSE, repo_name = NULL)
 ## Value
 
 model object with added elements to the repository
+
+## Details
+
+There is no `add` method for a `scenario`: a scenario's inputs are
+already interpolated. Add objects to the model and interpolate again.

@@ -20,10 +20,18 @@ getHorizon(obj)
 
   name of the model
 
+- desc:
+
+  free-text description of the model.
+
 - ...:
 
   configuration parameters (see class config) and model elements
   (classes commodity, technology, etc.)
+
+- obj:
+
+  a `model` object (the `setHorizon` / `getHorizon` methods).
 
 ## Value
 

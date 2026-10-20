@@ -22,11 +22,9 @@ autoplot(object, ...)
 
 - ...:
 
-  Optional further `commodity` objects to include in the comparison.
-
-- palette:
-
-  Viridis color option for the emission-species fill scale.
+  Optional further `commodity` objects to include in the comparison, and
+  arguments passed on to `plot_commodity()` – notably `palette`, the
+  viridis colour option for the emission-species fill scale.
 
 ## Value
 

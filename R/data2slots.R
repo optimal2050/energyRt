@@ -1,24 +1,18 @@
-# slice -> timeslice compatibility (v0.80 rename) -----------------------------
-# Accept the pre-rename `slice` column/element name in user-supplied data and
-# rename it, warning once per session. Kept package-wide so every entry point
+# slice -> timeslice (v0.80 rename) -------------------------------------------
+# The pre-rename `slice` column/element name was accepted with a warning until
+# v0.90; it is now refused. Kept package-wide so every entry point
 # (.data2slots, newCalendar timetables, constraint for.each lists, fold dims)
-# shares the single warning.
+# refuses it the same way and names where it came from -- a renamed dimension
+# that is silently accepted at one entry point and not another is worse than a
+# break.
 .slice_compat_env <- new.env(parent = emptyenv())
 
 #' @noRd
 .rename_slice_compat <- function(nms, where) {
   i <- !is.na(nms) & nms == "slice"
   if (any(i)) {
-    if (!isTRUE(.slice_compat_env$warned)) {
-      warning(
-        "`slice` was renamed to `timeslice` in energyRt v0.80; the supplied ",
-        "`slice` name (", where, ") is accepted and renamed. ",
-        "Please update your data. This warning is shown once per session.",
-        call. = FALSE
-      )
-      .slice_compat_env$warned <- TRUE
-    }
-    nms[i] <- "timeslice"
+    stop("`slice` was renamed to `timeslice` in energyRt v0.80 and is no ",
+         "longer accepted (v0.90): rename it in ", where, ".", call. = FALSE)
   }
   nms
 }
@@ -54,6 +48,14 @@
          ".")
 }
 
+# Slots that accept USER-DEFINED extra columns beyond the prototype. The
+# weather link tables forward such columns as arguments to the transform
+# function a row names in its `transform` column (see R/class-weather.R),
+# so their names cannot be enumerated here. Unknown columns on any other slot
+# stay an error.
+.open_slots <- list(technology = "weather", storage = "weather",
+                    supply = "weather")
+
 .data2slots <- function(
     class_name = NULL,
     x,
@@ -63,7 +65,6 @@
     update = !is.character(x),
     warn_nodata = TRUE) {
   # alternative names: data2class, add2slots, fit2slots, ...
-  # browser()
   if (update) {
     if (!grepl("energyRt", attr(class(x), "package"))) {
       stop("Unknown type of the object")
@@ -90,7 +91,10 @@
   if (!is.null(ignore_args)) arg <- arg[!(names(arg) %in% ignore_args)]
   if (!is.null(ignore_classes)) arg <- arg[!(sapply(arg, class) %in%
                                                ignore_classes)]
-  if ("name" %in% slotNames(class_name)) {obj@name <- x}
+  if ("name" %in% slotNames(class_name)) {
+    .assert_object_name(x, what = class_name)
+    obj@name <- x
+  }
   if (length(arg) != 0) {
     # if (any(names(arg) == "name")) stop('Duplicated parameter "name"')
     if (is.null(names(arg)) || any(names(arg) == "")) stop("Unnamed parameters")
@@ -132,16 +136,24 @@
             # !!! ToDo: take columns from "new()" or from the class
             # Check column names
             .bad <- colnames(dat)[!(colnames(dat) %in% colnames(slot(obj, s)))]
-            stop(paste(
-              'Unknown column "',
-              paste(.bad,
-              '"in the slot: "',
-              s,
-              collapse = '", "'),
-              '"\n',
-              .renamed_column_hint(.bad, class_name),
-              sep = ""
-            ))
+            if (s %in% .open_slots[[as.character(class_name)[1]]]) {
+              # open slot: keep the extra columns, typed from the data
+              for (cc in .bad) {
+                slot(obj, s)[[cc]] <- rep(dat[[cc]][NA_integer_],
+                                          length.out = nrow(slot(obj, s)))
+              }
+            } else {
+              stop(paste(
+                'Unknown column "',
+                paste(.bad,
+                '"in the slot: "',
+                s,
+                collapse = '", "'),
+                '"\n',
+                .renamed_column_hint(.bad, class_name),
+                sep = ""
+              ))
+            }
           }
           slot(obj, s) <- slot(obj, s)[0, , drop = FALSE] # initiate data.frame
           if (nrow(dat) != 0) {
@@ -149,7 +161,6 @@
             slot(obj, s)[nn, ] <- NA
             for (i in names(dat)) {
               # fill-in the data by columns !!! Check ANNUAL/HOUR
-              # browser()
               if (is.factor(slot(obj, s)[, i, drop = FALSE]) ||
                   is.factor(dat[[i]])) {
                 # coerce factors to characters
@@ -312,5 +323,95 @@
       }
     }
   }
+
+  # Refuse rows that set the same parameter twice at the same key. NA in a
+  # key column means ALL, so duplicates are an ambiguity, and the
+  # interpolation join multiplies them rather than choosing one.
+  .cls <- class(obj)[1]
+  for (.s in slotNames(obj)) {
+    .d <- slot(obj, .s)
+    if (is.data.frame(.d) && nrow(.d) > 1) {
+      .assert_no_conflicting_rows(.d, .cls, .s,
+        name = if (methods::.hasSlot(obj, "name")) obj@name else NULL)
+    }
+  }
   obj
+}
+
+
+# ---------------------------------------------------------------------------
+# (was R/assert_conflicting_rows.R, merged 2026-09-20)
+# ---------------------------------------------------------------------------
+
+# =============================================================================#
+# Conflicting rows in an object's data slots
+#
+# NA in a key column means "for all members of that dimension", so two rows
+# with the same key both claim the same parameter cell. Nothing resolves that:
+# `.interp_one_series()` left-joins the value table onto the key grid, so a
+# repeated key MULTIPLIES rows and the solver silently receives a duplicated
+# parameter. Caught here, at construction, instead.
+#
+# Keys are per PARAMETER, not per slot: within `technology@aeff`, `act2ainp` is
+# keyed [acomm, region, year, timeslice] while `cinp2ainp` also keys on `comm`.
+# The parameter catalogue is the source of truth; `vintage` and `cluster` are
+# added because variants expand by suffixing the process NAME, so they never
+# appear in a parameter's dims but are keys in the object's slots.
+# Columns that resolve to no parameter are not checked.
+# =============================================================================#
+
+.KEY_EXTRA_DIMS <- c("vintage", "cluster")
+
+# Key columns for one value column of one slot, or NULL when the column is not
+# a catalogued parameter (declaration columns, annotations, transform args).
+.slot_col_keys <- function(cls, slot_name, col, cols) {
+  mp <- .param_interp_map()
+  e <- mp[[paste(cls, slot_name, col, sep = "\r")]]
+  if (is.null(e)) return(NULL)
+  intersect(cols, c(e$dims, .KEY_EXTRA_DIMS))
+}
+
+.fmt_key <- function(row, keys) {
+  paste(vapply(keys, function(k) {
+    v <- row[[k]]
+    paste0(k, "=", if (length(v) == 0 || is.na(v)) "ALL" else as.character(v))
+  }, ""), collapse = ", ")
+}
+
+# Refuse two rows that set the same parameter at the same key.
+.assert_no_conflicting_rows <- function(df, cls, slot_name, name = NULL) {
+  if (!is.data.frame(df) || nrow(df) < 2) return(invisible(TRUE))
+  cols <- colnames(df)
+  who <- paste0(cls, if (!is.null(name) && nzchar(name)) paste0(" '", name, "'") else "",
+                "@", slot_name)
+  for (col in cols) {
+    keys <- .slot_col_keys(cls, slot_name, col, cols)
+    if (is.null(keys)) next
+    set <- !is.na(df[[col]])
+    if (sum(set) < 2) next
+    d <- df[set, , drop = FALSE]
+    kk <- if (length(keys)) d[, keys, drop = FALSE] else
+      data.frame(.all = rep(1L, nrow(d)))
+    dup <- duplicated(kk) | duplicated(kk, fromLast = TRUE)
+    if (!any(dup)) next
+    bad <- d[dup, , drop = FALSE]
+    bk <- if (length(keys)) bad[, keys, drop = FALSE] else
+      data.frame(.all = rep(1L, nrow(bad)))
+    g <- split(seq_len(nrow(bad)), do.call(paste, c(bk, sep = "|")))[[1]]
+    vals <- bad[[col]][g]
+    stop(
+      who, ": column '", col, "' is set ", length(g),
+      " times for the same key (", .fmt_key(bad[g[1], , drop = FALSE], keys),
+      ").", "\n",
+      "  values: ", paste(format(vals), collapse = ", "), "\n",
+      "  NA in a key column means ALL members of that dimension, so these rows",
+      " all claim the same cell.", "\n",
+      "  Give each row a distinct ",
+      if (length(keys)) paste(keys, collapse = "/") else "key",
+      ", or keep one row. Left as is, the value is not chosen -- the",
+      " interpolation join repeats the row once per duplicate and the solver",
+      " receives a multiplied parameter.",
+      call. = FALSE)
+  }
+  invisible(TRUE)
 }

@@ -25,7 +25,11 @@ An S4 class to represent model/scenario planning horizon with intervals
 
 - `intervals`:
 
-  data.frame. Data frame with three columns, representing start, middle,
-  and the end year of every interval. The first column is the start year
-  of the interval, the second column is the middle year of the interval,
-  the third column is the end year of the interval.
+  data.frame. Data frame with the start, middle, and end year of every
+  modelled interval, plus an optional display `label`. `start`, `mid`
+  and `end` are integer years; `mid` is the milestone and the model's
+  key for the period. `label` is a character display name, unique across
+  intervals, filled from `mid` when not given, and rendered fiscally
+  (`FY2025-26`) when the calendar carries a non-January `year_start`.
+  The label is presentation only and never reaches the solver – see
+  [`year_label()`](https://energyRt.org/reference/year_label.md).

@@ -27,7 +27,7 @@ apply_to_scenario_data(scen, func, ..., classes = NULL, as_list = TRUE)
 
   character vector of class names to apply the function to
 
-- return_list:
+- as_list:
 
   logical, if TRUE, return a list of results, otherwise return a vector
   of results

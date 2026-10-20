@@ -9,17 +9,20 @@
 #
 # 1. Capacity is corridor-wide, costs are region-indexed. `vTradeNewCap` has no
 #    region index while `eqTradeEac` / `eqTradeFixom` do
-#    (glpk/energyRt.mod:964-966), so BOTH endpoints pay their own rate on the
-#    WHOLE capacity -- "a corridor whose two endpoints each pay 100 therefore
-#    costs 200" (data-raw/classes.yml:1879-1890). The numerator sums over
+#    (`eqTradeEac` / `eqTradeFixom` in glpk/energyRt.mod), so BOTH endpoints pay
+#    their own rate on the WHOLE capacity -- "a corridor whose two endpoints
+#    each pay 100 therefore costs 200" (the `invcost` entry under `trade:` in
+#    data-raw/classes.yml). The numerator sums over
 #    endpoints; picking one would halve the answer.
 #
-# 2. `@varom` is inert. `pTradeVarom` was removed from the model because no
-#    equation read it, it was absent from Julia and Pyomo, and it is
-#    unregistered in modInp.yml (glpk/energyRt.mod:535). Pricing it here would
-#    make the analytic engine disagree with every solver, so it is excluded --
-#    and warned about, because silently dropping a cost the user typed is worse
-#    than refusing it.
+# 2. `@varom$varom` is a real cost and IS priced, on what is SENT. It becomes
+#    `pTradeIrVarom`, which `eqExportIrCost` charges at `src`; `pTradeIrEff` is
+#    applied only on arrival (`eqImportTot`), so the charge is on `sent`, not on
+#    `delivered`. `@varom$markup` is NOT priced: it is a transfer the importer
+#    pays and the exporter receives, so it cancels between `eqImportIrCost` and
+#    `eqExportIrCost` and leaves the objective unchanged. (The dead parameter
+#    `pTradeVarom`, declared in the old templates and read by no equation, was
+#    never this slot -- see the `varom` entry in data-raw/classes.yml.)
 #
 # On a unit-capacity basis:
 #
@@ -104,10 +107,23 @@
                                 what = "fixom")
   }
 
+  # `@varom` is charged on what is SENT, not on what arrives: `eqExportIrCost`
+  # multiplies `pTradeIrVarom` by `vTradeIr`, and `pTradeIrEff` is applied later,
+  # on arrival (`eqImportTot`). `@markup` is deliberately not here -- it is a
+  # transfer the importer pays and the exporter receives, so it nets to zero
+  # over the corridor and is not part of a levelized COST.
+  if (NROW(object@varom) > 0 && "timeslice" %in% names(object@varom) &&
+      any(!is.na(object@varom$timeslice)))
+    .la_unsupported("timeslice-keyed @varom: the closed form prices one rate ",
+                    "per year")
+  sent  <- ctx$cap2act * ctx$utilisation
+  varom <- .lct_dir_series(object@varom, "varom", years, ctx$src, ctx$dst,
+                           default = 0) * sent
+
   delivered <- rep(ctx$cap2act * ctx$utilisation * ctx$teff, ny)
 
-  list(years = years, total = eac + fixom, annual_out = delivered,
-       components = list(eac = eac, fixom = fixom))
+  list(years = years, total = eac + fixom + varom, annual_out = delivered,
+       components = list(eac = eac, fixom = fixom, varom = varom))
 }
 
 #' Build and solve the corridor mini-model
@@ -203,11 +219,19 @@
   norm <- ifelse(cap > 0, 1 / cap, NA_real_)
   eac   <- unname(by_year(get("vTradeEac"))   * norm)
   fixom <- unname(by_year(get("vTradeFixom")) * norm)
+  # `vExportIrCost` carries `(pTradeIrVarom - pTradeIrMarkup)` at `src` and
+  # `vImportIrCost` carries `pTradeIrMarkup` at `dst`, so their SUM is
+  # `pTradeIrVarom` alone: the markup cancels and only the real resource cost
+  # survives -- the same quantity the closed form charges on `sent`. Reading
+  # only the capacity costs used to drop this term, so a corridor with a
+  # `@varom` priced below what the mini-model actually paid.
+  varom <- unname((by_year(get("vExportIrCost")) +
+                   by_year(get("vImportIrCost"))) * norm)
 
-  list(years = years, total = eac + fixom,
+  list(years = years, total = eac + fixom + varom,
        annual_out = rep(ctx$cap2act * ctx$utilisation * ctx$teff,
                         length(years)),
-       components = list(eac = eac, fixom = fixom), scen = sc)
+       components = list(eac = eac, fixom = fixom, varom = varom), scen = sc)
 }
 
 # =============================================================================
@@ -220,9 +244,10 @@
 #' ARRIVING in the receiving region, summed over both endpoints' capital and
 #' fixed charges -- see the header of this file for why both endpoints pay.
 #'
-#' `@varom` and `@markup` are NOT priced: no equation in any backend reads them
-#' (glpk/energyRt.mod:535). A trade carrying them gets a warning rather than a
-#' number that no solver would reproduce.
+#' `@varom$varom` is priced, on the quantity SENT -- it becomes `pTradeIrVarom`,
+#' which `eqExportIrCost` charges at `src`. `@varom$markup` is not priced: it is
+#' a transfer the importer pays and the exporter receives, so it cancels
+#' system-wide and leaves the objective unchanged.
 #'
 #' @param object A `trade` object.
 #' @param comm Label for the priced commodity. Defaults to `@commodity`.
@@ -245,7 +270,7 @@
 #'   [levcost()] for a technology.
 #' @param ... Ignored, for signature compatibility with the technology method.
 #' @return A `levcost` object -- the same shape the technology method returns.
-#' @export
+#' @keywords internal
 levcost_trade_ <- function(
     object,
     comm        = NULL,
@@ -272,16 +297,15 @@ levcost_trade_ <- function(
     stop("trade ", name, " declares no commodity.", call. = FALSE)
   if (is.null(comm)) comm <- cm
 
-  # `@varom` is dead in every backend; refusing to price it is the only answer
-  # that both engines and every solver agree on
+  # `@varom$varom` is priced (see the file header). `@varom$markup` is a
+  # transfer, so it is outside a levelized cost by construction rather than by
+  # omission -- say so once instead of warning about a cost that IS charged.
   vo <- object@varom
-  if (NROW(vo) > 0) {
-    live <- intersect(c("varom", "markup"), names(vo))
-    if (any(vapply(live, function(k) any(!is.na(vo[[k]])), logical(1))))
-      warning("levcost(): trade ", name, " sets @varom/@markup, which no ",
-              "backend reads (see glpk/energyRt.mod:535). It is excluded ",
-              "from the levelized cost.", call. = FALSE)
-  }
+  if (verbose && NROW(vo) > 0 && "markup" %in% names(vo) &&
+      any(!is.na(vo$markup)))
+    message("levcost(): trade ", name, " sets @varom$markup; a markup is a ",
+            "transfer between the two regions and cancels system-wide, so it ",
+            "is not part of the levelized cost. @varom$varom is priced.")
 
   rt   <- .lct_route(object, route)
   ends <- .lct_endpoints(object)

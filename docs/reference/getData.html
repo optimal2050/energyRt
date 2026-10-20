@@ -33,13 +33,7 @@ objects. Use name to select slot(s) (e.g. &quot;invcost&quot;), ...
 to filter (region=, year=, comm=, or col_=regex),
 merge=TRUE for one long tidy frame (param/value), and
 interpolate=TRUE to expand year-bearing slots over years (or the
-observed year range) with each parameter's default interpolation rule."><meta property="og:image" content="https://energyRt.org/logo.png"><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script></head><body>
+observed year range) with each parameter's default interpolation rule."><meta property="og:image" content="https://energyRt.org/logo.png"><script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -47,7 +41,7 @@ observed year range) with each parameter's default interpolation rule."><meta pr
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -56,19 +50,25 @@ observed year range) with each parameter's default interpolation rule."><meta pr
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development"><li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
+    <li><a class="dropdown-item" href="../articles/features.html">Features</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -92,7 +92,7 @@ observed year range) with each parameter's default interpolation rule."><meta pr
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Extract data from energyRt objects</h1>
-      <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/R/get_data.R" class="external-link"><code>R/get_data.R</code></a>, <a href="https://github.com/optimal2050/energyRt/blob/HEAD/R/get_data_objects.R" class="external-link"><code>R/get_data_objects.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/R/get_data.R" class="external-link"><code>R/get_data.R</code></a></small>
       <div class="d-none name"><code>getData.Rd</code></div>
     </div>
 
@@ -116,11 +116,11 @@ observed year range) with each parameter's default interpolation rule.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">getData</span><span class="op">(</span><span class="va">scen</span>, <span class="va">...</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">getData</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'scenario'</span></span>
 <span><span class="fu">getData</span><span class="op">(</span></span>
-<span>  <span class="va">scen</span>,</span>
+<span>  <span class="va">object</span>,</span>
 <span>  name <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span>,</span>
 <span>  merge <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -146,15 +146,16 @@ observed year range) with each parameter's default interpolation rule.</p>
 <span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  yearsAsFactors <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  drop_duplicated_scenarios <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  scenNameInList <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">as.logical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  scenNameInList <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">as.logical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">object</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  unfold <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  variants <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  run <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'list'</span></span>
 <span><span class="fu">getData</span><span class="op">(</span></span>
-<span>  <span class="va">scen</span>,</span>
+<span>  <span class="va">object</span>,</span>
 <span>  name <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span>,</span>
 <span>  merge <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -180,22 +181,21 @@ observed year range) with each parameter's default interpolation rule.</p>
 <span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  yearsAsFactors <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  drop_duplicated_scenarios <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  scenNameInList <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">as.logical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  scenNameInList <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">as.logical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">object</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  unfold <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  variants <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  run <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'character'</span></span>
-<span><span class="fu">getData</span><span class="op">(</span><span class="va">scen</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">getData</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'environment'</span></span>
-<span><span class="fu">getData</span><span class="op">(</span><span class="va">scen</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">getData</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Default S3 method</span></span>
-<span><span class="fu">getData</span><span class="op">(</span><span class="va">scen</span>, <span class="va">...</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">get_data</span><span class="op">(</span><span class="va">scen</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">getData</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'technology'</span></span>
 <span><span class="fu">getData</span><span class="op">(</span></span>
@@ -356,8 +356,9 @@ observed year range) with each parameter's default interpolation rule.</p>
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-scen">scen<a class="anchor" aria-label="anchor" href="#arg-scen"></a></dt>
-<dd><p>Object scenario or list of scenarios.</p></dd>
+<dl><dt id="arg-object">object<a class="anchor" aria-label="anchor" href="#arg-object"></a></dt>
+<dd><p>the object whose data is returned, for the per-class methods
+(<code>technology</code>, <code>commodity</code>, <code>storage</code>, ...).</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -382,7 +383,12 @@ observed year range) with each parameter's default interpolation rule.</p>
 
 
 <dt id="arg-process">process<a class="anchor" aria-label="anchor" href="#arg-process"></a></dt>
-<dd><p>if TRUE, dimensions "tech", "stg", "trade", "imp", "expp", "dem", and "sup" will be renamed with "process".</p></dd>
+<dd><p><code>TRUE</code> renames the process-class id dimension ("tech", "stg",
+"trade", "sup", "dem", "imp", "impp", "expp") to "process", so results from
+different classes stack into one frame. A character value instead SELECTS
+the named process(es) and renames – <code>process = "COAL"</code>. Use <code>process_</code> for
+a regex, e.g. <code>process_ = "^E"</code>. A character value is always a selection,
+so "T"/"TRUE" are read as process names, not logicals.</p></dd>
 
 
 <dt id="arg-parameters">parameters<a class="anchor" aria-label="anchor" href="#arg-parameters"></a></dt>
@@ -391,6 +397,11 @@ observed year range) with each parameter's default interpolation rule.</p>
 
 <dt id="arg-variables">variables<a class="anchor" aria-label="anchor" href="#arg-variables"></a></dt>
 <dd><p>if TRUE, variables will be included in the search and returned if found.</p></dd>
+
+
+<dt id="arg-sets">sets<a class="anchor" aria-label="anchor" href="#arg-sets"></a></dt>
+<dd><p>logical, include set-type parameters in the result (by default
+only value-bearing parameters are returned).</p></dd>
 
 
 <dt id="arg-maps">maps<a class="anchor" aria-label="anchor" href="#arg-maps"></a></dt>
@@ -421,6 +432,10 @@ observed year range) with each parameter's default interpolation rule.</p>
 <dd><p>logical, should rows containing zero values be filtered out.</p></dd>
 
 
+<dt id="arg-add-weights-add-period-length-apply-weights-apply-period-length-as-data-table">add_weights, add_period_length, apply_weights, apply_period_length, as_data_table<a class="anchor" aria-label="anchor" href="#arg-add-weights-add-period-length-apply-weights-apply-period-length-as-data-table"></a></dt>
+<dd><p>accepted and currently ignored.</p></dd>
+
+
 <dt id="arg-astibble">asTibble<a class="anchor" aria-label="anchor" href="#arg-astibble"></a></dt>
 <dd><p>logical, if the data.frames should be converted into tibbles.</p></dd>
 
@@ -433,18 +448,43 @@ observed year range) with each parameter's default interpolation rule.</p>
 <dd><p>logical, should <code>year</code> be converted to factors? Set 'year' is integer by default.</p></dd>
 
 
+<dt id="arg-drop-duplicated-scenarios">drop_duplicated_scenarios<a class="anchor" aria-label="anchor" href="#arg-drop-duplicated-scenarios"></a></dt>
+<dd><p>logical, when several scenarios carry the
+same name, keep only the first.</p></dd>
+
+
 <dt id="arg-scennameinlist">scenNameInList<a class="anchor" aria-label="anchor" href="#arg-scennameinlist"></a></dt>
 <dd><p>logical, should the name of the scenarios be used if not provided in the list with several scenarios?</p></dd>
+
+
+<dt id="arg-unfold">unfold<a class="anchor" aria-label="anchor" href="#arg-unfold"></a></dt>
+<dd><p>logical, expand a stored parameter back over its full domain
+before returning it.</p></dd>
 
 
 <dt id="arg-variants">variants<a class="anchor" aria-label="anchor" href="#arg-variants"></a></dt>
 <dd><p>logical, default <code>TRUE</code>: attach the technology-variant
 provenance columns <code>base</code>, <code>vintage</code> and <code>cluster</code> (from
-<code>scenario@modInp@sets$tech_variant</code>) to the returned data, so results of a
+<code>scenario@modInp@sets$variant</code>) to the returned data, so results of a
 vintaged / clustered technology can be grouped or rolled up by those
-dimensions without parsing the variant names. Has no effect when the model
+dimensions without parsing the variant names. These are TECHNOLOGY
+variants — unrelated to the own-problem run variants under <code>runs/</code>, which
+are selected by switching the scenario with <code><a href="read.html">read_solution()</a></code>.
+Has no effect when the model
 has no variants, so the returned shape is unchanged for such models. Set
 <code>FALSE</code> to suppress the columns.</p></dd>
+
+
+<dt id="arg-run">run<a class="anchor" aria-label="anchor" href="#arg-run"></a></dt>
+<dd><p>character, one or more runs to read (<code>"&lt;solve&gt;"</code> or
+<code>"&lt;variant&gt;/&lt;solve&gt;"</code>), or <code>"all"</code> for every run of each scenario. The
+returned rows gain a <code>run</code> column naming their source. <code>NULL</code> (default)
+reads each object's ACTIVE run and adds no column, so existing calls are
+unchanged. Each run is read on a COPY of the scenario, so the object you
+passed keeps its active run; a variant run brings its own problem with
+it, parameters included. Spanning runs of different problems warns —
+their results are not like-for-like. Not to be confused with <code>variants</code>,
+below, which is about technologies.</p></dd>
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
@@ -471,7 +511,7 @@ for object/model/repository methods.</p></dd>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"utopia_scen_BAU.RData"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"topia_scen_BAU.RData"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">getData</span><span class="op">(</span><span class="va">scen</span>, name <span class="op">=</span> <span class="st">"pDemand"</span>, year <span class="op">=</span> <span class="fl">2015</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">getData</span><span class="op">(</span><span class="va">scen</span>, name <span class="op">=</span> <span class="st">"vTechOut"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span>, year <span class="op">=</span> <span class="fl">2015</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">elc2050</span> <span class="op">&lt;-</span> <span class="fu">getData</span><span class="op">(</span><span class="va">scen</span>, parameters <span class="op">=</span> <span class="cn">FALSE</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, year <span class="op">=</span> <span class="fl">2050</span><span class="op">)</span></span></span>

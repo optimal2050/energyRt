@@ -68,8 +68,8 @@ res.lo: back.inter.forth
 res.up: back.inter.forth
 reserve: back.inter.forth
 rhs: inter
-share.lo: back.inter.forth
-share.up: back.inter.forth
+grp.share.lo: back.inter.forth
+grp.share.up: back.inter.forth
 stg2ainp: back.inter.forth
 stg2aout: back.inter.forth
 stgcost: back.inter.forth

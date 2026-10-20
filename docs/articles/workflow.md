@@ -1,7 +1,7 @@
 # Workflow: working with results and scenarios
 
-Once a model is **built** (see *Model bricks* and *UTOPIA I*) and
-**solved** (see *Solver backends* and *UTOPIA II*), a handful of utility
+Once a model is **built** (see *Model bricks* and *TOPIA I*) and
+**solved** (see *Solver backends* and *TOPIA II*), a handful of utility
 functions do the rest of the day-to-day work: pull objects and results
 out, edit a piece and re-solve, organize scenarios on disk, and compare
 runs. This article tours that layer.
@@ -13,19 +13,27 @@ library(dplyr)
 library(ggplot2)
 ```
 
-We use the packaged single-region UTOPIA kit as a running example, and
-keep all scenario files under a temporary folder.
+We use the packaged single-region TOPIA kit as a running example, and
+keep every store — scenarios, models, repositories and the registry —
+under a temporary folder. All four matter:
+[`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
+saves the model to the model store and references it, so redirecting
+only the scenario path leaves a `models/` folder beside the article.
 
 ``` r
 
-set_scenarios_path(file.path(tempdir(), "wf"))   # where scenarios are written
-set_registry_file(file.path(tempdir(), "wf", "energyRt_registry.csv"))
+wf <- file.path(tempdir(), "wf")
+set_scenarios_path(wf)                                  # where scenarios go
+set_models_path(file.path(wf, "models"))                # ... and models
+set_repositories_path(file.path(wf, "repositories"))    # ... and repositories
+set_registry_file(file.path(wf, "energyRt_registry.csv"))
 
-um  <- utopia_modules$electricity$R1
-mod <- newModel("UTOPIA", data = um$repo,
-                calendar = utopia_modules$calendars$s4_h24,
+um  <- topia$modules$electricity$R1
+mod <- newModel("TOPIA", data = um$repo,
+                calendar = topia$modules$calendars$s4_h24,
                 region   = um$regions,
-                horizon  = utopia_modules$horizons$base, discount = 0.05)
+                horizon  = topia$modules$horizons$base, discount = 0.05)
+mod <- setGeoscale(mod, um$geoscale)
 ```
 
 ``` r
@@ -49,9 +57,9 @@ their data). By default it returns a named list keyed by object name;
 
 repo <- um$repo
 names(getObject(repo, class = "technology"))        # all technologies
-#> [1] "ECOA" "EGAS" "ENUC" "ESOL" "EWIN" "EHYD" "EBIO"
-names(getObject(repo, class = "supply", region = "R1"))
-#> [1] "SUP_COA" "SUP_BIO" "SUP_NUC" "RES_SOL" "RES_WIN"
+#> [1] "ECOA" "EGAS" "ESOL" "EWIN" "EBIO"
+names(getObject(repo, class = "supply", region = "W1"))
+#> [1] "SUP_BIO" "RES_SOL" "RES_WIN"
 getObject(repo, name = "ECOA", drop = TRUE)@invcost # the ECOA object itself
 #>   vintage cluster region year invcost wacc payback eac retcost
 #> 1    <NA>    <NA>   <NA>   NA    2000   NA      NA  NA      NA
@@ -73,17 +81,17 @@ otherwise); every frame carries a `scenario` and a `name` column.
 ``` r
 
 getData(scen, "vObjective", merge = TRUE)$value      # total system cost, MEUR
-#> [1] 12999.41
+#> [1] 18351.9
 
 gen <- getData(scen, "vTechOut", comm = "ELC", merge = TRUE)
 head(gen[, c("scenario", "tech", "region", "year", "timeslice", "value")], 4)
 #> # A tibble: 4 × 6
-#>   scenario tech  region  year timeslice  value
-#>   <chr>    <chr> <chr>  <int> <chr>      <dbl>
-#> 1 BASE     ECOA  R1      2020 WIN_h00   0.151 
-#> 2 BASE     ECOA  R1      2020 WIN_h01   0.0882
-#> 3 BASE     ECOA  R1      2020 WIN_h02   0.0501
-#> 4 BASE     ECOA  R1      2020 WIN_h03   0.0253
+#>   scenario tech  region  year timeslice value
+#>   <chr>    <chr> <chr>  <int> <chr>     <dbl>
+#> 1 BASE     ECOA  W1      2025 WIN_h00   0.799
+#> 2 BASE     ECOA  W1      2025 WIN_h01   0.736
+#> 3 BASE     ECOA  W1      2025 WIN_h02   0.698
+#> 4 BASE     ECOA  W1      2025 WIN_h03   0.673
 ```
 
 The `...` accept set filters, exact (`comm = "ELC"`) or regex
@@ -127,9 +135,9 @@ names(findData(scen, setsNames_ = "tech"))           # parameters indexed by 'te
 
 ## Editing an object: `update()`
 
-[`update()`](https://energyRt.org/reference/newDemand.html) edits the
-slots of a **single** model object (a technology, commodity, demand, …).
-It does **not** operate on a whole model or scenario — you update the
+[`update()`](https://energyRt.org/reference/update.md) edits the slots
+of a **single** model object (a technology, commodity, demand, …). It
+does **not** operate on a whole model or scenario — you update the
 object, put it back into the repository with
 `add(..., overwrite = TRUE)`, and re-interpolate/solve.
 
@@ -139,9 +147,9 @@ ECOA <- getObject(repo, name = "ECOA", drop = TRUE)
 ECOA <- update(ECOA, invcost = data.frame(invcost = 2500))  # pricier coal capex
 repo_hi <- add(repo, ECOA, overwrite = TRUE)                # swap it back in
 
-mod_hi  <- newModel("UTOPIA_HI", data = repo_hi,
-                    calendar = utopia_modules$calendars$s4_h24,
-                    region = um$regions, horizon = utopia_modules$horizons$base,
+mod_hi  <- newModel("TOPIA_HI", data = repo_hi,
+                    calendar = topia$modules$calendars$s4_h24,
+                    region = um$regions, horizon = topia$modules$horizons$base,
                     discount = 0.05)
 ```
 
@@ -160,15 +168,16 @@ The scenarios directory is an option — read it with
 set it with
 [`set_scenarios_path()`](https://energyRt.org/reference/scenarios_path.md)
 (default `"scenarios/"`). Each scenario gets its own folder, named
-automatically as `name_model_calendar_horizon` (duplicate parts are
-dropped, so a scenario and model sharing a name appear once):
+automatically as `name-model-calendar-horizon` (parts joined by dashes,
+which valid names cannot contain; duplicate parts are dropped, so a
+scenario and model sharing a name appear once):
 
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpecC46o/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpMhq3ll/wf"
 basename(scen@path)
-#> [1] "BASE_UTOPIA_s4-h24_base"
+#> [1] "BASE-TOPIA-s4_h24-base"
 ```
 
 Saving a scenario writes an **Arrow-backed** folder that mirrors the
@@ -176,7 +185,7 @@ scenario’s structure — a thin `scen.RData` shell, a `scenario.yml`
 manifest, each large data slot as a dataset, and one folder per solver
 run:
 
-    <scenarios-path>/<name_model_calendar_horizon>/
+    <scenarios-path>/<name-model-calendar-horizon>/
     ├── scenario.yml        # manifest: model ref/hash, calendar, horizon,
     │                       #   `default:` — the default run (user-changeable)
     ├── scen.RData          # thinned S4 scenario shell
@@ -187,7 +196,8 @@ run:
     └── runs/               # one folder per solve
         ├── glpk/           #   base-problem run, named by its solve label
         │   ├── run.yml     #     provenance: solver, cmdline, times, objective
-        │   ├── solver/     #     the solver working dir (inputs + its output/)
+        │   ├── input/      #     the exchange tables handed to the solver
+        │   ├── output/     #     the solver's raw dump (read_solution() reads it)
         │   └── modOut/variables/<var>/      # the solved variables
         └── julia_highs/    #   another backend's run of the same problem
 
@@ -206,9 +216,8 @@ Solving the same scenario with several backends (or option sets — pass
 [`solve_scenario()`](https://energyRt.org/reference/solve_model.md))
 keeps every run side by side; `scenario_runs(scen)` lists them with
 status and objective, and `read_solution(scen, run = "<label>")`
-switches the active solution. A scenario referencing a model saved with
-[`save_model()`](https://energyRt.org/reference/model_store.md) skips
-the embedded `model/` copy entirely (see
+switches the active solution. A saved scenario references its model in
+the model store rather than embedding a copy of it (see
 [`?save_scenario`](https://energyRt.org/reference/save_scenario.md),
 `embed_model`).
 
@@ -248,11 +257,11 @@ identical(getScenario("BASE")@name, ld@name)
 ``` r
 
 basename(saved@path)                                 # the scenario folder
-#> [1] "BASE_UTOPIA_s4-h24_base"
+#> [1] "BASE-TOPIA-s4_h24-base"
 isInMemory(saved)                                    # FALSE -- data is on disk
-#> [1] FALSE
+#> [1] TRUE
 getData(ld, "vObjective", merge = TRUE)$value        # lazy read, no full load
-#> [1] 12999.41
+#> [1] 18351.9
 ```
 
 ``` r
@@ -279,7 +288,7 @@ shared by several models can be stored once with
 referenced by each model (`save_model(embed_repos = )`), just as
 scenarios can reference a stored model.
 [`load_registry()`](https://energyRt.org/reference/registry.md) reads
-it, [`find_registry()`](https://energyRt.org/reference/registry.md)
+it, [`find_in_registry()`](https://energyRt.org/reference/registry.md)
 filters it (by type, name, or model hash), and
 [`refresh_registry()`](https://energyRt.org/reference/registry.md)
 rebuilds it by rescanning the `scenarios/` and `models/` stores — the
@@ -320,7 +329,7 @@ emis |>
 sapply(list(BASE = scen, CO2CAP = scen_cap),
        function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
 #>   BASE CO2CAP 
-#>  12999  13413
+#>  18352  32669
 ```
 
 To reason about **model size** rather than results,
@@ -333,27 +342,27 @@ in-memory footprint:
 
 model_size(scen)
 #> model_size: BASE
-#>   parameters : 170 value, 297 maps, 13 sets
-#>   param rows : 5,927
-#>   estimate   : ~16,178 variables, ~16,852 constraints (from gating maps)
+#>   parameters : 189 value, 352 maps, 15 sets
+#>   param rows : 5,972
+#>   estimate   : ~20,012 variables, ~20,704 constraints (from gating maps)
 #>   top parameters by rows:
-#>     pTechCinp2use      1,536
+#>     pTimesliceAgg      1,188
+#>     pTechCinp2use      1,152
 #>     pWeather           1,004
 #>     pTimesliceWeight   404
-#>     pTimesliceAgg      400
 #>     pDemand            384
 #>     pExportRowPrice    384
 #>     pExportRow         384
-#>     pTechAf            384
 #>     pStorageInpEff     384
 #>     pStorageOutEff     384
 #>     pTimesliceShare    101
-#>     pTechFixom         23
-#>     pTechEac           20
+#>     pTechFixom         20
 #>     pTechInvcost       20
+#>     pTechEac           17
 #>     pTechStock         14
+#>     pWacc              12
 size(scen)
-#> [1] "7 Mb"
+#> [1] "10.9 Mb"
 ```
 
 For a systematic check that a build is correct *and* efficient,
@@ -389,7 +398,7 @@ slices are representative:
 
 ``` r
 
-tt  <- utopia_modules$calendars$s4_h24@timetable
+tt  <- topia$modules$calendars$s4_h24@timetable
 tt2 <- tt[tt$SEASON %in% c("WIN", "SUM"), ]      # two of the four seasons
 cal2 <- newCalendar(timetable = tt2, name = "s2h24",
                     year_fraction = sum(tt2$share))
@@ -399,7 +408,7 @@ scen_t <- interpolate_model(mod, "S2", cal2) |>
 sapply(list(full = scen, sampled = scen_t),
        function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
 #>    full sampled 
-#>   12999   13505
+#>   18352   20427
 ```
 
 Two traps: pass `year_fraction` **explicitly** (it is not recomputed
@@ -423,7 +432,7 @@ there is **no reweighting**: regional quantities are extensive, so the
 objective is the sub-territory’s own, and disjoint samples *add up* to
 the full model (absent cross-boundary trade).
 
-UTOPIA is single-region, so a compact three-region demo:
+TOPIA is single-region, so a compact three-region demo:
 
 ``` r
 
@@ -463,8 +472,7 @@ Filtering the geoscale to `R1 + R2` and interpolating drops the
 gs12 <- filter_geoscale(gs, "region", c("R1", "R2"),
                         drop_empty_geoframes = TRUE)
 scen12 <- interpolate_model(m3, "S12", gs12)
-#> spatial sample: dropping trade route TR23: R2 -> R3 (no boundary price; no stub)
-#> spatial sample: removing trade TR23 (no route inside the sample)
+#> spatial sample: kept 2 region(s); dropped 1 object(s) and 1 trade route(s) outside the sample (verbose = TRUE lists them)
 as.character(scen12@settings@region)
 #> [1] "R1" "R2"
 ```
@@ -478,8 +486,7 @@ via `boundary_prices`; routes without a price row are just dropped:
 
 bp <- data.frame(src = "R2", dst = "R3", price = 50, cap.up = 4)
 scen12p <- interpolate_model(m3, "S12P", gs12, boundary_prices = bp)
-#> spatial sample: dropping trade route TR23: R2 -> R3 (EXP_TR23_R22R3 stub added)
-#> spatial sample: removing trade TR23 (no route inside the sample)
+#> spatial sample: kept 2 region(s); dropped 1 object(s) and 1 trade route(s) outside the sample (verbose = TRUE lists them)
 grep("^EXP", as.character(scen12p@modInp@sets$expp), value = TRUE)
 #> [1] "EXP_TR23_R22R3"
 ```
@@ -499,17 +506,122 @@ weight’s parent total — see
 and its name is mangled (`"demo[region:R1+R2]"`) so different samples of
 one parent never collide in caches or joins. A **pruned** geoscale (a
 coarser level of the model’s own hierarchy) requests a full-territory
-solve at the parent level instead; that requires aggregating the model’s
-data (`aggregate_model_regions()`) and is not implemented yet.
+solve at the parent level instead. That is a different operation – it
+aggregates the model’s data rather than subsetting it – so
+[`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+refuses a pruned geoscale and points at
+[`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md),
+which builds the coarser model directly.
+
+### A trade window instead of a flat price
+
+A stub priced with a single number is a perfectly elastic counterparty:
+the region can buy or sell any amount the bound allows without moving
+the price. For supply-curve work that is usually too generous.
+[`boundary_window()`](https://energyRt.org/reference/boundary_window.md)
+builds a **stepped curve** instead — a rising cost of imports, a falling
+revenue on exports — and sizes its quantity from the region’s own
+demand:
+
+``` r
+
+bw <- boundary_window(m3, regions = c("R1", "R2"),
+                      share = 0.1, nsteps = 3, price = 40)
+head(bw, 2)
+#>   src dst year timeslice price cap.up nsteps price_lo price_hi
+#> 1  R2  R3   NA      <NA>    40      2      3       20       40
+```
+
+`share = 0.1` caps the boundary at 10% of the region’s demand **in each
+timeslice**, which is where the import/export bound lives; summed over
+the year that is 10% of annual demand. The window deliberately refuses
+to guess a price — it can size the quantity from the model, but what the
+neighbours would charge is a judgement, so `price` is required.
+
+The result is an ordinary `boundary_prices` table with three extra
+columns (`nsteps`, `price_lo`, `price_hi`), so it goes where a flat one
+goes; omit them and you get exactly the flat stub as before.
+
+``` r
+
+m12w <- subset_model_regions(m3, c("R1", "R2"), boundary_prices = bw)
+stub <- m12w@data[["boundary_stubs"]]@data[[1]]
+# `@cluster` declares WHAT the steps are; the split itself is enforced in the
+# quantity bound, so read it there rather than from a descriptive copy
+as.data.frame(stub@cluster)[, c("cluster", "desc", "order")]
+#>   cluster                                         desc order
+#> 1      S1 step 1 of 3: 0-0.3333 of quantity at 36.6667     1
+#> 2      S2 step 2 of 3: 0.3333-0.6667 of quantity at 30     2
+#> 3      S3 step 3 of 3: 0.6667-1 of quantity at 23.3333     3
+```
+
+### Region by region
+
+[`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md)
+runs the whole sweep — one region at a time by default, or one group at
+a time — storing each as a variant of a single scenario:
+
+``` r
+
+br <- solve_by_region(m3, name = "sweep")           # autarky
+br <- solve_by_region(m3, name = "sweep_w",         # with a trade window
+                      trade = "auto", price = 40, share = 0.1)
+br$runs
+getData(br, "vTechCap", merge = TRUE)               # stacked, region column
+```
+
+With `trade = "none"` the regions are disjoint and nothing crosses, so
+the per-region objectives **add up** to the full model’s — the same
+property the sample objectives have above. Any trade window breaks it:
+each region then faces an exterior the others cannot see. `br$additive`
+records which case you are in, and
+[`print()`](https://energyRt.org/reference/print.md) says so rather than
+leaving it to be discovered.
+
+`on_error = "continue"` keeps the sweep going past a region that fails
+to solve, which matters at 30-odd regions: a single infeasible one
+should not cost you the rest.
+
+### Sampling the calendar repeatedly
+
+A single sampled calendar gives one cheap estimate.
+[`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md)
+runs a whole ensemble of them — consecutive blocks tiling the year,
+disjoint random draws, or bootstrap draws — and keeps every run:
+
+``` r
+
+ens <- solve_by_sample(m3, name = "ens", sample_size = 2,
+                       method = "sequential")     # two-season blocks
+ens$runs
+sample_summary(ens, "vTechCap", probs = c(0.05, 0.5, 0.95))
+```
+
+Samples are drawn as whole members of a calendar level — seasons, weeks,
+days. A hand-edited sample need not be a complete cross: its calendar is
+irregular and keeps the full calendar’s timeslice names.
+[`calendar_samples()`](https://energyRt.org/reference/calendar_samples.md)
+builds the specification on its own, so it can be inspected or edited
+first.
+
+Two rules follow from how a sampled calendar works, and both are
+enforced rather than left to be discovered. A sample must keep **at
+least two members** at every level: a single season (or week, or day)
+collapses its level, and the only way to build such a calendar renames
+the leaf timeslices so the model’s own data would stop matching them.
+And every sample is **annualised** —
+`pTimesliceWeight = 1/year_fraction` — so each one estimates the *whole
+year*. The ensemble is therefore a set of replicates whose spread is the
+sampling uncertainty; summing them is meaningless, unlike the region
+sweep above, whose disjoint pieces do add up.
 
 ## See also
 
-- **Model bricks** and **UTOPIA I** — building the objects and the
-  model.
-- **Solver backends** and **UTOPIA II** — interpolating and solving.
+- **Model bricks** and **TOPIA I** — building the objects and the model.
+- **Solver backends** and **TOPIA II** — interpolating and solving.
 - [`?getData`](https://energyRt.org/reference/getData.md),
   [`?getObject`](https://energyRt.org/reference/getObject.md),
-  [`?update`](https://energyRt.org/reference/newDemand.html),
+  [`?update`](https://energyRt.org/reference/update.md),
   [`?save_scenario`](https://energyRt.org/reference/save_scenario.md),
   [`?load_scenario`](https://energyRt.org/reference/load_scenario.md),
   [`?model_size`](https://energyRt.org/reference/model_size.md),

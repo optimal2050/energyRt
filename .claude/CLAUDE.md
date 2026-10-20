@@ -24,21 +24,23 @@ this file adds only what is energyRt-specific.
 ```r
 devtools::load_all()
 devtools::document()      # regenerates NAMESPACE and all of man/
-devtools::test()          # tier "fast" (GLPK); see dev/TESTING.md for tiers
+devtools::test()          # tier "fast" (GLPK); see tests/TESTING.md for tiers
 ```
 
 The test system (coverage matrix, `@covers` tags, tiers, fork harness,
-`verify_solution()`, goldens) is documented in **`dev/TESTING.md`**; tag
+`verify_solution()`, goldens) is documented in **`tests/TESTING.md`**; tag
 conventions in `tests/README.md`. Tiers: `ENERGYRT_TEST_TIER` in
-`check < fast < cross < nightly` (`tests/testthat/helper-solvers.R`). The old
+`check < fast < cross < full` (`tests/testthat/helper-solvers.R`). The old
 `skip_on_cran()` silent-skip trap is gone — a bare `Rscript` run solves
 whenever glpsol is present. Two current traps:
 
 - **`testthat::test_file()` needs the package loaded first** —
   `pkgload::load_all(".")` (the installed copy may be stale vs the source
   tree; setup files call package functions unqualified).
-- **Never run a second test/probe process in parallel with the full suite** —
-  scenario directories are shared and collisions produce phantom failures.
+- **Parallel test processes are fine now** — each gets a private scenarios
+  root in its own `tempdir()` (`tests/testthat/setup-registry.R`, fixed
+  2026-09-28). Two processes sharing one `ENERGYRT_TEST_SCENARIOS` pin still
+  collide: one pin, one process. See `tests/TESTING.md`.
 
 ## Traps that fail silently
 

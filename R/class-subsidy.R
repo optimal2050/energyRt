@@ -8,7 +8,16 @@
 #' @slot name `r get_slot_doc("subsidy", "name")`
 #' @slot desc `r get_slot_doc("subsidy", "desc")`
 #' @slot comm `r get_slot_doc("subsidy", "comm")`
+#' @slot geoframe `r get_slot_doc("subsidy", "geoframe")`
 #' @slot region `r get_slot_doc("subsidy", "region")`
+#' @slot process `r get_slot_doc("subsidy", "process")`
+#' @slot process_ `r get_slot_doc("subsidy", "process_")`
+#' @slot classes `r get_slot_doc("subsidy", "classes")`
+#' @slot vintage `r get_slot_doc("subsidy", "vintage")`
+#' @slot vintage_ `r get_slot_doc("subsidy", "vintage_")`
+#' @slot cluster `r get_slot_doc("subsidy", "cluster")`
+#' @slot cluster_ `r get_slot_doc("subsidy", "cluster_")`
+#' @slot variable `r get_slot_doc("subsidy", "variable")`
 #' @slot defVal `r get_slot_doc("subsidy", "defVal")`
 #' @slot subsidy `r get_slot_doc("subsidy", "subsidy")`
 #' @slot misc `r get_slot_doc("subsidy", "misc")`
@@ -25,25 +34,48 @@ setClass("subsidy",
     name = "character",
     desc = "character",
     comm = "character",
+    geoframe = "character",
     region = "character",
+    process = "character",
+    process_ = "character",
+    classes = "character",
+    vintage = "character",
+    vintage_ = "character",
+    cluster = "character",
+    cluster_ = "character",
+    variable = "character",
     defVal = "numeric",
     subsidy = "data.frame",
     misc = "list"
   ),
-  # !!! add slot @variable = factor("output", "balance")
   prototype(
     name = "", # Short name
     comm = "",
     desc = "",
+    geoframe = character(),
     region = character(), #
+    process = character(), #
+    process_ = character(), #
+    classes = character(), #
+    vintage = character(), #
+    vintage_ = character(), #
+    cluster = character(), #
+    cluster_ = character(), #
+    variable = character(), #
     defVal = 0, #
     subsidy = data.frame(
       region = character(),
       year = integer(),
       timeslice = character(),
+      process = character(),
+      comm = character(),
       inp = numeric(),
       out = numeric(),
       bal = numeric(),
+      act = numeric(),
+      cap = numeric(),
+      ncap = numeric(),
+      rate = numeric(),
       stringsAsFactors = FALSE
     ),
     misc = list()
@@ -63,7 +95,16 @@ setClass("subsidy",
 #' @param name `r get_slot_doc("subsidy", "name")`
 #' @param desc `r get_slot_doc("subsidy", "desc")`
 #' @param comm `r get_slot_doc("subsidy", "comm")`
+#' @param geoframe `r get_slot_doc("subsidy", "geoframe")`
 #' @param region `r get_slot_doc("subsidy", "region")`
+#' @param process `r get_slot_doc("subsidy", "process")`
+#' @param process_ `r get_slot_doc("subsidy", "process_")`
+#' @param classes `r get_slot_doc("subsidy", "classes")`
+#' @param vintage `r get_slot_doc("subsidy", "vintage")`
+#' @param vintage_ `r get_slot_doc("subsidy", "vintage_")`
+#' @param cluster `r get_slot_doc("subsidy", "cluster")`
+#' @param cluster_ `r get_slot_doc("subsidy", "cluster_")`
+#' @param variable `r get_slot_doc("subsidy", "variable")`
 #' @param defVal `r get_slot_doc("subsidy", "defVal")`
 #' @param subsidy `r get_slot_doc("subsidy", "subsidy")`
 #' @param misc `r get_slot_doc("subsidy", "misc")`
@@ -71,7 +112,7 @@ setClass("subsidy",
 #' @return An object of class `subsidy`
 #' @family class constraint policy
 #' @export
-#' @aliases newSubsidy
+#' @param ... further named slots of the class, set on the new object.
 #' @rdname newSubsidy
 #'
 #' @examples
@@ -87,11 +128,20 @@ setClass("subsidy",
 #'     inp = 0.9 # subsidy rate
 #'    )
 #'  )
-newSub <- function(
+newSubsidy <- function(
   name,
   desc = "",
   comm = "",
+  geoframe = character(),
   region = character(),
+  process = character(),
+  process_ = character(),
+  classes = character(),
+  vintage = character(),
+  vintage_ = character(),
+  cluster = character(),
+  cluster_ = character(),
+  variable = character(),
   defVal = 0,
   subsidy = data.frame(),
   misc = list(),
@@ -102,7 +152,16 @@ newSub <- function(
     name,
     desc = desc,
     comm = comm,
+    geoframe = geoframe,
     region = region,
+    process = process,
+    process_ = process_,
+    classes = classes,
+    vintage = vintage,
+    vintage_ = vintage_,
+    cluster = cluster,
+    cluster_ = cluster_,
+    variable = variable,
     defVal = defVal,
     subsidy = subsidy,
     misc = misc,
@@ -110,9 +169,6 @@ newSub <- function(
     )
 }
 
-#' @export
-#' @noRd
-newSubsidy <- newSub
 
 # setMethod("newSub", signature(name = "character"), function(name, ..., value = NULL) {
 #   .data2slots("sub", name, ...)

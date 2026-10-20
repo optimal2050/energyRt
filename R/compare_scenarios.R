@@ -1,7 +1,7 @@
 # =========================================================================== #
 # compare_scenarios.R -- results comparison across solved scenarios (or runs
 # of one scenario), with print / autoplot methods; the comparative report
-# methods (Stage 4) live here too.
+# methods live here too.
 # =========================================================================== #
 
 # collate: report.R defines the `report` generic this file adds methods to.
@@ -24,7 +24,7 @@ NULL
 #' `vObjective` / `vTotalCost`) plus the key quantity variables
 #' (`vTechCap`, `vTechNewCap`, `vTechOut`, `vEmsFuelTot`) that are present.
 #'
-#' @param scen a **named** list of solved scenarios, or a single scenario
+#' @param object a **named** list of solved scenarios, or a single scenario
 #'   when `runs` is given.
 #' @param runs character, run ids of `scen` to compare (as listed by
 #'   [scenario_runs()]); each is read into a local copy via
@@ -59,7 +59,31 @@ NULL
 #'   accepts named scenario lists), [scenario_runs()].
 #' @family comparison
 #' @export
-compare_scenarios <- function(scen, runs = NULL, name = NULL, base = 1L,
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$s4_h24,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
+#'
+#' base <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+#' cap  <- solve_model(add(mod, ek$CO2_CAP), name = "CAP",
+#'                     solver = solver_options$glpk)
+#'
+#' # a NAMED list, the first entry as the baseline
+#' cmp <- compare_scenarios(list(BASE = base, CAP = cap))
+#' cmp
+#' ggplot2::autoplot(cmp, type = "generation", comm = "ELC")
+#'
+#' # or several runs of ONE scenario folder, by run id
+#' compare_scenarios(base, runs = scenario_runs(base)$run)
+#' }
+compare_scenarios <- function(object, runs = NULL, name = NULL, base = 1L,
                               level = c("annual_region", "annual_total"),
                               tol_rel = 1e-6, tol_abs = 1e-6,
                               inputs = FALSE, top_n = 10L) {
@@ -68,10 +92,10 @@ compare_scenarios <- function(scen, runs = NULL, name = NULL, base = 1L,
 
   # -- normalize to a named list of scenarios ------------------------------
   if (runs_mode) {
-    if (!methods::is(scen, "scenario")) {
-      stop("`runs =` requires a single scenario; got ", class(scen)[1])
+    if (!methods::is(object, "scenario")) {
+      stop("`runs =` requires a single scenario; got ", class(object)[1])
     }
-    rr <- tryCatch(scenario_runs(scen), error = function(e) NULL)
+    rr <- tryCatch(scenario_runs(object), error = function(e) NULL)
     bad <- setdiff(runs, rr$run)
     if (is.null(rr) || length(bad) > 0) {
       stop("unknown run(s): ", paste0('"', bad, '"', collapse = ", "),
@@ -81,31 +105,31 @@ compare_scenarios <- function(scen, runs = NULL, name = NULL, base = 1L,
     }
     active <- rr$run[which(rr$active)][1] %||% NA_character_
     sl <- lapply(runs, function(r) {
-      if (identical(r, active)) scen else
-        suppressMessages(read_solution(scen, run = r))
+      if (identical(r, active)) object else
+        suppressMessages(read_solution(object, run = r))
     })
     names(sl) <- runs
   } else {
-    if (methods::is(scen, "scenario")) {
+    if (methods::is(object, "scenario")) {
       stop("give a named list of scenarios, or a single scenario with ",
            "`runs =` (see scenario_runs())")
     }
-    stopifnot(is.list(scen), length(scen) >= 2)
-    ok <- vapply(scen, function(x) methods::is(x, "scenario"), logical(1))
+    stopifnot(is.list(object), length(object) >= 2)
+    ok <- vapply(object, function(x) methods::is(x, "scenario"), logical(1))
     if (!all(ok)) {
       stop("all elements must be scenarios; got: ",
-           paste(vapply(scen[!ok], function(x) class(x)[1], ""),
+           paste(vapply(object[!ok], function(x) class(x)[1], ""),
                  collapse = ", "))
     }
-    nms <- names(scen) %||% rep("", length(scen))
+    nms <- names(object) %||% rep("", length(object))
     fix <- !nzchar(nms)
-    nms[fix] <- vapply(scen[fix], function(x) x@name, "")
+    nms[fix] <- vapply(object[fix], function(x) x@name, "")
     if (anyDuplicated(nms)) {
       stop("scenario names must be unique; duplicated: ",
            paste(unique(nms[duplicated(nms)]), collapse = ", "),
            ". Name the list elements explicitly.")
     }
-    sl <- stats::setNames(scen, nms)
+    sl <- stats::setNames(object, nms)
   }
 
   # -- base resolution (reorder base first) --------------------------------
@@ -370,6 +394,9 @@ autoplot.scenarios_cmp <- function(object,
         theme_energyRt())
     }
     mx$process <- .mix_other_last(mx$process)
+    n_reg <- length(unique(mx$region))
+    mx <- .facet_cap(mx, if (n_reg > 1) c("region", "scenario") else
+                       "scenario")
     p <- ggplot2::ggplot(mx,
            ggplot2::aes(factor(.data$year), .data$value,
                         fill = .data$process)) +
@@ -377,13 +404,12 @@ autoplot.scenarios_cmp <- function(object,
       ggplot2::labs(x = NULL, y = type, fill = NULL) +
       theme_energyRt()
     for (comp in .legend_compact(length(unique(mx$process)))) p <- p + comp
-    n_reg <- length(unique(mx$region))
     p <- if (n_reg > 1) {
       p + ggplot2::facet_grid(region ~ scenario)
     } else {
       p + ggplot2::facet_wrap(~scenario)
     }
-    return(p)
+    return(.facet_caption(p, mx))
   }
 
   if (type == "emissions") {
@@ -461,10 +487,9 @@ setMethod("plot", c("scenarios_cmp", "ANY"), function(x, y, ...) {
 #' @export
 setMethod("report", "list",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("html", "pdf", "tex", "docx"), levcost = NULL,
+           format = "html", levcost = NULL,
            cost_unit = NULL, open = interactive(), reports_path = NULL,
            force = FALSE, ...) {
-    if (missing(format)) format <- "html"
     ok <- vapply(object, function(x) methods::is(x, "scenario"), logical(1))
     if (length(object) < 2 || !all(ok)) {
       stop("report() on a list expects a named list of two or more solved ",
@@ -479,7 +504,7 @@ setMethod("report", "list",
     ca <- dots[intersect(names(dots), cmp_args)]
     names(ca)[names(ca) == "variables"] <- "name"
     render_dots <- dots[setdiff(names(dots), cmp_args)]
-    cmp <- do.call(compare_scenarios, c(list(scen = object), ca))
+    cmp <- do.call(compare_scenarios, c(list(object = object), ca))
     do.call(report, c(list(cmp, template = template,
       image_file = image_file, file = file, format = format, open = open,
       reports_path = reports_path, force = force), render_dots))
@@ -489,10 +514,9 @@ setMethod("report", "list",
 #' @export
 setMethod("report", "scenarios_cmp",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("html", "pdf", "tex", "docx"), levcost = NULL,
+           format = "html", levcost = NULL,
            cost_unit = NULL, open = interactive(), reports_path = NULL,
            force = FALSE, ...) {
-    if (missing(format)) format <- "html"
     dots <- list(...)
     .report_scenarios(object, template, image_file, file, format, dots,
                       open = open, reports_path = reports_path,

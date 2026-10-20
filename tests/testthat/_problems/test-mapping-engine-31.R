@@ -1,0 +1,11 @@
+# Extracted from test-mapping-engine.R:31
+
+# setup ------------------------------------------------------------------------
+library(testthat)
+test_env <- simulate_test_env(package = "energyRt", path = "..")
+attach(test_env, warn.conflicts = FALSE)
+
+# test -------------------------------------------------------------------------
+skip_if_no_fixtures()
+scen <- interp_tier("tm_flows")
+expect_snapshot_value(mapping_counts(scen), style = "json2")

@@ -4,8 +4,9 @@ A named list of ready-to-use
 [horizon](https://energyRt.org/reference/class-horizon.md) objects with
 common milestone-year structures. Pass any element to
 [`newModel()`](https://energyRt.org/reference/newModel.md) /
-`setHorizon()`, or visualize it with
-[`plot()`](https://energyRt.org/reference/draw.md) / `autoplot()`.
+[`setHorizon()`](https://energyRt.org/reference/newModel.md), or
+visualize it with [`plot()`](https://energyRt.org/reference/draw.md) /
+`autoplot()`.
 
 ## Usage
 

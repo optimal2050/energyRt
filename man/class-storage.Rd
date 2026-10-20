@@ -32,9 +32,12 @@ the storage cycle will be a calendar day).
 \item{unit}{character. Unit of the auxiliary commodity.}
 }}
 
-\item{\code{region}}{character. Region where the storage technology exists or can be installed.}
+\item{\code{geoframe}}{character. Optional. The geoscale level this object's regions are expressed at; unset (the default) derives it from the region codes. See \code{technology@geoframe} for the full rule, including the consistency checks it turns on. A storage both consumes and delivers, so its level may be coarser than an input commodity's but never than the commodity it outputs or holds.}
 
-\item{\code{cluster}}{data.frame. Declaration of the storage clusters -- parallel sub-processes of the same storage with their own capacity, availability and costs. The motivating cases are site-constrained storage (pumped-hydro head classes, CAES caverns) and duration classes via a per-cluster \code{duration}. Optional: when empty, cluster labels are harvested from the other slots; when populated it is authoritative and an undeclared label raises an error.
+\item{\code{region}}{character. Region where the storage technology exists or can be installed. A region coarser than the finest geoscale level is allowed, and makes the object operate at that coarser cell: its capacity, activity and output live there, while an INPUT balanced at a finer level is drawn from the cells beneath it and summed. A commodity the object PRODUCES or STORES may never be finer than the object itself -- that would require disaggregating one coarse decision into several fine ones, which energyRt does not do, and is refused.
+Coarsening is a MODEL CHANGE, not a re-representation. The object's own constraints bind at its own frame, so they are WEAKER than a finer declaration's and the model is cheaper: the input/output ratio and the \verb{@ceff} group shares hold only in aggregate over the coarse cell, and availability is sized against that longer slice. If a blend limit must hold within the period, declare the object at that finer frame; an annual mandate on a finely-operated object belongs in a user constraint with an explicit \code{timeframe}. Coarsening also does NOT reduce flow variables -- those stay at the commodity's level; it removes activity variables and equation rows.}
+
+\item{\code{cluster}}{data.frame. Declaration of the storage clusters -- parallel sub-processes of the same storage with their own capacity, availability and costs. The motivating cases are site-constrained storage (pumped-hydro head classes, CAES caverns) and duration classes via a per-cluster \code{duration}. REQUIRED whenever another slot carries a \code{cluster} label, and authoritative: an undeclared label raises an error, and labels are never harvested. The share columns are different levers, not substitutes. \code{cap.share.fx} fixes the ratio of the variants' CAPACITIES in every year: loss tranches need it, because each tranche efficiency is calibrated to its place in the capacity stack and the flow must stay free to fill the cheapest first. \code{act.share.lo/up/fx} bounds a variant share of the family THROUGHPUT instead, which is what stops a clustered family collapsing to its cheapest member once regional borders are aggregated away. Both are optional; a variant with neither sizes and runs freely.
 \describe{
 \item{cluster}{character. Cluster label. Must match the \code{cluster} column values used in the other slots.}
 \item{desc}{character. Human-readable description of the cluster, used in reports.}
@@ -117,7 +120,7 @@ the storage cycle will be a calendar day).
 \item{unit}{character. Unit of \code{comm}. Descriptive only, carried for reporting and \code{convert()} and never reaching the solver. There is no \code{cap2act} on this side -- energy is energy at any resolution.}
 }}
 
-\item{\code{startLevel}}{data.frame. Energy added to the storage level ONCE PER CYCLE, at the first timeslice of the cycle. There is deliberately no \code{timeslice} column: the slice is derived from the calendar and \code{fullYear}, so it cannot be left unset and broadcast to every timeslice the way the old \code{charge} slot could. Which cycle depends on \code{fullYear}: once a year when TRUE, once per parent timeframe when FALSE. The value is ANNUAL. When the cycle is shorter than a year each cycle receives its own SHARE of it -- 365 daily cycles get 1/365 each -- so the annual endowment is the same however the cycle closes. A calendar covering part of a year endows that fraction, consistently. It is FREE to the model, by design and unavoidably -- a store that ends a cycle below where it started has consumed an endowment nobody paid for. PyPSA's \code{state_of_charge_initial} has the same property. Being additive, the level at the first timeslice is \code{startLevel} PLUS whatever carried over from the previous cycle, i.e. at least \code{startLevel} rather than exactly it; the model may end the cycle empty to make it exact. Renamed from \code{charge} (via \code{inflow}) in v0.80; both are still accepted with a warning, and any \code{timeslice} column they carried is dropped. NOTE hydro inflow does NOT belong here -- use a weather-driven \code{supply} (with \code{ava.up}, so spilling is free) feeding the storage.
+\item{\code{startLevel}}{data.frame. Energy added to the storage level ONCE PER CYCLE, at the first timeslice of the cycle. There is deliberately no \code{timeslice} column: the slice is derived from the calendar and \code{fullYear}, so it cannot be left unset and broadcast to every timeslice the way the old \code{charge} slot could. Which cycle depends on \code{fullYear}: once a year when TRUE, once per parent timeframe when FALSE. The value is ANNUAL. When the cycle is shorter than a year each cycle receives its own SHARE of it -- 365 daily cycles get 1/365 each -- so the annual endowment is the same however the cycle closes. A calendar covering part of a year endows that fraction, consistently. It is FREE to the model, by design and unavoidably -- a store that ends a cycle below where it started has consumed an endowment nobody paid for. Being additive, the level at the first timeslice is \code{startLevel} PLUS whatever carried over from the previous cycle, i.e. at least \code{startLevel} rather than exactly it; the model may end the cycle empty to make it exact. Renamed from \code{charge} (via \code{inflow}) in v0.80; both are still accepted with a warning, and any \code{timeslice} column they carried is dropped. NOTE hydro inflow does NOT belong here -- use a weather-driven \code{supply} (with \code{ava.up}, so spilling is free) feeding the storage.
 
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
@@ -167,7 +170,7 @@ the storage cycle will be a calendar day).
 }
 }}
 
-\item{\code{aeff}}{data.frame. Auxiliary commodities efficiency parameters.
+\item{\code{aeff}}{data.frame. Auxiliary commodities efficiency parameters. Rows can be assigned to a single variant via the \code{vintage} and/or \code{cluster} key columns; each variant then carries only its own couplings.
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
@@ -181,10 +184,20 @@ the storage cycle will be a calendar day).
 \item{stg2aout}{numeric. Storage-level-to-auxiliary-output-commodity coefficient (multiplier).}
 \item{cinp2aout}{numeric. Input-commodity-to-auxiliary-output-commodity coefficient (multiplier).}
 \item{cout2aout}{numeric. Output-commodity-to-auxiliary-output-commodity coefficient (multiplier).}
-\item{cap2ainp}{numeric. Capacity-to-auxiliary-input-commodity coefficient (multiplier).}
-\item{cap2aout}{numeric. Capacity-to-auxiliary-output-commodity coefficient (multiplier).}
-\item{ncap2ainp}{numeric. New-capacity-to-auxiliary-input-commodity coefficient (multiplier).}
-\item{ncap2aout}{numeric. New-capacity-to-auxiliary-output-commodity coefficient (multiplier).}
+\item{inp.cap2ainp}{numeric. Charging (input-part) capacity to auxiliary input, per unit of vStorageInpCap.}
+\item{inp.cap2aout}{numeric. Charging (input-part) capacity to auxiliary output, per unit of vStorageInpCap.}
+\item{inp.ncap2ainp}{numeric. NEW charging capacity to auxiliary input, per unit of vStorageInpNewCap (lands once, at construction).}
+\item{inp.ncap2aout}{numeric. NEW charging capacity to auxiliary output, per unit of vStorageInpNewCap (lands once, at construction).}
+\item{stg.cap2ainp}{numeric. Energy (storing-part) capacity to auxiliary input, per unit of vStorageStgCap.}
+\item{stg.cap2aout}{numeric. Energy (storing-part) capacity to auxiliary output, per unit of vStorageStgCap.}
+\item{stg.ncap2ainp}{numeric. NEW energy capacity to auxiliary input, per unit of vStorageStgNewCap (lands once, at construction) -- e.g. battery material per GWh of reservoir. This is what the pre-rename \code{ncap2ainp} was often ASSUMED to mean; that column actually coupled the discharger and is now \code{out.ncap2ainp}.
+}
+\item{stg.ncap2aout}{numeric. NEW energy capacity to auxiliary output, per unit of vStorageStgNewCap (lands once, at construction).}
+\item{out.cap2ainp}{numeric. Discharging (output-part) capacity to auxiliary input, per unit of vStorageOutCap. RENAMED from \code{cap2ainp}, which coupled only this part; the bare name is refused with a rename hint.
+}
+\item{out.cap2aout}{numeric. Discharging (output-part) capacity to auxiliary output, per unit of vStorageOutCap. Renamed from \code{cap2aout}.}
+\item{out.ncap2ainp}{numeric. NEW discharging capacity to auxiliary input, per unit of vStorageOutNewCap (lands once, at construction). Renamed from \code{ncap2ainp}.}
+\item{out.ncap2aout}{numeric. NEW discharging capacity to auxiliary output, per unit of vStorageOutNewCap (lands once, at construction). Renamed from \code{ncap2aout}.}
 \item{pho2ainp}{numeric. Aux commodity CONSUMED when capacity reaches the END OF ITS LIFE (demolition energy, labour). Multiplies the per-year phase-out FLOW, so the charge lands ONCE -- in the milestone where the capacity disappears -- not every year it stood. NO \code{pTimesliceShare} is applied and the aux balance is PER TIMESLICE, so a value given with \code{timeslice = NA} applies in EVERY slice and the annual total comes out multiplied by the slice count -- 8760x on an hourly calendar. Give a per-slice value, or name a single slice.
 }
 \item{pho2aout}{numeric. Aux commodity RELEASED when capacity reaches the END OF ITS LIFE (demolition waste, recovered material). Fires even when \code{optimizeRetirement} is FALSE, which is the usual case. NO \code{pTimesliceShare} is applied and the aux balance is PER TIMESLICE, so a value given with \code{timeslice = NA} applies in EVERY slice and the annual total comes out multiplied by the slice count -- 8760x on an hourly calendar. Give a per-slice value, or name a single slice.
@@ -244,7 +257,7 @@ the storage cycle will be a calendar day).
 
 \item{\code{fullYear}}{logical. Controls where the charge/discharge cycle closes. If TRUE (default), the storage operates across parent timeframes through the whole year: the preceding time-timeslice of the first time-timeslice of a group is the last time-timeslice of the PREVIOUS group, and only the last time-timeslice of the year wraps round to the first. A battery on an hourly calendar nested under days can therefore carry energy from one day into the next, and seasonal storage is representable. If FALSE, the cycle is closed within each parent timeframe: the preceding time-timeslice of the first time-timeslice of a group is the LAST time-timeslice of the SAME group, so every group is an independent loop with no energy carried between them.}
 
-\item{\code{duration}}{data.frame. How long the store can run at its rated output: the ratio of storing capacity to (dis)charging capacity. \code{duration = 6} on an hourly calendar is a 6-hour store. Renamed from \code{cap2stg} in v0.80, which is still accepted with a warning. It is a BOUND on (storage, region, year): \code{duration.fx} ties energy to power, \code{duration.lo}/\code{duration.up} let the model choose the ratio -- which only bites when the storing side is priced, via \verb{@storage$invcost}. The bare \code{duration} column is the scalar shorthand and is normalised to \code{duration.fx} at construction. A ONE-SIDED range opens the other side (an \code{up} alone does not inherit the default \code{lo} of 1). Saying nothing leaves the slot empty and the parameter default of \verb{[1, 1]} ties energy to power at one hour, which is the pre-v0.84 behaviour.
+\item{\code{duration}}{data.frame. How long the store can run at its rated output: the ratio of storing capacity to (dis)charging capacity. \code{duration = 6} on an hourly calendar is a 6-hour store. Renamed from \code{cap2stg} in v0.80; the old spelling is refused since v0.90. It is a BOUND on (storage, region, year): \code{duration.fx} ties energy to power, \code{duration.lo}/\code{duration.up} let the model choose the ratio -- which only bites when the storing side is priced, via \verb{@storage$invcost}. The bare \code{duration} column is the scalar shorthand and is normalised to \code{duration.fx} at construction. A ONE-SIDED range opens the other side (an \code{up} alone does not inherit the default \code{lo} of 1). Saying nothing leaves the slot empty and the parameter default of \verb{[1, 1]} ties energy to power at one hour, which is the pre-v0.84 behaviour.
 
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage.}
@@ -269,6 +282,19 @@ the storage cycle will be a calendar day).
 \item{inp2out.lo}{numeric. Lower bound on the charge-to-discharge capacity ratio.}
 \item{inp2out.up}{numeric. Upper bound on the charge-to-discharge capacity ratio.}
 \item{inp2out.fx}{numeric. Fixed charge-to-discharge capacity ratio.}
+}}
+
+\item{\code{inp2stg}}{data.frame. The charging C-rate, in 1/hours: charging capacity per unit of storing (energy) capacity. \code{inp2stg.fx} ties the charger to the reservoir exactly, \code{inp2stg.lo}/\code{.up} bound the ratio, and the bare \code{inp2stg} column is the scalar shorthand, normalised to \code{.fx} at construction; a one-sided range opens the other side. Unlike \code{duration} and \code{inp2out} there is NO binding default: the constraint exists only where a finite bound is declared, and only for storages whose charging AND storing parts both carry capacity variables (priced or bounded). The three ratios form a triangle over the parts -- \code{inp2out} = inp/out, \code{inp2stg} = inp/stg, \code{duration} = stg/out -- so any two determine the third; \code{newStorage()} refuses a contradictory fixed triangle.
+
+\describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for all.}
+\item{cluster}{character. Cluster label selecting the variant this row applies to, NA for all.}
+\item{region}{character. Region the row applies to, NA for all.}
+\item{year}{integer. Year the row applies to, NA for all.}
+\item{inp2stg}{numeric. Scalar shorthand, normalised to \code{inp2stg.fx}.}
+\item{inp2stg.lo}{numeric. Lower bound on the charging C-rate, 1/hours.}
+\item{inp2stg.up}{numeric. Upper bound on the charging C-rate, 1/hours.}
+\item{inp2stg.fx}{numeric. Fixed charging C-rate, 1/hours.}
 }}
 
 \item{\code{weather}}{data.frame. Weather factors multipliers.

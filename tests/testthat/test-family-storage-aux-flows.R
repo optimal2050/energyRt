@@ -3,17 +3,17 @@
 # charge, discharge, and the stored level).
 #
 # Shift model (supply at s1 only, demand 10 at s3), WAT aux at cost 2.
-# Verified conventions (aux lands at the STORAGE's own timeslices; storage
-# aeff has NO `comm` column -- the storage's main commodity is implied):
+# Verified conventions (aux lands at the AUX COMMODITY's timeslices -- here the
+# same slices as the storage; storage aeff has NO `comm` column -- the
+# storage's main commodity is implied):
 #   cinp2ainp r: aux_s = r * charge_s        (0.1 -> 1 @ s1)
 #   cout2ainp r: aux_s = r * discharge_s     (0.2 -> 2 @ s3)
 #   stg2ainp  r: aux_s = r * level_s         (0.05 -> 0.5 @ s2, s3)
 #
 # A storage aux flowing into a commodity with a COARSER timeframe (ANNUAL WAT
-# vs slice-level storage) aggregates through eqStorageInpTot's Agg branch --
-# the same SameTimeslice/Agg map machinery the tech side uses (fixed
-# 2026-08-25; previously the aux was computed but silently FREE because the
-# totals equation only summed at identical timeslices).
+# vs slice-level storage) is computed AT the commodity's slice: eqStorageAInp
+# sums the storage's slices with pTimesliceAgg, so the totals equation sees it
+# through the SameTimeslice branch and the Agg maps stay empty.
 # =========================================================================== #
 
 sa_slices <- paste0("s", 1:4)
@@ -91,33 +91,33 @@ test_that("family storage-aux-flows: coarse-timeframe aux agrees across backends
   }
 })
 
-# @covers pStorageCap2AInp pStorageNCap2AInp pStorageCinp2AOut pStorageCout2AOut pStorageStg2AOut depth=I backends=glpk
+# @covers pStorageOutCap2AInp pStorageOutNCap2AInp pStorageCinp2AOut pStorageCout2AOut pStorageStg2AOut depth=I backends=glpk
 test_that("family storage-aux-flows: remaining ratios land in modInp", {
   scen <- suppressMessages(suppressWarnings(interpolate_model(
     sa_build(rbind(
-      data.frame(acomm = "WAT", cap2ainp = 0.01, ncap2ainp = NA,
+      data.frame(acomm = "WAT", out.cap2ainp = 0.01, out.ncap2ainp = NA,
                  cinp2aout = NA, cout2aout = NA, stg2aout = NA),
-      data.frame(acomm = "WAT", cap2ainp = NA, ncap2ainp = 0.02,
+      data.frame(acomm = "WAT", out.cap2ainp = NA, out.ncap2ainp = 0.02,
                  cinp2aout = NA, cout2aout = NA, stg2aout = NA),
-      data.frame(acomm = "WAT", cap2ainp = NA, ncap2ainp = NA,
+      data.frame(acomm = "WAT", out.cap2ainp = NA, out.ncap2ainp = NA,
                  cinp2aout = 0.03, cout2aout = NA, stg2aout = NA),
-      data.frame(acomm = "WAT", cap2ainp = NA, ncap2ainp = NA,
+      data.frame(acomm = "WAT", out.cap2ainp = NA, out.ncap2ainp = NA,
                  cinp2aout = NA, cout2aout = 0.04, stg2aout = NA),
-      data.frame(acomm = "WAT", cap2ainp = NA, ncap2ainp = NA,
+      data.frame(acomm = "WAT", out.cap2ainp = NA, out.ncap2ainp = NA,
                  cinp2aout = NA, cout2aout = NA, stg2aout = 0.05))),
     name = "sa_rest", overwrite = TRUE)))
-  expect_equal(unique(ff_param(scen, "pStorageCap2AInp")$value), 0.01)
-  expect_equal(unique(ff_param(scen, "pStorageNCap2AInp")$value), 0.02)
+  expect_equal(unique(ff_param(scen, "pStorageOutCap2AInp")$value), 0.01)
+  expect_equal(unique(ff_param(scen, "pStorageOutNCap2AInp")$value), 0.02)
   expect_equal(unique(ff_param(scen, "pStorageCinp2AOut")$value), 0.03)
   expect_equal(unique(ff_param(scen, "pStorageCout2AOut")$value), 0.04)
   expect_equal(unique(ff_param(scen, "pStorageStg2AOut")$value), 0.05)
 })
 
-# @covers mStorageAInpCommAgg mStorageAInpCommAggTimeslice eqStorageInpTot depth=S backends=glpk
+# @covers mStorageAInpCommSameTimeslice eqStorageAInp eqStorageInpTot depth=S backends=glpk
 test_that("family storage-aux-flows: aux into a coarser-timeframe commodity is costed", {
   skip_if_no_solver()
-  # same models but WAT at ANNUAL: the slice-level aux aggregates through the
-  # Agg branch of eqStorageInpTot and the cost matches the slice-level case
+  # same models but WAT at ANNUAL: the aux is summed into ANNUAL inside
+  # eqStorageAInp and the cost matches the slice-level case
   for (case in list(list(aeff = data.frame(acomm = "WAT", stg2ainp = 0.05),
                          tag = "sa_annual_stg", aux = 1),
                     list(aeff = data.frame(acomm = "WAT", cinp2ainp = 0.1),
@@ -127,9 +127,11 @@ test_that("family storage-aux-flows: aux into a coarser-timeframe commodity is c
     scen <- suppressMessages(suppressWarnings(interpolate_model(
       sa_build(case$aeff, wat_timeframe = "ANNUAL"),
       name = case$tag, overwrite = TRUE)))
-    # the Agg classification maps must be populated (WAT coarser than storage)
-    expect_gte(nrow(ff_param(scen, "mStorageAInpCommAgg")), 1)
-    expect_gte(nrow(ff_param(scen, "mStorageAInpCommAggTimeslice")), 1)
+    # the aux row sits at WAT's own slice, so it is same-slice by construction
+    expect_gte(nrow(ff_param(scen, "mStorageAInpCommSameTimeslice")), 1)
+    expect_equal(nrow(ff_param(scen, "mStorageAInpCommAgg")), 0)
+    expect_equal(unique(as.character(ff_param(scen, "mvStorageAInp")$timeslice)),
+                 "ANNUAL")
     scen <- .fork_solve(scen, solver_options$glpk)
     expect_true(verify_solution(scen)$ok, label = paste0(case$tag, " invariants"))
     expect_equal(ff_solution_sum(scen, "vStorageAInp"), case$aux, tolerance = 1e-6,

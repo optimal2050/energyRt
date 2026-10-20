@@ -55,6 +55,17 @@ environment — feeds \code{\link[=getData]{getData()}} directly:
 A registered scenario whose folder is gone is skipped with a warning
 (run \code{\link[=refresh_registry]{refresh_registry()}} to drop the stale row).
 }
+\section{Slots stay on disk}{
+
+A loaded scenario keeps its data-frame slots in the Arrow store rather than
+in memory, so reading one directly — \code{obj@demand}, \code{obj@capacity} — returns
+an \strong{empty frame} rather than the data, and \code{isInMemory()} is \code{FALSE}.
+\code{\link[=getData]{getData()}} goes through the lazy store and is unaffected, so it is the
+route to use; \code{findData()} and \code{\link[=get_variable]{get_variable()}} likewise. This bites report
+and plotting code written against an in-memory model, where the symptom is
+an empty table rather than an error.
+}
+
 \examples{
 \dontrun{
 load_scenario("scenarios/base")

@@ -26,6 +26,20 @@ technology, supply, demand, trade, import, export, trade, storage, etc.
 Calendars, settings, and configurations cannot be stored in the repository, they
 have separate slots in model or scenario objects.
 }
+\examples{
+repo <- newRepository(
+  "my_repo",
+  newCommodity("ELC", unit = "MWh"),
+  newCommodity("COA", unit = "MMBtu"),
+  desc = "Two commodities and nothing else"
+)
+repo
+
+# objects can be added afterwards; `add()` returns the updated repository
+repo <- add(repo, newSupply("SUP_COA", commodity = "COA",
+                            supply = data.frame(cost = 2)))
+repo
+}
 \seealso{
 Other repository model data:
 \code{\link{class-repository}}

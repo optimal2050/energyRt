@@ -1,8 +1,10 @@
 ## Python/Pyomo
+## No `export_format`/`import_format`: both fall through to the
+## `exchange_format` option (Arrow IPC by default). See the `*_sqlite` /
+## `*_rdata` presets below for the legacy containers.
 Pyomo <- list(
   name = "pyomo",
   lang = "PYOMO",
-  export_format = "SQLite",
   # solver = "cplex"
   # solver = "glpk"
   solver = "cbc"
@@ -62,6 +64,139 @@ pyomo_highs_barrier$name <- "pyomo_highs_barrier"
 pyomo_highs_barrier$inc4 <- {
 "opt.options['solver'] = 'ipm'
 opt.options['run_crossover'] = 'off'"}
+
+## Write a named free-MPS file instead of solving. `inc4` runs after the model is
+## complete and before `opt.solve()`, so the model can be serialised and the solve
+## skipped. `symbolic_solver_labels` keeps energyRt's own variable and constraint
+## names; JuMP's `write_to_file` emits generic `c1_2`/`OBJ` labels instead, which
+## cannot be mapped back to model objects. For handing a model to an external
+## solver (e.g. NVIDIA cuOpt's `cuopt_cli`) and reading the solution back.
+pyomo_mps <- pyomo_highs
+pyomo_mps$name <- "pyomo_mps"
+pyomo_mps$inc4 <- {
+"model.write('model.mps', io_options={'symbolic_solver_labels': True})
+print('MPS written to model.mps; skipping solve', flush=True)
+raise SystemExit(0)"}
+
+## The matrix routes #########################################################
+# Three ways to reach a solver through an MPS file, differing in WHO WRITES THE
+# MATRIX -- which is also what decides how the solution is read back:
+#
+#   writer    row/col names in the MPS      decoded by
+#   Pyomo     symbolic, ~67 chars           inst/python/sol_to_energyrt.py
+#   multimod  positional (c0, r0)           the _col_index / _row_index files
+#
+# Positional naming is why the multimod matrix is small -- in a Pyomo MPS the
+# labels are the bulk of the file (~188 B per nonzero against ~35). The cost is
+# that the `.mps` means nothing without the index files written beside it, so
+# they must never be separated. They stay local: the solver is sent the matrix
+# alone and returns positional names, which are resolved here.
+#
+# `lang = "mm"` builds the matrix with multimod, straight from the AST: no
+# Pyomo model is ever constructed, which is the point. The Pyomo BUILD is the
+# memory wall on large models (~1 KB per nonzero), and multimod measured 1.6x
+# faster and 5.4x smaller at 19.85M nonzeros.
+
+## multimod matrix, solved locally by HiGHS, in-process ######################
+# An optional `highs_options` field (named list) is passed to HiGHS as is,
+# e.g. `solver$highs_options <- list(presolve = "off")`.
+mm_highs <- list(
+  name = "mm_highs",
+  lang = "mm",
+  solver = "HiGHS",
+  backend = "mm"
+)
+
+# the same, solved by HiGHS's interior point method without crossover --
+# the counterpart of julia_highs_barrier on the multimod matrix route
+mm_highs_barrier <- mm_highs
+mm_highs_barrier$name <- "mm_highs_barrier"
+mm_highs_barrier$highs_options <- list(presolve = "on", solver = "ipm", run_crossover = "off")
+
+# bounds and right-hand sides scaled by 2^-3 inside HiGHS (unscaled on return):
+# for models in MW/MWh/EUR, where HiGHS warns of excessively large row bounds and
+# HiPO can stall into an IPX restart. Not for models already in GW/GWh/MEUR.
+mm_highs_barrier_bs3 <- mm_highs_barrier
+mm_highs_barrier_bs3$name <- "mm_highs_barrier_bs3"
+mm_highs_barrier_bs3$highs_options$user_bound_scale <- -3L
+
+# the multimod matrix solved by Julia's HiGHS (HiGHS.jl): its build carries the
+# HiPO interior point solver, which the R `highs` package and pip `highspy` lack,
+# and HiGHS writes the solution file itself. Needs Julia with HiGHS.jl, as the
+# julia_* presets do.
+mm_julia_highs_barrier <- mm_highs_barrier
+mm_julia_highs_barrier$name <- "mm_julia_highs_barrier"
+mm_julia_highs_barrier$mm_engine <- "julia"
+mm_julia_highs_barrier_bs3 <- mm_highs_barrier_bs3
+mm_julia_highs_barrier_bs3$name <- "mm_julia_highs_barrier_bs3"
+mm_julia_highs_barrier_bs3$mm_engine <- "julia"
+
+## Cloud solve on a rented GPU (Hugging Face Jobs) ############################
+# `backend = "mmcloud"` makes .call_solver ship the locally written matrix, run
+# cuOpt on a GPU, and decode the returned solution into <solver.dir>/output/ so
+# read_solution() is unchanged. Requires a Hugging Face token (set_hf_token(),
+# HF_TOKEN, or `hf auth login`) and `huggingface_hub` in the python energyRt
+# already uses.
+#
+# Local build, remote solve -- not the other way round: measured on the 41-node
+# full-year model, `cpu-performance` costs MORE per hour than `a10g-large`
+# ($1.90 vs $1.50), the rented cores are ~1.9x slower than a desktop, and the
+# build is single-threaded, so building remotely is slower AND dearer. Cloud
+# building is worth it only to escape a local memory ceiling.
+#
+# cuOpt returns PRIMALS ONLY -- the duals in a decoded solution are NA.
+mmcloud <- mm_highs
+mmcloud$name <- "mmcloud"
+mmcloud$backend <- "mmcloud"
+mmcloud$cloud_flavor <- "a10g-large"
+mmcloud$cloud_timeout <- "3h"
+# cuOpt PDLP. linopy defaults cuOpt to method=3 (barrier) because cuOpt's own
+# default 0 (concurrent) crashes; barrier asked for 118.9 GB of VRAM on a 36M
+# nonzero model and died on a 22 GB card. 1 is what every large model solved with.
+mmcloud$gpu_method <- 1L
+
+mmcloud_crossover <- mmcloud
+mmcloud_crossover$name <- "mmcloud_crossover"
+# Crossover recovers the exact vertex optimum: measured 1.5e-7 relative error
+# against 2.3e-4 without, for a small extra solve.
+mmcloud_crossover$gpu_solver_options <- "--crossover 1"
+
+## multimod matrix, solved by cuOpt on a local GPU, through WSL (Windows) ####
+# `mm_engine = "cuopt_wsl"`: cuOpt is distributed for Linux, so `cuopt_cli` runs
+# inside WSL on the local NVIDIA card, reading the matrix under /mnt/<drive>/.
+# The solver fields are the cloud route's. The install is found through the
+# optional fields `wsl_user` and `cuopt_cli`, else the environment variables
+# ENERGYRT_WSL_USER and ENERGYRT_CUOPT_CLI, else WSL's default user and
+# `cuopt_cli` on its PATH. PDLP needs roughly 0.7 GB of GPU memory plus ~300
+# bytes per presolved nonzero.
+# cuOpt returns PRIMALS ONLY -- duals are NA -- unless crossover runs.
+mm_cuopt_wsl <- mm_highs
+mm_cuopt_wsl$name <- "mm_cuopt_wsl"
+mm_cuopt_wsl$highs_options <- NULL
+mm_cuopt_wsl$solver <- "cuOpt"
+mm_cuopt_wsl$mm_engine <- "cuopt_wsl"
+# PDLP, as on the cloud route (concurrent mode crashes; barrier exhausts GPU memory)
+mm_cuopt_wsl$gpu_method <- 1L
+mm_cuopt_wsl$gpu_time_limit <- 7200
+
+mm_cuopt_wsl_crossover <- mm_cuopt_wsl
+mm_cuopt_wsl_crossover$name <- "mm_cuopt_wsl_crossover"
+mm_cuopt_wsl_crossover$gpu_solver_options <- "--crossover 1"
+
+## Pyomo-written matrix, same GPU transport ###################################
+# Kept because it is the route every large model solved with before the
+# multimod writer existed, and because its decoder tolerates a matrix whose
+# index files were lost. Prefer `mmcloud` for new work.
+mmcloud_pyomo <- pyomo_mps
+mmcloud_pyomo$name <- "mmcloud_pyomo"
+mmcloud_pyomo$backend <- "mmcloud"
+mmcloud_pyomo$cloud_flavor <- "a10g-large"
+mmcloud_pyomo$cloud_timeout <- "3h"
+mmcloud_pyomo$gpu_method <- 1L
+
+mmcloud_pyomo_crossover <- mmcloud_pyomo
+mmcloud_pyomo_crossover$name <- "mmcloud_pyomo_crossover"
+mmcloud_pyomo_crossover$gpu_solver_options <- "--crossover 1"
 
 ## Python/Pyomo via NEOS (remote solve; no local solver, needs env var NEOS_EMAIL)
 # The scenario is still BUILT locally (Pyomo reads the data into the
@@ -171,6 +306,13 @@ set_optimizer_attribute(model, "solver", "ipm") # barrier "Interior Point Method
 set_optimizer_attribute(model, "run_crossover", "off") # polishing the solution
 '
 })
+
+# the same with bounds and right-hand sides scaled by 2^-3 (see mm_highs_barrier_bs3)
+julia_highs_barrier_bs3 <- julia_highs_barrier
+julia_highs_barrier_bs3$name <- "julia_highs_barrier_bs3"
+julia_highs_barrier_bs3$inc3 <- paste0(julia_highs_barrier$inc3,
+  'set_optimizer_attribute(model, "user_bound_scale", -3) # bounds x 2^-3 (MW/MWh/EUR models)
+')
 
 julia_highs_simplex <- julia_highs
 julia_highs_simplex$name <- "julia_highs_simplex"
@@ -381,29 +523,116 @@ gams_gdx_cbc <- list(
   solver = "CBC"
 )
 
-# Arrow IPC/feather exchange variants: model data AND solution exchanged as
-# Arrow IPC (feather, zstd) instead of SQLite/RData (input) and CSV (output).
-pyomo_cbc_arrow <- pyomo_cbc
-pyomo_cbc_arrow$name <- "pyomo_cbc_arrow"
-pyomo_cbc_arrow$export_format <- "feather"
-pyomo_cbc_arrow$import_format <- "feather"
+# LEGACY exchange variants. Arrow is now the default for every JuMP/Pyomo
+# preset (via the `exchange_format` option), so these name the older containers
+# explicitly: one SQLite database read with sqlite3/pandas, and one RData
+# bundle read with RData.jl. Both keep the historical CSV solution output.
+# They exist to keep the fallback reachable, documented and testable -- prefer
+# the plain presets.
+pyomo_cbc_sqlite <- pyomo_cbc
+pyomo_cbc_sqlite$name <- "pyomo_cbc_sqlite"
+pyomo_cbc_sqlite$export_format <- "SQLite"
+pyomo_cbc_sqlite$import_format <- "csv"
 
-julia_highs_arrow <- julia_highs
-julia_highs_arrow$name <- "julia_highs_arrow"
-julia_highs_arrow$export_format <- "feather"
-julia_highs_arrow$import_format <- "feather"
+julia_highs_rdata <- julia_highs
+julia_highs_rdata$name <- "julia_highs_rdata"
+julia_highs_rdata$export_format <- "RData"
+julia_highs_rdata$import_format <- "csv"
+
+
+# First-order (PDLP) methods. GPU execution is a build-time property of
+# libhighs (-DCUPDLP_GPU=ON); with a stock HiGHS_jll these run on the CPU,
+# where the HiGHS docs note they are not competitive with ipm/simplex.
+# Neither method produces a basic solution and neither supports crossover,
+# so duals are approximate - use ipm/simplex when shadow prices matter.
+julia_highs_pdlp <- julia_highs
+julia_highs_pdlp$name <- "julia_highs_pdlp"
+julia_highs_pdlp$inc3 <- c({
+'# HiGHS cuPDLP-C (first-order), JuMP/Julia
+set_optimizer_attribute(model, "presolve", "on")
+set_optimizer_attribute(model, "solver", "pdlp")
+# set_optimizer_attribute(model, "time_limit", 3600.0)
+'})
+
+julia_highs_hipdlp <- julia_highs
+julia_highs_hipdlp$name <- "julia_highs_hipdlp"
+julia_highs_hipdlp$inc3 <- c({
+'# HiGHS native HiPDLP (first-order), JuMP/Julia
+set_optimizer_attribute(model, "presolve", "on")
+set_optimizer_attribute(model, "solver", "hipdlp")
+# set_optimizer_attribute(model, "time_limit", 3600.0)
+'})
+
+
+# NVIDIA cuOpt via cuOpt.jl (a MathOptInterface wrapper). GPU-accelerated.
+# LINUX ONLY: cuOpt ships no Windows build, and `libcuopt.so` must be on
+# LD_LIBRARY_PATH before Julia starts. cuOpt.jl pins one cuOpt release, so the
+# installed cuopt-cu12 must match the wrapper's supported version.
+# First-order (PDLP) solutions carry a ~1e-4 duality gap; `crossover` recovers
+# a basic solution when duals are needed.
+julia_cuopt <- list(
+  name = "julia_cuopt",
+  lang = "JuMP",
+  solver = "cuOpt"
+)
+
+# Concurrent (cuOpt's default): PDLP and barrier on the GPU, dual simplex on the
+# CPU, first to finish wins. Fastest on small/medium models, but barrier's
+# factorization dominates GPU memory and the winner varies between runs.
+julia_cuopt_concurrent <- julia_cuopt
+julia_cuopt_concurrent$name <- "julia_cuopt_concurrent"
+julia_cuopt_concurrent$inc3 <- c({
+'# cuOpt options in JuMP/Julia
+set_optimizer_attribute(model, "method", 0) # 0 = concurrent
+# set_optimizer_attribute(model, "time_limit", 3600.0)
+'})
+
+# PDLP only. No factorization, so memory is linear in nonzeros - the option for
+# models whose barrier factorization does not fit in GPU memory.
+julia_cuopt_pdlp <- julia_cuopt
+julia_cuopt_pdlp$name <- "julia_cuopt_pdlp"
+julia_cuopt_pdlp$inc3 <- c({
+'# cuOpt options in JuMP/Julia
+set_optimizer_attribute(model, "method", 1) # 1 = PDLP (first-order, GPU)
+# set_optimizer_attribute(model, "time_limit", 3600.0)
+'})
+
+# PDLP with crossover to a basic solution: needed for duals (shadow prices),
+# which a first-order solution alone does not provide.
+julia_cuopt_crossover <- julia_cuopt
+julia_cuopt_crossover$name <- "julia_cuopt_crossover"
+julia_cuopt_crossover$inc3 <- c({
+'# cuOpt options in JuMP/Julia
+set_optimizer_attribute(model, "method", 1) # 1 = PDLP (first-order, GPU)
+set_optimizer_attribute(model, "crossover", true) # basic solution for duals
+# set_optimizer_attribute(model, "time_limit", 3600.0)
+'})
 
 solver_options <- list(
   # GLPK
   glpk = glpk,
   # Python/Pyomo
   pyomo_cbc = pyomo_cbc,
-  pyomo_cbc_arrow = pyomo_cbc_arrow,
+  pyomo_cbc_sqlite = pyomo_cbc_sqlite,
   pyomo_cplex = pyomo_cplex,
   pyomo_cplex_barrier = pyomo_cplex_barrier,
   pyomo_glpk = pyomo_glpk,
   pyomo_highs = pyomo_highs,
   pyomo_highs_barrier = pyomo_highs_barrier,
+  pyomo_mps = pyomo_mps,
+  # multimod-written matrix (lang = "mm"): local HiGHS, or a rented GPU
+  mm_highs = mm_highs,
+  mm_highs_barrier = mm_highs_barrier,
+  mm_highs_barrier_bs3 = mm_highs_barrier_bs3,
+  mm_julia_highs_barrier = mm_julia_highs_barrier,
+  mm_julia_highs_barrier_bs3 = mm_julia_highs_barrier_bs3,
+  mm_cuopt_wsl = mm_cuopt_wsl,
+  mm_cuopt_wsl_crossover = mm_cuopt_wsl_crossover,
+  mmcloud = mmcloud,
+  mmcloud_crossover = mmcloud_crossover,
+  # Pyomo-written matrix on the same GPU transport
+  mmcloud_pyomo = mmcloud_pyomo,
+  mmcloud_pyomo_crossover = mmcloud_pyomo_crossover,
   # Python/Pyomo via NEOS (remote solve)
   neos_pyomo_cplex = neos_pyomo_cplex,
   neos_pyomo_cplex_barrier = neos_pyomo_cplex_barrier,
@@ -413,11 +642,18 @@ solver_options <- list(
   julia_cplex = julia_cplex,
   julia_cplex_barrier = julia_cplex_barrier,
   julia_highs = julia_highs,
-  julia_highs_arrow = julia_highs_arrow,
+  julia_highs_rdata = julia_highs_rdata,
   julia_highs_barrier = julia_highs_barrier,
+  julia_highs_barrier_bs3 = julia_highs_barrier_bs3,
   julia_glpk = julia_glpk,
   julia_highs_simplex = julia_highs_simplex,
   julia_highs_parallel = julia_highs_parallel,
+  julia_highs_pdlp = julia_highs_pdlp,
+  julia_highs_hipdlp = julia_highs_hipdlp,
+  julia_cuopt = julia_cuopt,
+  julia_cuopt_concurrent = julia_cuopt_concurrent,
+  julia_cuopt_pdlp = julia_cuopt_pdlp,
+  julia_cuopt_crossover = julia_cuopt_crossover,
   # GAMS
   gams_csv_cplex = gams_cplex,
   gams_gdx_cplex = gams_gdx_cplex,

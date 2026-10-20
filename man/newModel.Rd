@@ -3,6 +3,8 @@
 \name{newModel}
 \alias{newModel}
 \alias{setHorizon,model-method}
+\alias{setHorizon}
+\alias{getHorizon}
 \alias{getHorizon,model-method}
 \title{Create new model object}
 \usage{
@@ -15,7 +17,11 @@ newModel(name = "", desc = "", ...)
 \arguments{
 \item{name}{name of the model}
 
+\item{desc}{free-text description of the model.}
+
 \item{...}{configuration parameters (see class config) and model elements (classes commodity, technology, etc.)}
+
+\item{obj}{a \code{model} object (the \code{setHorizon} / \code{getHorizon} methods).}
 }
 \value{
 model object containing model elements (\verb{@data}) and configuration (\verb{@config})

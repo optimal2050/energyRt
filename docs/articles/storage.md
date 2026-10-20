@@ -64,9 +64,10 @@ as `@output` and `@storage` are named above, overrides the shorthand for
 that role only.
 
 `unit` is descriptive: it is the unit of the **commodity** on that side,
-carried for reporting and `convert()`, and never reaches the solver.
-Capacity units are not declared — they follow from `cap2act`, which is
-why the storing side has none.
+carried for reporting and
+[`convert()`](https://energyRt.org/reference/convert.md), and never
+reaches the solver. Capacity units are not declared — they follow from
+`cap2act`, which is why the storing side has none.
 
 ## The three commodities need not be the same
 
@@ -168,7 +169,7 @@ if energy may cross the boundary between the two days.
 
 # A bundled calendar: one representative day per month, 24 hours each. Its
 # timeslices are DATED (`d015_h00`), which the reporting tools below need.
-cal <- calendars$d365_h24_subset_1day_per_month
+cal <- calendars$d365_h24_1dpm
 slices <- unique(cal@timetable$timeslice)
 jan <- grep("^d015_", slices, value = TRUE)     # the January day
 feb <- grep("^d046_", slices, value = TRUE)     # the February day
@@ -213,6 +214,7 @@ STG_YEAR <- newStorage(
   desc      = "Electricity store, one cycle over the whole year",
   commodity = "ELC",
   invcost   = list(out.invcost = 1),
+  duration  = 1,                              # the reservoir: one hour of discharge
   vintage   = data.frame(olife = 30L),
   fullYear  = TRUE
 )
@@ -222,6 +224,7 @@ STG_DAY <- newStorage(
   desc      = "The same store, but cycling once per day",
   commodity = "ELC",
   invcost   = list(out.invcost = 1),
+  duration  = 1,                              # the reservoir: one hour of discharge
   vintage   = data.frame(olife = 30L),
   fullYear  = FALSE
 )
@@ -270,17 +273,17 @@ mod_day <- newModel(
 )
 
 scen_year <- solve_model(mod_year, name = "fy_year")
-#> Solver directory:  scenarios/fy-year_d365-h24-subset-1day-per-month/runs/glpk/solver 
-#> Writing files: 0.57s
+#> Solver directory:  scenarios/fy_year-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.49s
+#> Starting  GLPK 
+#> 0.21s
+#> Reading solution: 0.23s
+scen_day <- solve_model(mod_day, name = "fy_day")
+#> Solver directory:  scenarios/fy_day-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.47s
 #> Starting  GLPK 
 #> 0.17s
-#> Reading solution: 0.19s
-scen_day <- solve_model(mod_day, name = "fy_day")
-#> Solver directory:  scenarios/fy-day_d365-h24-subset-1day-per-month/runs/glpk/solver 
-#> Writing files: 0.58s
-#> Starting  GLPK 
-#> 0.14s
-#> Reading solution: 0.19s
+#> Reading solution: 0.22s
 
 getData(scen_year, "vObjective", merge = TRUE)$value
 #> [1] 9962.545
@@ -293,9 +296,7 @@ the model falls back on the expensive plant. The flag is not a detail.
 
 `@fullYear` was **inert** before energyRt v0.80 — every storage cycled
 within its parent timeframe whatever the flag said, which made multi-day
-and seasonal storage silently unrepresentable. It surfaced when a
-converted PyPSA-Eur battery came out 2.1x oversized and idle 6,624 hours
-of 8,760.
+and seasonal storage silently unrepresentable.
 
 ## `@startLevel`: an endowment, once per cycle
 
@@ -310,6 +311,7 @@ STG_HYD <- newStorage(
   name       = "STG_HYD",
   desc       = "Reservoir hydro with an inherited initial filling",
   commodity  = "ELC",
+  capacity   = data.frame(stg.stock = 1000),  # the reservoir, MWh
   startLevel = data.frame(
     region     = "R1",
     year       = 2020L,
@@ -324,11 +326,14 @@ STG_HYD@startLevel
 
 ## Sizing the parts
 
-`@duration` and `@inp2out` are the two ratios that tie the three parts
-together. Both are **bounds**, on `(storage, region, year)`:
+`@duration`, `@inp2out` and `@inp2stg` are the ratios that tie the three
+parts together — the three edges of one triangle, so any two determine
+the third (`inp2stg = inp2out / duration`). All are **bounds**, on
+`(storage, region, year)`:
 
     duration = reservoir / discharger   [hours]
     inp2out  = charger   / discharger   [dimensionless]
+    inp2stg  = charger   / reservoir    [1/hours]  (charging C-rate)
 
 `duration = 6` fixes the ratio — a 6-hour battery. A range lets the
 model choose:
@@ -354,7 +359,8 @@ STG_FLEX@duration
 ```
 
 A one-sided range opens the other side: `duration.up = 8` means “up to 8
-hours” and does **not** quietly inherit a lower bound of 1.
+hours” with no lower bound. A link that is not declared does not exist:
+the parts it would tie are sized independently.
 
 An optimised ratio only means something when the reservoir is *priced* —
 with energy free the model simply takes the longest duration allowed.
@@ -362,20 +368,41 @@ Given a cost on both sides, and both sides binding, it lands strictly
 inside the range.
 
 `@inp2out` works the same way for the charger. Leave it out and the
-charger is sized with the discharger; give it a range and asymmetric
-hardware — a fast charger with a slow fuel cell, or a pump smaller than
-its turbine — becomes a decision rather than an assumption.
+charger and discharger are sized each for its own flow; fix it at 1 for
+one bidirectional inverter, or give it a range and asymmetric hardware —
+a fast charger with a slow fuel cell, or a pump smaller than its turbine
+— becomes a decision rather than an assumption.
+
+`@inp2stg` rates the charger against the **reservoir** instead — the
+standard battery spec (a 0.5C charger fills in two hours:
+`inp2stg.up = 0.5`). It is the link to use where there is no discharger:
+a tank filled by its own charger and emptied by a separate technology.
+Like the other two it binds only where a finite bound is declared.
+Declaring all three ratios over-determines the triangle —
+[`newStorage()`](https://energyRt.org/reference/storage.md) refuses a
+contradictory fixed triple and warns when all three carry ranges.
 
 ### Structure follows data
 
-A part carrying only a commodity name gets **no capacity variable at
-all**. Naming a commodity is metadata, not data; only a stock, a bound
-or a price materialises `vStorageInpCap` / `vStorageStgCap`. Everywhere
-else the ratio is inlined onto `vStorageOutCap`, which is exactly the
-older, smaller model.
+The **reservoir** is the storage’s anchor: `vStorageStgCap` exists for
+every storage, and it must be determined — by a stock, a capacity bound
+or a price of its own (`stg.*`; `stg.invcost = 0` for a deliberately
+free reservoir), or by a link to a sized part (`duration` to a
+discharger, `inp2stg` to a charger). A storage whose reservoir nothing
+determines would be a free, unbounded energy store, and interpolation
+stops on it.
 
-That is why adding all of this moved nothing: a storage written the old
-way keeps one capacity variable and its previous LP, to the row.
+The **charger** and **discharger** exist only with data. A part carrying
+only a commodity name gets no capacity variable: naming a commodity is
+metadata, not data; a stock, a bound or a price (`inp.*`, `out.*`)
+materialises `vStorageInpCap` / `vStorageOutCap`. Without them the
+charge and discharge are limited by the level alone, so a storage can be
+a reservoir between separate technologies — a pump and a turbine, an
+electrolyser and a fuel cell.
+
+Interpolation also stops on a declaration that has nothing to act on: an
+availability (`inp.af`, `out.af`) on a part that does not exist, or a
+link declared on one.
 
 | variable         | side       | unit       |
 |------------------|------------|------------|
@@ -450,20 +477,6 @@ This is also what makes `duration` honest. With the discharger a
 per-hour rate and the reservoir an amount,
 `duration = vStorageStgCap / vStorageOutCap` is an hour count — so
 `duration = 6` on a 10 MW discharger gives exactly 60 MWh.
-
-#### PyPSA does the same thing from the other end
-
-PyPSA’s state-of-charge equation is
-
-    soc[t] = (1-standing_loss)^eh · soc[t-1] + eff_store·eh·p_store − eh·p_dispatch/eff_dispatch
-
-where `eh` is elapsed hours. Its `p_*` variables are **rates**, so no
-limit constraint is scaled at all — neither `p ≤ p_nom` nor
-`soc ≤ e_nom`. energyRt puts the conversion on the bound instead of in
-the variable; the physics is identical. Note energyRt already agreed on
-the decay term, which has always been
-`(pStorageStgEff)^(pTimesliceShare)` — the same compounding by elapsed
-time.
 
 #### What aggregation still costs you
 
@@ -619,6 +632,7 @@ STG_FLEET <- newStorage(
     out.stock   = 120,                        # already built
     out.ncap.up = 50                          # at most 50 more in this year
   ),
+  duration  = 2,                              # two hours of storage per MW
   vintage   = data.frame(olife = 15L)
 )
 STG_FLEET@capacity
@@ -690,18 +704,26 @@ is not one of its three roles — lithium for the cells, water for a
 reservoir, land. `@aux` declares the commodity and its unit; `@aeff`
 says what it is proportional to.
 
-The `@aeff` column names read *source*`2`*target*, so `ncap2ainp` is
-auxiliary input per unit of **new** capacity, and `cout2aout` is
-auxiliary output per unit discharged:
+The `@aeff` column names read *source*`2`*target*. A storage has
+**three** capacities, so the capacity couplings carry a part prefix —
+each multiplies its own part’s capacity variable:
 
-| column                    | auxiliary flow driven by             |
-|---------------------------|--------------------------------------|
-| `ncap2ainp` / `ncap2aout` | new capacity (a build-time material) |
-| `cap2ainp` / `cap2aout`   | installed capacity (something held)  |
-| `cinp2ainp` / `cinp2aout` | charging                             |
-| `cout2ainp` / `cout2aout` | discharging                          |
-| `stg2ainp` / `stg2aout`   | the level itself                     |
-| `ncap2stg`                | new capacity, on the storing side    |
+| column | auxiliary flow driven by |
+|----|----|
+| `inp.cap2a*` / `inp.ncap2a*` | charging capacity (installed / newly built) |
+| `stg.cap2a*` / `stg.ncap2a*` | energy capacity (installed / newly built) |
+| `out.cap2a*` / `out.ncap2a*` | discharging capacity (installed / newly built) |
+| `cinp2ainp` / `cinp2aout` | charging |
+| `cout2ainp` / `cout2aout` | discharging |
+| `stg2ainp` / `stg2aout` | the level itself |
+| `ncap2stg` | new capacity, on the storing side |
+
+The bare `cap2a*` / `ncap2a*` names are **refused**: they used to couple
+only the discharger while reading as “the” capacity. A `ncap2a*`
+coupling lands once, at construction; a `cap2a*` coupling recurs on the
+standing capacity. A capacity coupling needs its part **materialised**
+(priced or bounded) — a coefficient on a part with no capacity variable
+is dropped with a warning.
 
 ``` r
 
@@ -721,14 +743,15 @@ STG_MAT <- newStorage(
     unit  = "kt"
   ),
   aeff      = data.frame(
-    acomm     = "MAT",
-    ncap2ainp = 0.25                      # kt of lithium per MW built
+    acomm         = "MAT",
+    stg.ncap2ainp = 0.25       # kt of lithium per GWh of reservoir built
   ),
+  invcost   = data.frame(stg.invcost = 8),  # materialises the storing part
   vintage   = data.frame(olife = 15L)
 )
-STG_MAT@aeff[, c("acomm", "ncap2ainp")]
-#>   acomm ncap2ainp
-#> 1   MAT      0.25
+STG_MAT@aeff[, c("acomm", "stg.ncap2ainp")]
+#>   acomm stg.ncap2ainp
+#> 1   MAT          0.25
 ```
 
 ## Weather
@@ -748,6 +771,8 @@ STG_HYD_W <- newStorage(
     weather  = "WHYD",                    # a newWeather() object in the repo
     inp.waf.fx = 1                          # inflow drives charging
   ),
+  capacity  = data.frame(inp.stock = 300,     # the intake, MW: the inflow scales its rating
+                         stg.stock = 1000),   # the reservoir, MWh
   vintage   = data.frame(olife = 60L)
 )
 ```
@@ -872,13 +897,14 @@ STG_BTR_SOL <- newStorage(
   desc      = "Battery paired with the solar plant",
   commodity = "ELC",
   invcost   = list(out.invcost = 1),
+  duration  = 1,                              # the reservoir: one hour of discharge
   vintage   = data.frame(olife = 30L),
   fullYear  = TRUE
 )
 
 repo_sol <- newRepository(
   name = "repo_sol",
-  SOL, ELC, SUP_SOL, ESOL, EPEAK, STG_BTR_SOL, DEM_EVE
+  SOL, COA, ELC, SUP_SOL, SUP_COA, ESOL, EPEAK, STG_BTR_SOL, DEM_EVE
 )
 
 sol_mod <- newModel(
@@ -892,11 +918,11 @@ sol_mod <- newModel(
 )
 
 scen <- solve_model(sol_mod, name = "solar_battery")
-#> Solver directory:  scenarios/solar-battery_d365-h24-subset-1day-per-month/runs/glpk/solver 
-#> Writing files: 0.42s
+#> Solver directory:  scenarios/solar_battery-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.56s
 #> Starting  GLPK 
-#> 0.26s
-#> Reading solution: 0.19s
+#> 0.27s
+#> Reading solution: 0.22s
 ```
 
 ``` r

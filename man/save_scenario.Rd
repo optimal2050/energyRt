@@ -5,11 +5,11 @@
 \title{Save scenario object on disk in parquet format using \code{arrow} package.}
 \usage{
 save_scenario(
-  scen,
-  path = scen@path,
+  object,
+  path = object@path,
   embed_model = NULL,
   embed_datasets = NULL,
-  format = get_arrow_format(),
+  format = get_storage_format(),
   overwrite = TRUE,
   clean_start = FALSE,
   write_log = TRUE,
@@ -17,15 +17,18 @@ save_scenario(
 )
 }
 \arguments{
-\item{scen}{scenario object.}
+\item{object}{scenario object.}
 
 \item{path}{character. Path to scenario directory.}
 
 \item{embed_model}{\code{NULL} (default), \code{TRUE}, or \code{FALSE}. Controls whether
 the model is embedded in the saved scenario or referenced from the model
-store (see \code{\link[=save_model]{save_model()}}). \code{NULL}: reference when the identical model
-content is already in the store, embed otherwise. \code{TRUE}: always embed
-(self-contained folder). \code{FALSE}: require a store hit, error otherwise.
+store (see \code{\link[=save_model]{save_model()}}). \code{NULL}: reference the store entry, saving the
+model to the store first when nothing is stored under that name; embed
+when the name is taken by different content (store entries update in
+place, so writing would replace the version other scenarios reference).
+\code{TRUE}: always embed (self-contained folder). \code{FALSE}: require an
+existing store hit, error otherwise, and never write to the store.
 A referenced save stores only \verb{\{name, hash, path\}}; \code{\link[=load_scenario]{load_scenario()}}
 resolves it back via the registry / model store.}
 
@@ -51,6 +54,13 @@ scenario object with most of the slots saved on disk.
 }
 \description{
 Save scenario object on disk in parquet format using \code{arrow} package.
+}
+\details{
+This is the only writer of a run's \verb{modOut/} store: \code{\link[=read_solution]{read_solution()}} leaves
+the solution in memory, and without a save it does not survive the session.
+The store is written for the ACTIVE run — whichever \verb{@misc$run} names — so
+saving while one run is active does not persist another's solution.
+\code{\link[=import_solution]{import_solution()}} does the read and the save in one call.
 }
 \examples{
 \dontrun{

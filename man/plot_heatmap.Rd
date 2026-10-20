@@ -19,8 +19,8 @@ named numeric vector (names are timeslices), or a \code{calendar} object (then t
 timeslice \code{share} — or \code{value} column — is shown).}
 
 \item{calendar}{A \code{calendar} object giving the layout (matched to \code{x} by
-timeslice), or a format string (e.g. \code{"d365_h24"}). If \code{NULL}, the format is
-guessed from the timeslice names with \code{\link[=tsl_guess_format]{tsl_guess_format()}}.}
+timeslice), or the name of one (e.g. \code{"d365_h24"}). Required: the layout is
+read from the calendar, never guessed from the timeslice names.}
 
 \item{value}{Name of the value column in \code{x} (defaults to the single numeric
 column, or \code{share} for a calendar).}

@@ -54,6 +54,7 @@ test_that("a custom prefix is used in the minted variant names", {
   WIN <- newTechnology(
     "EWIN", output = list(comm = "ELC"),
     vintage = data.frame(vintage = "2030", olife = 25L),
+    cluster = c("best", "mid"),
     invcost = data.frame(cluster = c("best", "mid"), invcost = c(150, 130)),
     cap2act = 1)
   mod <- vt_model(WIN, name = "pfx")
@@ -77,10 +78,10 @@ test_that("model config and scenario settings must agree", {
   )
 })
 
-test_that("check_name() rejects non-scalar and non-character input", {
+test_that("energyRt:::check_name() rejects non-scalar and non-character input", {
   # the guards used to be OR'd into the "valid" expression
-  expect_true(check_name("a1_b"))
-  expect_false(check_name("1abc"))
-  expect_false(check_name(c("a", "b")))
-  expect_false(check_name(1))
+  expect_true(energyRt:::check_name("a1_b"))
+  expect_false(energyRt:::check_name("1abc"))
+  expect_false(energyRt:::check_name(c("a", "b")))
+  expect_false(energyRt:::check_name(1))
 })

@@ -10,13 +10,13 @@
 #' @param final_message character, message to display at the end of the countdown
 #'
 #' @returns NULL
-#' @export
 #'
 #' @examples
 #' \dontrun{
-#' countdown_timer(10)
-#' countdown_timer(10, warn_message = "Something important is going to happen in 10 seconds.")
+#' energyRt:::countdown_timer(10)
+#' energyRt:::countdown_timer(10, warn_message = "Something important is going to happen in 10 seconds.")
 #' }
+#' @keywords internal
 countdown_timer <- function(
     seconds,
     warn_message = NULL,
@@ -53,20 +53,11 @@ countdown_timer <- function(
 # countdown_timer(10)
 
 
-factors_in_params <- function(x) {
-  # x - list
-  # if (inherits(x, "list")) y <- lapply()
-  # browser()
-  y <- lapply(x, function(y) any(sapply(y@data, class) == "factors"))
-  y[unlist(y)]
-}
-
 # factors_in_prams(scen_BASE_int@modInp@parameters)
 
 nonchar_in_sets <- function(x) {
   # x - list
   # if (inherits(x, "list")) y <- lapply()
-  # browser()
   y <- lapply(x, function(y) any(class(y) != "character"))
   y[unlist(y)]
 }
@@ -114,7 +105,6 @@ nonchar_in_sets <- function(x) {
 #' size(rep(1L, 1e3))
 size <- function(x, level1 = FALSE, units = "auto", sort = TRUE,
                  decreasing = FALSE, byteTol = 0, asNumeric = FALSE) {
-  # browser()
   if (!level1) {
     format(object.size(x), units = units)
   } else {
@@ -145,29 +135,26 @@ size <- function(x, level1 = FALSE, units = "auto", sort = TRUE,
         format(z, units = units)
       })
     }
-    # browser()
     ii <- vv >= byteTol
     val[ii]
   }
 }
 
-if (F) { # Check
-  size(scen, 1, "Mb", byteTol = 1024)
-  size(scen@modInp, 1, "Mb", byteTol = 1024)
-  size(scen@modInp@parameters, 1, "Mb", byteTol = 1024 * 1000)
-  size(scen@modInp@parameters$pTradeIrEff, 1, "Mb", byteTol = 1024 * 1000)
-  size(scen@modInp@parameters$pTradeIrEff@data, 1, "Mb", byteTol = 0, asNumeric = TRUE)
-  head(scen@modInp@parameters$pTradeIrEff@data)
-}
 
-dir_size <- function(path) {
+# Bytes held by a directory tree. `all.files` because a store can hold dotfiles
+# and a size that silently omits them is worse than no size; `na.rm` because
+# file.size() returns NA for anything that vanished between the listing and the
+# stat, which is routine on a directory another process is writing.
+dir_size <- function(path, missing = c("error", "zero")) {
+  missing <- match.arg(missing)
   if (!dir.exists(path)) {
+    if (missing == "zero") return(0)
     stop("Directory '", path, "' does not exist")
   }
-  files <- list.files(path, recursive = TRUE, full.names = TRUE)
-  sizes <- file.size(files)
-  # sum(file.info(list.files(".", all.files = TRUE, recursive = TRUE))$size)
-  return(sum(sizes))
+  files <- list.files(path, recursive = TRUE, full.names = TRUE,
+                      all.files = TRUE, no.. = TRUE)
+  if (!length(files)) return(0)
+  sum(file.size(files), na.rm = TRUE)
 }
 
 .fix_path <- function(x) {
@@ -180,28 +167,6 @@ fp <- function(...) {
     # normalizePath(winslash = "/", mustWork = FALSE)
 }
 
-
-#' Check validity of object's names used in sets
-#'
-#' @param x character, name of an object of `energyRt`
-#'
-#' @return logical, TRUE if the name is valid.
-#' @export
-#'
-#' @examples
-#' check_name("name")
-#' check_name("1name")
-#' check_name("name1")
-#' check_name("name_1")
-#' check_name("name_1!")
-#' check_name(c("a", "b")) # FALSE, not a single name
-#' check_name(1) # FALSE, not character
-check_name <- function(x) {
-  # NB the guards used to be OR'd into the "valid" expression, so a non-scalar
-  # or non-character input was reported as VALID. They must negate it instead.
-  length(x) == 1 && is.character(x) &&
-    sub("^[[:alpha:]][[:alnum:]_]*$", "", x) == ""
-}
 
 #' Function to find duplicated values in interpolated scenario.
 #'
@@ -331,16 +296,6 @@ findDuplicates <- function(x) {
 
 }
 
-fact2char <- function(df, asTibble = TRUE) {
-  stopifnot(is.data.frame(df))
-  jj <- sapply(df, is.factor)
-  for (j in names(df)[jj]) {
-    df[[j]] <- as.character(df[[j]])
-  }
-  if (asTibble) {df <- as_tibble(df)}
-  df
-}
-
 #' Switch on/off and select/customize progress bar
 #'
 #' @param type character, type of the progress bar to display. Existing options:
@@ -426,62 +381,16 @@ show_progress_bar <- function(show = TRUE) {
 #' @param unique logical, if TRUE (default), `unique()` function will be applied to the result.
 #'
 #' @return data.frame with dropped columns
-#' @export
 #'
 #' @examples
 #' x <- data.frame(a = c(1, 2, NA), b = c(NA, NA, NA), c = c(NA, 2, 3))
-#' drop_na_cols(x)
+#' energyRt:::drop_na_cols(x)
 #'
+#' @keywords internal
 drop_na_cols <- function(x, unique = TRUE) {
   x <- select(x, where(~ !all(is.na(.))))
   if (unique) x <- unique(x)
   x
-}
-
-#' Make a name for a scenario directory (deprecated)
-#' @description
-#' Deprecated: scenario folders are named by the internal
-#' `.scenario_dir_name()` (which slugs the parts and drops duplicates); this
-#' export never was the live implementation and produced different names.
-#' It now delegates to the real one; `prefix`/`suffix` are still honored.
-#' The previous body is archived in `drafts/make_scenario_dirname-legacy.R`.
-#'
-#' @param scen scenario object
-#' @param name character, name of the scenario, default is `scen@name`
-#' @param model_name character, name of the model, default is `scen@model@name`
-#' @param calendar_name character, name of the calendar, default is `scen@settings@calendar@name`
-#' @param horizon_name character, name of the horizon, default is `scen@settings@horizon@name`
-#' @param prefix character, prefix to add to the name
-#' @param suffix character, suffix to add to the name
-#' @param sep character, ignored (kept for backward compatibility)
-#'
-#' @return character, name of the scenario directory
-#' @keywords internal
-#' @export
-make_scenario_dirname <- function(
-    scen,
-    name = scen@name,
-    model_name = scen@model@name,
-    calendar_name = scen@settings@calendar@name,
-    horizon_name = scen@settings@horizon@name,
-    prefix = NULL,
-    suffix = NULL,
-    sep = "_"
-  ) {
-  .Deprecated(msg = paste0(
-    "make_scenario_dirname() is deprecated; scenario folders are named ",
-    "automatically (interpolate_model / save_scenario)."))
-  .path_slug(prefix, name, model_name, calendar_name, horizon_name, suffix)
-}
-
-
-fEAC <- function(invcost, discount, olife) {
-  stopifnot(olife > 0)
-  stopifnot(invcost > 0)
-  if (round(discount, 7) == 0) {
-    return(invcost/olife)
-  }
-  (invcost * discount) / (1 - (1 + discount) ^ (-olife))
 }
 
 
@@ -492,10 +401,15 @@ fEAC <- function(invcost, discount, olife) {
 #' @param any_mask character, regular expression to match "ANY*" elements
 #'
 #' @returns logical vector, TRUE if an element of the set is "ANY*"
-#' @export
 #'
 #' @examples
-#' is_any(c("ANY", "ANYREGION", "ANYTIMESLICE", "ANYYEAR", "A", "B"))
+#' energyRt:::is_any(c("ANY", "ANYREGION", "ANYTIMESLICE", "ANYYEAR", "A", "B"))
+#' @keywords internal
+# Rows of a data.frame without duplicates -- what `unique.data.frame()` returns
+# (same rows, order and row names), via data.table's radix `duplicated()`
+# instead of pasting every row into a string.
+.udf <- function(x) x[!duplicated(data.table::as.data.table(x)), , drop = FALSE]
+
 is_any <- function(x, na = TRUE, any_mask = "^ANY_?[A-Z]*$") {
   # x - vector
   # na - logical, if TRUE, NA values are included
@@ -506,20 +420,6 @@ is_any <- function(x, na = TRUE, any_mask = "^ANY_?[A-Z]*$") {
   return(ii)
 }
 
-if (F) {
-  # year as factor
-  y <- seq(2000, 2020, 5)
-  yy <- factor(y, ordered = TRUE)
-  yy <- factor(y, levels = y, ordered = TRUE)
-  yy <- factor(y, levels = y, labels = y, ordered = TRUE)
-  yy
-  labels(yy)
-  levels(yy)
-  as.character(yy)
-  as.integer(yy)
-  as.integer(levels(yy))
-
-}
 
 # Flatten a model's repository list into a single named list of its objects'
 # `@data`. Used by `model` `[` indexing (R/class-model.R). Relocated here from the
@@ -626,4 +526,87 @@ find_in_model <- function(x, pattern, fixed = TRUE, slots = NULL,
 }
 
 
+
+
+
+# ---------------------------------------------------------------------------
+# (was R/docs.R, merged 2026-09-20)
+# ---------------------------------------------------------------------------
+
+#' Retrieve slot details in rd-format
+#'
+#' @param class_name character, name of class.
+#' @param slot_name character, name of slot to retrieve.
+#' @param col_names logical, if columns information should be
+#' returned for data.frame slots.
+#'
+#' @return character, roxygen2 formatted string with slot details.
+#'
+#' @examples
+#' slotNames("technology")
+#' energyRt:::get_slot_doc("technology", "input") |> cat()
+#' energyRt:::get_slot_doc("technology", "capacity") |> cat()
+#' energyRt:::get_slot_doc("demand", "demand") |> cat()
+#' energyRt:::get_slot_doc("commodity", "agg") |> cat()
+#' @keywords internal
+get_slot_doc <- function(class_name = "technology",
+                          slot_name = "ceff",
+                          col_names = TRUE
+                          ) {
+  # Get the slot documentation for a specific slot in a class
+  # returns a roxygen2 formatted string
+  # slot_doc <- getSlots(class_name) |> filter(slotname == slot_name)
+  df <- .classes
+  slot_data <- df |> filter(slotname == slot_name, 
+                            class == class_name)
+  if (nrow(slot_data) == 0) {
+    stop("No slot found for slot: ", slot_name)
+  }
+
+  slot_type <- unique(slot_data$type)
+  if (length(slot_type) > 1) {
+    stop("Multiple slot types found for slot: ", slot_name)
+  } else if (length(slot_type) == 0) {
+    stop("No slot type found for slot: ", slot_name)
+  }
+
+  slot_description <- slot_data$description |> unique()
+  if (length(slot_description) > 1) {
+    stop("Multiple slot descriptions found for slot: ", slot_name)
+  } else if (length(slot_description) == 0) {
+    stop("No slot description found for slot: ", slot_name)
+  }
+
+  slot_desc <- paste0(slot_type, ". ", slot_description)
+  if (nrow(slot_data) == 1 || !col_names) {
+    # return one-line description
+    return(slot_desc)
+  }
+  # Check if the slot is a data.frame and contains column information
+  if (slot_type == "data.frame") {
+    slot_desc <- paste0(slot_desc, "\n  \\describe{\n")
+    slot_columns <- slot_data |> filter(!is.na(col.name))
+    if (nrow(slot_columns) == 0) {
+      stop("No columns found for slot: ", slot_name)
+    }
+
+    for (j in 1:nrow(slot_columns)) {
+      col_name <- slot_columns$col.name[j]
+      col_type <- slot_columns$col.type[j]
+      col_description <- slot_columns$col.description[j]
+
+      # Properly format the description, ensuring multiline content is handled
+      # wrapped_description <- paste(strwrap(col_description, width = 80),
+      #                              collapse = "\n   ")
+      item_entry <- paste0("    \\item{", col_name, "}{", col_type, ". ",
+                           col_description, "}\n")
+      slot_desc <- c(slot_desc, item_entry)
+    }
+
+    # Add the closing brace for describe block with the correct roxygen2 formatting
+    describe_end <- " }"
+    slot_desc <- c(slot_desc, describe_end)
+  }
+  paste(slot_desc, collapse = "")
+}
 

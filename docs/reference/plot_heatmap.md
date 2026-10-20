@@ -31,9 +31,8 @@ plot_heatmap(
 - calendar:
 
   A `calendar` object giving the layout (matched to `x` by timeslice),
-  or a format string (e.g. `"d365_h24"`). If `NULL`, the format is
-  guessed from the timeslice names with
-  [`tsl_guess_format()`](https://energyRt.org/reference/tsl_guess_format.md).
+  or the name of one (e.g. `"d365_h24"`). Required: the layout is read
+  from the calendar, never guessed from the timeslice names.
 
 - value:
 

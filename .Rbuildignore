@@ -25,28 +25,27 @@ dev-scripts/
 ^glpk$
 ^pyomo$
 ^drafts$
-^scenarios$
 vignettes/scenarios/
-tmp/
 .archive$
 .formatted$
 .unformatted$
 \.~gm$
 \.log$
 \.lst$
-\.~gm$
 \.lxi$
 \.pdf$
 
 \.vs$
-depreciated/*
-dev/*
 
 ^tools$
 ^tests/testthat/goldens/interp$
+^inst/designer/scenarios$
 ^LICENSE\.md$
 ^\.positai$
 ^\.claude$
 ^AGENTS\.md$
 ^CLAUDE\.md$
 ^AUTHORS\.md$
+__pycache__
+\.pyc$
+\.bak[0-9]*$

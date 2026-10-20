@@ -51,11 +51,8 @@ test_that("model report renders html and docx with the new sections", {
   expect_match(h, "Configuration")
   expect_match(h, "Calendar \\(timeslices per timeframe\\)")
   expect_match(h, "Commodities")
-  # per-process sections are grouped by structure since the scale round:
-  # the group heading carries the topology and class, the member table the
-  # process name
-  expect_match(h, "COA -&gt; ELC \\(technology\\)|COA -> ELC \\(technology\\)")
-  expect_match(h, "PP_COA")                       # listed as a member
+  # without groups the processes appear as sampled per-process sections
+  expect_match(h, "PP_COA \\(technology\\)")
   expect_false(grepl(">NA</td>", h, fixed = TRUE))
   fd <- grep("docx$", f, value = TRUE)
   expect_true(file.exists(fd) && file.size(fd) > 5 * 1024)
@@ -88,6 +85,21 @@ test_that("scenario report: results, provenance, checks, cost breakdown", {
   expect_false(grepl(">NA</td>", h, fixed = TRUE))
   fd <- grep("docx$", f, value = TRUE)
   expect_true(file.exists(fd) && file.size(fd) > 5 * 1024)
+})
+
+test_that("scenario and model reports default to html only", {
+  # the methods' arguments differ from the generic's, so S4 wraps them and
+  # missing(format) cannot be relied on: the default must be declared "html"
+  skip_if_no_pandoc()
+  skip_if_no_solver()
+  scen <- .rc_solved()
+  base <- tempfile("rc_scen_default_")
+  f <- suppressMessages(suppressWarnings(report(scen, file = base, open = FALSE)))
+  expect_identical(tools::file_ext(f), "html")
+  expect_false(any(file.exists(paste0(base, c(".pdf", ".tex", ".docx")))))
+  basem <- tempfile("rc_model_default_")
+  fm <- suppressMessages(suppressWarnings(report(.rc_model(), file = basem, open = FALSE)))
+  expect_identical(tools::file_ext(fm), "html")
 })
 
 test_that("scenario report: run= validates and renders a named run", {

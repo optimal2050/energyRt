@@ -75,9 +75,13 @@ test_that("declared defaults are what the getters return", {
       options(structure(list(NULL), names = paste0("en.", n)))
     }
     expect_identical(get_scenarios_path(), "scenarios/")
-    expect_identical(get_arrow_format(), "feather")
-    expect_identical(get_arrow_compression(), "zstd")
-    expect_identical(get_arrow_compression_level(), 15L)
+    expect_identical(get_storage_format(), "feather")
+    expect_identical(get_storage_compression(), "zstd")
+    expect_identical(get_storage_compression_level(), 15L)
+    # exchange files live for one solve: cheaper codec by default
+    expect_identical(get_exchange_format(), "feather")
+    expect_identical(get_exchange_compression(), "lz4")
+    expect_identical(get_exchange_compression_level(), 15L)
     expect_identical(get_default_solver(), list(name = "glpk", lang = "GLPK"))
     expect_identical(get_registry_file(), "energyRt_registry.csv")
     expect_identical(get_models_path(), "models/")
@@ -97,24 +101,24 @@ test_that("the default solver matches the solver_options preset it names", {
 
 test_that("an R option beats an environment variable beats the default", {
   with_clean_options({
-    options(en.arrow_format = NULL)
-    withr_env <- Sys.getenv("ENERGYRT_ARROW_FORMAT", unset = NA)
+    options(en.storage_format = NULL)
+    withr_env <- Sys.getenv("ENERGYRT_STORAGE_FORMAT", unset = NA)
     on.exit({
-      if (is.na(withr_env)) Sys.unsetenv("ENERGYRT_ARROW_FORMAT")
-      else Sys.setenv(ENERGYRT_ARROW_FORMAT = withr_env)
+      if (is.na(withr_env)) Sys.unsetenv("ENERGYRT_STORAGE_FORMAT")
+      else Sys.setenv(ENERGYRT_STORAGE_FORMAT = withr_env)
     }, add = TRUE)
 
-    Sys.unsetenv("ENERGYRT_ARROW_FORMAT")
-    expect_identical(.en_opt_source("arrow_format"), "default")
-    expect_identical(get_arrow_format(), "feather")
+    Sys.unsetenv("ENERGYRT_STORAGE_FORMAT")
+    expect_identical(.en_opt_source("storage_format"), "default")
+    expect_identical(get_storage_format(), "feather")
 
-    Sys.setenv(ENERGYRT_ARROW_FORMAT = "csv")
-    expect_identical(.en_opt_source("arrow_format"), "envvar")
-    expect_identical(get_arrow_format(), "csv")
+    Sys.setenv(ENERGYRT_STORAGE_FORMAT = "csv")
+    expect_identical(.en_opt_source("storage_format"), "envvar")
+    expect_identical(get_storage_format(), "csv")
 
-    options(en.arrow_format = "parquet")
-    expect_identical(.en_opt_source("arrow_format"), "option")
-    expect_identical(get_arrow_format(), "parquet")
+    options(en.storage_format = "parquet")
+    expect_identical(.en_opt_source("storage_format"), "option")
+    expect_identical(get_storage_format(), "parquet")
   })
 })
 
@@ -157,7 +161,10 @@ test_that("a solver path always ends in a slash and must exist", {
   expect_error(get_solver_path("not-a-backend"))
 })
 
-test_that("deprecated un-prefixed path env vars still work, warning once", {
+test_that("the un-prefixed path env vars are no longer read", {
+  # v0.90 consults only `ENERGYRT_*`. `JULIA_PATH` and friends are names other
+  # tools use too, so energyRt ignores them silently rather than erroring on
+  # something a user set for another program.
   dir <- normalizePath(tempdir(), winslash = "/")
   with_clean_options({
     options(en.julia_path = NULL)
@@ -168,11 +175,13 @@ test_that("deprecated un-prefixed path env vars still work, warning once", {
     }, add = TRUE)
 
     Sys.setenv(JULIA_PATH = dir)
-    .en_deprecate_reset()
-    expect_warning(res <- get_julia_path(), "deprecated")
-    expect_identical(res, dir)
-    # second read is silent
-    expect_silent(get_julia_path())
+    expect_silent(res <- get_julia_path())
+    expect_false(identical(res, dir))
+
+    # the supported name still works
+    Sys.setenv(ENERGYRT_JULIA_PATH = dir)
+    on.exit(Sys.unsetenv("ENERGYRT_JULIA_PATH"), add = TRUE)
+    expect_identical(get_julia_path(), dir)
   })
 })
 
@@ -198,20 +207,19 @@ test_that("isVerbose()/isDebug() accept levels and logicals", {
   })
 })
 
-test_that("the deprecated energyRt.verbose option is honoured once", {
+test_that("options(energyRt.verbose) is no longer honoured", {
+  # `en.verbose` is the only name in v0.90; the old option is ignored in
+  # silence, for the same reason as the path env vars.
   with_clean_options({
     old <- getOption("energyRt.verbose")
     on.exit(options(energyRt.verbose = old), add = TRUE)
 
     options(en.verbose = NULL, energyRt.verbose = TRUE)
-    .en_deprecate_reset()
-    expect_warning(res <- isVerbose(), "deprecated")
-    expect_true(res)
-    expect_silent(isVerbose())
+    expect_silent(res <- isVerbose())
+    expect_false(res)
 
-    # an explicit en.verbose wins over the deprecated option
-    options(en.verbose = 0)
-    expect_false(isVerbose())
+    options(en.verbose = 1)
+    expect_true(isVerbose())
   })
 })
 
@@ -228,7 +236,7 @@ test_that("en_config_write()/en_config_read() round-trip", {
   }, add = TRUE)
 
   with_clean_options({
-    cfg <- list(arrow_format = "parquet", scenarios_path = "scen/")
+    cfg <- list(storage_format = "parquet", scenarios_path = "scen/")
     expect_silent(suppressMessages(en_config_write(cfg, global = FALSE)))
     expect_true(file.exists(en_config_path(global = FALSE)))
     expect_identical(en_config_read(global = FALSE), cfg)
@@ -247,24 +255,24 @@ test_that("the config file fills only options the user has not set", {
 
   with_clean_options({
     suppressMessages(en_config_write(
-      list(arrow_format = "parquet", arrow_compression = "lz4"),
+      list(storage_format = "parquet", storage_compression = "lz4"),
       global = FALSE
     ))
 
     # nothing set -> the config supplies both
-    options(en.arrow_format = NULL, en.arrow_compression = NULL)
-    Sys.unsetenv(c("ENERGYRT_ARROW_FORMAT", "ENERGYRT_ARROW_COMPRESSION"))
+    options(en.storage_format = NULL, en.storage_compression = NULL)
+    Sys.unsetenv(c("ENERGYRT_STORAGE_FORMAT", "ENERGYRT_STORAGE_COMPRESSION"))
     .en_apply_config()
-    expect_identical(get_arrow_format(), "parquet")
-    expect_identical(get_arrow_compression(), "lz4")
+    expect_identical(get_storage_format(), "parquet")
+    expect_identical(get_storage_compression(), "lz4")
 
     # an env var outranks the config file
-    options(en.arrow_format = NULL, en.arrow_compression = NULL)
-    Sys.setenv(ENERGYRT_ARROW_FORMAT = "csv")
-    on.exit(Sys.unsetenv("ENERGYRT_ARROW_FORMAT"), add = TRUE)
+    options(en.storage_format = NULL, en.storage_compression = NULL)
+    Sys.setenv(ENERGYRT_STORAGE_FORMAT = "csv")
+    on.exit(Sys.unsetenv("ENERGYRT_STORAGE_FORMAT"), add = TRUE)
     .en_apply_config()
-    expect_identical(get_arrow_format(), "csv")
-    expect_identical(get_arrow_compression(), "lz4")
+    expect_identical(get_storage_format(), "csv")
+    expect_identical(get_storage_compression(), "lz4")
   })
 })
 
@@ -303,7 +311,7 @@ test_that("en_config_show() reports the source of every option", {
     expect_true(is.data.frame(res))
     expect_setequal(res$option, .en_option_names())
     expect_identical(res$source[res$option == "scenarios_path"], "option")
-    expect_identical(res$source[res$option == "arrow_compression_level"],
+    expect_identical(res$source[res$option == "storage_compression_level"],
                      "default")
   })
 })

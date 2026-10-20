@@ -5,7 +5,7 @@ Check validity of object's names used in sets
 ## Usage
 
 ``` r
-check_name(x)
+check_name(x, dot = FALSE)
 ```
 
 ## Arguments
@@ -21,18 +21,18 @@ logical, TRUE if the name is valid.
 ## Examples
 
 ``` r
-check_name("name")
+energyRt:::check_name("name")
 #> [1] TRUE
-check_name("1name")
+energyRt:::check_name("1name")
 #> [1] FALSE
-check_name("name1")
+energyRt:::check_name("name1")
 #> [1] TRUE
-check_name("name_1")
+energyRt:::check_name("name_1")
 #> [1] TRUE
-check_name("name_1!")
+energyRt:::check_name("name_1!")
 #> [1] FALSE
-check_name(c("a", "b")) # FALSE, not a single name
+energyRt:::check_name(c("a", "b")) # FALSE, not a single name
 #> [1] FALSE
-check_name(1) # FALSE, not character
+energyRt:::check_name(1) # FALSE, not character
 #> [1] FALSE
 ```

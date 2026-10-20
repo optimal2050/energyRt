@@ -4,6 +4,8 @@
 \alias{convert,character-method}
 \alias{convert,numeric-method}
 \alias{add_to_convert,character,character,numeric-method}
+\alias{convert}
+\alias{add_to_convert}
 \title{Convert units}
 \usage{
 \S4method{convert}{character}(from, to, x = 1, database = "base", ...)
@@ -40,6 +42,9 @@
 \item{alias}{character vector, alternative name(s) for the same unit.}
 
 \item{SI_prefixes}{logical, can be used with \code{SI} prefixes, FALSE by default.}
+
+\item{update}{logical; when the unit already exists with different values,
+\code{TRUE} (default) replaces them and \code{FALSE} raises an error instead.}
 }
 \value{
 numeric vector with converted values

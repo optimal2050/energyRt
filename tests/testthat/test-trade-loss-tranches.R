@@ -14,7 +14,7 @@
 #     lambda_t = loss_full * (alpha_{t-1} + alpha_t),   teff_t = 1 - lambda_t
 # which is the SECANT slope across the tranche -- so the fit is exact at every
 # breakpoint and overestimates in between (a chord of a convex function lies
-# above it). PyPSA's tangent envelope errs the other way; neither is "more
+# above it). A tangent envelope errs the other way; neither is "more
 # correct" at the same segment count.
 # =========================================================================== #
 
@@ -96,8 +96,13 @@ test_that("`lossTranches()` refuses what it cannot calibrate", {
 
 test_that("the class carries the tranches, and refuses a region on them", {
   expect_true("cluster" %in% slotNames("trade"))
+  # One definition across all six process classes: `cluster`, `desc`, `order`
+  # always; `region` where the class has regional scope; a capacity share and
+  # an activity share, both optional. A loss tranche is not a different kind
+  # of thing -- it is a cluster whose capacity share is declared.
   expect_equal(names(new("trade")@cluster),
-               c("cluster", "desc", "share", "order"))
+               c("cluster", "desc", "cap.share.fx", "act.share.lo",
+                 "act.share.up", "act.share.fx", "order"))
   # No `region` column, deliberately: a trade object has no `@region` slot -- its
   # scope comes from the route endpoints -- so a region here could restrict
   # nothing. Its ABSENCE rejects the mistake at construction, which is earlier
@@ -107,9 +112,13 @@ test_that("the class carries the tranches, and refuses a region on them", {
     newDCLink("L", "ELC", "R1", "R2",
               cluster = data.frame(cluster = "A", region = "R1")),
     "Unknown column")
-  # `@vintage`'s column set and order are unchanged.
+  # `@vintage` carries no `region` either, and for the same reason: a trade's
+  # lifespan belongs to the route. `pTradeOlife` is indexed by trade alone and
+  # `mTradeSpan`/`mTradeNew` are (trade, year) in every solver template, so
+  # `start`/`end`/`olife` have nowhere to put one (dropped in v0.90).
   expect_equal(names(new("trade")@vintage),
-               c("vintage", "region", "cluster", "start", "end", "olife"))
+               c("vintage", "cluster", "start", "end", "olife"))
+  expect_false("region" %in% names(new("trade")@vintage))
 })
 
 # --------------------------------------------------------------------------- #
@@ -153,7 +162,7 @@ test_that("the loss curve is EXACT at every breakpoint", {
 
   # BETWEEN breakpoints the secant lies ABOVE the quadratic, so the model
   # overestimates losses. That is the honest direction of the error and the
-  # opposite of PyPSA's tangent envelope; it is not a defect to be "fixed".
+  # opposite of a tangent envelope; it is not a defect to be "fixed".
   s <- sent(20, "lt5")
   expect_gt(s - 20, 0.0004 * s^2)
 })
@@ -162,8 +171,8 @@ test_that("tranche loss rates are invariant under parallel expansion", {
   skip_if_no_solver()
   # A second circuit halves r and doubles F, so `loss_full = r*F` is unchanged
   # and the SAME tranche efficiencies apply. This is what lets losses work when
-  # capacity is a decision, with no outer loop -- PyPSA's tangent formulation
-  # cannot do it because its tangent points are absolute.
+  # capacity is a decision, with no outer loop; a formulation with absolute
+  # breakpoints cannot do it.
   tr1 <- lossTranches(c(0.5, 0.5), loss = 0.04, fix = 100)
   tr2 <- lossTranches(c(0.5, 0.5), loss = 0.04, fix = 200)   # r halved, F doubled
   expect_equal(tr1$trade$teff, tr2$trade$teff)
@@ -224,7 +233,8 @@ test_that("shares that do not sum to 1 are refused at interpolation", {
   # `lossTranches()` cannot produce these, but a hand-written declaration can --
   # and the derived efficiencies would then be silently mis-calibrated.
   bad <- newDCLink("L", "ELC", "R1", "R2",
-                   cluster = data.frame(cluster = c("A", "B"), share = c(0.5, 0.4),
+                   cluster = data.frame(cluster = c("A", "B"),
+                                        cap.share.fx = c(0.5, 0.4),
                                         order = 1:2),
                    trade = data.frame(cluster = c("A", "B"), teff = c(0.99, 0.97)),
                    vintage = data.frame(olife = 50L),

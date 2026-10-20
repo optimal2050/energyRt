@@ -111,15 +111,48 @@
   args
 }
 
-# Model-wide rate accessors. Both columns are guaranteed populated once the
-# argument has been through `.discount_arg_to_rates()`, so these are plain
-# lookups with no fallback logic.
-.model_wacc <- function(cfg) .rate_column(cfg, "wacc")
-.model_sdr  <- function(cfg) .rate_column(cfg, "sdr")
-
 .rate_column <- function(cfg, col) {
   d <- tryCatch(cfg@discount, error = function(e) NULL)
   if (!is.data.frame(d) || nrow(d) == 0 || !col %in% names(d)) return(numeric())
   v <- suppressWarnings(as.numeric(d[[col]]))
   v[!is.na(v)]
+}
+
+# Rates declared at a coarse geoscale level, inherited by the regions below.
+#
+# The rate table (`model@discount` after `.discount_arg_to_rates()`) may name a
+# coarse region -- a country over its NUTS3 regions. Each model region takes, in
+# order: its OWN rows; else the rows of its NEAREST ancestor that declares any;
+# else the region-less (NA) default rows. A child's own rows replace the
+# parent's entirely, all years, so an override is never half-applied.
+#
+# Returns the table with the coarse rows replaced by their inherited copies on
+# the model regions; the coarse rows themselves are returned separately (they
+# are the rate a process declared AT the coarse region uses).
+#' @noRd
+.inherit_rates <- function(rates, hier, regions) {
+  out <- list(rates = rates, coarse = rates[0, , drop = FALSE])
+  if (is.null(rates) || !nrow(rates) || !"region" %in% names(rates) ||
+      is.null(hier) || is.null(hier$family) || !nrow(hier$family)) {
+    return(out)
+  }
+  fam <- as.data.frame(hier$family)
+  up <- stats::setNames(as.character(fam$region), as.character(fam$regionp))
+  r <- as.character(rates$region)
+  coarse_rows <- !is.na(r) & !(r %in% regions) & r %in% c(fam$region, fam$regionp)
+  if (!any(coarse_rows)) return(out)
+  declared <- unique(r[coarse_rows])
+  own <- unique(r[!is.na(r) & r %in% regions])
+  add <- list()
+  for (a in setdiff(regions, own)) {
+    x <- unname(up[a])
+    while (!is.na(x) && !(x %in% declared)) x <- unname(up[x])
+    if (length(x) == 0L || is.na(x)) next
+    rows <- rates[coarse_rows & r == x, , drop = FALSE]
+    rows$region <- a
+    add[[length(add) + 1L]] <- rows
+  }
+  out$rates <- rbind(rates[!coarse_rows, , drop = FALSE], do.call(rbind, add))
+  out$coarse <- rates[coarse_rows, , drop = FALSE]
+  out
 }

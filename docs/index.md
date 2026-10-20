@@ -1,148 +1,299 @@
-## energyRt ![energyRt hex logo](reference/figures/logo.png)
+# energyRt
 
 [![Lifecycle:
 maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://lifecycle.r-lib.org/articles/stages.html)
-[![License: AGPL
-v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![License: Apache
+2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-> 📣 **Energy System Modeling with R** — a post-conference online series
-> following useR! 2026 · four live sessions, Fridays 7–28 Aug 2026,
-> 12:00 UTC. [Details & registration »](https://energyRt.org/use-R-2026)
+> **A comprehensive, modular energy system modeling framework with an R
+> interface.**
 
-**energyRt** (*energy* system modeling *R-t*oolbox /ˈɛnərdʒi ɑrt/) is a
-macro-language for energy system modeling in R. You describe an energy
-system — its fuels, technologies, resources and demands — as R objects;
-**energyRt** compiles them into a full capacity-expansion & dispatch
-optimization model, solves it, and returns tidy results ready for
-`dplyr`/`ggplot2` analysis. The technical layer (sets, equations, solver
-files, results parsing) is generated for you, so you concentrate on the
-system you are modeling, not on the code that optimizes it.
+**energyRt** (*energy* system modeling *R-t*oolbox, /ˈɛnərdʒi ɑrt/)
+provides a modular framework and macro-language for defining,
+generating, solving, and analyzing energy system optimization models
+through R. Instead of writing mathematical equations for each
+application, modelers describe a system using reusable components:
+commodities, technologies, supply, demand, storage, and trade. energyRt
+translates these descriptions into optimization models and returns
+results ready for analysis in R.
 
-### One model, four backends
+**Build models from reusable components, from simple examples to
+large-scale applications.** Define the system once; adapt the analysis
+to the question. Temporal resolution, geographical detail, solution
+strategy, and solver backend can change without rebuilding the
+conceptual model. Start with a compact teaching example, extend it into
+a detailed sectoral or national model, or explore alternative spatial
+and temporal representations of the same system.
 
-The energyRt optimization model (~100 predefined equations, extendable
-with
-[`newConstraint()`](https://energyRt.org/reference/newConstraint.md)) is
-implemented in four mathematical-programming languages. The *same* model
-object solves on any of them, with consistent results:
+### Why energyRt?
 
-| Backend | Language | License |
-|----|----|----|
-| [GLPK / MathProg](https://www.gnu.org/software/glpk/) | (bundled with Rtools on Windows) | open source |
-| [Julia / JuMP](https://jump.dev/) | Julia + HiGHS | open source |
-| [Python / Pyomo](http://www.pyomo.org/) | Python + CBC/HiGHS | open source |
-| [GAMS](http://www.gams.com/) | GAMS | commercial |
+- **Model the system, not the implementation.** Express energy
+  technologies and their relationships as inspectable R objects; let
+  energyRt generate the sets, mappings, equations, and solver-specific
+  code.
+- **Build incrementally and reuse components.** Assemble complex systems
+  from smaller, understandable bricks; update components and derive
+  model variants without duplicating entire formulations.
+- **Choose the right scale for each question.** Combine multiple
+  balancing timeframes and nested geographical levels, and experiment
+  with aggregation or sampling without redefining the underlying system.
+- **Avoid solver lock-in.** Use MathProg, JuMP, Pyomo, GAMS, or an
+  experimental direct LP-matrix route, depending on the computational
+  environment and problem size.
+- **Go beyond a single solve.** Manage scenarios, inspect generated
+  models, validate solutions, visualize results, and build reproducible
+  analyses.
 
-Start on zero-setup GLPK; switch backends later without touching your
-model.
+energyRt provides **modeling machinery rather than a fixed model,
+dataset, or scenario**. It is intended for analysts, researchers,
+educators, and model developers who need both flexibility and
+transparency — from introductory exercises to large-scale energy-system
+studies.
 
-### Quickstart
+## How it works: bricks and axes
 
-A complete model — one fuel, one power plant, one demand — built, solved
-and read in ~20 lines (GLPK, no external setup needed on Windows with
-Rtools):
+![A TOPIA model: nested regions as stacked map planes, the calendar and
+planning horizon, four process diagrams, and the solved daily dispatch
+and generation mix](reference/figures/readme-model.png)
+
+A TOPIA model: nested regions as stacked map planes, the calendar and
+planning horizon, four process diagrams, and the solved daily dispatch
+and generation mix
+
+*The teaching model TOPIA, drawn by energyRt: the nested regions, the
+calendar and horizon, four bricks as declared, and the solved dispatch
+and generation mix.*
+
+- **Bricks.** Commodities, supply, demand, technologies, storage, trade,
+  weather, taxes, subsidies and custom constraints are plain R objects.
+  energyRt generates the sets, mappings, equations, solver files and
+  result tables; [`update()`](https://energyRt.org/reference/update.md)
+  derives a variant from an existing object.
+- **Time.** A nested
+  [timescales](https://github.com/optimal2050/timescales) calendar —
+  annual, seasonal, hourly, representative or sampled — with different
+  commodities balancing at different timeframes in one model. No fixed
+  8,760-slice ceiling.
+- **Space.** A [geoscales](https://github.com/optimal2050/geoscales)
+  hierarchy lets national, zonal and nodal balances coexist, with each
+  process and commodity at the level where its data is.
+- **Solver.** The same model writes MathProg, JuMP, Pyomo or GAMS, or
+  goes straight to an LP matrix, locally or remotely.
+
+These are independent structural axes: a model is declared once at full
+resolution, and a coarser or sampled calendar, a sub-territory, or a
+different solver is passed at solve time.
+
+## Quickstart
+
+A model with one fuel, one power plant and one demand. GLPK is bundled
+in the `glpsol` package, so no further solver is required.
 
 ``` r
 
 library(energyRt)
 
-GAS <- newCommodity("GAS", timeframe = "ANNUAL")
-ELC <- newCommodity("ELC", timeframe = "ANNUAL")
+GAS <- newCommodity(
+  name = "GAS",
+  timeframe = "ANNUAL"
+)
+ELC <- newCommodity(
+  name = "ELC",
+  timeframe = "ANNUAL"
+)
 
-SUP_GAS <- newSupply("SUP_GAS", commodity = "GAS",
-                     availability = data.frame(cost = 6.0))   # fuel price, MEUR/PJ
+SUP_GAS <- newSupply(
+  name = "SUP_GAS",
+  commodity = "GAS",
+  supply = data.frame(cost = 6.0)         # MEUR/PJ
+)
 
-EGAS <- newTechnology("EGAS",
-  input   = list(comm = "GAS"), output = list(comm = "ELC"),
-  ceff    = data.frame(comm = "GAS", cinp2use = 0.55),        # 55% efficient
-  invcost = list(invcost = 900),                              # MEUR/GW
-  fixom   = 25, cap2act = 31.536, olife = 25L)
+EGAS <- newTechnology(
+  name = "EGAS",
+  input = list(comm = "GAS"),
+  output = list(comm = "ELC"),
+  ceff = data.frame(
+    comm = "GAS",
+    cinp2use = 0.55
+  ),
+  invcost = list(invcost = 900),          # MEUR/GW
+  fixom = 25,
+  cap2act = 31.536,
+  olife = 25L
+)
 
-DEM_ELC <- newDemand("DEM_ELC", commodity = "ELC",
-                     dem = data.frame(dem = 50))               # 50 PJ a year
+DEM_ELC <- newDemand(
+  name = "DEM_ELC",
+  commodity = "ELC",
+  demand = data.frame(demand = 50)        # PJ/year
+)
 
-mod <- newModel("HELLO",
-  data    = newRepository("parts", GAS, ELC, SUP_GAS, EGAS, DEM_ELC),
-  region  = "R1", discount = 0.05,
-  horizon = newHorizon(period = 2025:2040, intervals = c(1, 5, 10),
-                       mid_is_end = TRUE))
+mod <- newModel(
+  name = "HELLO",
+  data = newRepository("parts", GAS, ELC, SUP_GAS, EGAS, DEM_ELC),
+  region = "R1",
+  discount = 0.05,
+  horizon = newHorizon(
+    period = 2025:2040,
+    intervals = c(1, 5, 10),
+    mid_is_end = TRUE
+  )
+)
 
-scen <- solve_scenario(interpolate_model(mod, name = "BASE"),
-                       solver = solver_options$glpk)
+scen <- solve_model(
+  mod,
+  name = "BASE",
+  solver = solver_options$glpk
+)
 
-getData(scen, "vObjective", merge = TRUE)   # total discounted system cost
-getData(scen, "vTechCap",   merge = TRUE)   # capacity the model built, GW
+getData(scen, "vObjective", merge = TRUE)   # discounted system cost
+getData(scen, "vTechCap", merge = TRUE)     # installed capacity
+```
+
+Changing an axis is one argument on the same objects — here the solver:
+
+``` r
+
+scen_highs <- solve_model(
+  mod,
+  name = "BASE_highs",
+  solver = solver_options$julia_highs
+)
+```
+
+[`solve_model()`](https://energyRt.org/reference/solve_model.md)
+interpolates and solves in one call. To inspect or modify the
+interpolated scenario, use the composable stages:
+
+``` r
+
+scen <- mod |>
+  interpolate(name = "BASE") |>
+  solve()
 ```
 
 The [Get started](https://energyrt.org/articles/energyRt.html) vignette
-walks through this example and the ideas behind it.
+explains the model and workflow step by step.
 
-### What’s in the box
+## Modeling and analysis capabilities
 
-- **Model bricks** — commodities, technologies (with efficiencies, fuel
-  blends & shares, auxiliary flows like emissions or cooling water),
-  supply, demand, storage, weather, trade;
-  [`draw()`](https://energyRt.org/reference/draw.md) sketches any
-  technology as a diagram. → [Model
+- **Bricks** — commodities, processes, user constraints and the
+  containers that hold them, each drawable and inspectable. [Model
   bricks](https://energyrt.org/articles/model-bricks.html)
-- **UTOPIA teaching model** — a complete multi-region electricity model
-  built step by step, shipped as the `utopia_modules` data kit with
-  ready scenario levers (CO₂ cap, carbon tax, renewable share, nuclear
-  moratorium). → [UTOPIA I: building the
-  model](https://energyrt.org/articles/utopia-build.html) · [UTOPIA II:
-  running scenarios](https://energyrt.org/articles/utopia-use.html)
-- **Levelized cost** —
-  [`levcost()`](https://energyRt.org/reference/levcost.md) prices a
-  technology *a-priori* (screening, textbook LCOE) or *ex-post* from a
-  solved scenario, with `autoplot()` cost breakdowns.
-- **Reports** — [`report()`](https://energyRt.org/reference/report.md)
-  renders an HTML/PDF datasheet for a technology or a solved process,
-  `levcost` included.
-- **Scenario workflow** — tidy result extraction with
-  [`getData()`](https://energyRt.org/reference/getData.md), scenario
-  editing & re-solving, Arrow-backed
-  [`save_scenario()`](https://energyRt.org/reference/save_scenario.md)/[`load_scenario()`](https://energyRt.org/reference/load_scenario.md)
-  for larger-than-memory results. →
-  [Workflow](https://energyrt.org/articles/workflow.html) ·
-  [Plotting](https://energyrt.org/articles/autoplot.html)
+- **Nested time** — user-defined calendars, mixed balancing timeframes,
+  sampled calendars for iteration. [Time
+  resolution](https://energyrt.org/articles/time-resolution.html)
+- **Nested space** — multi-level balances, coarse processes over fine
+  commodities, region aggregation and sub-territory solves. [Space
+  resolution](https://energyrt.org/articles/space-resolution.html)
+- **Vintages, clusters and graded resources** — one object expands into
+  a family of processes; tiered commodities and weather so the best
+  sites run out before the next grade starts. [Vintages &
+  clusters](https://energyrt.org/articles/variants.html)
+- **Four languages, a direct matrix, GPU and cloud** — MathProg, JuMP,
+  Pyomo or GAMS from one model; an LP/MPS matrix through multimod; NEOS
+  and cloud execution. [Solver
+  backends](https://energyrt.org/articles/backends.html)
+- **Solve strategies** — perfect foresight, myopic, sampled, region by
+  region, or guided toward a target, each recorded as a run.
+  [Workflow](https://energyrt.org/articles/workflow.html)
+- **Data and scenario management** — a project registry addressing
+  thousands of solved runs by name; Arrow-backed results larger than
+  memory. [Scenario
+  management](https://energyrt.org/articles/scenario-management.html)
+- **Validation and reproducibility** — structural checks that refuse a
+  meaningless model,
+  [`verify_solution()`](https://energyRt.org/reference/verify_solution.md)
+  re-deriving the model’s own identities, content hashes for every
+  object. [Workflow](https://energyrt.org/articles/workflow.html)
+- **Reporting and visualisation** —
+  [`draw()`](https://energyRt.org/reference/draw.md) diagrams,
+  `autoplot()`, maps, levelized costs without a solver, and
+  HTML/PDF/Word reports for any object.
+  [Reports](https://energyrt.org/articles/reports.html),
+  [autoplot()](https://energyrt.org/articles/autoplot.html)
 
-### Learn more
+The full inventory is in
+[Features](https://energyrt.org/articles/features.html).
 
-- [Get started](https://energyrt.org/articles/energyRt.html) — the core
-  idea in ten minutes.
-- [Tutorials](https://energyrt.org/articles/) — installation, solver
-  backends, model bricks, UTOPIA, workflow, plotting.
-- **useR! workshop** — a hands-on training course built on energyRt and
-  the UTOPIA model (Quarto book, in preparation).
-- [IDEEA](https://ideea-model.github.io/IDEEA/) — an open multi-region
-  model of India’s power system, built with energyRt: a production-scale
-  application.
+## Modeling languages and solve routes
+
+Four modelling languages, one direct-matrix route, and remote execution.
+The model definition does not change between them.
+
+| Route | What it does | Good fit |
+|----|----|----|
+| [GLPK / MathProg](https://www.gnu.org/software/glpk/) | Writes MathProg and solves with `glpsol` | First models, teaching, transparent local runs |
+| [Julia / JuMP](https://jump.dev/) | Writes JuMP for HiGHS, CBC, GLPK, CPLEX or cuOpt | Larger local models and a choice of algorithms |
+| [Python / Pyomo](https://www.pyomo.org/) | Writes Pyomo for HiGHS, CBC, GLPK or CPLEX | Python-based solver environments |
+| [GAMS](https://www.gams.com/) | Writes GAMS for solvers such as CPLEX or CBC | Existing institutional GAMS workflows |
+| [multimod](https://github.com/optimal2050/multimod) | Assembles the LP matrix directly, writes MPS, solves with HiGHS or cuOpt, or renders the formulation as LaTeX | Large linear problems, documentation, inspection |
+
+[NEOS](https://neos-server.org/) runs supported solver jobs remotely
+without a local licence. GPU first-order solving uses NVIDIA cuOpt
+through JuMP (Linux, or WSL on Windows), or cloud hardware through the
+experimental mmcloud route. Setup, presets and limits are in [Solver
+backends](https://energyrt.org/articles/backends.html).
 
 ## Installation
 
 ``` r
 
-pak::pkg_install("optimal2050/energyRt")
-# or
-remotes::install_github("optimal2050/energyRt")
+pak::pkg_install(c("optimal2050/energyRt", "glpsol"))
 ```
 
-To reproduce **pre-2026 models**, install the frozen legacy release
-instead: `pak::pkg_install("optimal2050/energyRt@v0.50")`.
+`pak` installs energyRt’s R dependencies, including the optimal2050
+packages listed in `DESCRIPTION`. The `glpsol` package bundles the GLPK
+binary on every platform, and energyRt uses it first; Julia/JuMP,
+Python/Pyomo or GAMS are configured separately. Then check the setup:
 
-You will need at least one solver backend. On Windows, **GLPK ships with
-Rtools** — no extra setup. For Julia/JuMP, Python/Pyomo, or GAMS see the
-[installation article](https://energyrt.org/articles/install.html) and
-the [solver backends
-article](https://energyrt.org/articles/backends.html).
+``` r
 
-### Development status
+library(energyRt)
+en_setup()
+en_check_dependencies()
+```
 
-The current development line (**v0.60.x**) modernizes the interpolation
-pipeline, scenario storage, and analysis tools (`levcost`, `report`,
-`autoplot`) on the way to **v1.0**. The **v0.50** release
-(*“half-way-there”*) is frozen and remains available for pre-2026
-modeling projects; its model code, classes and methods will receive
-fixes only.
+The [installation guide](https://energyrt.org/articles/install.html) has
+the platform-specific steps.
 
-The package website: <https://energyrt.org>
+## Documentation
+
+- [Features](https://energyrt.org/articles/features.html) — the full
+  inventory of capabilities, organised by axis and workflow stage.
+- [Get started](https://energyrt.org/articles/energyRt.html) — the core
+  idea and first model.
+- [Model bricks](https://energyrt.org/articles/model-bricks.html) — the
+  objects used to describe a system.
+- [Time resolution](https://energyrt.org/articles/time-resolution.html),
+  [timescales](https://github.com/optimal2050/timescales), and [space
+  resolution](https://energyrt.org/articles/space-resolution.html) —
+  user-defined nested calendars and regional hierarchies.
+- [Storage](https://energyrt.org/articles/storage.html) and [Vintages &
+  clusters](https://energyrt.org/articles/variants.html) — the two
+  classes with the most structure, worked through end to end.
+- [Units](https://energyrt.org/articles/units.html) — stating units, and
+  the capacity-to-activity conversion.
+- [TOPIA I](https://energyrt.org/articles/topia-build.html),
+  [II](https://energyrt.org/articles/topia-use.html) and
+  [III](https://energyrt.org/articles/region-aggregation.html) —
+  building a complete teaching model, running scenarios on it, and
+  aggregating its regions.
+- [Workflow](https://energyrt.org/articles/workflow.html), [scenario
+  management](https://energyrt.org/articles/scenario-management.html)
+  and [reports](https://energyrt.org/articles/reports.html) — from a
+  model to a reproducible study.
+- [reneuro](https://github.com/optimal2050/reneuro/) — the same
+  machinery applied to Europe + Neighbors power system at production
+  scale.
+
+## Status
+
+Version 0.90 is the pre-release for v1.0 and the first release since
+`v0.50-beta`; what remains before v1.0 is testing, debugging and
+visualisation rather than new structure. The [release
+notes](https://energyrt.org/news/) list what changed.
+
+Bug reports and proposed improvements go to the [issue
+tracker](https://github.com/optimal2050/energyRt/issues). The package
+website is <https://energyrt.org>.

@@ -7,36 +7,42 @@
 \usage{
 plot_demand(
   object,
-  style = c("area", "line"),
+  style = c("area", "line", "heatmap"),
   year = NULL,
   interpolate = TRUE,
   palette = "D",
+  calendar = NULL,
   ...
 )
 
 \method{autoplot}{demand}(
   object,
-  style = c("area", "line"),
+  style = c("area", "line", "heatmap"),
   year = NULL,
   interpolate = TRUE,
   palette = "D",
+  calendar = NULL,
   ...
 )
 }
 \arguments{
 \item{object}{A \code{demand} object.}
 
-\item{style}{\code{"area"} (annual totals) or \code{"line"} (timeslice profiles).}
+\item{style}{\code{"area"} (annual totals), \code{"line"} (timeslice profiles) or
+\code{"heatmap"} (calendar heatmap by region).}
 
 \item{year}{Optional integer vector of years. For \code{"area"} these are the
 interpolation targets (default: range of the given years); for \code{"line"}
-they filter which given years are shown.}
+and \code{"heatmap"} they filter which given years are shown.}
 
 \item{interpolate}{Logical, default \code{TRUE}: for \code{"area"}, interpolate the
 annual totals over the target years; \code{FALSE} aggregates only the given
 data years.}
 
 \item{palette}{viridis palette option, as in \code{\link[ggplot2:scale_fill_viridis_d]{ggplot2::scale_fill_viridis_d()}}.}
+
+\item{calendar}{Optional \code{calendar} object ordering the heatmap's
+timeslice axis.}
 
 \item{...}{Passed to \code{\link[=getData]{getData()}} (e.g. \verb{region =} filter).}
 }
@@ -49,10 +55,12 @@ Two views of a \code{demand} object:
 \item{\code{style = "area"} (default)}{\strong{aggregated} demand -- timeslice values are
 summed to annual totals and drawn as an area over the years (stacked by
 region), with the given data years marked as points.}
-\item{\code{style = "line"}}{\strong{profiles} -- the within-year demand shape by
-region and year. Timeslices with an hour tag (\code{"..._h07"}) are drawn against
-the hour of day (faceted season x region when a season prefix is
-present); other calendars fall back to the timeslice sequence.}
+\item{\code{style = "line"}}{\strong{profiles} -- the within-year demand shape,
+drawn by the same engine as \code{\link[=plot_weather]{plot_weather()}}: the finest time level on
+\code{x}, one line per coarser level, faceted by region and year.}
+\item{\code{style = "heatmap"}}{a calendar heatmap of the demand shape --
+the same layout as the \code{\link[=plot_weather]{plot_weather()}} heatmap (finest timeframe on
+\code{y}, next on \code{x}), faceted by region and year.}
 }
 }
 \keyword{internal}

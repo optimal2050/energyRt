@@ -26,6 +26,8 @@ Create separate trade objects to optimize different parts of the trade network
 
 \item{\code{commodity}}{character. The traded commodity short name.}
 
+\item{\code{geoframe}}{character. Optional. The geoscale level this object's regions are expressed at; unset (the default) derives it from the region codes. See \code{technology@geoframe} for the full rule, including the consistency checks it turns on. \code{trade} has no \code{region} slot: the level is the one its ROUTES are expressed at, checked against every \code{src} and \code{dst}. A corridor delivers at \code{dst}, so its level may not be coarser than the traded commodity's -- moving a state-level commodity between nations would have to distribute it among the destination's children, which the balance layer does not do.}
+
 \item{\code{routes}}{data.frame. Source and destination regions. For bivariate trade define both directions in separate rows.
 \describe{
 \item{from}{character. Source region.}
@@ -57,7 +59,7 @@ Create separate trade objects to optimize different parts of the trade network
 }
 \item{reactance}{numeric. Series reactance \code{x} of the line, in the model's own impedance units. Carried for AC lines and used by nothing unless the model is interpolated with \code{kvl = TRUE}, when it becomes the coefficient of Kirchhoff's voltage law. Presence of a finite \code{reactance} is what marks a route as a PASSIVE AC branch: a controllable DC link has none, because its flow is chosen rather than set by impedance. Must be SYMMETRIC across the two directed rows of a line -- the voltage law constrains the net flow -- and a line under KVL must be declared in both directions. Where several physical circuits have been merged into one route, the value is the EQUIVALENT reactance, \code{1/x_eq = sum(1/x_i)}, not any one circuit's.
 }
-\item{resistance}{numeric. Series resistance \code{r} of the line, same units and same symmetry requirement as \code{reactance}. Recorded for round-tripping with power-system models (PyPSA's \code{Line} carries both). It does not drive losses by itself -- losses are the per-route \code{teff} -- but it is the input \code{lossTranches()} turns into a piecewise-linear loss curve: pass it with the rating it was measured against, since \code{loss_full = r * F} and a resistance alone does not determine a loss fraction.
+\item{resistance}{numeric. Series resistance \code{r} of the line, same units and same symmetry requirement as \code{reactance}. Recorded so a line keeps both parameters through a round trip. It does not drive losses by itself -- losses are the per-route \code{teff} -- but it is the input \code{lossTranches()} turns into a piecewise-linear loss curve: pass it with the rating it was measured against, since \code{loss_full = r * F} and a resistance alone does not determine a loss fraction.
 }
 }}
 
@@ -67,7 +69,7 @@ Create separate trade objects to optimize different parts of the trade network
 \item{unit}{character. Unit of the auxiliary commodity.}
 }}
 
-\item{\code{aeff}}{data.frame. Auxiliary commodity efficiency parameters.
+\item{\code{aeff}}{data.frame. Auxiliary commodity efficiency parameters. Rows can be assigned to a single variant via the \code{vintage} and/or \code{cluster} key columns; each variant then carries only its own couplings.
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the \code{cluster} slot.}
@@ -84,7 +86,7 @@ Create separate trade objects to optimize different parts of the trade network
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the \code{cluster} slot.}
-\item{region}{character. Endpoint region bearing this rate. NA applies the rate at every endpoint of the route; name the regions to vary it between them. Must be one of the model's own regions -- a coarser geoscale level is accepted by validation but never reaches the objective.
+\item{region}{character. Endpoint region bearing this rate. NA applies the rate at every endpoint of the route; name the regions to vary it between them. A coarser geoscale level is accepted and charged ONCE at that cell, not once per child region.
 }
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{invcost}{numeric. Investment cost.}
@@ -102,7 +104,7 @@ Create separate trade objects to optimize different parts of the trade network
 Charged where the flow ORIGINATES (\code{src}) and added to
 total system cost, exactly as \code{technology@varom} is. Use
 it for wheeling fees, transit taxes or any real charge per
-unit shipped. Becomes \code{pTradeIrCost}.
+unit shipped. Becomes \code{pTradeIrVarom}.
 
 \code{markup} -- a border price or bilateral charge: a TRANSFER. The
 importing region pays it and the exporting region
@@ -123,6 +125,20 @@ Before 0.85 both columns were summed into a single term that cancelled between \
 \item{start}{integer. The first year the trade object is available for investment. NA means unbounded (up to \code{end}).}
 \item{end}{integer. The last year the trade object is available for investment. NA means unbounded (from \code{start} on).}
 \item{olife}{integer. Operational life of the trade object in years.}
+}}
+
+\item{\code{cluster}}{data.frame. Declaration of the object's parallel sub-lines. For trade a cluster is a LOSS TRANCHE: one segment of a piecewise-linear approximation of the quadratic loss curve, with its own share of the capacity and its own \code{teff}. Real losses go as \code{r * f^2}, so the loss FRACTION rises with loading -- which a single \code{teff} cannot express, since under it a half-loaded and a fully-loaded line lose the same proportion.
+This slot declares WHAT the tranches are; the per-tranche values live in the \code{cluster} column of the variant-varying slots (\code{trade}, \code{capacity}, ...). Build both with \code{lossTranches()} rather than by hand.
+There is deliberately no \code{region} column: a trade object has no \code{region} slot -- its scope comes from the route endpoints -- so a region here could restrict nothing, and its absence rejects the mistake at construction rather than deep inside variant expansion.
+REQUIRED whenever any other slot carries a \code{cluster} label, and AUTHORITATIVE: a label used in a slot but not declared here is a typo and an error. Labels are never harvested from the data slots -- a misspelling would otherwise become a variant with defaults for everything it does not carry (no cost, no bound). The share columns are different levers, not substitutes. \code{cap.share.fx} fixes the ratio of the variants' CAPACITIES in every year: loss tranches need it, because each tranche efficiency is calibrated to its place in the capacity stack and the flow must stay free to fill the cheapest first. \code{act.share.lo/up/fx} bounds a variant share of the family THROUGHPUT instead, which is what stops a clustered family collapsing to its cheapest member once regional borders are aggregated away. Both are optional; a variant with neither sizes and runs freely.
+
+\describe{
+\item{cluster}{character. Tranche label, used in the expanded object name.}
+\item{desc}{character. Description of the tranche.}
+\item{share}{numeric. Fraction of the line's capacity this tranche occupies. The shares must sum to 1: the tranche efficiencies are derived from them (\code{lambda_t = loss_full * (alpha_t-1 + alpha_t)}) and are calibrated only when they do. Declaring shares is also what makes the capacities of an INVESTABLE line be tied to those proportions -- without the tie the solver would build the whole corridor as the lowest-loss tranche and the approximation would collapse.
+}
+\item{order}{integer. Fill order, 1 = the lowest-loss tranche. Without it labels sort alphabetically, so "T10" would precede "T2".
+}
 }}
 
 \item{\code{cap2act}}{numeric. Capacity to activity ratio.}

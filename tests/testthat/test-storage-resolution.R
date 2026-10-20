@@ -18,9 +18,8 @@
 # The bounds now carry `cap2act * pTimesliceShare[s]`, and `cap2act` defaults to
 # 8760, so a capacity reads as commodity per HOUR on any calendar.
 #
-# The ENERGY capacity deliberately gets no such factor -- an hour is an hour and
-# MWh are MWh, which is also exactly what PyPSA does (`soc <= e_nom` carries no
-# elapsed-hours weighting; only the accumulation equation does).
+# The ENERGY capacity deliberately gets no such factor -- an hour is an hour
+# and MWh are MWh; only the accumulation equation carries elapsed time.
 # =========================================================================== #
 
 HOURS_PER_YEAR <- 8760

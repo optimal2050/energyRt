@@ -174,25 +174,18 @@ set_neos_email <- function(email = NULL) {
 #' Please cite NEOS in publications.
 #'
 #' @param category NEOS solver category abbreviation, e.g. `"milp"`, `"lp"`,
-#'   `"nco"` (see [neos_list_categories()]).
-#' @param solver NEOS solver name, e.g. `"CPLEX"`, `"Gurobi"` (see
-#'   [neos_list_solvers()]).
-#' @param inputMethod input format, e.g. `"GAMS"`, `"MPS"`, `"AMPL"`.
+#'   `"nco"`.
 #' @param timeout request timeout in seconds.
 #'
 #' @return
 #' - `neos_ping()`: a status string (invisibly), `TRUE` if the server is alive.
-#' - `neos_list_categories()`: a named character vector (abbrev -> full name).
 #' - `neos_list_solvers()`: a character vector of `solver:inputMethod` strings.
-#' - `neos_get_template()`: the XML job template as a single string.
 #' @name neos
 #' @family solver
 #' @examples
 #' \dontrun{
 #' neos_ping()
-#' head(neos_list_categories())
 #' neos_list_solvers("milp")
-#' cat(neos_get_template("milp", "CPLEX", "GAMS"))
 #' }
 NULL
 
@@ -208,20 +201,13 @@ neos_ping <- function(timeout = 30) {
 
 #' @rdname neos
 #' @export
-neos_list_categories <- function(timeout = 30) {
-  res <- .neos_call("listCategories", timeout = timeout)
-  unlist(res)   # struct: abbrev -> full name
-}
-
-#' @rdname neos
-#' @export
 neos_list_solvers <- function(category, timeout = 30) {
   res <- .neos_call("listSolversInCategory", list(category), timeout = timeout)
   unlist(res)
 }
 
-#' @rdname neos
-#' @export
+#' Fetch a solver's XML job template as a single string.
+#' @noRd
 neos_get_template <- function(category, solver, inputMethod = "GAMS",
                               timeout = 30) {
   .neos_call("getSolverTemplate",
@@ -244,15 +230,6 @@ neos_get_template <- function(category, solver, inputMethod = "GAMS",
   }
 }
 
-# Encode a binary input file (e.g. a GDX) for the NEOS XML-RPC <gdx> field. The
-# content goes inside a nested <base64> tag: <gdx><base64>...</base64></gdx>.
-# NEOS base64-decodes that tag to produce `in.gdx`; it does NOT gunzip (unlike
-# the AMPL <nlfile> path, which is gzipped) -- so base64 the raw bytes directly.
-.neos_encode_binary <- function(path) {
-  .neos_need_base64()
-  base64enc::base64encode(path)
-}
-
 # Build a GAMS <document> job XML from the template fields confirmed live via
 # getSolverTemplate("milp","CPLEX","GAMS"). `wantgdx`/`wantlst`/`wantlog` request
 # the corresponding outputs back from NEOS; retrieve them with
@@ -270,7 +247,7 @@ neos_get_template <- function(category, solver, inputMethod = "GAMS",
 #' @param category,solver NEOS category/solver (default `milp`/`CPLEX`).
 #' @return A single XML string suitable for [neos_submit_job()].
 #' @family solver
-#' @export
+#' @keywords internal
 neos_build_gams_xml <- function(model, email, options = "", parameters = "",
                                 gdx = "", wantgdx = "yes", wantlst = "yes",
                                 wantlog = "", comments = "energyRt",
@@ -317,7 +294,7 @@ neos_build_gams_xml <- function(model, email, options = "", parameters = "",
 #'   job runs in NEOS's flat workspace (default `TRUE`).
 #' @return a single character string: the fully inlined GAMS source.
 #' @family solver
-#' @export
+#' @keywords internal
 neos_gams_inline <- function(main, base_dir = dirname(main), flatten = TRUE) {
   inc_re <- "^\\s*\\$(bat)?include\\s+\"?([^\"[:space:]]+)\"?"
   splice <- function(file) {
@@ -357,7 +334,7 @@ neos_gams_inline <- function(main, base_dir = dirname(main), flatten = TRUE) {
 #' @return an XML job document string for [neos_submit_job()].
 #' @seealso [neos_build_gams_xml()] for the GDX-input path.
 #' @family solver
-#' @export
+#' @keywords internal
 neos_build_gams_text_job <- function(dir, email, main = "energyRt.gms",
                                      solver = "CPLEX", category = "milp",
                                      options = "", parameters = "",
@@ -394,10 +371,11 @@ neos_build_gams_text_job <- function(dir, email, main = "energyRt.gms",
 #' - `neos_wait()`: final status (invisibly) once `"Done"`.
 #' @name neos_job
 #' @family solver
+#' @keywords internal
 NULL
 
 #' @rdname neos_job
-#' @export
+#' @keywords internal
 neos_submit_job <- function(xml, user = NULL, password = NULL, timeout = 600) {
   # submitJob uploads the whole job (model + any base64 input gdx), which can be
   # tens of MB -> generous default timeout so large uploads don't time out.
@@ -415,19 +393,19 @@ neos_submit_job <- function(xml, user = NULL, password = NULL, timeout = 600) {
 }
 
 #' @rdname neos_job
-#' @export
+#' @keywords internal
 neos_job_status <- function(job, pw, timeout = 30) {
   .neos_call("getJobStatus", list(as.integer(job), pw), timeout = timeout)
 }
 
 #' @rdname neos_job
-#' @export
+#' @keywords internal
 neos_completion_code <- function(job, pw, timeout = 30) {
   .neos_call("getCompletionCode", list(as.integer(job), pw), timeout = timeout)
 }
 
 #' @rdname neos_job
-#' @export
+#' @keywords internal
 neos_final_results <- function(job, pw, timeout = 120) {
   .neos_need_base64()
   b64 <- .neos_call("getFinalResults", list(as.integer(job), pw), timeout)
@@ -435,7 +413,7 @@ neos_final_results <- function(job, pw, timeout = 120) {
 }
 
 #' @rdname neos_job
-#' @export
+#' @keywords internal
 neos_get_output_file <- function(job, pw, fileName, timeout = 120) {
   .neos_need_base64()
   b64 <- .neos_call("getOutputFile",
@@ -444,7 +422,7 @@ neos_get_output_file <- function(job, pw, fileName, timeout = 120) {
 }
 
 #' @rdname neos_job
-#' @export
+#' @keywords internal
 neos_wait <- function(job, pw, poll = 5, max_wait = 600, verbose = TRUE) {
   waited <- 0
   repeat {

@@ -62,8 +62,9 @@ setMethod("initialize", "costs", function(.Object, ...) {
 #'
 #' @param variable `get_slot_doc("costs", "variable")`
 #' @param desc `get_slot_doc("costs", "desc")`
-#' @param mult `get_slot_doc("costs", "mult")`
-#' @param subset `get_slot_doc("costs", "subset")`
+#' @param mult `r get_slot_doc("costs", "mult")`
+#' @param subset `r get_slot_doc("costs", "subset")`
+#' @param misc `r get_slot_doc("costs", "misc")`
 #'
 #' @return costs object with given specifications.
 #' @family class constraint policy
@@ -71,6 +72,15 @@ setMethod("initialize", "costs", function(.Object, ...) {
 #'
 #' @export
 #'
+#' @examples
+#' # a per-unit fee on the activity of two technologies, stated as a rate table
+#' newCosts("ACTFEE", variable = "vTechAct",
+#'          mult = data.frame(tech = c("ECOA", "EGAS"), value = c(2, 3)),
+#'          desc = "Activity fee")
+#'
+#' # one rate for a subset of processes: `mult` scalar, `subset` picks the members
+#' newCosts("CAPFEE", variable = "vTechNewCap", mult = 1.5,
+#'          subset = list(tech = "ECOA"))
 newCosts <- function(
     name,
     variable,
@@ -79,7 +89,6 @@ newCosts <- function(
     subset = NULL,
     misc = NULL
     ) {
-  # browser()
   obj <- new("costs")
   obj@name <- name
   obj@desc <- desc
@@ -178,8 +187,25 @@ newCosts <- function(
 
 ## internal functions ####
 # Check if the constraint needs additional set(s), add if needed
+# A `subset`/`mult` filter that removes every row leaves an empty map, which
+# compiles to a sum over an empty set -- a cost of zero, with no error. Name the
+# values that matched nothing, and what was available.
+.stop_cost_filter <- function(obj_name, set_name, asked, available, slot_name) {
+  asked <- unique(as.character(asked[!is.na(asked)]))
+  miss <- setdiff(asked, as.character(available))
+  if (length(miss) == 0) miss <- asked
+  avail <- unique(as.character(available))
+  stop("cost object '", obj_name, "': `", slot_name, "` names ", set_name,
+       " value(s) ", paste0('"', miss, '"', collapse = ", "),
+       " that the model does not have, so the cost would be silently zero.",
+       if (length(avail)) paste0(
+         " Available ", set_name, ": ",
+         paste0('"', utils::head(avail, 8), '"', collapse = ", "),
+         if (length(avail) > 8) ", ..." else "") else "",
+       call. = FALSE)
+}
+
 .getCostEquation <- function(prec, stm, approxim) {
-  # browser()
   stop.constr <- function(x) {
     stop(paste0('Cost "', stm@name, '" error: ', x))
   }
@@ -199,15 +225,20 @@ newCosts <- function(
   }
   # Generate mult
   if (nrow(stm@mult) != 0) {
-    # browser()
     approxim2 <- approxim[
       unique(c(colnames(stm@mult)[colnames(stm@mult) %in% names(approxim)],
                "fullsets", "solver", "year"))]
-    if (!is.null(approxim2$timeslice)) approxim2$timeslice <- approxim2$calendar@timeslice_share$timeslice
+    # `calendar` is read from the FULL context: `approxim2` keeps only the
+    # `mult` columns plus fullsets/solver/year, so `approxim2$calendar` is
+    # always NULL and `NULL@timeslice_share` errored on any `mult` carrying a
+    # `timeslice` column -- i.e. on every timeslice-separable cost.
+    if (!is.null(approxim2$timeslice)) {
+      approxim2$timeslice <- approxim$calendar@timeslice_share$timeslice
+    }
     if (!is.null(approxim2$timeslice2)) {
-      # approxim2$timeslice2 <- approxim2$timeslice@all__timeslice2 #???
-      browser()
-      approxim2$timeslice2 <- approxim2$calendar@timeslice_share$timeslice #???
+      if (isDebug())
+        cli::cli_warn("timeslice2 approximation path taken; see the ??? notes here.")
+      approxim2$timeslice2 <- approxim$calendar@timeslice_share$timeslice #???
     }
     if (nrow(stm@subset) != 0) {
       same <- colnames(stm@subset)[colnames(stm@subset) %in% colnames(stm@mult)]
@@ -218,7 +249,13 @@ newCosts <- function(
     }
     mult_sets <- colnames(stm@mult)[colnames(stm@mult) != "value"]
     for (ss in mult_sets) {
+      before <- stm@mult
       stm@mult <- stm@mult[stm@mult[[ss]] %in% approxim2[[ss]], , drop = FALSE]
+      # An empty filter result compiles to a sum over an empty set, i.e. a
+      # silent zero cost. Name what matched nothing instead.
+      if (nrow(before) > 0 && nrow(stm@mult) == 0) {
+        .stop_cost_filter(stm@name, ss, before[[ss]], approxim2[[ss]], "mult")
+      }
     }
     xx <- newParameter(paste0("pCosts", stm@name), mult_sets, "numpar",
       defVal = 0,
@@ -258,7 +295,11 @@ newCosts <- function(
       subset <- rbind(subset, subset_na)
     }
     for (ss in colnames(subset)) {
+      before <- subset
       subset <- subset[subset[[ss]] %in% approxim2[[ss]], , drop = FALSE]
+      if (nrow(before) > 0 && nrow(subset) == 0) {
+        .stop_cost_filter(stm@name, ss, before[[ss]], approxim2[[ss]], "subset")
+      }
     }
 
     xnm <- paste0("mCosts", stm@name)
@@ -280,7 +321,9 @@ newCosts <- function(
         " and ", subset_txt, ")"
       )
     } else {
-      costs <- paste0("(", mult_txt, mps, "$", subset_txt)
+      # close the multiplier group BEFORE the guard, as the `$`-carrying
+      # branch above does -- this previously emitted unbalanced parentheses
+      costs <- paste0("(", mult_txt, mps, ")$", subset_txt)
     }
   } else {
     nset <- sets[!(sets %in% c("region", "year"))]
@@ -288,7 +331,14 @@ newCosts <- function(
     mps <- gsub("[(][^(]*[)]", paste0("( ", paste0(sets, collapse = " , "), " )"), mps)
     nkk <- c(gsub(".*[$]", "", mps), subset_txt)
     if (length(nkk) != 1) nkk <- paste0("(", paste0(nkk, collapse = " and "), ")")
-    costs <- paste0("sum(", nset, "$", nkk, ", ", mult_txt, gsub("[$].*", "", mps), ")")
+    # A per-timeslice variable is a RATE; `pTimesliceWeight` scales it to the
+    # year, and on a sampled calendar it is the sampling factor (up to 91 for
+    # one day per season). Every native cost equation carries it -- see
+    # `eqTechVarom` and `eqTaxCost` -- and omitting it here under-charged a
+    # user cost by that factor on any sampled calendar.
+    wgt_txt <- if ("timeslice" %in% sets) "pTimesliceWeight(year, timeslice) * " else ""
+    costs <- paste0("sum(", nset, "$", nkk, ", ", mult_txt, wgt_txt,
+                    gsub("[$].*", "", mps), ")")
   }
   costs <- gsub("[ ]*[*][ ]*", " * ", gsub("[)]and", ") and", gsub("[ ]*[,][ ]*", ", ", gsub(
     "[ ]*[)][ ]*", ")",

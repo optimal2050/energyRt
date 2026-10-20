@@ -39,11 +39,13 @@ vr_state <- local({
 })
 
 test_that("a variant's solve and problem land under runs/<variant>/", {
+  # every table to its own file, whatever its size: this tests the on-disk layout
+  withr::local_options(energyRt.ondisk_min_rows = 0)
   skip_if_no_solver()
   st <- vr_state()
   expect_identical(st$alt@misc$variant, "low")
   vdir <- file.path(vr_path, "runs", "low")
-  expect_true(dir.exists(file.path(vdir, st$solve_lbl, "solver", "output")))
+  expect_true(dir.exists(file.path(vdir, st$solve_lbl, "output")))
   expect_true(file.exists(file.path(vdir, st$solve_lbl, "run.yml")))
   rec <- yaml::read_yaml(file.path(vdir, st$solve_lbl, "run.yml"))
   expect_identical(rec$variant, "low")
@@ -57,9 +59,10 @@ test_that("a variant's solve and problem land under runs/<variant>/", {
   expect_true(dir.exists(file.path(vdir, "modInp", "parameters")))
   expect_true(file.exists(file.path(vdir, "variant.RData")))
 
-  # the base problem is untouched at the scenario level, with its swap file
+  # the base problem is untouched at the scenario level; its one home is
+  # scen.RData (problem.RData is retired)
   expect_true(dir.exists(file.path(vr_path, "modInp", "parameters")))
-  expect_true(file.exists(file.path(vr_path, "problem.RData")))
+  expect_false(file.exists(file.path(vr_path, "problem.RData")))
 
   # manifest default follows the last save (the variant's run)
   mf <- yaml::read_yaml(file.path(vr_path, "scenario.yml"))
@@ -85,7 +88,7 @@ test_that("a second solve of the variant reuses its single problem store", {
   sol2 <- solve_scenario(st$alt, force = TRUE, run = "glpk-b")
   expect_identical(sol2@misc$variant, "low")
   expect_true(dir.exists(file.path(vr_path, "runs", "low", "glpk-b",
-                                   "solver", "output")))
+                                   "output")))
   expect_equal(vr_obj(sol2), st$obj_alt)
   saved2 <- suppressMessages(save_scenario(sol2, verbose = FALSE))
   # still exactly one modInp store for the variant

@@ -3,6 +3,9 @@
 Computes the levelized cost of energy (LCOE) for a `technology`,
 `repository`, `model`, or `scenario` object.
 
+`levcost()` on a `levcost_variants` object stacks its per-variant tables
+without re-solving: `levcost(lc, by_variant = "npv")`.
+
 ## Usage
 
 ``` r
@@ -15,13 +18,19 @@ levcost(object, comm, name, ...)
 levcost(object, comm, name, ...)
 
 # S4 method for class 'repository'
-levcost(object, comm, name, ...)
+levcost(object, comm, name, by_variant = FALSE, by_region = FALSE, ...)
 
 # S4 method for class 'model'
-levcost(object, comm, name, ...)
+levcost(object, comm, name, by_variant = FALSE, by_region = FALSE, ...)
 
 # S4 method for class 'scenario'
 levcost(object, comm, name, ...)
+
+# S4 method for class 'levcost_variants'
+levcost(object, comm, name, by_variant = TRUE, ...)
+
+# S4 method for class 'levcost'
+levcost(object, comm, name, by_variant = FALSE, ...)
 ```
 
 ## Arguments
@@ -50,128 +59,155 @@ levcost(object, comm, name, ...)
 
   `group`
 
-  :   Character or `NULL`. Output group name.
+  : Character or `NULL`. Output group name.
 
   `repo`
 
-  :   A `repository` or list of energyRt objects (supplies, commodities,
-      weather) to supplement the mini-model.
+  : A `repository` or list of energyRt objects (supplies, commodities,
+    weather) to supplement the mini-model.
 
   `fuel_costs`
 
-  :   Named numeric vector `[commodity -> cost]` for input commodities
-      not found in `repo`. Auxiliary commodities consumed by the process
-      (aux inputs) can be priced the same way; unnamed ones are supplied
-      at zero cost.
+  : Named numeric vector `[commodity -> cost]` for input commodities not
+    found in `repo`. Auxiliary commodities consumed by the process (aux
+    inputs) can be priced the same way; unnamed ones are supplied at
+    zero cost.
 
   `autocomplete`
 
-  :   Logical, default `FALSE` (`repository`/`model` methods). When
-      `TRUE`, input commodities without a supply in the container are
-      auto-supplied (zero-cost, or priced via `fuel_costs`) instead of
-      returning `NULL`.
+  : Logical, default `FALSE` (`repository`/`model` methods). When
+    `TRUE`, input commodities without a supply in the container are
+    auto-supplied (zero-cost, or priced via `fuel_costs`) instead of
+    returning `NULL`.
 
   `discount`
 
-  :   Numeric (0–1), default `0.05`.
+  : Numeric (0–1), default `0.05`.
 
   `base_year`
 
-  :   Integer or `NULL`.
+  : Integer or `NULL`.
 
   `horizon`
 
-  :   A `horizon` object, numeric year vector, or `NULL` (derives from
-      `@olife`).
+  : A `horizon` object, numeric year vector, or `NULL` (derives from
+    `@olife`).
 
   `calendar`
 
-  :   A `calendar` object or `NULL`.
+  : A `calendar` object or `NULL`.
 
   `timeframe`
 
-  :   `"ANNUAL"` (default) or `"native"`. `"ANNUAL"` prices the
-      technology on a single annual time-timeslice: any weather profile
-      is collapsed to an annual capacity factor (applied as the
-      technology's annual availability), so capacity is sized to serve
-      unit annual demand at that factor (textbook LCOE). `"native"`
-      keeps the supplied (sub-annual) calendar and normalises by total
-      generation – useful when the technology is analysed together with
-      storage or transmission, where sub-annual dispatch matters.
+  : `"auto"` (default), `"ANNUAL"` or `"native"`. `"ANNUAL"` prices the
+    technology on a single annual time-timeslice: any weather profile is
+    collapsed to an annual capacity factor (applied as the technology's
+    annual availability), so capacity is sized to serve unit annual
+    demand at that factor (textbook LCOE). `"native"` keeps the supplied
+    (sub-annual) calendar and normalises by total generation – useful
+    when the technology is analysed together with storage or
+    transmission, where sub-annual dispatch matters; it requires a
+    `calendar` holding the process's timeslices and will not choose one
+    for you. `"auto"` annualizes when that collapse is sound and prices
+    natively when it is not. It is unsound when a process carries more
+    than one `@weather` factor (the annual mean of a product is not the
+    product of the annual means, so the pair has no single annual
+    equivalent) or has parameter rows pinned to a named sub-annual
+    timeslice (the slice stops existing). An explicit `"ANNUAL"`
+    declines in those cases rather than return a number built on an
+    invalid collapse.
 
   `backstop`
 
-  :   Logical, default `TRUE`. Enables a very expensive dummy-import
-      slack on the output commodity balance so the mini-model always
-      solves even when the technology cannot serve a timeslice on its
-      own; the slack cost is excluded from the LCOE.
+  : Logical, default `TRUE`. Enables a very expensive dummy-import slack
+    on the output commodity balance so the mini-model always solves even
+    when the technology cannot serve a timeslice on its own; the slack
+    cost is excluded from the LCOE.
 
   `region`
 
-  :   Character or `NULL`.
+  : Character or `NULL`.
 
   `weather`
 
-  :   A `weather` object, list of weather objects, or `NULL`.
+  : A `weather` object, list of weather objects, or `NULL`.
 
   `frontier`
 
-  :   Logical, default `TRUE`. When `TRUE` additional solves are
-      performed to map the production frontier for technologies with
-      multi-commodity grouped output and share constraints (one solve
-      per output / input corner solution). Has no effect for
-      single-output or unconstrained technologies (the frontier is not
-      meaningful, so only the base solve runs). Set `FALSE` to skip the
-      extra solves.
+  : Logical, default `TRUE`. When `TRUE` additional solves are performed
+    to map the production frontier for technologies with multi-commodity
+    grouped output and share constraints (one solve per output / input
+    corner solution). Has no effect for single-output or unconstrained
+    technologies (the frontier is not meaningful, so only the base solve
+    runs). Set `FALSE` to skip the extra solves.
 
   `solver`
 
-  :   Solver spec list, default `solver_options$glpk`.
+  : Solver spec list, default `solver_options$glpk`.
 
   `method`
 
-  :   `"auto"` (default), `"analytic"`, or `"solve"`. The unit-demand
-      annual mini-model has a closed-form optimum for most technologies;
-      `"auto"` computes it analytically (no solver needed) whenever the
-      technology qualifies and falls back to the solver otherwise, with
-      a message naming the reason. `"analytic"` refuses non-qualifying
-      technologies instead of falling back; `"solve"` always builds and
-      solves the mini-model. The analytic result carries the same fields
-      (plus `$method = "analytic"` and `$frontier_vertices`, which
-      reports EVERY corner of the input/output share polytopes with its
-      per-activity NPV cost breakdown and an `optimal` flag);
-      `$scenario` is `NULL` on this path. Not analytically representable
-      (solver required): technology chains, `timeframe = "native"`,
-      `afc.*` bounds, availability lower bounds, `optimizeRetirement`,
-      year-varying `invcost`, reserve- or availability-constrained
-      supplies, and group substitution combined with year-varying prices
-      or efficiencies.
+  : `"auto"` (default), `"analytic"`, or `"solve"`. The unit-demand
+    annual mini-model has a closed-form optimum for most technologies;
+    `"auto"` computes it analytically (no solver needed) whenever the
+    technology qualifies and falls back to the solver otherwise, with a
+    message naming the reason. `"analytic"` refuses non-qualifying
+    technologies instead of falling back; `"solve"` always builds and
+    solves the mini-model. The analytic result carries the same fields
+    (plus `$method = "analytic"` and `$frontier_vertices`, which reports
+    EVERY corner of the input/output share polytopes with its
+    per-activity NPV cost breakdown and an `optimal` flag); `$scenario`
+    is `NULL` on this path. Not analytically representable (solver
+    required): technology chains, `timeframe = "native"`, `afc.*`
+    bounds, availability lower bounds, `optimizeRetirement`,
+    year-varying `invcost`, reserve- or availability-constrained
+    supplies, and group substitution combined with year-varying prices
+    or efficiencies.
 
   `run`
 
-  :   `"single"` (default) or `"sequential"` – only meaningful for a
-      technology declaring vintages or clusters. `"single"` prices every
-      variant in one model (each in its own region, so they cannot
-      compete); if that model does not solve it is retried with the
-      dummy-import slack enabled and then, failing that, falls back to
-      one model per variant. `"sequential"` goes straight to one model
-      per variant, so a single non-converging variant cannot take the
-      rest down.
+  : `"single"` (default) or `"sequential"` – only meaningful for a
+    technology declaring vintages or clusters. `"single"` prices every
+    variant in one model (each in its own region, so they cannot
+    compete); if that model does not solve it is retried with the
+    dummy-import slack enabled and then, failing that, falls back to one
+    model per variant. `"sequential"` goes straight to one model per
+    variant, so a single non-converging variant cannot take the rest
+    down.
 
   `max_failures`
 
-  :   Integer, default `10`. Abort the sequential fallback after this
-      many consecutive failed variant solves, to bound the time spent on
-      a technology whose variants all fail.
+  : Integer, default `10`. Abort the sequential fallback after this many
+    consecutive failed variant solves, to bound the time spent on a
+    technology whose variants all fail.
 
   `as_scenario`
 
-  :   Logical, default `FALSE`. When `TRUE` the full solved `scenario`
-      is returned with LCOE tables attached to `scenario@misc`.
+  : Logical, default `FALSE`. When `TRUE` the full solved `scenario` is
+    returned with LCOE tables attached to `scenario@misc`.
 
   `verbose`
 
-  :   Logical, default `TRUE`.
+  : Logical, default `TRUE`.
+
+- by_variant:
+
+  for a technology declaring vintages or clusters: `FALSE` (default)
+  returns the result object; `TRUE` (= `"levcost"`), `"npv"` or
+  `"components"` returns that per-variant table instead. Passing an
+  existing result — `levcost(lc, by_variant = "npv")` — extracts without
+  re-solving.
+
+- by_region:
+
+  `FALSE` (default) prices a process once, in one of the regions it
+  spans. `TRUE` prices it once PER region and returns a `levcost_list`
+  named by region — the ladder a technology whose costs or efficiency
+  vary by region actually has. levcost() builds a single-region
+  mini-model, so without this a multi-region process reports only its
+  first region's cost. On a container the entries are named
+  `<process>@<region>`. A `trade` is unaffected: it spans two regions by
+  construction and is priced across both at once.
 
 ## Value
 
@@ -221,12 +257,11 @@ holding one full `"levcost"` result per variant, keyed by variant name
 (`"PWR_VIN2030"`). Each variant is priced in its own region so the
 variants cannot serve each other's demand; without that isolation they
 compete for one unit of demand and the result silently sums across them.
-The stacked tables are reachable with
-[`levcost_by_variant()`](https://energyRt.org/reference/levcost_by_variant.md),
-and `autoplot()` compares the variants. `$frontier` is `NULL` on this
-path – the frontier corners are a per-commodity sweep, orthogonal to
-variants, and are not fanned out. A technology with no vintages or
-clusters is unaffected and still returns a single `"levcost"` object.
+The stacked tables are reachable with `levcost(x, by_variant = )`, and
+`autoplot()` compares the variants. `$frontier` is `NULL` on this path –
+the frontier corners are a per-commodity sweep, orthogonal to variants,
+and are not fanned out. A technology with no vintages or clusters is
+unaffected and still returns a single `"levcost"` object.
 
 ## Details
 
@@ -267,10 +302,6 @@ discharged, not its delivered cost; use `levcost()` on the `storage`
 object with `price =` for the latter. Likewise a technology with a
 *grouped* input (whose per-commodity consumption is not a solution
 variable) reports no fuel component.
-
-## See also
-
-[`levcost_by_variant()`](https://energyRt.org/reference/levcost_by_variant.md)
 
 ## Examples
 

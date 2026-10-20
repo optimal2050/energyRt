@@ -2,6 +2,19 @@
 # (R/paths_rebase.R). Fixtures built by transforming a CURRENT save into the
 # old shapes, so the tests need no checked-in binary fixtures.
 
+# Move a flat run's solver files into `dest`, leaving the run-level records
+# (`run.yml`, `modOut/`) in place -- the reshaping every legacy-layout fixture
+# below needs, since a run folder no longer has a `solver/` subdirectory to
+# rename.
+ul_move_solver <- function(run_dir, dest) {
+  dir.create(dest, recursive = TRUE, showWarnings = FALSE)
+  keep <- c("run.yml", "modOut", basename(dest))
+  mv <- setdiff(list.files(run_dir, all.files = TRUE, no.. = TRUE), keep)
+  stopifnot(length(mv) > 0,
+            all(file.rename(file.path(run_dir, mv), file.path(dest, mv))))
+  invisible(dest)
+}
+
 ul_path <- function(name) {
   gsub("[\\/]+", "/", file.path(tempdir(), "upgrade-suite", name))
 }
@@ -21,11 +34,12 @@ ul_make_layout2 <- function(name) {
   lbl <- saved@misc$run
 
   run_dir <- file.path(p, "runs", lbl)
-  stopifnot(dir.create(file.path(p, "script"), recursive = TRUE))
-  stopifnot(file.rename(file.path(run_dir, "solver"),
-                        file.path(p, "script", lbl)))
+  stopifnot(dir.create(file.path(p, "script", lbl), recursive = TRUE))
   stopifnot(file.rename(file.path(run_dir, "modOut"),
                         file.path(p, "modOut")))
+  # A run folder is flat now: its solver files sit beside `run.yml`, where
+  # layout 2 kept them under `script/<lbl>`.
+  ul_move_solver(run_dir, file.path(p, "script", lbl))
   unlink(file.path(p, "runs"), recursive = TRUE)
   unlink(file.path(p, "scenario.yml"))
   write("2", file.path(p, "layout"), append = FALSE)
@@ -100,8 +114,7 @@ test_that("an interim runs/default/<solve>/script tree is flattened and renamed"
   new_dir <- file.path(p, "runs", "default", lbl)
   dir.create(dirname(new_dir), recursive = TRUE)
   stopifnot(file.rename(old_dir, new_dir))
-  stopifnot(file.rename(file.path(new_dir, "solver"),
-                        file.path(new_dir, "script")))
+  ul_move_solver(new_dir, file.path(new_dir, "script"))
   e <- new.env()
   nm <- load(file.path(p, "scen.RData"), envir = e)
   scen <- get(nm, envir = e)

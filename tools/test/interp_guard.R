@@ -3,15 +3,15 @@
 # must reproduce a frozen baseline bit-for-bit (order/rounding-insensitive).
 # Successor of dev-scripts/refactor_guard.R, now on energyRt::compare_inputs()
 # and with baselines TRACKED in git (tests/testthat/goldens/interp/<tier>.rds,
-# xz-compressed; Rbuildignored -- nightly-tier only, not in the tarball).
+# xz-compressed; Rbuildignored -- full-tier only, not in the tarball).
 #
 #   Rscript tools/test/interp_guard.R baseline   # (re)freeze the baselines
 #   Rscript tools/test/interp_guard.R check      # rebuild + diff vs baselines
 #
-# make_goldens.R --suite=interp delegates to `baseline`; the nightly tier
+# make_goldens.R --suite=interp delegates to `baseline`; the full tier
 # replays `check` through tests/testthat/test-interp-golden.R.
 #
-# Policy (same as the solved goldens, dev/TESTING.md §4): re-freeze only for
+# Policy (same as the solved goldens, tests/TESTING.md §4): re-freeze only for
 # an INTENDED interpolation change, in the same commit, with a NEWS bullet.
 # =========================================================================== #
 
@@ -50,7 +50,7 @@ ig_baseline <- function(models = IG_MODELS) {
     cat(sprintf("  frozen %-10s -> %s (%.0f KB)\n", nm, f, sz / 1024))
     if (sz > 2e6) {
       warning("baseline ", f, " exceeds 2 MB -- consider a digest manifest ",
-              "instead of a full modInp (dev/TESTING.md)", call. = FALSE)
+              "instead of a full modInp (tests/TESTING.md)", call. = FALSE)
     }
   }
   invisible(TRUE)

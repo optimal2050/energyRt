@@ -31,9 +31,7 @@ obj_glpk <- function(scen, tag) {
 
 # --------------------------------------------------------------------------- #
 test_that("flat grouped-identical sampling reproduces the full objective", {
-  skip_if(!nzchar(Sys.which("glpsol")) &&
-            (is.null(get_glpk_path()) || !nzchar(get_glpk_path())),
-          "GLPK (glpsol) not available")
+  skip_if_no_solver()
 
   K  <- 12
   sl <- sprintf("s%02d", 1:K)
@@ -72,9 +70,7 @@ test_that("flat grouped-identical sampling reproduces the full objective", {
 
 # --------------------------------------------------------------------------- #
 test_that("typical-day sampling (intra-day shape + storage) reproduces full objective", {
-  skip_if(!nzchar(Sys.which("glpsol")) &&
-            (is.null(get_glpk_path()) || !nzchar(get_glpk_path())),
-          "GLPK (glpsol) not available")
+  skip_if_no_solver()
 
   G <- 6; H <- 6
   day  <- paste0("d", 1:G)
@@ -94,7 +90,8 @@ test_that("typical-day sampling (intra-day shape + storage) reproduces full obje
                     invcost = data.frame(region = "R1", invcost = 800),
                     olife = list(olife = 30), cap2act = 1),
       newStorage("STG_ELC", commodity = "ELC",
-                 invcost = list(out.invcost = 20), olife = list(olife = 15)),
+                 invcost = list(out.invcost = 20), duration = 1,
+                 olife = list(olife = 15)),
       newDemand("DEM_ELC", commodity = "ELC", demand = dem_df)),
     calendar = cal, region = "R1", horizon = newHorizon(2020), discount = 0.05)
 

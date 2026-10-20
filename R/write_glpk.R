@@ -5,10 +5,11 @@
 #'
 #' @return sets the path to the GLPK library in R options and returns NULL.
 #'
-#' @details By default energyRt auto-detects the `glpsol` executable on the
-#'   session `PATH` (via [base::Sys.which()]). On Windows this picks up the copy
-#'   **bundled with Rtools** (Rtools ships the GLPK dev kit), so an Rtools user
-#'   needs no separate GLPK install. Use `set_glpk_path()` only to point at a
+#' @details By default energyRt uses the GLPK binary bundled by the glpsol R
+#'   package when it is installed, and otherwise auto-detects the `glpsol`
+#'   executable on the session `PATH` (via [base::Sys.which()]). On Windows the
+#'   latter picks up the copy **bundled with Rtools** (Rtools ships the GLPK dev
+#'   kit), so an Rtools user needs no separate install. Use `set_glpk_path()` only to point at a
 #'   standalone GLPK installation, which then takes precedence over auto-detection.
 #'
 #' @rdname solver
@@ -38,17 +39,25 @@ get_glpk_path <- function() {
 #
 # Priority:
 #   1. a directory configured via `set_glpk_path()` (standalone GLPK install);
-#   2. `glpsol` on the session PATH via `Sys.which()` - on Windows this picks up
+#   2. the `glpsol` PACKAGE, which ships the executable - its version is known
+#      and it needs no separate GLPK install, so it is preferred over whatever
+#      happens to be on the machine;
+#   3. `glpsol` on the session PATH via `Sys.which()` - on Windows this picks up
 #      the copy BUNDLED WITH RTOOLS (rtools bundles the full GLPK dev kit), so an
 #      Rtools user needs no separate GLPK install;
-#   3. known Rtools toolchain locations (in case Rtools is installed but not on
+#   4. known Rtools toolchain locations (in case Rtools is installed but not on
 #      the session PATH);
-#   4. a bare `"glpsol"` resolved by the OS at run time (last resort).
+#   5. a bare `"glpsol"` resolved by the OS at run time (last resort).
 #
 # Returns the executable path (or bare command) as a length-1 character.
 .find_glpsol <- function() {
   gp <- get_glpk_path()
   if (!is.null(gp) && nzchar(gp)) return(file.path(gp, "glpsol"))
+
+  if (requireNamespace("glpsol", quietly = TRUE)) {
+    hit <- tryCatch(glpsol::glpsol_path(), error = function(e) NULL)
+    if (!is.null(hit) && nzchar(hit) && file.exists(hit)) return(hit)
+  }
 
   found <- Sys.which("glpsol")
   if (nzchar(found)) return(unname(found))
@@ -65,8 +74,14 @@ get_glpk_path <- function() {
 }
 
 # Build a `glpsol` command line, quoting the executable if its path has spaces.
+# `--log` keeps a copy of glpsol's terminal output in the run directory.
+# MathProg aborts the whole script when `solve` fails, so nothing after `solve;`
+# runs -- not even the "solution status" row the other backends write. glpsol
+# also exits 0 on an infeasible model, so its own log is the only place its
+# verdict survives. `.solver_verdict()` reads it.
 .glpsol_cmdline <- function(exe = .find_glpsol(),
-                            args = "-m energyRt.mod -d energyRt.dat") {
+                            args = paste("-m energyRt.mod -d energyRt.dat",
+                                         "--log output/solver.log")) {
   if (grepl(" ", exe, fixed = TRUE)) exe <- shQuote(exe)
   paste(exe, args)
 }
@@ -138,7 +153,6 @@ get_glpk_path <- function() {
 
   ### Costs
   {
-    # browser()
     add_eq_costs <- .equation.from.gams.to.glpk(scen@modInp@user_costs)
     # Add additional maps
     mps_name_costs <- grep("^[m]Costs", names(scen@modInp@parameters),
@@ -205,6 +219,24 @@ get_glpk_path <- function() {
 }
 
 
+# MathProg has no infinity literal, so a parameter whose declared default is
+# `Inf` ("no bound") cannot be written as one -- and no substitute is correct:
+# 0 pins the flow, a large number silently relaxes it, and a negative one turns
+# `pDummyImportCost` into a subsidy. The clause is therefore OMITTED. The 29
+# such parameters (`pTechAfc`, `pTechCap`, `pTechRampUp`, `pDummyImportCost`,
+# ...) are read only inside equations whose domain is the parameter's own
+# `meq*`/`m*` map, built as the domain intersected with the parameter's
+# support, so no reference resolves to the default. Where that invariant breaks
+# -- a map widened past its parameter, as a coarse process did to
+# `meqTechAfcInpUp` -- GLPK refuses to translate and names the tuple
+# (`no value for pTechAfcUp[PP,ELC,R1,2025,WIN]`) instead of solving a model
+# with a fabricated bound. Finite defaults are kept: `pTechAfUp default 1` is
+# the capacity limit every undeclared slice reads.
+.glpk_default_clause <- function(dd) {
+  if (is.infinite(dd)) "" else paste0(" default ", dd)
+}
+
+
 # Convert one scenario parameter to GMPL (GLPK/CBC) text. The interp_mod()
 # pipeline keeps each parameter's `@data` slot authoritative, so the whole slot
 # is written.
@@ -228,13 +260,11 @@ get_glpk_path <- function() {
     }
   } else if (obj@type == "numpar") {
     if (nrow(obj@data) == 0) {
-      dd <- obj@defVal
-      if (dd == Inf) dd <- 0
-      ret <- paste("param ", obj@name, " default ", dd, " := ;", sep = "")
+      ret <- paste("param ", obj@name, .glpk_default_clause(obj@defVal),
+                   " := ;", sep = "")
     } else {
-      dd <- obj@defVal
-      if (dd == Inf) dd <- 0
-      ret <- paste("param ", obj@name, " default ", dd, " := ", sep = "")
+      ret <- paste("param ", obj@name, .glpk_default_clause(obj@defVal),
+                   " := ", sep = "")
       fl <- obj@data[["value"]] != Inf
       if (any(fl)) {
         ret <- c(
@@ -255,13 +285,11 @@ get_glpk_path <- function() {
     # gg <- gg[, colnames(gg) != "type"]
     gg <- gg |> select(-any_of("type"))
     if (nrow(gg) == 0) { #  || all(gg$value[1] == gg$value)
-      if (nrow(gg) == 0) dd <- obj@defVal[1] else dd <- gg$value[1]
-      if (dd == Inf) dd <- 0
-      ret <- paste("param ", obj@name, "Lo default ", dd, " := ;", sep = "")
+      ret <- paste("param ", obj@name, "Lo",
+                   .glpk_default_clause(obj@defVal[1]), " := ;", sep = "")
     } else {
-      dd <- obj@defVal[1]
-      if (dd == Inf) dd <- 0
-      ret <- paste("param ", obj@name, "Lo default ", dd, " := ", sep = "")
+      ret <- paste("param ", obj@name, "Lo",
+                   .glpk_default_clause(obj@defVal[1]), " := ", sep = "")
       fl <- gg[["value"]] != Inf
       if (any(fl)) {
         ret <- c(
@@ -279,13 +307,11 @@ get_glpk_path <- function() {
     # gg <- gg[, colnames(gg) != "type"]
     gg <- gg |> select(-any_of("type"))
     if (nrow(gg) == 0) { #  || all(gg$value[1] == gg$value)
-      if (nrow(gg) == 0) dd <- obj@defVal[2] else dd <- gg$value[1]
-      if (dd == Inf) dd <- 0
-      ret <- c(ret, paste("param ", obj@name, "Up default ", dd, " := ;", sep = ""))
+      ret <- c(ret, paste("param ", obj@name, "Up",
+                          .glpk_default_clause(obj@defVal[2]), " := ;", sep = ""))
     } else {
-      dd <- obj@defVal[2]
-      if (dd == Inf) dd <- 0
-      ret <- c(ret, paste("param ", obj@name, "Up default ", dd, " := ", sep = ""))
+      ret <- c(ret, paste("param ", obj@name, "Up",
+                          .glpk_default_clause(obj@defVal[2]), " := ", sep = ""))
       fl <- gg[["value"]] != Inf
       if (any(fl)) {
         ret <- c(
@@ -325,17 +351,6 @@ get_glpk_path <- function() {
   rs
 }
 
-# .set_al <- c("acomm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "timeslicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "timeslicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "timeslicen", "groupn", "commn", "cnsn", "src", "dst")
-# .alias_set <- c("ca", "st1", "t1", "e", "i", "t", "d", "s1", "wth1", "r", "y", "s", "g", "c", "cn1", "st1p", "t1p", "ep", "ip", "tp", "dp", "s1p", "wth1p", "rp", "yp", "sp", "gp", "cp", "cn1p", "st1e", "t1e", "ee", "ie", "te", "de", "s1e", "wth1e", "re", "ye", "se", "ge", "ce", "cn1e", "st1n", "t1n", "en", "in", "tn", "dn", "s1n", "wth1n", "rn", "yn", "sn", "gn", "cn", "cn1n", "src", "dst")
-# names(.alias_set) <- .set_al
-# .aliasName <- function(x) {
-#   if (!all(x %in% .set_al)) {
-#     cat("Unknown .set_al\n")
-#     browser()
-#     stop("Unknown set")
-#   }
-#   .alias_set[x]
-# }
 
 .generate_loop_glpk <- function(set_num, set_loop) {
   # Consdition split and divet by subset
@@ -395,7 +410,7 @@ get_glpk_path <- function() {
     rs <- paste0(c(rs, paste0(.aliasName(rest_slice), " in ", rest_slice)), collapse = ", ")
   }
   if (any(grep("^[,]", rs))) {
-    browser()
+    stop("Internal: the slice list starts with a comma: ", rs, call. = FALSE)
   }
   list(first = rs, end = tend)
 }
@@ -479,7 +494,8 @@ get_glpk_path <- function() {
       rs <- paste0(rs, ";")
       tmp <- substr(tmp, 2, nchar(tmp))
     } else {
-      browser()
+      stop("Cannot parse the equation template; unrecognised token at: ",
+           substr(tmp, 1, 40), call. = FALSE)
     }
   }
   rs

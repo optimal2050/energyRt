@@ -26,9 +26,10 @@ per-backend accessors (\code{\link[=set_gams_path]{set_gams_path()}}, \code{\lin
 thin wrappers around them.
 
 Setting a path is optional. When it is unset, each backend falls back to its
-own discovery: \code{glpk} searches the session \code{PATH} and well-known
-install locations (on Windows \code{glpsol} is found in Rtools, which bundles
-GLPK), while \code{gams}, \code{python} and \code{julia} simply invoke the bare command and
+own discovery: \code{glpk} uses the binary bundled by the glpsol R package when
+that is installed, then searches the session \code{PATH} and well-known install
+locations (on Windows \code{glpsol} is found in Rtools, which bundles GLPK),
+while \code{gams}, \code{python} and \code{julia} simply invoke the bare command and
 let the OS resolve it on \code{PATH}. Set a path only to override that, for
 instance to pick between several installed GAMS versions.
 }
@@ -42,11 +43,13 @@ get_solver_path("gams")
 Other options:
 \code{\link[=en_config_path]{en_config_path()}},
 \code{\link[=en_config_show]{en_config_show()}},
-\code{\link[=get_arrow_format]{get_arrow_format()}},
 \code{\link[=get_default_solver]{get_default_solver()}},
+\code{\link[=get_exchange_format]{get_exchange_format()}},
+\code{\link[=get_storage_format]{get_storage_format()}},
 \code{\link[=isVerbose]{isVerbose()}},
 \code{\link[=set_log_file]{set_log_file()}},
 \code{\link[=set_option]{set_option()}},
+\code{\link[=set_path_builder]{set_path_builder()}},
 \code{\link[=set_registry_file]{set_registry_file()}},
 \code{\link[=set_reports_path]{set_reports_path()}},
 \code{\link[=set_scenarios_path]{set_scenarios_path()}}

@@ -57,9 +57,22 @@ test_that("per-region group caps BOTH bind (regression: one used to vanish)", {
   expect_equal(vt_cap(sol, "EWIN", "R2"), 8, tolerance = 1e-6)
 })
 
-test_that("contradictory bounds for the same cell are rejected", {
-  W <- mk_clustered(capacity = data.frame(
-    cluster = c("TOTAL", "TOTAL"), region = c("R1", "R1"), cap.up = c(5, 8)))
+test_that("contradictory bounds for the same cell are rejected at construction", {
+  expect_error(
+    mk_clustered(capacity = data.frame(
+      cluster = c("TOTAL", "TOTAL"), region = c("R1", "R1"), cap.up = c(5, 8))),
+    "set 2 times for the same key")
+})
+
+test_that("the interpolation-stage group-aggregate check still catches it", {
+  # The constructor rejects this first now, so the object is assembled past it
+  # on purpose -- store-loaded and converter-built objects never pass through
+  # .data2slots(), and this layer must not rot into dead code.
+  W <- mk_clustered(capacity = data.frame(cluster = "TOTAL", region = "R1",
+                                          cap.up = 5))
+  d <- rbind(W@capacity, W@capacity)
+  d$cap.up[2] <- 8
+  W@capacity <- d
   expect_error(vt_interp(vt_model(W, name = "cd"), "cd"),
                "Contradictory group-aggregate")
 })

@@ -3,6 +3,7 @@
 \name{add,repository-method}
 \alias{add,repository-method}
 \alias{add,model-method}
+\alias{add}
 \title{Add an object to the model's repository}
 \usage{
 \S4method{add}{repository}(obj, ..., overwrite = FALSE)
@@ -23,5 +24,9 @@ model object with added elements to the repository
 }
 \description{
 Add an object to the model's repository
+}
+\details{
+There is no \code{add} method for a \code{scenario}: a scenario's inputs are
+already interpolated. Add objects to the model and interpolate again.
 }
 \concept{repository}

@@ -120,9 +120,58 @@ report(scen, template = "full")    # comprehensive, page-broken layout
 report(scen, name = "PP")          # one process, priced in this scenario
 ```
 
+The process sections follow *your* groups: a named list of process names
+or regular expressions, passed as `groups = ` or stored once in
+`mod@misc$report_groups` (a scenario inherits its model's). Without
+groups the report shows a representative sample of up to 12 processes;
+`groups = "topology"` groups automatically by structure. `levcost = TRUE`
+adds a levelized-cost comparison — an overall chart, one chart per group,
+and the ranked table — ex-ante on a model, ex-post on a solved scenario; a
+process datasheet requested from a container also compares the process
+with its structural peers:
+
+```{r report-levcost, eval = FALSE}
+mod@misc$report_groups <- list(Coal = "_coal_", Wind = c("^R._win", "WOFF"))
+report(mod)                        # one section per group + "Ungrouped"
+report(mod, groups = FALSE)        # ignore the stored groups: sample of 12
+report(mod, levcost = TRUE)        # ex-ante LCOE comparison, per group
+report(scen, levcost = TRUE)       # ex-post, from the solved scenario
+report(mod, name = "PP")           # datasheet + "vs peers" chart
+```
+
+Figures in reports carry captions rather than in-plot titles, and faceted
+charts cap at 16 panels with their height following the layout. Custom
+templates get the same behaviour from `report_fig(p, width, caption = )`.
+
 The shipped templates are listed by `report_templates()`; custom `.Rmd`
 templates build on the exported `report_*` helper family and are passed via
 `template = "<path>"`.
+
+# Element datasheets
+
+Every model component has a `report()` method — commodities, supply,
+demand, trade, import/export, weather, taxes and subsidies, user
+constraints, calendars, horizons, configurations, and user costs each
+render a one-object datasheet from their own shipped template. A supply
+datasheet charts availability and cost by region (`autoplot(sup,
+style = "bar")` / `style = "regions"` draw the same views directly;
+an unlimited availability shows as a translucent full-height bar):
+
+```{r report-elements, eval = FALSE}
+report(COA)                          # a commodity datasheet
+report(SUP_COA)                      # a supply datasheet
+report(mod, name = "SUP_COA")        # the same, found inside a model
+report(mod, name = "X", class = "demand")   # narrow a name lookup
+```
+
+An object can carry its own default template in `misc$report` (also the
+techspec `report:` key) — a template name or a file path; an explicit
+`template = ` argument always wins:
+
+```{r report-misc, eval = FALSE}
+SUP_COA@misc$report <- "my_supply_sheet.Rmd"
+report(SUP_COA)                      # renders my_supply_sheet.Rmd
+```
 
 # Comparing scenarios
 

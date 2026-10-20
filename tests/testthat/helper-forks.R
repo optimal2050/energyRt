@@ -20,7 +20,8 @@
 #
 # Tier mapping: check_params -> tier check; GLPK solves -> tier fast;
 # other backends -> tier cross. GAMS constraints are honoured automatically
-# (dense scenario required; folded scenarios unsupported -> cell skipped).
+# (dense scenario required; the GAMS cell is also folded, so it covers the
+# GAMS x folded combination).
 # =========================================================================== #
 
 # canonical interp cases; a family can pass a subset or extras
@@ -40,7 +41,9 @@ fork_interp_cases <- function() {
   pyomo_cbc = list(solver = quote(solver_options$pyomo_cbc),
                    skip = quote(skip_if_no_pyomo())),
   gams = list(solver = quote(solver_options$gams_gdx_cplex),
-              skip = quote(skip_if_no_gams()))
+              skip = quote(skip_if_no_gams())),
+  mm_highs = list(solver = quote(solver_options$mm_highs),
+                  skip = quote(skip_if_no_multimod()))
 )
 
 .fork_interp <- function(build, family, case_name, args) {
@@ -49,7 +52,12 @@ fork_interp_cases <- function() {
   # previous run (matters for the ondisk case, which claims a directory)
   args$overwrite <- TRUE
   do.call(interpolate_model,
-          c(list(mod, name = paste0("ff_", family, "_", case_name)), args))
+          # scenario names are solver identifiers: letters/digits/underscore
+          # only (.assert_object_name), so a family named "import-export"
+          # cannot go in verbatim
+          c(list(mod, name = gsub("[^A-Za-z0-9_]+", "_",
+                                  paste0("ff_", family, "_", case_name))),
+            args))
 }
 
 .fork_solve <- function(scen, solver) {
@@ -71,7 +79,8 @@ run_family <- function(family, build,
                        check_params = NULL,
                        check_solution = NULL,
                        interp_cases = fork_interp_cases(),
-                       backends = c("glpk", "julia_highs", "pyomo_cbc", "gams"),
+                       backends = c("glpk", "julia_highs", "pyomo_cbc", "gams",
+                                    "mm_highs"),
                        solve_cases = names(interp_cases)) {
 
   # ---- depth I: every interp case, solver-free ---------------------------- #
@@ -115,8 +124,9 @@ run_family <- function(family, build,
     test_that(paste0("family ", family, ": ", backend, " reproduces the objective"), {
       eval(spec$skip)
       skip_if_no_solver()  # the GLPK reference objective is required
-      # GAMS needs a dense scenario; folded scenarios are unsupported there
-      args <- if (backend == "gams") list(sparse = FALSE) else list()
+      # GAMS needs a dense scenario (no native parameter default); folding it
+      # makes this cell the GAMS x folded coverage
+      args <- if (backend == "gams") list(sparse = FALSE, fold = TRUE) else list()
       scen <- suppressMessages(suppressWarnings(
         .fork_interp(build, family, paste0("x_", backend), args)))
       scen <- .fork_solve(scen, eval(spec$solver))

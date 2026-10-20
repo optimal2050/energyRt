@@ -31,7 +31,7 @@ sl_model <- function(fullYear = TRUE, startLevel = 7, name = "sl") newModel(
               demand = data.frame(
                 timeslice = paste0(rep(c("d1", "d2"), each = 4), "_h", 1:4),
                 demand = 10)),
-    newStorage("STG", commodity = "ELC", invcost = list(out.invcost = 1),
+    newStorage("STG", commodity = "ELC", invcost = list(out.invcost = 1), duration = 1,
                vintage = data.frame(olife = 30L), fullYear = fullYear,
                startLevel = data.frame(startLevel = startLevel))))
 
@@ -91,7 +91,7 @@ test_that("a storage on a COARSE commodity still gets its startLevel", {
                     vintage = data.frame(olife = 30L), cap2act = 1),
       newDemand("DEM", commodity = "ELC",
                 demand = data.frame(timeslice = c("d1", "d2"), demand = 10)),
-      newStorage("STG", commodity = "ELC", invcost = list(out.invcost = 1),
+      newStorage("STG", commodity = "ELC", invcost = list(out.invcost = 1), duration = 1,
                  vintage = data.frame(olife = 30L),
                  startLevel = data.frame(startLevel = 7))))
   s <- suppressMessages(suppressWarnings(
@@ -111,50 +111,39 @@ test_that("a zero or absent @startLevel writes nothing", {
   expect_true(is.null(d) || nrow(d) == 0L)
 })
 
-test_that("the deprecated `charge` and `inflow` still work, warned once", {
-  reset <- getFromNamespace(".en_deprecate_reset", "energyRt")
+test_that("`charge` and `inflow` are refused, naming @startLevel", {
+  # v0.80 accepted them with a warning; v0.90 refuses. The message has to say
+  # more than "renamed": the SEMANTICS changed with the name, so a user who
+  # simply swaps the spelling would get a different model.
   for (old_nm in c("charge", "inflow")) {
-    reset()
     args <- list(name = "S", commodity = "ELC")
     args[[old_nm]] <- stats::setNames(data.frame(7), old_nm)
-    expect_warning(s <- do.call(newStorage, args), "renamed to `@startLevel`")
-    expect_equal(s@startLevel$startLevel, 7)
+    msg <- tryCatch(do.call(newStorage, args), error = conditionMessage)
+    expect_match(msg, "renamed to `@startLevel`", fixed = TRUE)
+    expect_match(msg, "no longer accepted")
+    expect_match(msg, "ONCE PER CYCLE")
   }
-  reset()
+  # the replacement itself still takes the scalar shorthand
+  expect_equal(newStorage("S", commodity = "ELC",
+                          startLevel = data.frame(startLevel = 7))@startLevel$startLevel,
+               7)
 })
 
-test_that("a `timeslice` column on the deprecated spelling is dropped, loudly", {
-  reset <- getFromNamespace(".en_deprecate_reset", "energyRt")
-  reset()
-  # trip the once-per-session deprecation notice first, so the only warning left
-  # to assert on is the one about the ignored `timeslice`
-  suppressWarnings(newStorage("S0", commodity = "ELC",
-                              charge = data.frame(charge = 1)))
-  expect_warning(
-    s <- newStorage("S", commodity = "ELC",
-                    charge = data.frame(timeslice = "d1_h3", charge = 7)),
-    "ignored")
-  expect_false("timeslice" %in% names(s@startLevel))
-  expect_equal(s@startLevel$startLevel, 7)
-  reset()
-})
-
-test_that("supplying both spellings is an error", {
+test_that("the old spelling is refused even beside the new one", {
   expect_error(
     newStorage("S", commodity = "ELC",
                charge = data.frame(charge = 1),
                startLevel = data.frame(startLevel = 1)),
-    "not both")
+    "no longer accepted")
 })
 
-test_that("update() honours the same rename", {
-  reset <- getFromNamespace(".en_deprecate_reset", "energyRt")
-  reset()
+test_that("update() refuses the old spelling too", {
   s <- newStorage("S", commodity = "ELC")
-  expect_warning(s2 <- update(s, charge = data.frame(charge = 3)),
-                 "renamed to `@startLevel`")
-  expect_equal(s2@startLevel$startLevel, 3)
-  reset()
+  expect_error(update(s, charge = data.frame(charge = 3)),
+               "renamed to `@startLevel`", fixed = TRUE)
+  # the supported path
+  expect_equal(update(s, startLevel = data.frame(startLevel = 3))@startLevel$startLevel,
+               3)
 })
 
 test_that("the public constructors are still exported", {

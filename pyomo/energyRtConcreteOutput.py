@@ -148,33 +148,33 @@ f.write("value\n" + str(model.vObjective.value) + "\n")
 f.close()
 flist.write("vTaxCost\n")
 f = open("output/vTaxCost.csv", "w")
-f.write("comm,region,year,value\n")
-for c, r, y in mTaxCost:
-    if model.vTaxCost[(c, r, y)].value != 0:
+f.write("levy,region,year,value\n")
+for lv, r, y in mTaxCost:
+    if model.vTaxCost[(lv, r, y)].value != 0:
         f.write(
-            str(c)
+            str(lv)
             + ","
             + str(r)
             + ","
             + str(y)
             + ","
-            + str(model.vTaxCost[(c, r, y)].value)
+            + str(model.vTaxCost[(lv, r, y)].value)
             + "\n"
         )
 f.close()
 flist.write("vSubsCost\n")
 f = open("output/vSubsCost.csv", "w")
-f.write("comm,region,year,value\n")
-for c, r, y in mSubCost:
-    if model.vSubsCost[(c, r, y)].value != 0:
+f.write("levy,region,year,value\n")
+for lv, r, y in mSubCost:
+    if model.vSubsCost[(lv, r, y)].value != 0:
         f.write(
-            str(c)
+            str(lv)
             + ","
             + str(r)
             + ","
             + str(y)
             + ","
-            + str(model.vSubsCost[(c, r, y)].value)
+            + str(model.vSubsCost[(lv, r, y)].value)
             + "\n"
         )
 f.close()
@@ -375,7 +375,7 @@ f.close()
 flist.write("vStorageOutStockCap\n")
 f = open("output/vStorageOutStockCap.csv", "w")
 f.write("stg,region,year,value\n")
-for st1, r, y in mStorageSpan:
+for st1, r, y in mStorageOutCap:
     val = model.vStorageOutStockCap[(st1, r, y)].value
     if val is not None and val != 0:
         f.write(str(st1) + "," + str(r) + "," + str(y) + "," + str(val) + "\n")
@@ -1207,7 +1207,7 @@ for st1, r, y in mStorageStgNew:
 f.close()
 f = open("output/vStorageOutCap.csv", "w")
 f.write("stg,region,year,value\n")
-for st1, r, y in mStorageSpan:
+for st1, r, y in mStorageOutCap:
     if model.vStorageOutCap[(st1, r, y)].value != 0:
         f.write(
             str(st1)
@@ -1223,7 +1223,7 @@ f.close()
 flist.write("vStorageOutNewCap\n")
 f = open("output/vStorageOutNewCap.csv", "w")
 f.write("stg,region,year,value\n")
-for st1, r, y in mStorageNew:
+for st1, r, y in mStorageOutNew:
     if model.vStorageOutNewCap[(st1, r, y)].value != 0:
         f.write(
             str(st1)
@@ -1274,7 +1274,7 @@ for c, r, y, s in mExport:
 f.close()
 flist.write("vTradeIr\n")
 f = open("output/vTradeIr.csv", "w")
-f.write("trade,comm,region,regionp,year,timeslice,value\n")
+f.write("trade,comm,src,dst,year,timeslice,value\n")
 for t1, c, r, rp, y, s in mvTradeIr:
     if model.vTradeIr[(t1, c, r, rp, y, s)].value != 0:
         f.write(
@@ -1504,5 +1504,7 @@ for i in group:
     f.write("group," + str(i) + "\n")
 for i in weather:
     f.write("weather," + str(i) + "\n")
+for i in levy:
+    f.write("levy," + str(i) + "\n")
 f.close()
 flist.close()

@@ -28,13 +28,16 @@ settings.
 - `geoscale`:
 
   ANY. Optional
-  [`geoscales::Geoscale`](https://optimal2050.github.io/geoscales/r/reference/Geoscale.html)
+  [`geoscales::GeoScale`](https://optimal2050.github.io/geoscales/r/reference/GeoScale.html)
   object describing the model's regions – their nesting into coarser
-  levels, weights, and (optionally) geometry. Purely additional
-  information about the labels in `region`, which remains authoritative;
-  the geoscale is used for plotting, reporting and subsetting and never
-  changes the optimisation model. `NULL` when unset. Typed `ANY` because
-  `geoscales` is an optional (Suggests) dependency.
+  levels, weights, and (optionally) geometry. `region` remains
+  authoritative: it is always the finest level, and the geoscale adds
+  the structure above it. Attaching one is inert on its own – it widens
+  the model's region set with the coarser codes and enables level-aware
+  plotting, reporting and subsetting – but it is also what makes
+  `commodity@geoframe` possible, and a commodity balanced at a coarser
+  level DOES change the optimisation model. `NULL` when unset. Typed
+  `ANY` because `geoscales` is an optional (Suggests) dependency.
 
 - `horizon`:
 
@@ -57,26 +60,23 @@ settings.
 
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  : character. Region name to apply the parameter, NA for every region.
 
   year
 
-  :   integer. Year to apply the parameter, NA for every year.
+  : integer. Year to apply the parameter, NA for every year.
 
   wacc
 
-  :   numeric. Weighted average cost of capital, used to annuitise
-      investment costs into `pTechEac` / `pStorageOutEac` / `pTradeEac`.
-      A process may override it with its own `@invcost$wacc`. Default is
-      0.
+  : numeric. Weighted average cost of capital, used to annuitise
+    investment costs into `pTechEac` / `pStorageOutEac` / `pTradeEac`. A
+    process may override it with its own `@invcost$wacc`. Default is 0.
 
   sdr
 
-  :   numeric. Social discount rate, used to build the cumulative
-      discount factor applied to total system costs in the objective. A
-      property of the model, never of an individual process. Default is
-      0.
+  : numeric. Social discount rate, used to build the cumulative discount
+    factor applied to total system costs in the objective. A property of
+    the model, never of an individual process. Default is 0.
 
 - `discountFirstYear`:
 

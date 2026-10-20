@@ -7,6 +7,8 @@
 \alias{levcost,repository-method}
 \alias{levcost,model-method}
 \alias{levcost,scenario-method}
+\alias{levcost,levcost_variants-method}
+\alias{levcost,levcost-method}
 \title{Levelized cost of commodity production}
 \usage{
 levcost(object, comm, name, ...)
@@ -15,11 +17,15 @@ levcost(object, comm, name, ...)
 
 \S4method{levcost}{trade}(object, comm, name, ...)
 
-\S4method{levcost}{repository}(object, comm, name, ...)
+\S4method{levcost}{repository}(object, comm, name, by_variant = FALSE, by_region = FALSE, ...)
 
-\S4method{levcost}{model}(object, comm, name, ...)
+\S4method{levcost}{model}(object, comm, name, by_variant = FALSE, by_region = FALSE, ...)
 
 \S4method{levcost}{scenario}(object, comm, name, ...)
+
+\S4method{levcost}{levcost_variants}(object, comm, name, by_variant = TRUE, ...)
+
+\S4method{levcost}{levcost}(object, comm, name, by_variant = FALSE, ...)
 }
 \arguments{
 \item{object}{A \code{technology} (or list thereof), \code{repository},
@@ -53,14 +59,24 @@ commodities without a supply in the container are auto-supplied
 \item{\code{horizon}}{A \code{horizon} object, numeric year vector, or
 \code{NULL} (derives from \code{@olife}).}
 \item{\code{calendar}}{A \code{calendar} object or \code{NULL}.}
-\item{\code{timeframe}}{\code{"ANNUAL"} (default) or \code{"native"}.
+\item{\code{timeframe}}{\code{"auto"} (default), \code{"ANNUAL"} or
+\code{"native"}.
 \code{"ANNUAL"} prices the technology on a single annual time-timeslice: any
 weather profile is collapsed to an annual capacity factor (applied as the
 technology's annual availability), so capacity is sized to serve unit
 annual demand at that factor (textbook LCOE). \code{"native"} keeps the
 supplied (sub-annual) calendar and normalises by total generation --
 useful when the technology is analysed together with storage or
-transmission, where sub-annual dispatch matters.}
+transmission, where sub-annual dispatch matters; it requires a
+\code{calendar} holding the process's timeslices and will not choose one
+for you.
+\code{"auto"} annualizes when that collapse is sound and prices natively
+when it is not. It is unsound when a process carries more than one
+\code{@weather} factor (the annual mean of a product is not the product of
+the annual means, so the pair has no single annual equivalent) or has
+parameter rows pinned to a named sub-annual timeslice (the slice stops
+existing). An explicit \code{"ANNUAL"} declines in those cases rather than
+return a number built on an invalid collapse.}
 \item{\code{backstop}}{Logical, default \code{TRUE}. Enables a very
 expensive dummy-import slack on the output commodity balance so the
 mini-model always solves even when the technology cannot serve a timeslice on
@@ -110,6 +126,20 @@ to bound the time spent on a technology whose variants all fail.}
 tables attached to \code{scenario@misc}.}
 \item{\code{verbose}}{Logical, default \code{TRUE}.}
 }}
+
+\item{by_variant}{for a technology declaring vintages or clusters: \code{FALSE}
+(default) returns the result object; \code{TRUE} (= \code{"levcost"}), \code{"npv"} or
+\code{"components"} returns that per-variant table instead. Passing an existing
+result — \code{levcost(lc, by_variant = "npv")} — extracts without re-solving.}
+
+\item{by_region}{\code{FALSE} (default) prices a process once, in one of the
+regions it spans. \code{TRUE} prices it once PER region and returns a
+\code{levcost_list} named by region — the ladder a technology whose costs or
+efficiency vary by region actually has. levcost() builds a single-region
+mini-model, so without this a multi-region process reports only its first
+region's cost. On a container the entries are named \verb{<process>@<region>}.
+A \code{trade} is unaffected: it spans two regions by construction and is
+priced across both at once.}
 }
 \value{
 For \code{technology} input: a list of class \code{"levcost"} with fields:
@@ -138,7 +168,8 @@ variant, keyed by variant name (\code{"PWR_VIN2030"}). Each variant is
 priced in its own region so the variants cannot serve each other's demand;
 without that isolation they compete for one unit of demand and the result
 silently sums across them. The stacked tables are reachable with
-\code{\link[=levcost_by_variant]{levcost_by_variant()}}, and \code{autoplot()} compares the variants.
+\code{levcost(x, by_variant = )}, and \code{autoplot()} compares the
+variants.
 \code{$frontier} is \code{NULL} on this path -- the frontier corners are a
 per-commodity sweep, orthogonal to variants, and are not fanned out.
 A technology with no vintages or clusters is unaffected and still returns a
@@ -147,6 +178,9 @@ single \code{"levcost"} object.
 \description{
 Computes the levelized cost of energy (LCOE) for a \code{technology},
 \code{repository}, \code{model}, or \code{scenario} object.
+
+\code{levcost()} on a \code{levcost_variants} object stacks its per-variant tables
+without re-solving: \code{levcost(lc, by_variant = "npv")}.
 }
 \details{
 \describe{
@@ -194,7 +228,4 @@ autoplot(lc, type = "npv")
 lc_list <- levcost(list(tech1, tech2), discount = 0.07)
 autoplot(lc_list, type = "npv")
 }
-}
-\seealso{
-\code{\link[=levcost_by_variant]{levcost_by_variant()}}
 }

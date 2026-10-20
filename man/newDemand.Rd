@@ -2,7 +2,7 @@
 % Please edit documentation in R/class-demand.R
 \name{newDemand}
 \alias{newDemand}
-\alias{update}
+\alias{update,demand-method}
 \title{Create new demand object}
 \usage{
 newDemand(
@@ -11,6 +11,8 @@ newDemand(
   commodity = character(),
   unit = character(),
   demand = data.frame(),
+  cluster = data.frame(),
+  geoframe = character(),
   region = character(),
   misc = list(),
   ...
@@ -35,9 +37,31 @@ newDemand(
 \item{demand}{numeric. Value of the demand.}
 }}
 
+\item{cluster}{data.frame. Declaration of the demand's parallel parts. REQUIRED whenever \code{demand} carries a \code{cluster} label, and authoritative: labels are never harvested from the data slot.
+For demand a cluster is a SUB-REGIONAL SHARE: the object carries one total, declared at a coarse region, and each cluster takes a fixed fraction of it in one finer region. Variant expansion mints one \code{dem} set member per cluster and \code{pDemand} is indexed by \code{dem}, so \code{eqDemInp} sums the parts back -- the coarse figure is the AGGREGATE of its children and stays the number you edit.
+LIMITATION -- only \code{dem.share.fx}, deliberately. A \code{lo}/\code{up} split would need the LP to CHOOSE where load sits inside the region, and nothing indexed by \code{dem} is a variable for such a bound to act on: \code{pDemand} sits on the right-hand side of an equality. There is no \code{cap.share.fx} either (a demand has no capacity) and no \verb{act.share.*} (same reason -- no variable per demand object).
+Shares are fractions of THIS object's total and must sum to 1, so one demand object is one coarse region. Several zones are several demand objects, the same way one \code{lossTranches()} object is one line.
+Note the commodity's own \verb{@geoframe} is a different question: a commodity balanced at the coarse level cannot read region-level demand at all, and declaring both is refused. Split the demand when the commodity stays at the finer level.
+
+\describe{
+\item{cluster}{character. Cluster label, referenced by the \code{cluster} column of \verb{@demand}.}
+\item{desc}{character. Optional description of the share.}
+\item{region}{character. The finer region this share lands in. Required -- it is where the share of the demand goes.
+}
+\item{dem.share.fx}{numeric. This cluster's fixed fraction of the object's total demand. Must be positive, and the shares of one object must sum to 1.
+}
+\item{order}{integer. Optional ordering for reporting. Without it labels sort alphabetically and "R10" would precede "R2".
+}
+}}
+
+\item{geoframe}{character. Optional. The geoscale level this object's regions are expressed at; unset (the default) derives it from the region codes. See \code{technology@geoframe} for the full rule, including the consistency checks it turns on. A demand CONSUMES, so it may sit at a coarser level than the commodity it takes.}
+
 \item{region}{character. Optional name of region to narrow the specification of the demand in the case of used NAs. Error will be returned if specified regions in \verb{@demand} are not mensioned in the \verb{@region} slot (if the slot is not empty).}
 
 \item{misc}{list. Optional list of additional information.}
+
+\item{...}{further named slots of the class -- set on the new object by
+\code{newDemand()}, replacing the current values in \code{update()}.}
 
 \item{object}{demand object}
 }
@@ -56,12 +80,12 @@ DSTEEL <- newDemand(
  commodity = "STEEL",
  unit = "Mt",
  demand = data.frame(
-    region = "UTOPIA", # NA for every region
+    region = "TOPIA", # NA for every region
     year = c(2020, 2030, 2050),
     timeslice = "ANNUAL",
     demand = c(100, 200, 300)
  ),
- region = "UTOPIA", # optional, to narrow the specification of the demand
+ region = "TOPIA", # optional, to narrow the specification of the demand
  )
  class(DSTEEL)
  draw(DSTEEL)

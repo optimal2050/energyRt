@@ -1,6 +1,6 @@
-# Comparison layer: the value-diff kernel, compare_inputs (Stage 1);
-# compare_scenarios / compare_models / comparative report tests join in
-# later stages. Kernel and inputs tests are solver-free.
+# Comparison layer: the value-diff kernel, compare_inputs, compare_scenarios,
+# compare_models, and the comparative report. Kernel and inputs tests are
+# solver-free.
 
 # --------------------------------------------------------------------------- #
 # fixtures

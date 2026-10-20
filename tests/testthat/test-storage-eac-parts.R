@@ -9,13 +9,11 @@
 # That combination failed silently and expensively. `mStorage*Eac` still built
 # an objective term, so the LP carried a capacity variable that was PRICED but
 # appeared in no constraint -- and drove it to zero. An eac-financed charger or
-# reservoir was free, and its flow fell back to the `mStorageNo*Cap` branch
-# (`ratio * vStorageOutCap`) instead of being bounded by its own capacity.
+# reservoir was free, and its flow was not bounded by its own capacity.
 #
-# Found converting PyPSA-Eur, where `capital_cost` is already annuitised and so
-# maps to `eac` rather than `invcost`: a fused H2 store plus electrolyser plus
-# fuel cell solved 0.35% BELOW the equivalent three-object model, with an
-# unbounded reservoir and a free electrolyser.
+# With a pre-annuitised capex supplied as `eac` rather than `invcost`, a fused
+# H2 store plus electrolyser plus fuel cell solves BELOW the equivalent
+# three-object model, with an unbounded reservoir and a free electrolyser.
 # =========================================================================== #
 
 se_slices <- paste0("s", 1:4)
@@ -72,8 +70,10 @@ test_that("an equivalent eac and invcost price a charger identically", {
       solver = solver_options$glpk, overwrite = TRUE)))
     getData(scen, "vObjective", merge = TRUE)$value
   }, numeric(1))
-  # 10 MW charged at supply cost 1, plus 10 MW of charger at 10/yr = 110.
-  expect_equal(unname(obj[["invcost"]]), 110, tolerance = 1e-9)
+  # 10 MWh charged at supply cost 1, plus a charger rated for the flow,
+  # 10 / (8760 * 0.25), at 10/yr.
+  expect_equal(unname(obj[["invcost"]]), 10 + 10 * 10 / (8760 * 0.25),
+               tolerance = 1e-9)
   expect_equal(unname(obj[["eac"]]), unname(obj[["invcost"]]), tolerance = 1e-9)
   # The charger is PAID for. Before the fix `inp.eac` bought nothing: the
   # capacity variable existed, carried its cost, and appeared in no constraint,

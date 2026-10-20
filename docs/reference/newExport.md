@@ -2,6 +2,8 @@
 
 Export object represent commodity export to the Rest of the World (RoW).
 
+The method replaces slots of the export object with new values.
+
 ## Usage
 
 ``` r
@@ -13,9 +15,14 @@ newExport(
   reserve = data.frame(),
   export = data.frame(),
   cluster = data.frame(),
+  geoframe = character(),
+  region = character(),
   misc = list(),
   ...
 )
+
+# S4 method for class 'export'
+update(object, ...)
 ```
 
 ## Arguments
@@ -50,19 +57,19 @@ newExport(
 
   cluster
 
-  :   character. Price step this row applies to, NA for every step.
+  : character. Price step this row applies to, NA for every step.
 
   res.lo
 
-  :   numeric. Lower bound on the cumulative volume.
+  : numeric. Lower bound on the cumulative volume.
 
   res.up
 
-  :   numeric. Upper bound on the cumulative volume.
+  : numeric. Upper bound on the cumulative volume.
 
   res.fx
 
-  :   numeric. Fixed cumulative volume. Overrides `res.lo` and `res.up`.
+  : numeric. Fixed cumulative volume. Overrides `res.lo` and `res.up`.
 
 - export:
 
@@ -70,46 +77,123 @@ newExport(
 
   cluster
 
-  :   character. Price step this row applies to, NA for every step. See
-      the `cluster` slot.
+  : character. Price step this row applies to, NA for every step. See
+    the `cluster` slot.
 
   region
 
-  :   character. Region name to apply the parameter; use NA to apply to
-      all regions.
+  : character. Region name to apply the parameter; use NA to apply to
+    all regions.
 
   year
 
-  :   integer. Year to apply the parameter; use NA to apply to all
-      years.
+  : integer. Year to apply the parameter; use NA to apply to all years.
 
   timeslice
 
-  :   character. Time timeslice to apply the parameter; use NA to apply
-      to all timeslices.
+  : character. Time timeslice to apply the parameter; use NA to apply to
+    all timeslices.
 
   exp.lo
 
-  :   numeric. Export lower bound.
+  : numeric. Export lower bound.
 
   exp.up
 
-  :   numeric. Export upper bound.
+  : numeric. Export upper bound.
 
   exp.fx
 
-  :   numeric. Fixed export volume, ignored if NA. This parameter
-      overrides `exp.lo` and `exp.up`.
+  : numeric. Fixed export volume, ignored if NA. This parameter
+    overrides `exp.lo` and `exp.up`.
 
   price
 
-  :   numeric. Price received per unit exported. Export revenue is a
-      NEGATIVE cost – the minus sits inside `eqExportRowCost` – so a
-      higher price is a better outcome for the objective.
+  : numeric. Price received per unit exported. Export revenue is a
+    NEGATIVE cost – the minus sits inside `eqExportRowCost` – so a
+    higher price is a better outcome for the objective.
+
+- cluster:
+
+  data.frame. Declaration of the object's parallel sub-objects. For
+  export a cluster is a PRICE STEP of a stepped curve: its own share of
+  the quantity, at its own price. A single price cannot express a curve
+  – real resource grades get dearer as they are exhausted, and a real
+  export market pays less as more volume is pushed into it. This slot
+  declares WHAT the steps are; the per-step values live in the `cluster`
+  column of the other slots. Build both with
+  [`asExportCurve()`](https://energyRt.org/reference/supply-curve.md),
+  which also computes the prices and checks the direction of the curve.
+  REQUIRED whenever any other slot carries a `cluster` label, and
+  AUTHORITATIVE: a label used in a slot but not declared here is a typo
+  and an error. Labels are never harvested from the data slots – a
+  misspelling would otherwise become a variant with defaults for
+  everything it does not carry (no cost, no bound). LIMITATION – there
+  is deliberately no `cap.share.fx` column. A capacity share ties the
+  variants' capacities to fixed proportions, and this class has no
+  capacity variable for the tie to act on. The column is absent rather
+  than present-and-ignored, so the mistake is rejected at construction
+  instead of silently doing nothing. Bound the split with
+  `act.share.lo/up/fx`, which acts on the quantity this class does have,
+  or fix it directly in the per-step bounds. The share columns are
+  different levers, not substitutes. `cap.share.fx` fixes the ratio of
+  the variants' CAPACITIES in every year: loss tranches need it, because
+  each tranche efficiency is calibrated to its place in the capacity
+  stack and the flow must stay free to fill the cheapest first.
+  `act.share.lo/up/fx` bounds a variant share of the family THROUGHPUT
+  instead, which is what stops a clustered family collapsing to its
+  cheapest member once regional borders are aggregated away. Both are
+  optional; a variant with neither sizes and runs freely.
+
+  cluster
+
+  : character. Step label, used in the expanded object name.
+
+  desc
+
+  : character. Description of the step.
+
+  share
+
+  : numeric. The step's fraction of the object's quantity. DESCRIPTIVE,
+    not enforced: unlike `technology` or `trade` this class has no
+    capacity variable to tie, so
+    [`asExportCurve()`](https://energyRt.org/reference/supply-curve.md)
+    writes the split straight into the quantity bounds and records here
+    what it did.
+
+  order
+
+  : integer. Fill order, 1 = the cheapest step (or, for export, the best
+    paid). Without it labels sort alphabetically and "S10" would precede
+    "S2".
+
+- geoframe:
+
+  character. Optional. The geoscale level this object's regions are
+  expressed at; unset (the default) derives it from the region codes.
+  See `technology@geoframe` for the full rule, including the consistency
+  checks it turns on. An export CONSUMES, so it may sit at a coarser
+  level than the commodity it takes.
+
+- region:
+
+  character. Regions where the export process exists. Empty (or NA)
+  means every region of the model. A region named in any other slot must
+  be one of these; the other slots place VALUES and never change where
+  the process exists.
 
 - misc:
 
   list. Additional information.
+
+- ...:
+
+  arguments-slots (see `newExport`) with updated values to replace.
+
+- object:
+
+  object of class export
 
 ## Value
 

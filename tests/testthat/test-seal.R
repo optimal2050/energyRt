@@ -150,7 +150,7 @@ test_that("mark_delete queues; delete_marked honors importance and seals", {
   expect_true(dir.exists(sl_root("models", "del5")))
   expect_true(dir.exists(sl_root("models", "keep")))
   reg <- load_registry()
-  expect_identical(nrow(find_registry(reg, type = "model", name = "del0")), 0L)
+  expect_identical(nrow(find_in_registry(reg, type = "model", name = "del0")), 0L)
 
   # unmark clears the queue
   unmark_delete("del5", type = "model", verbose = FALSE)

@@ -15,6 +15,7 @@ newSupply(
   reserve = data.frame(),
   supply = data.frame(),
   cluster = data.frame(),
+  geoframe = character(),
   region = character(),
   misc = list(),
   ...
@@ -45,29 +46,29 @@ newSupply(
 
   cluster
 
-  :   character. Price step this row applies to, NA for every step. See
-      the `cluster` slot.
+  : character. Price step this row applies to, NA for every step. See
+    the `cluster` slot.
 
   weather
 
-  :   character. Name of the weather factor to apply. Must match the
-      weather factor names in a `weather` class in the model.
+  : character. Name of the weather factor to apply. Must match the
+    weather factor names in a `weather` class in the model.
 
   wava.lo
 
-  :   numeric. Coefficient that links the weather factor with the lower
-      bound of the availability factor `ava.lo`.
+  : numeric. Coefficient that links the weather factor with the lower
+    bound of the availability factor `ava.lo`.
 
   wava.up
 
-  :   numeric. Coefficient that links the weather factor with the upper
-      bound of the availability factor `ava.up`.
+  : numeric. Coefficient that links the weather factor with the upper
+    bound of the availability factor `ava.up`.
 
   wava.fx
 
-  :   numeric. Coefficient that links the weather factor with the fixed
-      value of the availability factor `ava.fx`. This parameter
-      overrides `wava.lo` and `wava.up`.
+  : numeric. Coefficient that links the weather factor with the fixed
+    value of the availability factor `ava.fx`. This parameter overrides
+    `wava.lo` and `wava.up`.
 
 - reserve:
 
@@ -77,26 +78,26 @@ newSupply(
 
   cluster
 
-  :   character. Price step this row applies to, NA for every step. See
-      the `cluster` slot.
+  : character. Price step this row applies to, NA for every step. See
+    the `cluster` slot.
 
   region
 
-  :   character. Region name to apply the parameter. Use NA to apply to
-      all regions.
+  : character. Region name to apply the parameter. Use NA to apply to
+    all regions.
 
   res.lo
 
-  :   numeric. Lower bound of the total available resource.
+  : numeric. Lower bound of the total available resource.
 
   res.up
 
-  :   numeric. Upper bound of the total available resource.
+  : numeric. Upper bound of the total available resource.
 
   res.fx
 
-  :   numeric. Fixed value of the total available resource. This
-      parameter overrides `res.lo` and `res.up`.
+  : numeric. Fixed value of the total available resource. This parameter
+    overrides `res.lo` and `res.up`.
 
 - supply:
 
@@ -109,44 +110,108 @@ newSupply(
 
   cluster
 
-  :   character. Price step this row applies to, NA for every step. See
-      the `cluster` slot.
+  : character. Price step this row applies to, NA for every step. See
+    the `cluster` slot.
 
   region
 
-  :   character. Region name to apply the parameter. Use NA to apply to
-      all regions.
+  : character. Region name to apply the parameter. Use NA to apply to
+    all regions.
 
   year
 
-  :   integer. Year to apply the parameter. Use NA to apply to all
-      years.
+  : integer. Year to apply the parameter. Use NA to apply to all years.
 
   timeslice
 
-  :   character. Time timeslice to apply the parameter. Use NA to apply
-      to all timeslices.
+  : character. Time timeslice to apply the parameter. Use NA to apply to
+    all timeslices.
 
   ava.lo
 
-  :   numeric. Lower bound on the supplied quantity, in physical
-      commodity units per timeslice.
+  : numeric. Lower bound on the supplied quantity, in physical commodity
+    units per timeslice.
 
   ava.up
 
-  :   numeric. Upper bound on the supplied quantity, in physical
-      commodity units per timeslice.
+  : numeric. Upper bound on the supplied quantity, in physical commodity
+    units per timeslice.
 
   ava.fx
 
-  :   numeric. Fixed value of the supplied quantity, in physical
-      commodity units per timeslice. This parameter overrides `ava.lo`
-      and `ava.up`.
+  : numeric. Fixed value of the supplied quantity, in physical commodity
+    units per timeslice. This parameter overrides `ava.lo` and `ava.up`.
 
   cost
 
-  :   numeric. Cost of the resource extraction, if not set, the resource
-      is considered free.
+  : numeric. Cost of the resource extraction, if not set, the resource
+    is considered free.
+
+- cluster:
+
+  data.frame. Declaration of the object's parallel sub-supplies. For
+  supply a cluster is a PRICE STEP – a resource grade: its own share of
+  the availability and reserve, at its own cost. A single `cost` cannot
+  express a supply curve, where cheap grades are exhausted first and the
+  next ones cost more. This slot declares WHAT the grades are; the
+  per-grade values live in the `cluster` column of `supply`, `reserve`
+  and `weather`. Build both with
+  [`asSupplyCurve()`](https://energyRt.org/reference/supply-curve.md),
+  which also computes the costs and checks that the curve rises.
+  REQUIRED whenever any other slot carries a `cluster` label, and
+  AUTHORITATIVE: a label used in a slot but not declared here is a typo
+  and an error. Labels are never harvested from the data slots – a
+  misspelling would otherwise become a variant with defaults for
+  everything it does not carry (no cost, no bound). LIMITATION – there
+  is deliberately no `cap.share.fx` column. A capacity share ties the
+  variants' capacities to fixed proportions, and this class has no
+  capacity variable for the tie to act on. The column is absent rather
+  than present-and-ignored, so the mistake is rejected at construction
+  instead of silently doing nothing. Bound the split with
+  `act.share.lo/up/fx`, which acts on the quantity this class does have,
+  or fix it directly in the per-step bounds. The share columns are
+  different levers, not substitutes. `cap.share.fx` fixes the ratio of
+  the variants' CAPACITIES in every year: loss tranches need it, because
+  each tranche efficiency is calibrated to its place in the capacity
+  stack and the flow must stay free to fill the cheapest first.
+  `act.share.lo/up/fx` bounds a variant share of the family THROUGHPUT
+  instead, which is what stops a clustered family collapsing to its
+  cheapest member once regional borders are aggregated away. Both are
+  optional; a variant with neither sizes and runs freely.
+
+  cluster
+
+  : character. Grade label, used in the expanded object name.
+
+  desc
+
+  : character. Description of the grade.
+
+  region
+
+  : character. Region(s) the grade exists in, NA for everywhere.
+    Intersected with the object's own `region` slot.
+
+  share
+
+  : numeric. The grade's fraction of the object's quantity. DESCRIPTIVE,
+    not enforced: supply has no capacity variable to tie, so
+    [`asSupplyCurve()`](https://energyRt.org/reference/supply-curve.md)
+    writes the split straight into `ava.*` / `res.*` and records here
+    what it did.
+
+  order
+
+  : integer. Fill order, 1 = the cheapest grade. Without it labels sort
+    alphabetically and "S10" would precede "S2".
+
+- geoframe:
+
+  character. Optional. The geoscale level this object's regions are
+  expressed at; unset (the default) derives it from the region codes.
+  See `technology@geoframe` for the full rule, including the consistency
+  checks it turns on. A supply DELIVERS its commodity, so its level may
+  not be coarser than the commodity's balance level.
 
 - region:
 
@@ -159,6 +224,10 @@ newSupply(
   list. List of additional parameters that are not used in the model but
   can be used for reference or user-defined functions. For example,
   links to the source of the supply data, or other metadata.
+
+- ...:
+
+  further named slots of the class, set on the new object.
 
 ## Value
 

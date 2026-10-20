@@ -1,35 +1,237 @@
-#' Read solution
+# Attach a run's already-imported `modOut/` store, so a run stays readable
+# after its solver scratch has been cleaned up. `drop_solver_outputs()`
+# removes `output/` precisely BECAUSE the run was imported; without this the
+# store it was cleared against could not be read back.
+#
+# Returns the scenario with `@modOut` pointing at the store, or NULL when the
+# run has none.
+# Build a `modOut` by SCANNING a store directory rather than from the shell's
+# bookkeeping. The class supplies the schema: each directory name is looked up
+# in the baked variable spec, and a name the spec does not know is accepted
+# untyped rather than dropped.
+#
+# `sets` is problem-level and belongs to no store, so the caller carries it in;
+# `stage` comes from whichever manifest describes the store -- `run.yml` for a
+# run, `modOut.yml` for a promoted one.
+.modout_from_store <- function(store_dir, sets = list(), stage = "solved") {
+  vdir <- fp(store_dir, "variables")
+  if (!dir.exists(vdir)) return(NULL)
+  nms <- basename(list.dirs(vdir, recursive = FALSE))
+  nms <- nms[dir.exists(fp(vdir, nms, "data"))]
+  if (!length(nms)) return(NULL)
+  mo <- new("modOut")
+  for (nm in nms) {
+    v <- mo@variables[[nm]]
+    if (is.null(v)) v <- newVariable(nm, origin = "solver", declared = FALSE)
+    v <- set_ondisk_slots(v)
+    v <- setObjPath(v, path = fp(vdir, nm))
+    v <- mark_ondisk(v)
+    mo@variables[[nm]] <- v
+  }
+  mo@sets <- sets
+  mo@stage <- as.character(stage %||% "solved")
+  mo <- set_ondisk_slots(mo)
+  mo <- setObjPath(mo, path = store_dir)
+  mark_ondisk(mo)
+}
+
+.modout_attach <- function(scen, solver_dir) {
+  run_dir <- tryCatch(
+    .run_dir(scen, .run_variant(scen), scen@misc$run %||% ""),
+    error = function(e) NULL)
+  if (is.null(run_dir) || !nzchar(scen@misc$run %||% "")) return(NULL)
+  # only the run actually being read: `solver.dir=` can point anywhere
+  same <- tryCatch(identical(
+    normalizePath(.run_solver_dir(run_dir), winslash = "/", mustWork = FALSE),
+    normalizePath(solver_dir, winslash = "/", mustWork = FALSE)),
+    error = function(e) FALSE)
+  if (!same) return(NULL)
+
+  rec <- tryCatch(yaml::read_yaml(fp(run_dir, "run.yml")),
+                  error = function(e) NULL)
+  mo <- .modout_from_store(
+    fp(run_dir, "modOut"),
+    sets = tryCatch(scen@modOut@sets, error = function(e) list()),
+    stage = rec$stage %||% "solved")
+  if (is.null(mo)) return(NULL)
+  scen@modOut <- mo
+  if (identical(mo@stage, "solved")) {
+    scen@status$optimal <- TRUE
+    scen@status$solved <- TRUE
+  }
+  scen
+}
+
+# The solve's own metadata (solver codes and command). Written as `solver.csv`
+# since the run folder was flattened; scenarios solved under layout 3 carry it
+# as a file simply called `solver`.
+#' @noRd
+.solver_meta_path <- function(solver_dir) {
+  for (nm in c("solver.csv", "solver")) {
+    f <- fp(solver_dir, nm)
+    if (file.exists(f) && !dir.exists(f)) return(f)
+  }
+  NA_character_
+}
+
+#' @noRd
+.read_solver_meta <- function(solver_dir) {
+  f <- .solver_meta_path(solver_dir)
+  if (is.na(f)) {
+    stop("no solver metadata (`solver.csv`) in '", solver_dir, "'.",
+         call. = FALSE)
+  }
+  utils::read.csv(f, stringsAsFactors = FALSE)
+}
+
+# Did the solver reach a DEFINITE conclusion that there is no solution?
+#
+# Distinguishes "the model is infeasible/unbounded" -- a legitimate answer a
+# caller may want to act on -- from "the files are missing for reasons unknown",
+# which is a broken toolchain and must stay loud. Two sources, because the
+# backends differ:
+#
+#   * `output/log.csv` -- the structured route. Julia writes a "termination
+#     status" and a "no primal solution" row; Pyomo and GAMS write a numeric
+#     "solution status". GLPK cannot: MathProg aborts on a failed `solve`, so no
+#     post-solve statement ever runs.
+#   * `output/solver.log` -- glpsol's own terminal copy (see `.glpsol_cmdline()`).
+#     Its verdict lines are the only evidence GLPK leaves, and it exits 0 either
+#     way, so the exit code cannot be used.
+#
+# Returns a one-line verdict, or NULL when nothing definite was found.
+#' @noRd
+.solver_verdict <- function(solver.dir) {
+  if (is.null(solver.dir) || !nzchar(solver.dir)) return(NULL)
+  odir <- file.path(solver.dir, "output")
+
+  lf <- file.path(odir, "log.csv")
+  if (file.exists(lf)) {
+    lg <- tryCatch(utils::read.csv(lf, stringsAsFactors = FALSE),
+                   error = function(e) NULL)
+    if (!is.null(lg) && all(c("parameter", "value") %in% names(lg))) {
+      ts <- lg$value[lg$parameter == "termination status"]
+      if (any(lg$parameter == "no primal solution") || length(ts) > 0)
+        return(paste0("the solver returned no primal solution",
+                      if (length(ts) > 0)
+                        paste0(" (termination status: ", ts[1], ")") else ""))
+      ss <- lg$value[lg$parameter == "solution status"]
+      if (length(ss) > 0 && !identical(as.character(ss[1]), "1"))
+        return(paste0("the solver reported solution status ", ss[1],
+                      " (1 == optimal)"))
+    }
+  }
+
+  # GAMS's own listing, as a SECOND source beside `log.csv`. The csv's
+  # "solution status" is written by a template `put energyRt.Modelstat`, i.e. by
+  # the model; the listing is the solver's. A GAMS run that ends non-optimal
+  # still exports an all-zero solution, which reads back as a complete answer
+  # at objective 0, so a missed verdict here is a silent wrong result.
+  lst <- c(Sys.glob(file.path(solver.dir, "*.lst")),
+           Sys.glob(file.path(solver.dir, "_neos_unzip", "*.lst")))
+  for (f in lst) {
+    txt <- tryCatch(readLines(f, warn = FALSE), error = function(e) character())
+    ms <- grep("^[*]{4}[[:space:]]+MODEL STATUS", txt, value = TRUE)
+    if (length(ms) == 0) next
+    tail_txt <- sub(".*MODEL STATUS", "", ms[1])
+    code <- suppressWarnings(as.integer(
+      regmatches(tail_txt, regexpr("[0-9]+", tail_txt))))
+    # 1 optimal, 2 locally optimal, 7 feasible, 8 integer solution
+    if (length(code) == 1 && !is.na(code) && !code %in% c(1L, 2L, 7L, 8L)) {
+      return(paste0("GAMS reported ", trimws(sub("^[*]+", "", ms[1])),
+                    " (listing: ", basename(f), ")"))
+    }
+  }
+
+  sl <- file.path(odir, "solver.log")
+  if (file.exists(sl)) {
+    txt <- tryCatch(readLines(sl, warn = FALSE), error = function(e) character())
+    pat <- c("NO PRIMAL FEASIBLE SOLUTION" = "the model is INFEASIBLE",
+             "UNBOUNDED SOLUTION"          = "the model is UNBOUNDED",
+             "NO DUAL FEASIBLE SOLUTION"   = "the model has no dual feasible solution")
+    for (k in names(pat))
+      if (any(grepl(k, txt, fixed = TRUE)))
+        return(paste0(pat[[k]], " (glpsol: ",
+                      trimws(grep(k, txt, fixed = TRUE, value = TRUE)[1]), ")"))
+  }
+  NULL
+}
+
+#' Read a solved run's solution into a scenario
 #'
-#' The function and method read outputs of solved model/scenario and return the scenario object populated with variables data.
+#' @description
+#' Reads the variables a solver wrote for one run and returns the scenario with
+#' its `@modOut` populated. This is the import step: `solve_scenario()` leaves
+#' the raw output on disk, and nothing else reads it.
 #'
-#' @param obj scenario object
+#' @details
+#' Without `run`, it reads the active run — or, for a freshly loaded scenario,
+#' the `default:` run named in `scenario.yml`. Naming a variant run switches
+#' the whole in-memory *problem*, settings and parameters together, so
+#' [getData()] stays consistent with the run you are looking at.
+#'
+#' Reading alone does not persist anything: [save_scenario()] writes the
+#' `modOut/` store, and [import_solution()] does both in one call.
+#' [scenario_solutions()] lists what each run holds before you choose.
+#'
+#' @section Why the imported store, and not just `output/`:
+#' The two are different things, and `modOut/` is not a compressed copy of
+#' `output/`. The solver's dump is untyped text in the backend's own naming;
+#' the import normalises the backend away (GDX, CSV, Arrow and Parquet all
+#' land in one store), synthesises the set aliases no solver writes (`src`,
+#' `dst`, `regionp`, `yearp`, `acomm`, `commp`, `timeslicep`), types every
+#' dimension against its declared set members rather than the values that
+#' happen to occur, keeps an empty typed skeleton for variables the solver
+#' skipped so their columns stay known, and computes two variables no solver
+#' ever wrote — `vTechEmsFuel` (emission factors against `vTechInp`) and
+#' `vUserCosts` (each cost object against the variable it is defined on).
+#'
+#' Re-deriving that on demand would also need `@modInp`, since the set members
+#' come from the problem — and a variant swap may have replaced it.
+#'
+#' @param object scenario object.
 #' @param run character, optional run to read: `"<solve>"` for a base-problem
 #'   run or `"<variant>/<solve>"` — see [scenario_runs()]. The scenario's
 #'   active run switches to it. Default `NULL` reads the active run (or, for
 #'   a freshly loaded scenario, the manifest's `default:` run).
 #' @param ... optional `solver.dir` (an external solver directory, replacing
 #'   the run resolution; `tmp.dir` is the deprecated alias)
+#' @param ondisk logical. `TRUE` writes each variable into the run's
+#'   `modOut/` store as it is read, instead of returning the whole solution in
+#'   memory; the returned `@modOut` is then an on-disk object read lazily.
+#'   Defaults to `!isInMemory(obj)`. Needs a run folder, so an external
+#'   `solver.dir` falls back to memory. The scenario shell still has to be
+#'   saved: [save_scenario()] records the store, and skips rewriting it.
+#'
+#' @section The solver's `output/` is never modified:
+#' Reading a solution only ever reads `output/`, whatever `ondisk` is. It is
+#' the solver's raw dump and, until the solution has been imported, the only
+#' copy of it — [drop_solver_outputs()] is the one verb that removes it, it
+#' refuses while the run is not imported, and it is dry-run by default.
 #'
 #' @return
 #' The function returns the scenario object with populated modOut slot
 #' from the solved model directory.
 #' @export
-#' @seealso [solve()] to run the script, solve the scenario. [write_sc()] to write model inputs.
+#' @seealso [import_solution()] to read and save in one step;
+#'   [scenario_solutions()] to see what each run holds; [solve_scenario()],
+#'   [save_scenario()].
 #'
 #' @rdname read
 #' @examples
 #' \dontrun{
-#' scen <- read(scen)
+#' scen <- read_solution(scen)                    # the active run
+#' scen <- read_solution(scen, run = "low/glpk")  # a variant's run
 #' }
-read_solution <- function(obj, run = NULL, ...) {
-  scen <- obj
+
+read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object)) {
+  scen <- object
   ## arguments
   # scen
   # readOutputFunction = read.csv (may use data.table::fread)
   # solver.dir - dir to read results from; default: the active run's solver/
   # echo = TRUE - print working data
   arg <- .solver_dir_aliases(list(...))
-  # browser()
   read_result_time <- proc.time()[3]
   if (is.null(arg$echo)) arg$echo <- TRUE
   # if (is.null(arg$readOutputFunction)) arg$readOutputFunction <- read.csv
@@ -93,15 +295,48 @@ read_solution <- function(obj, run = NULL, ...) {
       var_file,
       stringsAsFactors = FALSE
       )$value
-  })
+  }, silent = TRUE)
   if (inherits(vrb_list, "try-error")) {
     msg <- paste0("Solution files not found\n", var_file)
-    if (!is.null(arg$stop_on_error) && arg$stop_on_error) {
-      stop(msg)
-    } else {
-      message(msg)
-      return(invisible(obj))
+    # A solver that reaches a definite "there is no solution" conclusion --
+    # infeasible, unbounded, a time limit -- writes no variable files. That is
+    # an ANSWER, not a broken toolchain, so it is reported and the scenario
+    # comes back with an empty `modOut` (callers read the objective as NA).
+    # Missing files with NO verdict still stop: that is a solver that never ran.
+    verdict <- .solver_verdict(arg$solver.dir)
+    if (!is.null(verdict)) {
+      warning("Scenario '", scen@name, "': ", verdict,
+              ". No solution was written to ", arg$solver.dir,
+              call. = FALSE)
+      return(invisible(object))
     }
+    # The run's own imported store, if it has one. A FALLBACK, never a
+    # preference: `solve_scenario()` overwrites a run's `output/` in place
+    # while the previous save's `modOut/` is still sitting there, so
+    # preferring the store would quietly serve the older solve's numbers.
+    att <- .modout_attach(scen, arg$solver.dir)
+    if (!is.null(att)) {
+      if (arg$echo) {
+        message("Run '", scen@misc$run %||% "?", "': no readable solver ",
+                "output; reading its imported modOut/ store instead.")
+      }
+      return(invisible(att))
+    }
+    # Never hand back the ORIGINAL object here. It is still positioned on
+    # whatever run was active before, so a failed switch used to return
+    # another run's solution with no error at all.
+    if (nzchar(scen@misc$run %||% "")) {
+      msg <- paste0(msg, "
+  Run '", scen@misc$run,
+                    "' has neither readable output/ nor an imported modOut/ ",
+                    "store, so its solution cannot be read. ",
+                    "scenario_solutions() lists what each run holds.")
+    }
+    if (is.null(arg$stop_on_error) || !identical(arg$stop_on_error, FALSE)) {
+      stop(msg, call. = FALSE)
+    }
+    message(msg)
+    return(invisible(object))
   }
   if (file.exists(paste(arg$solver.dir, "/output/variable_list2.csv", sep = ""))) {
     vrb_list2 <- arg$readOutputFunction(
@@ -132,16 +367,87 @@ read_solution <- function(obj, run = NULL, ...) {
   ss$commp <- ss$comm
   ss$timeslicep <- ss$timeslice
   rr$set_vec <- ss
-  if (is.null(scen@settings@solver$import_format)) {
-    scen@settings@solver$import_format <- "csv" # !!! workaround
+  # Every writer records the format it produced (the JuMP/Pyomo pair through
+  # .resolve_exchange_formats(), GAMS in .write_model_GAMS). A scenario object
+  # can still arrive without one: a run whose read phase never happened (an MPS
+  # exported and solved elsewhere) leaves `settings@solver` empty. The run's
+  # own `solver.csv` records what the write phase actually used, so consult it
+  # before assuming CSV -- otherwise an Arrow run matches no files and reports
+  # itself unsolved. Backends that record nothing at all (GLPK) still get CSV.
+  if (is.null(scen@settings@solver$import_format) ||
+      !nzchar(scen@settings@solver$import_format)) {
+    .meta <- tryCatch(.read_solver_meta(arg$solver.dir),
+                      error = function(e) NULL)
+    .v <- if (is.null(.meta)) NULL else
+      .meta$value[.meta$name == "import_format"]
+    scen@settings@solver$import_format <-
+      if (length(.v) && nzchar(.v[1])) .v[1] else "csv"
   }
-  # browser()
+  # The solution is converted and written variable by variable, inside the read
+  # loops below: accumulating every raw table first and typing them afterwards
+  # held the whole solution twice and set the memory peak before any of it
+  # could be written. `@variables` starts pre-populated with one empty, typed
+  # `variable` per declared variable (modOut's initialize); a variable the
+  # solver skipped keeps that skeleton, so its column names stay known.
+  .mo <- new("modOut")
+  # Streaming needs a run label: an external `solver.dir` or a transient solve
+  # has no run folder to write into.
+  #
+  # Written to a STAGING directory and swapped in only once the read has
+  # finished. Streaming opened a window between "the variables are on disk"
+  # and "the import is complete": an error in between -- a missing
+  # `solver.csv`, an unreadable `log.csv`, a failure computing vTechEmsFuel --
+  # left a store that `imported` could not tell from a finished one, with the
+  # computed variables missing and `output/`, the only remaining copy, now
+  # offered for deletion. Staging also protects a PREVIOUS good store: a
+  # re-read that fails leaves it untouched.
+  .stream_path <- NULL
+  .stream_final <- NULL
+  .stream_ok <- FALSE
+  if (isTRUE(ondisk)) {
+    .rl <- scen@misc$run %||% ""
+    if (nzchar(.rl)) {
+      .stream_final <- tryCatch(
+        fp(.run_dir(scen, .run_variant(scen), .rl), "modOut"),
+        error = function(e) NULL)
+    }
+    if (is.null(.stream_final)) {
+      message("read_solution(ondisk = TRUE): no run folder to stream into ",
+              "(external or transient solve); reading into memory instead.")
+    } else {
+      .stream_path <- paste0(.stream_final, ".incoming")
+      unlink(.stream_path, recursive = TRUE, force = TRUE) # stale attempt
+    }
+  }
+  on.exit({
+    if (!is.null(.stream_path) && !isTRUE(.stream_ok)) {
+      unlink(.stream_path, recursive = TRUE, force = TRUE)
+    }
+  }, add = TRUE)
+  .fill_var <- function(nm, dat) {
+    v <- .mo@variables[[nm]]
+    if (is.null(v)) {
+      # `variable_list2.csv` can name variables the specification does not
+      # know. Accept them rather than dropping the solve, but say so.
+      warning("Solver returned an undeclared variable '", nm,
+              "'; add it to data-raw/variables.yml. Stored untyped.")
+      v <- newVariable(
+        nm, dimSets = intersect(setdiff(colnames(dat), "value"), .dimSets),
+        origin = "solver", declared = FALSE)
+    }
+    v <- d2v(v, dat)
+    if (!is.null(.stream_path)) {
+      v <- obj2disk(v, path = fp(.stream_path, "variables", nm),
+                    format = get_storage_format(), verbose = FALSE)
+    }
+    .mo@variables[[nm]] <<- v
+    invisible(NULL)
+  }
   if (grepl("^gdx$", scen@settings@solver$import_format, ignore.case = TRUE)) {
     # .check_load_gdxlib()
     .check_load_gdxtools()
     # Read variables gdx
-    # browser()
-    gd <- gdxtools::gdx(paste(arg$solver.dir, "/output/output.gdx", sep = ""))
+    gd <- .gdx("gdx")(paste(arg$solver.dir, "/output/output.gdx", sep = ""))
     for (i in c(vrb_list, vrb_list2)) {
       # cat(i, "\n")
       # if (i == "vOutTot") browser() # debug
@@ -156,7 +462,7 @@ read_solution <- function(obj, run = NULL, ...) {
       # of every duplicate-dimension variable. `d2v()` now renames positionally
       # onto the variable's declared `@colNames`, for both branches alike.
       if (ncol(vr) == 1) {
-        rr$variables[[i]] <- data.frame(value = vr[1, 1])
+        .fill_var(i, data.frame(value = vr[1, 1]))
       } else {
         for (j in seq_len(ncol(vr))[colnames(vr) != "value"]) {
           # Remove [.][:digit:] if any
@@ -179,16 +485,25 @@ read_solution <- function(obj, run = NULL, ...) {
             vr[[j]] <- as.integer(vr[[j]])
           }
         }
-        rr$variables[[i]] <- vr
+        .fill_var(i, vr)
       }
     }
   } else {
     # Read variables from CSV or Arrow (feather/parquet) per import_format. The
     # solver writes one file per variable to `output/`; the per-variable post-
     # processing (column de-suffixing + factor levels) is shared across formats.
-    .imf <- tolower(scen@settings@solver$import_format)
+    # Resolved above (from the scenario, else the run's solver.csv, else csv);
+    # `%||% ""` only guards against an unset field reaching `==` as a
+    # zero-length condition.
+    .imf <- tolower(scen@settings@solver$import_format %||% "")
     .arrow_imp <- .imf %in% c("feather", "ipc", "arrow", "parquet")
     .ext <- if (.imf == "parquet") ".parquet" else if (.arrow_imp) ".arrow" else ".csv"
+    # Count what was actually read. A per-variable miss is legitimate (a
+    # variable with no non-zero values writes no file), but a TOTAL miss is
+    # not: it means the solver wrote a format this reader is not looking for,
+    # and skipping every file silently yields a scenario of zeros reported
+    # OPTIMAL -- the shape of the bug that went undiagnosed for a day.
+    .n_found <- 0L
     for (i in c(vrb_list, vrb_list2)) {
       vfile <- paste(arg$solver.dir, "/output/", i, .ext, sep = "")
       if (.arrow_imp) {
@@ -198,7 +513,8 @@ read_solution <- function(obj, run = NULL, ...) {
         vr <- arg$readOutputFunction(vfile, stringsAsFactors = FALSE)
       }
       if (ncol(vr) == 1) {
-        rr$variables[[i]] <- data.frame(value = vr[1, 1])
+        .fill_var(i, data.frame(value = vr[1, 1]))
+        .n_found <- .n_found + 1L
       } else {
         for (j in seq_len(ncol(vr))[colnames(vr) != "value"]) {
           # Remove [.][:digit:] if any
@@ -212,24 +528,41 @@ read_solution <- function(obj, run = NULL, ...) {
             )
           }
         }
-        rr$variables[[i]] <- vr
+        .fill_var(i, vr)
+        .n_found <- .n_found + 1L
       }
     }
+    if (.n_found == 0L && length(c(vrb_list, vrb_list2)) > 0L) {
+      stop("read_solution(): none of the ",
+           length(c(vrb_list, vrb_list2)),
+           " declared variables produced an output file.\n",
+           "  Looked for '*", .ext, "' in: ", arg$solver.dir, "/output/\n",
+           "  The solver reported a solution, so it wrote its results in ",
+           "another format.\n  Check `import_format` on the solver ",
+           "options (currently '", scen@settings@solver$import_format,
+           "'): the MathProg/GLPK backend writes CSV only.", call. = FALSE)
+    }
   }
-  scen@modOut <- new("modOut")
+  scen@modOut <- .mo
   # Read solution status
   scen@modOut@solutionLogs <- read.csv(paste(arg$solver.dir, "/output/log.csv",
     sep = ""
   ))
-  solver_data <- read.csv(paste(arg$solver.dir, "/solver", sep = ""),
-    stringsAsFactors = FALSE
-  )
-  codes <- solver_data[grep("^code", solver_data$name), ]
   # Only the FILE NAMES are kept: the model text itself already lives in the
   # run's solver directory, and importing it here used to bloat
   # every solved scenario by the full model source (again, on top of
   # settings@sourceCode). Nothing in the package consumed `solver$code1..n`.
-  scen@settings@solver$code_files <- codes$value
+  #
+  # Wrapped, like the import_format lookup above: this is provenance, and a
+  # run that arrived without its `solver.csv` -- a cloud solve, an unpacked
+  # archive -- must not fail HERE, after the whole solution has been read,
+  # for a field nothing consumes.
+  solver_data <- tryCatch(.read_solver_meta(arg$solver.dir),
+                          error = function(e) NULL)
+  if (!is.null(solver_data)) {
+    codes <- solver_data[grep("^code", solver_data$name), ]
+    scen@settings@solver$code_files <- codes$value
+  }
   if (all(scen@modOut@solutionLogs$parameter != "solution status")) {
     scen@modOut@stage <- "Scenario is not solved"
   } else if (all(scen@modOut@solutionLogs[
@@ -254,81 +587,7 @@ read_solution <- function(obj, run = NULL, ...) {
   }
 
   scen@modOut@sets <- rr$set_vec
-  # `@variables` arrives pre-populated with one empty, typed `variable` per
-  # declared variable (see `modOut`'s initialize); fill in what the solver
-  # returned. Variables it skipped -- those with no non-zero values -- keep
-  # their empty skeleton, so their column names are still known.
-  for (i in names(rr$variables)) {
-    v <- scen@modOut@variables[[i]]
-    if (is.null(v)) {
-      # `variable_list2.csv` can name variables the specification does not know.
-      # Accept them rather than dropping the solve, but say so.
-      warning("Solver returned an undeclared variable '", i,
-              "'; add it to data-raw/variables.yml. Stored untyped.")
-      v <- newVariable(
-        i, dimSets = intersect(setdiff(colnames(rr$variables[[i]]), "value"),
-                               .dimSets),
-        origin = "solver", declared = FALSE)
-    }
-    scen@modOut@variables[[i]] <- d2v(v, rr$variables[[i]])
-  }
-  ## Salvage cost calculation
-  salvage_cost0 <- function(scen, par) {
-    invcost <- .add_dropped_zeros(scen@modInp, paste0("p", par, "Invcost"))
-    olife <- .add_dropped_zeros(scen@modInp, paste0("p", par, "Olife"))
-    # Salvage value of capital not yet recovered -- a financing calculation, so
-    # it discounts at the cost of capital, not at the social rate.
-    discount <- .add_dropped_zeros(scen@modInp, "pWacc")
-    newcap <- get_variable(scen, paste0("v", par, "NewCap"))
-    invcost$invcost <- invcost$value
-    invcost$value <- NULL
-    olife$olife <- olife$value
-    olife$value <- NULL
-    discount$discount <- discount$value
-    discount$value <- NULL
-    newcap$newcap <- newcap$value
-    newcap$value <- NULL
-
-    salvage <-
-      merge0(
-        merge0(
-          newcap,
-          merge0(olife, invcost)
-        ),
-        discount,
-        all.x = TRUE
-      )
-    end_year <- max(.get_data_slot(scen@modInp@parameters$mEndMilestone)$yearp)
-    salvage <- merge0(
-      salvage,
-      .get_data_slot(scen@modInp@parameters$mStartMilestone)
-    )
-    salvage$start <- salvage$yearp
-    salvage$yearp <- NULL
-    # if (F) {
-    # !!! unfinished
-    # browser()
-    salvage <- salvage[salvage$start + salvage$olife > end_year, ]
-
-    salvage$value <- salvage$newcap * salvage$invcost *
-      ((1 + salvage$discount)^(salvage$olife) -
-        (1 + salvage$discount)^(end_year - salvage$start + 1)) /
-      ((1 + salvage$discount)^salvage$olife - 1)
-
-    fl <- (salvage$discount == 0)
-    salvage$value[fl] <- (salvage$newcap * salvage$invcost *
-      (salvage$olife - (end_year - salvage$start + 1)) /
-      salvage$olife)[fl]
-
-    salvage[, c(3, 2, 1, 9)]
-    # }
-    # NULL # temporary
-  }
   if (scen@modOut@stage == "solved") {
-    # Postprocessing
-    # scen@modOut@variables$vTechSalv <- salvage_cost0(scen, "Tech")
-    # scen@modOut@variables$vStorageSalv <- salvage_cost0(scen, "Storage")
-    # scen@modOut@variables$vTradeSalv <- salvage_cost0(scen, "Trade")
     # `vDummyImportCost` / `vDummyExportCost` are SOLVER variables: the model
     # declares them and `eqDummyImportCost` computes them weighted over timeslices
     # (glpk/energyRt.mod), and `read_solution` has already stored those values.
@@ -408,6 +667,21 @@ read_solution <- function(obj, run = NULL, ...) {
           # lives in the cost object's @defVal (same as the model equation)
           in_dat$value <- in_dat$value * tmp@defVal
         }
+        # Mirror of the generated equation: a per-timeslice variable is a rate,
+        # so it is weighted to the year before the annual aggregation. The
+        # equation carries the same factor (R/class-costs.R).
+        if (nrow(in_dat) != 0 && "timeslice" %in% colnames(in_dat)) {
+          wp <- scen@modInp@parameters[["pTimesliceWeight"]]
+          if (!is.null(wp)) {
+            wd <- .get_data_slot(wp)
+            if (!is.null(wd) && nrow(wd) > 0) {
+              colnames(wd)[ncol(wd)] <- "wgt"
+              in_dat <- merge0(in_dat, wd)
+              in_dat$value <- in_dat$value * in_dat$wgt
+              in_dat$wgt <- NULL
+            }
+          }
+        }
         if (nrow(in_dat) != 0) {
           in_dat <- aggregate(
             in_dat[, "value", drop = FALSE],
@@ -433,14 +707,68 @@ read_solution <- function(obj, run = NULL, ...) {
   # `solved` had no writer at all (initialised FALSE at interpolation and never
   # updated), so it read FALSE even after an optimal solve. It now records that
   # the solve produced a readable optimal solution, alongside `optimal`.
+  # The two computed variables (above) are written last, then the container
+  # itself is marked -- `get_ondisk_slots()` must be non-empty or every later
+  # rebase is a silent no-op and the store reads back as zero rows.
+  if (!is.null(.stream_path)) {
+    for (.nm in c("vTechEmsFuel", "vUserCosts")) {
+      .v <- scen@modOut@variables[[.nm]]
+      if (!is.null(.v) && !isOnDisk(.v) && nrow(get_data_slot(.v)) > 0) {
+        scen@modOut@variables[[.nm]] <- obj2disk(
+          .v, path = fp(.stream_path, "variables", .nm),
+          format = get_storage_format(), verbose = FALSE)
+      }
+    }
+    # The read finished, so the staged store is complete: swap it in. The
+    # previous store is moved aside first and removed only once the new one
+    # is in place, so an interrupted swap leaves one of the two, never
+    # neither.
+    .prev <- paste0(.stream_final, ".prev")
+    unlink(.prev, recursive = TRUE, force = TRUE)
+    if (dir.exists(.stream_final) && !file.rename(.stream_final, .prev)) {
+      stop("Could not replace the solution store at '", .stream_final,
+           "': the read is complete and staged at '", .stream_path,
+           "'. Something else is holding the folder open.", call. = FALSE)
+    }
+    if (!file.rename(.stream_path, .stream_final)) {
+      if (dir.exists(.prev)) file.rename(.prev, .stream_final) # put it back
+      stop("Could not move the staged solution into '", .stream_final, "'.",
+           call. = FALSE)
+    }
+    unlink(.prev, recursive = TRUE, force = TRUE)
+    .stream_ok <- TRUE
+
+    # Every variable recorded its path under the staging name; repoint them,
+    # or the next read goes looking for a directory that no longer exists.
+    for (.nm in names(scen@modOut@variables)) {
+      .v <- scen@modOut@variables[[.nm]]
+      if (isS4(.v) && length(get_ondisk_slots(.v))) {
+        scen@modOut@variables[[.nm]] <- setObjPath(
+          .v, path = fp(.stream_final, "variables", .nm))
+      }
+    }
+    scen@modOut <- set_ondisk_slots(scen@modOut)
+    scen@modOut <- setObjPath(scen@modOut, path = .stream_final)
+    scen@modOut <- mark_ondisk(scen@modOut)
+    if (arg$echo) {
+      message("Solution written to '", .stream_final, "'. The scenario shell ",
+              "still has to be saved: save_scenario() records it, and until ",
+              "then a reload will not see the solution.")
+    }
+  }
   if (scen@modOut@stage == "solved") {
     scen@status$optimal <- TRUE
     scen@status$solved <- TRUE
+    # ... and on disk: the run record is written by `solve_scenario()`, so a
+    # run read afterwards kept `status: not-optimal` while the object said
+    # solved. See `.run_record_read()` for why it is not a full record write.
+    .run_record_read(scen, arg$solver.dir)
   }
   invisible(scen)
 }
 #' @rdname read
 #' @method read scenario
+#' @aliases read
 #' @export
 setMethod("read", "scenario", read_solution)
 

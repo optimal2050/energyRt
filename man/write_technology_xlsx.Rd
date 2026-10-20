@@ -46,13 +46,21 @@ ignores this sheet.}
 (Invisibly) \code{path}.
 }
 \description{
-Serialises one or more \link{technology} objects to a \code{.xlsx} file, one technology
+Serialises one or more \link{class-technology} objects to a \code{.xlsx} file, one technology
 per worksheet. Each slot of the class is written as a labelled mini-table
 whose header row matches the columns of the corresponding data.frame slot
 (\code{names(slot(tech, s))}). Scalar slots (\code{name}, \code{desc}, \code{cap2act}, \code{region},
 \code{timeframe}, \code{fullYear}, \code{optimizeRetirement}, \code{misc}) are written into a
 leading \code{meta} block. The workbook can be read back with
 \code{\link[=read_technology_xlsx]{read_technology_xlsx()}}.
+}
+\examples{
+tech <- topia$modules$electricity$R3$ECOA
+f <- tempfile(fileext = ".xlsx")
+
+# one sheet per slot that carries data, plus an `info` sheet
+write_technology_xlsx(tech, f)
+basename(f)
 }
 \seealso{
 \code{\link[=read_technology_xlsx]{read_technology_xlsx()}}

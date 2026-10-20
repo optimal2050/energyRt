@@ -28,7 +28,9 @@ get_python_path <- function() {
 
 # Functions to write PYOMO model and data files
 .write_model_PYOMO <- function(arg, scen) {
-  # browser()
+  # Arrow in and out unless the preset asks for the legacy SQLite database;
+  # `exchange_format` supplies the default (R/exchange.R).
+  scen@settings@solver <- .resolve_exchange_formats(scen@settings@solver)
   AbstractModel <- any(grep("abstract", scen@settings@solver$lang, ignore.case = TRUE))
   if (AbstractModel) {
     # RETIRED. The Abstract template fell behind on three separate refactors --
@@ -99,34 +101,39 @@ get_python_path <- function() {
       }
     }
   }
-  dir.create(fp(arg$solver.dir, "input"), showWarnings = FALSE)
-  dir.create(fp(arg$solver.dir, "output"), showWarnings = FALSE)
+  dir.create(fp(arg$solver.dir, "input"), showWarnings = FALSE,
+             recursive = TRUE)
+  dir.create(fp(arg$solver.dir, "output"), showWarnings = FALSE,
+             recursive = TRUE)
   # if (!is.null(scen@settings@solver$SQLite) && scen@settings@solver$SQLite) {
   .ex_fmt <- scen@settings@solver$export_format
   SQLite <- !is.null(.ex_fmt) && tolower(.ex_fmt) == "sqlite"
-  use_arrow_in <- !is.null(.ex_fmt) &&
-    tolower(.ex_fmt) %in% c("feather", "ipc", "arrow", "parquet")
+  use_arrow_in <- .is_arrow_exchange(.ex_fmt)
   # Both SQLite and Arrow load data through read_set()/read_dict() (.toPyomSQLite
   # code-gen); the default (per-parameter .py) path inlines dicts via .toPyomo.
   use_readfn <- SQLite || use_arrow_in
   if (SQLite) {
     ### Generate SQLite file
     .write_sqlite_list(
-      dat = .get_scen_data(scen),
+      dat = .drop_empty_tables(.get_scen_data(scen)),
       sqlFile = fp(arg$solver.dir, "input/data.db")
     )
   } else if (use_arrow_in) {
-    # One Arrow IPC file per table in input/; read_set/read_dict (energyRtConcrete
-    # .py) read them when `_DATA_FORMAT = "arrow"`. Coerce factors to plain strings
-    # so pyarrow returns the labels (not categorical codes).
-    .dat <- .get_scen_data(scen)
+    # One Arrow file per table in input/; read_set/read_dict (energyRtConcrete
+    # .py) read them per `_DATA_FORMAT`. Coerce factors to plain strings so
+    # pyarrow returns the labels (not categorical codes). pyarrow reads parquet
+    # as happily as IPC, so an explicit `parquet` request is honoured here.
+    .in_fmt <- if (identical(tolower(.ex_fmt), "parquet")) "parquet" else "feather"
+    .dat <- .drop_empty_tables(.get_scen_data(scen))
+    .check_exchange_path_len(fp(arg$solver.dir, "input"), names(.dat), .in_fmt)
     for (.i in names(.dat)) {
       .d <- as.data.frame(.dat[[.i]])
       .d[] <- lapply(.d, function(x) if (is.factor(x)) as.character(x) else x)
       .write_exchange_table(.d, fp(arg$solver.dir, paste0("input/", .i)),
-                            format = "feather")
+                            format = .in_fmt)
     }
-    run_code <- gsub('_DATA_FORMAT = "sqlite"', '_DATA_FORMAT = "arrow"',
+    run_code <- gsub('_DATA_FORMAT = "sqlite"',
+                     paste0('_DATA_FORMAT = "', .in_fmt, '"'),
                      run_code, fixed = TRUE)
   }
   .write_inc_solver(scen, arg, "opt = SolverFactory('cplex');", ".py", "cplex")
@@ -223,7 +230,6 @@ get_python_path <- function() {
       }
     }
   }
-  # browser()
   if (AbstractModel) try(close(zz_data_pyomo))
   if (!AbstractModel) try(close(zz_inp_file))
   npar2 <- (grep("^model[.]obj ", run_code)[1] - 1)
@@ -244,7 +250,6 @@ get_python_path <- function() {
       }
     }
   }
-  # browser()
   ## Add costs equation
   {
     cat("\n", file = zz_costs)
@@ -284,9 +289,9 @@ get_python_path <- function() {
   # (Abstract) to `open_var(...)`. Meta files (variable_list / raw_data_set / log)
   # keep streaming CSV. CSV output is unchanged when not Arrow.
   .im_fmt <- scen@settings@solver$import_format
-  if (!is.null(.im_fmt) &&
-      tolower(.im_fmt) %in% c("feather", "ipc", "arrow", "parquet")) {
-    cat(.pyomo_arrow_output_helpers(), sep = "\n", file = zz_modout)
+  if (.is_arrow_exchange(.im_fmt)) {
+    cat(.pyomo_arrow_output_helpers(format = .im_fmt), sep = "\n",
+        file = zz_modout)
     run_codeout <- gsub(
       'open\\("output/(v[A-Z][A-Za-z0-9_]*)\\.csv", "w"\\)',
       'open_var("output/\\1.csv")', run_codeout
@@ -331,6 +336,8 @@ get_python_path <- function() {
 # Generate PYOMO code, return character vector
 .toPyomo <- function(obj) {
   as_numpar <- function(data, name, name2, def) {
+    # no infinity literal in a Pyomo coefficient; see `.glpk_default()` in
+    # write_glpk.R for why the substitute is unreachable and fail-closed
     if (def == Inf) def <- 0
     if (ncol(obj@data) == 1) {
       if (nrow(obj@data) == 1) def <- obj@data[[1]]
@@ -356,9 +363,6 @@ get_python_path <- function() {
       return(kk)
     }
   }
-  # The whole materialised slot is written. This used to truncate to the
-  # `@misc$nValues` row-count cache, so a stale count silently made this engine
-  # write less data than GLPK, which never truncated.
   obj@data <- get_data_slot(obj)
   if (obj@type == "set") {
     tmp <- ""
@@ -391,7 +395,6 @@ get_python_path <- function() {
     hh <- gsub("[(][)]", "",
                paste0("(", paste0(obj@dimSets, collapse = ", "), ")")
                )
-    # browser()
     return(c(
       as_numpar(
         # obj@data[obj@data$type == "lo", 1 - ncol(obj@data), drop = FALSE],
@@ -432,9 +435,6 @@ get_python_path <- function() {
       return(kk)
     }
   }
-  # The whole materialised slot is written. This used to truncate to the
-  # `@misc$nValues` row-count cache, so a stale count silently made this engine
-  # write less data than GLPK, which never truncated.
   obj@data <- get_data_slot(obj)
   if (obj@type == "set") {
     tmp <- ""
@@ -481,9 +481,10 @@ get_python_path <- function() {
 
 .toPyomSQLite <- function(obj) {
   as_numpar <- function(data, name, name2, def) {
+    # no infinity literal in a Pyomo coefficient; see `.glpk_default()` in
+    # write_glpk.R for why the substitute is unreachable and fail-closed
     if (def == Inf) def <- 0
     if (ncol(obj@data) == 1) {
-      browser()
       stop(".toPyomSQLite: check @data in ", obj@name)
     } else {
       data <- data[data$value != Inf & data$value != def, , drop = F]
@@ -498,9 +499,6 @@ get_python_path <- function() {
       return(kk)
     }
   }
-  # The whole materialised slot is written. This used to truncate to the
-  # `@misc$nValues` row-count cache, so a stale count silently made this engine
-  # write less data than GLPK, which never truncated.
   obj@data <- get_data_slot(obj)
   if (obj@type == "set") {
     tmp <- ""
@@ -619,17 +617,6 @@ get_python_path <- function() {
   rs <- paste0(rs, "")
   rs
 }
-# .set_al <- c("stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "timeslicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "timeslicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "timeslicen", "groupn", "commn", "cnsn", "src", "dst")
-# .alias_set <- c("st1", "t1", "e", "i", "t", "d", "s1", "wth1", "r", "y", "s", "g", "c", "cn1", "st1p", "t1p", "ep", "ip", "tp", "dp", "s1p", "wth1p", "rp", "yp", "sp", "gp", "cp", "cn1p", "st1e", "t1e", "ee", "ie", "te", "de", "s1e", "wth1e", "re", "ye", "se", "ge", "ce", "cn1e", "st1n", "t1n", "en", "in", "tn", "dn", "s1n", "wth1n", "rn", "yn", "sn", "gn", "cn", "cn1n", "src", "dst")
-# names(.alias_set) <- .set_al
-# .aliasName <- function(x) {
-#   if (!all(x %in% .set_al)) {
-#     cat("Unknown .set_al\n")
-#     browser()
-#     stop("Unknown set")
-#   }
-#   .alias_set[x]
-# }
 
 # .fremset <-   c("comm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "region", "region")
 # names(.fremset) <-   c("acomm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "timeslicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "timeslicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "timeslicen", "groupn", "commn", "cnsn", "src", "dst")
@@ -738,7 +725,6 @@ get_python_path <- function() {
 }
 .eqt.to.pyomo <- function(tmp) {
   # if (any(grep('', tmp))) browser()
-  # browser()
   rs <- ""
   while (nchar(tmp) != 0) {
     tmp <- gsub("^[ ]*", "", tmp)
@@ -762,7 +748,6 @@ get_python_path <- function() {
       a1 <- sub("^[[:alnum:]_]*", "", tmp)
       # if (substr(tmp, 1, 1) == 'p') {
       #   vrb <- paste0('model.', substr(tmp, 1, nchar(tmp) - nchar(a1)))
-      #   browser()
       # }
       vrb <- paste0("model.", substr(tmp, 1, nchar(tmp) - nchar(a1)))
       a2 <- .get.bracket.pyomo(a1)
@@ -792,7 +777,8 @@ get_python_path <- function() {
       rs <- paste0(rs, ");")
       tmp <- substr(tmp, 2, nchar(tmp))
     } else {
-      browser()
+      stop("Cannot parse the equation template; unrecognised token at: ",
+           substr(tmp, 1, 40), call. = FALSE)
     }
   }
   rs
@@ -858,17 +844,6 @@ get_python_path <- function() {
   rs <- paste0(rs, "")
   rs
 }
-# .set_al <- c("stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "timeslicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "timeslicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "timeslicen", "groupn", "commn", "cnsn", "src", "dst")
-# .alias_set <- c("st1", "t1", "e", "i", "t", "d", "s1", "wth1", "r", "y", "s", "g", "c", "cn1", "st1p", "t1p", "ep", "ip", "tp", "dp", "s1p", "wth1p", "rp", "yp", "sp", "gp", "cp", "cn1p", "st1e", "t1e", "ee", "ie", "te", "de", "s1e", "wth1e", "re", "ye", "se", "ge", "ce", "cn1e", "st1n", "t1n", "en", "in", "tn", "dn", "s1n", "wth1n", "rn", "yn", "sn", "gn", "cn", "cn1n", "src", "dst")
-# names(.alias_set) <- .set_al
-# .aliasName <- function(x) {
-#   if (!all(x %in% .set_al)) {
-#     cat("Unknown .set_al\n")
-#     browser()
-#     stop("Unknown set")
-#   }
-#   .alias_set[x]
-# }
 
 # .fremset <- c("comm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "region", "region")
 # names(.fremset) <- c("acomm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "timeslicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "timeslicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "timeslicen", "groupn", "commn", "cnsn", "src", "dst")
@@ -972,7 +947,6 @@ get_python_path <- function() {
 }
 
 .eqt.to.pyomo.jump <- function(tmp) {
-  # browser()
   rs <- ""
   while (nchar(tmp) != 0) {
     tmp <- gsub("^[ ]*", "", tmp)
@@ -1017,7 +991,8 @@ get_python_path <- function() {
       rs <- paste0(rs, ");")
       tmp <- substr(tmp, 2, nchar(tmp))
     } else {
-      browser()
+      stop("Cannot parse the equation template; unrecognised token at: ",
+           substr(tmp, 1, 40), call. = FALSE)
     }
   }
   rs
@@ -1049,13 +1024,36 @@ get_python_path <- function() {
 # Python `_VarFile` helper for DIRECT per-variable Arrow solution output. A drop-in
 # for the CSV file handle: `open_var()` replaces `open(..., "w")`; the unchanged
 # `f.write(s)` / `f.close()` calls accumulate rows (the first write is the CSV
-# header line) and write `output/<var>.arrow` (zstd) on close, typing the `value`
-# column float64, year/yearp int64, and the dimension columns string. Injected by
-# `.write_model_PYOMO` only when the solution is imported as Arrow.
-.pyomo_arrow_output_helpers <- function() {
+# header line) and write `output/<var>.<ext>` on close in the format and codec
+# the exchange options name, typing the `value` column float64, year/yearp
+# int64, and the dimension columns string. Injected by `.write_model_PYOMO`
+# only when the solution is imported as Arrow.
+.pyomo_arrow_output_helpers <- function(
+    format = get_exchange_format(),
+    compression = get_exchange_compression(),
+    level = get_exchange_compression_level()) {
+  parquet <- identical(tolower(format), "parquet")
+  compression <- tolower(compression)
+  # `compression_level` is a zstd-only argument in pyarrow, as in arrow's R API
+  lvl <- if (identical(compression, "zstd")) {
+    paste0(", compression_level=", as.integer(level))
+  } else {
+    ""
+  }
+  writer <- if (parquet) {
+    paste0('        _pq.write_table(_pa.table(arrs, names=self.header), ',
+           'self.base + ".parquet", compression="', compression, '"', lvl, ')')
+  } else {
+    paste0('        _feather.write_feather(_pa.table(arrs, names=self.header), ',
+           'self.base + ".arrow", compression="', compression, '"', lvl, ')')
+  }
   c(
+    # The data loader (energyRtConcrete.py) has already imported pyarrow and
+    # exits with an actionable message if it is missing; by the time the
+    # solution is written the dependency is known to be present.
     "import pyarrow as _pa",
-    "import pyarrow.feather as _feather",
+    if (parquet) "import pyarrow.parquet as _pq" else
+      "import pyarrow.feather as _feather",
     "",
     "",
     "class _VarFile:",
@@ -1089,7 +1087,7 @@ get_python_path <- function() {
     "                arrs.append(_pa.array([int(v) for v in vals], type=_pa.int64()))",
     "            else:",
     "                arrs.append(_pa.array([str(v) for v in vals], type=_pa.string()))",
-    '        _feather.write_feather(_pa.table(arrs, names=self.header), self.base + ".arrow", compression="zstd", compression_level=15)',
+    writer,
     "",
     "",
     "def open_var(csvpath):",

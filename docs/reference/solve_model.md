@@ -14,15 +14,18 @@ JuMP) work unchanged. The transitional names `solve_mod()` /
 ## Usage
 
 ``` r
-solve_mod(obj, ...)
-
-solve_scen(obj, ...)
-
-solve_model(obj, name = NULL, solver = NULL, ondisk = FALSE, fold = FALSE, ...)
+solve_model(
+  object,
+  name = NULL,
+  solver = NULL,
+  ondisk = FALSE,
+  fold = FALSE,
+  ...
+)
 
 solve_scenario(
-  obj,
-  name = obj@name,
+  object,
+  name = object@name,
   solver = NULL,
   solver.dir = NULL,
   transient = FALSE,
@@ -33,14 +36,35 @@ solve_scenario(
   tmp.dir = NULL,
   tmp.del = NULL
 )
+
+# S4 method for class 'model,character'
+solve(a, b, ...)
 ```
 
 ## Arguments
 
-- obj:
+- object:
 
   a model object (`solve_model()`) or an interpolated scenario object
   (`solve_scenario()`).
+
+- name:
+
+  character name of the scenario to create / return.
+
+- solver:
+
+  a character or list with solver settings. When `NULL`, the scenario's
+  own solver settings or
+  [`get_default_solver()`](https://energyRt.org/reference/default_solver.md)
+  are used.
+
+- ondisk, fold:
+
+  passed to
+  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md).
+  Defaults (`FALSE`/`FALSE`) keep parameters in memory and unfolded,
+  matching the shape the writers expect.
 
 - ...:
 
@@ -66,30 +90,11 @@ solve_scenario(
   [`read_solution()`](https://energyRt.org/reference/read.md) to switch
   between them.
 
-- name:
-
-  character name of the scenario to create / return.
-
-- solver:
-
-  a character or list with solver settings. When `NULL`, the scenario's
-  own solver settings or
-  [`get_default_solver()`](https://energyRt.org/reference/default_solver.md)
-  are used.
-
-- ondisk, fold:
-
-  passed to
-  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md).
-  Defaults (`FALSE`/`FALSE`) keep parameters in memory and unfolded,
-  matching the shape the writers expect.
-
 - solver.dir:
 
   character, an EXTERNAL solver working directory. When set, the solve
   runs there verbatim and records no run; the default (`NULL`) solves
-  into the scenario's own run directory
-  `runs/[<variant>/]<label>/solver/`.
+  into the scenario's own run directory `runs/[<variant>/]<label>/`.
 
 - transient:
 
@@ -99,6 +104,14 @@ solve_scenario(
 - force:
 
   logical, re-solve a scenario already solved to optimal.
+
+- kvl:
+
+  logical or `NULL`; what the caller expects of Kirchhoff's voltage law.
+  It GUARDS rather than builds – the cycle constraints are baked in at
+  interpolation time, so this is the last chance to notice that a solve
+  is about to differ from what was asked for. `NULL` reports what the
+  scenario actually carries.
 
 - variant:
 
@@ -117,6 +130,11 @@ solve_scenario(
 
   deprecated aliases of `solver.dir` / `transient`.
 
+- a, b:
+
+  the [`solve()`](https://rdrr.io/r/base/solve.html) S4 signature: `a`
+  the model, `b` the scenario name.
+
 ## Value
 
 a scenario object with the solution.
@@ -125,3 +143,27 @@ a scenario object with the solution.
 
 [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md),
 [`read_solution()`](https://energyRt.org/reference/read.md)
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+open_project(tempdir())
+
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
+scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+
+sum(getData(scen, "vObjective", merge = TRUE)$value)
+
+# or in two steps, which is what you want when the inputs need inspecting
+# before the solver sees them
+scen <- interpolate_model(mod, name = "BASE2")
+scen <- solve_scenario(scen, solver = solver_options$glpk)
+} # }
+```

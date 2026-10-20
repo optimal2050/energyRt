@@ -11,7 +11,10 @@
 #' @slot commodity `r get_slot_doc("export", "commodity")`
 #' @slot unit `r get_slot_doc("export", "unit")`
 #' @slot reserve `r get_slot_doc("export", "reserve")`
+#' @slot cluster `r get_slot_doc("export", "cluster")`
 #' @slot export `r get_slot_doc("export", "export")`
+#' @slot geoframe `r get_slot_doc("export", "geoframe")`
+#' @slot region `r get_slot_doc("export", "region")`
 #' @slot misc `r get_slot_doc("export", "misc")`
 #'
 #' @include class-import.R
@@ -26,10 +29,11 @@ setClass("export",
     desc = "character",
     commodity = "character",
     unit = "character",
-    # !!! add @region
     reserve = "data.frame",
     export = "data.frame",
     cluster = "data.frame",
+    geoframe = "character",
+    region = "character",
     # timeframe = "character", # depreciated (equal to commodity@timeframe)
     misc = "list"
   ),
@@ -85,10 +89,15 @@ setClass("export",
     cluster = data.frame(
       cluster = character(),
       desc = character(),
-      share = numeric(),
+      region = character(),
+      act.share.lo = numeric(),
+      act.share.up = numeric(),
+      act.share.fx = numeric(),
       order = integer(),
       stringsAsFactors = FALSE
     ),
+    geoframe = character(),
+    region = character(),
     # ! Misc
     misc = list()
   ),
@@ -127,7 +136,10 @@ setMethod("initialize", "export", function(.Object, ...) {
 #' @param commodity `r get_slot_doc("export", "commodity")`
 #' @param unit `r get_slot_doc("export", "unit")`
 #' @param reserve `r get_slot_doc("export", "reserve")`
+#' @param cluster `r get_slot_doc("export", "cluster")`
 #' @param export `r get_slot_doc("export", "export")`
+#' @param geoframe `r get_slot_doc("export", "geoframe")`
+#' @param region `r get_slot_doc("export", "region")`
 #' @param misc `r get_slot_doc("export", "misc")`
 #'
 #' @return export object with given specifications.
@@ -158,6 +170,8 @@ newExport <- function(
     reserve = data.frame(),
     export = data.frame(),
     cluster = data.frame(),
+    geoframe = character(),
+    region = character(),
     misc = list(),
     ...
     ) {
@@ -176,6 +190,8 @@ newExport <- function(
     reserve = reserve,
     export = export,
     cluster = cluster,
+    geoframe = geoframe,
+    region = region,
     misc = misc,
     ...
     )
@@ -190,7 +206,7 @@ newExport <- function(
 #'
 #' @param ... arguments-slots (see `newExport`) with updated values to replace.
 #'
-#' @rdname newTechnology
+#' @rdname newExport
 #' @family update export
 #' @method update export
 #' @export

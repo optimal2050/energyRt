@@ -20,7 +20,7 @@
 #      S = solves, X = names >= 2 solver backends).
 #
 # Outputs: tests/coverage/parameter-matrix.csv, tests/coverage/matrix-summary.md
-# Tag convention documented in tests/README.md; recipes in dev/TESTING.md.
+# Tag convention documented in tests/README.md; recipes in tests/TESTING.md.
 # =========================================================================== #
 
 suppressMessages({
@@ -62,11 +62,12 @@ param_family <- function(name) {
     c("^pTechEmisComm", "tech-emis"),
     c("^pStorage(InpEff|OutEff|StgEff)", "storage-efficiency"),
     c("^pStorageInp2out", "storage-inp2out"),
+    c("^pStorageInp2stg", "storage-inp2stg"),
     c("^pStorageDuration", "storage-duration"),
     c("^pStorageStartLevel", "storage-startlevel-fullyear"),
     c("^pStorageCost(Inp|Out|Store)", "storage-varom"),
     c("^pStorageWeather", "storage-weather"),
-    c("^pStorage(Cinp|Cout|Cap|NCap|Pho|Ret|Stg)2A(Inp|Out)|^pStorageNCap2Stg|^pStorageStg2A", "storage-aux-flows"),
+    c("^pStorage(Cinp|Cout|Pho|Ret|Stg|(Inp|Stg|Out)N?Cap)2A(Inp|Out)|^pStorageNCap2Stg|^pStorageStg2A", "storage-aux-flows"),
     c("^pStorage(Inp|Out|Stg)?(Invcost|Fixom|Eac|Wacc|Payback|RetCost|Stock|Olife)", "storage-costs-eac"),
     c("^pStorage(Af|InpAf$|OutAf$|InpCap|OutCap|StgCap|InpNewCap|OutNewCap|StgNewCap|InpRet|OutRet|StgRet|InpStock|OutStock|StgStock|InpCap2act|OutCap2act)", "storage-roles-capacities"),
     c("^pTradeIr(Af)?$|^pTradeIrEff$", "trade-core"),

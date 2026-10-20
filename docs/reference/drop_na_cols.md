@@ -29,7 +29,7 @@ data.frame with dropped columns
 
 ``` r
 x <- data.frame(a = c(1, 2, NA), b = c(NA, NA, NA), c = c(NA, 2, 3))
-drop_na_cols(x)
+energyRt:::drop_na_cols(x)
 #>    a  c
 #> 1  1 NA
 #> 2  2  2

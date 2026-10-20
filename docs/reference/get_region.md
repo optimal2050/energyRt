@@ -11,12 +11,12 @@ from:
 ## Usage
 
 ``` r
-get_region(obj)
+get_region(object)
 ```
 
 ## Arguments
 
-- obj:
+- object:
 
   a model object (S4) such as `technology`, `storage`, `trade`,
   `import`, or `export`.
@@ -37,3 +37,17 @@ region information is added to classes that do not yet carry an explicit
 Other model:
 [`find_in_model()`](https://energyRt.org/reference/find_in_model.md),
 [`get_weather()`](https://energyRt.org/reference/get_weather.md)
+
+## Examples
+
+``` r
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
+get_region(mod)
+#> [1] "W1" "W2" "C1"
+```

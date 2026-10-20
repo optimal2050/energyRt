@@ -61,11 +61,11 @@ test_that("save_repository / load_repository round-trips; identical content is a
   # registry row + refresh rescan
   reg <- load_registry()
   expect_identical(
-    nrow(find_registry(reg, type = "repository", name = repo@name)), 1L)
+    nrow(find_in_registry(reg, type = "repository", name = repo@name)), 1L)
   reg2 <- refresh_registry(root = rs_root(), file = rs_root("reg.csv"),
                            write = FALSE)
   expect_identical(
-    nrow(find_registry(reg2, type = "repository", name = repo@name)), 1L)
+    nrow(find_in_registry(reg2, type = "repository", name = repo@name)), 1L)
 
   expect_error(load_repository("no-such-repo", verbose = FALSE),
                "refresh_registry")

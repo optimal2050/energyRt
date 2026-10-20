@@ -24,11 +24,11 @@ interpolation rule.
 ## Usage
 
 ``` r
-getData(scen, ...)
+getData(object, ...)
 
 # S3 method for class 'scenario'
 getData(
-  scen,
+  object,
   name = NULL,
   ...,
   merge = FALSE,
@@ -54,15 +54,16 @@ getData(
   stringsAsFactors = FALSE,
   yearsAsFactors = FALSE,
   drop_duplicated_scenarios = TRUE,
-  scenNameInList = as.logical(length(scen) - 1),
+  scenNameInList = as.logical(length(object) - 1),
   unfold = TRUE,
   variants = TRUE,
+  run = NULL,
   verbose = FALSE
 )
 
 # S3 method for class 'list'
 getData(
-  scen,
+  object,
   name = NULL,
   ...,
   merge = FALSE,
@@ -88,22 +89,21 @@ getData(
   stringsAsFactors = FALSE,
   yearsAsFactors = FALSE,
   drop_duplicated_scenarios = TRUE,
-  scenNameInList = as.logical(length(scen) - 1),
+  scenNameInList = as.logical(length(object) - 1),
   unfold = TRUE,
   variants = TRUE,
+  run = NULL,
   verbose = FALSE
 )
 
 # S3 method for class 'character'
-getData(scen, ...)
+getData(object, ...)
 
 # S3 method for class 'environment'
-getData(scen, ...)
+getData(object, ...)
 
 # Default S3 method
-getData(scen, ...)
-
-get_data(scen, ...)
+getData(object, ...)
 
 # S3 method for class 'technology'
 getData(
@@ -262,9 +262,10 @@ getData(
 
 ## Arguments
 
-- scen:
+- object:
 
-  Object scenario or list of scenarios.
+  the object whose data is returned, for the per-class methods
+  (`technology`, `commodity`, `storage`, ...).
 
 - ...:
 
@@ -316,8 +317,13 @@ getData(
 
 - process:
 
-  if TRUE, dimensions "tech", "stg", "trade", "imp", "expp", "dem", and
-  "sup" will be renamed with "process".
+  `TRUE` renames the process-class id dimension ("tech", "stg", "trade",
+  "sup", "dem", "imp", "impp", "expp") to "process", so results from
+  different classes stack into one frame. A character value instead
+  SELECTS the named process(es) and renames – `process = "COAL"`. Use
+  `process_` for a regex, e.g. `process_ = "^E"`. A character value is
+  always a selection, so "T"/"TRUE" are read as process names, not
+  logicals.
 
 - parameters:
 
@@ -328,6 +334,11 @@ getData(
 
   if TRUE, variables will be included in the search and returned if
   found.
+
+- sets:
+
+  logical, include set-type parameters in the result (by default only
+  value-bearing parameters are returned).
 
 - maps:
 
@@ -365,6 +376,11 @@ getData(
 
   logical, should rows containing zero values be filtered out.
 
+- add_weights, add_period_length, apply_weights, apply_period_length,
+  as_data_table:
+
+  accepted and currently ignored.
+
 - asTibble:
 
   logical, if the data.frames should be converted into tibbles.
@@ -378,20 +394,45 @@ getData(
   logical, should `year` be converted to factors? Set 'year' is integer
   by default.
 
+- drop_duplicated_scenarios:
+
+  logical, when several scenarios carry the same name, keep only the
+  first.
+
 - scenNameInList:
 
   logical, should the name of the scenarios be used if not provided in
   the list with several scenarios?
 
+- unfold:
+
+  logical, expand a stored parameter back over its full domain before
+  returning it.
+
 - variants:
 
   logical, default `TRUE`: attach the technology-variant provenance
   columns `base`, `vintage` and `cluster` (from
-  `scenario@modInp@sets$tech_variant`) to the returned data, so results
-  of a vintaged / clustered technology can be grouped or rolled up by
-  those dimensions without parsing the variant names. Has no effect when
-  the model has no variants, so the returned shape is unchanged for such
-  models. Set `FALSE` to suppress the columns.
+  `scenario@modInp@sets$variant`) to the returned data, so results of a
+  vintaged / clustered technology can be grouped or rolled up by those
+  dimensions without parsing the variant names. These are TECHNOLOGY
+  variants — unrelated to the own-problem run variants under `runs/`,
+  which are selected by switching the scenario with
+  [`read_solution()`](https://energyRt.org/reference/read.md). Has no
+  effect when the model has no variants, so the returned shape is
+  unchanged for such models. Set `FALSE` to suppress the columns.
+
+- run:
+
+  character, one or more runs to read (`"<solve>"` or
+  `"<variant>/<solve>"`), or `"all"` for every run of each scenario. The
+  returned rows gain a `run` column naming their source. `NULL`
+  (default) reads each object's ACTIVE run and adds no column, so
+  existing calls are unchanged. Each run is read on a COPY of the
+  scenario, so the object you passed keeps its active run; a variant run
+  brings its own problem with it, parameters included. Spanning runs of
+  different problems warns — their results are not like-for-like. Not to
+  be confused with `variants`, below, which is about technologies.
 
 - verbose:
 
@@ -417,7 +458,7 @@ the per-class methods for the full argument list.
 
 ``` r
 if (FALSE) { # \dontrun{
-data("utopia_scen_BAU.RData")
+data("topia_scen_BAU.RData")
 getData(scen, name = "pDemand", year = 2015, merge = TRUE)
 getData(scen, name = "vTechOut", comm = "ELC", merge = TRUE, year = 2015)
 elc2050 <- getData(scen, parameters = FALSE, comm = "ELC", year = 2050)

@@ -1,8 +1,9 @@
 # energyRt model framework
 
-The **energyRt** model comprises around one hundred predefined equations
-describing energy technologies, the energy system, and its operation.
-Additional equations can be added with
+The **energyRt** model comprises about 185 equation blocks over 93
+variables (as written in `glpk/energyRt.mod`) describing energy
+technologies, the energy system, and its operation. Additional equations
+can be added with
 [`newConstraint()`](https://energyRt.org/reference/newConstraint.md) or
 directly in the model code. The model is formulated in four alternative
 math-programming languages:

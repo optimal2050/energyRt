@@ -45,7 +45,8 @@
     dims = c("vintage", "cluster"),
     slots = c("vintage", "capacity", "ceff", "geff", "aeff",
               "af", "afs", "weather", "fixom", "varom", "invcost"),
-    bound_var = list(cap = "vTechCap", ncap = "vTechNewCap"),
+    bound_var = list(cap = "vTechCap", ncap = "vTechNewCap",
+                     act = "vTechAct"),
     bound_dims = c("region", "year"),
     # Availability factors that may be declared for a GROUP of variants: the
     # summed activity of the group against its summed capacity. `afs` sums the
@@ -61,8 +62,16 @@
   storage = list(
     key = "stg",
     dims = c("vintage", "cluster"),
+    # Every data slot carrying a `vintage`/`cluster` column belongs here, or a
+    # user's per-variant rows are copied identically to each variant and
+    # silently ignored. `test-variant-registry.R` re-derives this list from the
+    # class so it cannot drift again: `charge` was a slot that had been renamed
+    # away, while `startLevel` and `inp2out` arrived later and were never added
+    # -- the C-rate coupling in `inp2out` is the one that mattered, since a
+    # per-cluster ratio took whichever row came first.
     slots = c("vintage", "capacity", "invcost", "fixom", "varom",
-              "af", "seff", "charge", "aeff", "weather", "duration"),
+              "af", "seff", "startLevel", "aeff", "weather", "duration",
+              "inp2out", "inp2stg"),
     # A storage keeps one capacity per PART, so its `@capacity` columns read
     # `out.cap.up`, not `cap.up`, and each part has its own variable. Keyed on
     # the FULL stem: keying on `cap`/`ncap` behind a single `out.` prefix made
@@ -72,7 +81,8 @@
     bound_var = list(
       out.cap  = "vStorageOutCap", out.ncap = "vStorageOutNewCap",
       inp.cap  = "vStorageInpCap", inp.ncap = "vStorageInpNewCap",
-      stg.cap  = "vStorageStgCap", stg.ncap = "vStorageStgNewCap"
+      stg.cap  = "vStorageStgCap", stg.ncap = "vStorageStgNewCap",
+      act      = "vStorageOut"
     ),
     # Still the discharger for `.cluster_fixed_caps()`, which needs ONE primary
     # capacity column to check share proportions against.
@@ -91,7 +101,8 @@
     dims = c("vintage", "cluster"),
     slots = c("vintage", "capacity", "invcost", "fixom", "varom", "aeff",
               "trade"),
-    bound_var = list(cap = "vTradeCap", ncap = "vTradeNewCap"),
+    bound_var = list(cap = "vTradeCap", ncap = "vTradeNewCap",
+                     act = "vTradeIr"),
     # `vTradeCap{trade, year}` has no region index, so a group bound spans years
     # only; a region on a TOTAL row errors rather than being silently replicated.
     bound_dims = "year",
@@ -129,21 +140,36 @@
     key = "sup",
     dims = "cluster",
     slots = c("supply", "reserve", "weather"),
-    bound_var = list(),
+    bound_var = list(act = "vSupOut"),
     bound_dims = character()
   ),
   export = list(
     key = "expp",
     dims = "cluster",
     slots = c("export", "reserve"),
-    bound_var = list(),
+    bound_var = list(act = "vExportRow"),
     bound_dims = character()
+  ),
+  # A demand cluster is a SUB-REGIONAL SHARE, not a competing variant: the
+  # object holds one coarse total and each cluster takes a fixed fraction of it
+  # in one finer region. `share_scales` says which slot's quantities are scaled
+  # by the share, and `share_region` that the cluster's own region replaces the
+  # coarse one -- neither of which the ordinary per-variant FILTER does.
+  demand = list(
+    key = "dem",
+    dims = "cluster",
+    slots = "demand",
+    bound_var = list(),
+    bound_dims = character(),
+    share_col = "dem.share.fx",
+    share_scales = "demand",
+    share_region = TRUE
   ),
   import = list(
     key = "imp",
     dims = "cluster",
     slots = c("import", "reserve"),
-    bound_var = list(),
+    bound_var = list(act = "vImportRow"),
     bound_dims = character()
   )
 )
@@ -262,9 +288,22 @@
 
 # The declared cluster table (@cluster), or NULL when the slot is empty.
 # When present it is AUTHORITATIVE for which clusters exist.
+# A slot added to an S4 class is MISSING from instances serialized before it,
+# and `.hasSlot()` answers from the CLASS definition -- so it says TRUE while
+# `obj@cluster` errors with "no slot of name". The shipped `topia` dataset
+# predates `weather@cluster` / `commodity@cluster`, so every reader of a cluster
+# table goes through here.
+#' @noRd
+.cluster_table <- function(obj) {
+  if (!.hasSlot(obj, "cluster")) return(NULL)
+  d <- tryCatch(obj@cluster, error = function(e) NULL)
+  if (is.null(d)) return(NULL)
+  as.data.frame(d)
+}
+
 .declared_clusters <- function(tech) {
-  if (!.hasSlot(tech, "cluster")) return(NULL)
-  d <- as.data.frame(tech@cluster)
+  d <- .cluster_table(tech)
+  if (is.null(d)) return(NULL)
   if (nrow(d) == 0L || !"cluster" %in% names(d)) return(NULL)
   d$cluster <- as.character(d$cluster)
   d <- d[!is.na(d$cluster) & nzchar(d$cluster), , drop = FALSE]
@@ -272,6 +311,70 @@
   if (!"order" %in% names(d)) d$order <- NA_integer_
   if (!"region" %in% names(d)) d$region <- NA_character_
   d
+}
+
+# Resolve a reference from a clustered consumer to a clustered TARGET: the
+# "match by cluster name" rule, shared by the weather links and (slice 2) the
+# commodity references, so the semantics exist once.
+#
+#   ref      the name the row carries (`"WWIN"`)
+#   cluster  the row's own cluster, NA when the consumer is not clustered
+#   roster   the target's declared clusters, character(0) when it has none
+#   what     "weather" / "commodity", for the message
+#   owner    the consumer's name, for the message
+#
+# An UNCLUSTERED target is returned untouched: that is what keeps single-series
+# weather and shared commodities working without a flag anywhere. A clustered
+# target needs a cluster to pick from, because every use of these references is
+# a one-to-one link -- a multiplicative weather factor or a commodity in one
+# balance cell -- so "every cluster at once" has no reading.
+# A variant roster must be DECLARED: `@cluster` for the cluster axis, `@vintage`
+# for vintages. Labels were once harvested out of the data slots, which made a
+# misspelling into a variant carrying the typo's rows and defaults for
+# everything else -- no investment cost and no capacity bound. The roster is
+# also the only place `region` (which regions a member exists in) and `order`
+# can be stated, so a region-scoped or sorted set needs it regardless.
+#
+# `used` are the labels found in the data slots, `by_slot` the per-slot lists
+# from `.variant_levels_by_slot()`, used to say where each label came from.
+#' @noRd
+.assert_roster_declared <- function(obj, axis, used, by_slot) {
+  used <- unique(used[!is.na(used) & nzchar(used)])
+  if (length(used) == 0L) return(invisible(TRUE))
+  where <- names(by_slot)[vapply(by_slot, function(z) any(used %in% z),
+                                 logical(1))]
+  stop(class(obj)[1], ' "', obj@name, '" uses ', axis, ' label(s) ',
+       paste0('"', used, '"', collapse = ", "), ' in ',
+       paste0('`', where, '`', collapse = ", "),
+       ', but declares no `', axis, '` roster. Add e.g.
+    ', axis, ' = data.frame(', axis, ' = c(',
+       paste0('"', used, '"', collapse = ", "), '))
+The roster is the authoritative set: a label that appears only in a data slot ',
+       'is a typo, and `region` / `order` can be stated nowhere else.',
+       call. = FALSE)
+}
+
+#' @noRd
+.resolve_cluster_ref <- function(ref, cluster, roster, what, owner,
+                                 owner_class = "object",
+                                 prefix = .variant_prefix_default()) {
+  if (length(roster) == 0L) return(ref)
+  if (is.na(cluster) || !nzchar(cluster)) {
+    stop(owner_class, ' "', owner, '" references ', what, ' "', ref,
+         '" without a cluster, but that ', what, ' declares cluster(s) ',
+         paste0('"', roster, '"', collapse = ", "),
+         '. Name the cluster on the referencing row, or split the ', what,
+         ' into one object per cluster.', call. = FALSE)
+  }
+  if (!cluster %in% roster) {
+    stop(owner_class, ' "', owner, '" references ', what, ' "', ref,
+         '" with cluster "', cluster, '", which that ', what,
+         ' does not declare (it has ',
+         paste0('"', roster, '"', collapse = ", "),
+         '). The consumer decides which clusters exist, so the ', what,
+         ' must cover every one it is asked for.', call. = FALSE)
+  }
+  .variant_name(ref, NA, cluster, prefix)
 }
 
 # Per-slot occurrences of a selector column, used both to build the level set and
@@ -383,8 +486,8 @@
   d
 }
 
-# Investment-window semantics (user ruling 2026-08-13): `start`/`end` are
-# USER-DEFINED and may overlap across vintages. An NA `start` means "all
+# Investment-window semantics: `start`/`end` are user-defined and may
+# overlap across vintages. An NA `start` means "all
 # years up to `end`", an NA `end` means "all years from `start` on", and
 # both NA means the full model horizon — exactly the pre-merge `@start`/
 # `@end` semantics, now uniform for vintaged and plain technologies.
@@ -476,6 +579,38 @@
       }
     }
   }
+  # ── vintage labels ─────────────────────────────────────────────────────────
+  # The roster is `@vintage` itself: a row with only the label and an NA window
+  # is enough, since `.variant_default_window()` supplies the default.
+  if ("vintage" %in% .variant_dims_of(tech) && .hasSlot(tech, "vintage")) {
+    vin_by_slot <- .variant_levels_by_slot(tech, "vintage")
+    vin_used <- unique(unlist(vin_by_slot, use.names = FALSE))
+    vin_dec <- as.data.frame(tech@vintage)
+    vin_dec <- if (nrow(vin_dec) == 0L || !"vintage" %in% names(vin_dec)) {
+      character(0)
+    } else {
+      v <- as.character(vin_dec$vintage)
+      unique(v[!is.na(v) & nzchar(v)])
+    }
+    if (length(vin_used) > 0L && length(vin_dec) == 0L) {
+      .assert_roster_declared(tech, "vintage", vin_used, vin_by_slot)
+    }
+    undeclared_vin <- setdiff(vin_used, vin_dec)
+    if (length(vin_dec) > 0L && length(undeclared_vin) > 0L) {
+      where <- vapply(undeclared_vin, function(u) {
+        paste(names(vin_by_slot)[
+          vapply(vin_by_slot, function(z) u %in% z, logical(1))],
+          collapse = ", ")
+      }, character(1))
+      stop('Undeclared vintage label(s) in ', cls, ' "', nm, '": ',
+           paste0('"', undeclared_vin, '" (in ', where, ')', collapse = "; "),
+           '. Declared vintages are: ',
+           paste0('"', vin_dec, '"', collapse = ", "),
+           '. Add the label to the `vintage` slot or fix the spelling.',
+           call. = FALSE)
+    }
+  }
+
   # ── cluster labels ─────────────────────────────────────────────────────────
   dc      <- .declared_clusters(tech)
   by_slot <- .variant_levels_by_slot(tech, "cluster")
@@ -498,31 +633,30 @@
            paste0('"', dc$cluster, '"', collapse = ", "),
            '. Add the label to the `cluster` slot or fix the spelling.')
     }
-    if (anyDuplicated(dc$cluster) > 0L) {
-      stop('Duplicated cluster label(s) in the `cluster` slot of ', cls, ' "',
-           nm, '": ',
-           paste(unique(dc$cluster[duplicated(dc$cluster)]), collapse = ", "))
+    # The row identity of a cluster DECLARATION is (cluster, region): "cluster 1
+    # exists in EAST" and "cluster 1 exists in NORTH" are different statements,
+    # and `.cluster_regions()` is already written to read every row of a label
+    # and return the region set. Keying on the label alone rejected that, so a
+    # cluster could be scoped to one region or (NA) to all, never to a subset.
+    #
+    # `@cluster` declares an axis rather than carrying a parameter, so it has no
+    # entry in `.param_interp_map()` and `.assert_no_conflicting_rows()` -- the
+    # general per-parameter key rule -- skips the slot. Hence the key here.
+    kc <- intersect(c("cluster", "region"), names(dc))
+    if (anyDuplicated(dc[, kc, drop = FALSE]) > 0L) {
+      d <- duplicated(dc[, kc, drop = FALSE])
+      stop('Duplicated cluster declaration(s) in the `cluster` slot of ', cls,
+           ' "', nm, '": ',
+           paste(unique(do.call(paste, c(dc[d, kc, drop = FALSE], sep = "@"))),
+                 collapse = ", "),
+           '. A label may repeat across regions, but not within one.')
     }
-  } else if (length(used) > 1L && length(by_slot) > 1L) {
-    # No declaration to check against: fall back to cross-slot consistency. A
-    # label present in some variant-varying slots but missing from others is the
-    # signature of a typo (a real cluster is normally given a cost AND a limit).
-    missing_in <- lapply(used, function(u) {
-      names(by_slot)[!vapply(by_slot, function(z) u %in% z, logical(1))]
-    })
-    names(missing_in) <- used
-    partial <- used[lengths(missing_in) > 0L]
-    if (length(partial) > 0L) {
-      msg <- paste0('"', partial, '" missing from: ',
-                    vapply(missing_in[partial], paste, character(1),
-                           collapse = ", "), collapse = "; ")
-      stop('Inconsistent cluster labels in ', cls, ' "', nm, '": ', msg,
-           '. Every cluster should appear in each slot that differentiates ',
-           'clusters, otherwise a misspelling silently creates an extra ',
-           'technology with default (often unbounded) parameters. Declare the ',
-           'clusters in the `cluster` slot to state the intended set ',
-           'explicitly, or give each cluster a value in every listed slot.')
-    }
+  } else {
+    # No roster: required, not optional. Harvesting the labels out of the data
+    # slots used to be allowed, and a single misspelling then became a variant
+    # carrying whatever data held the typo and DEFAULTS for everything else --
+    # no investment cost and no capacity bound, i.e. free and unlimited.
+    .assert_roster_declared(tech, "cluster", used, by_slot)
   }
 
   # A class with no `@region` slot has no region scope for a cluster to
@@ -541,21 +675,57 @@
   # `lambda_t = loss_full * (alpha_{t-1} + alpha_t)` are calibrated ONLY when
   # the shares sum to 1 -- shares summing to 0.9 understate total losses by 10%
   # with no other symptom, which is why this is an error and not a warning.
-  if (!is.null(dc) && "share" %in% names(dc)) {
-    sh <- dc$share
+  # A demand's shares are fractions of THIS object's coarse total, so they must
+  # sum to 1 or the split changes the demand -- the one promise the mechanism
+  # makes. One object is one coarse region; several zones are several objects.
+  if (!is.null(dc) && "dem.share.fx" %in% names(dc)) {
+    sh <- suppressWarnings(as.numeric(dc$dem.share.fx))
     if (any(!is.na(sh))) {
-      if (anyNA(sh)) {
-        stop('Either every declared cluster of ', cls, ' "', nm, '" carries a ',
-             '`share` or none does; got ', sum(!is.na(sh)), ' of ', length(sh),
-             '. A partly-shared set has no defensible reading.', call. = FALSE)
-      }
-      if (any(!is.finite(sh) | sh <= 0)) {
-        stop('The `share` values of ', cls, ' "', nm, '" must be finite and ',
+      if (anyNA(sh) || any(!is.finite(sh) | sh <= 0)) {
+        stop(cls, ' "', nm, '": every cluster needs a finite `dem.share.fx` ',
              'greater than zero; got ',
              paste(format(sh), collapse = ", "), '.', call. = FALSE)
       }
       if (abs(sum(sh) - 1) > 1e-8) {
-        stop('The `share` values of ', cls, ' "', nm, '" sum to ',
+        stop(cls, ' "', nm, '": the `dem.share.fx` values sum to ',
+             format(sum(sh)), ', not 1, so the split would change the ',
+             'demand. They are FRACTIONS of this object’s total -- one ',
+             'demand object is one coarse region.', call. = FALSE)
+      }
+      if (!"region" %in% names(dc) ||
+          any(is.na(dc$region) | !nzchar(as.character(dc$region)))) {
+        stop(cls, ' "', nm, '": every cluster needs a `region` -- that is ',
+             'where its share of the demand lands.', call. = FALSE)
+      }
+    }
+  }
+  if (!is.null(dc) && "cap.share.fx" %in% names(dc)) {
+    sh <- dc$cap.share.fx
+    if (any(!is.na(sh))) {
+      # A capacity share can only tie a capacity. `supply`, `import` and
+      # `export` have no capacity variable at all -- their registry entries
+      # carry an empty `bound_var` -- so the tie was skipped and the
+      # declaration did nothing whatsoever. Say so rather than accept it.
+      vdef <- .variant_def(tech)
+      if (!is.null(vdef) && is.null(vdef$bound_var$cap)) {
+        stop(cls, ' "', nm, '" declares `cap.share.fx`, but a ', cls,
+             ' has no capacity variable for the shares to tie -- the ',
+             'declaration would do nothing. Use `act.share.lo/up/fx` to ',
+             'bound its share of the group activity instead.',
+             call. = FALSE)
+      }
+      if (anyNA(sh)) {
+        stop('Either every declared cluster of ', cls, ' "', nm, '" carries a ',
+             '`cap.share.fx` or none does; got ', sum(!is.na(sh)), ' of ', length(sh),
+             '. A partly-shared set has no defensible reading.', call. = FALSE)
+      }
+      if (any(!is.finite(sh) | sh <= 0)) {
+        stop('The `cap.share.fx` values of ', cls, ' "', nm, '" must be finite and ',
+             'greater than zero; got ',
+             paste(format(sh), collapse = ", "), '.', call. = FALSE)
+      }
+      if (abs(sum(sh) - 1) > 1e-8) {
+        stop('The `cap.share.fx` values of ', cls, ' "', nm, '" sum to ',
              format(sum(sh)), ', not 1. Shares are FRACTIONS of a capacity, ',
              'not absolute capacities -- the tranche efficiencies were derived ',
              'from them and would be wrong.', call. = FALSE)
@@ -639,8 +809,8 @@
   def <- .variant_def(tech)
   if (is.null(def)) return(list())
   dc <- .declared_clusters(tech)
-  if (is.null(dc) || !"share" %in% names(dc)) return(list())
-  dc <- dc[!is.na(dc$share), , drop = FALSE]
+  if (is.null(dc) || !"cap.share.fx" %in% names(dc)) return(list())
+  dc <- dc[!is.na(dc$cap.share.fx), , drop = FALSE]
   if (nrow(dc) < 2L) return(list())
   bvar <- def$bound_var$cap
   if (is.null(bvar)) return(list())
@@ -660,12 +830,12 @@
            '-- fix all of them or none.', call. = FALSE)
     }
     ratio <- fx / sum(fx)
-    if (any(abs(ratio - dc$share) > 1e-6)) {
+    if (any(abs(ratio - dc$cap.share.fx) > 1e-6)) {
       stop(cls, ' "', tech@name, '": the fixed capacities ',
            paste(format(fx), collapse = ", "), ' are in proportion ',
            paste(format(round(ratio, 6)), collapse = ", "),
            ', but the declared shares are ',
-           paste(format(dc$share), collapse = ", "),
+           paste(format(dc$cap.share.fx), collapse = ", "),
            '. The tranche efficiencies were derived from the shares, so the ',
            'ratings and the losses now disagree.', call. = FALSE)
     }
@@ -693,30 +863,178 @@
     if (length(nref) != 1L) next
     for (i in seq_len(nrow(dc))[-1]) {
       nvar <- pick(dc$cluster[i])
-      if (length(nvar) != 1L) next
+      # A cluster with no variant in THIS vintage used to skip the tie in
+      # silence, leaving that tranche free while its siblings were tied -- the
+      # shares then held for some vintages and not others, with no symptom.
+      # Shares require the same cluster set in every vintage.
+      if (length(nvar) != 1L) {
+        stop(cls, ' "', tech@name, '": cluster "', dc$cluster[i],
+             '" has no variant in vintage "',
+             if (is.na(vin)) "NA" else vin,
+             '" while "', dc$cluster[1], '" does, so the capacity shares ',
+             'cannot be tied there. A shared set needs the same clusters in ',
+             'every vintage.', call. = FALSE)
+      }
       nm <- paste0(.VARIANT_SHARE_PREFIX, .variant_token(tech@name),
                    if (!is.na(vin)) .variant_token(vin) else "",
                    .variant_token(dc$cluster[i]))
       cns <- newConstraint(
         name = nm,
         desc = paste0("Capacity share tie: ", dc$cluster[i], " / ",
-                      dc$cluster[1], " = ", format(dc$share[i]), " / ",
-                      format(dc$share[1]), " for ", tech@name),
+                      dc$cluster[1], " = ", format(dc$cap.share.fx[i]), " / ",
+                      format(dc$cap.share.fx[1]), " for ", tech@name),
         eq = "==", for.each = cells, rhs = 0, defVal = 0,
         # A share ratio is exact, not a quantity to smooth between milestones.
         interpolation = "inter",
         t1 = list(variable = bvar,
                   for.sum = stats::setNames(list(nvar), def$key),
-                  mult = dc$share[1]),
+                  mult = dc$cap.share.fx[1]),
         t2 = list(variable = bvar,
                   for.sum = stats::setNames(list(nref), def$key),
-                  mult = -dc$share[i]))
+                  mult = -dc$cap.share.fx[i]))
       cns@misc$.variant_source <- tech@name
       cns@misc$.variant_class <- cls
       out[[nm]] <- cns
     }
   }
   out
+}
+
+# Constraints bounding a cluster's share of its FAMILY's activity, from the
+# `act.share.lo/up/fx` columns of its `@cluster` declaration.
+#
+# This is what makes clustering mean anything once regional borders are gone.
+# Merge two regions and their plants compete on one copperplate, where the
+# merit order keeps only the cheapest variant: the spread the clustering was
+# built to preserve is present in the data and absent from the dispatch. A
+# floor on a cluster's share of the family's output is the bound that prevents
+# it.
+#
+# NOT the same lever as `afs`, which bounds activity against the cluster's OWN
+# capacity: a plant told to run at 40% of what it built can comply by building
+# less, so an `afs` floor pushes toward early retirement. A share of the family
+# can only be met by keeping capacity, which is usually what was meant.
+#
+# Unpinned dimensions of the variable -- `timeslice`, and `comm` where the
+# variable carries one -- are summed by the constraint builder, so the bound is
+# annual and across commodities. A per-timeslice or per-commodity share would
+# be a much stronger statement and needs a declaration that can carry those
+# dimensions; `@cluster` cannot.
+#' @noRd
+.variant_act_share_constraints <- function(tech, prov, regions, years) {
+  def <- .variant_def(tech)
+  if (is.null(def)) return(list())
+  avar <- def$bound_var$act
+  if (is.null(avar)) return(list())
+  dc <- .declared_clusters(tech)
+  if (is.null(dc) || nrow(dc) < 2L) return(list())
+  stems <- c(lo = "act.share.lo", up = "act.share.up", fx = "act.share.fx")
+  stems <- stems[stems %in% names(dc)]
+  if (!length(stems)) return(list())
+  if (!any(vapply(stems, function(x) any(!is.na(dc[[x]])), logical(1)))) {
+    return(list())
+  }
+  cls <- class(tech)[1]
+  dc <- dc[order(dc$order, dc$cluster, na.last = TRUE), , drop = FALSE]
+
+  cell_args <- list(year = years)
+  if ("region" %in% def$bound_dims) {
+    cell_args <- c(list(region = regions), cell_args)
+  }
+  cells <- do.call(expand.grid, c(cell_args,
+    list(KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)))
+
+  vins <- unique(prov$vintage[prov$base == tech@name])
+  if (!length(vins)) vins <- NA_character_
+  out <- list()
+  for (vin in vins) {
+    pick <- function(cl) {
+      sel <- prov$base == tech@name & !is.na(prov$cluster) &
+        prov$cluster == cl &
+        (if (is.na(vin)) is.na(prov$vintage) else
+           (!is.na(prov$vintage) & prov$vintage == vin))
+      as.character(prov$name[sel])
+    }
+    all_nm <- unlist(lapply(dc$cluster, pick), use.names = FALSE)
+    # The denominator is the family, so every cluster must be present in this
+    # vintage or the share is a fraction of something other than what was
+    # declared.
+    if (length(all_nm) != nrow(dc)) next
+    for (i in seq_len(nrow(dc))) {
+      nvar <- pick(dc$cluster[i])
+      for (sfx in names(stems)) {
+        sh <- dc[[stems[[sfx]]]][i]
+        if (is.na(sh)) next
+        if (!is.finite(sh) || sh < 0 || sh > 1) {
+          stop(cls, ' "', tech@name, '": `', stems[[sfx]], '` of cluster "',
+               dc$cluster[i], '" is ', format(sh),
+               '. An activity share is a FRACTION of the group total, so it ',
+               'must lie between 0 and 1.', call. = FALSE)
+        }
+        nm <- paste0(.VARIANT_ASHARE_PREFIX, .variant_token(tech@name),
+                     if (!is.na(vin)) .variant_token(vin) else "",
+                     .variant_token(dc$cluster[i]), toupper(sfx))
+        cns <- newConstraint(
+          name = nm,
+          desc = paste0("Activity share ", sfx, ": ", dc$cluster[i], " = ",
+                        format(sh), " of ", tech@name),
+          eq = unname(.variant_bound_eq[[sfx]]), for.each = cells, rhs = 0,
+          defVal = 0, interpolation = "inter",
+          t1 = list(variable = avar,
+                    for.sum = stats::setNames(list(nvar), def$key),
+                    mult = 1),
+          t2 = list(variable = avar,
+                    for.sum = stats::setNames(list(all_nm), def$key),
+                    mult = -sh))
+        cns@misc$.variant_source <- tech@name
+        cns@misc$.variant_class <- cls
+        out[[nm]] <- cns
+      }
+    }
+  }
+  out
+}
+
+# Apply a cluster's FIXED share to the slot it scales.
+#
+# The ordinary per-variant step filters rows and stamps the cell's label on
+# them. A share-scaled slot needs two more things: its quantities multiplied by
+# this cluster's share, and its region replaced by the cluster's own -- a coarse
+# total of 100 at `WEST` becoming 60 at `W1` and 40 at `W2`. Only classes that
+# declare `share_scales` in the registry are touched, so nothing else changes.
+#' @noRd
+.variant_share_scale <- function(d, tech, slot_name, cluster) {
+  def <- .variant_def(tech)
+  if (is.null(def) || is.null(def$share_scales)) return(d)
+  if (!identical(slot_name, def$share_scales)) return(d)
+  if (!is.data.frame(d) || !nrow(d) || is.na(cluster)) return(d)
+  dc <- .declared_clusters(tech)
+  col <- def$share_col
+  if (is.null(dc) || is.null(col) || !col %in% names(dc)) return(d)
+  # A share names one parallel PART of a process, and `share_region` even
+  # rewrites the row's region to the declared one -- both assume a label sits
+  # in exactly one row. Now that a label may span regions, refuse the
+  # combination rather than silently taking the first row's share.
+  nrow_lab <- sum(as.character(dc$cluster) == cluster)
+  if (nrow_lab > 1L && any(!is.na(dc[[col]][as.character(dc$cluster) == cluster]))) {
+    stop(class(tech)[1], ' "', tech@name, '": cluster "', cluster,
+         '" is declared in several regions AND carries `', col,
+         '`. A share is a fraction of one process in one region, so the two ',
+         'have no combined reading -- give the regional variants distinct ',
+         'cluster labels, or drop the share.', call. = FALSE)
+  }
+  i <- match(cluster, as.character(dc$cluster))
+  if (is.na(i)) return(d)
+  sh <- suppressWarnings(as.numeric(dc[[col]][i]))
+  if (!is.finite(sh)) return(d)
+  vals <- .agg_values(d)
+  for (v in vals) d[[v]] <- d[[v]] * sh
+  if (isTRUE(def$share_region) && "region" %in% names(dc) &&
+      "region" %in% names(d)) {
+    r <- as.character(dc$region[i])
+    if (length(r) == 1L && !is.na(r) && nzchar(r)) d$region <- r
+  }
+  d
 }
 
 # Per-cluster FIXED capacity, or NULL when the class/slot cannot carry one.
@@ -726,7 +1044,13 @@
   cap <- as.data.frame(tech@capacity)
   if (nrow(cap) == 0L || !"cluster" %in% names(cap)) return(NULL)
   bpre <- if (is.null(def$bound_prefix)) "" else def$bound_prefix
+  # `stock` as well as `cap.fx`: an EXISTING fleet already fixes the
+  # proportions just as a fixed bound does. The tie is on TOTAL capacity in
+  # every year, so a stock out of proportion makes the model infeasible in its
+  # first year -- and before this it did so with no message pointing at the
+  # shares, which is the hardest kind of failure to read.
   col <- paste0(bpre, "cap.fx")
+  if (!col %in% names(cap)) col <- paste0(bpre, "stock")
   if (!col %in% names(cap)) return(NULL)
   vals <- vapply(clusters, function(cl) {
     r <- cap[!is.na(cap$cluster) & cap$cluster == cl, , drop = FALSE]
@@ -1244,6 +1568,7 @@
              'table, or its rows cannot be selected per variant.', call. = FALSE)
       }
       d <- .variant_timeslice(slot(tech, s), vin, clu)
+      d <- .variant_share_scale(d, tech, s, clu)
       if (s == "vintage") d <- .variant_default_window(d, vin)
       if (s == "capacity" && "stock" %in% names(d) && !is.na(vin)) {
         # stock without a vintage belongs to the earliest vintage only
@@ -1418,6 +1743,9 @@ expand_variants <- function(mod, prefix = .variant_prefix(mod),
         if (length(ab)) cns[[length(cns) + 1L]] <<- ab
         sb <- .variant_share_constraints(el, res$provenance, regions, years)
         if (length(sb)) cns[[length(cns) + 1L]] <<- sb
+        asb <- .variant_act_share_constraints(el, res$provenance, regions,
+                                              years)
+        if (length(asb)) cns[[length(cns) + 1L]] <<- asb
       } else {
         out[[nm]] <- el
       }
@@ -1496,7 +1824,11 @@ expand_tech_variants <- function(mod, prefix = .variant_prefix(mod),
 #' table (or `getData(..., variants = TRUE)`) to analyse results by vintage or
 #' cluster rather than parsing the names.
 #'
-#' @param scen a `scenario` object.
+#' A `model` is accepted as well, which answers the same question *before*
+#' interpolating: the names a constraint, levy or report will have to refer to.
+#' The expansion runs on a throwaway copy, so the model passed in is unchanged.
+#'
+#' @param object a `scenario` object, or a `model` to expand on the fly.
 #' @param class optional character, keep only variants of these process classes
 #'   (e.g. `"technology"`, `"storage"`).
 #'
@@ -1504,8 +1836,32 @@ expand_tech_variants <- function(mod, prefix = .variant_prefix(mod),
 #'   `cluster`, or `NULL` when the model has no variants.
 #' @family technology process
 #' @export
-getVariants <- function(scen, class = NULL) {
-  tv <- tryCatch(scen@modInp@sets$variant, error = function(e) NULL)
+#' @examples
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$s4_h24,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
+#'
+#' # the base kit has no variants
+#' getVariants(mod)
+#'
+#' # add the clustered-wind and vintaged-nuclear modules and ask again: this is
+#' # the roster of names the solver-facing sets will carry
+#' mod <- add(mod, ek$EWIN_SITES, ek$ENUC_VINT, overwrite = TRUE)
+#' getVariants(mod)
+#' getVariants(mod, class = "technology")
+getVariants <- function(object, class = NULL) {
+  tv <- if (methods::is(object, "model")) {
+    # the same provenance the interpolation would record, from the model's own
+    # `variant_prefix`; the expanded copy is discarded
+    expand_variants(object, prefix = .variant_prefix(object),
+                    verbose = FALSE)$provenance
+  } else {
+    tryCatch(object@modInp@sets$variant, error = function(e) NULL)
+  }
   if (is.null(tv) || NROW(tv) == 0) return(NULL)
   tv <- as.data.frame(tv)
   if (!is.null(class)) {
@@ -1525,7 +1881,7 @@ getVariants <- function(scen, class = NULL) {
 #' vintage" view -- e.g. the spread of capacity factors across wind resource
 #' clusters, or of capacity across vintages.
 #'
-#' @param scen a solved `scenario`.
+#' @param object a solved `scenario`.
 #' @param name character, name of the variable or parameter (e.g. `"vTechCap"`).
 #' @param by character vector, variant dimensions to keep as grouping columns:
 #'   any of `"vintage"` and `"cluster"`. Empty (default) summarises across all
@@ -1539,14 +1895,34 @@ getVariants <- function(scen, class = NULL) {
 #'   `sd`, `min` and `max`.
 #' @family technology process
 #' @export
-variantSummary <- function(scen, name, by = character(), weight = NULL, ...) {
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$s4_h24,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
+#'
+#' # split wind into site grades, solve, then read the result BY GRADE rather
+#' # than by variant name
+#' mod  <- add(mod, ek$EWIN_SITES, overwrite = TRUE)
+#' scen <- solve_model(mod, name = "SITES", solver = solver_options$glpk)
+#'
+#' variantSummary(scen, "vTechCap", by = "cluster")
+#' variantSummary(scen, "vTechOut", by = c("cluster", "region"))
+#' }
+variantSummary <- function(object, name, by = character(), weight = NULL, ...) {
   by <- intersect(by, c("vintage", "cluster"))
-  d <- getData(scen, name = name, merge = TRUE, variants = TRUE, ...)
+  d <- getData(object, name = name, merge = TRUE, variants = TRUE, ...)
   if (NROW(d) == 0) {
-    stop("No data for '", name, "' in scenario '", scen@name, "'.")
+    stop("No data for '", name, "' in scenario '", object@name, "'.")
   }
   if (!"base" %in% names(d)) {
-    stop("Scenario '", scen@name, "' has no process variants.")
+    stop("Scenario '", object@name, "' has no process variants.")
   }
   d <- d |> filter(!is.na(.data$base))
   if (nrow(d) == 0) {
@@ -1556,7 +1932,7 @@ variantSummary <- function(scen, name, by = character(), weight = NULL, ...) {
   idcol <- intersect(c("tech", "stg", "trade", "sup", "expp", "imp",
                        "process"), names(d))[1]
   if (!is.null(weight)) {
-    w <- getData(scen, name = weight, merge = TRUE, variants = TRUE, ...)
+    w <- getData(object, name = weight, merge = TRUE, variants = TRUE, ...)
     keys <- intersect(names(d), names(w))
     keys <- setdiff(keys, c("value", "name", "scenario"))
     w <- w |> select(all_of(c(keys, "value"))) |> rename(.w = "value")

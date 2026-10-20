@@ -2,13 +2,14 @@
 
 A geoscale describes the model's regions – their nesting into coarser
 levels, their weights, and optionally their geometry. It is built with
-the [geoscales](https://github.com/optimal2050/geoscales) package and is
-used for plotting, reporting and subsetting only: attaching one never
-changes the optimisation model.
+the [geoscales](https://github.com/optimal2050/geoscales) package.
 
 ## Usage
 
 ``` r
+# S4 method for class 'config'
+setCalendar(obj, ...)
+
 # S4 method for class 'config'
 setGeoscale(obj, geoscale, ...)
 
@@ -43,23 +44,33 @@ getCalendar(obj)
 
   A `config`, `settings`, `model` or `scenario`.
 
-- geoscale:
-
-  A
-  [`geoscales::Geoscale`](https://optimal2050.github.io/geoscales/r/reference/Geoscale.html),
-  or `NULL` to clear it.
-
 - ...:
 
   Unused.
 
+- geoscale:
+
+  A
+  [`geoscales::GeoScale`](https://optimal2050.github.io/geoscales/r/reference/GeoScale.html),
+  or `NULL` to clear it.
+
 ## Value
 
 `setGeoscale()` returns the modified object; `getGeoscale()` returns a
-[`geoscales::Geoscale`](https://optimal2050.github.io/geoscales/r/reference/Geoscale.html)
+[`geoscales::GeoScale`](https://optimal2050.github.io/geoscales/r/reference/GeoScale.html)
 or `NULL`.
 
 ## Details
+
+Attaching one is inert by itself: it widens the model's region set with
+the coarser codes and enables level-aware plotting, reporting and
+subsetting (`getData(geoframe = )`), but the extra members stay unused
+and the model solves exactly as before. It is also the prerequisite for
+`newCommodity(geoframe = )`, which balances a commodity at a coarser
+level and does change the optimisation model – see
+`vignette("space-resolution")`. The geoframes must NEST: adjacent levels
+have to refine one another, or a region would be aggregated into two
+parents.
 
 `setGeoscale()` stores it on a `config` (and therefore on a `settings`,
 which inherits from `config`) or on a `model`. `getGeoscale()` reads it
@@ -70,9 +81,11 @@ model's `@config`, matching how `@calendar` is resolved.
 
 Other geoscale:
 [`check_geoscale_regions()`](https://energyRt.org/reference/check_geoscale_regions.md),
+[`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md),
+[`model_clusters()`](https://energyRt.org/reference/model_clusters.md),
 [`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md),
 [`plot_map()`](https://energyRt.org/reference/plot_map.md),
-[`utopia_geoscale()`](https://energyRt.org/reference/utopia_geoscale.md)
+[`process_cluster_sweep()`](https://energyRt.org/reference/process_cluster_sweep.md)
 
 ## Examples
 

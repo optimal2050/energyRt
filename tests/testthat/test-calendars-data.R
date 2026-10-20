@@ -10,10 +10,14 @@ test_that("every shipped calendar is internally consistent", {
     expect_s4_class(x, "calendar")
     expect_lt(abs(sum(x@timetable$share) - x@year_fraction), 1e-7)
     ss <- as.data.frame(x@timeslice_share)
-    expect_equal(ss$share[1], x@year_fraction, tolerance = 1e-9,
-                 label = paste0(nm, ": top share == year_fraction"))
-    expect_equal(ss$weight[1], 1 / x@year_fraction, tolerance = 1e-9,
-                 label = paste0(nm, ": top weight == 1/year_fraction"))
+    # timeframe contract: the top slice is full-year magnitude on every
+    # calendar; sub-annual slices annualise a sample with weight 1/yf
+    expect_equal(ss$share[1], 1, tolerance = 1e-9,
+                 label = paste0(nm, ": top share == 1"))
+    expect_equal(ss$weight[1], 1, tolerance = 1e-9,
+                 label = paste0(nm, ": top weight == 1"))
+    expect_equal(ss$weight[nrow(ss)], 1 / x@year_fraction, tolerance = 1e-9,
+                 label = paste0(nm, ": leaf weight == 1/year_fraction"))
     expect_identical(x@name, nm)
   }
 })

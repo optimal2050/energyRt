@@ -45,3 +45,4 @@ A \code{levcost} object -- the same shape the technology method returns.
 Called through \code{\link[=levcost]{levcost()}} on a \code{storage} object. See
 \code{vignette("levcost")} for the metric; the header of this file for the algebra.
 }
+\keyword{internal}

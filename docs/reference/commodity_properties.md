@@ -1,10 +1,11 @@
 # Recognised commodity properties
 
 The registry of physical properties understood by `commodity@property`
-and, in turn, by `convert()`. `quantity` declares which dimension pair a
-property relates, which is what lets a conversion cross between measures
-of the same commodity – `lhv` in "GJ/t" links Energy and Mass, `density`
-in "t/m3" links Mass and Volume.
+and, in turn, by
+[`convert()`](https://energyRt.org/reference/convert.md). `quantity`
+declares which dimension pair a property relates, which is what lets a
+conversion cross between measures of the same commodity – `lhv` in
+"GJ/t" links Energy and Mass, `density` in "t/m3" links Mass and Volume.
 
 Property names are not restricted to this list: an unrecognised name is
 kept, with a warning, so that data the package has not anticipated can

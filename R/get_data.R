@@ -11,16 +11,16 @@
 #'     contained objects.
 #' }
 #'
-#' @param scen a \code{scenario} (or list of scenarios), a model object, a
+#' @param object a \code{scenario} (or list of scenarios), a model object, a
 #'   \code{model}, or a \code{repository}.
 #' @param ... passed to the dispatched method (filters, \code{name}, \code{merge}, ...).
 #' @seealso the per-class methods for the full argument list.
 #' @export
-getData <- function(scen, ...) UseMethod("getData")
+getData <- function(object, ...) UseMethod("getData")
 
 #' Performs search for available data in _scenario_ object.
 #'
-#' @param scen object _scenario_ with model solution.
+#' @param object object _scenario_ with model solution.
 #' @param dataType type of data to lok for (currently only "parameters" and "variables").
 #' @param dropEmpty logical, if TRUE drops parameters and variables with zero length.
 #' @param valueColumn logical, if TRUE will return variables and parameters with 'value' column (to filter sets and mappings).
@@ -28,13 +28,33 @@ getData <- function(scen, ...) UseMethod("getData")
 #' @param dfNames logical, when TRUE returns names of the data frame column.
 #' @param asMatrix return results as a matrix (not implemented).
 #' @param setsNames_ regular expression pattern for names of sets which will be included in search.
+#' @param add_weights accepted and currently ignored.
 #' @param allSets logical, if TRUE _and_ operator should be used in search the sets, _or_ will be used if FALSE.
 #' @param ignore.case grepl parameter for matching names.
 #'
 #' @return list with variables and parameters name, each includes _dim_ and _names_ character vectors.
 #'
 #' @export
-findData <- function(scen,
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
+#' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+#'
+#' # which parameters carry a `tech` set, and what their dimensions are
+#' findData(scen, setsNames_ = "tech")
+#'
+#' # the solved variables only
+#' findData(scen, dataType = "variables", setsNames_ = "tech")
+#' }
+findData <- function(object,
                      dataType = c("parameters", "variables"),
                      setsNames_ = NULL,
                      valueColumn = TRUE,
@@ -47,15 +67,13 @@ findData <- function(scen,
                      dfNames = TRUE,
                      asMatrix = FALSE) {
   ll <- lt <- list()
-  # browser()
   # 1 Parameters
   ii <- dataType == "parameters"
   if (any(ii)) {
     dataType <- dataType[!ii]
-    # dat <- scen@modInp@parameters
-    lt <- lapply(scen@modInp@parameters, function(x) {
+    # dat <- object@modInp@parameters
+    lt <- lapply(object@modInp@parameters, function(x) {
       # if (dim(x@data)[1] > 0 || !dropEmpty) {
-      # browser()
       # cat(x@name, " ")
       qu <- get_lazy_dim_names(x, slot = "data")
       # qu <- get_lazy_data(x, slot = "data")
@@ -68,7 +86,6 @@ findData <- function(scen,
       qu
     })
   }
-  # browser()
   ll <- c(ll, lt)
 
   # 2. Variables
@@ -76,38 +93,19 @@ findData <- function(scen,
   if (any(ii)) {
     lt <- list()
     dataType <- dataType[!ii]
-    # dat <- scen@modOut@variables
-    # lt <- lapply(dat, function(x) {
-    #   if (dim(x)[1] > 0 || !dropEmpty) {
-    #     list(
-    #       dim = if (dfDim) dim(x) else NULL,
-    #       names = if (dfNames) names(x) else NULL
-    #     )
-    #   }
-    # })
-    for (v in names(scen@modOut@variables)) {
+    for (v in names(object@modOut@variables)) {
       # The `variable` object itself, exactly as the parameter branch above
       # passes the `parameter`. Passing the modOut container instead returns
       # `colnames()` of an S4 object -- NULL -- and the value-column filter
       # below then drops every variable without a word.
-      qu <- get_lazy_dim_names(scen@modOut@variables[[v]], slot = "data")
+      qu <- get_lazy_dim_names(object@modOut@variables[[v]], slot = "data")
       lt[[v]] <- list(
         dim = qu$dim,
         names = qu$names
       )
-      # if (dim(x)[1] > 0 || !dropEmpty) {
-      # qu <- get_lazy_data(scen@modOut, slot = "variables", element = v)
-      # if (nrow(qu) > 0 || !dropEmpty) {
-      #   lt[[v]] <- list(
-      #     dim = if (dfDim) dim(qu) else NULL,
-      #     names = if (dfNames) names(qu) else NULL
-      #   )
-      # }
-      # })
     }
     ll <- c(ll, lt)
   }
-  # browser()
   if (valueColumn) {
     ii <- sapply(ll, function(x) {
       any(grepl("^value$", x$names,
@@ -117,7 +115,6 @@ findData <- function(scen,
     ll <- ll[ii]
   }
 
-  # browser()
   if (length(setsNames_) > 0) {
     ii <- sapply(ll, function(x) {
       if (allSets) {
@@ -155,7 +152,7 @@ findData <- function(scen,
 #' Extracts information from scenario objects, based on filters.
 #'
 #' @rdname getData
-#' @param scen Object scenario or list of scenarios.
+#' @param object Object scenario or list of scenarios.
 #' @param ... filters for various sets (setname = c(val1, val2) or setname_ = "matching pattern"), see details.
 #' @param name character vector with names of parameters and/or variables.
 #' @param merge if TRUE, the search results will be merged in one dataframe; the named list will be returned if FALSE. When TRUE, a data.frame (empty if nothing matched) is always returned, never NULL.
@@ -163,17 +160,34 @@ findData <- function(scen,
 #' @param timeframe controls sub-annual time aggregation of results that carry a `timeslice` column. One of `"highest"` (default, native/finest resolution, as stored), `"lowest"` (aggregate/sum flows up to the coarsest level, normally `ANNUAL`), `"all"` (return every timeframe level stacked), or an explicit calendar level name (e.g. `"SEASON"`, `"YDAY"`) to aggregate to that level. Non-timeslice data, and state/level variables (e.g. `vStorageLevel`) for which summing over timeslices is meaningless, are returned unchanged.
 #'
 #'   The default was `"lowest"` up to v0.80 and is now `"highest"`, matching the spatial twin `geoframe`, whose default `"finest"` has always meant "as stored". Returning data at native resolution unless asked otherwise is the safer default: the old one silently summed an 8760-slice hourly series into a single annual number, which reads as a plausible value rather than as an error, and is indistinguishable from a genuine annual result. Aggregation is easy to ask for and hard to notice when it is not wanted. Code that relied on annual totals must now pass `timeframe = "lowest"` explicitly.
-#' @param process if TRUE, dimensions "tech", "stg", "trade", "imp", "expp", "dem", and "sup" will be renamed with "process".
+#' @param process `TRUE` renames the process-class id dimension ("tech", "stg",
+#'   "trade", "sup", "dem", "imp", "impp", "expp") to "process", so results from
+#'   different classes stack into one frame. A character value instead SELECTS
+#'   the named process(es) and renames -- `process = "COAL"`. Use `process_` for
+#'   a regex, e.g. `process_ = "^E"`. A character value is always a selection,
+#'   so "T"/"TRUE" are read as process names, not logicals.
 #' @param parameters if TRUE, parameters will be included in the search and returned if found.
 #' @param variables if TRUE, variables will be included in the search and returned if found.
 #' @param maps if TRUE, map-type parameters (membership mappings, no `value` column) are also returned.
 #' @param na.rm if TRUE, NA values will be dropped.
 #' @param digits if integer, indicates the number of decimal places for rounding, if NULL - no actions.
+#' @param run character, one or more runs to read (`"<solve>"` or
+#'   `"<variant>/<solve>"`), or `"all"` for every run of each scenario. The
+#'   returned rows gain a `run` column naming their source. `NULL` (default)
+#'   reads each object's ACTIVE run and adds no column, so existing calls are
+#'   unchanged. Each run is read on a COPY of the scenario, so the object you
+#'   passed keeps its active run; a variant run brings its own problem with
+#'   it, parameters included. Spanning runs of different problems warns —
+#'   their results are not like-for-like. Not to be confused with `variants`,
+#'   below, which is about technologies.
 #' @param variants logical, default `TRUE`: attach the technology-variant
 #'   provenance columns `base`, `vintage` and `cluster` (from
-#'   `scenario@modInp@sets$tech_variant`) to the returned data, so results of a
+#'   `scenario@modInp@sets$variant`) to the returned data, so results of a
 #'   vintaged / clustered technology can be grouped or rolled up by those
-#'   dimensions without parsing the variant names. Has no effect when the model
+#'   dimensions without parsing the variant names. These are TECHNOLOGY
+#'   variants — unrelated to the own-problem run variants under `runs/`, which
+#'   are selected by switching the scenario with [read_solution()].
+#'   Has no effect when the model
 #'   has no variants, so the returned shape is unchanged for such models. Set
 #'   `FALSE` to suppress the columns.
 #' @param drop.zeros logical, should rows containing zero values be filtered out.
@@ -185,12 +199,22 @@ findData <- function(scen,
 #' @param yearsAsFactors logical, should `year` be converted to factors? Set 'year' is integer by default.
 #' @param scenNameInList logical, should the name of the scenarios be used if not provided in the list with several scenarios?
 #' @param verbose logical, print progress and diagnostic messages.
+#' @param sets logical, include set-type parameters in the result (by default
+#'   only value-bearing parameters are returned).
+#' @param object the object whose data is returned, for the per-class methods
+#'   (`technology`, `commodity`, `storage`, ...).
+#' @param unfold logical, expand a stored parameter back over its full domain
+#'   before returning it.
+#' @param add_weights,add_period_length,apply_weights,apply_period_length,as_data_table
+#'   accepted and currently ignored.
+#' @param drop_duplicated_scenarios logical, when several scenarios carry the
+#'   same name, keep only the first.
 #'
 #' @aliases getData get_data
 #'
 #' @examples
 #' \dontrun{
-#' data("utopia_scen_BAU.RData")
+#' data("topia_scen_BAU.RData")
 #' getData(scen, name = "pDemand", year = 2015, merge = TRUE)
 #' getData(scen, name = "vTechOut", comm = "ELC", merge = TRUE, year = 2015)
 #' elc2050 <- getData(scen, parameters = FALSE, comm = "ELC", year = 2050)
@@ -200,7 +224,7 @@ findData <- function(scen,
 #' @method getData scenario
 #' @export
 getData.scenario <- function(
-    scen,
+    object,
     name = NULL,
     ...,
     merge = FALSE,
@@ -227,22 +251,30 @@ getData.scenario <- function(
     stringsAsFactors = FALSE,
     yearsAsFactors = FALSE,
     drop_duplicated_scenarios = TRUE,
-    scenNameInList = as.logical(length(scen) - 1),
+    scenNameInList = as.logical(length(object) - 1),
     unfold = TRUE,
     variants = TRUE,
+    run = NULL,
     verbose = FALSE) {
   # if (name == "vObjective") browser()
-  # browser()
   arg <- list(...)
   argnam <- names(arg)
   stopifnot(!any(duplicated(argnam)))
-  if (process) {
+  # `process` takes either a logical -- rename the class id column to `process`
+  # -- or process name(s), which select AND rename. A character value is always
+  # a selection, so "T"/"TRUE"/"F"/"FALSE" are read as process names, not
+  # logicals. The regex form is `process_ =`, which reaches `...` untouched.
+  process_flt <- NULL
+  if (is.character(process)) {
+    process_flt <- process
+    process <- TRUE
+  }
+  process_rx <- any(grepl("^process_$", names(arg)))
+  if (process_rx) process <- TRUE
+  if (isTRUE(process)) {
     stopifnot(length(newNames) == length(unique(newNames)))
-    newNamesDefault <- c(
-      tech = "process", stg = "process",
-      trade = "process", impp = "process",
-      imp = "process", expp = "process",
-      dem = "process", sup = "process"
+    newNamesDefault <- stats::setNames(
+      rep("process", length(.process_dims)), .process_dims
     )
     if (!is.null(newNames)) {
       ii <- names(newNamesDefault) %in% names(newNames)
@@ -251,32 +283,80 @@ getData.scenario <- function(
       newNames <- newNamesDefault
     }
   }
-  # browser()
   # Select scenarios, check and add names if not provided
-  if (!is.list(scen)) {
-    scen <- list(scen)
-    names(scen) <- scen[[1]]@name
+  if (!is.list(object)) {
+    object <- list(object)
+    names(object) <- object[[1]]@name
   } else {
-    ii <- sapply(scen, class) == "scenario"
+    ii <- sapply(object, class) == "scenario"
     if (sum(ii) == 0) {
       message("Scenario object is not found")
       return(.getdata_empty(merge, asTibble))
     }
-    scen <- scen[ii] # keep scenarios only
-    nm <- names(scen)
-    if (is.null(nm)) nm <- rep("", length(scen))
+    object <- object[ii] # keep scenarios only
+    nm <- names(object)
+    if (is.null(nm)) nm <- rep("", length(object))
     ii <- nm == ""
-    nm[ii] <- sapply(scen[ii], function(x) x@name) # work on names
-    names(scen) <- nm
+    nm[ii] <- sapply(object[ii], function(x) x@name) # work on names
+    names(object) <- nm
     ii <- duplicated(nm)
     if (any(ii)) {
       if (drop_duplicated_scenarios) {
         warning("Dropping duplicated scenarios: ", nm[ii])
-        scen <- scen[!ii]
+        object <- object[!ii]
       } else {
         if (verbose) cat("Found scenarios with identical names: ", nm[ii], "\n")
       }
     }
+  }
+
+  # Runs. `run = NULL` means each object's ACTIVE run -- today's behaviour,
+  # and no `run` column, because getData()'s output shape must not move for
+  # every existing caller. A run id positions a COPY of the scenario on that
+  # run exactly as read_solution() does, including the problem swap a variant
+  # needs: without it a variant's PARAMETERS would come from the base problem
+  # while its results came from the variant.
+  run_of <- NULL
+  if (!is.null(run) && length(run)) {
+    exp_scen <- list(); exp_run <- character(0); exp_nm <- character(0)
+    for (s in seq_along(object)) {
+      sc0 <- object[[s]]
+      nmi <- names(object)[s]
+      rids <- if (identical(as.character(run)[1], "all")) {
+        rr <- tryCatch(scenario_runs(sc0)$run, error = function(e) character(0))
+        rr[nzchar(rr)]
+      } else as.character(run)
+      if (!length(rids)) {
+        warning("Scenario '", nmi, "' has no runs to read.", call. = FALSE)
+        next
+      }
+      for (rid in rids) {
+        sc1 <- tryCatch(
+          suppressMessages(read_solution(sc0, run = rid, echo = FALSE,
+                                         ondisk = FALSE)),
+          error = function(e) {
+            stop("getData(run = ): cannot read run '", rid, "' of scenario '",
+                 nmi, "': ", conditionMessage(e), call. = FALSE)
+          })
+        exp_scen[[length(exp_scen) + 1L]] <- sc1
+        exp_run <- c(exp_run, rid); exp_nm <- c(exp_nm, nmi)
+      }
+    }
+    if (!length(exp_scen)) return(.getdata_empty(merge, asTibble))
+    # A variant is a DIFFERENT problem -- its own calendar, geoscale or
+    # horizon. Stacking such runs in one frame invites a comparison that is
+    # not like-for-like, so say so; the `run` column makes it visible, but a
+    # reader has to notice it.
+    vs <- unique(vapply(strsplit(exp_run, "/", fixed = TRUE),
+                        function(x) if (length(x) > 1L) x[1] else "",
+                        character(1)))
+    if (length(vs) > 1L) {
+      warning("getData(run = ) spans runs of different problems (",
+              paste(ifelse(nzchar(vs), vs, "<base>"), collapse = ", "),
+              "). An own-problem variant has its own modInp, so these ",
+              "results are not like-for-like.", call. = FALSE)
+    }
+    object <- exp_scen; names(object) <- exp_nm; run_of <- exp_run
   }
 
   # Identify filters
@@ -287,6 +367,12 @@ getData.scenario <- function(
     arg <- arg[!ii]
   } else {
     name_ <- NULL
+  }
+  # A `process = "<name>"` selection becomes an ordinary exact filter on the
+  # `process` column, which the per-parameter loop below creates by renaming.
+  if (!is.null(process_flt)) {
+    if ("process" %in% names(arg)) stop("Duplicated parameters process")
+    arg$process <- process_flt
   }
   ii <- grepl("_$", names(arg), ignore.case = ignore.case)
   flt_ <- arg[ii]
@@ -302,8 +388,8 @@ getData.scenario <- function(
   # Fishing for the data in scenarios
   ll <- list()
   parvar <- c(parameters = parameters, variables = variables)
-  for (s in 1:length(scen)) { # loop over scenarios
-    sc <- names(scen)[s]
+  for (s in 1:length(object)) { # loop over scenarios
+    sc <- names(object)[s]
     # Data availability: an un-interpolated scenario has no modInp parameters.
     # Solvedness is read off `@stage` OR off actual DATA rows -- `modOut`
     # pre-populates one empty `variable` per declared variable (so COUNTING
@@ -312,16 +398,16 @@ getData.scenario <- function(
     # odd status code) still exports its incumbent, and withholding it
     # silently made getData() return an empty frame while the data sat in
     # `@modOut` in plain sight. Serve it, and SAY so.
-    stage_s <- tryCatch(scen[[s]]@modOut@stage, error = function(e) "")
+    stage_s <- tryCatch(object[[s]]@modOut@stage, error = function(e) "")
     solved_s <- identical(stage_s, "solved")
     has_rows_s <- tryCatch(
-      any(vapply(scen[[s]]@modOut@variables,
+      any(vapply(object[[s]]@modOut@variables,
                  function(v) {
                    nrow(v@data) > 0 || isTRUE(v@misc$onDisk$data$dim[1] > 0)
                  }, logical(1))),
       error = function(e) FALSE)
     avail <- c(
-      parameters = tryCatch(length(scen[[s]]@modInp@parameters) > 0,
+      parameters = tryCatch(length(object[[s]]@modInp@parameters) > 0,
         error = function(e) FALSE),
       variables = solved_s || has_rows_s
     )
@@ -329,7 +415,7 @@ getData.scenario <- function(
         nzchar(stage_s)) {
       # only speak up when the query can actually touch variables: a full
       # dump, or a name matching a declared variable
-      vnames <- tryCatch(names(scen[[s]]@modOut@variables),
+      vnames <- tryCatch(names(object[[s]]@modOut@variables),
                          error = function(e) character(0))
       touches <- is.null(name) ||
         any(tolower(vnames) %in% tolower(as.character(name)))
@@ -345,19 +431,23 @@ getData.scenario <- function(
     if (verbose && !any(avail)) {
       message("Scenario '", sc, "' has no interpolated/solved data to extract.")
     }
-    # if(is.null(scen[[sc]]@modInp@parameters$pDemand@data$comm)) {scen[[sc]] <- .addComm2pDemand(scen[[sc]])}
+    # if(is.null(object[[sc]]@modInp@parameters$pDemand@data$comm)) {object[[sc]] <- .addComm2pDemand(object[[sc]])}
     for (datype in names(parvar)[parvar]) { # loop over data sources
       if (!isTRUE(avail[[datype]])) {
         if (verbose) cat("No", datype, "available in scenario '", sc, "'.\n")
         next
       }
       if (verbose) cat("Extracting data from", datype, "\n")
-      if (length(nflt1) > 0) {
-        sets_names <- paste0("^", nflt1, "$")
+      # `process` is not a dimension of any parameter or variable -- it is the
+      # class id column, renamed per frame below -- so pre-selecting on it would
+      # match nothing and silently empty the result.
+      nflt_find <- setdiff(nflt1, "process")
+      if (length(nflt_find) > 0) {
+        sets_names <- paste0("^", nflt_find, "$")
       } else {
         sets_names <- NULL
       }
-      lt <- findData(scen[[s]],
+      lt <- findData(object[[s]],
         dataType = datype, setsNames_ = sets_names,
         valueColumn = !(sets || maps),
         ignore.case = ignore.case
@@ -370,7 +460,7 @@ getData.scenario <- function(
         if (maps) keep_types <- c(keep_types, "map")
         keep_types <- unique(keep_types)
         ptype <- vapply(names(lt), function(nm) {
-          p <- scen[[s]]@modInp@parameters[[nm]]
+          p <- object[[s]]@modInp@parameters[[nm]]
           if (is.null(p) || !methods::.hasSlot(p, "type")) {
             return(NA_character_)
           }
@@ -392,21 +482,20 @@ getData.scenario <- function(
       }
       clNames <- unique(purrr::flatten_chr(lapply(lt, function(x) x$names))) # All par/var df-columns names
       # Filter for columns/sets
-      if (length(nflt1) > 0 & length(clNames) > 0) {
+      if (length(nflt_find) > 0 & length(clNames) > 0) {
         # Check if provided sets/filters exist
-        ii <- nflt1 %in% clNames
+        ii <- nflt_find %in% clNames
         if (!all(ii)) {
           warning(
-            "Sets '", paste(nflt1, collapse = "', '"),
+            "Sets '", paste(nflt_find[!ii], collapse = "', '"),
             "' have not been found in scenario '", sc, "',", datype, "'."
           )
         }
         # find all matching names of columns
         ii <- sapply(clNames, function(x) {
-          any(grepl(x, nflt1, ignore.case = ignore.case))
+          any(grepl(x, nflt_find, ignore.case = ignore.case))
         })
         clNames <- clNames[ii]
-        # browser()
         if (length(clNames) == 0) {
           warning("Inconsistent combination of filters.")
           return(.getdata_empty(merge, asTibble))
@@ -431,8 +520,7 @@ getData.scenario <- function(
       } else {
         for (pv in pvNames) { # selected pars/vars
           if (datype == "parameters") {
-            # browser()
-            dat <- get_lazy_data(scen[[s]]@modInp@parameters[[pv]],
+            dat <- get_lazy_data(object[[s]]@modInp@parameters[[pv]],
               slot = "data"
             )
             if (!is.null(dat)) {
@@ -441,25 +529,16 @@ getData.scenario <- function(
             # Unfold wildcard (NA) rows of folded parameters back to explicit
             # members at read time, using the scenario's membership maps.
             if (isTRUE(unfold) && !is.null(dat) && nrow(dat) > 0) {
-              fi <- scen[[s]]@modInp@parameters[[pv]]@misc[["fold_info"]]
+              fi <- object[[s]]@modInp@parameters[[pv]]@misc[["fold_info"]]
               if (!is.null(fi) && isTRUE(fi[["folded"]])) {
                 dat <- unfold_scenario_parameter(
-                  scen[[s]], scen[[s]]@modInp@parameters[[pv]]
+                  object[[s]], object[[s]]@modInp@parameters[[pv]]
                 )
               }
             }
-            # temporary. ToDo: rewrite filter-algo for lazy-data
-            # if (!is.null(scen[[sc]]@modInp@parameters[[pv]])) {
-            # if (!is.null(qu) {
-            # dat <- scen[[sc]]@modInp@parameters[[pv]]@data
-            # if (verbose) cat("   ", pv, "\n")
-            # } else {
-            # warning("Parameter '", pv, "' was not found.")
-            # }
           } else {
-            # dat <- scen[[sc]]@modOut@variables[[pv]]
-            # browser()
-            dat <- get_lazy_data(scen[[s]]@modOut@variables[[pv]],
+            # dat <- object[[sc]]@modOut@variables[[pv]]
+            dat <- get_lazy_data(object[[s]]@modOut@variables[[pv]],
               slot = "data"
             )
             if (!is.null(dat)) {
@@ -470,9 +549,23 @@ getData.scenario <- function(
           dim1 <- dim(dat)[1]
           if (is.null(dim1)) dim1 <- 0
           kk <- rep(TRUE, dim1)
-          # browser()
+          # A `process` filter -- and `process = TRUE` -- needs the class id
+          # column to BE `process` while filtering; the generic rename at the end
+          # of the scenario loop runs too late. At most one process-class column
+          # can occur in one frame, which is what makes the union unambiguous.
+          if (isTRUE(process) && !is.null(dat)) {
+            pc <- intersect(names(dat), .process_dims)
+            if (length(pc) == 1L) {
+              names(dat)[names(dat) == pc] <- "process"
+            }
+            if ((!is.null(process_flt) || process_rx) &&
+                !("process" %in% names(dat))) {
+              # a selection cannot be honoured on a frame with no process
+              # dimension: drop it rather than return it unfiltered
+              kk <- rep(FALSE, dim1)
+            }
+          }
           if (length(nflt1) > 0) { # the data should be filtered
-            # browser()
             if (dim1 > 0) { # data exists
               prcl <- names(dat)
               prcl <- prcl[prcl %in% nflt1]
@@ -503,16 +596,30 @@ getData.scenario <- function(
               filter(kk)
             if (!is.null(dkk) && nrow(dkk) > 0) {
               nkk <- sum(kk)
-              dat <- dplyr::bind_cols(
-                data.frame(
-                  scenario = rep(sc, nkk),
-                  name = rep(pv, nkk)
-                ),
-                dkk
+              tagcols <- data.frame(
+                scenario = rep(sc, nkk),
+                name = rep(pv, nkk)
               )
+              # `run`, not `variant`: `variant` already means a technology's
+              # vintage/cluster provenance here (modInp@sets$variant, the
+              # `variants =` argument, levcost), while `run` is free -- it is
+              # not a model dimension.
+              if (!is.null(run_of)) {
+                tagcols$run <- rep(run_of[s], nkk)
+              }
+              dat <- dplyr::bind_cols(tagcols, dkk)
               le <- length(ll) + 1
               nm_ll <- names(ll)
-              if (scenNameInList) nm_le <- paste(sc, pv, sep = ".") else nm_le <- pv
+              nm_le <- if (!is.null(run_of)) {
+                # several runs of one scenario share its name, so the run has
+                # to be in the element name or merge = FALSE returns a list
+                # whose names do not identify its elements
+                paste(sc, run_of[s], pv, sep = ".")
+              } else if (scenNameInList) {
+                paste(sc, pv, sep = ".")
+              } else {
+                pv
+              }
               ll[[le]] <- dat
               names(ll) <- c(nm_ll, nm_le)
             }
@@ -522,18 +629,7 @@ getData.scenario <- function(
     }
   }
 
-  ## Temporary solution for non-mileStone period data in parameters
-  # msy <- scen[[1]]@model@config@horizon@intervals$mid
-  # if (length(ll) > 0) {
-  #   for (i in 1:length(ll)) {
-  #     if (!is.null(ll[[i]]$year)) {
-  #       ii <- ll[[i]]$year %in% msy # temporary solution
-  #       if (!all(ii)) ll[[i]] <- ll[[i]][ii,] # temporary solution
-  #     }
-  #   }
-  # }
 
-  # browser()
   force_format <- function(x) {
     # converts sets-columns to strings, year to integer
     cnames <- colnames(x)
@@ -589,7 +685,7 @@ getData.scenario <- function(
   # `modInp@sets$tech_variant` so results can be analysed (or rolled up) by
   # vintage and cluster without ever parsing the mangled variant names.
   if (isTRUE(variants) && length(ll) > 0) {
-    tv <- tryCatch(scen[[1]]@modInp@sets$variant, error = function(e) NULL)
+    tv <- tryCatch(object[[1]]@modInp@sets$variant, error = function(e) NULL)
     if (is.null(tv) || NROW(tv) == 0) {
       if (verbose) message("No technology variants in this scenario.")
     } else {
@@ -599,7 +695,7 @@ getData.scenario <- function(
 
   # Sub-annual time aggregation (timeslice roll-up), see `timeframe` argument.
   if (length(ll) > 0) {
-    cal <- tryCatch(scen[[1]]@settings@calendar, error = function(e) NULL)
+    cal <- tryCatch(object[[1]]@settings@calendar, error = function(e) NULL)
     if (!is.null(cal)) ll <- .apply_timeframe(ll, cal, timeframe)
   }
 
@@ -607,7 +703,7 @@ getData.scenario <- function(
   # `geoframe = "finest"` (the default) leaves results at native resolution --
   # so this changes nothing unless asked for.
   if (length(ll) > 0 && !identical(tolower(as.character(geoframe)[1]), "finest")) {
-    hier <- tryCatch(.scen_geo_hierarchy(scen[[1]]), error = function(e) NULL)
+    hier <- tryCatch(.scen_geo_hierarchy(object[[1]]), error = function(e) NULL)
     if (!is.null(hier)) ll <- .apply_geoframe(ll, hier, geoframe)
   }
 
@@ -646,7 +742,7 @@ getData.scenario <- function(
       }
       if (!is.null(dat$year)) {
         if (yearsAsFactors) {
-          dat$year <- .crs2fct(dat$year)
+          dat$year <- .crs2fct(dat$year, labels = .year_label_safe(object))
         } else {
           dat$year <- .crs2int(dat$year)
         }
@@ -665,7 +761,8 @@ getData.scenario <- function(
         if (!is.null(ll[[i]]$year)) {
           if (yearsAsFactors) {
             if (!is(ll[[i]]$year, "factor")) {
-              ll[[i]]$year <- .crs2fct(ll[[i]]$year)
+              ll[[i]]$year <- .crs2fct(ll[[i]]$year,
+                                       labels = .year_label_safe(object))
             }
           } else {
             ll[[i]]$year <- .crs2int(ll[[i]]$year)
@@ -706,9 +803,9 @@ getData.list <- getData.scenario
 #' @rdname getData
 #' @method getData character
 #' @export
-getData.character <- function(scen, ...) {
-  scens <- lapply(scen, getScenario)
-  names(scens) <- scen
+getData.character <- function(object, ...) {
+  scens <- lapply(object, getScenario)
+  names(scens) <- object
   getData.scenario(scens, ...)
 }
 
@@ -717,25 +814,21 @@ getData.character <- function(scen, ...) {
 #' @rdname getData
 #' @method getData environment
 #' @export
-getData.environment <- function(scen, ...) {
-  getData.scenario(as.list(scen), ...)
+getData.environment <- function(object, ...) {
+  getData.scenario(as.list(object), ...)
 }
 
 #' @rdname getData
 #' @method getData default
 #' @export
-getData.default <- function(scen, ...) {
+getData.default <- function(object, ...) {
   stop(
-    "getData() has no method for class '", paste(class(scen), collapse = "/"),
+    "getData() has no method for class '", paste(class(object), collapse = "/"),
     "'. Supported: scenario (or list of scenarios), model, repository, and ",
     "model objects (technology, commodity, storage, supply, demand, trade).",
     call. = FALSE
   )
 }
-
-#' @rdname getData
-#' @export
-get_data <- getData
 
 # ---- getData helpers: empty result + timeframe (timeslice) aggregation ----------
 
@@ -795,8 +888,7 @@ get_data <- getData
 .attach_variants <- function(x, tv) {
   # Native id column first, `process` last: getData(process = TRUE) renames
   # them all to `process`, so the specific names must win when present.
-  col <- intersect(c("tech", "stg", "trade", "sup", "expp", "imp",
-                     "process"), names(x))
+  col <- intersect(c(.process_dims, "process"), names(x))
   if (length(col) == 0L) return(x)
   col <- col[1]
   if (any(c("base", "vintage", "cluster") %in% names(x))) return(x)
@@ -829,9 +921,26 @@ get_data <- getData
   if (all(same)) {
     return(df) # nothing to roll up
   }
-  df$timeslice <- tgt
+  # Timeframe contract: rolled-up values carry the child/target weight ratio
+  # (1 within sub-annual levels and on full calendars; 1/year_fraction when
+  # the target is the top slice of a sampled calendar), matching the LP's own
+  # coarse-level totals (pTimesliceAgg in eqOutTot/eqInpTot). Rows ALREADY at
+  # the target level are the LP's own aggregated cells; they take precedence
+  # and their children are not rolled on top (which would double-count).
+  w <- stats::setNames(as.numeric(calendar@timeslice_share$weight),
+                       as.character(calendar@timeslice_share$timeslice))
+  ratio <- w[as.character(df$timeslice)] / w[tgt]
+  ratio[!is.finite(ratio)] <- 1
   grp <- setdiff(names(df), "value")
-  out <- df |>
+  at_tgt <- df[same, , drop = FALSE]
+  ch <- df[!same, , drop = FALSE]
+  ch$value <- ch$value * ratio[!same]
+  ch$timeslice <- tgt[!same]
+  if (nrow(at_tgt) > 0 && nrow(ch) > 0) {
+    key <- function(x) do.call(paste, c(x[, grp, drop = FALSE], sep = "\r"))
+    ch <- ch[!(key(ch) %in% key(at_tgt)), , drop = FALSE]
+  }
+  out <- rbind(at_tgt, ch) |>
     dplyr::group_by(dplyr::across(dplyr::all_of(grp))) |>
     dplyr::summarise(value = sum(value), .groups = "drop")
   as.data.frame(out)
@@ -985,13 +1094,16 @@ get_data <- getData
   lapply(ll, function(df) .aggregate_timeframe_df(df, calendar, target_rank))
 }
 
-if (F) { # test
-  load("energyRt_tutorial/data/utopia_scen_BAU.RData")
-  (dem <- getData(scen, name = "pDemand", year = 2015, merge = TRUE))
-  (vTechOut <- getData(scen, name = "vTechOut", comm = "ELC", merge = TRUE, year = 2015))
-  # Storage capacity
-  getData(scen, name = "vStorageOutCap", merge = TRUE)
-}
+
+# The id column each of the seven process classes contributes. `process` is the
+# union of exactly these classes (`sets$process`, R/interpolation.R), so at most
+# one of these columns occurs in any one frame -- which is what lets them all
+# rename to `process`. `impp` is the alias spelling of `imp`.
+#
+# This is MEMBERSHIP. Do not fold purpose-built subsets into it: e.g.
+# `.cl_groupable` (R/process-groups.R) omits `demand` because demand is not
+# clusterable, which is correct for that job and wrong here.
+.process_dims <- c("tech", "stg", "trade", "sup", "dem", "imp", "impp", "expp")
 
 .crs2int <- function(x) {
   # coerce to integer from factor or character
@@ -1000,17 +1112,50 @@ if (F) { # test
   x
 }
 
-.crs2fct <- function(x, levels = NULL, ordered = TRUE) {
-  # coerce to integer from factor or character
-  if (is(x, "character")) {
-    if (!is.null(levels)) {
-      x <- factor(x, levels = levels)
-    } else {
-      x <- as.factor(x)
-    }
-    if (ordered) x <- as.ordered(x)
+.crs2fct <- function(x, levels = NULL, ordered = TRUE, labels = NULL) {
+  if (!is.null(labels) && length(labels)) {
+    key <- as.character(x)
+    out <- unname(labels[key])
+    miss <- is.na(out)
+    if (any(miss)) out[miss] <- key[miss]
+    lv <- unique(c(unname(labels), out[miss]))
+    x <- factor(out, levels = lv)
+    return(if (ordered) as.ordered(x) else x)
   }
+  if (is(x, "factor")) return(x)
+  if (!is.character(x)) x <- as.character(x)
+  if (!is.null(levels)) {
+    x <- factor(x, levels = levels)
+  } else {
+    x <- as.factor(x)
+  }
+  if (ordered) x <- as.ordered(x)
   x
+}
+
+# Replacement for `plyr::revalue()`. `plyr` is retired and was kept in Imports
+# by these two call sites alone, while dplyr -- already imported -- covers
+# everything else. Same contract: character or factor in, same type out; the
+# NAMES of `replace` are the old values; anything absent is left untouched
+# (plyr's `warn_missing = FALSE`). Verified identical to plyr::revalue over
+# character/factor, no-match, repeated-value, level-merging, NA and empty cases.
+#' @noRd
+.revalue <- function(x, replace) {
+  if (is.null(replace) || length(replace) == 0L) return(x)
+  repl <- as.character(replace)
+  if (is.factor(x)) {
+    lv <- levels(x)
+    i <- match(names(replace), lv)
+    ok <- !is.na(i)
+    lv[i[ok]] <- repl[ok]
+    levels(x) <- lv
+    x
+  } else {
+    i <- match(x, names(replace))
+    ok <- !is.na(i)
+    x[ok] <- repl[i[ok]]
+    x
+  }
 }
 
 #' Rename data.frame columns of list of data.frames.
@@ -1039,7 +1184,7 @@ renameSets <- function(x, newNames = NULL) {
     if (is.null(nms)) {
       y
     } else {
-      nms <- plyr::revalue(nms, newNames, warn_missing = FALSE)
+      nms <- .revalue(nms, newNames)
       names(y) <- nms
       y
     }
@@ -1075,34 +1220,13 @@ revalueSets <- function(x, newValues = NULL) {
   stopifnot(any(class(x) == "data.frame"))
   nnms <- names(newValues)
   xnms <- names(x)
-  # browser()
   jj <- xnms %in% nnms
   for (j in xnms[jj]) {
-    x[[j]] <- plyr::revalue(x[[j]], newValues[[j]], warn_missing = FALSE)
+    x[[j]] <- .revalue(x[[j]], newValues[[j]])
   }
   x
 }
 
-if (F) { # Check
-  library(tidyverse)
-  # renameSets
-  x <- tibble(a = letters, n = as.character(1:length(letters)))
-  x
-  renameSets(x, c(a = "A", n = "N"))
-
-  d <- as.data.frame(x)
-  renameSets(d, c(a = "A", n = "N"))
-
-  # revalueSets
-  nw1 <- LETTERS[1:10]
-  names(nw1) <- letters[1:10]
-  nw2 <- formatC(1:9, width = 3, flag = "0")
-  names(nw2) <- 1:9
-  newValues <- list(a = nw1, n = nw2)
-  newValues
-  revalueSets(x, newValues)
-  revalueSets(d, newValues)
-}
 
 .getNames <- function(
     obj, cls, regex = NULL, ignore.case = FALSE,
@@ -1424,14 +1548,569 @@ getNames <- function(obj, class = c(), regex = NULL, ...) {
   names(.getNames(obj, cls = class, regex = regex, ...))
 }
 
-getNames_ <- function(obj, class = c(), ...) {
-  names(.getNames(obj, cls = class, regex = TRUE, ...))
-}
-
 getObjects <- function(obj, class = c(), regex = NULL, ...) {
   .getNames(obj, cls = class, regex = regex, ...)
 }
 
-getObjects_ <- function(obj, class = c(), ...) {
-  .getNames(obj, cls = class, regex = TRUE, ...)
+
+# ---------------------------------------------------------------------------
+# (was R/get_object.R, merged 2026-09-20)
+# ---------------------------------------------------------------------------
+
+# get_object.R -- retrieve model *objects* (commodities, technologies, ...) from
+# a repository / model / scenario, filtered by class, name, description and
+# region. The object-level counterpart of getData() (which returns their data).
+# Reuses the internal getObjects()/.getNames() engine (class/name/slot filters,
+# R/get_data.R) and adds a class-agnostic region filter via get_region().
+
+#' Retrieve model objects from a repository, model or scenario
+#'
+#' `getObject()` returns the model building-block objects held in a container --
+#' commodities, technologies, supplies, storages, and so on -- selected by
+#' **class**, **name**, **description**, **region** and/or any object **slot**.
+#' It is the object-level counterpart of [getData()], which returns those
+#' objects' parameter data.
+#'
+#' Class, name, description and any other slot are matched by the same engine
+#' that powers the internal object accessors; the **region** filter is applied
+#' with [get_region()], which reads regions uniformly from `@region` slots and
+#' from the `region`/`src`/`dst` columns of data.frame slots, so it works for
+#' every class (including `import`/`export`/`trade`, which store region
+#' structurally). A scenario is unwrapped to its model automatically.
+#'
+#' @param x a `repository`, `model` or `scenario`.
+#' @param class character vector of object classes to keep (e.g. `"technology"`,
+#'   `c("supply", "import")`); `NULL` (default) keeps all classes.
+#' @param name character, object name(s) to match against `@name`.
+#' @param desc character, description pattern(s) to match against `@desc`.
+#' @param region character, keep objects belonging to any of these regions.
+#'   Region-agnostic objects (e.g. commodities, which carry no region) are kept
+#'   for every region unless `region_agnostic = FALSE`.
+#' @param ... additional per-slot filters forwarded to the matching engine, e.g.
+#'   `timeframe = "HOUR"`. Character filters are exact by default; a data.frame
+#'   slot is filtered by named columns. Filtering by a slot implicitly restricts
+#'   results to classes that have it.
+#' @param regex logical; treat `name`, `desc` and character `...` filters as
+#'   regular expressions instead of exact matches (default `FALSE`).
+#' @param ignore.case logical; case-insensitive matching for `regex = TRUE`
+#'   (default `TRUE`).
+#' @param region_agnostic logical; whether objects with no region information
+#'   satisfy a `region` filter (default `TRUE`).
+#' @param drop logical; if `TRUE` and exactly one object matches, return that
+#'   object itself instead of a one-element list (default `FALSE`).
+#' @param verbose logical; report progress (the `en_registry` method).
+#'
+#' @return A named list of model objects keyed by `@name` (empty list if none
+#'   match); or a single object when `drop = TRUE` and exactly one matches.
+#' @seealso [getData()], [get_region()], [find_in_model()]
+#' @examples
+#' \dontrun{
+#' repo <- topia$modules$electricity$R3$repo
+#' getObject(repo, class = "technology")                 # all technologies
+#' getObject(repo, class = c("supply", "commodity"))     # two classes
+#' getObject(repo, region = "R1")                         # everything in R1
+#' getObject(repo, name = "ECOA", drop = TRUE)            # the ECOA object
+#' getObject(repo, desc = "coal", regex = TRUE)           # by description
+#' getObject(repo, class = "technology", timeframe = "HOUR")  # slot filter
+#' }
+#' @export
+getObject <- function(x, ...) UseMethod("getObject")
+
+#' @rdname getObject
+#' @export
+getObject.default <- function(x, ...) {
+  stop("getObject() is defined for 'repository', 'model' and 'scenario' ",
+       "objects; got '", class(x)[1], "'.", call. = FALSE)
 }
+
+.getObject_container <- function(x, class = NULL, name = NULL, desc = NULL,
+                                 region = NULL, ..., regex = FALSE,
+                                 ignore.case = TRUE, region_agnostic = TRUE,
+                                 drop = FALSE) {
+  flt <- list(...)
+  if (!is.null(name)) flt[["name"]] <- as.character(name)
+  if (!is.null(desc)) flt[["desc"]] <- as.character(desc)
+  rgx <- if (isTRUE(regex)) TRUE else NULL
+
+  pull <- function(cl) do.call(getObjects, c(
+    list(obj = x, class = cl, regex = rgx, ignore.case = ignore.case), flt))
+
+  # getObjects()/.getNames() matches a single class at a time; loop for many.
+  if (is.null(class) || length(class) == 0L) {
+    objs <- pull(c())
+  } else {
+    objs <- list()
+    for (cl in class) objs <- c(objs, pull(cl))
+  }
+
+  # class-agnostic region filter via get_region()
+  if (!is.null(region) && length(objs)) {
+    region <- as.character(region)
+    keep <- vapply(objs, function(o) {
+      r <- get_region(o)
+      if (length(r) == 0L) isTRUE(region_agnostic) else
+        length(intersect(region, r)) > 0L
+    }, logical(1))
+    objs <- objs[keep]
+  }
+
+  if (isTRUE(drop) && length(objs) == 1L) return(objs[[1L]])
+  objs
+}
+
+#' @rdname getObject
+#' @export
+getObject.repository <- .getObject_container
+
+#' @rdname getObject
+#' @export
+getObject.model <- .getObject_container
+
+#' @rdname getObject
+#' @export
+getObject.scenario <- .getObject_container
+
+# -- registry ------------------------------------------------------------------
+# A registry indexes SAVED objects, so getObject() on one loads what the rows
+# point at. Names are unique only within a type (a model and a scenario may
+# both be "TOPIA", and run labels repeat across scenarios), so the returned
+# list is keyed `type/name` rather than by bare name -- otherwise same-named
+# objects of different types would overwrite each other.
+
+#' @rdname getObject
+#' @param type character, registry row type(s) to load: "model", "repository",
+#'   "scenario", "dataset". `NULL` (default) loads every loadable type.
+#' @param hash character, content hash (prefix) selecting a stored version.
+#' @param parent,variant character, extra registry filters (run bookkeeping).
+#' @param run which run to activate in loaded scenarios: `"main"` (default)
+#'   keeps the scenario's own run, a character selects that run, and `NULL`,
+#'   `NA` or `"ALL"` returns one entry per recorded run, keyed
+#'   `scenario/<name>:<variant>/<label>`.
+#' @export
+getObject.en_registry <- function(x, type = NULL, name = NULL, hash = NULL,
+                                  parent = NULL, variant = NULL,
+                                  run = "main", drop = FALSE,
+                                  verbose = FALSE, ...) {
+  rows <- find_in_registry(x, type = type, name = name, hash = hash,
+                           parent = parent, variant = variant)
+  # run rows are bookkeeping inside a scenario, not standalone objects; they
+  # are reachable through `run =` below, or scenario_runs()
+  rows <- rows[rows$type != "run", , drop = FALSE]
+  if (!nrow(rows)) {
+    if (isTRUE(drop)) {
+      stop("No registry entry matches; nothing to return with drop = TRUE.",
+           call. = FALSE)
+    }
+    return(list())
+  }
+
+  all_runs <- .run_is_all(run)
+  out <- list()
+  for (i in seq_len(nrow(rows))) {
+    r <- rows[i, , drop = FALSE]
+    obj <- .registry_row_object(r, verbose = verbose)
+    key <- paste0(r$type, "/", r$name)
+    if (identical(r$type, "scenario") && !identical(run, "main")) {
+      if (all_runs) {
+        rr <- tryCatch(scenario_runs(obj), error = function(e) NULL)
+        if (is.null(rr) || !nrow(rr)) { out[[key]] <- obj; next }
+        for (j in seq_len(nrow(rr))) {
+          sc <- tryCatch(read_solution(obj, run = rr$run[j], echo = FALSE),
+                         error = function(e) NULL)
+          if (is.null(sc)) next
+          out[[paste0(key, ":", rr$run[j])]] <- sc
+        }
+        next
+      }
+      obj <- read_solution(obj, run = run, echo = FALSE)
+      key <- paste0(key, ":", run)
+    }
+    out[[key]] <- obj
+  }
+
+  if (isTRUE(drop)) {
+    if (length(out) != 1L) {
+      stop("drop = TRUE needs exactly one match; got ", length(out),
+           if (length(out)) paste0(": ", paste(names(out), collapse = ", "))
+           else "", ".\n  Narrow with type=/name=/hash=, or use drop = FALSE.",
+           call. = FALSE)
+    }
+    return(out[[1]])
+  }
+  out
+}
+
+
+# ---------------------------------------------------------------------------
+# (was R/get_data_objects.R, merged 2026-09-21)
+# ---------------------------------------------------------------------------
+
+# =============================================================================#
+# get_data_objects.R -- getData() methods for model *objects* (raw input data).
+#
+# getData(scenario) returns processed/solved data with a uniform (name, dims,
+# value) schema (see get_data.R). The methods here return the RAW input stored
+# in a model object's data.frame slots (pre-interpolation): technology,
+# commodity, storage, supply, demand, trade, ... and, via containers, model and
+# repository. With `interpolate = TRUE` the year-bearing slots are expanded over
+# the target milestone years using each parameter's own default interpolation
+# rule -- handy for quick plots that demonstrate what interpolation will do.
+# =============================================================================#
+
+# Object class -> its canonical set-dimension name (column that carries the
+# object's name in the tidy output). Falls back to the class name itself.
+.class_set_dim <- c(
+  technology = "tech", commodity = "comm", storage = "stg",
+  supply = "sup", demand = "dem", trade = "trade",
+  import = "imp", export = "expp", weather = "weather",
+  # both policy classes share one label space
+  tax = "levy", subsidy = "levy"
+)
+
+# Known set (index) dimensions -- everything else numeric is a "value" column.
+.known_set_dims <- c(
+  "region", "regionp", "year", "yearp", "timeslice", "timeslicep", "comm", "commp",
+  "acomm", "group", "tech", "techp", "stg", "sup", "dem", "trade", "expp",
+  "imp", "impp", "weather", "src", "dst", "process", "levy"
+)
+
+# Reverse map (memoised): "class\rslot\rcolName" -> list(rule, defVal, param).
+# Built from the baked-in `.modInp` registry, which is the PLAIN YAML LIST from
+# data-raw/modInp.yml (not a modInp S4 object -- reading `@parameters` here
+# used to error into the tryCatch and leave the map empty, so every object
+# interpolation silently fell back to "back.inter.forth"/NA). Each parameter
+# entry carries `class`, `slot`, `colName`, `interpolation` and `defVal`;
+# bounds parameters carry per-bound vectors and expand to the
+# `<colName>.lo/.up/.fx` slot columns (the `.pack_bounds_long()` naming).
+.param_interp_map_cache <- new.env(parent = emptyenv())
+
+.param_interp_map <- function() {
+  if (!is.null(.param_interp_map_cache$map)) {
+    return(.param_interp_map_cache$map)
+  }
+  mp <- new.env(parent = emptyenv())
+  add <- function(cls, slt, col, rule, dv, param, dims = character(0)) {
+    assign(paste(cls, slt, col, sep = "\r"),
+           list(rule = rule, defVal = dv, param = param, dims = dims),
+           envir = mp)
+  }
+  entries <- tryCatch(.modInp, error = function(e) NULL)
+  if (is.list(entries)) {
+    for (p in entries) {
+      if (!is.list(p)) next
+      cls <- p$class
+      slt <- p$slot
+      cn <- p$colName
+      if (is.null(cls) || is.null(slt) || is.null(cn)) next
+      # `pDemand` is catalogued with colName "dem" while the column of
+      # `demand@demand` is "demand". The catalogue name is the key of the
+      # `config@defVal` / `@interpolation` override columns, so it cannot be
+      # renamed without breaking that table; map it here instead.
+      if (identical(cls, "demand") && identical(cn, "dem")) cn <- "demand"
+      # The parameter's own dimensions -- the source of truth for which of
+      # the slot's columns are keys of THIS column. A slot-level key set is
+      # wrong: within `technology@aeff`, `act2ainp` is keyed
+      # [tech, acomm, region, year, timeslice] while `cinp2ainp` adds `comm`.
+      .dims <- as.character(unlist(p$dimSets))
+      rule <- p$interpolation
+      dv <- suppressWarnings(as.numeric(unlist(p$defVal)))
+      if (identical(p$type, "bounds") || length(dv) >= 2) {
+        r1 <- if (length(rule) >= 1) rule[[1]] else "back.inter.forth"
+        r2 <- if (length(rule) >= 2) rule[[2]] else r1
+        add(cls, slt, paste0(cn, ".lo"), r1, dv[1], p$name, .dims)
+        add(cls, slt, paste0(cn, ".up"), r2,
+            if (length(dv) >= 2) dv[2] else NA_real_, p$name, .dims)
+        add(cls, slt, paste0(cn, ".fx"), r1, NA_real_, p$name, .dims)
+      } else {
+        add(cls, slt, cn, if (is.list(rule)) rule[[1]] else rule,
+            if (length(dv) >= 1) dv[1] else NA_real_, p$name, .dims)
+      }
+    }
+  }
+  out <- as.list(mp)
+  .param_interp_map_cache$map <- out
+  out
+}
+
+# All mapped value columns of one (class, slot): named list col -> entry.
+# Used by autoplot(show_defaults = TRUE) to know which parameters CAN exist
+# in a slot and what their defaults are.
+.slot_param_cols <- function(cls, slot_name) {
+  mp <- .param_interp_map()
+  if (length(mp) == 0) return(list())
+  keys <- strsplit(names(mp), "\r", fixed = TRUE)
+  hit <- vapply(keys, function(k)
+    length(k) == 3 && k[1] == cls && k[2] == slot_name, logical(1))
+  out <- mp[hit]
+  names(out) <- vapply(keys[hit], `[[`, "", 3L)
+  out
+}
+
+# Apply the default (per-parameter) interpolation rule to every year-bearing
+# value column of one slot data.frame, over `years` (target milestones). Value
+# columns without a mapped rule fall back to "back.inter.forth"/default.
+.interp_object_slot <- function(cls, slot_name, d, years, dim_nm) {
+  if (!("year" %in% names(d)) || nrow(d) == 0) {
+    return(d)
+  }
+  val_cols <- names(d)[vapply(d, is.numeric, logical(1))]
+  val_cols <- setdiff(val_cols, .known_set_dims) # drops year + set dims
+  # only interpolate GIVEN data -- an all-NA column would otherwise be
+  # materialised at its registry default (that is show_defaults' job)
+  val_cols <- val_cols[vapply(val_cols, function(vc) any(!is.na(d[[vc]])),
+                              logical(1))]
+  if (length(val_cols) == 0) {
+    return(d)
+  }
+  yrs <- years
+  if (is.null(yrs)) {
+    yy <- suppressWarnings(as.integer(d$year))
+    yy <- yy[!is.na(yy)]
+    if (length(yy) == 0) {
+      return(d)
+    }
+    yrs <- if (length(unique(yy)) > 1) seq(min(yy), max(yy)) else unique(yy)
+  }
+  mp <- .param_interp_map()
+  set_cols <- setdiff(intersect(names(d), .known_set_dims), "year")
+  res <- NULL
+  for (vc in val_cols) {
+    info <- mp[[paste(cls, slot_name, vc, sep = "\r")]]
+    rule <- .interp_rule_token(if (!is.null(info)) info$rule else "back.inter.forth")
+    dv <- if (!is.null(info)) info$defVal[1] else NA_real_
+    raw <- d[, c(set_cols, "year", vc), drop = FALSE]
+    names(raw)[names(raw) == vc] <- "value"
+    raw$year <- suppressWarnings(as.integer(raw$year))
+    ser <- tryCatch(
+      .interp_one_series(raw, set_cols, yrs, rule, dv),
+      error = function(e) NULL
+    )
+    if (is.null(ser) || nrow(ser) == 0) next
+    names(ser)[names(ser) == "value"] <- vc
+    res <- if (is.null(res)) {
+      ser
+    } else {
+      suppressMessages(dplyr::full_join(res, ser))
+    }
+  }
+  if (is.null(res)) {
+    return(d)
+  }
+  if (!is.na(dim_nm) && dim_nm %in% names(d) && !(dim_nm %in% names(res))) {
+    res[[dim_nm]] <- unique(d[[dim_nm]])[1]
+  }
+  as.data.frame(res)
+}
+
+# Filter a slot data.frame by `...` selectors: `col = values` (exact) and
+# `col_ = pattern` (regex). Unknown columns are ignored. A NULL / empty
+# selector means "no filter" -- it must never match nothing (a `year = NULL`
+# passed through `...` used to drop EVERY row, which made all the object
+# autoplots report "No year-indexed data").
+.filter_object_df <- function(d, flt, ignore.case = TRUE) {
+  if (length(flt) > 0) {
+    flt <- flt[!vapply(flt, function(x) is.null(x) || length(x) == 0,
+                       logical(1))]
+  }
+  if (length(flt) == 0 || nrow(d) == 0) {
+    return(d)
+  }
+  keep <- rep(TRUE, nrow(d))
+  for (k in names(flt)) {
+    rgx <- grepl("_$", k)
+    col <- sub("_$", "", k)
+    if (!(col %in% names(d))) next
+    if (rgx) {
+      keep <- keep & grepl(flt[[k]], as.character(d[[col]]), ignore.case = ignore.case)
+    } else {
+      keep <- keep & (as.character(d[[col]]) %in% as.character(flt[[k]]))
+    }
+  }
+  d[keep, , drop = FALSE]
+}
+
+# Pivot one slot data.frame to long tidy form: (set cols..., param, slot, value).
+# Value columns that are entirely NA (unfilled sub-parameters) and NA-value rows
+# are dropped so a merged/plotting frame carries only real data.
+.slot_to_long <- function(d, slot_name) {
+  set_cols <- intersect(names(d), c(.known_set_dims, "class"))
+  val_cols <- setdiff(names(d)[vapply(d, is.numeric, logical(1))], .known_set_dims)
+  val_cols <- val_cols[vapply(val_cols, function(vc) any(!is.na(d[[vc]])), logical(1))]
+  if (length(val_cols) == 0) {
+    return(NULL)
+  }
+  parts <- lapply(val_cols, function(vc) {
+    x <- d[, c(set_cols, vc), drop = FALSE]
+    names(x)[names(x) == vc] <- "value"
+    x <- x[!is.na(x$value), , drop = FALSE]
+    if (nrow(x) == 0) {
+      return(NULL)
+    }
+    x$param <- vc
+    x$slot <- slot_name
+    x
+  })
+  dplyr::bind_rows(parts)
+}
+
+# Core object extractor shared by all brick methods.
+.getData_object <- function(obj, name = NULL, ..., merge = FALSE,
+                            interpolate = FALSE, years = NULL, process = FALSE,
+                            asTibble = TRUE, ignore.case = TRUE, verbose = FALSE) {
+  cls <- class(obj)[1]
+  dim_nm <- unname(.class_set_dim[cls])
+  if (is.na(dim_nm)) dim_nm <- cls
+  obj_name <- tryCatch(obj@name, error = function(e) NA_character_)
+
+  sl_types <- methods::getSlots(cls)
+  df_slots <- names(sl_types)[sl_types == "data.frame"]
+  if (!is.null(name)) df_slots <- df_slots[df_slots %in% name]
+  flt <- list(...)
+  # Same contract as the scenario method: a character `process` selects and
+  # renames; TRUE only renames. Translated onto the object's own id column,
+  # since that is what `.filter_object_df()` sees.
+  if (is.character(process)) {
+    if (!is.na(dim_nm)) flt[[dim_nm]] <- process
+    process <- TRUE
+  }
+  if (!is.null(flt$process) && !is.na(dim_nm)) {
+    flt[[dim_nm]] <- flt$process
+    flt$process <- NULL
+    process <- TRUE
+  }
+  if (!is.null(flt$process_) && !is.na(dim_nm)) {
+    flt[[paste0(dim_nm, "_")]] <- flt$process_
+    flt$process_ <- NULL
+    process <- TRUE
+  }
+
+  out <- list()
+  for (s in df_slots) {
+    d <- tryCatch(as.data.frame(methods::slot(obj, s)), error = function(e) NULL)
+    if (is.null(d)) next
+    if (nrow(d) == 0 && !interpolate) next
+    if (nrow(d) > 0 && !is.na(obj_name) && nzchar(obj_name) &&
+        !(dim_nm %in% names(d))) {
+      d[[dim_nm]] <- obj_name    # 0-row assignment would error (length 1 vs 0)
+    }
+    if (isTRUE(interpolate)) d <- .interp_object_slot(cls, s, d, years, dim_nm)
+    d <- .filter_object_df(d, flt, ignore.case)
+    if (is.null(d) || nrow(d) == 0) next
+    d$class <- cls
+    out[[s]] <- d
+  }
+
+  if (isTRUE(process) && !is.na(dim_nm)) {
+    out <- lapply(out, function(d) {
+      if (dim_nm %in% names(d)) names(d)[names(d) == dim_nm] <- "process"
+      d
+    })
+  }
+
+  if (!merge) {
+    if (isTRUE(asTibble)) out <- lapply(out, tibble::as_tibble)
+    return(out)
+  }
+  if (length(out) == 0) {
+    return(if (asTibble) tibble::tibble() else data.frame())
+  }
+  long <- dplyr::bind_rows(lapply(names(out), function(s) .slot_to_long(out[[s]], s)))
+  if (isTRUE(asTibble)) long <- tibble::as_tibble(long)
+  long
+}
+
+# Container extractor: stack the requested slot(s) across all contained objects.
+.getData_container <- function(obj, name = NULL, ..., merge = FALSE,
+                               interpolate = FALSE, years = NULL, process = FALSE,
+                               asTibble = TRUE, ignore.case = TRUE, verbose = FALSE) {
+  objs <- tryCatch(getObjects(obj, class = c()), error = function(e) list())
+  objs <- objs[!vapply(objs, is.null, logical(1))]
+  if (length(objs) == 0) {
+    return(if (merge) {
+      if (asTibble) tibble::tibble() else data.frame()
+    } else {
+      list()
+    })
+  }
+  res <- lapply(objs, function(o) {
+    tryCatch(
+      .getData_object(o,
+        name = name, ..., merge = merge, interpolate = interpolate,
+        years = years, process = process, asTibble = asTibble,
+        ignore.case = ignore.case, verbose = verbose
+      ),
+      error = function(e) if (merge) NULL else list()
+    )
+  })
+  if (merge) {
+    res <- res[!vapply(res, is.null, logical(1))]
+    long <- dplyr::bind_rows(res)
+    if (isTRUE(asTibble)) long <- tibble::as_tibble(long)
+    return(long)
+  }
+  # named list keyed by object name, dropping objects with no matching data
+  res <- res[vapply(res, function(x) length(x) > 0, logical(1))]
+  res
+}
+
+#' @description
+#' Model-object methods (\code{technology}, \code{commodity}, \code{storage},
+#' \code{supply}, \code{demand}, \code{trade}) return the object's raw input
+#' slot data. \code{model}/\code{repository} stack that across all contained
+#' objects. Use \code{name} to select slot(s) (e.g. \code{"invcost"}), \code{...}
+#' to filter (\code{region=}, \code{year=}, \code{comm=}, or \code{col_=}regex),
+#' \code{merge=TRUE} for one long tidy frame (\code{param}/\code{value}), and
+#' \code{interpolate=TRUE} to expand year-bearing slots over \code{years} (or the
+#' observed year range) with each parameter's default interpolation rule.
+#'
+#' @param interpolate if TRUE, expand year-bearing object slots over the target
+#'   years using each parameter's default interpolation rule (for quick
+#'   demonstration plots). Default FALSE (raw data as stored). Only meaningful
+#'   for object/model/repository methods.
+#' @param years integer vector of target milestone years for \code{interpolate}
+#'   (default: the yearly range observed in the data).
+#' @rdname getData
+#' @method getData technology
+#' @export
+getData.technology <- .getData_object
+#' @rdname getData
+#' @method getData commodity
+#' @export
+getData.commodity <- .getData_object
+#' @rdname getData
+#' @method getData storage
+#' @export
+getData.storage <- .getData_object
+#' @rdname getData
+#' @method getData supply
+#' @export
+getData.supply <- .getData_object
+#' @rdname getData
+#' @method getData demand
+#' @export
+getData.demand <- .getData_object
+#' @rdname getData
+#' @method getData trade
+#' @export
+getData.trade <- .getData_object
+#' @rdname getData
+#' @method getData import
+#' @export
+getData.import <- .getData_object
+#' @rdname getData
+#' @method getData export
+#' @export
+getData.export <- .getData_object
+#' @rdname getData
+#' @method getData weather
+#' @export
+getData.weather <- .getData_object
+
+#' @rdname getData
+#' @method getData model
+#' @export
+getData.model <- .getData_container
+#' @rdname getData
+#' @method getData repository
+#' @export
+getData.repository <- .getData_container

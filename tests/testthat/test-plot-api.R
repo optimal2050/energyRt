@@ -252,3 +252,22 @@ test_that("theme_energyRt is the one place the look is set", {
   expect_s3_class(theme_energyRt(), "theme")
   expect_equal(theme_energyRt(base_size = 14)$text$size, 14)
 })
+
+test_that("faceting by month works from a calendar that has no MONTH column", {
+  # d365_h24 has YDAY and HOUR only, so MONTH has to be derived from the
+  # calendar. Passing the calendar as an object and by name must agree -- the
+  # object route used to ignore the request and draw a single panel.
+  cal  <- calendars$d365_h24
+  prof <- data.frame(timeslice = cal@timetable$timeslice,
+                     load = seq_len(nrow(cal@timetable)))
+  for (cl in list(cal, "d365_h24")) {
+    p <- plot_heatmap(prof, calendar = cl, value = "load", facet = "month")
+    n <- length(unique(ggplot2::ggplot_build(p)$layout$layout$PANEL))
+    expect_equal(n, 12L)
+  }
+})
+
+test_that("a timeslice layout needs a calendar rather than guessing one", {
+  prof <- data.frame(timeslice = c("d001_h00", "d001_h01"), load = c(1, 2))
+  expect_error(plot_heatmap(prof, value = "load"), "`calendar` is required")
+})

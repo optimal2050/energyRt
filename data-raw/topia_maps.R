@@ -1,0 +1,136 @@
+## data-raw/topia_maps.R
+## Repair / regenerate the four reference layout GEOMETRIES.
+##
+## The original generation script did not survive; this one rebuilds the
+## honeycomb layout from the SHIPPED hex centroids (so the layout and the
+## region assignment stay exactly as published) and snaps every layout's
+## coordinates to a fixed grid.
+##
+## Why: the honeycomb hexes were originally built with per-hex sin/cos
+## vertices, leaving shared edges jittered at ~1e-15. GEOS then treats
+## adjacent hexes as NOT touching, so `st_union()` (geoscales dissolves,
+## `geoscale_geometry()`) cannot merge zones/nation into single shapes.
+## Rebuilding every hexagon from one global vertex formula and rounding
+## coordinates to a 1e-9 grid makes shared vertices byte-identical.
+##
+## The hierarchy is keyed by region NAME, never by geometry: the model sees
+## codes, and `W1` is in WEST on every layout. Which POLYGON carries which
+## code is a per-layout choice, made in data-raw/topia_geoscale.R so that
+## each zone comes out as one contiguous block on each picture. This file
+## only fixes the geometry; it never assigns codes.
+##
+## Leaves a plain `map` list (one `sf` per layout, `region` + geometry) in the
+## builder environment. Nothing is shipped from here: `topia_geoscale.R` folds
+## these polygons into the `Geoscale` objects that `topia$geoscales` carries,
+## and that is the dataset's ONLY copy of the geometry.
+##
+## Run: pkgload::load_all(".") ; source("data-raw/topia_maps.R")
+
+library(sf)
+
+grid_round <- function(g, digits = 9) {
+  st_sfc(lapply(g, function(gm) {
+    st_polygon(lapply(unclass(gm), function(ring) round(ring, digits)))
+  }), crs = st_crs(g))
+}
+
+# Bootstrap from whatever the installed dataset carries. Since 0.91 the
+# geometry lives inside `topia$geoscales`; older copies still have the plain
+# `topia$map`, which is what the migrating run reads.
+map <- local({
+  shipped <- energyRt::topia
+  if (!is.null(shipped$geoscales)) {
+    lapply(shipped$geoscales, function(gs)
+      geoscales::geoscale_geometry(gs, geoframe = "region"))
+  } else {
+    lapply(shipped$map, function(m) m[, "region"])
+  }
+})
+
+# -- honeycomb: rebuild each hex from its centroid ---------------------------
+hc <- map$honeycomb
+ctr <- suppressWarnings(st_coordinates(st_centroid(st_geometry(hc))))
+
+# Lattice geometry from the shipped centers: neighbor spacing s is the
+# smallest center-to-center distance; touching regular hexagons then have
+# circumradius r = s / sqrt(3), with an edge FACING each neighbor -- so
+# vertex angles sit at theta0 + 30 + 60k degrees, where theta0 is the
+# nearest-neighbor direction.
+cd <- as.matrix(dist(ctr[, 1:2]))
+diag(cd) <- NA
+s <- min(cd, na.rm = TRUE)
+nn <- which(cd == s, arr.ind = TRUE)[1, ]
+theta0 <- atan2(ctr[nn[2], 2] - ctr[nn[1], 2],
+                ctr[nn[2], 1] - ctr[nn[1], 1])
+r <- s / sqrt(3)
+
+# One global vertex formula, rounded to the grid -- every shared vertex
+# computes to the identical number from both neighboring hexes.
+# `theta0` is reduced mod 60 degrees HERE ONLY. A hexagon is invariant under a
+# 60-degree turn, so this leaves the shapes alone, but it pins WHICH vertex the
+# ring starts at: `nn` picks one of several tied nearest-neighbour pairs, and a
+# rebuild that picks a different one would otherwise rotate every ring and churn
+# `data/topia.rda`. The lattice basis below still needs the true `theta0`.
+ang <- (theta0 %% (pi / 3)) + pi / 6 + pi / 3 * (0:5)
+hex_at <- function(cx, cy) {
+  v <- cbind(round(cx + r * cos(ang), 9), round(cy + r * sin(ang), 9))
+  st_polygon(list(rbind(v, v[1, , drop = FALSE])))
+}
+
+# Snap centers to the EXACT integer lattice: origin + i*a1 + j*a2. The
+# shipped centroids inherit the original jitter, so shared-vertex
+# arithmetic from two raw centers can never coincide; integer lattice
+# coordinates make it exact (then the 1e-9 vertex rounding heals fp-eps).
+a1 <- s * c(cos(theta0), sin(theta0))
+a2 <- s * c(cos(theta0 + pi / 3), sin(theta0 + pi / 3))
+B <- cbind(a1, a2)
+origin <- ctr[1, 1:2]
+ij <- t(solve(B) %*% t(sweep(ctr[, 1:2], 2, origin)))
+stopifnot(max(abs(ij - round(ij))) < 0.2)   # centers really sit on a lattice
+ij <- round(ij)
+cxy <- sweep(ij %*% t(B), 2, origin, `+`)
+
+st_geometry(hc) <- st_sfc(lapply(seq_len(nrow(hc)), function(i) {
+  hex_at(cxy[i, 1], cxy[i, 2])
+}), crs = st_crs(st_geometry(map$honeycomb)))
+map$honeycomb <- hc
+
+# Expected connectivity from the integer lattice (neighbors = distance s)
+adj <- as.matrix(dist(cxy)) < s * 1.01 & as.matrix(dist(cxy)) > 0
+expected_pairs <- sum(adj) / 2
+comp <- local({                              # connected components
+  n <- nrow(adj); grp <- seq_len(n)
+  repeat {
+    new <- vapply(seq_len(n), function(i) min(grp[c(i, which(adj[i, ]))]),
+                  integer(1) + 0)
+    if (identical(new, grp)) break
+    grp <- new
+  }
+  length(unique(grp))
+})
+
+# -- all layouts: snap coordinates to the grid -------------------------------
+for (nm in names(map)) {
+  st_geometry(map[[nm]]) <- grid_round(st_geometry(map[[nm]]))
+}
+
+# -- verification -------------------------------------------------------------
+g <- st_geometry(map$honeycomb)
+touch_pairs <- sum(lengths(st_touches(g))) / 2
+union_parts <- length(st_cast(st_union(g), "POLYGON"))
+cat("honeycomb: touching pairs", touch_pairs, "(lattice expects",
+    expected_pairs, ") | union parts", union_parts,
+    "(lattice components:", comp, ")\n")
+stopifnot(touch_pairs == expected_pairs,
+          union_parts == comp)
+
+for (nm in names(map)) {
+  gg <- st_geometry(map[[nm]])
+  cat(sprintf("%-10s touching pairs %2d | union parts %d\n", nm,
+              sum(lengths(st_touches(gg))) / 2,
+              length(st_cast(st_union(gg), "POLYGON"))))
+}
+
+# (no use_data here: data-raw/topia_geoscale.R folds `map` into the Geoscales,
+# and data-raw/topia_assemble.R writes the single dataset)
+cat("layout geometry rebuilt:", paste(names(map), collapse = ", "), "\n")

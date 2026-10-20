@@ -89,7 +89,7 @@ test_that("a vintaged technology returns one levcost per vintage", {
 test_that("cheaper vintages price lower, and the base vintage matches the plain tech", {
   skip_if_no_solver()
   lc  <- lv_run(lv_tech(c(2020, 2030, 2040), invcost = c(300, 200, 100)))
-  npv <- levcost_by_variant(lc, "npv")$levcost_npv
+  npv <- levcost(lc, by_variant = "npv")$levcost_npv
 
   expect_true(all(is.finite(npv)))
   expect_true(all(diff(npv) < 0))          # 300 > 200 > 100 invcost
@@ -110,37 +110,39 @@ test_that("vintage x cluster expands to the full grid", {
   expect_length(lc, 4L)
   expect_setequal(names(lc), c("PWR_VIN2020_CLa", "PWR_VIN2030_CLa",
                                "PWR_VIN2020_CLb", "PWR_VIN2030_CLb"))
-  key <- levcost_by_variant(lc, "npv")
+  key <- levcost(lc, by_variant = "npv")
   expect_setequal(unique(key$vintage), c("2020", "2030"))
   expect_setequal(unique(key$cluster), c("a", "b"))
 })
 
-test_that("levcost_by_variant() stacks the tables with variant keys", {
+test_that("levcost(, by_variant = TRUE) stacks the tables with variant keys", {
   skip_if_no_solver()
   lc <- lv_run(lv_tech(c(2020, 2030, 2040), invcost = c(300, 200, 100)))
 
-  npv <- levcost_by_variant(lc, "npv")
+  npv <- levcost(lc, by_variant = "npv")
   expect_equal(nrow(npv), 3L)
   expect_true(all(c("tech", "variant", "vintage", "cluster", "levcost_npv")
                   %in% names(npv)))
   expect_equal(unique(npv$tech), "PWR")
 
-  lcv <- levcost_by_variant(lc, "levcost")
+  lcv <- levcost(lc, by_variant = "levcost")
   expect_true(all(c("tech", "variant", "vintage", "year", "levcost") %in% names(lcv)))
   expect_setequal(unique(lcv$variant), names(lc))
 
-  cmp <- levcost_by_variant(lc, "components")
+  cmp <- levcost(lc, by_variant = "components")
   expect_true(all(c("variant", "component", "value") %in% names(cmp)))
   expect_true("eac" %in% cmp$component)
 
-  expect_error(levcost_by_variant(lv_run(lv_tech())), "levcost_variants")
+  # a result with no variants names the reason, rather than failing dispatch
+  expect_error(levcost(lv_run(lv_tech()), by_variant = TRUE),
+               "vintages or clusters")
 })
 
 test_that("sequential and single runs agree", {
   skip_if_no_solver()
   tech <- lv_tech(c(2020, 2030, 2040), invcost = c(300, 200, 100))
-  a <- levcost_by_variant(lv_run(tech, run = "single"), "npv")
-  b <- levcost_by_variant(lv_run(tech, run = "sequential"), "npv")
+  a <- levcost(lv_run(tech, run = "single"), by_variant = "npv")
+  b <- levcost(lv_run(tech, run = "sequential"), by_variant = "npv")
 
   expect_equal(a$variant, b$variant)
   expect_equal(a$levcost_npv, b$levcost_npv, tolerance = 1e-8)
@@ -210,6 +212,34 @@ test_that("autoplot.levcost_list survives variants without a breakdown", {
   expect_s3_class(p, "ggplot")
 })
 
+test_that("autoplot.levcost_list sorts, caps and facets for comparisons", {
+  skip_if_not_installed("ggplot2")
+  mk <- function(nm, v) structure(list(
+    levcost_npv = stats::setNames(v, nm),
+    cost_breakdown_npv = data.frame(component = c("eac", "varom"),
+                                    value = c(v * 0.6, v * 0.4)),
+    units = list(costs = "MUSD", activity = "GWh")),
+    class = c("levcost", "list"))
+  lcl <- structure(list(A = mk("A", 5), B = mk("B", 9), C = mk("C", 2)),
+                   class = c("levcost_list", "list"))
+  # default keeps the list's own order (the variants contract)
+  p0 <- ggplot2::autoplot(lcl)
+  expect_equal(levels(p0$data$tech), c("A", "B", "C"))
+  # sort = most expensive first
+  p1 <- ggplot2::autoplot(lcl, sort = TRUE)
+  expect_equal(levels(p1$data$tech), c("B", "A", "C"))
+  # top_n caps and captions
+  p2 <- ggplot2::autoplot(lcl, top_n = 2)
+  expect_setequal(unique(as.character(p2$data$tech)), c("A", "B"))
+  expect_match(p2$labels$caption, "2 most expensive of 3")
+  # groups facet with the short index
+  grp <- list(list(index = "G1", label = "x", members = c("A", "B"), n = 2L),
+              list(index = "G2", label = "y", members = "C", n = 1L))
+  p3 <- ggplot2::autoplot(lcl, groups = grp)
+  expect_equal(sort(unique(p3$data$group)), c("G1", "G2"))
+  expect_s3_class(p3$facet, "FacetWrap")
+})
+
 test_that("fuel_costs prices auxiliary input commodities", {
   tech <- newTechnology(
     name    = "PWRA",
@@ -243,4 +273,390 @@ test_that("the auto-horizon covers late vintage windows", {
   npv <- vapply(res, function(z) as.numeric(z$levcost_npv[1]), numeric(1))
   expect_true(all(is.finite(npv)))
   expect_true(all(npv > 0))
+})
+# levcost(by_variant = ) -- the merged form of the former
+# levcost(, by_variant = TRUE). Both paths must give the same tables: computing with
+# by_variant set, and passing an already-computed result back (no re-solve).
+
+test_that("levcost(by_variant=) matches the result's own tables", {
+  skip_if_no_solver()
+  tech <- newTechnology("TV",
+    input = list(comm = "COA"), output = list(comm = "ELC"),
+    vintage = data.frame(vintage = c("v1", "v2"), start = c(2020L, 2030L),
+                         end = c(2029L, 2050L), olife = c(20L, 20L)),
+    ceff = data.frame(comm = "COA", cinp2use = 0.4),
+    invcost = data.frame(vintage = c("v1", "v2"), invcost = c(1000, 800)),
+    cap2act = 1)
+  lc <- suppressMessages(suppressWarnings(
+    levcost(tech, comm = "ELC", fuel_costs = c(COA = 2), verbose = FALSE)))
+  skip_if_not(inherits(lc, "levcost_variants"),
+              "technology did not fan out into variants")
+
+  # result method: extraction without recomputing
+  expect_identical(levcost(lc, by_variant = TRUE), attr(lc, "by_variant"))
+  expect_identical(levcost(lc, by_variant = "levcost"), attr(lc, "by_variant"))
+  expect_identical(levcost(lc, by_variant = "npv"), attr(lc, "by_variant_npv"))
+  expect_identical(levcost(lc, by_variant = "components"),
+                   attr(lc, "by_variant_components"))
+
+
+  # computing with by_variant returns the table, not the object
+  direct <- suppressMessages(suppressWarnings(
+    levcost(tech, comm = "ELC", fuel_costs = c(COA = 2), verbose = FALSE,
+            by_variant = "npv")))
+  expect_s3_class(direct, "data.frame")
+  expect_identical(nrow(direct), nrow(attr(lc, "by_variant_npv")))
+
+  # a technology with no variants says so rather than returning NULL
+  flat <- newTechnology("TF", input = list(comm = "COA"),
+                        output = list(comm = "ELC"),
+                        ceff = data.frame(comm = "COA", cinp2use = 0.4),
+                        invcost = data.frame(invcost = 1000), cap2act = 1)
+  expect_error(
+    suppressMessages(suppressWarnings(
+      levcost(flat, comm = "ELC", fuel_costs = c(COA = 2), verbose = FALSE,
+              by_variant = TRUE))),
+    "vintages or clusters")
+})
+
+# --------------------------------------------------------------------------- #
+# report(levcost = TRUE, by_variant = ) on a vintaged technology.
+#
+# The regression: `by_variant` used to fall through report()'s dots straight to
+# rmarkdown::render(). Forwarding it to levcost() instead is equally wrong --
+# levcost(by_variant = TRUE) returns an EXTRACTED data.frame, which fails
+# report()'s `inherits(levcost, "levcost_variants")` test and silently drops the
+# whole levelised-cost section. report() consumes the flag itself: TRUE (the
+# default for a variant process) keeps the per-variant table and comparison
+# chart, FALSE reports the display instance alone.
+# --------------------------------------------------------------------------- #
+
+test_that("report() consumes by_variant instead of forwarding it to levcost()", {
+  skip_if_not_installed("rmarkdown")
+  tech <- lv_tech(vintages = c(2020, 2030, 2040), invcost = c(300, 200, 100))
+
+  f_on <- tempfile(fileext = ".html")
+  expect_no_error(suppressWarnings(suppressMessages(
+    report(tech, levcost = TRUE, by_variant = TRUE, horizon = lv_hor(),
+           file = f_on, format = "html", open = FALSE))))
+  expect_true(file.exists(f_on))
+
+  f_off <- tempfile(fileext = ".html")
+  expect_no_error(suppressWarnings(suppressMessages(
+    report(tech, levcost = TRUE, by_variant = FALSE, horizon = lv_hor(),
+           file = f_off, format = "html", open = FALSE))))
+  expect_true(file.exists(f_off))
+
+  # by_variant = TRUE must not degrade the report: dropping the per-variant
+  # section was the silent failure, and it makes the file materially smaller
+  expect_gt(file.size(f_on), file.size(f_off))
+
+  # and it must match the default, which is already per-variant
+  f_def <- tempfile(fileext = ".html")
+  suppressWarnings(suppressMessages(
+    report(tech, levcost = TRUE, horizon = lv_hor(),
+           file = f_def, format = "html", open = FALSE)))
+  expect_equal(file.size(f_on), file.size(f_def), tolerance = 0.01)
+})
+
+# levcost() builds a SINGLE-region mini-model whose region is synthetic, so a
+# process whose costs vary by region is priced at just one of them. `by_region`
+# prices it once per region instead -- the third axis alongside vintage and
+# cluster.
+
+# Covers the R API: levcost()
+test_that("by_region prices a multi-region technology once per region", {
+  regs <- c("R1", "R2", "R3")
+  eff <- c(0.30, 0.40, 0.50)
+  tech <- newTechnology(
+    name = "EMR",
+    region = regs,
+    input = list(comm = "COA", unit = "PJ"),
+    output = list(comm = "ELC", unit = "PJ"),
+    ceff = data.frame(region = regs, comm = "COA", cinp2use = eff),
+    invcost = data.frame(region = regs, invcost = c(900, 1200, 1500)),
+    af = data.frame(af.up = 0.9),
+    olife = data.frame(olife = 25))
+
+  one <- suppressMessages(levcost(tech, comm = "ELC"))
+  expect_s3_class(one, "levcost")
+
+  many <- suppressMessages(levcost(tech, comm = "ELC", by_region = TRUE))
+  expect_s3_class(many, "levcost_list")
+  expect_setequal(names(many), regs)
+
+  # each region gets ITS OWN parameters, so the costs differ -- the single
+  # result above is only one of these, which is the reason `by_region` exists
+  npv <- vapply(many, function(x) x$levcost_npv, numeric(1))
+  expect_equal(length(unique(round(npv, 6))), 3L)
+  expect_true(any(abs(npv - one$levcost_npv) < 1e-9))
+
+  # the dearest region is the one with the highest capital cost and the worst
+  # efficiency, not whichever happened to be first
+  expect_equal(names(which.max(npv)), "R3")
+  expect_equal(names(which.min(npv)), "R1")
+})
+
+# Covers the R API: levcost()
+test_that("by_region needs regions, and leaves a trade alone", {
+  bare <- newTechnology(
+    name = "EBARE",
+    input = list(comm = "COA", unit = "PJ"),
+    output = list(comm = "ELC", unit = "PJ"),
+    ceff = data.frame(comm = "COA", cinp2use = 0.4),
+    invcost = data.frame(invcost = 1000),
+    olife = data.frame(olife = 25))
+  expect_error(
+    suppressMessages(levcost(bare, comm = "ELC", by_region = TRUE)),
+    "names its regions")
+
+  # a trade spans two regions by construction and is priced across both at
+  # once; splitting it per region would halve its capital charge
+  trd <- newTrade(
+    name = "TRD", commodity = "ELC",
+    routes = data.frame(src = "R1", dst = "R2"),
+    trade = data.frame(src = "R1", dst = "R2", teff = 0.95),
+    invcost = data.frame(region = c("R1", "R2"), invcost = 300),
+    olife = data.frame(olife = 30))
+  repo <- newRepository(
+    name = "tr",
+    newCommodity(name = "ELC", unit = "PJ", timeframe = "ANNUAL"),
+    newSupply(name = "SUP_ELC", commodity = "ELC", unit = "PJ",
+              supply = data.frame(region = c("R1", "R2"), cost = 1)),
+    trd)
+  res <- suppressMessages(levcost(repo, comm = "ELC", name = "TRD",
+                                  by_region = TRUE))
+  expect_s3_class(res, "levcost")          # not split per region
+})
+
+# =========================================================================== #
+# Region-keyed cost slots, and build windows, under the variant fan-out.
+#
+# Both guards added 2026-10-03 after `levcost(by_variant=)` returned NA for
+# every cell of a vintaged + clustered wind technology translated from PyPSA.
+# The fixtures above never carried a `region` column on a cost slot, so the
+# fan-out's region pinning was only ever exercised against region-NA
+# (broadcast) rows -- which match everywhere and hid both defects.
+# =========================================================================== #
+
+# Stamp a real region onto cost slots, as any translated model carries.
+lv_stamp <- function(tech, region = "R1",
+                     slots = c("invcost", "fixom", "varom")) {
+  for (s in slots) {
+    d <- methods::slot(tech, s)
+    if (NROW(d) == 0) next
+    d$region <- region
+    methods::slot(tech, s) <- d
+  }
+  tech
+}
+
+# Covers the R API: levcost()
+test_that("region-keyed cost slots survive the variant fan-out", {
+  tech <- lv_tech(c(2020, 2030, 2040), invcost = c(300, 200, 100))
+  a <- levcost(lv_run(lv_stamp(tech), method = "analytic"),
+               by_variant = "npv")
+  b <- levcost(lv_run(tech, method = "analytic"), by_variant = "npv")
+
+  # The regression: the cell is pinned to an artificial region (`R1_VIN2030`)
+  # while its capex row still said `R1`, so every region filter downstream
+  # dropped it, the cell cost zero and the npv came back NA.
+  expect_true(all(is.finite(a$levcost_npv)))
+  expect_equal(a$variant, b$variant)
+  expect_equal(a$levcost_npv, b$levcost_npv, tolerance = 1e-10)
+})
+
+# Covers the R API: levcost()
+test_that("region-keyed costs survive a vintage x cluster grid", {
+  tech <- lv_tech(c(2020, 2030), invcost = 300, clusters = c("A", "B"))
+  a <- levcost(lv_run(lv_stamp(tech), method = "analytic"),
+               by_variant = "npv")
+
+  expect_equal(nrow(a), 4L)
+  expect_true(all(is.finite(a$levcost_npv)))
+})
+
+# Covers the R API: levcost()
+test_that("each region-keyed cell priced alone reproduces its fan-out value", {
+  tech <- lv_tech(c(2020, 2030, 2040), invcost = c(300, 200, 100))
+  tech <- lv_stamp(tech)
+  fan  <- levcost(lv_run(tech, method = "analytic"), by_variant = "npv")
+
+  vinfo <- getFromNamespace(".tech_variants", "energyRt")(tech)
+  dv    <- getFromNamespace(".levcost_devintage", "energyRt")
+  uw    <- getFromNamespace(".levcost_unwindow", "energyRt")
+  for (i in seq_along(vinfo$objects)) {
+    cell <- uw(dv(vinfo$objects[[i]], "R1", real_region = "R1"))
+    one  <- lv_run(cell, method = "analytic")
+    expect_equal(unname(one$levcost_npv),
+                 fan$levcost_npv[fan$variant == cell@name],
+                 tolerance = 1e-10, info = cell@name)
+  }
+})
+
+test_that(".levcost_devintage() relabels the region column, not just the slot", {
+  tech <- lv_stamp(lv_tech(c(2020, 2030, 2040), invcost = c(300, 200, 100)))
+  ex   <- getFromNamespace(".expand_one_process", "energyRt")(tech)
+  dv   <- getFromNamespace(".levcost_devintage", "energyRt")(
+            ex$objects[[2]], "R1_VIN2030", real_region = "R1")
+
+  expect_equal(dv@region, "R1_VIN2030")
+  # the column has to move with the slot, or the row matches nothing
+  expect_equal(unique(dv@invcost$region), "R1_VIN2030")
+  expect_equal(unique(dv@fixom$region), "R1_VIN2030")
+  expect_equal(dv@invcost$invcost, 200)
+})
+
+test_that(".levcost_devintage() does not promote a foreign region's row", {
+  tech <- lv_tech(c(2020, 2030), invcost = 300)
+  # two capex rows: the cell's own region and a region the mini-model never
+  # declares. Relabelling both would collide them onto one key.
+  tech@invcost <- rbind(
+    transform(tech@invcost, region = "R1"),
+    transform(tech@invcost, region = "R2"))
+  ex <- getFromNamespace(".expand_one_process", "energyRt")(tech)
+  dv <- getFromNamespace(".levcost_devintage", "energyRt")(
+          ex$objects[[1]], "R1_VIN2020", real_region = "R1")
+
+  expect_true("R1_VIN2020" %in% dv@invcost$region)
+  expect_true("R2" %in% dv@invcost$region)
+  expect_false(any(duplicated(dv@invcost$region)))
+})
+
+test_that("an NA (broadcast) region row is left alone, not pinned", {
+  tech <- lv_tech(c(2020, 2030), invcost = 300)
+  ex   <- getFromNamespace(".expand_one_process", "energyRt")(tech)
+  dv   <- getFromNamespace(".levcost_devintage", "energyRt")(ex$objects[[1]],
+                                                             "R1_VIN2020")
+  # `lv_tech()` leaves `region` NA; a broadcast row already applies everywhere
+  # and must stay broadcast
+  expect_true(all(is.na(dv@invcost$region)))
+  expect_equal(dv@region, "R1_VIN2020")
+})
+
+# Covers the R API: levcost()
+test_that("a build window outside the horizon is still priced", {
+  # `.levcost_unwindow()` is applied on the technology path as it already was
+  # on storage and trade: a levelized cost asks what a unit of THIS vintage
+  # costs, not whether it could have been built inside the priced horizon.
+  # Left in, the window makes the cell unbuildable and it priced to ZERO --
+  # worse than NA, because zero reads as a free technology.
+  tech <- lv_tech(c(2020, 2030), invcost = 300)
+  tech@vintage$start <- c(NA_integer_, 2065L)   # lv_hor() ends 2060
+
+  a <- levcost(lv_run(tech, method = "analytic"), by_variant = "npv")
+  expect_true(all(is.finite(a$levcost_npv)))
+  expect_true(all(a$levcost_npv > 0))
+
+  # and it matches the same technology with no window declared at all
+  b <- levcost(lv_run(lv_tech(c(2020, 2030), invcost = 300),
+                      method = "analytic"), by_variant = "npv")
+  expect_equal(a$levcost_npv, b$levcost_npv, tolerance = 1e-10)
+})
+
+# Covers the R API: levcost()
+test_that("analytic and solve agree on region-keyed variants", {
+  skip_if_no_solver()
+  tech <- lv_stamp(lv_tech(c(2020, 2030, 2040), invcost = c(300, 200, 100)))
+  a <- levcost(lv_run(tech, method = "analytic"), by_variant = "npv")
+  s <- levcost(lv_run(tech, method = "solve"), by_variant = "npv")
+
+  expect_equal(a$variant, s$variant)
+  expect_equal(a$levcost_npv, s$levcost_npv, tolerance = 5e-5)
+})
+
+# --------------------------------------------------------------------------- #
+# Ex-post (a SOLVED scenario). The scenario holds the EXPANDED processes, so
+# `name = "PWR"` -- the name `getVariants()` reports as the base, and the one a
+# caller thinks in -- used to be refused outright, and a vector of variant names
+# raised R's "'length = n' in coercion to 'logical(1)'" from a scalar `if`.
+# Both now resolve, and the result is the same `levcost_variants` shape the
+# declared-object path returns.
+# --------------------------------------------------------------------------- #
+
+lv_solved <- function() {
+  cal <- newCalendar(
+    timetable = make_timetable(
+      struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+    name = "lv_two_seasons")
+  EWIN <- newTechnology(
+    name = "EWIN",
+    output = data.frame(comm = "ELC", unit = "GWh"),
+    cluster = data.frame(cluster = c("01", "02"), order = 1:2),
+    vintage = data.frame(vintage = c("2025", "2035"),
+                         start = c(2025, 2035), end = 2050, olife = 25L),
+    af = data.frame(cluster = c("01", "02"), af.up = c(0.45, 0.33)),
+    invcost = data.frame(
+      vintage = rep(c("2025", "2035"), each = 2),
+      cluster = rep(c("01", "02"), times = 2),
+      invcost = c(600, 900, 450, 700)),
+    cap2act = 8.76)
+  mod <- newModel(
+    name = "lv_scen", region = "R1", discount = 0.05,
+    horizon = newHorizon(seq(2025, 2050, by = 5)), calendar = cal,
+    repo = newRepository("r",
+      newCommodity("ELC", timeframe = "SEASON", unit = "GWh"),
+      newImport("IMP_ELC", commodity = "ELC",
+                import = data.frame(price = 500)),
+      EWIN,
+      newDemand("DEM_ELC", commodity = "ELC",
+                demand = data.frame(demand = 20))))
+  suppressMessages(suppressWarnings(
+    solve_model(mod, name = "lv_scen", solver = solver_options$glpk,
+                ondisk = FALSE, overwrite = TRUE, echo = FALSE)))
+}
+
+# @covers vTechEac vTechFixom vTechOut depth=S backends=glpk
+test_that("a base name prices every built variant of a solved scenario", {
+  skip_if_no_solver()
+  scen <- lv_solved()
+  built <- unique(as.character(as.data.frame(
+    getData(scen, "vTechNewCap", merge = TRUE))$tech))
+  expect_gte(length(built), 1L)
+
+  lc <- suppressMessages(levcost(scen, name = "EWIN"))
+  expect_s3_class(lc, "levcost_variants")
+  expect_setequal(names(lc), built)          # unbuilt variants are skipped
+
+  npv <- levcost(lc, by_variant = "npv")
+  expect_true(all(c("tech", "variant", "vintage", "cluster", "levcost_npv")
+                  %in% names(npv)))
+  expect_equal(unique(npv$tech), "EWIN")     # the BASE, not the variant name
+  expect_false(any(is.na(npv$vintage)))
+  expect_false(any(is.na(npv$cluster)))
+})
+
+# @covers vTechEac depth=S backends=glpk
+test_that("by_variant = TRUE gives the tidy table ex-post, as for an object", {
+  skip_if_no_solver()
+  scen <- lv_solved()
+  d <- suppressMessages(levcost(scen, name = "EWIN", by_variant = TRUE))
+  expect_true(is.data.frame(d))
+  expect_true(all(c("tech", "variant", "vintage", "cluster", "year", "levcost")
+                  %in% names(d)))
+  expect_gt(nrow(d), 0L)
+})
+
+# @covers vTechEac depth=S backends=glpk
+test_that("a vector of variant names is priced, not refused", {
+  skip_if_no_solver()
+  scen <- lv_solved()
+  built <- unique(as.character(as.data.frame(
+    getData(scen, "vTechNewCap", merge = TRUE))$tech))
+  skip_if(length(built) < 2, "needs two built variants")
+  lc <- suppressMessages(levcost(scen, name = built))
+  expect_s3_class(lc, "levcost_variants")
+  expect_setequal(names(lc), built)
+})
+
+# @covers vTechEac depth=S backends=glpk
+test_that("one expanded name still returns a single levcost, unknown names report", {
+  skip_if_no_solver()
+  scen <- lv_solved()
+  built <- unique(as.character(as.data.frame(
+    getData(scen, "vTechNewCap", merge = TRUE))$tech))[1]
+  one <- suppressMessages(levcost(scen, name = built))
+  expect_s3_class(one, "levcost")
+  expect_false(inherits(one, "levcost_variants"))
+  expect_message(levcost(scen, name = "NOPE"), "not a technology")
 })

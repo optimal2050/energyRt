@@ -13,7 +13,10 @@
 #' @slot commodity `r get_slot_doc("import", "commodity")`
 #' @slot unit `r get_slot_doc("import", "unit")`
 #' @slot reserve `r get_slot_doc("import", "reserve")`
+#' @slot cluster `r get_slot_doc("import", "cluster")`
 #' @slot import `r get_slot_doc("import", "import")`
+#' @slot geoframe `r get_slot_doc("import", "geoframe")`
+#' @slot region `r get_slot_doc("import", "region")`
 #' @slot misc `r get_slot_doc("import", "misc")`
 #'
 #' @include class-trade.R
@@ -29,9 +32,10 @@ setClass("import",
     commodity = "character",
     unit = "character",
     reserve = "data.frame",
-    # !!! add region to export
     import = "data.frame",
     cluster = "data.frame",
+    geoframe = "character",
+    region = "character",
     # timeframe = "character", # set to commodity@timeframe
     misc = "list"
   ),
@@ -86,10 +90,15 @@ setClass("import",
     cluster = data.frame(
       cluster = character(),
       desc = character(),
-      share = numeric(),
+      region = character(),
+      act.share.lo = numeric(),
+      act.share.up = numeric(),
+      act.share.fx = numeric(),
       order = integer(),
       stringsAsFactors = FALSE
     ),
+    geoframe = character(),
+    region = character(),
     misc = list()
   ),
   S3methods = FALSE
@@ -123,9 +132,13 @@ setMethod("initialize", "import", function(.Object, ...) {
 #' @param commodity `r get_slot_doc("import", "commodity")`
 #' @param unit `r get_slot_doc("import", "unit")`
 #' @param reserve `r get_slot_doc("import", "reserve")`
+#' @param cluster `r get_slot_doc("import", "cluster")`
 #' @param import `r get_slot_doc("import", "import")`
+#' @param geoframe `r get_slot_doc("import", "geoframe")`
+#' @param region `r get_slot_doc("import", "region")`
 #' @param misc `r get_slot_doc("import", "misc")`
 #'
+#' @param ... further named slots of the class, set on the new object.
 #' @return import object with given specifications.
 #' @rdname newImport
 #' @export
@@ -153,6 +166,8 @@ newImport <- function(
     reserve = data.frame(),
     import = data.frame(),
     cluster = data.frame(),
+    geoframe = character(),
+    region = character(),
     misc = list(),
     ...
     ) {
@@ -171,6 +186,8 @@ newImport <- function(
     reserve = reserve,
     import = import,
     cluster = cluster,
+    geoframe = geoframe,
+    region = region,
     misc = misc,
     ...
   )

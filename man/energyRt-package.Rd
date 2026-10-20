@@ -8,7 +8,7 @@
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-A macro-language for energy system modeling in R. Describe an energy system as R objects (commodities, technologies, supply, demand, storage, trade), compile it into a capacity-expansion and dispatch optimization model, solve it on one of four interchangeable backends (GLPK/MathProg, Julia/JuMP, Python/Pyomo, or GAMS), and analyze tidy results with built-in tools for levelized costs, technology reports, and plotting.
+A macro-language for energy system modeling in R. Describe the system as reusable building blocks (commodities, technologies, supply, demand, storage, trade); energyRt compiles them into a least-cost capacity-expansion and dispatch optimization model, solves it in 'GLPK'/'MathProg', 'Julia'/'JuMP', 'Python'/'Pyomo' or 'GAMS', or through a direct LP matrix, and returns tidy results. Time resolution, geography and solver are separate choices, so one can change without rewriting the model. Built-in tools cover structural validation, levelized costs, reports, and plotting.
 }
 \seealso{
 Useful links:
@@ -25,7 +25,7 @@ Useful links:
 Authors:
 \itemize{
   \item Oleg Lugovoy \email{olugovoy@optimalsolution.dev} (\href{https://orcid.org/0000-0001-5546-9875}{ORCID})
-  \item Vladimir Potashnikov \email{potashnikov.vu@gmail.com}
+  \item Vladimir Potashnikov \email{potashnikov.vu@gmail.com} (contributed 2016-2022)
 }
 
 Other contributors:

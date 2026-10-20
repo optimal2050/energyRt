@@ -28,6 +28,15 @@
 #'   milestone years, possibly empty).
 #' @seealso [solve_myopic()]
 #' @export
+#' @examples
+#' h <- topia$modules$horizons$base
+#'
+#' # one window per milestone year
+#' vapply(horizon_windows(h), function(x) x$horizon@name, character(1))
+#'
+#' # two years per window, overlapping by one
+#' vapply(horizon_windows(h, step = 2L, overlap = 1L),
+#'        function(x) x$horizon@name, character(1))
 horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
   stopifnot(is(horizon, "horizon"))
   iv <- as.data.frame(horizon@intervals)
@@ -56,7 +65,7 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
     rows <- iv[c(idx_d, idx_la), , drop = FALSE]
     h <- newHorizon(intervals = rows,
                     force_BY_interval_to_1_year = FALSE,
-                    name = sprintf("w%02d-%d", k, iv$mid[idx_d[1]]))
+                    name = sprintf("w%02d_%d", k, iv$mid[idx_d[1]]))
     out[[k]] <- list(horizon = h,
                      decided = as.integer(iv$mid[idx_d]),
                      lookahead = as.integer(iv$mid[idx_la]))
@@ -94,7 +103,8 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 }
 
 # add/refresh driver metadata in a variant.yml written by save_scenario()
-.myopic_tag_variant <- function(scen, vlab, sequence, k, decided) {
+.myopic_tag_variant <- function(scen, vlab, sequence, k, decided,
+                               params = NULL) {
   vy <- fp(scen@path, "runs", vlab, "variant.yml")
   if (!file.exists(vy)) return(invisible(NULL))
   mf <- tryCatch(yaml::read_yaml(vy), error = function(e) NULL)
@@ -103,6 +113,7 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
   mf$sequence <- sequence
   mf$step <- k
   mf$decided <- as.integer(decided)
+  if (length(params)) mf$params <- params
   yaml::write_yaml(mf, vy)
   invisible(vy)
 }
@@ -128,8 +139,8 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #' PATHS are the meaningful comparison, and [myopic_objective()] recomputes
 #' a globally discounted total cost over the decided years.
 #'
-#' @param mod a model.
-#' @param name character, sequence name (default `"<model>-myopic"`); names
+#' @param object a model.
+#' @param name character, sequence name (default `"<model>_myopic"`); names
 #'   the scenario (or the per-step scenario prefix).
 #' @param ... forwarded to [interpolate_model()] for every step (settings /
 #'   calendar / config overrides).
@@ -145,6 +156,9 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #' @param on_error `"stop"` (default) or `"return"` (return the partial
 #'   result with the failed step recorded).
 #' @param verbose logical.
+#' @param overwrite logical; `FALSE` (default) refuses to run when a
+#'   variant of the same label already exists on disk with a different type
+#'   or different parameters. `TRUE` skips that guard and writes into it.
 #'
 #' @return an object of class `myopic`: `steps` (one row per step: step,
 #'   run id, decided years, status, objective), `scenarios` (the solved
@@ -155,28 +169,48 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #' @seealso [horizon_windows()], [solution_ledger()], [apply_ledger()],
 #'   [myopic_objective()]
 #' @export
-solve_myopic <- function(mod, name = NULL, ...,
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$s4_h24,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
+#'
+#' # one solve per milestone year, each blind to the next, with capacity
+#' # carried forward
+#' res <- solve_myopic(mod, name = "MYOPIC", step = 1L,
+#'                     solver = solver_options$glpk)
+#' myopic_objective(res, sdr = 0.05)
+#' }
+solve_myopic <- function(object, name = NULL, ...,
                          horizon = NULL, step = 1L, overlap = 0L,
                          carry = c("capacity", "budgets"),
                          solver = NULL, tolerance = 1e-6,
                          store = c("variants", "scenarios"),
+                         overwrite = FALSE,
                          keep_scenarios = TRUE,
                          on_error = c("stop", "return"),
                          verbose = TRUE) {
   .log_t0 <- Sys.time()
-  stopifnot(is(mod, "model"))
+  stopifnot(is(object, "model"))
   store <- match.arg(store)
   on_error <- match.arg(on_error)
-  name <- name %||% paste0(mod@name, "-myopic")
-  horizon <- horizon %||% tryCatch(mod@config@horizon, error = function(e) NULL)
+  name <- name %||% paste0(object@name, "_myopic")
+  .assert_object_name(name, "name")
+  horizon <- horizon %||% tryCatch(object@config@horizon, error = function(e) NULL)
   if (is.null(horizon) || nrow(horizon@intervals) == 0) {
     stop("No horizon: pass `horizon =` or give the model one.")
   }
   windows <- horizon_windows(horizon, step = step, overlap = overlap)
-  .myopic_warn_intertemporal(mod)
+  .myopic_warn_intertemporal(object)
   # one folder for the whole sequence: the default path derivation includes
   # the (per-window) horizon name, so pin the path explicitly
-  seq_path <- fp(get_scenarios_path(), .path_slug(name, mod@name))
+  seq_path <- fp(get_scenarios_path(), .path_slug(name, object@name))
 
   ledger <- .ledger_new()
   scens <- list()
@@ -185,13 +219,25 @@ solve_myopic <- function(mod, name = NULL, ...,
                   objective = numeric(0))
   failed <- FALSE
 
+  vparams <- .variant_params(
+    # `step_size`, not `step`: the flat `step` key is WHICH step a variant is,
+    # and two `step:` entries meaning different things in one file is a trap
+    step_size = step, overlap = overlap, carry = carry,
+    tolerance = tolerance, store = store)
+
   for (k in seq_along(windows)) {
     w <- windows[[k]]
     vlab <- sprintf("s%02d-%d", k, min(w$decided))
+    if (store == "variants") {
+      .variant_guard(seq_path, vlab, "myopic_step", vparams, overwrite)
+    }
     scen_name <- if (store == "variants") {
       name
     } else {
-      sprintf("%s-%s", name, vlab)
+      # `vlab` is a run LABEL, where dashes are legal; with store =
+      # "scenarios" this becomes an OBJECT name, where they are not
+      # (.assert_object_name) -- and "-" is also the path-slug separator.
+      sprintf("%s_s%02d_%d", name, k, min(w$decided))
     }
     if (verbose) {
       message("myopic step ", k, "/", length(windows), ": ",
@@ -201,9 +247,9 @@ solve_myopic <- function(mod, name = NULL, ...,
                                                     collapse = ", "), ")"))
     }
     mod_k <- if (k == 1L) {
-      mod
+      object
     } else {
-      apply_ledger(mod, ledger, w$horizon, carry = carry,
+      apply_ledger(object, ledger, w$horizon, carry = carry,
                          tolerance = tolerance, verbose = FALSE)
     }
     sol <- tryCatch({
@@ -258,6 +304,7 @@ solve_myopic <- function(mod, name = NULL, ...,
       save_scenario(sol, verbose = FALSE)))
     if (store == "variants") {
       .myopic_tag_variant(saved, vlab, sequence = name, k = k,
+                          params = vparams,
                           decided = w$decided)
     }
     ledger <- solution_ledger(sol, years = w$decided, ledger = ledger)
@@ -267,11 +314,11 @@ solve_myopic <- function(mod, name = NULL, ...,
   .en_log("myopic", name,
           status = if (failed) "failed" else "ok",
           duration = difftime(Sys.time(), .log_t0, units = "secs"),
-          model = mod@name, steps = nrow(steps),
+          model = object@name, steps = nrow(steps),
           step = step, overlap = overlap, store = store)
 
   structure(list(
-    name = name, model = mod, steps = steps, scenarios = scens,
+    name = name, model = object, steps = steps, scenarios = scens,
     ledger = ledger, carry = carry, tolerance = tolerance,
     store = store, horizon = horizon,
     path = if (length(scens)) scens[[length(scens)]]@path else NULL,
@@ -292,8 +339,8 @@ print.myopic <- function(x, ...) {
 }
 
 #' @export
-getData.myopic <- function(scen, name = NULL, ..., merge = TRUE) {
-  x <- scen
+getData.myopic <- function(object, name = NULL, ..., merge = TRUE) {
+  x <- object
   if (length(x$scenarios) == 0) {
     stop("The myopic result kept no scenario objects ",
          "(keep_scenarios = FALSE); re-run with keep_scenarios = TRUE.")
@@ -339,6 +386,24 @@ getData.myopic <- function(scen, name = NULL, ..., merge = TRUE) {
 #' @param sdr numeric social discount rate (default 0).
 #' @return numeric scalar.
 #' @export
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$s4_h24,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
+#' res <- solve_myopic(mod, name = "MYOPIC", solver = solver_options$glpk)
+#'
+#' # per-step objectives are discounted to their own base years, so they do
+#' # not add up; this is the comparable number
+#' myopic_objective(res)              # undiscounted
+#' myopic_objective(res, sdr = 0.05)  # discounted to the first milestone
+#' }
 myopic_objective <- function(x, sdr = 0) {
   stopifnot(inherits(x, "myopic"))
   tc <- getData(x, "vTotalCost", merge = TRUE)

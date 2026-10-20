@@ -7,13 +7,7 @@ documentation."><meta property="og:description" content="This function initializ
 representing a specific technology with given attributes.
 The function has the same arguments as slot-names in the technology class.
 Every argument has a specific format as described below and in the class
-documentation."><meta property="og:image" content="https://energyRt.org/logo.png"><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script></head><body>
+documentation."><meta property="og:image" content="https://energyRt.org/logo.png"><script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -21,7 +15,7 @@ documentation."><meta property="og:image" content="https://energyRt.org/logo.png
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -30,19 +24,25 @@ documentation."><meta property="og:image" content="https://energyRt.org/logo.png
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development"><li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
+    <li><a class="dropdown-item" href="../articles/features.html">Features</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -102,6 +102,7 @@ documentation.</p>
 <span>  cluster <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  vintage <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  olife <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  geoframe <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  region <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  end <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -113,7 +114,7 @@ documentation.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S4 method for class 'technology'</span></span>
-<span><span class="fu"><a href="https://energyRt.org/reference/newDemand.html">update</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="update.html">update</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -210,7 +211,7 @@ documentation.</p>
 <dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
 <dt>cluster</dt>
-<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
 
 <dt>region</dt>
 <dd><p>character. Name of region to apply the parameter, NA for every region.</p></dd>
@@ -236,7 +237,7 @@ documentation.</p>
 <dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
 <dt>cluster</dt>
-<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
 
 <dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
@@ -262,14 +263,14 @@ documentation.</p>
 <dt>cinp2ginp</dt>
 <dd><p>numeric. Commodity-input-to-group-input coefficient, default is 1.</p></dd>
 
-<dt>share.lo</dt>
+<dt>grp.share.lo</dt>
 <dd><p>numeric. Lower bound on a share of commodity within a group, default is 0.</p></dd>
 
-<dt>share.up</dt>
+<dt>grp.share.up</dt>
 <dd><p>numeric. Upper bound on a share of commodity within a group, default is 1.</p></dd>
 
-<dt>share.fx</dt>
-<dd><p>numeric. Fixed share of commodity within a group, ignored if NA. This parameter overrides <code>share.lo</code> and <code>share.up</code>.</p></dd>
+<dt>grp.share.fx</dt>
+<dd><p>numeric. Fixed share of commodity within a group, ignored if NA. This parameter overrides <code>grp.share.lo</code> and <code>grp.share.up</code>.</p></dd>
 
 <dt>afc.lo</dt>
 <dd><p>numeric. Lower bound on the per-commodity availability factor: bounds this commodity's input or output flow relative to installed capacity (times <code>cap2act</code>), the commodity-level analogue of <code>af.lo</code>. Ignored if NA.</p></dd>
@@ -285,11 +286,11 @@ documentation.</p>
 
 
 <dt id="arg-aeff">aeff<a class="anchor" aria-label="anchor" href="#arg-aeff"></a></dt>
-<dd><p>data.frame. Parameters linking main commodities, activities, and capacities to auxiliary commodities.</p><dl><dt>vintage</dt>
+<dd><p>data.frame. Parameters linking main commodities, activities, and capacities to auxiliary commodities. Rows can be assigned to a single variant via the <code>vintage</code> and/or <code>cluster</code> key columns; each variant then carries only its own couplings (e.g. one land-pool input per cluster), and the auxiliary membership maps are built from these coefficient rows alone.</p><dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
 <dt>cluster</dt>
-<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
 
 <dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
@@ -350,12 +351,12 @@ documentation.</p>
 
 
 <dt id="arg-af">af<a class="anchor" aria-label="anchor" href="#arg-af"></a></dt>
-<dd><p>data.frame. Timeslice-level availability factor parameters, bounding activity in each timeslice relative to installed capacity. <code>af.up</code> is the maximum capacity factor per timeslice (what PyPSA calls <code>p_max_pu</code> and OSeMOSYS calls <code>CapacityFactor</code>); <code>af.lo</code> is a must-run floor. See <code>afs</code> for timeframe-level (e.g. annual) bounds and <code>ceff$afc.*</code> for per-commodity bounds.</p>
+<dd><p>data.frame. Timeslice-level availability factor parameters, bounding activity in each timeslice relative to installed capacity. <code>af.up</code> is the maximum capacity factor per timeslice; <code>af.lo</code> is a must-run floor. See <code>afs</code> for timeframe-level (e.g. annual) bounds and <code>ceff$afc.*</code> for per-commodity bounds.</p>
 <dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
 <dt>cluster</dt>
-<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
 
 <dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
@@ -386,12 +387,12 @@ documentation.</p>
 
 
 <dt id="arg-afs">afs<a class="anchor" aria-label="anchor" href="#arg-afs"></a></dt>
-<dd><p>data.frame. Timeframe-level availability factor constraints, bounding activity summed over all child timeslices of the named timeslice relative to installed capacity. With <code>timeslice = "ANNUAL"</code> this is the annual capacity-factor bound (TIMES <code>NCAP_AFS</code>, OSeMOSYS <code>AvailabilityFactor</code>), e.g. <code>afs.lo = 0.4</code> requires at least 40% annual utilization. Unlike <code>af</code>, <code>afs</code> rows are not disaggregated to finer timeslices; they always constrain the sum over the given timeframe.</p>
+<dd><p>data.frame. Timeframe-level availability factor constraints, bounding activity summed over all child timeslices of the named timeslice relative to installed capacity. With <code>timeslice = "ANNUAL"</code> this is the annual capacity-factor bound, e.g. <code>afs.lo = 0.4</code> requires at least 40% annual utilization. Unlike <code>af</code>, <code>afs</code> rows are not disaggregated to finer timeslices; they always constrain the sum over the given timeframe.</p>
 <dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
 <dt>cluster</dt>
-<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
 
 <dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
@@ -420,7 +421,7 @@ documentation.</p>
 <dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
 <dt>cluster</dt>
-<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
 
 <dt>weather</dt>
 <dd><p>character. Name of the applied weather factor, required, must match the weather factor names in a <code>weather</code> class in the model.</p></dd>
@@ -464,7 +465,7 @@ documentation.</p>
 <dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
 <dt>cluster</dt>
-<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
 
 <dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
@@ -511,7 +512,7 @@ documentation.</p>
 <dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
 <dt>cluster</dt>
-<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
 
 <dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
@@ -543,7 +544,7 @@ documentation.</p>
 <dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
 <dt>cluster</dt>
-<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
 
 <dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
@@ -563,7 +564,7 @@ documentation.</p>
 <dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
 <dt>cluster</dt>
-<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
 
 <dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
@@ -594,7 +595,7 @@ documentation.</p>
 
 
 <dt id="arg-cluster">cluster<a class="anchor" aria-label="anchor" href="#arg-cluster"></a></dt>
-<dd><p>data.frame. Declaration of the technology's clusters. A cluster is a parallel sub-process of the same technology – a resource class, geography or fleet type – with its own capacity, availability and costs. This slot declares WHAT the clusters are and WHERE they exist; the per-cluster values live in the <code>cluster</code> column of the variant-varying slots (<code>capacity</code>, <code>invcost</code>, <code>afs</code>, <code>weather</code>, ...), exactly as <code>group</code> declares input groups whose data lives in <code>input$group</code>. Optional: when empty, cluster labels are harvested from those columns. When populated it is authoritative – a label used in a slot but not declared here raises an error instead of silently creating an extra technology with default (often unbounded) parameters.</p><dl><dt>cluster</dt>
+<dd><p>data.frame. Declaration of the technology's clusters. A cluster is a parallel sub-process of the same technology – a resource class, geography or fleet type – with its own capacity, availability and costs. This slot declares WHAT the clusters are and WHERE they exist; the per-cluster values live in the <code>cluster</code> column of the variant-varying slots (<code>capacity</code>, <code>invcost</code>, <code>afs</code>, <code>weather</code>, ...), exactly as <code>group</code> declares input groups whose data lives in <code>input$group</code>. REQUIRED whenever those columns carry a label, and authoritative – a label used in a slot but not declared here raises an error instead of silently creating an extra technology with default (often unbounded) parameters. The share columns are different levers, not substitutes. <code>cap.share.fx</code> fixes the ratio of the variants' CAPACITIES in every year: loss tranches need it, because each tranche efficiency is calibrated to its place in the capacity stack and the flow must stay free to fill the cheapest first. <code>act.share.lo/up/fx</code> bounds a variant share of the family THROUGHPUT instead, which is what stops a clustered family collapsing to its cheapest member once regional borders are aggregated away. Both are optional; a variant with neither sizes and runs freely.</p><dl><dt>cluster</dt>
 <dd><p>character. Cluster label. Must match the <code>cluster</code> column values used in the other slots.</p></dd>
 
 <dt>desc</dt>
@@ -637,8 +638,15 @@ documentation.</p>
 <dd><p>deprecated, use the <code>olife</code> column of <code>vintage</code>.</p></dd>
 
 
+<dt id="arg-geoframe">geoframe<a class="anchor" aria-label="anchor" href="#arg-geoframe"></a></dt>
+<dd><p>character. Optional. The geoscale level this object's regions are expressed at (e.g. "nation", "zone"). Unset (the default) DERIVES the level from the region codes themselves – the finest level any of them belongs to – which is what every model written before this slot existed relies on. Declared, it names the level, makes that level's own regions the object's default scope, and <code>region</code> may then narrow it; every code in <code>region</code> and in the data slots must be a member of the level, or it is an error rather than a silent reinterpretation.
+It adds those checks and that one default, never new behaviour: it does not aggregate, does not distribute, and does not by itself make a coarse process legal. The rule it makes checkable is that an object may be coarser than the commodities it CONSUMES, never than those it produces or stores – the balance layer rolls finer regions up into coarser ones and never splits a coarse quantity among children. So a technology at "nation" may burn a state-level fuel, but may not produce a state-level commodity.
+Requires a geoscale on the model config. Distinct from <code>commodity@geoframe</code>, which names the level a commodity is BALANCED at, and from <code>summand@geoframe</code>, which restricts the region dimension a constraint term is summed over.</p></dd>
+
+
 <dt id="arg-region">region<a class="anchor" aria-label="anchor" href="#arg-region"></a></dt>
-<dd><p>character. Vector of regions where the technology exists or can be installed. Optional. If not specified, the technology is applied to all regions. If specified, must include all regions used in other slots.</p></dd>
+<dd><p>character. Vector of regions where the technology exists or can be installed. Optional. If not specified, the technology is applied to all regions. A region coarser than the finest geoscale level is allowed, and makes the object operate at that coarser cell: its capacity, activity and output live there, while an INPUT balanced at a finer level is drawn from the cells beneath it and summed. A commodity the object PRODUCES or STORES may never be finer than the object itself – that would require disaggregating one coarse decision into several fine ones, which energyRt does not do, and is refused.
+Coarsening is a MODEL CHANGE, not a re-representation. The object's own constraints bind at its own frame, so they are WEAKER than a finer declaration's and the model is cheaper: the input/output ratio and the <code>@ceff</code> group shares hold only in aggregate over the coarse cell, and availability is sized against that longer slice. If a blend limit must hold within the period, declare the object at that finer frame; an annual mandate on a finely-operated object belongs in a user constraint with an explicit <code>timeframe</code>. Coarsening also does NOT reduce flow variables – those stay at the commodity's level; it removes activity variables and equation rows. If specified, must include all regions used in other slots.</p></dd>
 
 
 <dt id="arg-start">start<a class="anchor" aria-label="anchor" href="#arg-start"></a></dt>

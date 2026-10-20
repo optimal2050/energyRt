@@ -16,13 +16,7 @@
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Installation and Settings">
-<!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-CYBYJ238Q5');
-</script>
+<script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -32,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,20 +36,28 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development">
+<li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul>
+</li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials">
 <li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
+    <li><a class="dropdown-item" href="../articles/features.html">Features</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -99,9 +101,9 @@
     
     
 <p>energyRt formulates an optimization model once and hands it to one of
-several mathematical-programming <strong>backends</strong>. You only
-need <em>one</em> of them to get started; you can add more later and
-cross-check results between them.</p>
+several mathematical-programming <strong>backends</strong>. One backend
+is sufficient to start; others can be added later and results
+cross-checked between them.</p>
 <table class="table">
 <colgroup>
 <col width="25%">
@@ -146,16 +148,16 @@ cross-check results between them.</p>
 </tr>
 </tbody>
 </table>
-<p>The package ships helpers to <strong>detect</strong> what you have
-and <strong>auto-install the library layer</strong> (R/Julia/Python
-packages). The <em>system software</em> itself (Julia, Python, conda,
-GAMS) is installed by you, with guidance below.</p>
+<p>The package ships helpers to <strong>detect</strong> installed
+runtimes and <strong>auto-install the library layer</strong>
+(R/Julia/Python packages). The <em>system software</em> itself (Julia,
+Python, conda, GAMS) is installed manually, with guidance below.</p>
 <div class="section level2">
 <h2 id="install-r-and-energyrt">1. Install R and energyRt<a class="anchor" aria-label="anchor" href="#install-r-and-energyrt"></a>
 </h2>
 <p>Install R (≥ 4.3) — platform installers: <a href="https://cran.r-project.org/bin/windows/base/" class="external-link">Windows</a>, <a href="https://cran.r-project.org/bin/macosx/" class="external-link">macOS</a>, <a href="https://cran.r-project.org/bin/linux/ubuntu/" class="external-link">Ubuntu/Debian</a>.
-We recommend <a href="https://posit.co/download/rstudio-desktop/" class="external-link">RStudio</a> as the
-IDE.</p>
+<a href="https://posit.co/download/rstudio-desktop/" class="external-link">RStudio</a> is the
+recommended IDE.</p>
 <p>The quickest install is one line — it sets up <code>pak</code>,
 reports any Linux system libraries to install, installs all
 dependencies, then energyRt itself:</p>
@@ -167,10 +169,10 @@ dependencies, then energyRt itself:</p>
 default branch:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">install_energyRt</span><span class="op">(</span>branch <span class="op">=</span> <span class="st">"dev"</span><span class="op">)</span></span></code></pre></div>
-<p>Then verify your setup in a fresh session with
+<p>The setup is then verified in a fresh session with
 <code><a href="https://energyRt.org">library(energyRt); en_setup()</a></code>.</p>
-<p>Prefer to install directly? energyRt’s CRAN dependencies are pulled
-in automatically by <code>pak</code> (no local sibling packages are
+<p>For a direct install, energyRt’s CRAN dependencies are pulled in
+automatically by <code>pak</code> (no local sibling packages are
 required):</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span></span>
@@ -179,11 +181,11 @@ required):</p>
 <span><span class="co"># or, with remotes:</span></span>
 <span><span class="co"># install.packages("remotes")</span></span>
 <span><span class="co"># remotes::install_github("optimal2050/energyRt")</span></span></code></pre></div>
-<p>Installing energyRt does not install a solver: you still need at
-least one backend (below). The GAMS GDX bridge (<code>gdxtools</code>)
-is pulled later by <code><a href="../reference/en_install_deps.html">en_install_deps()</a></code> if you use the GAMS
-backend.</p>
-<p><strong>Install fails on Linux?</strong> If the install stops with
+<p>Installing energyRt does not install a solver: at least one backend
+(below) is required. The GAMS GDX bridge (<code>gdxtools</code>) is
+pulled later by <code><a href="../reference/en_install_deps.html">en_install_deps()</a></code> when the GAMS backend is
+used.</p>
+<p><strong>Install failure on Linux.</strong> If the install stops with
 <code>dependencies '...' are not available for package 'energyRt'</code>,
 one CRAN import (often one that needs a system library) failed and
 aborted the rest. Install the imports one by one so the failure is
@@ -223,23 +225,23 @@ isolated and reported:</p>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Failed packages: "</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">failed</span>, collapse <span class="op">=</span> <span class="st">", "</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <p>On Linux, a package that fails to compile is missing a system
-library. Ask <code>pak</code> which apt packages are required, install
-them, then re-run the loop:</p>
+library. <code>pak</code> lists the apt packages required; once they are
+installed, the loop is re-run:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_sysreqs.html" class="external-link">pkg_sysreqs</a></span><span class="op">(</span><span class="st">"optimal2050/energyRt"</span><span class="op">)</span>   <span class="co"># lists the apt packages</span></span>
 <span><span class="co"># e.g. sudo apt install libcurl4-openssl-dev libssl-dev libxml2-dev</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="check-what-you-already-have">2. Check what you already have<a class="anchor" aria-label="anchor" href="#check-what-you-already-have"></a>
+<h2 id="check-the-installed-runtimes">2. Check the installed runtimes<a class="anchor" aria-label="anchor" href="#check-the-installed-runtimes"></a>
 </h2>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://energyRt.org">energyRt</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/en_check.html">en_check_dependencies</a></span><span class="op">(</span><span class="op">)</span>   <span class="co"># solver backends: GLPK / Julia / Python / GAMS / GDX</span></span>
 <span><span class="fu"><a href="../reference/en_check_packages.html">en_check_packages</a></span><span class="op">(</span><span class="op">)</span>       <span class="co"># R packages, optional extras, LaTeX engine, MuseScore</span></span></code></pre></div>
 <p><code><a href="../reference/en_check.html">en_check_dependencies()</a></code> prints a status table — for each
-backend: installed?, version, path, and a hint for what to do next — and
-tells you whether at least one solver is ready. Each backend also has
-its own detector, e.g. <code><a href="../reference/en_check.html">en_check_julia()</a></code>,
+backend: installed?, version, path, and a hint for the next step — and
+states whether at least one solver is ready. Each backend also has its
+own detector, e.g. <code><a href="../reference/en_check.html">en_check_julia()</a></code>,
 <code><a href="../reference/en_check.html">en_check_python()</a></code>, <code><a href="../reference/en_check.html">en_check_pyomo()</a></code>,
 <code><a href="../reference/en_check.html">en_check_glpk()</a></code>, <code><a href="../reference/en_check.html">en_check_gams()</a></code>.
 <code><a href="../reference/en_check_packages.html">en_check_packages()</a></code> complements it by checking energyRt’s R
@@ -249,24 +251,26 @@ LaTeX engine, MuseScore). <code><a href="../reference/en_setup.html">en_setup()<
 <div class="section level2">
 <h2 id="install-the-system-software-one-or-more-backends">3. Install the system software (one or more backends)<a class="anchor" aria-label="anchor" href="#install-the-system-software-one-or-more-backends"></a>
 </h2>
-<p>Pick at least one. These are the only manual steps; commands are
-grouped by operating system.</p>
+<p>At least one is required. These are the only manual steps; commands
+are grouped by operating system.</p>
 <ul>
 <li>
-<strong>GLPK</strong> — the <code>glpsol</code> executable.
+<strong>GLPK</strong> — the <code>glpsol</code> executable. The
+simplest route on every platform is the <a href="https://cran.r-project.org/package=glpsol" class="external-link">glpsol</a> R package,
+which bundles the GLPK binary: <code>install.packages("glpsol")</code>.
+energyRt uses it first whenever it is installed, so a first model needs
+no system solver. A system GLPK also works:
 <ul>
 <li>
-<em>Windows</em>: <strong>already included</strong> —
-<code>glpsol.exe</code> ships with <strong>Rtools 4.5</strong> (which
-you already have, since Rtools is needed to build energyRt from source),
-at <code>C:/rtools45/x86_64-w64-mingw32.static.posix/bin</code>. No
-separate install.</li>
+<em>Windows</em>: <code>glpsol.exe</code> ships with <strong>Rtools
+4.5</strong> at
+<code>C:/rtools45/x86_64-w64-mingw32.static.posix/bin</code>.</li>
 <li>
 <em>macOS</em>: <code>brew install glpk</code>.</li>
 <li>
 <em>Ubuntu/Debian</em>:
 <code>sudo apt install glpk-utils</code>.</li>
-<li>If <code>glpsol</code> is not detected, set the path —
+<li>If a system <code>glpsol</code> is not detected, set its path —
 <code>set_glpk_path("C:/rtools45/x86_64-w64-mingw32.static.posix/bin")</code>
 (macOS/Ubuntu package managers put it on the <code>PATH</code>
 automatically).</li>
@@ -290,7 +294,7 @@ already on the <code>PATH</code>.</li>
 </li>
 <li>
 <strong>Python</strong> — install <a href="https://github.com/conda-forge/miniforge" class="external-link">Miniforge</a>
-(recommended; gives you <code>conda</code>).
+(recommended; provides <code>conda</code>).
 <ul>
 <li>
 <em>Windows</em>: run the <code>Miniforge3</code> installer; avoid
@@ -330,8 +334,8 @@ needs in one call:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/en_install_deps.html">en_install_deps</a></span><span class="op">(</span><span class="op">)</span>   <span class="co"># detects runtimes, then installs Julia + Python + R libs</span></span></code></pre></div>
 <p><code><a href="../reference/en_install_deps.html">en_install_deps()</a></code> runs a dependency check, installs only
 the safe library layer for the runtimes it finds (skipping — with a
-warning — any runtime that is missing), and re-checks at the end. You
-can also install per backend:</p>
+warning — any runtime that is missing), and re-checks at the end. Each
+backend can also be installed separately:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/en_install_julia_pkgs.html">en_install_julia_pkgs</a></span><span class="op">(</span><span class="op">)</span>      <span class="co"># JuMP, HiGHS, Cbc, Clp, ... into the Julia env</span></span>
 <span><span class="fu"><a href="../reference/en_install_python_deps.html">en_install_python_deps</a></span><span class="op">(</span><span class="op">)</span>     <span class="co"># conda env "energyRt" with pyomo + cbc (or pip)</span></span>
@@ -339,12 +343,20 @@ can also install per backend:</p>
 <div class="section level3">
 <h3 id="manual-alternative">Manual alternative<a class="anchor" aria-label="anchor" href="#manual-alternative"></a>
 </h3>
-<p>If a helper fails, run the same steps by hand.</p>
+<p>If a helper fails, the same steps can be run by hand.</p>
 <p>R layer — the GAMS GDX bridge (not on CRAN) plus optional I/O
 helpers:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"lolow/gdxtools"</span><span class="op">)</span>   <span class="co"># or remotes::install_github("lolow/gdxtools")</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"jsonlite"</span>, <span class="st">"readxl"</span>, <span class="st">"openxlsx"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"jsonlite"</span>, <span class="st">"readxl"</span>, <span class="st">"openxlsx"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># geoscale features -- topia$geoscales, plot_geoscale(), multi-level regions.</span></span>
+<span><span class="co"># A sibling optimal2050 package, not on CRAN:</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"optimal2050/geoscales"</span><span class="op">)</span></span></code></pre></div>
+<p>(<code>timescales</code>, the other sibling, is a <em>build-time</em>
+dependency only: the shipped <code>calendars</code> are generated from
+its catalog by <code>data-raw/calendars.R</code>. Nothing at run time
+needs it, so there is no reason to install it to use energyRt.)</p>
 <p>Julia layer — from the Julia REPL (or
 <code>julia -e "..."</code>):</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="im">using</span> <span class="bu">Pkg</span></span>
@@ -352,7 +364,13 @@ helpers:</p>
 <span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>         <span class="st">"CodecBzip2"</span>, <span class="st">"Gadfly"</span>, <span class="st">"DataFrames"</span>, <span class="st">"CSV"</span>, <span class="st">"SQLite"</span>, <span class="st">"Dates"</span>])</span></code></pre></div>
 <p>Python/Pyomo layer — conda (recommended) or pip:</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="ex">conda</span> create <span class="at">-y</span> <span class="at">-n</span> energyRt python</span>
-<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="ex">conda</span> install <span class="at">-y</span> <span class="at">-n</span> energyRt <span class="at">-c</span> conda-forge pyomo pandas pyarrow highspy coincbc</span></code></pre></div>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="ex">conda</span> install <span class="at">-y</span> <span class="at">-n</span> energyRt <span class="at">-c</span> conda-forge pyomo pandas pyarrow highspy coincbc glpk</span></code></pre></div>
+<p><code>glpk</code> and <code>coincbc</code> are what
+<code>solver_options$pyomo_glpk</code> and <code>$pyomo_cbc</code> reach
+for: Pyomo finds them as <strong>executables</strong>, so leaving either
+out makes that preset report itself unavailable even though Pyomo itself
+is installed. <code>highspy</code> is different — it ships HiGHS as a
+library (see below).</p>
 <p><code>pip</code> works just as well for this backend, because
 <code>highspy</code> ships HiGHS itself as a wheel (unlike CBC, which
 pip cannot supply):</p>
@@ -365,8 +383,8 @@ pip cannot supply):</p>
 <p><code>highspy</code> is the <strong>only</strong> way Pyomo reaches
 HiGHS: <code>SolverFactory("highs")</code> resolves to a shell solver
 that looks for a <code>highs</code> executable and reports itself
-unavailable. Install a current <code>highspy</code> and check what you
-actually got:</p>
+unavailable. A current <code>highspy</code> is required, and the
+installed version should be verified:</p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="ex">python</span> <span class="at">-c</span> <span class="st">"import highspy; h=highspy.Highs(); print(h.versionMajor(), h.versionMinor(), h.versionPatch())"</span></span></code></pre></div>
 <p>On <strong>HiGHS 1.7.2</strong> the interior-point option —
 <code>solver = "ipm"</code>, which
@@ -374,39 +392,39 @@ actually got:</p>
 before the solver starts</strong>: no HiGHS banner, no CPU use, and a
 <code>time_limit</code> cannot interrupt it, because HiGHS is never
 reached. The same models solve normally on <strong>HiGHS 1.13+</strong>.
-If you are stuck on an old <code>highspy</code>, use
-<code>solver_options$pyomo_highs</code> (simplex defaults), which works
-on 1.7.2 — but expect it to be several times slower than barrier on a
-large LP.</p>
+Where an old <code>highspy</code> cannot be replaced,
+<code>solver_options$pyomo_highs</code> (simplex defaults) works on
+1.7.2, at several times the barrier solve time on a large LP.</p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="point-energyrt-at-the-installations">5. Point energyRt at the installations<a class="anchor" aria-label="anchor" href="#point-energyrt-at-the-installations"></a>
 </h2>
-<p>If a runtime is not on your <code>PATH</code>, set its path. For
-Python/Pyomo, point at the conda environment created above:</p>
+<p>If a runtime is not on the <code>PATH</code>, its path is set
+explicitly. For Python/Pyomo, the path is the conda environment created
+above:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/solver.html">set_julia_path</a></span><span class="op">(</span><span class="st">"~/.juliaup/bin/"</span><span class="op">)</span>             <span class="co"># same on all platforms</span></span>
-<span><span class="fu"><a href="../reference/solver.html">set_python_path</a></span><span class="op">(</span><span class="st">"~/.conda/envs/energyRt"</span><span class="op">)</span>     <span class="co"># or the env you created</span></span>
+<span><span class="fu"><a href="../reference/solver.html">set_python_path</a></span><span class="op">(</span><span class="st">"~/.conda/envs/energyRt"</span><span class="op">)</span>     <span class="co"># or the environment created above</span></span>
 <span><span class="fu"><a href="../reference/solver.html">set_glpk_path</a></span><span class="op">(</span><span class="st">"C:/rtools45/x86_64-w64-mingw32.static.posix/bin"</span><span class="op">)</span>  <span class="co"># Windows (Rtools 4.5); unneeded on macOS/Ubuntu</span></span>
 <span><span class="fu"><a href="../reference/solver.html">set_gams_path</a></span><span class="op">(</span><span class="st">"C:/GAMS/&lt;version&gt;/"</span><span class="op">)</span>           <span class="co"># see step 3 for macOS/Ubuntu paths</span></span></code></pre></div>
 <p>These are equivalent to <code>set_solver_path("julia", ...)</code>,
-<code>set_solver_path("gams", ...)</code> and so on — use whichever
-reads better.</p>
+<code>set_solver_path("gams", ...)</code> and so on; either form is
+accepted.</p>
 <div class="section level3">
-<h3 id="make-it-stick">Make it stick<a class="anchor" aria-label="anchor" href="#make-it-stick"></a>
+<h3 id="persisting-the-settings">Persisting the settings<a class="anchor" aria-label="anchor" href="#persisting-the-settings"></a>
 </h3>
-<p>The calls above last for the current session. Save them once and
-every later session starts configured:</p>
+<p>The calls above last for the current session. Saved once, they apply
+to every later session:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/en_config.html">en_config_write</a></span><span class="op">(</span><span class="op">)</span>        <span class="co"># -&gt; ~/.energyRt/config.yml</span></span></code></pre></div>
 <p><code><a href="../reference/en_config.html">en_config_write()</a></code> with no arguments writes every option
-that differs from the package default. Use
-<code>en_config_write(global = FALSE)</code> to write
-<code>.energyRt.yml</code> in the current project instead, when one
-project needs a different GAMS version from the rest.</p>
-<p>To see what is actually in effect — and, when a solver is not found,
-where the wrong value came from:</p>
+that differs from the package default.
+<code>en_config_write(global = FALSE)</code> writes
+<code>.energyRt.yml</code> in the current project instead, for a project
+that needs a different GAMS version from the rest.</p>
+<p>To show what is in effect — and, when a solver is not found, where
+the wrong value came from:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/en_config_show.html">en_config_show</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>Each option reports its source: an R option
@@ -419,8 +437,8 @@ all.</p>
 <div class="section level2">
 <h2 id="verify-end-to-end">6. Verify end-to-end<a class="anchor" aria-label="anchor" href="#verify-end-to-end"></a>
 </h2>
-<p>Re-check (everything you installed should now be green), choose a
-default solver, and solve a tiny model:</p>
+<p>A re-check (every installed backend should now report ready), a
+default solver, and a small model solve complete the setup:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/en_check.html">en_check_dependencies</a></span><span class="op">(</span>solver_pkgs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># also verifies JuMP/HiGHS in Julia</span></span>
 <span><span class="fu"><a href="../reference/default_solver.html">set_default_solver</a></span><span class="op">(</span><span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs_barrier</span><span class="op">)</span>  <span class="co"># or solver_options$glpk</span></span>
@@ -428,8 +446,8 @@ default solver, and solve a tiny model:</p>
 <span><span class="co"># a minimal model solve confirms the full toolchain works</span></span>
 <span><span class="co"># (see the "Model bricks" article for assembling a model)</span></span></code></pre></div>
 <p>If two or more backends are installed, solving the same scenario with
-each and comparing objectives is the strongest check that your setup is
-correct.</p>
+each and comparing objectives is the strongest check of a correct
+setup.</p>
 </div>
 <div class="section level2">
 <h2 id="optional-extras">7. Optional extras<a class="anchor" aria-label="anchor" href="#optional-extras"></a>
@@ -449,7 +467,7 @@ it.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"tinytex"</span><span class="op">)</span></span>
 <span><span class="fu">tinytex</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tinytex/man/install_tinytex.html" class="external-link">install_tinytex</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># maps for plot_trade_map() / the utopia$map layouts</span></span>
+<span><span class="co"># maps for plot_trade_map() / the topia$geoscales layouts</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"sf"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># GAMS gdx exchange</span></span>

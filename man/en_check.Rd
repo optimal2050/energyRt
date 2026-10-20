@@ -9,6 +9,7 @@
 \alias{en_check_gams}
 \alias{en_check_gdx}
 \alias{en_check_julia_pkgs}
+\alias{en_check_solve}
 \alias{en_check_dependencies}
 \title{Detect external solver software and dependencies}
 \usage{
@@ -24,14 +25,27 @@ en_check_gams()
 
 en_check_gdx()
 
-en_check_julia_pkgs(pkgs = c("JuMP", "HiGHS"))
+en_check_julia_pkgs(pkgs = c("JuMP", "HiGHS", "Arrow"))
 
-en_check_dependencies(solver_pkgs = FALSE)
+en_check_solve(backends = NULL, timeout = 180)
+
+en_check_dependencies(solver_pkgs = FALSE, solve = FALSE)
 }
 \arguments{
 \item{pkgs}{character vector of Julia package names to verify.}
 
+\item{backends}{character vector naming the backends to probe: any of
+\code{"glpk"}, \code{"julia"}, \code{"pyomo"}, \code{"mm"}, \code{"gams"}. \code{NULL} (default) probes
+every one whose toolchain is configured EXCEPT \code{"gams"}, which is
+proprietary and must be asked for by name.}
+
+\item{timeout}{seconds allowed per backend before the probe gives up.}
+
 \item{solver_pkgs}{verify Julia solver packages too (slower; starts Julia).}
+
+\item{solve}{also run \code{\link[=en_check_solve]{en_check_solve()}}, which SOLVES a tiny model on each
+configured backend. \code{FALSE} by default: the plain dependency check starts no
+solver.}
 }
 \value{
 A one-row (\verb{en_check_*}) or multi-row (\code{en_check_dependencies}) tibble,
@@ -47,11 +61,18 @@ backend and return a one-row tibble (\code{component}, \code{required}, \code{fo
 
 Each detector honours the path configured via the corresponding
 \verb{set_*_path()} (e.g. \code{\link[=set_julia_path]{set_julia_path()}}) and falls back to the system \code{PATH}.
+
+\code{en_check_solve()} is the one exception to "read-only": it SOLVES a tiny
+model (objective 8) on each configured backend, which is the only way to tell
+a backend that is installed from one that can produce a number. A backend
+that is not configured is not probed at all.
 }
 \examples{
 \dontrun{
 en_check_dependencies()
 en_check_julia()
+en_check_solve()                      # solves on every configured backend
+en_check_solve(backends = "gams")     # proprietary: ask for it by name
 }
 }
 \seealso{

@@ -8,9 +8,15 @@ en_install_julia_pkgs(pkgs = NULL, update = FALSE)
 }
 \arguments{
 \item{pkgs}{A character vector of Julia packages to install. The default is
-\code{c("JuMP", "HiGHS", "Cbc", "Clp", "RData", "RCall", "CodecBzip2",
-"Gadfly", "DataFrames", "CSV", "SQLite", "Dates")}.
-If you have pre-installed CPLEX or Gurobi, you can add them to the list.}
+\code{c("JuMP", "HiGHS", "GLPK", "Cbc", "Arrow", "RData", "DataFrames")}:
+the solvers the shipped \verb{julia_*} presets name, plus \code{Arrow} for the default
+data exchange (see \code{\link[=get_exchange_format]{get_exchange_format()}}), \code{RData} for the
+\code{julia_highs_rdata} preset, and \code{DataFrames}, which the generated code uses.
+The \verb{julia_cplex*} and \verb{julia_cuopt*} presets need \code{CPLEX} / \code{cuOpt}, which
+are licensed or GPU-specific and so are not installed by default -- add them
+to \code{pkgs} yourself. \code{Dates} is a Julia standard library and needs no install.}
+
+\item{update}{logical; also run \code{Pkg.update()} after adding the packages.}
 }
 \value{
 NULL if the completion is successful. The verification of the installation is

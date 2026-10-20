@@ -1,4 +1,4 @@
-# Is this a geoscales::Geoscale?
+# Is this a geoscales::GeoScale?
 
 Type test that does not require `geoscales` to be installed – an S7
 object carries its class attribute either way. Accepts both the
@@ -24,6 +24,6 @@ is_geoscale(x)
 ## Examples
 
 ``` r
-is_geoscale(NULL)
+energyRt:::is_geoscale(NULL)
 #> [1] FALSE
 ```

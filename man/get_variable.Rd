@@ -4,10 +4,10 @@
 \alias{get_variable}
 \title{Get one solved variable from a scenario}
 \usage{
-get_variable(scen, name, data = TRUE)
+get_variable(object, name, data = TRUE)
 }
 \arguments{
-\item{scen}{a scenario.}
+\item{object}{a scenario.}
 
 \item{name}{character, the variable's name.}
 
@@ -18,6 +18,26 @@ a data.frame, a \code{variable}, or NULL if there is no such variable.
 }
 \description{
 Get one solved variable from a scenario
+}
+\examples{
+\dontrun{
+open_project(tempdir())
+
+ek   <- topia$modules$electricity$R3
+mod  <- newModel("TOPIA", data = ek$repo,
+                 calendar = topia$modules$calendars$s4_h24,
+                 region = ek$regions,
+                 horizon = topia$modules$horizons$base,
+                 discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
+scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+
+# the solved values
+get_variable(scen, "vTechCap")
+
+# the `variable` object itself, with its sets and units
+get_variable(scen, "vTechCap", data = FALSE)
+}
 }
 \seealso{
 Other variable:

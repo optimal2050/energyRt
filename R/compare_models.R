@@ -29,6 +29,22 @@
 #' @seealso [compare_scenarios()], [compare_inputs()], [object_hash()].
 #' @family comparison
 #' @export
+#' @examples
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$s4_h24,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base,
+#'                 discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
+#'
+#' # swap domestic gas for a three-step supply curve and see what moved
+#' mod2 <- add(mod, ek$GAS_CURVE, overwrite = TRUE)
+#' cmp <- compare_models(mod, mod2, names = c("flat", "curve"))
+#' cmp
+#'
+#' # drill into the one object that changed
+#' print(cmp, name = "SUP_GAS")
 compare_models <- function(a, b, names = c("A", "B"), tol = 1e-8,
                            details = TRUE) {
   objs <- function(x) {

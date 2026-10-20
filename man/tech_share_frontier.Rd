@@ -17,3 +17,18 @@ Purely geometric helper — no model solve required.  Returns the feasible
 share band for each commodity in each constrained input or output group of
 the technology.
 }
+\examples{
+# a co-firing plant whose biomass may cover at most 30\% of the fuel group
+chp <- newTechnology(
+  "CHP",
+  input   = data.frame(comm = c("COA", "BIO"), group = "fuel"),
+  output  = data.frame(comm = "ELC"),
+  group   = data.frame(group = "fuel", unit = "MMBtu"),
+  ceff    = data.frame(comm = c("COA", "BIO"), cinp2use = c(0.40, 0.35),
+                       grp.share.up = c(1, 0.3)),
+  cap2act = 8760
+)
+
+# the feasible share band per commodity, and what it does to efficiency
+tech_share_frontier(chp)
+}

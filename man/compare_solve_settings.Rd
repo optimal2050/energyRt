@@ -5,7 +5,7 @@
 \title{Compare interpolation settings AND solvers for a model}
 \usage{
 compare_solve_settings(
-  mod,
+  object,
   settings = NULL,
   solvers,
   ...,
@@ -15,7 +15,7 @@ compare_solve_settings(
 )
 }
 \arguments{
-\item{mod}{a \code{model}.}
+\item{object}{a \code{model}.}
 
 \item{settings}{a named list of \code{interp_mod()} setting combinations (see
 \code{\link[=compare_interp_settings]{compare_interp_settings()}}); \code{NULL} uses the default grid.}

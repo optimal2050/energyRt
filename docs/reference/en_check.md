@@ -13,6 +13,11 @@ Each detector honours the path configured via the corresponding
 [`set_julia_path()`](https://energyRt.org/reference/solver.md)) and
 falls back to the system `PATH`.
 
+`en_check_solve()` is the one exception to "read-only": it SOLVES a tiny
+model (objective 8) on each configured backend, which is the only way to
+tell a backend that is installed from one that can produce a number. A
+backend that is not configured is not probed at all.
+
 ## Usage
 
 ``` r
@@ -28,9 +33,11 @@ en_check_gams()
 
 en_check_gdx()
 
-en_check_julia_pkgs(pkgs = c("JuMP", "HiGHS"))
+en_check_julia_pkgs(pkgs = c("JuMP", "HiGHS", "Arrow"))
 
-en_check_dependencies(solver_pkgs = FALSE)
+en_check_solve(backends = NULL, timeout = 180)
+
+en_check_dependencies(solver_pkgs = FALSE, solve = FALSE)
 ```
 
 ## Arguments
@@ -39,9 +46,26 @@ en_check_dependencies(solver_pkgs = FALSE)
 
   character vector of Julia package names to verify.
 
+- backends:
+
+  character vector naming the backends to probe: any of `"glpk"`,
+  `"julia"`, `"pyomo"`, `"mm"`, `"gams"`. `NULL` (default) probes every
+  one whose toolchain is configured EXCEPT `"gams"`, which is
+  proprietary and must be asked for by name.
+
+- timeout:
+
+  seconds allowed per backend before the probe gives up.
+
 - solver_pkgs:
 
   verify Julia solver packages too (slower; starts Julia).
+
+- solve:
+
+  also run `en_check_solve()`, which SOLVES a tiny model on each
+  configured backend. `FALSE` by default: the plain dependency check
+  starts no solver.
 
 ## Value
 
@@ -71,5 +95,7 @@ Other solver:
 if (FALSE) { # \dontrun{
 en_check_dependencies()
 en_check_julia()
+en_check_solve()                      # solves on every configured backend
+en_check_solve(backends = "gams")     # proprietary: ask for it by name
 } # }
 ```

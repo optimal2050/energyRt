@@ -12,7 +12,7 @@ any per-solver disagreement.
 
 ``` r
 compare_solve_settings(
-  mod,
+  object,
   settings = NULL,
   solvers,
   ...,
@@ -24,7 +24,7 @@ compare_solve_settings(
 
 ## Arguments
 
-- mod:
+- object:
 
   a `model`.
 

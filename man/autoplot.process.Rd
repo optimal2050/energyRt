@@ -9,15 +9,52 @@
 \alias{autoplot.storage}
 \title{Visualize a process object over years}
 \usage{
-\method{autoplot}{supply}(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
+\method{autoplot}{supply}(
+  object,
+  year = NULL,
+  interpolate = TRUE,
+  show_defaults = FALSE,
+  units = NULL,
+  style = c("profile", "bar", "regions"),
+  type = c("availability", "cost"),
+  ...
+)
 
-\method{autoplot}{import}(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
+\method{autoplot}{import}(
+  object,
+  year = NULL,
+  interpolate = TRUE,
+  show_defaults = FALSE,
+  units = NULL,
+  ...
+)
 
-\method{autoplot}{export}(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
+\method{autoplot}{export}(
+  object,
+  year = NULL,
+  interpolate = TRUE,
+  show_defaults = FALSE,
+  units = NULL,
+  ...
+)
 
-\method{autoplot}{technology}(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
+\method{autoplot}{technology}(
+  object,
+  year = NULL,
+  interpolate = TRUE,
+  show_defaults = FALSE,
+  units = NULL,
+  ...
+)
 
-\method{autoplot}{storage}(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
+\method{autoplot}{storage}(
+  object,
+  year = NULL,
+  interpolate = TRUE,
+  show_defaults = FALSE,
+  units = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{A \code{supply}, \code{demand}, \code{import}, \code{export}, \code{technology}, or
@@ -37,6 +74,19 @@ the plotted slot(s) that are mapped to the model but NOT set in the
 object are drawn as dotted lines at their default values (e.g. a supply
 without \code{ava.lo} shows its default of 0). Non-finite defaults (e.g.
 \code{ava.up = Inf}) are listed in the caption instead of drawn.}
+
+\item{units}{named list of base units passed to the unit resolver for the
+axis label; \code{NULL} (default) resolves them from the object.}
+
+\item{style}{For \code{supply} only: \code{"profile"} (default) draws the
+per-parameter year profile shared by all process classes; \code{"bar"} draws
+quantity or price by region over the years (stacked availability bars,
+per-region cost lines; \verb{type =} picks the quantity); \code{"regions"} draws
+the across-region comparison — availability and cost bars per region,
+with an unlimited (\code{Inf}) availability shown as a translucent
+full-height bar labelled "uncapped".}
+
+\item{type}{For \code{style = "bar"}: \code{"availability"} (default) or \code{"cost"}.}
 
 \item{...}{Passed to \code{\link[=getData]{getData()}} (e.g. \verb{region=}, \verb{timeslice=} filters).}
 }

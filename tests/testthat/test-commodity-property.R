@@ -20,7 +20,10 @@ test_that("commodity has a `property` slot with the documented columns", {
   expect_true("property" %in% slotNames("commodity"))
   expect_identical(
     names(new("commodity")@property),
-    c("property", "value", "min", "max", "sd", "dist", "unit", "comment")
+    # `cluster` selects the tier a row belongs to (NA = every tier), like the
+    # per-variant columns on the process classes
+    c("cluster", "property", "value", "min", "max", "sd", "dist", "unit",
+      "comment")
   )
   expect_equal(nrow(new("commodity")@property), 0)
 })
@@ -265,10 +268,7 @@ test_that("objects serialised before the slot existed still work", {
 
   expect_silent(p <- .comm_property(old))
   expect_equal(nrow(p), 0)
-  expect_identical(
-    names(p),
-    c("property", "value", "min", "max", "sd", "dist", "unit", "comment")
-  )
+  expect_identical(names(p), names(new("commodity")@property))
   expect_true(is.na(commodity_property(old, "lhv")))
   expect_identical(object_image(old)$status, "none")
   expect_equal(nrow(getUnits(old)[getUnits(old)$slot == "property", ]), 0)

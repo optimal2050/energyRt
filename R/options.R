@@ -1,4 +1,4 @@
-#' @include zzz.R docs.R
+#' @include zzz.R utils.R
 #
 # `options::as_roxygen_docs()` hardcodes `@name options` / `@rdname options`,
 # which would give energyRt a help topic aliased `options` -- colliding with
@@ -76,7 +76,8 @@ options::define_option(
   "glpk_path",
   desc = paste(
     "Path to a standalone GLPK installation containing the `glpsol`",
-    "executable. If unset, `glpsol` is auto-detected on the session PATH --",
+    "executable. If unset, the glpsol R package's bundled binary is used when",
+    "installed, otherwise `glpsol` is auto-detected on the session PATH --",
     "which on Windows finds the copy bundled with Rtools."
   ),
   default = NULL
@@ -105,6 +106,11 @@ options::define_option(
   desc = "XML-RPC endpoint of the NEOS Server.",
   default = "https://neos-server.org:3333"
 )
+
+# Cloud credentials are NOT options here. The `mmcloud` package owns them --
+# it is what talks to the service and what the python transfer helper inherits
+# `HF_TOKEN` from -- so defining them again would give two sources of truth for
+# one token. Use `set_hf_token()`, which forwards to mmcloud.
 
 # Defaults ####################################################################
 
@@ -142,8 +148,11 @@ options::define_option(
 options::define_option(
   "models_path",
   desc = paste(
-    "Root directory for the model store. save_model() writes",
-    "content-addressed model folders (<name>@<hash8>) underneath it."
+    "Root directory for the model store, a sibling of the scenarios/ store.",
+    "save_model() writes one folder per model name underneath it, updated in",
+    "place; the content hash lives in the entry's model.yml. Scenarios saved",
+    "with the default embed_model = NULL store their model here and",
+    "reference it."
   ),
   default = "models/"
 )
@@ -152,7 +161,8 @@ options::define_option(
   "repositories_path",
   desc = paste(
     "Root directory for the repository store. save_repository() writes",
-    "content-addressed repository folders (<name>@<hash8>) underneath it."
+    "one folder per repository name underneath it, updated in place; the",
+    "content hash lives in the entry's repository.yml."
   ),
   default = "repositories/"
 )
@@ -160,8 +170,9 @@ options::define_option(
 options::define_option(
   "datasets_path",
   desc = paste(
-    "Root directory for the dataset store. save_dataset() writes",
-    "content-addressed dataset folders (<name>@<hash8>) underneath it."
+    "Root directory for the dataset store. save_dataset() writes one",
+    "folder per dataset name underneath it, updated in place; the content",
+    "hash lives in the entry's dataset.yml."
   ),
   default = "datasets/"
 )
@@ -177,16 +188,16 @@ options::define_option(
 )
 
 options::define_option(
-  "store_versioning",
+  "profile_dir",
   desc = paste(
-    "How the model/repository/dataset stores name their entries. \"none\"",
-    "(default): one human-readable folder per name (models/UTOPIA/), updated",
-    "in place; the content hash lives in the manifest and misc$hash for",
-    "no-op detection and reference verification. \"hash\": content-addressed",
-    "<name>@<hash8> folders; every content change is a NEW entry and",
-    "versions coexist."
+    "Directory for the interpolation profile log (interp_runs.csv,",
+    "interp_stages.csv, interp_maps.csv, interp_params.csv -- per-run",
+    "timing and memory tables, appended after every interpolation).",
+    "Empty (default) = fall back to the operation log's directory, then",
+    "to <project>/logs/ when a project registry exists; no sink = no",
+    "files written."
   ),
-  default = "none"
+  default = ""
 )
 
 options::define_option(
@@ -209,28 +220,78 @@ options::define_option(
   default = "levcosts/"
 )
 
-# Storage / exchange format ###################################################
-# Format used to exchange model data / solution with the JuMP / Pyomo solvers
-# (written into the solver run-folder), and the default on-disk storage codec.
+options::define_option(
+  "path_builders",
+  desc = paste(
+    "Named list of user functions overriding the built-in folder-name",
+    "derivations (session-local; set with set_path_builder()). Hookable",
+    "kinds: scenario_dir, store_entry, run_label, slug — see",
+    "?path_builders for the contracts."
+  ),
+  default = list()
+)
+
+# Storage and exchange formats ################################################
+# Two distinct roles, two distinct options. STORAGE is the codec of the on-disk
+# tables that outlive the session (scenario parameter/variable stores, the
+# model/repository/dataset stores). EXCHANGE is the codec of the files handed to
+# the JuMP / Pyomo solvers in a run folder, written once and read once.
+# They pull in opposite directions -- storage trades CPU for lasting size,
+# exchange wants the write and the read cheap -- so their compression defaults
+# differ.
 
 options::define_option(
-  "arrow_format",
+  "storage_format",
   desc = paste(
-    "Default Arrow exchange format for the JuMP/Pyomo solvers:",
-    "'feather' (IPC), 'parquet', or 'csv'."
+    "On-disk table storage format: 'feather' (IPC), 'parquet', or 'csv';",
+    "'arrow' and 'ipc' are aliases for feather. Both support lazy filtered",
+    "reads. Size depends far more on DICTIONARY ENCODING than on the",
+    "container: parquet dictionary-encodes repeated strings itself, feather",
+    "only if the caller passes factors. Measured on a 543k-row table with",
+    "zstd-15: plain feather 11.8 MB, parquet 1.10 MB either way, feather with",
+    "factor columns 1.03 MB and 4.5x faster to read."
   ),
   default = "feather"
 )
 
 options::define_option(
-  "arrow_compression",
-  desc = "Arrow compression codec: 'zstd', 'lz4', or 'uncompressed'.",
+  "storage_compression",
+  desc = "Storage compression codec: 'zstd', 'lz4', or 'uncompressed'.",
   default = "zstd"
 )
 
 options::define_option(
-  "arrow_compression_level",
-  desc = "Arrow compression level (codec-dependent; ZSTD supports 1-22).",
+  "storage_compression_level",
+  desc = "Storage compression level (codec-dependent; ZSTD supports 1-22).",
+  default = 15L
+)
+
+options::define_option(
+  "exchange_format",
+  desc = paste(
+    "Data-exchange format for the JuMP/Pyomo solvers: 'feather' (IPC),",
+    "'parquet', or 'csv'. Julia's Arrow.jl reads IPC only. A solver's",
+    "`export_format`/`import_format` overrides this per solve."
+  ),
+  default = "feather"
+)
+
+options::define_option(
+  "exchange_compression",
+  desc = paste(
+    "Exchange compression codec: 'zstd', 'lz4', or 'uncompressed'. Exchange",
+    "files are written and read within the same solve, so the default trades",
+    "size for speed."
+  ),
+  default = "lz4"
+)
+
+options::define_option(
+  "exchange_compression_level",
+  desc = paste(
+    "Exchange compression level (codec-dependent; ZSTD supports 1-22).",
+    "Ignored for lz4."
+  ),
   default = 15L
 )
 
@@ -290,7 +351,7 @@ options::define_option(
 #' @rdname en_option
 #' @export
 #' @examples
-#' get_option("arrow_format")
+#' get_option("storage_format")
 set_option <- function(name, value) {
   options::opt_set(name, value, env = "energyRt")
 }
@@ -349,9 +410,10 @@ get_option <- function(name, default = NULL) {
 #' thin wrappers around them.
 #'
 #' Setting a path is optional. When it is unset, each backend falls back to its
-#' own discovery: `glpk` searches the session `PATH` and well-known
-#' install locations (on Windows `glpsol` is found in Rtools, which bundles
-#' GLPK), while `gams`, `python` and `julia` simply invoke the bare command and
+#' own discovery: `glpk` uses the binary bundled by the glpsol R package when
+#' that is installed, then searches the session `PATH` and well-known install
+#' locations (on Windows `glpsol` is found in Rtools, which bundles GLPK),
+#' while `gams`, `python` and `julia` simply invoke the bare command and
 #' let the OS resolve it on `PATH`. Set a path only to override that, for
 #' instance to pick between several installed GAMS versions.
 #'
@@ -388,21 +450,11 @@ get_solver_path <- function(backend) {
   name <- .solver_path_options[[backend]]
   res <- tryCatch(options::opt(name), error = function(e) NULL)
 
-  # Deprecated: the un-prefixed environment variables used before ENERGYRT_*.
-  if ((is.null(res) || !nzchar(res)) &&
-      identical(.en_opt_source(name), "default")) {
-    legacy <- Sys.getenv(.solver_path_legacy_envvars[[backend]], unset = "")
-    if (nzchar(legacy)) {
-      .en_deprecate_once(
-        paste0("envvar_", backend),
-        paste0("Environment variable `", .solver_path_legacy_envvars[[backend]],
-               "` is deprecated. Use `",
-               toupper(paste0("ENERGYRT_", .solver_path_options[[backend]])),
-               "` instead.")
-      )
-      res <- legacy
-    }
-  }
+  # The un-prefixed environment variables (`GLPK_PATH` and friends) were read
+  # until v0.90 and are not any more: only `ENERGYRT_*` is consulted. Dropping
+  # them is silent by design -- those names belong to other tools as often as
+  # to us, so erroring on one a user set for another program would be hostile.
+  # `en_check_dependencies()` reports what energyRt can actually find.
 
   if (is.null(res) || !nzchar(res)) NULL else res
 }
@@ -443,18 +495,9 @@ get_solver_path <- function(backend) {
 #' isVerbose()
 #' isDebug(2)
 isVerbose <- function(level = 1) {
-  # Deprecated: `energyRt.verbose` predates the registry and is documented in
-  # ?interpolate_model, so honour it while the user has not set `en.verbose`.
-  if (identical(.en_opt_source("verbose"), "default")) {
-    legacy <- getOption("energyRt.verbose", NULL)
-    if (!is.null(legacy)) {
-      .en_deprecate_once(
-        "energyRt.verbose",
-        'Option "energyRt.verbose" is deprecated. Use options(en.verbose = 1).'
-      )
-      return(.as_report_level(legacy) >= level)
-    }
-  }
+  # `options(energyRt.verbose)` was honoured until v0.90; `en.verbose` is the
+  # only name now. Silent for the same reason as the solver path variables: an
+  # option set in a user's profile should not start raising errors.
   .as_report_level(options::opt("verbose", env = "energyRt")) >= level
 }
 
@@ -595,20 +638,6 @@ get_datasets_path <- function() {
   options::opt("datasets_path")
 }
 
-#' @family options
-#' @rdname registry_file
-#' @export
-set_store_versioning <- function(x = NULL) {
-  if (!is.null(x)) x <- match.arg(x, c("none", "hash"))
-  options::opt_set("store_versioning", x)
-}
-
-#' @family options
-#' @rdname registry_file
-#' @export
-get_store_versioning <- function() {
-  options::opt("store_versioning")
-}
 
 # Derived-artifact locations ##################################################
 
@@ -658,6 +687,79 @@ get_levcost_cache_path <- function() {
   options::opt("levcost_cache_path")
 }
 
+# Path builders ###############################################################
+
+#' Override how folder names are derived
+#'
+#' @description
+#' The storage layer derives every folder name through a small set of
+#' seams, each of which a user function can replace for the session:
+#'
+#' | kind | signature | names |
+#' |---|---|---|
+#' | `scenario_dir` | `function(name, model, calendar, horizon)` | the scenario folder basename under [get_scenarios_path()] |
+#' | `store_entry` | `function(type, name)` — type `"model"`, `"repository"` or `"dataset"` | a store entry's basename under its root |
+#' | `run_label` | `function(solver)` — the solver spec list | the default solve label when `run =` is not given |
+#' | `slug` | `function(parts)` — character vector | the sanitize-and-join primitive used everywhere else |
+#'
+#' A hook must return a single non-empty, filesystem-safe string (no path
+#' separators; letters, digits, `.`/`_`/`-`); an invalid return is an
+#' ERROR naming the contract — never a silent fallback. Custom scenario
+#' and store folder names are fully safe: resolution goes through the
+#' registry and the folder manifests, never through parsing names. The
+#' run TREE (`runs/<solve>` vs `runs/<variant>/<solve>`) is structural and
+#' not hookable. A custom `slug` should keep dashes out of the individual
+#' parts, or folder labels become ambiguous (harmless — nothing parses
+#' them — but stated). Hooks are session-local options, not stored in
+#' projects.
+#'
+#' @param scenario_dir,store_entry,run_label,slug a function per the table
+#'   (merged into the active set), or `FALSE` to remove that hook; `NULL`
+#'   (default) leaves it unchanged.
+#' @param kind character, one hook name to fetch (or `NULL` for the whole
+#'   list).
+#' @return `set_path_builder()` the previous list, invisibly;
+#'   `get_path_builder()` the requested function (or `NULL`) / the list.
+#'
+#' @examples
+#' \dontrun{
+#' set_path_builder(scenario_dir = function(name, model, calendar, horizon)
+#'   paste(name, calendar, sep = "."))
+#' set_path_builder(scenario_dir = FALSE)   # back to the default
+#' }
+#' @family options
+#' @rdname path_builders
+#' @export
+set_path_builder <- function(scenario_dir = NULL, store_entry = NULL,
+                             run_label = NULL, slug = NULL) {
+  hooks <- list(scenario_dir = scenario_dir, store_entry = store_entry,
+                run_label = run_label, slug = slug)
+  cur <- options::opt("path_builders") %||% list()
+  old <- cur
+  for (k in names(hooks)) {
+    v <- hooks[[k]]
+    if (is.null(v)) next
+    if (isFALSE(v)) {
+      cur[[k]] <- NULL
+    } else if (is.function(v)) {
+      cur[[k]] <- v
+    } else {
+      stop("`", k, "` must be a function (or FALSE to remove the hook).")
+    }
+  }
+  options::opt_set("path_builders", cur)
+  invisible(old)
+}
+
+#' @rdname path_builders
+#' @export
+get_path_builder <- function(kind = NULL) {
+  cur <- options::opt("path_builders") %||% list()
+  if (is.null(kind)) cur else cur[[kind]]
+}
+
+#' @param path character, the file or directory to use; `NULL` clears the
+#'   setting and restores the default.
 #' @family options
 #' @rdname log
 #' @export
@@ -672,55 +774,159 @@ get_log_file <- function() {
   options::opt("log_file")
 }
 
-# Arrow exchange format #######################################################
-
-#' Arrow exchange-format options
+#' @description
+#' `get_profile_dir()` / `set_profile_dir()` locate the interpolation
+#' profile log: four CSV files (`interp_runs.csv`, `interp_stages.csv`,
+#' `interp_maps.csv`, `interp_params.csv`) that every `interpolate_model()`
+#' call appends its per-stage / per-map / per-parameter timing and memory
+#' readings to (R heap, per-stage heap peak, OS process RSS and its
+#' process-lifetime peak). When unset, the tables land next to the
+#' operation log if one is set, else under `<project>/logs/` when a
+#' project registry exists; with no sink resolvable nothing is written.
 #'
-#' Getters / setters for the Arrow format used to exchange data with the
-#' JuMP / Pyomo solvers (and the default on-disk storage codec).
+#' @family options
+#' @rdname log
+#' @export
+set_profile_dir <- function(path = NULL) {
+  options::opt_set("profile_dir", path)
+}
+
+#' @family options
+#' @rdname log
+#' @export
+get_profile_dir <- function() {
+  options::opt("profile_dir")
+}
+
+# Storage format ##############################################################
+
+#' On-disk table storage options
+#'
+#' @description
+#' Getters / setters for the codec of the tables energyRt writes to disk: a
+#' scenario's parameter and variable stores, and the model / repository /
+#' dataset stores. `"feather"` (Arrow IPC) and `"parquet"` both compress and
+#' both support lazy, filtered reads through `open_dataset()`; parquet is
+#' smaller, feather reads faster. `"csv"` is uncompressed and loses column
+#' types on the round trip.
+#'
+#' The format is recorded in the store's manifest and is authoritative when an
+#' existing store is rewritten, so changing this option never mixes codecs
+#' inside one store. The content-addressed stores ([save_model()],
+#' [save_repository()], [save_dataset()]) pin parquet regardless, because their
+#' identity is a content hash that must be reproducible.
+#'
+#' For the files handed to a solver, see [get_exchange_format()].
 #'
 #' @param format one of `"feather"`, `"parquet"`, `"csv"`.
 #' @param codec compression codec, e.g. `"zstd"`, `"lz4"`, `"uncompressed"`.
-#' @param level integer compression level (ZSTD: 1-22).
+#' @param level integer compression level (ZSTD: 1-22; ignored for lz4).
 #'
 #' @return the option value (getters) or the previous value, invisibly (setters).
 #'
 #' @family options
-#' @rdname arrow_format
+#' @rdname storage_format
 #' @export
 #' @examples
-#' get_arrow_format()
-get_arrow_format <- function() options::opt("arrow_format")
+#' get_storage_format()
+get_storage_format <- function() options::opt("storage_format")
 
 #' @family options
-#' @rdname arrow_format
+#' @rdname storage_format
 #' @export
-set_arrow_format <- function(format = c("feather", "parquet", "csv")) {
+set_storage_format <- function(format = c("feather", "parquet", "csv")) {
   format <- match.arg(format)
-  options::opt_set("arrow_format", format)
+  options::opt_set("storage_format", format)
 }
 
 #' @family options
-#' @rdname arrow_format
+#' @rdname storage_format
 #' @export
-get_arrow_compression <- function() options::opt("arrow_compression")
+get_storage_compression <- function() options::opt("storage_compression")
 
 #' @family options
-#' @rdname arrow_format
+#' @rdname storage_format
 #' @export
-set_arrow_compression <- function(codec = c("zstd", "lz4", "uncompressed")) {
+set_storage_compression <- function(codec = c("zstd", "lz4", "uncompressed")) {
   codec <- match.arg(codec)
-  options::opt_set("arrow_compression", codec)
+  options::opt_set("storage_compression", codec)
 }
 
 #' @family options
-#' @rdname arrow_format
+#' @rdname storage_format
 #' @export
-get_arrow_compression_level <- function() options::opt("arrow_compression_level")
+get_storage_compression_level <- function() {
+  options::opt("storage_compression_level")
+}
 
 #' @family options
-#' @rdname arrow_format
+#' @rdname storage_format
 #' @export
-set_arrow_compression_level <- function(level = 15L) {
-  options::opt_set("arrow_compression_level", as.integer(level))
+set_storage_compression_level <- function(level = 15L) {
+  options::opt_set("storage_compression_level", as.integer(level))
+}
+
+# Exchange format #############################################################
+
+#' Solver data-exchange options
+#'
+#' @description
+#' Getters / setters for the codec of the files exchanged with the JuMP and
+#' Pyomo backends: the model data written into the run's `solver/input/`, and
+#' the solution written back into `solver/output/`. Julia's `Arrow.jl` reads
+#' IPC only, so `"parquet"` is available on the Pyomo path and refused on the
+#' Julia one.
+#'
+#' These files live for the duration of one solve, which is why the compression
+#' default is cheaper here than for storage ([get_storage_compression()]).
+#'
+#' A solver preset's `export_format` / `import_format` overrides these options
+#' for that solve, and the two directions stay independent -- Arrow input with
+#' CSV output is a legal combination. Setting a preset's `export_format` to
+#' `"SQLite"` (Pyomo) or `"RData"` (Julia) selects the legacy exchange.
+#'
+#' @inheritParams set_storage_format
+#'
+#' @return the option value (getters) or the previous value, invisibly (setters).
+#'
+#' @family options
+#' @rdname exchange_format
+#' @export
+#' @examples
+#' get_exchange_format()
+get_exchange_format <- function() options::opt("exchange_format")
+
+#' @family options
+#' @rdname exchange_format
+#' @export
+set_exchange_format <- function(format = c("feather", "parquet", "csv")) {
+  format <- match.arg(format)
+  options::opt_set("exchange_format", format)
+}
+
+#' @family options
+#' @rdname exchange_format
+#' @export
+get_exchange_compression <- function() options::opt("exchange_compression")
+
+#' @family options
+#' @rdname exchange_format
+#' @export
+set_exchange_compression <- function(codec = c("zstd", "lz4", "uncompressed")) {
+  codec <- match.arg(codec)
+  options::opt_set("exchange_compression", codec)
+}
+
+#' @family options
+#' @rdname exchange_format
+#' @export
+get_exchange_compression_level <- function() {
+  options::opt("exchange_compression_level")
+}
+
+#' @family options
+#' @rdname exchange_format
+#' @export
+set_exchange_compression_level <- function(level = 15L) {
+  options::opt_set("exchange_compression_level", as.integer(level))
 }

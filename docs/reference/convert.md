@@ -71,6 +71,11 @@ add_to_convert(
 
   logical, can be used with `SI` prefixes, FALSE by default.
 
+- update:
+
+  logical; when the unit already exists with different values, `TRUE`
+  (default) replaces them and `FALSE` raises an error instead.
+
 ## Value
 
 numeric vector with converted values

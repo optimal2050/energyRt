@@ -10,12 +10,9 @@
 # so supplying `eac` alone dropped the capital cost entirely and the storage was
 # built for free. eqTechEac and eqTradeEac never carried that gate.
 #
-# It surfaced converting PyPSA-Eur, whose `capital_cost` is already annuitised,
-# so the converter supplies `eac` only: energyRt built 13.5 GW of battery at
-# zero cost, inflating solar 2.27x. The model solved, reported OPTIMAL and
-# reconciled its own objective -- only an external comparison exposed it.
-# Hence this file asserts BEHAVIOUR (a solve), not just parameter values the
-# way test-eac-input.R does.
+# Asserts BEHAVIOUR (a solve), not parameter values: a model whose annuity was
+# dropped still solves, reports OPTIMAL and reconciles its own objective.
+# test-eac-input.R covers the parameter side.
 # =========================================================================== #
 
 # --- 1. template invariant: no annuity is gated on its investment cost -------

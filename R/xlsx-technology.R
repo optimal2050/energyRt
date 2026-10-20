@@ -75,7 +75,7 @@
 # write ######################################################################
 #' Write `technology` object(s) to an Excel workbook
 #'
-#' Serialises one or more [technology] objects to a `.xlsx` file, one technology
+#' Serialises one or more [class-technology] objects to a `.xlsx` file, one technology
 #' per worksheet. Each slot of the class is written as a labelled mini-table
 #' whose header row matches the columns of the corresponding data.frame slot
 #' (`names(slot(tech, s))`). Scalar slots (`name`, `desc`, `cap2act`, `region`,
@@ -108,6 +108,13 @@
 #' @seealso [read_technology_xlsx()]
 #' @family technology process
 #' @export
+#' @examples
+#' tech <- topia$modules$electricity$R3$ECOA
+#' f <- tempfile(fileext = ".xlsx")
+#'
+#' # one sheet per slot that carries data, plus an `info` sheet
+#' write_technology_xlsx(tech, f)
+#' basename(f)
 write_technology_xlsx <- function(x, path, include_empty = TRUE,
                                   drop_empty_cols = FALSE,
                                   header_fill = "#DDEBF7",
@@ -291,7 +298,7 @@ write_technology_xlsx <- function(x, path, include_empty = TRUE,
 #' Read `technology` object(s) from an Excel workbook
 #'
 #' Inverse of [write_technology_xlsx()]. Reads the block-structured worksheets
-#' produced by that function and rebuilds [technology] objects, coercing each
+#' produced by that function and rebuilds [class-technology] objects, coercing each
 #' mini-table's columns back to the types declared by the class.
 #'
 #' @param path Path to the `.xlsx` file.
@@ -304,6 +311,15 @@ write_technology_xlsx <- function(x, path, include_empty = TRUE,
 #' @seealso [write_technology_xlsx()]
 #' @family technology process
 #' @export
+#' @examples
+#' tech <- topia$modules$electricity$R3$ECOA
+#' f <- tempfile(fileext = ".xlsx")
+#' write_technology_xlsx(tech, f)
+#'
+#' # a named list of the technologies found in the workbook
+#' back <- read_technology_xlsx(f)
+#' names(back)
+#' identical(back[[1]]@name, tech@name)
 read_technology_xlsx <- function(path, sheet = NULL, as_repository = FALSE) {
   if (!requireNamespace("openxlsx", quietly = TRUE))
     stop("Package 'openxlsx' is required: install.packages('openxlsx')")

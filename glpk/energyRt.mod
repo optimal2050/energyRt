@@ -9,6 +9,7 @@ set comm;
 set region;
 set year;
 set timeslice;
+set process;
 set sup;
 set dem;
 set tech;
@@ -18,6 +19,7 @@ set expp;
 set imp;
 set group;
 set weather;
+set levy;
 set FORIF;
 
 
@@ -108,6 +110,11 @@ set mTradeFixom dimen 3;
 set mAggregateFactor dimen 2;
 set mWeatherTimeslice dimen 2;
 set mWeatherRegion dimen 2;
+# (weather, region, regionp): the region whose pWeather series a process
+# operating in `region` reads. Identity for a weather declared where it is
+# used; a coarser `regionp` lets ONE series serve every child region instead
+# of being copied per child. Exactly one regionp per (weather, region).
+set mWeatherRegionAt dimen 3;
 set mSupWeatherLo dimen 2;
 set mSupWeatherUp dimen 2;
 set mTechWeatherAfLo dimen 2;
@@ -122,6 +129,27 @@ set mStorageWeatherInpAfUp dimen 2;
 set mStorageWeatherInpAfLo dimen 2;
 set mStorageWeatherOutAfUp dimen 2;
 set mStorageWeatherOutAfLo dimen 2;
+
+# A weather-dependent process carries one weather variate, or a handful, while
+# `weather` reaches thousands on models with per-cluster profiles. Filtering the
+# whole set inside each constraint makes generation O(rows x |weather|);
+# grouping the mapping once makes it O(1) per row. Membership order follows the
+# mapping, not `weather`, so a process with two or more variates multiplies its
+# factors in a different order than before -- equal to the last bit, not
+# bit-identical.
+set mTechWeatherAfLo_ix{t in tech} := setof{(w, k) in mTechWeatherAfLo: k == t} w;
+set mTechWeatherAfUp_ix{t in tech} := setof{(w, k) in mTechWeatherAfUp: k == t} w;
+set mTechWeatherAfsLo_ix{t in tech} := setof{(w, k) in mTechWeatherAfsLo: k == t} w;
+set mTechWeatherAfsUp_ix{t in tech} := setof{(w, k) in mTechWeatherAfsUp: k == t} w;
+set mSupWeatherLo_ix{s1 in sup} := setof{(w, k) in mSupWeatherLo: k == s1} w;
+set mSupWeatherUp_ix{s1 in sup} := setof{(w, k) in mSupWeatherUp: k == s1} w;
+set mStorageWeatherAfLo_ix{st1 in stg} := setof{(w, k) in mStorageWeatherAfLo: k == st1} w;
+set mStorageWeatherAfUp_ix{st1 in stg} := setof{(w, k) in mStorageWeatherAfUp: k == st1} w;
+set mStorageWeatherInpAfLo_ix{st1 in stg} := setof{(w, k) in mStorageWeatherInpAfLo: k == st1} w;
+set mStorageWeatherInpAfUp_ix{st1 in stg} := setof{(w, k) in mStorageWeatherInpAfUp: k == st1} w;
+set mStorageWeatherOutAfLo_ix{st1 in stg} := setof{(w, k) in mStorageWeatherOutAfLo: k == st1} w;
+set mStorageWeatherOutAfUp_ix{st1 in stg} := setof{(w, k) in mStorageWeatherOutAfUp: k == st1} w;
+
 set mvSupCost dimen 3;
 set mvTechInp dimen 5;
 set mvSupReserve dimen 3;
@@ -142,16 +170,23 @@ set mvTechAct dimen 4;
 set mvTechInpCommSameTimeslice dimen 5;
 set mvTechOut dimen 5;
 set mvTechAInp dimen 5;
+set meqTechAInp dimen 5;
+set meqTechAOut dimen 5;
+set meqStorageAInp dimen 5;
+set meqStorageAOut dimen 5;
 set mvTechAOut dimen 5;
 set mvDemInp dimen 4;
 set mvBalance dimen 4;
 set mvInpTot dimen 4;
 set mvOutTot dimen 4;
 set mTechCapLo dimen 3;
+set mTechCapFx dimen 3;
 set mTechCapUp dimen 3;
 set mTechNewCapLo dimen 3;
+set mTechNewCapFx dimen 3;
 set mTechNewCapUp dimen 3;
 set mTechRetLo dimen 3;
+set mTechRetFx dimen 3;
 set mTechRetUp dimen 3;
 set mvStorageAInp dimen 5;
 set mvStorageAOut dimen 5;
@@ -163,48 +198,74 @@ set meqStorageLevel dimen 6;
 set mStorageStg2AOut dimen 5;
 set mStorageCinp2AOut dimen 5;
 set mStorageCout2AOut dimen 5;
-set mStorageCap2AOut dimen 5;
-set mStorageNCap2AOut dimen 5;
+set mStorageOutCap2AOut dimen 5;
+set mStorageOutNCap2AOut dimen 5;
+set mStorageInpCap2AInp dimen 5;
+set mStorageInpCap2AOut dimen 5;
+set mStorageInpNCap2AInp dimen 5;
+set mStorageInpNCap2AOut dimen 5;
+set mStorageStgCap2AInp dimen 5;
+set mStorageStgCap2AOut dimen 5;
+set mStorageStgNCap2AInp dimen 5;
+set mStorageStgNCap2AOut dimen 5;
 set mStorageStg2AInp dimen 5;
 set mStorageCinp2AInp dimen 5;
 set mStorageCout2AInp dimen 5;
-set mStorageCap2AInp dimen 5;
-set mStorageNCap2AInp dimen 5;
+set mStorageOutCap2AInp dimen 5;
+set mStorageOutNCap2AInp dimen 5;
 set mStorageInpCap dimen 3;
 set mStorageNoInpCap dimen 3;
 set mStorageInpNew dimen 3;
 set mStorageInpCapLo dimen 3;
+set mStorageInpCapFx dimen 3;
 set mStorageInpCapUp dimen 3;
 set mStorageInpNewCapLo dimen 3;
+set mStorageInpNewCapFx dimen 3;
 set mStorageInpNewCapUp dimen 3;
 set mStorageInpFixom dimen 3;
 set mStorageInpEac dimen 3;
 set mStorageInp2outLo dimen 3;
+set mStorageInp2outFx dimen 3;
 set mStorageInp2outUp dimen 3;
+set mStorageInpStgCap dimen 3;
+set mStorageOutCap dimen 3;
+set mStorageOutNew dimen 3;
+set mStorageInpOutCap dimen 3;
+set mStorageInp2stgLo dimen 3;
+set mStorageInp2stgFx dimen 3;
+set mStorageInp2stgUp dimen 3;
 set mStorageStgCap dimen 3;
 set mStorageNoStgCap dimen 3;
 set mStorageStgNew dimen 3;
 set mStorageStgCapLo dimen 3;
+set mStorageStgCapFx dimen 3;
 set mStorageStgCapUp dimen 3;
 set mStorageStgNewCapLo dimen 3;
+set mStorageStgNewCapFx dimen 3;
 set mStorageStgNewCapUp dimen 3;
 set mStorageStgFixom dimen 3;
 set mStorageStgEac dimen 3;
 set mStorageDurationLo dimen 3;
+set mStorageDurationFx dimen 3;
 set mStorageDurationUp dimen 3;
 set mStorageOutCapLo dimen 3;
+set mStorageOutCapFx dimen 3;
 set mStorageOutCapUp dimen 3;
 set mStorageOutNewCapLo dimen 3;
+set mStorageOutNewCapFx dimen 3;
 set mStorageOutNewCapUp dimen 3;
 set mStorageOutRetLo dimen 3;
+set mStorageOutRetFx dimen 3;
 set mStorageOutRetUp dimen 3;
 set mvStorageRetiredStock dimen 3;
 set mvStorageRetiredNewCap dimen 4;
 set meqStorageRetiredNewCap dimen 3;
 set mStorageRetCost dimen 3;
 set mStorageInpRetLo dimen 3;
+set mStorageInpRetFx dimen 3;
 set mStorageInpRetUp dimen 3;
 set mStorageStgRetLo dimen 3;
+set mStorageStgRetFx dimen 3;
 set mStorageStgRetUp dimen 3;
 set mvTradeRetiredStock dimen 2;
 set mvTradeRetiredNewCap dimen 3;
@@ -222,10 +283,13 @@ set mExportIrCost dimen 3;
 set mvTotalCost dimen 2;
 set mvTotalUserCosts dimen 2;
 set mTradeCapLo dimen 2;
+set mTradeCapFx dimen 2;
 set mTradeCapUp dimen 2;
 set mTradeNewCapLo dimen 2;
+set mTradeNewCapFx dimen 2;
 set mTradeNewCapUp dimen 2;
 set mTradeRetLo dimen 2;
+set mTradeRetFx dimen 2;
 set mTradeRetUp dimen 2;
 set mTechInv dimen 3;
 set mTechInpTot dimen 4;
@@ -239,9 +303,30 @@ set mTechOutTot dimen 4;
 set mTechOutCommSameTimeslice dimen 2;
 set mTechOutCommAgg dimen 2;
 set mTechOutCommAggTimeslice dimen 4;
+set mTechProcAggRegion dimen 4;
+set mStorageProcAggRegion dimen 4;
+set mTechProcAggTimeslice dimen 4;
 set mTechAOutCommSameTimeslice dimen 2;
 set mTechAOutCommAgg dimen 2;
 set mTechAOutCommAggTimeslice dimen 4;
+
+# A mapping used as a filter over a whole set, once per constraint row, costs
+# O(rows x |set|) to generate. Grouping it once is O(|owner| x |mapping|) and
+# costs nothing at all when the mapping is empty. The 4-dimensional
+# mTech*CommAggTimeslice scans are deliberately left as they are: an indexed set
+# over tech x comm x timeslice is larger than the scan it would replace.
+set mTimesliceFamily_ix{s in timeslice} :=
+    setof{(a, b) in mTimesliceFamily: a == s} b;
+set mRegionFamily_ix{r in region} := setof{(a, b) in mRegionFamily: a == r} b;
+set mTechInpCommSameTimeslice_ix{c in comm} := setof{(a, b) in mTechInpCommSameTimeslice: b == c} a;
+set mTechInpCommAgg_ix{c in comm} := setof{(a, b) in mTechInpCommAgg: b == c} a;
+set mTechAInpCommSameTimeslice_ix{c in comm} := setof{(a, b) in mTechAInpCommSameTimeslice: b == c} a;
+set mTechAInpCommAgg_ix{c in comm} := setof{(a, b) in mTechAInpCommAgg: b == c} a;
+set mTechOutCommSameTimeslice_ix{c in comm} := setof{(a, b) in mTechOutCommSameTimeslice: b == c} a;
+set mTechOutCommAgg_ix{c in comm} := setof{(a, b) in mTechOutCommAgg: b == c} a;
+set mTechAOutCommSameTimeslice_ix{c in comm} := setof{(a, b) in mTechAOutCommSameTimeslice: b == c} a;
+set mTechAOutCommAgg_ix{c in comm} := setof{(a, b) in mTechAOutCommAgg: b == c} a;
+
 set mTechEac dimen 3;
 set mTechFixom dimen 3;
 set mTechVarom dimen 3;
@@ -300,34 +385,49 @@ set meqTechGrp2Sng dimen 6;
 set meqTechSng2Grp dimen 6;
 set meqTechGrp2Grp dimen 6;
 set meqTechShareInpLo dimen 6;
+set meqTechShareInpFx dimen 6;
 set meqTechShareInpUp dimen 6;
 set meqTechShareOutLo dimen 6;
+set meqTechShareOutFx dimen 6;
 set meqTechShareOutUp dimen 6;
 set meqTechAfLo dimen 4;
 set meqTechAfUp dimen 4;
+set meqTechAfFx dimen 4;
 set meqTechAfsLo dimen 4;
+set meqTechAfsFx dimen 4;
 set meqTechAfsUp dimen 4;
 set meqTechActSng dimen 5;
 set meqTechActGrp dimen 5;
 set meqTechAfcOutLo dimen 5;
+set meqTechAfcOutFx dimen 5;
 set meqTechAfcOutUp dimen 5;
 set meqTechAfcInpLo dimen 5;
+set meqTechAfcInpFx dimen 5;
 set meqTechAfcInpUp dimen 5;
 set meqSupAvaLo dimen 5;
+set meqSupAvaFx dimen 5;
 set meqSupReserveLo dimen 3;
+set meqSupReserveFx dimen 3;
 set meqStorageAfLo dimen 5;
+set meqStorageAfFx dimen 5;
 set meqStorageAfUp dimen 5;
 set meqStorageInpUp dimen 5;
 set meqStorageInpLo dimen 5;
+set meqStorageInpFx dimen 5;
 set meqStorageOutUp dimen 5;
 set meqStorageOutLo dimen 5;
+set meqStorageOutFx dimen 5;
 set meqTradeFlowUp dimen 6;
 set meqTradeFlowLo dimen 6;
+set meqTradeFlowFx dimen 6;
 set meqTradeIrAfUp dimen 6;
 set meqTradeIrAfLo dimen 6;
+set meqTradeIrAfFx dimen 6;
 set meqExportRowLo dimen 5;
+set meqExportRowFx dimen 5;
 set meqImportRowUp dimen 5;
 set meqImportRowLo dimen 5;
+set meqImportRowFx dimen 5;
 set meqTradeCapFlow dimen 4;
 set meqBalLo dimen 4;
 set meqBalUp dimen 4;
@@ -414,12 +514,22 @@ param pDemand{dem, comm, region, year, timeslice};
 param pEmissionFactor{comm, comm};
 param pDummyImportCost{comm, region, year, timeslice};
 param pDummyExportCost{comm, region, year, timeslice};
-param pTaxCostInp{comm, region, year, timeslice};
-param pTaxCostOut{comm, region, year, timeslice};
-param pTaxCostBal{comm, region, year, timeslice};
-param pSubCostInp{comm, region, year, timeslice};
-param pSubCostOut{comm, region, year, timeslice};
-param pSubCostBal{comm, region, year, timeslice};
+param pTaxCostInp{levy, comm, region, year, timeslice};
+param pTaxCostOut{levy, comm, region, year, timeslice};
+param pTaxCostBal{levy, comm, region, year, timeslice};
+param pSubCostInp{levy, comm, region, year, timeslice};
+param pSubCostOut{levy, comm, region, year, timeslice};
+param pSubCostBal{levy, comm, region, year, timeslice};
+param pTaxProcAct{levy, process, region, year, timeslice};
+param pTaxProcInp{levy, process, comm, region, year, timeslice};
+param pTaxProcOut{levy, process, comm, region, year, timeslice};
+param pTaxProcCap{levy, process, region, year};
+param pTaxProcNcap{levy, process, region, year};
+param pSubProcAct{levy, process, region, year, timeslice};
+param pSubProcInp{levy, process, comm, region, year, timeslice};
+param pSubProcOut{levy, process, comm, region, year, timeslice};
+param pSubProcCap{levy, process, region, year};
+param pSubProcNcap{levy, process, region, year};
 param pAggregateFactor{comm, comm};
 param pPeriodLen{year};
 param pTimesliceShare{timeslice};
@@ -477,6 +587,8 @@ param pStorageInpNewCapLo{stg, region, year};
 param pStorageInpNewCapUp{stg, region, year};
 param pStorageInp2outLo{stg, region, year};
 param pStorageInp2outUp{stg, region, year};
+param pStorageInp2stgLo{stg, region, year};
+param pStorageInp2stgUp{stg, region, year};
 param pStorageStgStock{stg, region, year};
 param pStorageStgStockNew{stg, region, year};
 param pStorageStgStockSurv{stg, region, year};
@@ -503,20 +615,28 @@ param pStorageCinp2AInp{stg, comm, region, year, timeslice};
 param pStorageCinp2AOut{stg, comm, region, year, timeslice};
 param pStorageCout2AInp{stg, comm, region, year, timeslice};
 param pStorageCout2AOut{stg, comm, region, year, timeslice};
-param pStorageCap2AInp{stg, comm, region, year, timeslice};
-param pStorageCap2AOut{stg, comm, region, year, timeslice};
-param pStorageNCap2AInp{stg, comm, region, year, timeslice};
+param pStorageOutCap2AInp{stg, comm, region, year, timeslice};
+param pStorageOutCap2AOut{stg, comm, region, year, timeslice};
+param pStorageOutNCap2AInp{stg, comm, region, year, timeslice};
+param pStorageInpCap2AInp{stg, comm, region, year, timeslice};
+param pStorageInpCap2AOut{stg, comm, region, year, timeslice};
+param pStorageInpNCap2AInp{stg, comm, region, year, timeslice};
+param pStorageInpNCap2AOut{stg, comm, region, year, timeslice};
+param pStorageStgCap2AInp{stg, comm, region, year, timeslice};
+param pStorageStgCap2AOut{stg, comm, region, year, timeslice};
+param pStorageStgNCap2AInp{stg, comm, region, year, timeslice};
+param pStorageStgNCap2AOut{stg, comm, region, year, timeslice};
 param pStoragePho2AInp{stg, comm, region, year, timeslice};
 param pStoragePho2AOut{stg, comm, region, year, timeslice};
 param pStorageRet2AInp{stg, comm, region, year, timeslice};
 param pStorageRet2AOut{stg, comm, region, year, timeslice};
-param pStorageNCap2AOut{stg, comm, region, year, timeslice};
+param pStorageOutNCap2AOut{stg, comm, region, year, timeslice};
 param pTradeIrEff{trade, region, region, year, timeslice};
 param pTradeIrUp{trade, region, region, year, timeslice};
 param pTradeIrLo{trade, region, region, year, timeslice};
 param pTradeIrAfUp{trade, region, region, year, timeslice};
 param pTradeIrAfLo{trade, region, region, year, timeslice};
-param pTradeIrCost{trade, region, region, year, timeslice};
+param pTradeIrVarom{trade, region, region, year, timeslice};
 param pTradeIrMarkup{trade, region, region, year, timeslice};
 param pTradeIrCsrc2Ainp{trade, comm, region, region, year, timeslice};
 param pTradeIrCsrc2Aout{trade, comm, region, region, year, timeslice};
@@ -544,8 +664,8 @@ param pTradeInvcost{trade, region, year};
 param pTradeEac{trade, region, year};
 param pTradeRetCost{trade, region, year};
 param pTradeFixom{trade, region, year};
-# [removed] pTradeVarom -- trade @varom is not implemented: no equation read it,
-# it was absent from Julia and Pyomo, and it is unregistered in modInp.yml.
+# [removed] pTradeVarom -- a dead parameter no equation ever read. NOT the
+# `trade@varom` slot, which IS priced, as pTradeIrVarom (see eqExportIrCost).
 param pTradeCap2Act{trade};
 param pWeather{weather, region, year, timeslice};
 param pSupWeatherUp{weather, sup};
@@ -576,8 +696,8 @@ var vEmsFuelTot{comm, region, year, timeslice};
 var vBalance{comm, region, year, timeslice};
 var vTotalCost{region, year};
 var vObjective;
-var vTaxCost{comm, region, year};
-var vSubsCost{comm, region, year};
+var vTaxCost{levy, region, year};
+var vSubsCost{levy, region, year};
 var vAggOutTot{comm, region, year, timeslice};
 var vDummyImportCost{comm, region, year};
 var vDummyExportCost{comm, region, year};
@@ -667,40 +787,46 @@ var vImportRow{imp, comm, region, year, timeslice} >= 0;
 var vTradeCap{trade, year} >= 0;
 var vTradeInv{trade, region, year} >= 0;
 var vTradeNewCap{trade, year} >= 0;
-var vTotalUserCosts{region, year} >= 0;
+# a user cost term may be NEGATIVE (a subsidy), and eqTotalUserCosts is an equality -- bounding this at 0 made such a model infeasible
+var vTotalUserCosts{region, year};
 
 
 
 
 # Guid for add equation and add mapping & parameter to constrain
 # 22b584bd-a17a-4fa0-9cd9-f603ab684e47
-s.t.  eqTechSng2Sng{(t, r, c, cp, y, s) in meqTechSng2Sng}: vTechInp[t,c,r,y,s]*pTechCinp2use[t,c,r,y,s]  =  (vTechOut[t,cp,r,y,s]) / (pTechUse2cact[t,cp,r,y,s]*pTechCact2cout[t,cp,r,y,s]);
+s.t.  eqTechSng2Sng{(t, r, c, cp, y, s) in meqTechSng2Sng}: sum{FORIF: (t,c,r,y,s) in mvTechInp} (vTechInp[t,c,r,y,s]*pTechCinp2use[t,c,r,y,s])+sum{rp in region:((t,c,r,rp) in mTechProcAggRegion)}(vTechInp[t,c,rp,y,s]*pTechCinp2use[t,c,r,y,s])+sum{sp in timeslice:((t,c,s,sp) in mTechProcAggTimeslice)}(pTimesliceAgg[y,s,sp]*vTechInp[t,c,r,y,sp]*pTechCinp2use[t,c,r,y,s])  =  (vTechOut[t,cp,r,y,s]) / (pTechUse2cact[t,cp,r,y,s]*pTechCact2cout[t,cp,r,y,s]);
 
-s.t.  eqTechGrp2Sng{(t, r, g, cp, y, s) in meqTechGrp2Sng}: pTechGinp2use[t,g,r,y,s]*sum{c in comm:((t,g,c) in mTechGroupComm)}(sum{FORIF: (t,c,r,y,s) in mvTechInp} ((vTechInp[t,c,r,y,s]*pTechCinp2ginp[t,c,r,y,s])))  =  (vTechOut[t,cp,r,y,s]) / (pTechUse2cact[t,cp,r,y,s]*pTechCact2cout[t,cp,r,y,s]);
+s.t.  eqTechGrp2Sng{(t, r, g, cp, y, s) in meqTechGrp2Sng}: pTechGinp2use[t,g,r,y,s]*sum{c in comm:((t,g,c) in mTechGroupComm)}(sum{FORIF: (t,c,r,y,s) in mvTechInp} ((vTechInp[t,c,r,y,s]*pTechCinp2ginp[t,c,r,y,s]))+sum{rp in region:((t,c,r,rp) in mTechProcAggRegion)}(vTechInp[t,c,rp,y,s]*pTechCinp2ginp[t,c,r,y,s])+sum{sp in timeslice:((t,c,s,sp) in mTechProcAggTimeslice)}(pTimesliceAgg[y,s,sp]*vTechInp[t,c,r,y,sp]*pTechCinp2ginp[t,c,r,y,s]))  =  (vTechOut[t,cp,r,y,s]) / (pTechUse2cact[t,cp,r,y,s]*pTechCact2cout[t,cp,r,y,s]);
 
-s.t.  eqTechSng2Grp{(t, r, c, gp, y, s) in meqTechSng2Grp}: vTechInp[t,c,r,y,s]*pTechCinp2use[t,c,r,y,s]  =  sum{cp in comm:((t,gp,cp) in mTechGroupComm)}(sum{FORIF: (t,cp,r,y,s) in mvTechOut} (((vTechOut[t,cp,r,y,s]) / (pTechUse2cact[t,cp,r,y,s]*pTechCact2cout[t,cp,r,y,s]))));
+s.t.  eqTechSng2Grp{(t, r, c, gp, y, s) in meqTechSng2Grp}: sum{FORIF: (t,c,r,y,s) in mvTechInp} (vTechInp[t,c,r,y,s]*pTechCinp2use[t,c,r,y,s])+sum{rp in region:((t,c,r,rp) in mTechProcAggRegion)}(vTechInp[t,c,rp,y,s]*pTechCinp2use[t,c,r,y,s])+sum{sp in timeslice:((t,c,s,sp) in mTechProcAggTimeslice)}(pTimesliceAgg[y,s,sp]*vTechInp[t,c,r,y,sp]*pTechCinp2use[t,c,r,y,s])  =  sum{cp in comm:((t,gp,cp) in mTechGroupComm)}(sum{FORIF: (t,cp,r,y,s) in mvTechOut} (((vTechOut[t,cp,r,y,s]) / (pTechUse2cact[t,cp,r,y,s]*pTechCact2cout[t,cp,r,y,s]))));
 
-s.t.  eqTechGrp2Grp{(t, r, g, gp, y, s) in meqTechGrp2Grp}: pTechGinp2use[t,g,r,y,s]*sum{c in comm:((t,g,c) in mTechGroupComm)}(sum{FORIF: (t,c,r,y,s) in mvTechInp} ((vTechInp[t,c,r,y,s]*pTechCinp2ginp[t,c,r,y,s])))  =  sum{cp in comm:((t,gp,cp) in mTechGroupComm)}(sum{FORIF: (t,cp,r,y,s) in mvTechOut} (((vTechOut[t,cp,r,y,s]) / (pTechUse2cact[t,cp,r,y,s]*pTechCact2cout[t,cp,r,y,s]))));
+s.t.  eqTechGrp2Grp{(t, r, g, gp, y, s) in meqTechGrp2Grp}: pTechGinp2use[t,g,r,y,s]*sum{c in comm:((t,g,c) in mTechGroupComm)}(sum{FORIF: (t,c,r,y,s) in mvTechInp} ((vTechInp[t,c,r,y,s]*pTechCinp2ginp[t,c,r,y,s]))+sum{rp in region:((t,c,r,rp) in mTechProcAggRegion)}(vTechInp[t,c,rp,y,s]*pTechCinp2ginp[t,c,r,y,s])+sum{sp in timeslice:((t,c,s,sp) in mTechProcAggTimeslice)}(pTimesliceAgg[y,s,sp]*vTechInp[t,c,r,y,sp]*pTechCinp2ginp[t,c,r,y,s]))  =  sum{cp in comm:((t,gp,cp) in mTechGroupComm)}(sum{FORIF: (t,cp,r,y,s) in mvTechOut} (((vTechOut[t,cp,r,y,s]) / (pTechUse2cact[t,cp,r,y,s]*pTechCact2cout[t,cp,r,y,s]))));
 
-s.t.  eqTechShareInpLo{(t, r, g, c, y, s) in meqTechShareInpLo}: vTechInp[t,c,r,y,s]  >=  pTechShareLo[t,c,r,y,s]*sum{cp in comm:((t,g,cp) in mTechGroupComm)}(sum{FORIF: (t,cp,r,y,s) in mvTechInp} (vTechInp[t,cp,r,y,s]));
+s.t.  eqTechShareInpLo{(t, r, g, c, y, s) in meqTechShareInpLo}: sum{FORIF: (t,c,r,y,s) in mvTechInp} (vTechInp[t,c,r,y,s])+sum{rp in region:((t,c,r,rp) in mTechProcAggRegion)}(vTechInp[t,c,rp,y,s])+sum{sp in timeslice:((t,c,s,sp) in mTechProcAggTimeslice)}(pTimesliceAgg[y,s,sp]*vTechInp[t,c,r,y,sp]) >= pTechShareLo[t,c,r,y,s]*sum{cp in comm:((t,g,cp) in mTechGroupComm)}(sum{FORIF: (t,cp,r,y,s) in mvTechInp} (vTechInp[t,cp,r,y,s])+sum{rp in region:((t,cp,r,rp) in mTechProcAggRegion)}(vTechInp[t,cp,rp,y,s])+sum{sp in timeslice:((t,cp,s,sp) in mTechProcAggTimeslice)}(pTimesliceAgg[y,s,sp]*vTechInp[t,cp,r,y,sp]));
+s.t.  eqTechShareInpFx{(t, r, g, c, y, s) in meqTechShareInpFx}: sum{FORIF: (t,c,r,y,s) in mvTechInp} (vTechInp[t,c,r,y,s])+sum{rp in region:((t,c,r,rp) in mTechProcAggRegion)}(vTechInp[t,c,rp,y,s])+sum{sp in timeslice:((t,c,s,sp) in mTechProcAggTimeslice)}(pTimesliceAgg[y,s,sp]*vTechInp[t,c,r,y,sp]) = pTechShareLo[t,c,r,y,s]*sum{cp in comm:((t,g,cp) in mTechGroupComm)}(sum{FORIF: (t,cp,r,y,s) in mvTechInp} (vTechInp[t,cp,r,y,s])+sum{rp in region:((t,cp,r,rp) in mTechProcAggRegion)}(vTechInp[t,cp,rp,y,s])+sum{sp in timeslice:((t,cp,s,sp) in mTechProcAggTimeslice)}(pTimesliceAgg[y,s,sp]*vTechInp[t,cp,r,y,sp]));
 
-s.t.  eqTechShareInpUp{(t, r, g, c, y, s) in meqTechShareInpUp}: vTechInp[t,c,r,y,s] <=  pTechShareUp[t,c,r,y,s]*sum{cp in comm:((t,g,cp) in mTechGroupComm)}(sum{FORIF: (t,cp,r,y,s) in mvTechInp} (vTechInp[t,cp,r,y,s]));
+s.t.  eqTechShareInpUp{(t, r, g, c, y, s) in meqTechShareInpUp}: sum{FORIF: (t,c,r,y,s) in mvTechInp} (vTechInp[t,c,r,y,s])+sum{rp in region:((t,c,r,rp) in mTechProcAggRegion)}(vTechInp[t,c,rp,y,s])+sum{sp in timeslice:((t,c,s,sp) in mTechProcAggTimeslice)}(pTimesliceAgg[y,s,sp]*vTechInp[t,c,r,y,sp]) <= pTechShareUp[t,c,r,y,s]*sum{cp in comm:((t,g,cp) in mTechGroupComm)}(sum{FORIF: (t,cp,r,y,s) in mvTechInp} (vTechInp[t,cp,r,y,s])+sum{rp in region:((t,cp,r,rp) in mTechProcAggRegion)}(vTechInp[t,cp,rp,y,s])+sum{sp in timeslice:((t,cp,s,sp) in mTechProcAggTimeslice)}(pTimesliceAgg[y,s,sp]*vTechInp[t,cp,r,y,sp]));
 
 s.t.  eqTechShareOutLo{(t, r, g, c, y, s) in meqTechShareOutLo}: vTechOut[t,c,r,y,s]  >=  pTechShareLo[t,c,r,y,s]*sum{cp in comm:((t,g,cp) in mTechGroupComm)}(sum{FORIF: (t,cp,r,y,s) in mvTechOut} (vTechOut[t,cp,r,y,s]));
+s.t.  eqTechShareOutFx{(t, r, g, c, y, s) in meqTechShareOutFx}: vTechOut[t,c,r,y,s]  =  pTechShareLo[t,c,r,y,s]*sum{cp in comm:((t,g,cp) in mTechGroupComm)}(sum{FORIF: (t,cp,r,y,s) in mvTechOut} (vTechOut[t,cp,r,y,s]));
 
 s.t.  eqTechShareOutUp{(t, r, g, c, y, s) in meqTechShareOutUp}: vTechOut[t,c,r,y,s] <=  pTechShareUp[t,c,r,y,s]*sum{cp in comm:((t,g,cp) in mTechGroupComm)}(sum{FORIF: (t,cp,r,y,s) in mvTechOut} (vTechOut[t,cp,r,y,s]));
 
-s.t.  eqTechAInp{(t, c, r, y, s) in mvTechAInp}: vTechAInp[t,c,r,y,s]  =  sum{FORIF: (t,c,r,y,s) in mTechAct2AInp} ((vTechAct[t,r,y,s]*pTechAct2AInp[t,c,r,y,s]))+sum{FORIF: (t,c,r,y,s) in mTechCap2AInp} (((vTechCap[t,r,y]*pTechCap2AInp[t,c,r,y,s]) / (pTechCap2act[t])))+sum{FORIF: (t,c,r,y,s) in mTechNCap2AInp} ((vTechNewCap[t,r,y]*pTechNCap2AInp[t,c,r,y,s]))+sum{FORIF: (t,c,r,y,s) in mTechPho2AInp} ((sum{FORIF: (t,r,y) in mvTechPhaseOut} (vTechPhaseOut[t,r,y])*pTechPho2AInp[t,c,r,y,s]))+sum{FORIF: (t,c,r,y,s) in mTechRet2AInp} (((sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])+sum{yp in year:((t,r,yp,y) in mvTechRetiredNewCap)}(vTechRetiredNewCap[t,r,yp,y]))*pTechRet2AInp[t,c,r,y,s]))+sum{cp in comm:((t,c,cp,r,y,s) in mTechCinp2AInp)}(pTechCinp2AInp[t,c,cp,r,y,s]*vTechInp[t,cp,r,y,s])+sum{cp in comm:((t,c,cp,r,y,s) in mTechCout2AInp)}(pTechCout2AInp[t,c,cp,r,y,s]*vTechOut[t,cp,r,y,s]);
+s.t.  eqTechAInp{(t, c, r, y, s) in meqTechAInp}: sum{FORIF: (t,c,r,y,s) in mvTechAInp} (vTechAInp[t,c,r,y,s])+sum{rp in region:((t,c,r,rp) in mTechProcAggRegion and (t,c,rp,y,s) in mvTechAInp)}(vTechAInp[t,c,rp,y,s])  =  pTimesliceShare[s]*(sum{FORIF: (t,c,r,y,s) in mTechCap2AInp} ((vTechCap[t,r,y]*pTechCap2AInp[t,c,r,y,s]))+sum{FORIF: (t,c,r,y,s) in mTechNCap2AInp} ((vTechNewCap[t,r,y]*pTechNCap2AInp[t,c,r,y,s]))+sum{FORIF: (t,c,r,y,s) in mTechPho2AInp} ((sum{FORIF: (t,r,y) in mvTechPhaseOut} (vTechPhaseOut[t,r,y])*pTechPho2AInp[t,c,r,y,s]))+sum{FORIF: (t,c,r,y,s) in mTechRet2AInp} (((sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])+sum{yp in year:((t,r,yp,y) in mvTechRetiredNewCap)}(vTechRetiredNewCap[t,r,yp,y]))*pTechRet2AInp[t,c,r,y,s])))+sum{sp in timeslice:((c,s,sp) in mCommTimesliceOrParent)}(pTimesliceAgg[y,s,sp]*(sum{FORIF: (t,c,r,y,sp) in mTechAct2AInp} ((vTechAct[t,r,y,sp]*pTechAct2AInp[t,c,r,y,sp]))+sum{cp in comm:((t,c,cp,r,y,sp) in mTechCinp2AInp)}(pTechCinp2AInp[t,c,cp,r,y,sp]*vTechInp[t,cp,r,y,sp])+sum{cp in comm:((t,c,cp,r,y,sp) in mTechCout2AInp)}(pTechCout2AInp[t,c,cp,r,y,sp]*vTechOut[t,cp,r,y,sp])));
 
-s.t.  eqTechAOut{(t, c, r, y, s) in mvTechAOut}: vTechAOut[t,c,r,y,s]  =  sum{FORIF: (t,c,r,y,s) in mTechAct2AOut} ((vTechAct[t,r,y,s]*pTechAct2AOut[t,c,r,y,s]))+sum{FORIF: (t,c,r,y,s) in mTechCap2AOut} (((vTechCap[t,r,y]*pTechCap2AOut[t,c,r,y,s]) / (pTechCap2act[t])))+sum{FORIF: (t,c,r,y,s) in mTechNCap2AOut} ((vTechNewCap[t,r,y]*pTechNCap2AOut[t,c,r,y,s]))+sum{FORIF: (t,c,r,y,s) in mTechPho2AOut} ((sum{FORIF: (t,r,y) in mvTechPhaseOut} (vTechPhaseOut[t,r,y])*pTechPho2AOut[t,c,r,y,s]))+sum{FORIF: (t,c,r,y,s) in mTechRet2AOut} (((sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])+sum{yp in year:((t,r,yp,y) in mvTechRetiredNewCap)}(vTechRetiredNewCap[t,r,yp,y]))*pTechRet2AOut[t,c,r,y,s]))+sum{cp in comm:((t,c,cp,r,y,s) in mTechCinp2AOut)}(pTechCinp2AOut[t,c,cp,r,y,s]*vTechInp[t,cp,r,y,s])+sum{cp in comm:((t,c,cp,r,y,s) in mTechCout2AOut)}(pTechCout2AOut[t,c,cp,r,y,s]*vTechOut[t,cp,r,y,s]);
+s.t.  eqTechAOut{(t, c, r, y, s) in meqTechAOut}: sum{FORIF: (t,c,r,y,s) in mvTechAOut} (vTechAOut[t,c,r,y,s])+sum{rp in region:((t,c,r,rp) in mTechProcAggRegion and (t,c,rp,y,s) in mvTechAOut)}(vTechAOut[t,c,rp,y,s])  =  pTimesliceShare[s]*(sum{FORIF: (t,c,r,y,s) in mTechCap2AOut} ((vTechCap[t,r,y]*pTechCap2AOut[t,c,r,y,s]))+sum{FORIF: (t,c,r,y,s) in mTechNCap2AOut} ((vTechNewCap[t,r,y]*pTechNCap2AOut[t,c,r,y,s]))+sum{FORIF: (t,c,r,y,s) in mTechPho2AOut} ((sum{FORIF: (t,r,y) in mvTechPhaseOut} (vTechPhaseOut[t,r,y])*pTechPho2AOut[t,c,r,y,s]))+sum{FORIF: (t,c,r,y,s) in mTechRet2AOut} (((sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])+sum{yp in year:((t,r,yp,y) in mvTechRetiredNewCap)}(vTechRetiredNewCap[t,r,yp,y]))*pTechRet2AOut[t,c,r,y,s])))+sum{sp in timeslice:((c,s,sp) in mCommTimesliceOrParent)}(pTimesliceAgg[y,s,sp]*(sum{FORIF: (t,c,r,y,sp) in mTechAct2AOut} ((vTechAct[t,r,y,sp]*pTechAct2AOut[t,c,r,y,sp]))+sum{cp in comm:((t,c,cp,r,y,sp) in mTechCinp2AOut)}(pTechCinp2AOut[t,c,cp,r,y,sp]*vTechInp[t,cp,r,y,sp])+sum{cp in comm:((t,c,cp,r,y,sp) in mTechCout2AOut)}(pTechCout2AOut[t,c,cp,r,y,sp]*vTechOut[t,cp,r,y,sp])));
 
-s.t.  eqTechAfLo{(t, r, y, s) in meqTechAfLo}: pTechAfLo[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in weather:((wth1,t) in mTechWeatherAfLo)}(pTechWeatherAfLo[wth1,t]*pWeather[wth1,r,y,s]) <=  vTechAct[t,r,y,s];
+s.t.  eqTechAfLo{(t, r, y, s) in meqTechAfLo}: pTechAfLo[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in mTechWeatherAfLo_ix[t]}(pTechWeatherAfLo[wth1,t]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s])) <=  vTechAct[t,r,y,s];
 
-s.t.  eqTechAfUp{(t, r, y, s) in meqTechAfUp}: vTechAct[t,r,y,s] <=  pTechAfUp[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in weather:((wth1,t) in mTechWeatherAfUp)}(pTechWeatherAfUp[wth1,t]*pWeather[wth1,r,y,s]);
+s.t.  eqTechAfUp{(t, r, y, s) in meqTechAfUp}: vTechAct[t,r,y,s] <=  pTechAfUp[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in mTechWeatherAfUp_ix[t]}(pTechWeatherAfUp[wth1,t]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqTechAfsLo{(t, r, y, s) in meqTechAfsLo}: pTechAfsLo[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in weather:((wth1,t) in mTechWeatherAfsLo)}(pTechWeatherAfsLo[wth1,t]*pWeather[wth1,r,y,s]) <=  sum{sp in timeslice:((s,sp) in mTimesliceParentChildE)}(sum{FORIF: (t,r,y,sp) in mvTechAct} (vTechAct[t,r,y,sp]));
+s.t.  eqTechAfFx{(t, r, y, s) in meqTechAfFx}: vTechAct[t,r,y,s] =  pTechAfLo[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in mTechWeatherAfLo_ix[t]}(pTechWeatherAfLo[wth1,t]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqTechAfsUp{(t, r, y, s) in meqTechAfsUp}: sum{sp in timeslice:((s,sp) in mTimesliceParentChildE)}(sum{FORIF: (t,r,y,sp) in mvTechAct} (vTechAct[t,r,y,sp])) <=  pTechAfsUp[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in weather:((wth1,t) in mTechWeatherAfsUp)}(pTechWeatherAfsUp[wth1,t]*pWeather[wth1,r,y,s]);
+s.t.  eqTechAfsLo{(t, r, y, s) in meqTechAfsLo}: pTechAfsLo[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in mTechWeatherAfsLo_ix[t]}(pTechWeatherAfsLo[wth1,t]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s])) <=  sum{sp in timeslice:((s,sp) in mTimesliceParentChildE)}(pTimesliceAgg[y,s,sp]*sum{FORIF: (t,r,y,sp) in mvTechAct} (vTechAct[t,r,y,sp]));
+s.t.  eqTechAfsFx{(t, r, y, s) in meqTechAfsFx}: pTechAfsLo[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in mTechWeatherAfsLo_ix[t]}(pTechWeatherAfsLo[wth1,t]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s])) =  sum{sp in timeslice:((s,sp) in mTimesliceParentChildE)}(pTimesliceAgg[y,s,sp]*sum{FORIF: (t,r,y,sp) in mvTechAct} (vTechAct[t,r,y,sp]));
+
+s.t.  eqTechAfsUp{(t, r, y, s) in meqTechAfsUp}: sum{sp in timeslice:((s,sp) in mTimesliceParentChildE)}(pTimesliceAgg[y,s,sp]*sum{FORIF: (t,r,y,sp) in mvTechAct} (vTechAct[t,r,y,sp])) <= pTechAfsUp[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in mTechWeatherAfsUp_ix[t]}(pTechWeatherAfsUp[wth1,t]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
 s.t.  eqTechRampUp{(t, r, y, s, sp) in mTechRampUp}: (vTechAct[t,r,y,sp]) / (pTimesliceShare[sp])-(vTechAct[t,r,y,s]) / (pTimesliceShare[s]) <=  (pTimesliceShare[s]*pTechCap2act[t]*vTechCap[t,r,y]) / (pTechRampUp[t,r,y,s]);
 
@@ -710,21 +836,25 @@ s.t.  eqTechActSng{(t, c, r, y, s) in meqTechActSng}: vTechAct[t,r,y,s]  =  (vTe
 
 s.t.  eqTechActGrp{(t, g, r, y, s) in meqTechActGrp}: vTechAct[t,r,y,s]  =  sum{c in comm:((t,g,c) in mTechGroupComm)}(sum{FORIF: (t,c,r,y,s) in mvTechOut} (((vTechOut[t,c,r,y,s]) / (pTechCact2cout[t,c,r,y,s]))));
 
-s.t.  eqTechAfcOutLo{(t, r, c, y, s) in meqTechAfcOutLo}: pTechCact2cout[t,c,r,y,s]*pTechAfcLo[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in weather:((wth1,t,c) in mTechWeatherAfcLo)}(pTechWeatherAfcLo[wth1,t,c]*pWeather[wth1,r,y,s]) <=  vTechOut[t,c,r,y,s];
+s.t.  eqTechAfcOutLo{(t, r, c, y, s) in meqTechAfcOutLo}: pTechCact2cout[t,c,r,y,s]*pTechAfcLo[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{(wth1,wtt,wcc) in mTechWeatherAfcLo: wtt == t and wcc == c}(pTechWeatherAfcLo[wth1,t,c]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s])) <=  vTechOut[t,c,r,y,s];
+s.t.  eqTechAfcOutFx{(t, r, c, y, s) in meqTechAfcOutFx}: pTechCact2cout[t,c,r,y,s]*pTechAfcLo[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{(wth1,wtt,wcc) in mTechWeatherAfcLo: wtt == t and wcc == c}(pTechWeatherAfcLo[wth1,t,c]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s])) =  vTechOut[t,c,r,y,s];
 
-s.t.  eqTechAfcOutUp{(t, r, c, y, s) in meqTechAfcOutUp}: vTechOut[t,c,r,y,s] <=  pTechCact2cout[t,c,r,y,s]*pTechAfcUp[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*prod{wth1 in weather:((wth1,t,c) in mTechWeatherAfcUp)}(pTechWeatherAfcUp[wth1,t,c]*pWeather[wth1,r,y,s]);
+s.t.  eqTechAfcOutUp{(t, r, c, y, s) in meqTechAfcOutUp}: vTechOut[t,c,r,y,s] <=  pTechCact2cout[t,c,r,y,s]*pTechAfcUp[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{(wth1,wtt,wcc) in mTechWeatherAfcUp: wtt == t and wcc == c}(pTechWeatherAfcUp[wth1,t,c]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqTechAfcInpLo{(t, r, c, y, s) in meqTechAfcInpLo}: pTechAfcLo[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in weather:((wth1,t,c) in mTechWeatherAfcLo)}(pTechWeatherAfcLo[wth1,t,c]*pWeather[wth1,r,y,s]) <=  vTechInp[t,c,r,y,s];
+s.t.  eqTechAfcInpLo{(t, r, c, y, s) in meqTechAfcInpLo}: pTechAfcLo[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{(wth1,wtt,wcc) in mTechWeatherAfcLo: wtt == t and wcc == c}(pTechWeatherAfcLo[wth1,t,c]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s])) <=  vTechInp[t,c,r,y,s];
+s.t.  eqTechAfcInpFx{(t, r, c, y, s) in meqTechAfcInpFx}: pTechAfcLo[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{(wth1,wtt,wcc) in mTechWeatherAfcLo: wtt == t and wcc == c}(pTechWeatherAfcLo[wth1,t,c]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s])) =  vTechInp[t,c,r,y,s];
 
-s.t.  eqTechAfcInpUp{(t, r, c, y, s) in meqTechAfcInpUp}: vTechInp[t,c,r,y,s] <=  pTechAfcUp[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in weather:((wth1,t,c) in mTechWeatherAfcUp)}(pTechWeatherAfcUp[wth1,t,c]*pWeather[wth1,r,y,s]);
+s.t.  eqTechAfcInpUp{(t, r, c, y, s) in meqTechAfcInpUp}: vTechInp[t,c,r,y,s] <=  pTechAfcUp[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{(wth1,wtt,wcc) in mTechWeatherAfcUp: wtt == t and wcc == c}(pTechWeatherAfcUp[wth1,t,c]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
 s.t.  eqTechCap{(t, r, y) in mTechSpan}: vTechCap[t,r,y]  =  vTechStockCap[t,r,y]+sum{yp in year:(((t,r,yp) in mTechNew and ordYear[y] >= ordYear[yp] and (ordYear[y]<pTechOlife[t,r]+ordYear[yp] or (t,r) in mTechOlifeInf)))}(pPeriodLen[yp]*vTechNewCap[t,r,yp]-sum{ye in year:(((t,r,yp,ye) in mvTechRetiredNewCap and ordYear[y] >= ordYear[ye]))}(vTechRetiredNewCap[t,r,yp,ye]*pPeriodLen[ye]));
 
 s.t.  eqTechCapLo{(t, r, y) in mTechCapLo}: vTechCap[t,r,y]  >=  pTechCapLo[t,r,y];
+s.t.  eqTechCapFx{(t, r, y) in mTechCapFx}: vTechCap[t,r,y]  =  pTechCapLo[t,r,y];
 
 s.t.  eqTechCapUp{(t, r, y) in mTechCapUp}: vTechCap[t,r,y] <=  pTechCapUp[t,r,y];
 
 s.t.  eqTechNewCapLo{(t, r, y) in mTechNewCapLo}: vTechNewCap[t,r,y]  >=  pTechNewCapLo[t,r,y]*pPeriodLen[y];
+s.t.  eqTechNewCapFx{(t, r, y) in mTechNewCapFx}: vTechNewCap[t,r,y]  =  pTechNewCapLo[t,r,y]*pPeriodLen[y];
 
 s.t.  eqTechNewCapUp{(t, r, y) in mTechNewCapUp}: vTechNewCap[t,r,y] <=  pTechNewCapUp[t,r,y]*pPeriodLen[y];
 
@@ -733,56 +863,61 @@ s.t.  eqTechRetiredNewCap{(t, r, y) in meqTechRetiredNewCap}: sum{yp in year:((t
 s.t.  eqTechRetUp{(t, r, y) in mTechRetUp}: sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])+sum{yp in year:((t,r,yp,y) in mvTechRetiredNewCap)}(vTechRetiredNewCap[t,r,yp,y]) <=  pTechRetUp[t,r,y]*pPeriodLen[y];
 
 s.t.  eqTechRetLo{(t, r, y) in mTechRetLo}: sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])+sum{yp in year:((t,r,yp,y) in mvTechRetiredNewCap)}(vTechRetiredNewCap[t,r,yp,y])  >=  pTechRetLo[t,r,y]*pPeriodLen[y];
+s.t.  eqTechRetFx{(t, r, y) in mTechRetFx}: sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])+sum{yp in year:((t,r,yp,y) in mvTechRetiredNewCap)}(vTechRetiredNewCap[t,r,yp,y])  =  pTechRetLo[t,r,y]*pPeriodLen[y];
 
 s.t.  eqTechRetCost{(t, r, y) in mTechRetCost}: vTechRetCost[t,r,y]  =  pTechRetCost[t,r,y]*sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])+sum{yp in year:((t,r,yp,y) in mvTechRetiredNewCap)}(pTechRetCost[t,r,y]*sum{FORIF: (t,r,yp,y) in mvTechRetiredNewCap} (vTechRetiredNewCap[t,r,yp,y]));
 
-s.t.  eqTechPhaseOut{(t, r, y) in mvTechPhaseOut}: vTechPhaseOut[t,r,y]*pPeriodLen[y]  =  sum{yp in year:(((yp,y) in mMilestoneNext and (t,r,yp) in mTechSpan))}(vTechCap[t,r,yp])-vTechCap[t,r,y]+sum{FORIF: (t,r,y) in mTechNew} (vTechNewCap[t,r,y])*pPeriodLen[y]-(sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])+sum{yp in year:((t,r,yp,y) in mvTechRetiredNewCap)}(vTechRetiredNewCap[t,r,yp,y]))*pPeriodLen[y]+pTechStockNew[t,r,y];
+s.t.  eqTechPhaseOut{(t, r, y) in mvTechPhaseOut}: vTechPhaseOut[t,r,y]*pPeriodLen[y]  =  sum{yp in year:(((yp,y) in mMilestoneNext and (t,r,yp) in mTechSpan))}(vTechCap[t,r,yp])-vTechCap[t,r,y]+sum{FORIF: (t,r,y) in mTechNew} (vTechNewCap[t,r,y])*pPeriodLen[y]-(sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])+sum{yp in year:((t,r,yp,y) in mvTechRetiredNewCap)}(vTechRetiredNewCap[t,r,yp,y]))*pPeriodLen[y]+(pTechStockNew[t,r,y]+sum{FORIF: y in mMilestoneFirst}(pTechStock[t,r,y]));
 
-s.t.  eqTechStockCap{(t, r, y) in mTechSpan}: vTechStockCap[t,r,y]  =  pTechStockSurv[t,r,y]*sum{yp in year:(((yp,y) in mMilestoneNext and (t,r,yp) in mTechSpan))}(vTechStockCap[t,r,yp])+pTechStockNew[t,r,y]-sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])*pPeriodLen[y];
+s.t.  eqTechStockCap{(t, r, y) in mTechSpan}: vTechStockCap[t,r,y]  =  pTechStockSurv[t,r,y]*sum{yp in year:(((yp,y) in mMilestoneNext and (t,r,yp) in mTechSpan))}(vTechStockCap[t,r,yp])+(pTechStockNew[t,r,y]+sum{FORIF: y in mMilestoneFirst}(pTechStock[t,r,y]))-sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])*pPeriodLen[y];
 
 s.t.  eqTechStockPhaseOut{(t, r, y) in mvTechPhaseOut}: vTechStockPhaseOut[t,r,y]*pPeriodLen[y]  =  (1-pTechStockSurv[t,r,y])*sum{yp in year:(((yp,y) in mMilestoneNext and (t,r,yp) in mTechSpan))}(vTechStockCap[t,r,yp]);
 
-s.t.  eqStoragePhaseOut{(st1, r, y) in mvStoragePhaseOut}: vStoragePhaseOut[st1,r,y]*pPeriodLen[y]  =  sum{yp in year:(((yp,y) in mMilestoneNext and (st1,r,yp) in mStorageSpan))}(vStorageOutCap[st1,r,yp])-vStorageOutCap[st1,r,y]+sum{FORIF: (st1,r,y) in mStorageNew} (vStorageOutNewCap[st1,r,y])*pPeriodLen[y]-(sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageOutRetiredNewCap[st1,r,yp,y]))*pPeriodLen[y]+pStorageOutStockNew[st1,r,y];
+s.t.  eqStoragePhaseOut{(st1, r, y) in mvStoragePhaseOut}: vStoragePhaseOut[st1,r,y]*pPeriodLen[y]  =  sum{yp in year:(((yp,y) in mMilestoneNext and (st1,r,yp) in mStorageSpan))}(vStorageStgCap[st1,r,yp])-vStorageStgCap[st1,r,y]+sum{FORIF: (st1,r,y) in mStorageStgNew} (vStorageStgNewCap[st1,r,y])*pPeriodLen[y]-(sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageStgRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageStgRetiredNewCap[st1,r,yp,y]))*pPeriodLen[y]+(pStorageStgStockNew[st1,r,y]+sum{FORIF: y in mMilestoneFirst}(pStorageStgStock[st1,r,y]));
 
-s.t.  eqStorageStockPhaseOut{(st1, r, y) in mvStoragePhaseOut}: vStorageStockPhaseOut[st1,r,y]*pPeriodLen[y]  =  (1-pStorageOutStockSurv[st1,r,y])*sum{yp in year:(((yp,y) in mMilestoneNext and (st1,r,yp) in mStorageSpan))}(vStorageOutStockCap[st1,r,yp]);
+s.t.  eqStorageStockPhaseOut{(st1, r, y) in mvStoragePhaseOut}: vStorageStockPhaseOut[st1,r,y]*pPeriodLen[y]  =  (1-pStorageStgStockSurv[st1,r,y])*sum{yp in year:(((yp,y) in mMilestoneNext and (st1,r,yp) in mStorageSpan))}(vStorageStgStockCap[st1,r,yp]);
 
 s.t.  eqStorageOutRetiredNewCap{(st1, r, y) in meqStorageRetiredNewCap}: sum{yp in year:((st1,r,y,yp) in mvStorageRetiredNewCap)}(vStorageOutRetiredNewCap[st1,r,y,yp]*pPeriodLen[yp]) <=  vStorageOutNewCap[st1,r,y]*pPeriodLen[y];
 
-s.t.  eqStorageOutStockCap{(st1, r, y) in mStorageSpan}: vStorageOutStockCap[st1,r,y]  =  pStorageOutStockSurv[st1,r,y]*sum{yp in year:(((yp,y) in mMilestoneNext and (st1,r,yp) in mStorageSpan))}(vStorageOutStockCap[st1,r,yp])+pStorageOutStockNew[st1,r,y]-sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])*pPeriodLen[y];
+s.t.  eqStorageOutStockCap{(st1, r, y) in mStorageOutCap}: vStorageOutStockCap[st1,r,y]  =  pStorageOutStockSurv[st1,r,y]*sum{yp in year:(((yp,y) in mMilestoneNext and (st1,r,yp) in mStorageOutCap))}(vStorageOutStockCap[st1,r,yp])+(pStorageOutStockNew[st1,r,y]+sum{FORIF: y in mMilestoneFirst}(pStorageOutStock[st1,r,y]))-sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])*pPeriodLen[y];
 
 s.t.  eqStorageOutRetUp{(st1, r, y) in mStorageOutRetUp}: sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageOutRetiredNewCap[st1,r,yp,y]) <=  pStorageOutRetUp[st1,r,y]*pPeriodLen[y];
 
 s.t.  eqStorageOutRetLo{(st1, r, y) in mStorageOutRetLo}: sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageOutRetiredNewCap[st1,r,yp,y])  >=  pStorageOutRetLo[st1,r,y]*pPeriodLen[y];
+s.t.  eqStorageOutRetFx{(st1, r, y) in mStorageOutRetFx}: sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageOutRetiredNewCap[st1,r,yp,y])  =  pStorageOutRetLo[st1,r,y]*pPeriodLen[y];
 
 s.t.  eqStorageInpRetiredNewCap{(st1, r, y) in meqStorageRetiredNewCap}: sum{yp in year:((st1,r,y,yp) in mvStorageRetiredNewCap)}(vStorageInpRetiredNewCap[st1,r,y,yp]*pPeriodLen[yp]) <=  vStorageInpNewCap[st1,r,y]*pPeriodLen[y];
 
-s.t.  eqStorageInpStockCap{(st1, r, y) in mStorageInpCap}: vStorageInpStockCap[st1,r,y]  =  pStorageInpStockSurv[st1,r,y]*sum{yp in year:(((yp,y) in mMilestoneNext and (st1,r,yp) in mStorageInpCap))}(vStorageInpStockCap[st1,r,yp])+pStorageInpStockNew[st1,r,y]-sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageInpRetiredStock[st1,r,y])*pPeriodLen[y];
+s.t.  eqStorageInpStockCap{(st1, r, y) in mStorageInpCap}: vStorageInpStockCap[st1,r,y]  =  pStorageInpStockSurv[st1,r,y]*sum{yp in year:(((yp,y) in mMilestoneNext and (st1,r,yp) in mStorageInpCap))}(vStorageInpStockCap[st1,r,yp])+(pStorageInpStockNew[st1,r,y]+sum{FORIF: y in mMilestoneFirst}(pStorageInpStock[st1,r,y]))-sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageInpRetiredStock[st1,r,y])*pPeriodLen[y];
 
 s.t.  eqStorageInpRetUp{(st1, r, y) in mStorageInpRetUp}: sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageInpRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageInpRetiredNewCap[st1,r,yp,y]) <=  pStorageInpRetUp[st1,r,y]*pPeriodLen[y];
 
 s.t.  eqStorageInpRetLo{(st1, r, y) in mStorageInpRetLo}: sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageInpRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageInpRetiredNewCap[st1,r,yp,y])  >=  pStorageInpRetLo[st1,r,y]*pPeriodLen[y];
+s.t.  eqStorageInpRetFx{(st1, r, y) in mStorageInpRetFx}: sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageInpRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageInpRetiredNewCap[st1,r,yp,y])  =  pStorageInpRetLo[st1,r,y]*pPeriodLen[y];
 
 s.t.  eqStorageStgRetiredNewCap{(st1, r, y) in meqStorageRetiredNewCap}: sum{yp in year:((st1,r,y,yp) in mvStorageRetiredNewCap)}(vStorageStgRetiredNewCap[st1,r,y,yp]*pPeriodLen[yp]) <=  vStorageStgNewCap[st1,r,y]*pPeriodLen[y];
 
-s.t.  eqStorageStgStockCap{(st1, r, y) in mStorageStgCap}: vStorageStgStockCap[st1,r,y]  =  pStorageStgStockSurv[st1,r,y]*sum{yp in year:(((yp,y) in mMilestoneNext and (st1,r,yp) in mStorageStgCap))}(vStorageStgStockCap[st1,r,yp])+pStorageStgStockNew[st1,r,y]-sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageStgRetiredStock[st1,r,y])*pPeriodLen[y];
+s.t.  eqStorageStgStockCap{(st1, r, y) in mStorageStgCap}: vStorageStgStockCap[st1,r,y]  =  pStorageStgStockSurv[st1,r,y]*sum{yp in year:(((yp,y) in mMilestoneNext and (st1,r,yp) in mStorageStgCap))}(vStorageStgStockCap[st1,r,yp])+(pStorageStgStockNew[st1,r,y]+sum{FORIF: y in mMilestoneFirst}(pStorageStgStock[st1,r,y]))-sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageStgRetiredStock[st1,r,y])*pPeriodLen[y];
 
 s.t.  eqStorageStgRetUp{(st1, r, y) in mStorageStgRetUp}: sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageStgRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageStgRetiredNewCap[st1,r,yp,y]) <=  pStorageStgRetUp[st1,r,y]*pPeriodLen[y];
 
 s.t.  eqStorageStgRetLo{(st1, r, y) in mStorageStgRetLo}: sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageStgRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageStgRetiredNewCap[st1,r,yp,y])  >=  pStorageStgRetLo[st1,r,y]*pPeriodLen[y];
+s.t.  eqStorageStgRetFx{(st1, r, y) in mStorageStgRetFx}: sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageStgRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageStgRetiredNewCap[st1,r,yp,y])  =  pStorageStgRetLo[st1,r,y]*pPeriodLen[y];
 
 s.t.  eqStorageRetCost{(st1, r, y) in mStorageRetCost}: vStorageRetCost[st1,r,y]  =  pStorageOutRetCost[st1,r,y]*(sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageOutRetiredNewCap[st1,r,yp,y]))+pStorageInpRetCost[st1,r,y]*(sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageInpRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageInpRetiredNewCap[st1,r,yp,y]))+pStorageStgRetCost[st1,r,y]*(sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageStgRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageStgRetiredNewCap[st1,r,yp,y]));
 
 s.t.  eqTradeRetiredNewCap{(t1, y) in meqTradeRetiredNewCap}: sum{yp in year:((t1,y,yp) in mvTradeRetiredNewCap)}(vTradeRetiredNewCap[t1,y,yp]*pPeriodLen[yp]) <=  vTradeNewCap[t1,y]*pPeriodLen[y];
 
-s.t.  eqTradeStockCap{(t1, y) in mTradeSpan}: vTradeStockCap[t1,y]  =  pTradeStockSurv[t1,y]*sum{yp in year:(((yp,y) in mMilestoneNext and (t1,yp) in mTradeSpan))}(vTradeStockCap[t1,yp])+pTradeStockNew[t1,y]-sum{FORIF: (t1,y) in mvTradeRetiredStock} (vTradeRetiredStock[t1,y])*pPeriodLen[y];
+s.t.  eqTradeStockCap{(t1, y) in mTradeSpan}: vTradeStockCap[t1,y]  =  pTradeStockSurv[t1,y]*sum{yp in year:(((yp,y) in mMilestoneNext and (t1,yp) in mTradeSpan))}(vTradeStockCap[t1,yp])+(pTradeStockNew[t1,y]+sum{FORIF: y in mMilestoneFirst}(pTradeStock[t1,y]))-sum{FORIF: (t1,y) in mvTradeRetiredStock} (vTradeRetiredStock[t1,y])*pPeriodLen[y];
 
-s.t.  eqTradePhaseOut{(t1, y) in mvTradePhaseOut}: vTradePhaseOut[t1,y]*pPeriodLen[y]  =  sum{yp in year:(((yp,y) in mMilestoneNext and (t1,yp) in mTradeSpan))}(vTradeCap[t1,yp])-vTradeCap[t1,y]+vTradeNewCap[t1,y]*pPeriodLen[y]-(sum{FORIF: (t1,y) in mvTradeRetiredStock} (vTradeRetiredStock[t1,y])+sum{yp in year:((t1,yp,y) in mvTradeRetiredNewCap)}(vTradeRetiredNewCap[t1,yp,y]))*pPeriodLen[y]+pTradeStockNew[t1,y];
+s.t.  eqTradePhaseOut{(t1, y) in mvTradePhaseOut}: vTradePhaseOut[t1,y]*pPeriodLen[y]  =  sum{yp in year:(((yp,y) in mMilestoneNext and (t1,yp) in mTradeSpan))}(vTradeCap[t1,yp])-vTradeCap[t1,y]+vTradeNewCap[t1,y]*pPeriodLen[y]-(sum{FORIF: (t1,y) in mvTradeRetiredStock} (vTradeRetiredStock[t1,y])+sum{yp in year:((t1,yp,y) in mvTradeRetiredNewCap)}(vTradeRetiredNewCap[t1,yp,y]))*pPeriodLen[y]+(pTradeStockNew[t1,y]+sum{FORIF: y in mMilestoneFirst}(pTradeStock[t1,y]));
 
 s.t.  eqTradeStockPhaseOut{(t1, y) in mvTradePhaseOut}: vTradeStockPhaseOut[t1,y]*pPeriodLen[y]  =  (1-pTradeStockSurv[t1,y])*sum{yp in year:(((yp,y) in mMilestoneNext and (t1,yp) in mTradeSpan))}(vTradeStockCap[t1,yp]);
 
 s.t.  eqTradeRetUp{(t1, y) in mTradeRetUp}: sum{FORIF: (t1,y) in mvTradeRetiredStock} (vTradeRetiredStock[t1,y])+sum{yp in year:((t1,yp,y) in mvTradeRetiredNewCap)}(vTradeRetiredNewCap[t1,yp,y]) <=  pTradeRetUp[t1,y]*pPeriodLen[y];
 
 s.t.  eqTradeRetLo{(t1, y) in mTradeRetLo}: sum{FORIF: (t1,y) in mvTradeRetiredStock} (vTradeRetiredStock[t1,y])+sum{yp in year:((t1,yp,y) in mvTradeRetiredNewCap)}(vTradeRetiredNewCap[t1,yp,y])  >=  pTradeRetLo[t1,y]*pPeriodLen[y];
+s.t.  eqTradeRetFx{(t1, y) in mTradeRetFx}: sum{FORIF: (t1,y) in mvTradeRetiredStock} (vTradeRetiredStock[t1,y])+sum{yp in year:((t1,yp,y) in mvTradeRetiredNewCap)}(vTradeRetiredNewCap[t1,yp,y])  =  pTradeRetLo[t1,y]*pPeriodLen[y];
 
 s.t.  eqTradeRetCost{(t1, r, y) in mTradeRetCost}: vTradeRetCost[t1,r,y]  =  pTradeRetCost[t1,r,y]*(sum{FORIF: (t1,y) in mvTradeRetiredStock} (vTradeRetiredStock[t1,y])+sum{yp in year:((t1,yp,y) in mvTradeRetiredNewCap)}(vTradeRetiredNewCap[t1,yp,y]));
 
@@ -795,43 +930,49 @@ s.t.  eqTradeRetCost{(t1, r, y) in mTradeRetCost}: vTradeRetCost[t1,r,y]  =  pTr
 # boolean disjunction rather than if-then-else, which in MathProg is a numeric
 # expression and cannot stand where a logical one is expected. eqTechCap keeps
 # pTechOlife -- the technical life still governs when capacity operates.
-s.t.  eqTechEac{(t, r, y) in mTechEac}: vTechEac[t,r,y]  =  sum{yp in year:(((t,r,yp) in mTechNew and ordYear[y] >= ordYear[yp] and ((pTechPayback[t,r,yp] > 0 and ordYear[y]<pTechPayback[t,r,yp]+ordYear[yp]) or (pTechPayback[t,r,yp] <= 0 and (ordYear[y]<pTechOlife[t,r]+ordYear[yp] or (t,r) in mTechOlifeInf)))))}(pTechEac[t,r,yp]*(vTechNewCap[t,r,yp]-sum{ye in year:(((t,r,yp,ye) in mvTechRetiredNewCap and ordYear[y] >= ordYear[ye]))}(vTechRetiredNewCap[t,r,yp,ye])));
+# vTechNewCap is an annual build rate; pPeriodLen[yp] converts it to the
+# vintage's standing capacity (the same accumulation as eqTechCap), so the
+# annuity is charged per MW standing, not per MW/yr of build rate.
+s.t.  eqTechEac{(t, r, y) in mTechEac}: vTechEac[t,r,y]  =  sum{yp in year:(((t,r,yp) in mTechNew and ordYear[y] >= ordYear[yp] and ((pTechPayback[t,r,yp] > 0 and ordYear[y]<pTechPayback[t,r,yp]+ordYear[yp]) or (pTechPayback[t,r,yp] <= 0 and (ordYear[y]<pTechOlife[t,r]+ordYear[yp] or (t,r) in mTechOlifeInf)))))}(pTechEac[t,r,yp]*(pPeriodLen[yp]*vTechNewCap[t,r,yp]-sum{ye in year:(((t,r,yp,ye) in mvTechRetiredNewCap and ordYear[y] >= ordYear[ye]))}(vTechRetiredNewCap[t,r,yp,ye]*pPeriodLen[ye])));
 
 s.t.  eqTechInv{(t, r, y) in mTechInv}: vTechInv[t,r,y]  =  pTechInvcost[t,r,y]*vTechNewCap[t,r,y];
 
 s.t.  eqTechFixom{(t, r, y) in mTechFixom}: vTechFixom[t,r,y]  =  pTechFixom[t,r,y]*vTechCap[t,r,y];
 
-s.t.  eqTechVarom{(t, r, y) in mTechVarom}: vTechVarom[t,r,y]  =  sum{s in timeslice:((t,s) in mTechTimeslice)}(pTechVarom[t,r,y,s]*pTimesliceWeight[y,s]*vTechAct[t,r,y,s]+sum{c in comm:((t,c) in mTechInpComm)}(pTechCvarom[t,c,r,y,s]*pTimesliceWeight[y,s]*vTechInp[t,c,r,y,s])+sum{c in comm:((t,c) in mTechOutComm)}(pTechCvarom[t,c,r,y,s]*pTimesliceWeight[y,s]*vTechOut[t,c,r,y,s])+sum{c in comm:((t,c,r,y,s) in mvTechAOut)}(pTechAvarom[t,c,r,y,s]*pTimesliceWeight[y,s]*vTechAOut[t,c,r,y,s])+sum{c in comm:((t,c,r,y,s) in mvTechAInp)}(pTechAvarom[t,c,r,y,s]*pTimesliceWeight[y,s]*vTechAInp[t,c,r,y,s]));
+s.t.  eqTechVarom{(t, r, y) in mTechVarom}: vTechVarom[t,r,y]  =  sum{s in timeslice:((t,s) in mTechTimeslice)}(pTechVarom[t,r,y,s]*pTimesliceWeight[y,s]*vTechAct[t,r,y,s]+sum{c in comm:((t,c) in mTechInpComm)}(pTechCvarom[t,c,r,y,s]*pTimesliceWeight[y,s]*vTechInp[t,c,r,y,s])+sum{c in comm:((t,c) in mTechOutComm)}(pTechCvarom[t,c,r,y,s]*pTimesliceWeight[y,s]*vTechOut[t,c,r,y,s])+sum{c in comm, rp in region:((t,c,r,rp) in mTechProcAggRegion)}(pTechCvarom[t,c,r,y,s]*pTimesliceWeight[y,s]*(sum{FORIF: (t,c,rp,y,s) in mvTechInp} (vTechInp[t,c,rp,y,s])+sum{FORIF: (t,c,rp,y,s) in mvTechOut} (vTechOut[t,c,rp,y,s])))+sum{c in comm, sp in timeslice:((t,c,s,sp) in mTechProcAggTimeslice)}(pTechCvarom[t,c,r,y,s]*pTimesliceWeight[y,sp]*sum{FORIF: (t,c,r,y,sp) in mvTechInp} (vTechInp[t,c,r,y,sp])))+sum{c in comm,s in timeslice:((t,c,r,y,s) in mvTechAOut)}(pTechAvarom[t,c,r,y,s]*pTimesliceWeight[y,s]*vTechAOut[t,c,r,y,s])+sum{c in comm,s in timeslice:((t,c,r,y,s) in mvTechAInp)}(pTechAvarom[t,c,r,y,s]*pTimesliceWeight[y,s]*vTechAInp[t,c,r,y,s]);
 
-s.t.  eqSupAvaUp{(s1, c, r, y, s) in mSupAvaUp}: vSupOut[s1,c,r,y,s] <=  pSupAvaUp[s1,c,r,y,s]*prod{wth1 in weather:((wth1,s1) in mSupWeatherUp)}(pSupWeatherUp[wth1,s1]*pWeather[wth1,r,y,s]);
+s.t.  eqSupAvaUp{(s1, c, r, y, s) in mSupAvaUp}: vSupOut[s1,c,r,y,s] <=  pSupAvaUp[s1,c,r,y,s]*prod{wth1 in mSupWeatherUp_ix[s1]}(pSupWeatherUp[wth1,s1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqSupAvaLo{(s1, c, r, y, s) in meqSupAvaLo}: vSupOut[s1,c,r,y,s]  >=  pSupAvaLo[s1,c,r,y,s]*prod{wth1 in weather:((wth1,s1) in mSupWeatherLo)}(pSupWeatherLo[wth1,s1]*pWeather[wth1,r,y,s]);
+s.t.  eqSupAvaLo{(s1, c, r, y, s) in meqSupAvaLo}: vSupOut[s1,c,r,y,s]  >=  pSupAvaLo[s1,c,r,y,s]*prod{wth1 in mSupWeatherLo_ix[s1]}(pSupWeatherLo[wth1,s1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
+s.t.  eqSupAvaFx{(s1, c, r, y, s) in meqSupAvaFx}: vSupOut[s1,c,r,y,s]  =  pSupAvaLo[s1,c,r,y,s]*prod{wth1 in mSupWeatherLo_ix[s1]}(pSupWeatherLo[wth1,s1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
 s.t.  eqSupReserve{(s1, c, r) in mvSupReserve}: vSupReserve[s1,c,r]  =  sum{y in year,s in timeslice:((s1,c,r,y,s) in mSupAva)}(pPeriodLen[y]*pTimesliceWeight[y,s]*vSupOut[s1,c,r,y,s]);
 
 s.t.  eqSupReserveUp{(s1, c, r) in mSupReserveUp}: vSupReserve[s1,c,r] <=  pSupReserveUp[s1,c,r];
 
 s.t.  eqSupReserveLo{(s1, c, r) in meqSupReserveLo}: vSupReserve[s1,c,r]  >=  pSupReserveLo[s1,c,r];
+s.t.  eqSupReserveFx{(s1, c, r) in meqSupReserveFx}: vSupReserve[s1,c,r]  =  pSupReserveLo[s1,c,r];
 
 s.t.  eqSupCost{(s1, r, y) in mvSupCost}: vSupCost[s1,r,y]  =  sum{c in comm,s in timeslice:((s1,c,r,y,s) in mSupAva)}(pSupCost[s1,c,r,y,s]*pTimesliceWeight[y,s]*vSupOut[s1,c,r,y,s]);
 
 s.t.  eqDemInp{(c, r, y, s) in mvDemInp}: vDemInp[c,r,y,s]  =  sum{d in dem:((d,c) in mDemComm)}(pDemand[d,c,r,y,s]);
 
-s.t.  eqAggOutTot{(c, r, y, s) in mAggOut}: vAggOutTot[c,r,y,s]  =  sum{cp in comm:((c,cp) in mAggregateFactor)}(pAggregateFactor[c,cp]*sum{sp in timeslice:(((c,r,y,sp) in mvOutTot and (s,sp) in mTimesliceParentChildE and (cp,sp) in mCommTimeslice))}(sum{FORIF: (cp,r,y,sp) in mvOutTot} (vOutTot[cp,r,y,sp])));
+s.t.  eqAggOutTot{(c, r, y, s) in mAggOut}: vAggOutTot[c,r,y,s]  =  sum{cp in comm:((c,cp) in mAggregateFactor)}(pAggregateFactor[c,cp]*sum{sp in timeslice:(((c,r,y,sp) in mvOutTot and (s,sp) in mTimesliceParentChildE and (cp,sp) in mCommTimeslice))}(pTimesliceAgg[y,s,sp]*sum{FORIF: (cp,r,y,sp) in mvOutTot} (vOutTot[cp,r,y,sp])));
 
-s.t.  eqEmsFuelTot{(c, r, y, s) in mEmsFuelTot}: vEmsFuelTot[c,r,y,s]  =  sum{cp in comm:((pEmissionFactor[c,cp]>0))}(pEmissionFactor[c,cp]*sum{t in tech:((t,cp) in mTechInpComm)}(pTechEmisComm[t,cp]*sum{sp in timeslice:((c,s,sp) in mCommTimesliceOrParent)}(sum{FORIF: (t,c,cp,r,y,sp) in mTechEmsFuel} (vTechInp[t,cp,r,y,sp]))));
+s.t.  eqEmsFuelTot{(c, r, y, s) in mEmsFuelTot}: vEmsFuelTot[c,r,y,s]  =  sum{cp in comm:((pEmissionFactor[c,cp]>0))}(pEmissionFactor[c,cp]*sum{t in tech:((t,cp) in mTechInpComm)}(pTechEmisComm[t,cp]*sum{sp in timeslice:((c,s,sp) in mCommTimesliceOrParent)}(pTimesliceAgg[y,s,sp]*sum{FORIF: (t,c,cp,r,y,sp) in mTechEmsFuel} (vTechInp[t,cp,r,y,sp]))));
 
-s.t.  eqStorageAInp{(st1, c, r, y, s) in mvStorageAInp}: vStorageAInp[st1,c,r,y,s]  =  sum{cp in comm:((st1,cp) in mStorageStgComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageStg2AInp} ((pStorageStg2AInp[st1,c,r,y,s]*vStorageLevel[st1,cp,r,y,s])))+sum{cp in comm:((st1,cp) in mStorageInpComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageCinp2AInp} ((pStorageCinp2AInp[st1,c,r,y,s]*vStorageInp[st1,cp,r,y,s])))+sum{cp in comm:((st1,cp) in mStorageOutComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageCout2AInp} ((pStorageCout2AInp[st1,c,r,y,s]*vStorageOut[st1,cp,r,y,s])))+sum{FORIF: (st1,c,r,y,s) in mStorageCap2AInp} ((pStorageCap2AInp[st1,c,r,y,s]*vStorageOutCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageNCap2AInp} ((pStorageNCap2AInp[st1,c,r,y,s]*vStorageOutNewCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStoragePho2AInp} ((pStoragePho2AInp[st1,c,r,y,s]*sum{FORIF: (st1,r,y) in mvStoragePhaseOut} (vStoragePhaseOut[st1,r,y])))+sum{FORIF: (st1,c,r,y,s) in mStorageRet2AInp} ((pStorageRet2AInp[st1,c,r,y,s]*(sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageOutRetiredNewCap[st1,r,yp,y]))));
+s.t.  eqStorageAInp{(st1, c, r, y, s) in meqStorageAInp}: sum{FORIF: (st1,c,r,y,s) in mvStorageAInp} (vStorageAInp[st1,c,r,y,s])+sum{rp in region:((st1,c,r,rp) in mStorageProcAggRegion and (st1,c,rp,y,s) in mvStorageAInp)}(vStorageAInp[st1,c,rp,y,s])  =  pTimesliceShare[s]*(sum{FORIF: (st1,c,r,y,s) in mStorageOutCap2AInp} ((pStorageOutCap2AInp[st1,c,r,y,s]*vStorageOutCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageOutNCap2AInp} ((pStorageOutNCap2AInp[st1,c,r,y,s]*vStorageOutNewCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageInpCap2AInp} ((pStorageInpCap2AInp[st1,c,r,y,s]*vStorageInpCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageInpNCap2AInp} ((pStorageInpNCap2AInp[st1,c,r,y,s]*vStorageInpNewCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageStgCap2AInp} ((pStorageStgCap2AInp[st1,c,r,y,s]*vStorageStgCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageStgNCap2AInp} ((pStorageStgNCap2AInp[st1,c,r,y,s]*vStorageStgNewCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStoragePho2AInp} ((pStoragePho2AInp[st1,c,r,y,s]*sum{FORIF: (st1,r,y) in mvStoragePhaseOut} (vStoragePhaseOut[st1,r,y])))+sum{FORIF: (st1,c,r,y,s) in mStorageRet2AInp} ((pStorageRet2AInp[st1,c,r,y,s]*(sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageOutRetiredNewCap[st1,r,yp,y])))))+sum{sp in timeslice:((c,s,sp) in mCommTimesliceOrParent)}(pTimesliceAgg[y,s,sp]*(sum{cp in comm:((st1,cp) in mStorageStgComm)}(sum{FORIF: (st1,c,r,y,sp) in mStorageStg2AInp} ((pStorageStg2AInp[st1,c,r,y,sp]*vStorageLevel[st1,cp,r,y,sp])))+sum{cp in comm:((st1,cp) in mStorageInpComm)}(sum{FORIF: (st1,c,r,y,sp) in mStorageCinp2AInp} ((pStorageCinp2AInp[st1,c,r,y,sp]*vStorageInp[st1,cp,r,y,sp])))+sum{cp in comm:((st1,cp) in mStorageOutComm)}(sum{FORIF: (st1,c,r,y,sp) in mStorageCout2AInp} ((pStorageCout2AInp[st1,c,r,y,sp]*vStorageOut[st1,cp,r,y,sp])))));
 
-s.t.  eqStorageAOut{(st1, c, r, y, s) in mvStorageAOut}: vStorageAOut[st1,c,r,y,s]  =  sum{cp in comm:((st1,cp) in mStorageStgComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageStg2AOut} ((pStorageStg2AOut[st1,c,r,y,s]*vStorageLevel[st1,cp,r,y,s])))+sum{cp in comm:((st1,cp) in mStorageInpComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageCinp2AOut} ((pStorageCinp2AOut[st1,c,r,y,s]*vStorageInp[st1,cp,r,y,s])))+sum{cp in comm:((st1,cp) in mStorageOutComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageCout2AOut} ((pStorageCout2AOut[st1,c,r,y,s]*vStorageOut[st1,cp,r,y,s])))+sum{FORIF: (st1,c,r,y,s) in mStorageCap2AOut} ((pStorageCap2AOut[st1,c,r,y,s]*vStorageOutCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageNCap2AOut} ((pStorageNCap2AOut[st1,c,r,y,s]*vStorageOutNewCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStoragePho2AOut} ((pStoragePho2AOut[st1,c,r,y,s]*sum{FORIF: (st1,r,y) in mvStoragePhaseOut} (vStoragePhaseOut[st1,r,y])))+sum{FORIF: (st1,c,r,y,s) in mStorageRet2AOut} ((pStorageRet2AOut[st1,c,r,y,s]*(sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageOutRetiredNewCap[st1,r,yp,y]))));
+s.t.  eqStorageAOut{(st1, c, r, y, s) in meqStorageAOut}: sum{FORIF: (st1,c,r,y,s) in mvStorageAOut} (vStorageAOut[st1,c,r,y,s])+sum{rp in region:((st1,c,r,rp) in mStorageProcAggRegion and (st1,c,rp,y,s) in mvStorageAOut)}(vStorageAOut[st1,c,rp,y,s])  =  pTimesliceShare[s]*(sum{FORIF: (st1,c,r,y,s) in mStorageOutCap2AOut} ((pStorageOutCap2AOut[st1,c,r,y,s]*vStorageOutCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageOutNCap2AOut} ((pStorageOutNCap2AOut[st1,c,r,y,s]*vStorageOutNewCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageInpCap2AOut} ((pStorageInpCap2AOut[st1,c,r,y,s]*vStorageInpCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageInpNCap2AOut} ((pStorageInpNCap2AOut[st1,c,r,y,s]*vStorageInpNewCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageStgCap2AOut} ((pStorageStgCap2AOut[st1,c,r,y,s]*vStorageStgCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageStgNCap2AOut} ((pStorageStgNCap2AOut[st1,c,r,y,s]*vStorageStgNewCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStoragePho2AOut} ((pStoragePho2AOut[st1,c,r,y,s]*sum{FORIF: (st1,r,y) in mvStoragePhaseOut} (vStoragePhaseOut[st1,r,y])))+sum{FORIF: (st1,c,r,y,s) in mStorageRet2AOut} ((pStorageRet2AOut[st1,c,r,y,s]*(sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageOutRetiredNewCap[st1,r,yp,y])))))+sum{sp in timeslice:((c,s,sp) in mCommTimesliceOrParent)}(pTimesliceAgg[y,s,sp]*(sum{cp in comm:((st1,cp) in mStorageStgComm)}(sum{FORIF: (st1,c,r,y,sp) in mStorageStg2AOut} ((pStorageStg2AOut[st1,c,r,y,sp]*vStorageLevel[st1,cp,r,y,sp])))+sum{cp in comm:((st1,cp) in mStorageInpComm)}(sum{FORIF: (st1,c,r,y,sp) in mStorageCinp2AOut} ((pStorageCinp2AOut[st1,c,r,y,sp]*vStorageInp[st1,cp,r,y,sp])))+sum{cp in comm:((st1,cp) in mStorageOutComm)}(sum{FORIF: (st1,c,r,y,sp) in mStorageCout2AOut} ((pStorageCout2AOut[st1,c,r,y,sp]*vStorageOut[st1,cp,r,y,sp])))));
 
-s.t.  eqStorageLevel{(st1, c, r, y, sp, s) in meqStorageLevel}: vStorageLevel[st1,c,r,y,s]  =  pStorageStartLevel[st1,c,r,y,s]+sum{FORIF: (st1,r,y) in mStorageNew} ((pStorageNCap2Stg[st1,c,r,y,s]*vStorageOutNewCap[st1,r,y]))+sum{ci in comm:((st1,ci,r,y,sp) in mvStorageInp)}(pStorageInpEff[st1,ci,r,y,sp]*vStorageInp[st1,ci,r,y,sp])+((pStorageStgEff[st1,c,r,y,s])^(pTimesliceShare[s]))*vStorageLevel[st1,c,r,y,sp]-sum{co in comm:((st1,co,r,y,sp) in mvStorageOut)}((vStorageOut[st1,co,r,y,sp]) / (pStorageOutEff[st1,co,r,y,sp]));
+s.t.  eqStorageLevel{(st1, c, r, y, sp, s) in meqStorageLevel}: vStorageLevel[st1,c,r,y,s]  =  pStorageStartLevel[st1,c,r,y,s]+sum{FORIF: (st1,r,y) in mStorageStgNew} ((pStorageNCap2Stg[st1,c,r,y,s]*vStorageStgNewCap[st1,r,y]))+sum{ci in comm:((st1,ci,r,y,sp) in mvStorageInp)}(pStorageInpEff[st1,ci,r,y,sp]*vStorageInp[st1,ci,r,y,sp])+sum{ci in comm, rp in region:((st1,ci,r,rp) in mStorageProcAggRegion)}(pStorageInpEff[st1,ci,rp,y,sp]*vStorageInp[st1,ci,rp,y,sp])+((pStorageStgEff[st1,c,r,y,s])^(pTimesliceShare[s]))*vStorageLevel[st1,c,r,y,sp]-sum{co in comm:((st1,co,r,y,sp) in mvStorageOut)}((vStorageOut[st1,co,r,y,sp]) / (pStorageOutEff[st1,co,r,y,sp]));
 
 # [duration] now a BOUND on (stg, region, year): AfLo takes the LOWER ratio,
 # AfUp the UPPER. defVal [1,1] keeps a storage that says nothing tied at 1 h.
-s.t.  eqStorageAfLo{(st1, c, r, y, s) in meqStorageAfLo}: vStorageLevel[st1,c,r,y,s]  >=  pStorageAfLo[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoStgCap} (pStorageDurationLo[st1,r,y]*vStorageOutCap[st1,r,y]))*prod{wth1 in weather:((wth1,st1) in mStorageWeatherAfLo)}(pStorageWeatherAfLo[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageAfLo{(st1, c, r, y, s) in meqStorageAfLo}: vStorageLevel[st1,c,r,y,s]  >=  pStorageAfLo[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoStgCap} (pStorageDurationLo[st1,r,y]*vStorageOutCap[st1,r,y]))*prod{wth1 in mStorageWeatherAfLo_ix[st1]}(pStorageWeatherAfLo[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
+s.t.  eqStorageAfFx{(st1, c, r, y, s) in meqStorageAfFx}: vStorageLevel[st1,c,r,y,s]  =  pStorageAfLo[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoStgCap} (pStorageDurationLo[st1,r,y]*vStorageOutCap[st1,r,y]))*prod{wth1 in mStorageWeatherAfLo_ix[st1]}(pStorageWeatherAfLo[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqStorageAfUp{(st1, c, r, y, s) in meqStorageAfUp}: vStorageLevel[st1,c,r,y,s] <=  pStorageAfUp[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoStgCap} (pStorageDurationUp[st1,r,y]*vStorageOutCap[st1,r,y]))*prod{wth1 in weather:((wth1,st1) in mStorageWeatherAfUp)}(pStorageWeatherAfUp[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageAfUp{(st1, c, r, y, s) in meqStorageAfUp}: vStorageLevel[st1,c,r,y,s] <=  pStorageAfUp[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoStgCap} (pStorageDurationUp[st1,r,y]*vStorageOutCap[st1,r,y]))*prod{wth1 in mStorageWeatherAfUp_ix[st1]}(pStorageWeatherAfUp[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
 # [rename] eqStorageClear -> eqStorageOutLevel. Draw only from what was ALREADY
 # stored: stricter than the level's non-negativity, which would also permit
@@ -839,15 +980,17 @@ s.t.  eqStorageAfUp{(st1, c, r, y, s) in meqStorageAfUp}: vStorageLevel[st1,c,r,
 # a paired bound, and this one has no partner (cf. eqTradeCapFlow).
 s.t.  eqStorageOutLevel{(st1, c, r, y, s) in mvStorageLevel}: sum{co in comm:((st1,co,r,y,s) in mvStorageOut)}((vStorageOut[st1,co,r,y,s]) / (pStorageOutEff[st1,co,r,y,s])) <=  vStorageLevel[st1,c,r,y,s];
 
-s.t.  eqStorageInpUp{(st1, c, r, y, s) in meqStorageInpUp}: vStorageInp[st1,c,r,y,s] <=  (sum{FORIF: (st1,r,y) in mStorageInpCap} (vStorageInpCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoInpCap} (pStorageInp2outUp[st1,r,y]*vStorageOutCap[st1,r,y]))*pStorageInpCap2act[st1]*pTimesliceShare[s]*pStorageInpAfUp[st1,c,r,y,s]*prod{wth1 in weather:((wth1,st1) in mStorageWeatherInpAfUp)}(pStorageWeatherInpAfUp[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageInpUp{(st1, c, r, y, s) in meqStorageInpUp}: vStorageInp[st1,c,r,y,s] <=  (sum{FORIF: (st1,r,y) in mStorageInpCap} (vStorageInpCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoInpCap} (pStorageInp2outUp[st1,r,y]*vStorageOutCap[st1,r,y]))*pStorageInpCap2act[st1]*pTimesliceShare[s]*pStorageInpAfUp[st1,c,r,y,s]*prod{wth1 in mStorageWeatherInpAfUp_ix[st1]}(pStorageWeatherInpAfUp[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqStorageInpLo{(st1, c, r, y, s) in meqStorageInpLo}: vStorageInp[st1,c,r,y,s]  >=  (sum{FORIF: (st1,r,y) in mStorageInpCap} (vStorageInpCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoInpCap} (pStorageInp2outLo[st1,r,y]*vStorageOutCap[st1,r,y]))*pStorageInpCap2act[st1]*pTimesliceShare[s]*pStorageInpAfLo[st1,c,r,y,s]*prod{wth1 in weather:((wth1,st1) in mStorageWeatherInpAfLo)}(pStorageWeatherInpAfLo[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageInpLo{(st1, c, r, y, s) in meqStorageInpLo}: vStorageInp[st1,c,r,y,s]  >=  (sum{FORIF: (st1,r,y) in mStorageInpCap} (vStorageInpCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoInpCap} (pStorageInp2outLo[st1,r,y]*vStorageOutCap[st1,r,y]))*pStorageInpCap2act[st1]*pTimesliceShare[s]*pStorageInpAfLo[st1,c,r,y,s]*prod{wth1 in mStorageWeatherInpAfLo_ix[st1]}(pStorageWeatherInpAfLo[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
+s.t.  eqStorageInpFx{(st1, c, r, y, s) in meqStorageInpFx}: vStorageInp[st1,c,r,y,s]  =  (sum{FORIF: (st1,r,y) in mStorageInpCap} (vStorageInpCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoInpCap} (pStorageInp2outLo[st1,r,y]*vStorageOutCap[st1,r,y]))*pStorageInpCap2act[st1]*pTimesliceShare[s]*pStorageInpAfLo[st1,c,r,y,s]*prod{wth1 in mStorageWeatherInpAfLo_ix[st1]}(pStorageWeatherInpAfLo[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqStorageOutUp{(st1, c, r, y, s) in meqStorageOutUp}: vStorageOut[st1,c,r,y,s] <=  vStorageOutCap[st1,r,y]*pStorageOutCap2act[st1]*pTimesliceShare[s]*pStorageOutAfUp[st1,c,r,y,s]*prod{wth1 in weather:((wth1,st1) in mStorageWeatherOutAfUp)}(pStorageWeatherOutAfUp[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageOutUp{(st1, c, r, y, s) in meqStorageOutUp}: vStorageOut[st1,c,r,y,s] <=  vStorageOutCap[st1,r,y]*pStorageOutCap2act[st1]*pTimesliceShare[s]*pStorageOutAfUp[st1,c,r,y,s]*prod{wth1 in mStorageWeatherOutAfUp_ix[st1]}(pStorageWeatherOutAfUp[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqStorageOutLo{(st1, c, r, y, s) in meqStorageOutLo}: vStorageOut[st1,c,r,y,s]  >=  vStorageOutCap[st1,r,y]*pStorageOutCap2act[st1]*pTimesliceShare[s]*pStorageOutAfLo[st1,c,r,y,s]*prod{wth1 in weather:((wth1,st1) in mStorageWeatherOutAfLo)}(pStorageWeatherOutAfLo[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageOutLo{(st1, c, r, y, s) in meqStorageOutLo}: vStorageOut[st1,c,r,y,s]  >=  vStorageOutCap[st1,r,y]*pStorageOutCap2act[st1]*pTimesliceShare[s]*pStorageOutAfLo[st1,c,r,y,s]*prod{wth1 in mStorageWeatherOutAfLo_ix[st1]}(pStorageWeatherOutAfLo[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
+s.t.  eqStorageOutFx{(st1, c, r, y, s) in meqStorageOutFx}: vStorageOut[st1,c,r,y,s]  =  vStorageOutCap[st1,r,y]*pStorageOutCap2act[st1]*pTimesliceShare[s]*pStorageOutAfLo[st1,c,r,y,s]*prod{wth1 in mStorageWeatherOutAfLo_ix[st1]}(pStorageWeatherOutAfLo[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqStorageOutCap{(st1, r, y) in mStorageSpan}: vStorageOutCap[st1,r,y]  =  vStorageOutStockCap[st1,r,y]+sum{yp in year:((ordYear[y] >= ordYear[yp] and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp]) and (st1,r,yp) in mStorageNew))}(pPeriodLen[yp]*vStorageOutNewCap[st1,r,yp]-sum{ye in year:(((st1,r,yp,ye) in mvStorageRetiredNewCap and ordYear[y] >= ordYear[ye]))}(vStorageOutRetiredNewCap[st1,r,yp,ye]*pPeriodLen[ye]));
+s.t.  eqStorageOutCap{(st1, r, y) in mStorageOutCap}: vStorageOutCap[st1,r,y]  =  vStorageOutStockCap[st1,r,y]+sum{yp in year:((ordYear[y] >= ordYear[yp] and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp]) and (st1,r,yp) in mStorageOutNew))}(pPeriodLen[yp]*vStorageOutNewCap[st1,r,yp]-sum{ye in year:(((st1,r,yp,ye) in mvStorageRetiredNewCap and ordYear[y] >= ordYear[ye]))}(vStorageOutRetiredNewCap[st1,r,yp,ye]*pPeriodLen[ye]));
 
 # [2c] The STORING side's own capacity, in ENERGY. It exists only where the
 # storing part carries data (mStorageStgCap); everywhere else the af bounds above
@@ -860,25 +1003,38 @@ s.t.  eqStorageOutCap{(st1, r, y) in mStorageSpan}: vStorageOutCap[st1,r,y]  =  
 s.t.  eqStorageInpCap{(st1, r, y) in mStorageInpCap}: vStorageInpCap[st1,r,y]  =  vStorageInpStockCap[st1,r,y]+sum{yp in year:((ordYear[y] >= ordYear[yp] and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp]) and (st1,r,yp) in mStorageInpNew))}(pPeriodLen[yp]*vStorageInpNewCap[st1,r,yp]-sum{ye in year:(((st1,r,yp,ye) in mvStorageRetiredNewCap and ordYear[y] >= ordYear[ye]))}(vStorageInpRetiredNewCap[st1,r,yp,ye]*pPeriodLen[ye]));
 
 s.t.  eqStorageInpCapLo{(st1, r, y) in mStorageInpCapLo}: vStorageInpCap[st1,r,y]  >=  pStorageInpCapLo[st1,r,y];
+s.t.  eqStorageInpCapFx{(st1, r, y) in mStorageInpCapFx}: vStorageInpCap[st1,r,y]  =  pStorageInpCapLo[st1,r,y];
 
 s.t.  eqStorageInpCapUp{(st1, r, y) in mStorageInpCapUp}: vStorageInpCap[st1,r,y] <=  pStorageInpCapUp[st1,r,y];
 
 s.t.  eqStorageInpNewCapLo{(st1, r, y) in mStorageInpNewCapLo}: vStorageInpNewCap[st1,r,y]  >=  pStorageInpNewCapLo[st1,r,y]*pPeriodLen[y];
+s.t.  eqStorageInpNewCapFx{(st1, r, y) in mStorageInpNewCapFx}: vStorageInpNewCap[st1,r,y]  =  pStorageInpNewCapLo[st1,r,y]*pPeriodLen[y];
 
 s.t.  eqStorageInpNewCapUp{(st1, r, y) in mStorageInpNewCapUp}: vStorageInpNewCap[st1,r,y] <=  pStorageInpNewCapUp[st1,r,y]*pPeriodLen[y];
 
 # The inp2out LINK: charging capacity per unit of discharging capacity.
 s.t.  eqStorageInp2outLo{(st1, r, y) in mStorageInp2outLo}: vStorageInpCap[st1,r,y]  >=  pStorageInp2outLo[st1,r,y]*vStorageOutCap[st1,r,y];
+s.t.  eqStorageInp2outFx{(st1, r, y) in mStorageInp2outFx}: vStorageInpCap[st1,r,y]  =  pStorageInp2outLo[st1,r,y]*vStorageOutCap[st1,r,y];
 
 s.t.  eqStorageInp2outUp{(st1, r, y) in mStorageInp2outUp}: vStorageInpCap[st1,r,y] <=  pStorageInp2outUp[st1,r,y]*vStorageOutCap[st1,r,y];
+
+# The inp2stg LINK (charging C-rate, 1/h): charging capacity per unit of
+# storing (energy) capacity. No binding default -- emitted only where a finite
+# bound is declared and both capacity variables exist (mStorageInpStgCap).
+s.t.  eqStorageInp2stgLo{(st1, r, y) in mStorageInp2stgLo}: vStorageInpCap[st1,r,y]  >=  pStorageInp2stgLo[st1,r,y]*vStorageStgCap[st1,r,y];
+s.t.  eqStorageInp2stgFx{(st1, r, y) in mStorageInp2stgFx}: vStorageInpCap[st1,r,y]  =  pStorageInp2stgLo[st1,r,y]*vStorageStgCap[st1,r,y];
+
+s.t.  eqStorageInp2stgUp{(st1, r, y) in mStorageInp2stgUp}: vStorageInpCap[st1,r,y] <=  pStorageInp2stgUp[st1,r,y]*vStorageStgCap[st1,r,y];
 
 s.t.  eqStorageStgCap{(st1, r, y) in mStorageStgCap}: vStorageStgCap[st1,r,y]  =  vStorageStgStockCap[st1,r,y]+sum{yp in year:((ordYear[y] >= ordYear[yp] and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp]) and (st1,r,yp) in mStorageStgNew))}(pPeriodLen[yp]*vStorageStgNewCap[st1,r,yp]-sum{ye in year:(((st1,r,yp,ye) in mvStorageRetiredNewCap and ordYear[y] >= ordYear[ye]))}(vStorageStgRetiredNewCap[st1,r,yp,ye]*pPeriodLen[ye]));
 
 s.t.  eqStorageStgCapLo{(st1, r, y) in mStorageStgCapLo}: vStorageStgCap[st1,r,y]  >=  pStorageStgCapLo[st1,r,y];
+s.t.  eqStorageStgCapFx{(st1, r, y) in mStorageStgCapFx}: vStorageStgCap[st1,r,y]  =  pStorageStgCapLo[st1,r,y];
 
 s.t.  eqStorageStgCapUp{(st1, r, y) in mStorageStgCapUp}: vStorageStgCap[st1,r,y] <=  pStorageStgCapUp[st1,r,y];
 
 s.t.  eqStorageStgNewCapLo{(st1, r, y) in mStorageStgNewCapLo}: vStorageStgNewCap[st1,r,y]  >=  pStorageStgNewCapLo[st1,r,y]*pPeriodLen[y];
+s.t.  eqStorageStgNewCapFx{(st1, r, y) in mStorageStgNewCapFx}: vStorageStgNewCap[st1,r,y]  =  pStorageStgNewCapLo[st1,r,y]*pPeriodLen[y];
 
 s.t.  eqStorageStgNewCapUp{(st1, r, y) in mStorageStgNewCapUp}: vStorageStgNewCap[st1,r,y] <=  pStorageStgNewCapUp[st1,r,y]*pPeriodLen[y];
 
@@ -886,34 +1042,37 @@ s.t.  eqStorageStgNewCapUp{(st1, r, y) in mStorageStgNewCapUp}: vStorageStgNewCa
 # capacity. `.fx` collapses these two rows onto each other and pins the ratio;
 # `.lo`/`.up` let the model choose it. Emitted only where vStorageStgCap exists.
 s.t.  eqStorageDurationLo{(st1, r, y) in mStorageDurationLo}: vStorageStgCap[st1,r,y]  >=  pStorageDurationLo[st1,r,y]*vStorageOutCap[st1,r,y];
+s.t.  eqStorageDurationFx{(st1, r, y) in mStorageDurationFx}: vStorageStgCap[st1,r,y]  =  pStorageDurationLo[st1,r,y]*vStorageOutCap[st1,r,y];
 
 s.t.  eqStorageDurationUp{(st1, r, y) in mStorageDurationUp}: vStorageStgCap[st1,r,y] <=  pStorageDurationUp[st1,r,y]*vStorageOutCap[st1,r,y];
 
 s.t.  eqStorageOutCapLo{(st1, r, y) in mStorageOutCapLo}: vStorageOutCap[st1,r,y]  >=  pStorageOutCapLo[st1,r,y];
+s.t.  eqStorageOutCapFx{(st1, r, y) in mStorageOutCapFx}: vStorageOutCap[st1,r,y]  =  pStorageOutCapLo[st1,r,y];
 
 s.t.  eqStorageOutCapUp{(st1, r, y) in mStorageOutCapUp}: vStorageOutCap[st1,r,y] <=  pStorageOutCapUp[st1,r,y];
 
 s.t.  eqStorageOutNewCapLo{(st1, r, y) in mStorageOutNewCapLo}: vStorageOutNewCap[st1,r,y]  >=  pStorageOutNewCapLo[st1,r,y]*pPeriodLen[y];
+s.t.  eqStorageOutNewCapFx{(st1, r, y) in mStorageOutNewCapFx}: vStorageOutNewCap[st1,r,y]  =  pStorageOutNewCapLo[st1,r,y]*pPeriodLen[y];
 
 s.t.  eqStorageOutNewCapUp{(st1, r, y) in mStorageOutNewCapUp}: vStorageOutNewCap[st1,r,y] <=  pStorageOutNewCapUp[st1,r,y]*pPeriodLen[y];
 
-s.t.  eqStorageInv{(st1, r, y) in mStorageNew}: vStorageInv[st1,r,y]  =  pStorageOutInvcost[st1,r,y]*vStorageOutNewCap[st1,r,y]+sum{FORIF: (st1,r,y) in mStorageStgNew} (pStorageStgInvcost[st1,r,y]*vStorageStgNewCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageInpNew} (pStorageInpInvcost[st1,r,y]*vStorageInpNewCap[st1,r,y]);
+s.t.  eqStorageInv{(st1, r, y) in mStorageNew}: vStorageInv[st1,r,y]  =  sum{FORIF: (st1,r,y) in mStorageOutNew} (pStorageOutInvcost[st1,r,y]*vStorageOutNewCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageStgNew} (pStorageStgInvcost[st1,r,y]*vStorageStgNewCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageInpNew} (pStorageInpInvcost[st1,r,y]*vStorageInpNewCap[st1,r,y]);
 
 # [eac-fix] reverted to legacy vintaged new-capacity form (see eqTechEac).
 # OLD: s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  pStorageOutEac[st1,r,y]*vStorageOutCap[st1,r,y];
 # [payback] see eqTechEac.
 # [eac-fix] the `pStorageOutInvcost <> 0` guard was REMOVED from the summation
 # condition below. It dropped the annuity entirely when a user supplied
-# `@invcost$eac` without `invcost` (pre-annuitised capex, e.g. a PyPSA import),
+# `@invcost$eac` without `invcost` (pre-annuitised capex),
 # so the storage was built for FREE -- silently, with an OPTIMAL solve.
 # eqTechEac / eqTradeEac never carried it. pStorageOutEac defaults to 0, so a
 # vintage with no capital cost now contributes a zero-coefficient term instead
 # of being dropped from the sum.
-s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  sum{yp in year:(((st1,r,yp) in mStorageNew and ordYear[y] >= ordYear[yp] and ((pStorageOutPayback[st1,r,yp] > 0 and ordYear[y]<pStorageOutPayback[st1,r,yp]+ordYear[yp]) or (pStorageOutPayback[st1,r,yp] <= 0 and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp])))))}(pStorageOutEac[st1,r,yp]*vStorageOutNewCap[st1,r,yp]+sum{FORIF: (st1,r,yp) in mStorageStgNew} (pStorageStgEac[st1,r,yp]*vStorageStgNewCap[st1,r,yp])+sum{FORIF: (st1,r,yp) in mStorageInpNew} (pStorageInpEac[st1,r,yp]*vStorageInpNewCap[st1,r,yp]));
+s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  sum{yp in year:(((st1,r,yp) in mStorageNew and ordYear[y] >= ordYear[yp] and ((pStorageOutPayback[st1,r,yp] > 0 and ordYear[y]<pStorageOutPayback[st1,r,yp]+ordYear[yp]) or (pStorageOutPayback[st1,r,yp] <= 0 and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp])))))}(pPeriodLen[yp]*(sum{FORIF: (st1,r,yp) in mStorageOutNew} (pStorageOutEac[st1,r,yp]*vStorageOutNewCap[st1,r,yp])+sum{FORIF: (st1,r,yp) in mStorageStgNew} (pStorageStgEac[st1,r,yp]*vStorageStgNewCap[st1,r,yp])+sum{FORIF: (st1,r,yp) in mStorageInpNew} (pStorageInpEac[st1,r,yp]*vStorageInpNewCap[st1,r,yp])));
 
-s.t.  eqStorageFixom{(st1, r, y) in mStorageFixom}: vStorageFixom[st1,r,y]  =  pStorageOutFixom[st1,r,y]*vStorageOutCap[st1,r,y]+sum{FORIF: (st1,r,y) in mStorageStgFixom} (pStorageStgFixom[st1,r,y]*vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageInpFixom} (pStorageInpFixom[st1,r,y]*vStorageInpCap[st1,r,y]);
+s.t.  eqStorageFixom{(st1, r, y) in mStorageFixom}: vStorageFixom[st1,r,y]  =  sum{FORIF: (st1,r,y) in mStorageOutCap} (pStorageOutFixom[st1,r,y]*vStorageOutCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageStgFixom} (pStorageStgFixom[st1,r,y]*vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageInpFixom} (pStorageInpFixom[st1,r,y]*vStorageInpCap[st1,r,y]);
 
-s.t.  eqStorageVarom{(st1, r, y) in mStorageVarom}: vStorageVarom[st1,r,y]  =  sum{c in comm:((st1,c) in mStorageInpComm)}(sum{s in timeslice:((c,s) in mCommTimeslice)}(pStorageCostInp[st1,r,y,s]*pTimesliceWeight[y,s]*vStorageInp[st1,c,r,y,s]))+sum{c in comm:((st1,c) in mStorageOutComm)}(sum{s in timeslice:((c,s) in mCommTimeslice)}(pStorageCostOut[st1,r,y,s]*pTimesliceWeight[y,s]*vStorageOut[st1,c,r,y,s]))+sum{c in comm:((st1,c) in mStorageStgComm)}(sum{s in timeslice:((c,s) in mCommTimeslice)}(pStorageCostStore[st1,r,y,s]*pTimesliceWeight[y,s]*vStorageLevel[st1,c,r,y,s]));
+s.t.  eqStorageVarom{(st1, r, y) in mStorageVarom}: vStorageVarom[st1,r,y]  =  sum{c in comm:((st1,c) in mStorageInpComm)}(sum{s in timeslice:((c,s) in mCommTimeslice)}(pStorageCostInp[st1,r,y,s]*pTimesliceWeight[y,s]*vStorageInp[st1,c,r,y,s]))+sum{c in comm, rp in region:((st1,c,r,rp) in mStorageProcAggRegion)}(sum{s in timeslice:((c,s) in mCommTimeslice)}(pStorageCostInp[st1,r,y,s]*pTimesliceWeight[y,s]*vStorageInp[st1,c,rp,y,s]))+sum{c in comm:((st1,c) in mStorageOutComm)}(sum{s in timeslice:((c,s) in mCommTimeslice)}(pStorageCostOut[st1,r,y,s]*pTimesliceWeight[y,s]*vStorageOut[st1,c,r,y,s]))+sum{c in comm:((st1,c) in mStorageStgComm)}(sum{s in timeslice:((c,s) in mCommTimeslice)}(pStorageCostStore[st1,r,y,s]*pTimesliceWeight[y,s]*vStorageLevel[st1,c,r,y,s]));
 
 s.t.  eqImportTot{(c, dst, y, s) in mImport}: vImportTot[c,dst,y,s]  =  sum{(t1,src,d0) in mTradeRoutes: d0 == dst and ((t1,c) in mTradeComm)}((sum{FORIF: (t1,c,src,dst,y,s) in mvTradeIr} ((pTradeIrEff[t1,src,dst,y,s]*vTradeIr[t1,c,src,dst,y,s]))))+sum{i in imp:((i,c) in mImpComm)}(sum{FORIF: (i,c,dst,y,s) in mImportRow} (vImportRow[i,c,dst,y,s]));
 
@@ -922,6 +1081,7 @@ s.t.  eqExportTot{(c, src, y, s) in mExport}: vExportTot[c,src,y,s]  =  sum{(t1,
 s.t.  eqTradeFlowUp{(t1, c, src, dst, y, s) in meqTradeFlowUp}: vTradeIr[t1,c,src,dst,y,s] <=  pTradeIrUp[t1,src,dst,y,s];
 
 s.t.  eqTradeFlowLo{(t1, c, src, dst, y, s) in meqTradeFlowLo}: vTradeIr[t1,c,src,dst,y,s]  >=  pTradeIrLo[t1,src,dst,y,s];
+s.t.  eqTradeFlowFx{(t1, c, src, dst, y, s) in meqTradeFlowFx}: vTradeIr[t1,c,src,dst,y,s]  =  pTradeIrLo[t1,src,dst,y,s];
 
 # Relative flow bounds: the same limit as above, but as a fraction of the
 # object's own capacity rather than an absolute quantity, so one trade object
@@ -930,14 +1090,16 @@ s.t.  eqTradeFlowLo{(t1, c, src, dst, y, s) in meqTradeFlowLo}: vTradeIr[t1,c,sr
 s.t.  eqTradeIrAfUp{(t1, c, src, dst, y, s) in meqTradeIrAfUp}: vTradeIr[t1,c,src,dst,y,s] <=  pTradeIrAfUp[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s];
 
 s.t.  eqTradeIrAfLo{(t1, c, src, dst, y, s) in meqTradeIrAfLo}: vTradeIr[t1,c,src,dst,y,s]  >=  pTradeIrAfLo[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s];
+s.t.  eqTradeIrAfFx{(t1, c, src, dst, y, s) in meqTradeIrAfFx}: vTradeIr[t1,c,src,dst,y,s]  =  pTradeIrAfLo[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s];
 
 s.t.  eqImportIrCost{(t1, r, y) in mImportIrCost}: vImportIrCost[t1,r,y]  =  sum{src in region:((t1,src,r) in mTradeRoutes)}(sum{c in comm:((t1,c) in mTradeComm)}(sum{s in timeslice:((t1,s) in mTradeTimeslice)}(sum{FORIF: (t1,c,src,r,y,s) in mvTradeIr} (((pTradeIrMarkup[t1,src,r,y,s])*vTradeIr[t1,c,src,r,y,s]*pTimesliceWeight[y,s])))));
 
-s.t.  eqExportIrCost{(t1, r, y) in mExportIrCost}: vExportIrCost[t1,r,y]  =  sum{dst in region:((t1,r,dst) in mTradeRoutes)}(sum{c in comm:((t1,c) in mTradeComm)}(sum{s in timeslice:((t1,s) in mTradeTimeslice)}(sum{FORIF: (t1,c,r,dst,y,s) in mvTradeIr} (((pTradeIrCost[t1,r,dst,y,s]-pTradeIrMarkup[t1,r,dst,y,s])*vTradeIr[t1,c,r,dst,y,s]*pTimesliceWeight[y,s])))));
+s.t.  eqExportIrCost{(t1, r, y) in mExportIrCost}: vExportIrCost[t1,r,y]  =  sum{dst in region:((t1,r,dst) in mTradeRoutes)}(sum{c in comm:((t1,c) in mTradeComm)}(sum{s in timeslice:((t1,s) in mTradeTimeslice)}(sum{FORIF: (t1,c,r,dst,y,s) in mvTradeIr} (((pTradeIrVarom[t1,r,dst,y,s]-pTradeIrMarkup[t1,r,dst,y,s])*vTradeIr[t1,c,r,dst,y,s]*pTimesliceWeight[y,s])))));
 
 s.t.  eqExportRowUp{(e, c, r, y, s) in mExportRowUp}: vExportRow[e,c,r,y,s] <=  pExportRowUp[e,r,y,s];
 
 s.t.  eqExportRowLo{(e, c, r, y, s) in meqExportRowLo}: vExportRow[e,c,r,y,s]  >=  pExportRowLo[e,r,y,s];
+s.t.  eqExportRowFx{(e, c, r, y, s) in meqExportRowFx}: vExportRow[e,c,r,y,s]  =  pExportRowLo[e,r,y,s];
 
 s.t.  eqExportRowCum{(e, c) in mExpComm}: vExportRowCum[e,c]  =  sum{r in region,y in year,s in timeslice:((e,c,r,y,s) in mExportRow)}(pPeriodLen[y]*pTimesliceWeight[y,s]*vExportRow[e,c,r,y,s]);
 
@@ -948,6 +1110,7 @@ s.t.  eqExportRowCost{(e, r, y) in mExportRowCost}: vExportRowCost[e,r,y]  =  -s
 s.t.  eqImportRowUp{(i, c, r, y, s) in mImportRowUp}: vImportRow[i,c,r,y,s] <=  pImportRowUp[i,r,y,s];
 
 s.t.  eqImportRowLo{(i, c, r, y, s) in meqImportRowLo}: vImportRow[i,c,r,y,s]  >=  pImportRowLo[i,r,y,s];
+s.t.  eqImportRowFx{(i, c, r, y, s) in meqImportRowFx}: vImportRow[i,c,r,y,s]  =  pImportRowLo[i,r,y,s];
 
 s.t.  eqImportRowCum{(i, c) in mImpComm}: vImportRowCum[i,c]  =  sum{r in region,y in year,s in timeslice:((i,c,r,y,s) in mImportRow)}(pPeriodLen[y]*pTimesliceWeight[y,s]*vImportRow[i,c,r,y,s]);
 
@@ -960,10 +1123,12 @@ s.t.  eqTradeCapFlow{(t1, c, y, s) in meqTradeCapFlow}: pTimesliceShare[s]*pTrad
 s.t.  eqTradeCap{(t1, y) in mTradeSpan}: vTradeCap[t1,y]  =  vTradeStockCap[t1,y]+sum{yp in year:(((t1,yp) in mTradeNew and ordYear[y] >= ordYear[yp] and (ordYear[y]<pTradeOlife[t1]+ordYear[yp] or t1 in mTradeOlifeInf)))}(pPeriodLen[yp]*vTradeNewCap[t1,yp]-sum{ye in year:(((t1,yp,ye) in mvTradeRetiredNewCap and ordYear[y] >= ordYear[ye]))}(vTradeRetiredNewCap[t1,yp,ye]*pPeriodLen[ye]));
 
 s.t.  eqTradeCapLo{(t1, y) in mTradeCapLo}: vTradeCap[t1,y]  >=  pTradeCapLo[t1,y];
+s.t.  eqTradeCapFx{(t1, y) in mTradeCapFx}: vTradeCap[t1,y]  =  pTradeCapLo[t1,y];
 
 s.t.  eqTradeCapUp{(t1, y) in mTradeCapUp}: vTradeCap[t1,y] <=  pTradeCapUp[t1,y];
 
 s.t.  eqTradeNewCapLo{(t1, y) in mTradeNewCapLo}: vTradeNewCap[t1,y]*pPeriodLen[y]  >=  pTradeNewCapLo[t1,y];
+s.t.  eqTradeNewCapFx{(t1, y) in mTradeNewCapFx}: vTradeNewCap[t1,y]*pPeriodLen[y]  =  pTradeNewCapLo[t1,y];
 
 s.t.  eqTradeNewCapUp{(t1, y) in mTradeNewCapUp}: vTradeNewCap[t1,y]*pPeriodLen[y] <=  pTradeNewCapUp[t1,y];
 
@@ -973,7 +1138,7 @@ s.t.  eqTradeInv{(t1, r, y) in mTradeInv}: vTradeInv[t1,r,y]  =  pTradeInvcost[t
 # OLD: s.t.  eqTradeEac{(t1, r, y) in mTradeEac}: vTradeEac[t1,r,y]  =  pTradeEac[t1,r,y]*vTradeCap[t1,y];
 # [payback] see eqTechEac. pTradePayback is region-indexed while vTradeNewCap is
 # not, so each region amortises its own share of one corridor on its own schedule.
-s.t.  eqTradeEac{(t1, r, y) in mTradeEac}: vTradeEac[t1,r,y]  =  sum{yp in year:(((t1,yp) in mTradeNew and ordYear[y] >= ordYear[yp] and ((pTradePayback[t1,r,yp] > 0 and ordYear[y]<pTradePayback[t1,r,yp]+ordYear[yp]) or (pTradePayback[t1,r,yp] <= 0 and (ordYear[y]<pTradeOlife[t1]+ordYear[yp] or t1 in mTradeOlifeInf)))))}(pTradeEac[t1,r,yp]*vTradeNewCap[t1,yp]);
+s.t.  eqTradeEac{(t1, r, y) in mTradeEac}: vTradeEac[t1,r,y]  =  sum{yp in year:(((t1,yp) in mTradeNew and ordYear[y] >= ordYear[yp] and ((pTradePayback[t1,r,yp] > 0 and ordYear[y]<pTradePayback[t1,r,yp]+ordYear[yp]) or (pTradePayback[t1,r,yp] <= 0 and (ordYear[y]<pTradeOlife[t1]+ordYear[yp] or t1 in mTradeOlifeInf)))))}(pTradeEac[t1,r,yp]*pPeriodLen[yp]*vTradeNewCap[t1,yp]);
 
 s.t.  eqTradeFixom{(t1, r, y) in mTradeFixom}: vTradeFixom[t1,r,y]  =  pTradeFixom[t1,r,y]*vTradeCap[t1,y];
 
@@ -981,9 +1146,9 @@ s.t.  eqTradeIrAInp{(t1, c, r, y, s) in mvTradeIrAInp}: vTradeIrAInp[t1,c,r,y,s]
 
 s.t.  eqTradeIrAOut{(t1, c, r, y, s) in mvTradeIrAOut}: vTradeIrAOut[t1,c,r,y,s]  =  sum{dst in region:((t1,c,r,dst,y,s) in mTradeIrCsrc2Aout)}(pTradeIrCsrc2Aout[t1,c,r,dst,y,s]*sum{cp in comm:(((t1,cp) in mTradeComm and (t1,cp,r,dst,y,s) in mvTradeIr))}(vTradeIr[t1,cp,r,dst,y,s]))+sum{src in region:((t1,c,src,r,y,s) in mTradeIrCdst2Aout)}(pTradeIrCdst2Aout[t1,c,src,r,y,s]*sum{cp in comm:(((t1,cp) in mTradeComm and (t1,cp,src,r,y,s) in mvTradeIr))}(vTradeIr[t1,cp,src,r,y,s]));
 
-s.t.  eqTradeIrAInpTot{(c, r, y, s) in mvTradeIrAInpTot}: vTradeIrAInpTot[c,r,y,s]  =  sum{t1 in trade,sp in timeslice:(((c,s,sp) in mCommTimesliceOrParent and (t1,c,r,y,sp) in mvTradeIrAInp))}(vTradeIrAInp[t1,c,r,y,sp]);
+s.t.  eqTradeIrAInpTot{(c, r, y, s) in mvTradeIrAInpTot}: vTradeIrAInpTot[c,r,y,s]  =  sum{t1 in trade,sp in timeslice:(((c,s,sp) in mCommTimesliceOrParent and (t1,c,r,y,sp) in mvTradeIrAInp))}(pTimesliceAgg[y,s,sp]*vTradeIrAInp[t1,c,r,y,sp]);
 
-s.t.  eqTradeIrAOutTot{(c, r, y, s) in mvTradeIrAOutTot}: vTradeIrAOutTot[c,r,y,s]  =  sum{t1 in trade,sp in timeslice:(((c,s,sp) in mCommTimesliceOrParent and (t1,c,r,y,sp) in mvTradeIrAOut))}(vTradeIrAOut[t1,c,r,y,sp]);
+s.t.  eqTradeIrAOutTot{(c, r, y, s) in mvTradeIrAOutTot}: vTradeIrAOutTot[c,r,y,s]  =  sum{t1 in trade,sp in timeslice:(((c,s,sp) in mCommTimesliceOrParent and (t1,c,r,y,sp) in mvTradeIrAOut))}(pTimesliceAgg[y,s,sp]*vTradeIrAOut[t1,c,r,y,sp]);
 
 s.t.  eqBalLo{(c, r, y, s) in meqBalLo}: vBalance[c,r,y,s]  >=  0;
 
@@ -1000,7 +1165,7 @@ s.t.  eqBal{(c, r, y, s) in mvBalance}: vBalance[c,r,y,s]  =  sum{FORIF: (c,r,y,
 # The final term replaces the old mOutSub/vOut2Lo down-disaggregation collector.
 # OLD:
 # s.t.  eqOutTot{(c, r, y, s) in mvOutTot}: vOutTot[c,r,y,s]  =  sum{FORIF: (c,r,y,s) in mDummyImport} (vDummyImport[c,r,y,s])+sum{FORIF: (c,r,y,s) in mSupOutTot} (vSupOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mEmsFuelTot} (vEmsFuelTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mAggOut} (vAggOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mTechOutTot} (vTechOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mStorageOutTot} (vStorageOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mImport} (vImportTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mvTradeIrAOutTot} (vTradeIrAOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mOutSub} (sum{sp in timeslice:(((sp,s) in mTimesliceParentChild and (c,r,y,sp,s) in mvOut2Lo))}(vOut2Lo[c,r,y,sp,s]));
-s.t.  eqOutTot{(c, r, y, s) in mvOutTot}: vOutTot[c,r,y,s]  =  sum{FORIF: (c,r,y,s) in mDummyImport} (vDummyImport[c,r,y,s])+sum{FORIF: (c,r,y,s) in mSupOutTot} (vSupOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mEmsFuelTot} (vEmsFuelTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mAggOut} (vAggOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mTechOutTot} (vTechOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mStorageOutTot} (vStorageOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mImport} (vImportTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mvTradeIrAOutTot} (vTradeIrAOutTot[c,r,y,s])+sum{sp in timeslice:((s,sp) in mTimesliceFamily and (c,r,y,sp) in mvOutTot)}(pTimesliceAgg[y,s,sp]*vOutTot[c,r,y,sp])+sum{rp in region:((r,rp) in mRegionFamily and (c,rp,y,s) in mvOutTot)}(vOutTot[c,rp,y,s]);
+s.t.  eqOutTot{(c, r, y, s) in mvOutTot}: vOutTot[c,r,y,s]  =  sum{FORIF: (c,r,y,s) in mDummyImport} (vDummyImport[c,r,y,s])+sum{FORIF: (c,r,y,s) in mSupOutTot} (vSupOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mEmsFuelTot} (vEmsFuelTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mAggOut} (vAggOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mTechOutTot} (vTechOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mStorageOutTot} (vStorageOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mImport} (vImportTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mvTradeIrAOutTot} (vTradeIrAOutTot[c,r,y,s])+sum{sp in mTimesliceFamily_ix[s]:((c,r,y,sp) in mvOutTot)}(pTimesliceAgg[y,s,sp]*vOutTot[c,r,y,sp])+sum{rp in mRegionFamily_ix[r]:((c,rp,y,s) in mvOutTot and (c,s) in mCommTimeslice)}(vOutTot[c,rp,y,s]);
 
 # [agg-rewrite] eqOutTotRY/vOutTotRY retired (dead reporting)
 
@@ -1012,7 +1177,7 @@ s.t.  eqOutTot{(c, r, y, s) in mvOutTot}: vOutTot[c,r,y,s]  =  sum{FORIF: (c,r,y
 # immediately-finer children's totals. Final term replaces old mInpSub/vInp2Lo collector.
 # OLD:
 # s.t.  eqInpTot{(c, r, y, s) in mvInpTot}: vInpTot[c,r,y,s]  =  sum{FORIF: (c,r,y,s) in mvDemInp} (vDemInp[c,r,y,s])+sum{FORIF: (c,r,y,s) in mDummyExport} (vDummyExport[c,r,y,s])+sum{FORIF: (c,r,y,s) in mTechInpTot} (vTechInpTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mStorageInpTot} (vStorageInpTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mExport} (vExportTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mvTradeIrAInpTot} (vTradeIrAInpTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mInpSub} (sum{sp in timeslice:(((sp,s) in mTimesliceParentChild and (c,r,y,sp,s) in mvInp2Lo))}(vInp2Lo[c,r,y,sp,s]));
-s.t.  eqInpTot{(c, r, y, s) in mvInpTot}: vInpTot[c,r,y,s]  =  sum{FORIF: (c,r,y,s) in mvDemInp} (vDemInp[c,r,y,s])+sum{FORIF: (c,r,y,s) in mDummyExport} (vDummyExport[c,r,y,s])+sum{FORIF: (c,r,y,s) in mTechInpTot} (vTechInpTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mStorageInpTot} (vStorageInpTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mExport} (vExportTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mvTradeIrAInpTot} (vTradeIrAInpTot[c,r,y,s])+sum{sp in timeslice:((s,sp) in mTimesliceFamily and (c,r,y,sp) in mvInpTot)}(pTimesliceAgg[y,s,sp]*vInpTot[c,r,y,sp])+sum{rp in region:((r,rp) in mRegionFamily and (c,rp,y,s) in mvInpTot)}(vInpTot[c,rp,y,s]);
+s.t.  eqInpTot{(c, r, y, s) in mvInpTot}: vInpTot[c,r,y,s]  =  sum{FORIF: (c,r,y,s) in mvDemInp} (vDemInp[c,r,y,s])+sum{FORIF: (c,r,y,s) in mDummyExport} (vDummyExport[c,r,y,s])+sum{FORIF: (c,r,y,s) in mTechInpTot} (vTechInpTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mStorageInpTot} (vStorageInpTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mExport} (vExportTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mvTradeIrAInpTot} (vTradeIrAInpTot[c,r,y,s])+sum{sp in mTimesliceFamily_ix[s]:((c,r,y,sp) in mvInpTot)}(pTimesliceAgg[y,s,sp]*vInpTot[c,r,y,sp])+sum{rp in mRegionFamily_ix[r]:((c,rp,y,s) in mvInpTot and (c,s) in mCommTimeslice)}(vInpTot[c,rp,y,s]);
 
 # [agg-rewrite] eqInpTotRY/vInpTotRY retired (dead reporting)
 
@@ -1022,25 +1187,25 @@ s.t.  eqInpTot{(c, r, y, s) in mvInpTot}: vInpTot[c,r,y,s]  =  sum{FORIF: (c,r,y
 
 s.t.  eqSupOutTot{(c, r, y, s) in mSupOutTot}: vSupOutTot[c,r,y,s]  =  sum{s1 in sup:(((s1,c) in mSupComm and (s1,c,r,y,s) in mSupAva))}(vSupOut[s1,c,r,y,s]);
 
-s.t.  eqTechInpTot{(c, r, y, s) in mTechInpTot}: vTechInpTot[c,r,y,s]  =  sum{t in tech:((t,c) in mTechInpCommSameTimeslice)}(sum{FORIF: (t,c,r,y,s) in mvTechInp} (vTechInp[t,c,r,y,s]))+sum{t in tech:((t,c) in mTechInpCommAgg)}(sum{sp in timeslice:((t,c,sp,s) in mTechInpCommAggTimeslice)}(sum{FORIF: (t,c,r,y,sp) in mvTechInp} (vTechInp[t,c,r,y,sp])))+sum{t in tech:((t,c) in mTechAInpCommSameTimeslice)}(sum{FORIF: (t,c,r,y,s) in mvTechAInp} (vTechAInp[t,c,r,y,s]))+sum{t in tech:((t,c) in mTechAInpCommAgg)}(sum{sp in timeslice:((t,c,sp,s) in mTechAInpCommAggTimeslice)}(sum{FORIF: (t,c,r,y,sp) in mvTechAInp} (vTechAInp[t,c,r,y,sp])));
+s.t.  eqTechInpTot{(c, r, y, s) in mTechInpTot}: vTechInpTot[c,r,y,s]  =  sum{t in mTechInpCommSameTimeslice_ix[c]}(sum{FORIF: (t,c,r,y,s) in mvTechInp} (vTechInp[t,c,r,y,s]))+sum{t in mTechInpCommAgg_ix[c]}(sum{sp in timeslice:((t,c,sp,s) in mTechInpCommAggTimeslice)}(pTimesliceAgg[y,s,sp]*sum{FORIF: (t,c,r,y,sp) in mvTechInp} (vTechInp[t,c,r,y,sp])))+sum{t in mTechAInpCommSameTimeslice_ix[c]}(sum{FORIF: (t,c,r,y,s) in mvTechAInp} (vTechAInp[t,c,r,y,s]))+sum{t in mTechAInpCommAgg_ix[c]}(sum{sp in timeslice:((t,c,sp,s) in mTechAInpCommAggTimeslice)}(pTimesliceAgg[y,s,sp]*sum{FORIF: (t,c,r,y,sp) in mvTechAInp} (vTechAInp[t,c,r,y,sp])));
 
-s.t.  eqTechOutTot{(c, r, y, s) in mTechOutTot}: vTechOutTot[c,r,y,s]  =  sum{t in tech:((t,c) in mTechOutCommSameTimeslice)}(sum{FORIF: (t,c,r,y,s) in mvTechOut} (vTechOut[t,c,r,y,s]))+sum{t in tech:((t,c) in mTechOutCommAgg)}(sum{sp in timeslice:((t,c,sp,s) in mTechOutCommAggTimeslice)}(sum{FORIF: (t,c,r,y,sp) in mvTechOut} (vTechOut[t,c,r,y,sp])))+sum{t in tech:((t,c) in mTechAOutCommSameTimeslice)}(sum{FORIF: (t,c,r,y,s) in mvTechAOut} (vTechAOut[t,c,r,y,s]))+sum{t in tech:((t,c) in mTechAOutCommAgg)}(sum{sp in timeslice:((t,c,sp,s) in mTechAOutCommAggTimeslice)}(sum{FORIF: (t,c,r,y,sp) in mvTechAOut} (vTechAOut[t,c,r,y,sp])));
+s.t.  eqTechOutTot{(c, r, y, s) in mTechOutTot}: vTechOutTot[c,r,y,s]  =  sum{t in mTechOutCommSameTimeslice_ix[c]}(sum{FORIF: (t,c,r,y,s) in mvTechOut} (vTechOut[t,c,r,y,s]))+sum{t in mTechOutCommAgg_ix[c]}(sum{sp in timeslice:((t,c,sp,s) in mTechOutCommAggTimeslice)}(pTimesliceAgg[y,s,sp]*sum{FORIF: (t,c,r,y,sp) in mvTechOut} (vTechOut[t,c,r,y,sp])))+sum{t in mTechAOutCommSameTimeslice_ix[c]}(sum{FORIF: (t,c,r,y,s) in mvTechAOut} (vTechAOut[t,c,r,y,s]))+sum{t in mTechAOutCommAgg_ix[c]}(sum{sp in timeslice:((t,c,sp,s) in mTechAOutCommAggTimeslice)}(pTimesliceAgg[y,s,sp]*sum{FORIF: (t,c,r,y,sp) in mvTechAOut} (vTechAOut[t,c,r,y,sp])));
 
 # [agg-rewrite] eqTechOutRY/vTechOutRY retired (dead reporting)
 
-s.t.  eqStorageInpTot{(c, r, y, s) in mStorageInpTot}: vStorageInpTot[c,r,y,s]  =  sum{st1 in stg:((st1,c) in mStorageInpCommSameTimeslice)}(sum{FORIF: (st1,c,r,y,s) in mvStorageInp} (vStorageInp[st1,c,r,y,s]))+sum{st1 in stg:((st1,c) in mStorageInpCommAgg)}(sum{sp in timeslice:((st1,c,sp,s) in mStorageInpCommAggTimeslice)}(sum{FORIF: (st1,c,r,y,sp) in mvStorageInp} (vStorageInp[st1,c,r,y,sp])))+sum{st1 in stg:((st1,c) in mStorageAInpCommSameTimeslice)}(sum{FORIF: (st1,c,r,y,s) in mvStorageAInp} (vStorageAInp[st1,c,r,y,s]))+sum{st1 in stg:((st1,c) in mStorageAInpCommAgg)}(sum{sp in timeslice:((st1,c,sp,s) in mStorageAInpCommAggTimeslice)}(sum{FORIF: (st1,c,r,y,sp) in mvStorageAInp} (vStorageAInp[st1,c,r,y,sp])));
+s.t.  eqStorageInpTot{(c, r, y, s) in mStorageInpTot}: vStorageInpTot[c,r,y,s]  =  sum{st1 in stg:((st1,c) in mStorageInpCommSameTimeslice)}(sum{FORIF: (st1,c,r,y,s) in mvStorageInp} (vStorageInp[st1,c,r,y,s]))+sum{st1 in stg:((st1,c) in mStorageInpCommAgg)}(sum{sp in timeslice:((st1,c,sp,s) in mStorageInpCommAggTimeslice)}(pTimesliceAgg[y,s,sp]*sum{FORIF: (st1,c,r,y,sp) in mvStorageInp} (vStorageInp[st1,c,r,y,sp])))+sum{st1 in stg:((st1,c) in mStorageAInpCommSameTimeslice)}(sum{FORIF: (st1,c,r,y,s) in mvStorageAInp} (vStorageAInp[st1,c,r,y,s]))+sum{st1 in stg:((st1,c) in mStorageAInpCommAgg)}(sum{sp in timeslice:((st1,c,sp,s) in mStorageAInpCommAggTimeslice)}(pTimesliceAgg[y,s,sp]*sum{FORIF: (st1,c,r,y,sp) in mvStorageAInp} (vStorageAInp[st1,c,r,y,sp])));
 
-s.t.  eqStorageOutTot{(c, r, y, s) in mStorageOutTot}: vStorageOutTot[c,r,y,s]  =  sum{st1 in stg:((st1,c) in mStorageOutCommSameTimeslice)}(sum{FORIF: (st1,c,r,y,s) in mvStorageOut} (vStorageOut[st1,c,r,y,s]))+sum{st1 in stg:((st1,c) in mStorageOutCommAgg)}(sum{sp in timeslice:((st1,c,sp,s) in mStorageOutCommAggTimeslice)}(sum{FORIF: (st1,c,r,y,sp) in mvStorageOut} (vStorageOut[st1,c,r,y,sp])))+sum{st1 in stg:((st1,c) in mStorageAOutCommSameTimeslice)}(sum{FORIF: (st1,c,r,y,s) in mvStorageAOut} (vStorageAOut[st1,c,r,y,s]))+sum{st1 in stg:((st1,c) in mStorageAOutCommAgg)}(sum{sp in timeslice:((st1,c,sp,s) in mStorageAOutCommAggTimeslice)}(sum{FORIF: (st1,c,r,y,sp) in mvStorageAOut} (vStorageAOut[st1,c,r,y,sp])));
+s.t.  eqStorageOutTot{(c, r, y, s) in mStorageOutTot}: vStorageOutTot[c,r,y,s]  =  sum{st1 in stg:((st1,c) in mStorageOutCommSameTimeslice)}(sum{FORIF: (st1,c,r,y,s) in mvStorageOut} (vStorageOut[st1,c,r,y,s]))+sum{st1 in stg:((st1,c) in mStorageOutCommAgg)}(sum{sp in timeslice:((st1,c,sp,s) in mStorageOutCommAggTimeslice)}(pTimesliceAgg[y,s,sp]*sum{FORIF: (st1,c,r,y,sp) in mvStorageOut} (vStorageOut[st1,c,r,y,sp])))+sum{st1 in stg:((st1,c) in mStorageAOutCommSameTimeslice)}(sum{FORIF: (st1,c,r,y,s) in mvStorageAOut} (vStorageAOut[st1,c,r,y,s]))+sum{st1 in stg:((st1,c) in mStorageAOutCommAgg)}(sum{sp in timeslice:((st1,c,sp,s) in mStorageAOutCommAggTimeslice)}(pTimesliceAgg[y,s,sp]*sum{FORIF: (st1,c,r,y,sp) in mvStorageAOut} (vStorageAOut[st1,c,r,y,sp])));
 
 s.t.  eqDummyImportCost{(c, r, y) in mDummyImportCost}: vDummyImportCost[c,r,y]  =  sum{s in timeslice:((c,r,y,s) in mDummyImport)}(pTimesliceWeight[y,s]*pDummyImportCost[c,r,y,s]*sum{FORIF: (c,r,y,s) in mDummyImport} (vDummyImport[c,r,y,s]));
 
 s.t.  eqDummyExportCost{(c, r, y) in mDummyExportCost}: vDummyExportCost[c,r,y]  =  sum{s in timeslice:((c,r,y,s) in mDummyExport)}(pTimesliceWeight[y,s]*pDummyExportCost[c,r,y,s]*sum{FORIF: (c,r,y,s) in mDummyExport} (vDummyExport[c,r,y,s]));
 
-s.t.  eqTaxCost{(c, r, y) in mTaxCost}: vTaxCost[c,r,y]  =  sum{s in timeslice:(((c,r,y,s) in mvOutTot and (c,s) in mCommTimeslice))}(pTaxCostOut[c,r,y,s]*pTimesliceWeight[y,s]*vOutTot[c,r,y,s])+sum{s in timeslice:(((c,r,y,s) in mvInpTot and (c,s) in mCommTimeslice))}(pTaxCostInp[c,r,y,s]*pTimesliceWeight[y,s]*vInpTot[c,r,y,s])+sum{s in timeslice:(((c,r,y,s) in mvBalance and (c,s) in mCommTimeslice))}(pTaxCostBal[c,r,y,s]*pTimesliceWeight[y,s]*vBalance[c,r,y,s]);
+s.t.  eqTaxCost{(lv, r, y) in mTaxCost}: vTaxCost[lv,r,y]  =  sum{c in comm, s in timeslice:(((c,r,y,s) in mvOutTot and (c,s) in mCommTimeslice and pTaxCostOut[lv,c,r,y,s] <> 0))}(pTaxCostOut[lv,c,r,y,s]*pTimesliceWeight[y,s]*vOutTot[c,r,y,s])+sum{c in comm, s in timeslice:(((c,r,y,s) in mvInpTot and (c,s) in mCommTimeslice and pTaxCostInp[lv,c,r,y,s] <> 0))}(pTaxCostInp[lv,c,r,y,s]*pTimesliceWeight[y,s]*vInpTot[c,r,y,s])+sum{c in comm, s in timeslice:(((c,r,y,s) in mvBalance and (c,s) in mCommTimeslice and pTaxCostBal[lv,c,r,y,s] <> 0))}(pTaxCostBal[lv,c,r,y,s]*pTimesliceWeight[y,s]*vBalance[c,r,y,s])+sum{t in tech, s in timeslice:(((t,r,y,s) in mvTechAct and pTaxProcAct[lv,t,r,y,s] <> 0))}(pTaxProcAct[lv,t,r,y,s]*pTimesliceWeight[y,s]*vTechAct[t,r,y,s])+sum{t in tech, c in comm, s in timeslice:(((t,c,r,y,s) in mvTechInp and pTaxProcInp[lv,t,c,r,y,s] <> 0))}(pTaxProcInp[lv,t,c,r,y,s]*pTimesliceWeight[y,s]*vTechInp[t,c,r,y,s])+sum{t in tech, c in comm, s in timeslice:(((t,c,r,y,s) in mvTechOut and pTaxProcOut[lv,t,c,r,y,s] <> 0))}(pTaxProcOut[lv,t,c,r,y,s]*pTimesliceWeight[y,s]*vTechOut[t,c,r,y,s])+sum{t in tech:(((t,r,y) in mTechSpan and pTaxProcCap[lv,t,r,y] <> 0))}(pTaxProcCap[lv,t,r,y]*vTechCap[t,r,y])+sum{t in tech:(((t,r,y) in mTechNew and pTaxProcNcap[lv,t,r,y] <> 0))}(pTaxProcNcap[lv,t,r,y]*vTechNewCap[t,r,y])+sum{st1 in stg, c in comm, s in timeslice:(((st1,c) in mStorageInpComm and (c,s) in mCommTimeslice and pTaxProcInp[lv,st1,c,r,y,s] <> 0))}(pTaxProcInp[lv,st1,c,r,y,s]*pTimesliceWeight[y,s]*vStorageInp[st1,c,r,y,s])+sum{st1 in stg, c in comm, s in timeslice:(((st1,c) in mStorageOutComm and (c,s) in mCommTimeslice and pTaxProcOut[lv,st1,c,r,y,s] <> 0))}(pTaxProcOut[lv,st1,c,r,y,s]*pTimesliceWeight[y,s]*vStorageOut[st1,c,r,y,s])+sum{st1 in stg:(((st1,r,y) in mStorageOutCap and pTaxProcCap[lv,st1,r,y] <> 0))}(pTaxProcCap[lv,st1,r,y]*vStorageOutCap[st1,r,y])+sum{st1 in stg:(((st1,r,y) in mStorageOutNew and pTaxProcNcap[lv,st1,r,y] <> 0))}(pTaxProcNcap[lv,st1,r,y]*vStorageOutNewCap[st1,r,y]);
 
-s.t.  eqSubsCost{(c, r, y) in mSubCost}: vSubsCost[c,r,y]  =  -sum{s in timeslice:(((c,r,y,s) in mvOutTot and (c,s) in mCommTimeslice))}(pSubCostOut[c,r,y,s]*pTimesliceWeight[y,s]*vOutTot[c,r,y,s])-sum{s in timeslice:(((c,r,y,s) in mvInpTot and (c,s) in mCommTimeslice))}(pSubCostInp[c,r,y,s]*pTimesliceWeight[y,s]*vInpTot[c,r,y,s])-sum{s in timeslice:(((c,r,y,s) in mvBalance and (c,s) in mCommTimeslice))}(pSubCostBal[c,r,y,s]*pTimesliceWeight[y,s]*vBalance[c,r,y,s]);
+s.t.  eqSubsCost{(lv, r, y) in mSubCost}: vSubsCost[lv,r,y]  =  -sum{c in comm, s in timeslice:(((c,r,y,s) in mvOutTot and (c,s) in mCommTimeslice and pSubCostOut[lv,c,r,y,s] <> 0))}(pSubCostOut[lv,c,r,y,s]*pTimesliceWeight[y,s]*vOutTot[c,r,y,s])-sum{c in comm, s in timeslice:(((c,r,y,s) in mvInpTot and (c,s) in mCommTimeslice and pSubCostInp[lv,c,r,y,s] <> 0))}(pSubCostInp[lv,c,r,y,s]*pTimesliceWeight[y,s]*vInpTot[c,r,y,s])-sum{c in comm, s in timeslice:(((c,r,y,s) in mvBalance and (c,s) in mCommTimeslice and pSubCostBal[lv,c,r,y,s] <> 0))}(pSubCostBal[lv,c,r,y,s]*pTimesliceWeight[y,s]*vBalance[c,r,y,s])-sum{t in tech, s in timeslice:(((t,r,y,s) in mvTechAct and pSubProcAct[lv,t,r,y,s] <> 0))}(pSubProcAct[lv,t,r,y,s]*pTimesliceWeight[y,s]*vTechAct[t,r,y,s])-sum{t in tech, c in comm, s in timeslice:(((t,c,r,y,s) in mvTechInp and pSubProcInp[lv,t,c,r,y,s] <> 0))}(pSubProcInp[lv,t,c,r,y,s]*pTimesliceWeight[y,s]*vTechInp[t,c,r,y,s])-sum{t in tech, c in comm, s in timeslice:(((t,c,r,y,s) in mvTechOut and pSubProcOut[lv,t,c,r,y,s] <> 0))}(pSubProcOut[lv,t,c,r,y,s]*pTimesliceWeight[y,s]*vTechOut[t,c,r,y,s])-sum{t in tech:(((t,r,y) in mTechSpan and pSubProcCap[lv,t,r,y] <> 0))}(pSubProcCap[lv,t,r,y]*vTechCap[t,r,y])-sum{t in tech:(((t,r,y) in mTechNew and pSubProcNcap[lv,t,r,y] <> 0))}(pSubProcNcap[lv,t,r,y]*vTechNewCap[t,r,y])-sum{st1 in stg, c in comm, s in timeslice:(((st1,c) in mStorageInpComm and (c,s) in mCommTimeslice and pSubProcInp[lv,st1,c,r,y,s] <> 0))}(pSubProcInp[lv,st1,c,r,y,s]*pTimesliceWeight[y,s]*vStorageInp[st1,c,r,y,s])-sum{st1 in stg, c in comm, s in timeslice:(((st1,c) in mStorageOutComm and (c,s) in mCommTimeslice and pSubProcOut[lv,st1,c,r,y,s] <> 0))}(pSubProcOut[lv,st1,c,r,y,s]*pTimesliceWeight[y,s]*vStorageOut[st1,c,r,y,s])-sum{st1 in stg:(((st1,r,y) in mStorageOutCap and pSubProcCap[lv,st1,r,y] <> 0))}(pSubProcCap[lv,st1,r,y]*vStorageOutCap[st1,r,y])-sum{st1 in stg:(((st1,r,y) in mStorageOutNew and pSubProcNcap[lv,st1,r,y] <> 0))}(pSubProcNcap[lv,st1,r,y]*vStorageOutNewCap[st1,r,y]);
 
-s.t.  eqCost{(r, y) in mvTotalCost}: vTotalCost[r,y]  =  +sum{s1 in sup:((s1,r,y) in mvSupCost)}(sum{FORIF: (s1,r,y) in mvSupCost} (vSupCost[s1,r,y]))+sum{t in tech:((t,r,y) in mTechEac)}(sum{FORIF: (t,r,y) in mTechEac} (vTechEac[t,r,y]))+sum{t in tech:((t,r,y) in mTechRetCost)}(sum{FORIF: (t,r,y) in mTechRetCost} (vTechRetCost[t,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageRetCost)}(sum{FORIF: (st1,r,y) in mStorageRetCost} (vStorageRetCost[st1,r,y]))+sum{t1 in trade:((t1,r,y) in mTradeRetCost)}(sum{FORIF: (t1,r,y) in mTradeRetCost} (vTradeRetCost[t1,r,y]))+sum{t in tech:((t,r,y) in mTechFixom)}(sum{FORIF: (t,r,y) in mTechFixom} (vTechFixom[t,r,y]))+sum{t in tech:((t,r,y) in mTechVarom)}(sum{FORIF: (t,r,y) in mTechVarom} (vTechVarom[t,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageEac)}(sum{FORIF: (st1,r,y) in mStorageEac} (vStorageEac[st1,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageFixom)}(sum{FORIF: (st1,r,y) in mStorageFixom} (vStorageFixom[st1,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageVarom)}(sum{FORIF: (st1,r,y) in mStorageVarom} (vStorageVarom[st1,r,y]))+sum{i in imp:((i,r,y) in mImportRowCost)}(sum{FORIF: (i,r,y) in mImportRowCost} (vImportRowCost[i,r,y]))+sum{e in expp:((e,r,y) in mExportRowCost)}(sum{FORIF: (e,r,y) in mExportRowCost} (vExportRowCost[e,r,y]))+sum{t1 in trade:((t1,r,y) in mTradeEac)}(sum{FORIF: (t1,r,y) in mTradeEac} (vTradeEac[t1,r,y]))+sum{t1 in trade:((t1,r,y) in mTradeFixom)}(sum{FORIF: (t1,r,y) in mTradeFixom} (vTradeFixom[t1,r,y]))+sum{t1 in trade:((t1,r,y) in mImportIrCost)}(sum{FORIF: (t1,r,y) in mImportIrCost} (vImportIrCost[t1,r,y]))+sum{t1 in trade:((t1,r,y) in mExportIrCost)}(sum{FORIF: (t1,r,y) in mExportIrCost} (vExportIrCost[t1,r,y]))+sum{c in comm:((c,r,y) in mTaxCost)}(sum{FORIF: (c,r,y) in mTaxCost} (vTaxCost[c,r,y]))+sum{c in comm:((c,r,y) in mSubCost)}(sum{FORIF: (c,r,y) in mSubCost} (vSubsCost[c,r,y]))+sum{FORIF: (r,y) in mvTotalUserCosts} (vTotalUserCosts[r,y])+sum{c in comm:((c,r,y) in mDummyImportCost)}(sum{FORIF: (c,r,y) in mDummyImportCost} (vDummyImportCost[c,r,y]))+sum{c in comm:((c,r,y) in mDummyExportCost)}(sum{FORIF: (c,r,y) in mDummyExportCost} (vDummyExportCost[c,r,y]));
+s.t.  eqCost{(r, y) in mvTotalCost}: vTotalCost[r,y]  =  +sum{s1 in sup:((s1,r,y) in mvSupCost)}(sum{FORIF: (s1,r,y) in mvSupCost} (vSupCost[s1,r,y]))+sum{t in tech:((t,r,y) in mTechEac)}(sum{FORIF: (t,r,y) in mTechEac} (vTechEac[t,r,y]))+sum{t in tech:((t,r,y) in mTechRetCost)}(sum{FORIF: (t,r,y) in mTechRetCost} (vTechRetCost[t,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageRetCost)}(sum{FORIF: (st1,r,y) in mStorageRetCost} (vStorageRetCost[st1,r,y]))+sum{t1 in trade:((t1,r,y) in mTradeRetCost)}(sum{FORIF: (t1,r,y) in mTradeRetCost} (vTradeRetCost[t1,r,y]))+sum{t in tech:((t,r,y) in mTechFixom)}(sum{FORIF: (t,r,y) in mTechFixom} (vTechFixom[t,r,y]))+sum{t in tech:((t,r,y) in mTechVarom)}(sum{FORIF: (t,r,y) in mTechVarom} (vTechVarom[t,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageEac)}(sum{FORIF: (st1,r,y) in mStorageEac} (vStorageEac[st1,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageFixom)}(sum{FORIF: (st1,r,y) in mStorageFixom} (vStorageFixom[st1,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageVarom)}(sum{FORIF: (st1,r,y) in mStorageVarom} (vStorageVarom[st1,r,y]))+sum{i in imp:((i,r,y) in mImportRowCost)}(sum{FORIF: (i,r,y) in mImportRowCost} (vImportRowCost[i,r,y]))+sum{e in expp:((e,r,y) in mExportRowCost)}(sum{FORIF: (e,r,y) in mExportRowCost} (vExportRowCost[e,r,y]))+sum{t1 in trade:((t1,r,y) in mTradeEac)}(sum{FORIF: (t1,r,y) in mTradeEac} (vTradeEac[t1,r,y]))+sum{t1 in trade:((t1,r,y) in mTradeFixom)}(sum{FORIF: (t1,r,y) in mTradeFixom} (vTradeFixom[t1,r,y]))+sum{t1 in trade:((t1,r,y) in mImportIrCost)}(sum{FORIF: (t1,r,y) in mImportIrCost} (vImportIrCost[t1,r,y]))+sum{t1 in trade:((t1,r,y) in mExportIrCost)}(sum{FORIF: (t1,r,y) in mExportIrCost} (vExportIrCost[t1,r,y]))+sum{lv in levy:((lv,r,y) in mTaxCost)}(sum{FORIF: (lv,r,y) in mTaxCost} (vTaxCost[lv,r,y]))+sum{lv in levy:((lv,r,y) in mSubCost)}(sum{FORIF: (lv,r,y) in mSubCost} (vSubsCost[lv,r,y]))+sum{FORIF: (r,y) in mvTotalUserCosts} (vTotalUserCosts[r,y])+sum{c in comm:((c,r,y) in mDummyImportCost)}(sum{FORIF: (c,r,y) in mDummyImportCost} (vDummyImportCost[c,r,y]))+sum{c in comm:((c,r,y) in mDummyExportCost)}(sum{FORIF: (c,r,y) in mDummyExportCost} (vDummyExportCost[c,r,y]));
 
 s.t.  eqObjective: vObjective  =  sum{r in region,y in year:((r,y) in mvTotalCost)}(vTotalCost[r,y]*pPeriodLen[y]*pDiscountFactor[r,y]);
 
@@ -1055,380 +1220,380 @@ printf  '"solution status",1,"%s"\n', time2str(gmtime(), "%Y-%m-%d %M:%H:S %TZ")
 printf  '"export results",,"%s"\n', time2str(gmtime(), "%Y-%m-%d %M:%H:S %TZ") >> "output/log.csv";
 printf "tech,region,year,value\n" > "output/vTechNewCap.csv";
 for{(t, r, y) in mTechNew : vTechNewCap[t,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t,r,y,vTechNewCap[t,r,y] >> "output/vTechNewCap.csv";
+  printf "%s,%s,%s,%.10g\n", t,r,y,vTechNewCap[t,r,y] >> "output/vTechNewCap.csv";
 }
 printf "tech,region,year,value\n" > "output/vTechRetiredStock.csv";
 for{(t, r, y) in mvTechRetiredStock : vTechRetiredStock[t,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t,r,y,vTechRetiredStock[t,r,y] >> "output/vTechRetiredStock.csv";
+  printf "%s,%s,%s,%.10g\n", t,r,y,vTechRetiredStock[t,r,y] >> "output/vTechRetiredStock.csv";
 }
 printf "tech,region,year,yearp,value\n" > "output/vTechRetiredNewCap.csv";
 for{(t, r, y, yp) in mvTechRetiredNewCap : vTechRetiredNewCap[t,r,y,yp] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", t,r,y,yp,vTechRetiredNewCap[t,r,y,yp] >> "output/vTechRetiredNewCap.csv";
+  printf "%s,%s,%s,%s,%.10g\n", t,r,y,yp,vTechRetiredNewCap[t,r,y,yp] >> "output/vTechRetiredNewCap.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageOutStockCap.csv";
-for{(st1, r, y) in mStorageSpan : vStorageOutStockCap[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageOutStockCap[st1,r,y] >> "output/vStorageOutStockCap.csv";
+for{(st1, r, y) in mStorageOutCap : vStorageOutStockCap[st1,r,y] <> 0} {
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageOutStockCap[st1,r,y] >> "output/vStorageOutStockCap.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageOutRetiredStock.csv";
 for{(st1, r, y) in mvStorageRetiredStock : vStorageOutRetiredStock[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageOutRetiredStock[st1,r,y] >> "output/vStorageOutRetiredStock.csv";
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageOutRetiredStock[st1,r,y] >> "output/vStorageOutRetiredStock.csv";
 }
 printf "stg,region,year,yearp,value\n" > "output/vStorageOutRetiredNewCap.csv";
 for{(st1, r, y, yp) in mvStorageRetiredNewCap : vStorageOutRetiredNewCap[st1,r,y,yp] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", st1,r,y,yp,vStorageOutRetiredNewCap[st1,r,y,yp] >> "output/vStorageOutRetiredNewCap.csv";
+  printf "%s,%s,%s,%s,%.10g\n", st1,r,y,yp,vStorageOutRetiredNewCap[st1,r,y,yp] >> "output/vStorageOutRetiredNewCap.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageInpStockCap.csv";
 for{(st1, r, y) in mStorageInpCap : vStorageInpStockCap[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageInpStockCap[st1,r,y] >> "output/vStorageInpStockCap.csv";
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageInpStockCap[st1,r,y] >> "output/vStorageInpStockCap.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageInpRetiredStock.csv";
 for{(st1, r, y) in mvStorageRetiredStock : vStorageInpRetiredStock[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageInpRetiredStock[st1,r,y] >> "output/vStorageInpRetiredStock.csv";
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageInpRetiredStock[st1,r,y] >> "output/vStorageInpRetiredStock.csv";
 }
 printf "stg,region,year,yearp,value\n" > "output/vStorageInpRetiredNewCap.csv";
 for{(st1, r, y, yp) in mvStorageRetiredNewCap : vStorageInpRetiredNewCap[st1,r,y,yp] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", st1,r,y,yp,vStorageInpRetiredNewCap[st1,r,y,yp] >> "output/vStorageInpRetiredNewCap.csv";
+  printf "%s,%s,%s,%s,%.10g\n", st1,r,y,yp,vStorageInpRetiredNewCap[st1,r,y,yp] >> "output/vStorageInpRetiredNewCap.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageStgStockCap.csv";
 for{(st1, r, y) in mStorageStgCap : vStorageStgStockCap[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageStgStockCap[st1,r,y] >> "output/vStorageStgStockCap.csv";
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageStgStockCap[st1,r,y] >> "output/vStorageStgStockCap.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageStgRetiredStock.csv";
 for{(st1, r, y) in mvStorageRetiredStock : vStorageStgRetiredStock[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageStgRetiredStock[st1,r,y] >> "output/vStorageStgRetiredStock.csv";
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageStgRetiredStock[st1,r,y] >> "output/vStorageStgRetiredStock.csv";
 }
 printf "stg,region,year,yearp,value\n" > "output/vStorageStgRetiredNewCap.csv";
 for{(st1, r, y, yp) in mvStorageRetiredNewCap : vStorageStgRetiredNewCap[st1,r,y,yp] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", st1,r,y,yp,vStorageStgRetiredNewCap[st1,r,y,yp] >> "output/vStorageStgRetiredNewCap.csv";
+  printf "%s,%s,%s,%s,%.10g\n", st1,r,y,yp,vStorageStgRetiredNewCap[st1,r,y,yp] >> "output/vStorageStgRetiredNewCap.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageRetCost.csv";
 for{(st1, r, y) in mStorageRetCost : vStorageRetCost[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageRetCost[st1,r,y] >> "output/vStorageRetCost.csv";
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageRetCost[st1,r,y] >> "output/vStorageRetCost.csv";
 }
 printf "trade,year,value\n" > "output/vTradePhaseOut.csv";
 for{(t1, y) in mvTradePhaseOut : vTradePhaseOut[t1,y] <> 0} {
-  printf "%s,%s,%f\n", t1,y,vTradePhaseOut[t1,y] >> "output/vTradePhaseOut.csv";
+  printf "%s,%s,%.10g\n", t1,y,vTradePhaseOut[t1,y] >> "output/vTradePhaseOut.csv";
 }
 printf "trade,year,value\n" > "output/vTradeStockPhaseOut.csv";
 for{(t1, y) in mvTradePhaseOut : vTradeStockPhaseOut[t1,y] <> 0} {
-  printf "%s,%s,%f\n", t1,y,vTradeStockPhaseOut[t1,y] >> "output/vTradeStockPhaseOut.csv";
+  printf "%s,%s,%.10g\n", t1,y,vTradeStockPhaseOut[t1,y] >> "output/vTradeStockPhaseOut.csv";
 }
 printf "trade,year,value\n" > "output/vTradeStockCap.csv";
 for{(t1, y) in mTradeSpan : vTradeStockCap[t1,y] <> 0} {
-  printf "%s,%s,%f\n", t1,y,vTradeStockCap[t1,y] >> "output/vTradeStockCap.csv";
+  printf "%s,%s,%.10g\n", t1,y,vTradeStockCap[t1,y] >> "output/vTradeStockCap.csv";
 }
 printf "trade,year,value\n" > "output/vTradeRetiredStock.csv";
 for{(t1, y) in mvTradeRetiredStock : vTradeRetiredStock[t1,y] <> 0} {
-  printf "%s,%s,%f\n", t1,y,vTradeRetiredStock[t1,y] >> "output/vTradeRetiredStock.csv";
+  printf "%s,%s,%.10g\n", t1,y,vTradeRetiredStock[t1,y] >> "output/vTradeRetiredStock.csv";
 }
 printf "trade,year,yearp,value\n" > "output/vTradeRetiredNewCap.csv";
 for{(t1, y, yp) in mvTradeRetiredNewCap : vTradeRetiredNewCap[t1,y,yp] <> 0} {
-  printf "%s,%s,%s,%f\n", t1,y,yp,vTradeRetiredNewCap[t1,y,yp] >> "output/vTradeRetiredNewCap.csv";
+  printf "%s,%s,%s,%.10g\n", t1,y,yp,vTradeRetiredNewCap[t1,y,yp] >> "output/vTradeRetiredNewCap.csv";
 }
 printf "trade,region,year,value\n" > "output/vTradeRetCost.csv";
 for{(t1, r, y) in mTradeRetCost : vTradeRetCost[t1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t1,r,y,vTradeRetCost[t1,r,y] >> "output/vTradeRetCost.csv";
+  printf "%s,%s,%s,%.10g\n", t1,r,y,vTradeRetCost[t1,r,y] >> "output/vTradeRetCost.csv";
 }
 printf "tech,region,year,value\n" > "output/vTechPhaseOut.csv";
 for{(t, r, y) in mvTechPhaseOut : vTechPhaseOut[t,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t,r,y,vTechPhaseOut[t,r,y] >> "output/vTechPhaseOut.csv";
+  printf "%s,%s,%s,%.10g\n", t,r,y,vTechPhaseOut[t,r,y] >> "output/vTechPhaseOut.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageStockPhaseOut.csv";
 for{(st1, r, y) in mvStoragePhaseOut : vStorageStockPhaseOut[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageStockPhaseOut[st1,r,y] >> "output/vStorageStockPhaseOut.csv";
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageStockPhaseOut[st1,r,y] >> "output/vStorageStockPhaseOut.csv";
 }
 printf "stg,region,year,value\n" > "output/vStoragePhaseOut.csv";
 for{(st1, r, y) in mvStoragePhaseOut : vStoragePhaseOut[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStoragePhaseOut[st1,r,y] >> "output/vStoragePhaseOut.csv";
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStoragePhaseOut[st1,r,y] >> "output/vStoragePhaseOut.csv";
 }
 printf "tech,region,year,value\n" > "output/vTechStockCap.csv";
 for{(t, r, y) in mTechSpan : vTechStockCap[t,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t,r,y,vTechStockCap[t,r,y] >> "output/vTechStockCap.csv";
+  printf "%s,%s,%s,%.10g\n", t,r,y,vTechStockCap[t,r,y] >> "output/vTechStockCap.csv";
 }
 printf "tech,region,year,value\n" > "output/vTechStockPhaseOut.csv";
 for{(t, r, y) in mvTechPhaseOut : vTechStockPhaseOut[t,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t,r,y,vTechStockPhaseOut[t,r,y] >> "output/vTechStockPhaseOut.csv";
+  printf "%s,%s,%s,%.10g\n", t,r,y,vTechStockPhaseOut[t,r,y] >> "output/vTechStockPhaseOut.csv";
 }
 printf "tech,region,year,value\n" > "output/vTechCap.csv";
 for{(t, r, y) in mTechSpan : vTechCap[t,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t,r,y,vTechCap[t,r,y] >> "output/vTechCap.csv";
+  printf "%s,%s,%s,%.10g\n", t,r,y,vTechCap[t,r,y] >> "output/vTechCap.csv";
 }
 printf "tech,region,year,timeslice,value\n" > "output/vTechAct.csv";
 for{(t, r, y, s) in mvTechAct : vTechAct[t,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", t,r,y,s,vTechAct[t,r,y,s] >> "output/vTechAct.csv";
+  printf "%s,%s,%s,%s,%.10g\n", t,r,y,s,vTechAct[t,r,y,s] >> "output/vTechAct.csv";
 }
 printf "tech,comm,region,year,timeslice,value\n" > "output/vTechInp.csv";
 for{(t, c, r, y, s) in mvTechInp : vTechInp[t,c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%s,%f\n", t,c,r,y,s,vTechInp[t,c,r,y,s] >> "output/vTechInp.csv";
+  printf "%s,%s,%s,%s,%s,%.10g\n", t,c,r,y,s,vTechInp[t,c,r,y,s] >> "output/vTechInp.csv";
 }
 printf "tech,comm,region,year,timeslice,value\n" > "output/vTechOut.csv";
 for{(t, c, r, y, s) in mvTechOut : vTechOut[t,c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%s,%f\n", t,c,r,y,s,vTechOut[t,c,r,y,s] >> "output/vTechOut.csv";
+  printf "%s,%s,%s,%s,%s,%.10g\n", t,c,r,y,s,vTechOut[t,c,r,y,s] >> "output/vTechOut.csv";
 }
 printf "tech,comm,region,year,timeslice,value\n" > "output/vTechAInp.csv";
 for{(t, c, r, y, s) in mvTechAInp : vTechAInp[t,c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%s,%f\n", t,c,r,y,s,vTechAInp[t,c,r,y,s] >> "output/vTechAInp.csv";
+  printf "%s,%s,%s,%s,%s,%.10g\n", t,c,r,y,s,vTechAInp[t,c,r,y,s] >> "output/vTechAInp.csv";
 }
 printf "tech,comm,region,year,timeslice,value\n" > "output/vTechAOut.csv";
 for{(t, c, r, y, s) in mvTechAOut : vTechAOut[t,c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%s,%f\n", t,c,r,y,s,vTechAOut[t,c,r,y,s] >> "output/vTechAOut.csv";
+  printf "%s,%s,%s,%s,%s,%.10g\n", t,c,r,y,s,vTechAOut[t,c,r,y,s] >> "output/vTechAOut.csv";
 }
 printf "tech,region,year,value\n" > "output/vTechInv.csv";
 for{(t, r, y) in mTechInv : vTechInv[t,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t,r,y,vTechInv[t,r,y] >> "output/vTechInv.csv";
+  printf "%s,%s,%s,%.10g\n", t,r,y,vTechInv[t,r,y] >> "output/vTechInv.csv";
 }
 printf "tech,region,year,value\n" > "output/vTechEac.csv";
 for{(t, r, y) in mTechEac : vTechEac[t,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t,r,y,vTechEac[t,r,y] >> "output/vTechEac.csv";
+  printf "%s,%s,%s,%.10g\n", t,r,y,vTechEac[t,r,y] >> "output/vTechEac.csv";
 }
 printf "tech,region,year,value\n" > "output/vTechRetCost.csv";
 for{(t, r, y) in mTechRetCost : vTechRetCost[t,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t,r,y,vTechRetCost[t,r,y] >> "output/vTechRetCost.csv";
+  printf "%s,%s,%s,%.10g\n", t,r,y,vTechRetCost[t,r,y] >> "output/vTechRetCost.csv";
 }
 printf "tech,region,year,value\n" > "output/vTechFixom.csv";
 for{(t, r, y) in mTechFixom : vTechFixom[t,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t,r,y,vTechFixom[t,r,y] >> "output/vTechFixom.csv";
+  printf "%s,%s,%s,%.10g\n", t,r,y,vTechFixom[t,r,y] >> "output/vTechFixom.csv";
 }
 printf "tech,region,year,value\n" > "output/vTechVarom.csv";
 for{(t, r, y) in mTechVarom : vTechVarom[t,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t,r,y,vTechVarom[t,r,y] >> "output/vTechVarom.csv";
+  printf "%s,%s,%s,%.10g\n", t,r,y,vTechVarom[t,r,y] >> "output/vTechVarom.csv";
 }
 printf "sup,comm,region,year,timeslice,value\n" > "output/vSupOut.csv";
 for{(s1, c, r, y, s) in mSupAva : vSupOut[s1,c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%s,%f\n", s1,c,r,y,s,vSupOut[s1,c,r,y,s] >> "output/vSupOut.csv";
+  printf "%s,%s,%s,%s,%s,%.10g\n", s1,c,r,y,s,vSupOut[s1,c,r,y,s] >> "output/vSupOut.csv";
 }
 printf "sup,comm,region,value\n" > "output/vSupReserve.csv";
 for{(s1, c, r) in mvSupReserve : vSupReserve[s1,c,r] <> 0} {
-  printf "%s,%s,%s,%f\n", s1,c,r,vSupReserve[s1,c,r] >> "output/vSupReserve.csv";
+  printf "%s,%s,%s,%.10g\n", s1,c,r,vSupReserve[s1,c,r] >> "output/vSupReserve.csv";
 }
 printf "sup,region,year,value\n" > "output/vSupCost.csv";
 for{(s1, r, y) in mvSupCost : vSupCost[s1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", s1,r,y,vSupCost[s1,r,y] >> "output/vSupCost.csv";
+  printf "%s,%s,%s,%.10g\n", s1,r,y,vSupCost[s1,r,y] >> "output/vSupCost.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vDemInp.csv";
 for{(c, r, y, s) in mvDemInp : vDemInp[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vDemInp[c,r,y,s] >> "output/vDemInp.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vDemInp[c,r,y,s] >> "output/vDemInp.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vEmsFuelTot.csv";
 for{(c, r, y, s) in mEmsFuelTot : vEmsFuelTot[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vEmsFuelTot[c,r,y,s] >> "output/vEmsFuelTot.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vEmsFuelTot[c,r,y,s] >> "output/vEmsFuelTot.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vBalance.csv";
 for{(c, r, y, s) in mvBalance : vBalance[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vBalance[c,r,y,s] >> "output/vBalance.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vBalance[c,r,y,s] >> "output/vBalance.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vOutTot.csv";
 for{(c, r, y, s) in mvOutTot : vOutTot[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vOutTot[c,r,y,s] >> "output/vOutTot.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vOutTot[c,r,y,s] >> "output/vOutTot.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vInpTot.csv";
 for{(c, r, y, s) in mvInpTot : vInpTot[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vInpTot[c,r,y,s] >> "output/vInpTot.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vInpTot[c,r,y,s] >> "output/vInpTot.csv";
 }
 # [agg-rewrite] vInp2Lo/vOut2Lo output writers removed (variables retired).
 # printf "comm,region,year,timeslice,timeslicep,value\n" > "output/vInp2Lo.csv";
 # for{(c, r, y, s, sp) in mvInp2Lo : vInp2Lo[c,r,y,s,sp] <> 0} {
-#   printf "%s,%s,%s,%s,%s,%f\n", c,r,y,s,sp,vInp2Lo[c,r,y,s,sp] >> "output/vInp2Lo.csv";
+#   printf "%s,%s,%s,%s,%s,%.10g\n", c,r,y,s,sp,vInp2Lo[c,r,y,s,sp] >> "output/vInp2Lo.csv";
 # }
 # printf "comm,region,year,timeslice,timeslicep,value\n" > "output/vOut2Lo.csv";
 # for{(c, r, y, s, sp) in mvOut2Lo : vOut2Lo[c,r,y,s,sp] <> 0} {
-#   printf "%s,%s,%s,%s,%s,%f\n", c,r,y,s,sp,vOut2Lo[c,r,y,s,sp] >> "output/vOut2Lo.csv";
+#   printf "%s,%s,%s,%s,%s,%.10g\n", c,r,y,s,sp,vOut2Lo[c,r,y,s,sp] >> "output/vOut2Lo.csv";
 # }
 printf "comm,region,year,timeslice,value\n" > "output/vSupOutTot.csv";
 for{(c, r, y, s) in mSupOutTot : vSupOutTot[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vSupOutTot[c,r,y,s] >> "output/vSupOutTot.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vSupOutTot[c,r,y,s] >> "output/vSupOutTot.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vTechInpTot.csv";
 for{(c, r, y, s) in mTechInpTot : vTechInpTot[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vTechInpTot[c,r,y,s] >> "output/vTechInpTot.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vTechInpTot[c,r,y,s] >> "output/vTechInpTot.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vTechOutTot.csv";
 for{(c, r, y, s) in mTechOutTot : vTechOutTot[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vTechOutTot[c,r,y,s] >> "output/vTechOutTot.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vTechOutTot[c,r,y,s] >> "output/vTechOutTot.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vStorageInpTot.csv";
 for{(c, r, y, s) in mStorageInpTot : vStorageInpTot[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vStorageInpTot[c,r,y,s] >> "output/vStorageInpTot.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vStorageInpTot[c,r,y,s] >> "output/vStorageInpTot.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vStorageOutTot.csv";
 for{(c, r, y, s) in mStorageOutTot : vStorageOutTot[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vStorageOutTot[c,r,y,s] >> "output/vStorageOutTot.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vStorageOutTot[c,r,y,s] >> "output/vStorageOutTot.csv";
 }
 printf "stg,comm,region,year,timeslice,value\n" > "output/vStorageAInp.csv";
 for{(st1, c, r, y, s) in mvStorageAInp : vStorageAInp[st1,c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%s,%f\n", st1,c,r,y,s,vStorageAInp[st1,c,r,y,s] >> "output/vStorageAInp.csv";
+  printf "%s,%s,%s,%s,%s,%.10g\n", st1,c,r,y,s,vStorageAInp[st1,c,r,y,s] >> "output/vStorageAInp.csv";
 }
 printf "stg,comm,region,year,timeslice,value\n" > "output/vStorageAOut.csv";
 for{(st1, c, r, y, s) in mvStorageAOut : vStorageAOut[st1,c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%s,%f\n", st1,c,r,y,s,vStorageAOut[st1,c,r,y,s] >> "output/vStorageAOut.csv";
+  printf "%s,%s,%s,%s,%s,%.10g\n", st1,c,r,y,s,vStorageAOut[st1,c,r,y,s] >> "output/vStorageAOut.csv";
 }
 printf "region,year,value\n" > "output/vTotalCost.csv";
 for{(r, y) in mvTotalCost : vTotalCost[r,y] <> 0} {
-  printf "%s,%s,%f\n", r,y,vTotalCost[r,y] >> "output/vTotalCost.csv";
+  printf "%s,%s,%.10g\n", r,y,vTotalCost[r,y] >> "output/vTotalCost.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vDummyImport.csv";
 for{(c, r, y, s) in mDummyImport : vDummyImport[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vDummyImport[c,r,y,s] >> "output/vDummyImport.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vDummyImport[c,r,y,s] >> "output/vDummyImport.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vDummyExport.csv";
 for{(c, r, y, s) in mDummyExport : vDummyExport[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vDummyExport[c,r,y,s] >> "output/vDummyExport.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vDummyExport[c,r,y,s] >> "output/vDummyExport.csv";
 }
-printf "comm,region,year,value\n" > "output/vTaxCost.csv";
-for{(c, r, y) in mTaxCost : vTaxCost[c,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", c,r,y,vTaxCost[c,r,y] >> "output/vTaxCost.csv";
+printf "levy,region,year,value\n" > "output/vTaxCost.csv";
+for{(lv, r, y) in mTaxCost : vTaxCost[lv,r,y] <> 0} {
+  printf "%s,%s,%s,%.10g\n", lv,r,y,vTaxCost[lv,r,y] >> "output/vTaxCost.csv";
 }
-printf "comm,region,year,value\n" > "output/vSubsCost.csv";
-for{(c, r, y) in mSubCost : vSubsCost[c,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", c,r,y,vSubsCost[c,r,y] >> "output/vSubsCost.csv";
+printf "levy,region,year,value\n" > "output/vSubsCost.csv";
+for{(lv, r, y) in mSubCost : vSubsCost[lv,r,y] <> 0} {
+  printf "%s,%s,%s,%.10g\n", lv,r,y,vSubsCost[lv,r,y] >> "output/vSubsCost.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vAggOutTot.csv";
 for{(c, r, y, s) in mAggOut : vAggOutTot[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vAggOutTot[c,r,y,s] >> "output/vAggOutTot.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vAggOutTot[c,r,y,s] >> "output/vAggOutTot.csv";
 }
 printf "comm,region,year,value\n" > "output/vDummyImportCost.csv";
 for{(c, r, y) in mDummyImportCost : vDummyImportCost[c,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", c,r,y,vDummyImportCost[c,r,y] >> "output/vDummyImportCost.csv";
+  printf "%s,%s,%s,%.10g\n", c,r,y,vDummyImportCost[c,r,y] >> "output/vDummyImportCost.csv";
 }
 printf "comm,region,year,value\n" > "output/vDummyExportCost.csv";
 for{(c, r, y) in mDummyExportCost : vDummyExportCost[c,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", c,r,y,vDummyExportCost[c,r,y] >> "output/vDummyExportCost.csv";
+  printf "%s,%s,%s,%.10g\n", c,r,y,vDummyExportCost[c,r,y] >> "output/vDummyExportCost.csv";
 }
 printf "stg,comm,region,year,timeslice,value\n" > "output/vStorageInp.csv";
 for{(st1, c, r, y, s) in mvStorageInp : vStorageInp[st1,c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%s,%f\n", st1,c,r,y,s,vStorageInp[st1,c,r,y,s] >> "output/vStorageInp.csv";
+  printf "%s,%s,%s,%s,%s,%.10g\n", st1,c,r,y,s,vStorageInp[st1,c,r,y,s] >> "output/vStorageInp.csv";
 }
 printf "stg,comm,region,year,timeslice,value\n" > "output/vStorageOut.csv";
 for{(st1, c, r, y, s) in mvStorageOut : vStorageOut[st1,c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%s,%f\n", st1,c,r,y,s,vStorageOut[st1,c,r,y,s] >> "output/vStorageOut.csv";
+  printf "%s,%s,%s,%s,%s,%.10g\n", st1,c,r,y,s,vStorageOut[st1,c,r,y,s] >> "output/vStorageOut.csv";
 }
 printf "stg,comm,region,year,timeslice,value\n" > "output/vStorageLevel.csv";
 for{(st1, c, r, y, s) in mvStorageLevel : vStorageLevel[st1,c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%s,%f\n", st1,c,r,y,s,vStorageLevel[st1,c,r,y,s] >> "output/vStorageLevel.csv";
+  printf "%s,%s,%s,%s,%s,%.10g\n", st1,c,r,y,s,vStorageLevel[st1,c,r,y,s] >> "output/vStorageLevel.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageInv.csv";
 for{(st1, r, y) in mStorageNew : vStorageInv[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageInv[st1,r,y] >> "output/vStorageInv.csv";
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageInv[st1,r,y] >> "output/vStorageInv.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageEac.csv";
 for{(st1, r, y) in mStorageEac : vStorageEac[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageEac[st1,r,y] >> "output/vStorageEac.csv";
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageEac[st1,r,y] >> "output/vStorageEac.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageInpCap.csv";
 for{(st1, r, y) in mStorageInpCap : vStorageInpCap[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageInpCap[st1,r,y] >> "output/vStorageInpCap.csv";
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageInpCap[st1,r,y] >> "output/vStorageInpCap.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageInpNewCap.csv";
 for{(st1, r, y) in mStorageInpNew : vStorageInpNewCap[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageInpNewCap[st1,r,y] >> "output/vStorageInpNewCap.csv";
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageInpNewCap[st1,r,y] >> "output/vStorageInpNewCap.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageStgCap.csv";
 for{(st1, r, y) in mStorageStgCap : vStorageStgCap[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageStgCap[st1,r,y] >> "output/vStorageStgCap.csv";
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageStgCap[st1,r,y] >> "output/vStorageStgCap.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageStgNewCap.csv";
 for{(st1, r, y) in mStorageStgNew : vStorageStgNewCap[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageStgNewCap[st1,r,y] >> "output/vStorageStgNewCap.csv";
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageStgNewCap[st1,r,y] >> "output/vStorageStgNewCap.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageOutCap.csv";
-for{(st1, r, y) in mStorageSpan : vStorageOutCap[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageOutCap[st1,r,y] >> "output/vStorageOutCap.csv";
+for{(st1, r, y) in mStorageOutCap : vStorageOutCap[st1,r,y] <> 0} {
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageOutCap[st1,r,y] >> "output/vStorageOutCap.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageOutNewCap.csv";
-for{(st1, r, y) in mStorageNew : vStorageOutNewCap[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageOutNewCap[st1,r,y] >> "output/vStorageOutNewCap.csv";
+for{(st1, r, y) in mStorageOutNew : vStorageOutNewCap[st1,r,y] <> 0} {
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageOutNewCap[st1,r,y] >> "output/vStorageOutNewCap.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageFixom.csv";
 for{(st1, r, y) in mStorageFixom : vStorageFixom[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageFixom[st1,r,y] >> "output/vStorageFixom.csv";
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageFixom[st1,r,y] >> "output/vStorageFixom.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageVarom.csv";
 for{(st1, r, y) in mStorageVarom : vStorageVarom[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageVarom[st1,r,y] >> "output/vStorageVarom.csv";
+  printf "%s,%s,%s,%.10g\n", st1,r,y,vStorageVarom[st1,r,y] >> "output/vStorageVarom.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vImportTot.csv";
 for{(c, r, y, s) in mImport : vImportTot[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vImportTot[c,r,y,s] >> "output/vImportTot.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vImportTot[c,r,y,s] >> "output/vImportTot.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vExportTot.csv";
 for{(c, r, y, s) in mExport : vExportTot[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vExportTot[c,r,y,s] >> "output/vExportTot.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vExportTot[c,r,y,s] >> "output/vExportTot.csv";
 }
 printf "trade,comm,src,dst,year,timeslice,value\n" > "output/vTradeIr.csv";
 for{(t1, c, src, dst, y, s) in mvTradeIr : vTradeIr[t1,c,src,dst,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%s,%s,%f\n", t1,c,src,dst,y,s,vTradeIr[t1,c,src,dst,y,s] >> "output/vTradeIr.csv";
+  printf "%s,%s,%s,%s,%s,%s,%.10g\n", t1,c,src,dst,y,s,vTradeIr[t1,c,src,dst,y,s] >> "output/vTradeIr.csv";
 }
 printf "trade,comm,region,year,timeslice,value\n" > "output/vTradeIrAInp.csv";
 for{(t1, c, r, y, s) in mvTradeIrAInp : vTradeIrAInp[t1,c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%s,%f\n", t1,c,r,y,s,vTradeIrAInp[t1,c,r,y,s] >> "output/vTradeIrAInp.csv";
+  printf "%s,%s,%s,%s,%s,%.10g\n", t1,c,r,y,s,vTradeIrAInp[t1,c,r,y,s] >> "output/vTradeIrAInp.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vTradeIrAInpTot.csv";
 for{(c, r, y, s) in mvTradeIrAInpTot : vTradeIrAInpTot[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vTradeIrAInpTot[c,r,y,s] >> "output/vTradeIrAInpTot.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vTradeIrAInpTot[c,r,y,s] >> "output/vTradeIrAInpTot.csv";
 }
 printf "trade,comm,region,year,timeslice,value\n" > "output/vTradeIrAOut.csv";
 for{(t1, c, r, y, s) in mvTradeIrAOut : vTradeIrAOut[t1,c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%s,%f\n", t1,c,r,y,s,vTradeIrAOut[t1,c,r,y,s] >> "output/vTradeIrAOut.csv";
+  printf "%s,%s,%s,%s,%s,%.10g\n", t1,c,r,y,s,vTradeIrAOut[t1,c,r,y,s] >> "output/vTradeIrAOut.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vTradeIrAOutTot.csv";
 for{(c, r, y, s) in mvTradeIrAOutTot : vTradeIrAOutTot[c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%f\n", c,r,y,s,vTradeIrAOutTot[c,r,y,s] >> "output/vTradeIrAOutTot.csv";
+  printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vTradeIrAOutTot[c,r,y,s] >> "output/vTradeIrAOutTot.csv";
 }
 printf "expp,comm,value\n" > "output/vExportRowCum.csv";
 for{(e, c) in mExpComm : vExportRowCum[e,c] <> 0} {
-  printf "%s,%s,%f\n", e,c,vExportRowCum[e,c] >> "output/vExportRowCum.csv";
+  printf "%s,%s,%.10g\n", e,c,vExportRowCum[e,c] >> "output/vExportRowCum.csv";
 }
 printf "expp,comm,region,year,timeslice,value\n" > "output/vExportRow.csv";
 for{(e, c, r, y, s) in mExportRow : vExportRow[e,c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%s,%f\n", e,c,r,y,s,vExportRow[e,c,r,y,s] >> "output/vExportRow.csv";
+  printf "%s,%s,%s,%s,%s,%.10g\n", e,c,r,y,s,vExportRow[e,c,r,y,s] >> "output/vExportRow.csv";
 }
 printf "imp,comm,value\n" > "output/vImportRowCum.csv";
 for{(i, c) in mImpComm : vImportRowCum[i,c] <> 0} {
-  printf "%s,%s,%f\n", i,c,vImportRowCum[i,c] >> "output/vImportRowCum.csv";
+  printf "%s,%s,%.10g\n", i,c,vImportRowCum[i,c] >> "output/vImportRowCum.csv";
 }
 printf "imp,comm,region,year,timeslice,value\n" > "output/vImportRow.csv";
 for{(i, c, r, y, s) in mImportRow : vImportRow[i,c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%s,%f\n", i,c,r,y,s,vImportRow[i,c,r,y,s] >> "output/vImportRow.csv";
+  printf "%s,%s,%s,%s,%s,%.10g\n", i,c,r,y,s,vImportRow[i,c,r,y,s] >> "output/vImportRow.csv";
 }
 printf "trade,region,year,value\n" > "output/vTradeEac.csv";
 for{(t1, r, y) in mTradeEac : vTradeEac[t1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t1,r,y,vTradeEac[t1,r,y] >> "output/vTradeEac.csv";
+  printf "%s,%s,%s,%.10g\n", t1,r,y,vTradeEac[t1,r,y] >> "output/vTradeEac.csv";
 }
 printf "trade,region,year,value\n" > "output/vTradeFixom.csv";
 for{(t1, r, y) in mTradeFixom : vTradeFixom[t1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t1,r,y,vTradeFixom[t1,r,y] >> "output/vTradeFixom.csv";
+  printf "%s,%s,%s,%.10g\n", t1,r,y,vTradeFixom[t1,r,y] >> "output/vTradeFixom.csv";
 }
 printf "trade,region,year,value\n" > "output/vImportIrCost.csv";
 for{(t1, r, y) in mImportIrCost : vImportIrCost[t1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t1,r,y,vImportIrCost[t1,r,y] >> "output/vImportIrCost.csv";
+  printf "%s,%s,%s,%.10g\n", t1,r,y,vImportIrCost[t1,r,y] >> "output/vImportIrCost.csv";
 }
 printf "trade,region,year,value\n" > "output/vExportIrCost.csv";
 for{(t1, r, y) in mExportIrCost : vExportIrCost[t1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t1,r,y,vExportIrCost[t1,r,y] >> "output/vExportIrCost.csv";
+  printf "%s,%s,%s,%.10g\n", t1,r,y,vExportIrCost[t1,r,y] >> "output/vExportIrCost.csv";
 }
 printf "imp,region,year,value\n" > "output/vImportRowCost.csv";
 for{(i, r, y) in mImportRowCost : vImportRowCost[i,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", i,r,y,vImportRowCost[i,r,y] >> "output/vImportRowCost.csv";
+  printf "%s,%s,%s,%.10g\n", i,r,y,vImportRowCost[i,r,y] >> "output/vImportRowCost.csv";
 }
 printf "expp,region,year,value\n" > "output/vExportRowCost.csv";
 for{(e, r, y) in mExportRowCost : vExportRowCost[e,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", e,r,y,vExportRowCost[e,r,y] >> "output/vExportRowCost.csv";
+  printf "%s,%s,%s,%.10g\n", e,r,y,vExportRowCost[e,r,y] >> "output/vExportRowCost.csv";
 }
 printf "trade,year,value\n" > "output/vTradeCap.csv";
 for{(t1, y) in mTradeSpan : vTradeCap[t1,y] <> 0} {
-  printf "%s,%s,%f\n", t1,y,vTradeCap[t1,y] >> "output/vTradeCap.csv";
+  printf "%s,%s,%.10g\n", t1,y,vTradeCap[t1,y] >> "output/vTradeCap.csv";
 }
 printf "trade,region,year,value\n" > "output/vTradeInv.csv";
 for{(t1, r, y) in mTradeEac : vTradeInv[t1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", t1,r,y,vTradeInv[t1,r,y] >> "output/vTradeInv.csv";
+  printf "%s,%s,%s,%.10g\n", t1,r,y,vTradeInv[t1,r,y] >> "output/vTradeInv.csv";
 }
 printf "trade,year,value\n" > "output/vTradeNewCap.csv";
 for{(t1, y) in mTradeNew : vTradeNewCap[t1,y] <> 0} {
-  printf "%s,%s,%f\n", t1,y,vTradeNewCap[t1,y] >> "output/vTradeNewCap.csv";
+  printf "%s,%s,%.10g\n", t1,y,vTradeNewCap[t1,y] >> "output/vTradeNewCap.csv";
 }
 printf "region,year,value\n" > "output/vTotalUserCosts.csv";
 for{(r, y) in mvTotalUserCosts : vTotalUserCosts[r,y] <> 0} {
-  printf "%s,%s,%f\n", r,y,vTotalUserCosts[r,y] >> "output/vTotalUserCosts.csv";
+  printf "%s,%s,%.10g\n", r,y,vTotalUserCosts[r,y] >> "output/vTotalUserCosts.csv";
 }
 printf "value\n%s\n",vObjective > "output/vObjective.csv";
 
@@ -1571,6 +1736,9 @@ for {g in group} {
 }
 for {wth1 in weather} {
     printf "weather,%s\n", wth1 >> "output/raw_data_set.csv";
+}
+for {lv in levy} {
+    printf "levy,%s\n", lv >> "output/raw_data_set.csv";
 }
 printf  '"done",,"%s"\n', time2str(gmtime(), "%Y-%m-%d %M:%H:S %TZ") >> "output/log.csv";
 end;

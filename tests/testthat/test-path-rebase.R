@@ -27,9 +27,15 @@ test_that("a moved scenario folder loads and reads data after the rebase", {
   # parameters and the solution read from the NEW location
   d <- suppressMessages(getData(back, "vTechStockCap", merge = TRUE))
   expect_identical(nrow(d), n_cap)
-  # the active run still resolves (solver dir is derived, never stored)
+  # the active run still resolves (solver dir is derived, never stored).
+  # Layout 4 writes the solver files into the run folder itself, so that is
+  # what the derived path points at.
   expect_true(nzchar(back@misc$run))
-  expect_true(dir.exists(file.path(p2, "runs", back@misc$run, "solver")))
+  run_dir <- file.path(p2, "runs", back@misc$run)
+  expect_true(dir.exists(run_dir))
+  expect_identical(energyRt:::.run_solver_dir(run_dir),
+                   gsub("[\\/]+", "/", run_dir))
+  expect_true(dir.exists(file.path(run_dir, "output")))
 
   # the STALE object (paths at the old location) fails loudly, not silently
   expect_error(

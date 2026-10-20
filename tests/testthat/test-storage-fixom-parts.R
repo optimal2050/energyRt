@@ -83,10 +83,13 @@ test_that("a reservoir pays its own fixed O&M without an out-side price", {
 test_that("the three parts are charged independently and additively", {
   skip_if_no_solver()
   base <- sf_solve(data.frame(), "sf_base2")
-  # The accumulator has no discharge capacity, so an out-side rate costs nothing.
-  expect_equal(sf_solve(data.frame(out.fixom = 1), "sf_out"), base,
-               tolerance = 1e-9)
+  # The accumulator still needs a discharger big enough to pass 10 in a
+  # share-1/4 slice at cap2act 8760, so an out-side rate costs that much --
+  # it was free while `out.af.up` defaulted to Inf and the flow had no rating.
+  out_cap <- 10 / (8760 * 0.25)
+  expect_equal(sf_solve(data.frame(out.fixom = 1), "sf_out"), base + out_cap,
+               tolerance = 1e-6)
   # Adding it alongside the storing rate must not change the storing charge.
   expect_equal(sf_solve(data.frame(stg.fixom = 5, out.fixom = 1), "sf_both"),
-               base + 50, tolerance = 1e-9)
+               base + 50 + out_cap, tolerance = 1e-6)
 })

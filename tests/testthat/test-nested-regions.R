@@ -107,10 +107,13 @@ test_that("attaching a geoscale widens sets$region but expands no parameter", {
 
   # The extra members are INERT: no parameter may broadcast a value onto a
   # coarse region. This is the guard that caught pSupCost / mSupSpan /
-  # mvTotalCost silently widening onto the nation.
+  # mvTotalCost silently widening onto the nation. mvOutTot/mvInpTot are
+  # exempt: the always-on totals chain gives every commodity coarse-region
+  # TOTAL cells (domain rows fed by the roll-up, not value broadcasts).
   leaked <- character()
   for (nm in names(nest@modInp@parameters)) {
-    if (nm %in% c("region", "mRegionFamily", "mCommRegion")) next
+    if (nm %in% c("region", "mRegionFamily", "mCommRegion",
+                  "mvOutTot", "mvInpTot")) next
     d <- get_data_slot(nest@modInp@parameters[[nm]])
     if (is.null(d) || nrow(d) == 0) next
     d <- as.data.frame(d)
@@ -121,9 +124,11 @@ test_that("attaching a geoscale widens sets$region but expands no parameter", {
   expect_equal(unique(leaked), character())
 
   # Only the region set itself and the two new maps may differ structurally.
-  # Row counts of the RATE parameters do change: `ANYREGION` would now also
-  # cover NAT, so folding correctly declines and pWacc/pSdr/pDiscountFactor stay
-  # explicit. Same values, same LP -- just unfolded.
+  # pDiscountFactor's row count changes: `ANYREGION` would also cover NAT, which
+  # has no factor of its own, so folding declines and it stays explicit. The
+  # rates pWacc / pSdr are given to NAT too (a process declared there must
+  # annuitise at its children's rate, `.extend_rate_to_coarse()`), so they cover
+  # every region and fold exactly as in the flat model. Same values, same LP.
   rows <- function(s) vapply(s@modInp@parameters,
                              function(p) nrow(get_data_slot(p)), integer(1))
   r0 <- rows(flat)
@@ -131,7 +136,7 @@ test_that("attaching a geoscale widens sets$region but expands no parameter", {
   changed <- names(r0)[r1 != r0]
   expect_setequal(changed,
                   c("region", "mRegionFamily", "mCommRegion",
-                    "pWacc", "pSdr", "pDiscountFactor"))
+                    "mvOutTot", "mvInpTot", "pDiscountFactor"))
 })
 
 test_that("mCommRegion / mRegionFamily / mvBalance have the right shape", {
@@ -333,7 +338,7 @@ test_that("a storage at the commodity's coarse level operates and is priced", {
                 supply = data.frame(region = "NAT", timeslice = c("S1", "S2"),
                                     cost = c(1, 100))),
       newStorage("STG_GAS", commodity = "GAS", region = "NAT", olife = 1L,
-                 cap2act = 1, invcost = list(out.invcost = 1),
+                 cap2act = 1, invcost = list(out.invcost = 1), duration = 1,
                  seff = data.frame(inpeff = 1, outeff = 1)),
       newDemand("DEM_GAS", commodity = "GAS", region = "NAT",
                 demand = data.frame(region = "NAT",
@@ -341,8 +346,9 @@ test_that("a storage at the commodity's coarse level operates and is priced", {
   scen <- vt_solve(suppressMessages(suppressWarnings(interpolate_model(
     setGeoscale(mod, nr_geoscale()), name = "nrsS", overwrite = TRUE))))
   d <- as.data.frame(get_data_slot(scen@modOut@variables[["vObjective"]]))
-  # hand: buy 10 in S1 at 1 (5 direct + 5 stored) + storage out cap 5 x 1 = 15
-  expect_equal(sum(d$value), 15, tolerance = 1e-9)
+  # hand: buy 10 in S1 at 1 (5 direct + 5 stored) + a discharger able to pass
+  # 5 in a share-1/2 slice at cap2act 1, i.e. out cap 10 x 1 = 20
+  expect_equal(sum(d$value), 20, tolerance = 1e-9)
   so <- as.data.frame(get_data_slot(scen@modOut@variables[["vStorageOut"]]))
   expect_equal(unique(as.character(so$region)), "NAT")
 })
@@ -384,19 +390,30 @@ test_that("an unknown @geoframe names the levels that do exist", {
   )
 })
 
-test_that("a process coarser than its commodity is refused", {
+test_that("a technology coarser than its commodity draws from beneath it", {
   skip_if_no_geoscales()
   skip_if_no_solver()
-  # The mill sits at NAT but ELC is balanced per region, so its input could
-  # never be drawn from any balance -- it would silently vanish.
+  # The mill sits at NAT while ELC is balanced per region. This used to be
+  # refused ("COARSER"): the input landed at NAT, which no balance reads, so
+  # the mill vanished and the model was infeasible. It is now supported -- the
+  # INPUT moves down to the regions beneath NAT while capacity and output stay
+  # at NAT, and the process equations sum the finer flow (mTechProcAggRegion).
   mod <- setGeoscale(
     nr_model("nation", "NAT", name = "nrE", mill_region = "NAT"),
     nr_geoscale())
-  expect_error(
-    suppressMessages(suppressWarnings(
-      interpolate_model(mod, name = "nrE", fold = TRUE))),
-    "COARSER"
-  )
+  scen <- suppressMessages(suppressWarnings(
+    interpolate_model(mod, name = "nrE", fold = TRUE)))
+  expect_s4_class(scen, "scenario")
+
+  inp <- nr_gd(scen, "mvTechInp")
+  inp <- inp[inp$tech == "MILL", , drop = FALSE]
+  expect_gt(nrow(inp), 0L)
+  # drawn from the regions, not from NAT
+  expect_false("NAT" %in% unique(as.character(inp$region)))
+
+  ag <- nr_gd(scen, "mTechProcAggRegion")
+  expect_gt(nrow(ag), 0L)
+  expect_setequal(unique(as.character(ag$region)), "NAT")
 })
 
 test_that("no engine refuses a coarse commodity any more", {
@@ -421,3 +438,119 @@ test_that("no engine refuses a coarse commodity any more", {
   }
 })
 
+
+# --------------------------------------------------------------------------- #
+# DEGENERATE geoframe chains. `mRegionFamily` is built from adjacent geoframe
+# pairs with no validation, and two shapes `geoscales` accepts would poison the
+# roll-up. Both used to pass straight through.
+
+# `nation -> region` where FR/DE have sub-regions but LU repeats its code at
+# both levels -- the Eurostat shape. `pad` gives LU a distinct
+# national code, which is what Eurostat's own LU -> LU0 -> LU00 padding does,
+# and is the reference the degenerate model must reproduce.
+nr_selfscale <- function(pad = FALSE) {
+  geoscales::geoscale_from_leaftable(
+    data.frame(nation = c("FR", "FR", if (pad) "LU0" else "LU"),
+               region = c("FR1", "FR2", "LU")),
+    geoframes = c("nation", "region"), key = "region",
+    name = if (pad) "selfpad" else "self")
+}
+
+# STEEL balanced nationally, one mill per nation: MILL in FR1 reaches nation FR
+# through the family, MILL_LU sits in the nation whose code collides with its
+# own region. Demand is named at both nations explicitly -- an unregioned row
+# would fold to a wildcard and broadcast.
+nr_self_model <- function(nat_lu, name) {
+  cal <- newCalendar(timetable = make_timetable(
+    struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+    name = paste0("cal_", name))
+  regs <- c("FR1", "FR2", "LU")
+  newModel(name = name, desc = "", calendar = cal, region = regs,
+    horizon = newHorizon(2020:2030, intervals = 10), discount = 0.05,
+    repo = newRepository(paste0("repo_", name),
+      newCommodity("COA", timeframe = "ANNUAL"),
+      newCommodity("ELC", timeframe = "SEASON"),
+      newCommodity("STEEL", timeframe = "ANNUAL", geoframe = "nation"),
+      newSupply("SUP_COA", commodity = "COA",
+                supply = data.frame(region = regs, cost = 1)),
+      newTechnology("ECOA", input = list(comm = "COA"),
+                    output = list(comm = "ELC"),
+                    invcost = data.frame(invcost = 900),
+                    vintage = data.frame(olife = 30L), cap2act = 1),
+      newTechnology("MILL", input = list(comm = "ELC"),
+                    output = list(comm = "STEEL"), region = "FR1",
+                    ceff = data.frame(comm = "ELC", cinp2use = 0.5),
+                    invcost = data.frame(invcost = 50),
+                    vintage = data.frame(olife = 30L), cap2act = 1),
+      newTechnology("MILL_LU", input = list(comm = "ELC"),
+                    output = list(comm = "STEEL"), region = "LU",
+                    ceff = data.frame(comm = "ELC", cinp2use = 0.5),
+                    invcost = data.frame(invcost = 50),
+                    vintage = data.frame(olife = 30L), cap2act = 1),
+      newDemand("DEM_ELC", commodity = "ELC",
+                demand = data.frame(region = rep(regs, each = 2),
+                                    timeslice = c("WIN", "SUM"), demand = 30)),
+      newDemand("DEM_STL", commodity = "STEEL", region = c("FR", nat_lu),
+                demand = data.frame(region = c("FR", nat_lu),
+                                    timeslice = "ANNUAL", demand = 10))))
+}
+
+test_that("a code repeated across adjacent geoframes drops its self-pair", {
+  skip_if_no_geoscales()
+  expect_message(
+    h <- .geo_hierarchy(nr_selfscale(), c("FR1", "FR2", "LU")),
+    "same code at two adjacent geoframes")
+  # The poisoned row. Left in, eqOutTot reads
+  #   vOutTot[c,LU] = <real terms> + vOutTot[c,LU]
+  # which cancels the cell out of its own equation and forces every real term
+  # to zero -- the mill in LU can never produce.
+  expect_equal(sum(h$family$region == h$family$regionp), 0L)
+  expect_setequal(paste(h$family$region, h$family$regionp),
+                  c("FR FR1", "FR FR2"))
+  # LU is still a region, and still a legitimate child for any level above it.
+  expect_true("LU" %in% h$region)
+})
+
+# @covers mRegionFamily mCommRegion depth=S backends=glpk forks=geoframe
+test_that("a self-parented nation balances exactly like a padded one", {
+  skip_if_no_geoscales()
+  skip_if_no_solver()
+  obj <- function(pad, tag) {
+    mod <- setGeoscale(nr_self_model(if (pad) "LU0" else "LU", tag),
+                       nr_selfscale(pad))
+    scen <- suppressMessages(suppressWarnings(
+      interpolate_model(mod, name = tag, fold = TRUE)))
+    sum(suppressMessages(getData(vt_solve(scen), "vObjective",
+                                 merge = TRUE))$value)
+  }
+  # With the self-pair emitted, MILL_LU's output is forced to zero and the
+  # degenerate model is INFEASIBLE; dropping it must reproduce the padded twin
+  # exactly, since the two describe the same system.
+  degenerate <- obj(FALSE, "nrLUa")
+  padded     <- obj(TRUE,  "nrLUb")
+  expect_gt(degenerate, 0)
+  expect_equal(degenerate, padded, tolerance = 1e-9)
+})
+
+test_that("cross-cutting geoframes are refused, naming the regions", {
+  skip_if_no_geoscales()
+  # `zone` and `sync` are two parallel groupings of the same four regions, so
+  # each sync zone straddles both zones. The roll-up is a plain unweighted sum,
+  # so S1 would be added into W AND E.
+  gsx <- geoscales::geoscale_from_leaftable(
+    data.frame(zone = c("W", "W", "E", "E"),
+               sync = c("S1", "S2", "S1", "S2"),
+               region = c("R1", "R2", "R3", "R4")),
+    geoframes = c("zone", "sync", "region"), key = "region", name = "xcut")
+  expect_error(.geo_hierarchy(gsx, c("R1", "R2", "R3", "R4")), "do not nest")
+  expect_error(.geo_hierarchy(gsx, c("R1", "R2", "R3", "R4")),
+               "S1 <- E [+] W")
+})
+
+test_that("well-formed chains are silent", {
+  skip_if_no_geoscales()
+  expect_silent(.geo_hierarchy(nr_geoscale(), c("R1", "R2")))
+  expect_silent(.geo_hierarchy(topia$geoscales$honeycomb,
+                               geoscales::geoscale_regions(
+                                 topia$geoscales$honeycomb, "region")))
+})

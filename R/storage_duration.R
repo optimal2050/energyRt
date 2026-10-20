@@ -57,6 +57,40 @@
 #' @param x numeric level series, in calendar order
 #' @param w window width in points
 #' @return numeric of the same length as `x`
+# Replacements for the two `zoo::rollapply()` forms `.sd_floor()` used.
+# `.roll_min_left(x, w)[i]` is `min(x[i .. i+w-1])`, `.roll_max_right(x, w)[i]`
+# is `max(x[i-w+1 .. i], na.rm = TRUE)`; both return NA where the window runs
+# off the vector, as `fill = NA` does. An all-NA window maxes to -Inf, which is
+# what `max(na.rm = TRUE)` returns and `pmax(na.rm = TRUE)` does not, so the
+# NAs are substituted before the running comparison.
+#' @noRd
+.roll_min_left <- function(x, w) {
+  n <- length(x)
+  out <- rep(NA_real_, n)
+  m <- n - w + 1L
+  if (m < 1L) return(out)
+  i <- seq_len(m)
+  acc <- x[i]
+  for (j in seq_len(w - 1L)) acc <- pmin(acc, x[i + j])
+  out[i] <- acc
+  out
+}
+
+#' @noRd
+.roll_max_right <- function(x, w) {
+  n <- length(x)
+  out <- rep(NA_real_, n)
+  m <- n - w + 1L
+  if (m < 1L) return(out)
+  xx <- x
+  xx[is.na(xx)] <- -Inf
+  i <- seq_len(m)
+  acc <- xx[i]
+  for (j in seq_len(w - 1L)) acc <- pmax(acc, xx[i + j])
+  out[seq.int(w, n)] <- acc
+  out
+}
+
 #' @keywords internal
 #' @noRd
 .sd_floor <- function(x, w) {
@@ -64,10 +98,9 @@
   if (w <= 1L) return(x)
   if (w >= n) return(rep(min(x, na.rm = TRUE), n))
   # rmin[s] = min(x[s .. s+w-1]) -- the floor of the window STARTING at s
-  rmin <- zoo::rollapply(x, width = w, FUN = min, align = "left", fill = NA)
+  rmin <- .roll_min_left(x, w)
   # the windows containing i start at i-w+1 .. i, so take the best of those
-  out <- zoo::rollapply(rmin, width = w, FUN = function(z) max(z, na.rm = TRUE),
-                        align = "right", fill = NA)
+  out <- .roll_max_right(rmin, w)
   # `fill = NA` leaves the first w-1 positions empty; with cyclic padding these
   # are inside the pad and get trimmed, so this only matters when the caller
   # padded by edge replication.
@@ -83,7 +116,7 @@
 #' they sum back to it at every timeslice -- so they can be stacked in an area
 #' chart directly.
 #'
-#' @param scen a solved scenario.
+#' @param object a solved scenario.
 #' @param width integer vector of window widths in HOURS, strictly increasing.
 #'   The default splits at half a day, a day, a week and 30 days, producing five
 #'   bands. Widths at or above the length of the series collapse to the series
@@ -120,7 +153,7 @@
 #'   facet_wrap(~region)
 #' }
 #' @export
-storage_duration <- function(scen,
+storage_duration <- function(object,
                              width = c(12L, 24L, 24L * 7L, 24L * 30L),
                              labels = NULL,
                              cyclic = NA,
@@ -141,7 +174,7 @@ storage_duration <- function(scen,
          "), one per band.", call. = FALSE)
   }
 
-  lev <- try(as.data.frame(getData(scen, "vStorageLevel", merge = TRUE,
+  lev <- try(as.data.frame(getData(object, "vStorageLevel", merge = TRUE,
                                    drop.zeros = FALSE)), silent = TRUE)
   empty <- data.frame(stg = character(), comm = character(), region = character(),
                       year = integer(), timeslice = character(),
@@ -155,7 +188,7 @@ storage_duration <- function(scen,
   # Which storages wrap. Read from the objects rather than from a map so this
   # works on a scenario whose maps were dropped after solving.
   fy <- tryCatch(
-    apply_to_scenario_data(scen = scen, classes = "storage", as_list = TRUE,
+    apply_to_scenario_data(scen = object, classes = "storage", as_list = TRUE,
       func = function(x) {
         o <- list()
         o[[x@name]] <- data.frame(stg = x@name, fullYear = isTRUE(x@fullYear),
@@ -165,23 +198,28 @@ storage_duration <- function(scen,
     error = function(e) NULL)
   fy <- if (is.null(fy) || !length(fy)) NULL else dplyr::bind_rows(fy)
 
-  fmt <- tsl_guess_format(unique(lev$timeslice))
-  if (is.null(fmt)) {
-    stop("Cannot read a calendar format from the timeslice names, so the level ",
-         "cannot be put in time order. `storage_duration()` needs a dated ",
-         "calendar (day/hour timeslices).", call. = FALSE)
+  # The scenario's own calendar, not a format read back out of the timeslice
+  # names. `@settings` and `@model@config` both carry one depending on how the
+  # scenario was built.
+  ecal <- tryCatch(object@settings@calendar, error = function(e) NULL) %||%
+    tryCatch(object@model@config@calendar, error = function(e) NULL)
+  cal_name <- if (methods::is(ecal, "calendar")) ecal@name else "<none>"
+  cal <- .ts_calendar(ecal)
+  if (is.null(cal)) {
+    stop("`storage_duration()` needs the scenario's calendar to put storage ",
+         "levels in time order, and this scenario carries none.", call. = FALSE)
   }
 
   keys <- c("stg", "comm", "region", "year")
   keys <- intersect(keys, names(lev))
   out <- lapply(split(lev, lev[keys], drop = TRUE), function(g) {
     if (!NROW(g)) return(NULL)
-    # `mday` matters for month-based calendars (`m12_h24`): without it
-    # `tsl2dtm()` returns NULL, every group below was dropped, and the function
-    # returned zero rows with no message -- an empty chart and nothing to say
-    # why. The 1st is arbitrary but monotonic, which is all the ordering needs.
-    dtm <- tsl2dtm(g$timeslice, format = fmt, year = g$year, tmz = tmz,
-                   mday = 1L)
+    # tsl2dtm() returns the instant each timeslice STARTS at, so a month-based
+    # calendar (`m12_h24`) lands on the 1st -- arbitrary but monotonic, which
+    # is all the ordering needs.
+    dtm <- tryCatch(
+      timescales::tsl2dtm(g$timeslice, cal, year = g$year, tz = tmz),
+      error = function(e) NULL)
     if (is.null(dtm) || all(is.na(dtm))) return(NULL)
     g$datetime <- dtm
     g <- g[order(g$datetime), , drop = FALSE]
@@ -232,8 +270,8 @@ storage_duration <- function(scen,
     # Returning `empty` here is how this looked like "storage_duration() gives
     # an empty figure" with nothing to go on; say what could not be done.
     stop("`storage_duration()` could not place the storage level in time. ",
-         "The timeslice format read as \"", paste(fmt, collapse = ", "),
-         "\", which carries no date. A dated calendar (day/hour, e.g. ",
+         "The scenario's calendar \"", cal_name,
+         "\" carries no date. A dated calendar (day/hour, e.g. ",
          "`calendars$d365_h24`, or month/hour) is required.", call. = FALSE)
   }
   out$duration <- factor(out$duration, levels = labels, ordered = TRUE)

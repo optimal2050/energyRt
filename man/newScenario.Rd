@@ -17,6 +17,9 @@ newScenario(
 \arguments{
 \item{name}{character. Name of the scenario object, for reference, also used in scenario path-functions.}
 
+\item{model}{the \code{model} object the scenario is built from; \code{NULL} leaves
+it unset, to be assigned later.}
+
 \item{path}{character. Path to the scenario folder with the model data and scripts.}
 
 \item{...}{any model objects or settings to be assigned to the scenario.}

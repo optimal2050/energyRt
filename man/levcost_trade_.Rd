@@ -59,7 +59,9 @@ ARRIVING in the receiving region, summed over both endpoints' capital and
 fixed charges -- see the header of this file for why both endpoints pay.
 }
 \details{
-\verb{@varom} and \verb{@markup} are NOT priced: no equation in any backend reads them
-(glpk/energyRt.mod:535). A trade carrying them gets a warning rather than a
-number that no solver would reproduce.
+\verb{@varom$varom} is priced, on the quantity SENT -- it becomes \code{pTradeIrVarom},
+which \code{eqExportIrCost} charges at \code{src}. \verb{@varom$markup} is not priced: it is
+a transfer the importer pays and the exporter receives, so it cancels
+system-wide and leaves the objective unchanged.
 }
+\keyword{internal}

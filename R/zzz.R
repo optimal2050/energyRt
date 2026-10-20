@@ -59,5 +59,56 @@
   # variable. Never fatal: a malformed config must not stop the package loading.
   try(.en_apply_config(), silent = TRUE)
 
+  # as_multimod.scenario() is registered by NAMESPACE, via
+  # `@exportS3Method multimod::as_multimod` -> `S3method(multimod::as_multimod,
+  # scenario)`. That is R's own delayed registration for a generic owned by a
+  # SUGGESTED package: dispatch works when multimod is installed, and nothing
+  # breaks when it is not. A hand-rolled setHook() lived here until
+  # 2026-09-24 and is no longer needed.
+
   invisible()
+}
+
+
+#' Check validity of object's names used in sets
+#'
+#' @param x character, name of an object of `energyRt`
+#'
+#' @return logical, TRUE if the name is valid.
+#'
+#' @examples
+#' energyRt:::check_name("name")
+#' energyRt:::check_name("1name")
+#' energyRt:::check_name("name1")
+#' energyRt:::check_name("name_1")
+#' energyRt:::check_name("name_1!")
+#' energyRt:::check_name(c("a", "b")) # FALSE, not a single name
+#' energyRt:::check_name(1) # FALSE, not character
+#' @keywords internal
+check_name <- function(x, dot = FALSE) {
+  # NB the guards used to be OR'd into the "valid" expression, so a non-scalar
+  # or non-character input was reported as VALID. They must negate it instead.
+  # `dot = TRUE` additionally allows ONE leading dot — the internal scratch
+  # convention (levcost mini-models, `.LCS_RUN`) — never dots elsewhere.
+  pat <- if (dot) "^\\.?[[:alpha:]][[:alnum:]_]*$" else
+    "^[[:alpha:]][[:alnum:]_]*$"
+  length(x) == 1 && is.character(x) && sub(pat, "", x) == ""
+}
+
+# Enforce the object-name rule at construction: letters, digits, underscore,
+# starting with a letter (optionally one leading dot for internal scratch
+# objects). Names travel into GAMS/GLPK/JuMP/Pyomo identifiers, where
+# dashes, dots and spaces are illegal — and "-" is the path-slug separator.
+# Run/variant LABELS are not object names and are not checked here.
+.assert_object_name <- function(name, what = "object") {
+  if (!length(name) || !nzchar(name %||% "")) return(invisible(TRUE))
+  if (!check_name(name, dot = TRUE)) {
+    bad <- gsub("[.A-Za-z0-9_]", "", name)
+    stop("Invalid ", what, " name '", name, "'",
+         if (nzchar(bad)) paste0(" (offending: '", bad, "')"),
+         ": names use letters, digits and underscore, and start with a ",
+         "letter — they become solver identifiers on all four backends.",
+         call. = FALSE)
+  }
+  invisible(TRUE)
 }

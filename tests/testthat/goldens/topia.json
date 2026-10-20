@@ -1,0 +1,7411 @@
+{
+  "base_R1": {
+    "objective": 18351.9007739,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "EGAS",
+            "region": "W1",
+            "year": 2040,
+            "value": 0.1134665887
+          },
+          {
+            "tech": "EGAS",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.3520051611
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 2.413582371
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 0.1246936285
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 0.1274640553
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.3279092013
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EGAS",
+            "year": 2040,
+            "value": 0.1134665887
+          },
+          {
+            "tech": "EGAS",
+            "year": 2050,
+            "value": 0.3520051611
+          },
+          {
+            "tech": "ESOL",
+            "year": 2025,
+            "value": 2.413582371
+          },
+          {
+            "tech": "ESOL",
+            "year": 2030,
+            "value": 0.1246936285
+          },
+          {
+            "tech": "ESOL",
+            "year": 2040,
+            "value": 0.1274640553
+          },
+          {
+            "tech": "ESOL",
+            "year": 2050,
+            "value": 0.3279092013
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 60
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 62.94190232
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 74.18970219
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 60
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 3.26376325
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 36.13227559
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 33.80591643
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 42.8714164
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 51.07991534
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 56.19703601
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.29517088
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.578526442
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 60
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 62.94190232
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 74.18970219
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 60
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 3.26376325
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 36.13227559
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 33.80591643
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 42.8714164
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 51.07991534
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 56.19703601
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 5.29517088
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 2.578526442
+          }
+        ]
+      },
+      "vTechInp": {
+        "annual_region": [
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2025,
+            "value": 150
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2030,
+            "value": 157.3547558
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2040,
+            "value": 185.4742555
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2050,
+            "value": 150
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2040,
+            "value": 5.627178018
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2050,
+            "value": 62.29702689
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 33.80591643
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 42.8714164
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 51.07991534
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 56.19703601
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.29517088
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.578526442
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2025,
+            "value": 150
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2030,
+            "value": 157.3547558
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2040,
+            "value": 185.4742555
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2050,
+            "value": 150
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2040,
+            "value": 5.627178018
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2050,
+            "value": 62.29702689
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2025,
+            "value": 33.80591643
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2030,
+            "value": 42.8714164
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2040,
+            "value": 51.07991534
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2050,
+            "value": 56.19703601
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2030,
+            "value": 5.29517088
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2040,
+            "value": 2.578526442
+          }
+        ]
+      },
+      "vSupOut": {
+        "annual_region": [
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 33.80591643
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 42.8714164
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 51.07991534
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 56.19703601
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.29517088
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.578526442
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2025,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2030,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2040,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2050,
+            "value": 150
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2040,
+            "value": 5.627178017
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2050,
+            "value": 25
+          }
+        ],
+        "annual_total": [
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2025,
+            "value": 33.80591643
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2030,
+            "value": 42.8714164
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2040,
+            "value": 51.07991534
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2050,
+            "value": 56.19703601
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2030,
+            "value": 5.29517088
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2040,
+            "value": 2.578526442
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2025,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2030,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2040,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2050,
+            "value": 150
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2040,
+            "value": 5.627178017
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2050,
+            "value": 25
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 100
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 110
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 130
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 150
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 100
+          },
+          {
+            "comm": "ELC",
+            "year": 2030,
+            "value": 110
+          },
+          {
+            "comm": "ELC",
+            "year": 2040,
+            "value": 130
+          },
+          {
+            "comm": "ELC",
+            "year": 2050,
+            "value": 150
+          }
+        ]
+      },
+      "vEmsFuelTot": {
+        "annual_region": [
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2025,
+            "value": 14250
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2030,
+            "value": 14948.7018
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2040,
+            "value": 17935.17624
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2050,
+            "value": 17738.63351
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "CO2",
+            "year": 2025,
+            "value": 14250
+          },
+          {
+            "comm": "CO2",
+            "year": 2030,
+            "value": 14948.7018
+          },
+          {
+            "comm": "CO2",
+            "year": 2040,
+            "value": 17935.17624
+          },
+          {
+            "comm": "CO2",
+            "year": 2050,
+            "value": 17738.63351
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-10-19",
+      "version": "0.90.0.9029",
+      "solver": "glpk"
+    }
+  },
+  "base_R3": {
+    "objective": 52543.6292655,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "EGAS",
+            "region": "C1",
+            "year": 2040,
+            "value": 0.0187764135
+          },
+          {
+            "tech": "EGAS",
+            "region": "C1",
+            "year": 2050,
+            "value": 0.1580152856
+          },
+          {
+            "tech": "EGAS",
+            "region": "W1",
+            "year": 2040,
+            "value": 0.1134665887
+          },
+          {
+            "tech": "EGAS",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.3489293113
+          },
+          {
+            "tech": "EGAS",
+            "region": "W2",
+            "year": 2030,
+            "value": 0.0002916613204
+          },
+          {
+            "tech": "EGAS",
+            "region": "W2",
+            "year": 2040,
+            "value": 0.2625900442
+          },
+          {
+            "tech": "EGAS",
+            "region": "W2",
+            "year": 2050,
+            "value": 0.1069195715
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 2.436525165
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 0.06193026453
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 0.1608923742
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.3437998873
+          },
+          {
+            "tech": "ESOL",
+            "region": "W2",
+            "year": 2025,
+            "value": 2.370244003
+          },
+          {
+            "tech": "ESOL",
+            "region": "W2",
+            "year": 2030,
+            "value": 0.07205833349
+          },
+          {
+            "tech": "ESOL",
+            "region": "W2",
+            "year": 2040,
+            "value": 0.1675069696
+          },
+          {
+            "tech": "ESOL",
+            "region": "W2",
+            "year": 2050,
+            "value": 0.2879379814
+          },
+          {
+            "tech": "EWIN",
+            "region": "W2",
+            "year": 2050,
+            "value": 0.4922895981
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EGAS",
+            "year": 2030,
+            "value": 0.0002916613204
+          },
+          {
+            "tech": "EGAS",
+            "year": 2040,
+            "value": 0.3948330464
+          },
+          {
+            "tech": "EGAS",
+            "year": 2050,
+            "value": 0.6138641684
+          },
+          {
+            "tech": "ESOL",
+            "year": 2025,
+            "value": 4.806769168
+          },
+          {
+            "tech": "ESOL",
+            "year": 2030,
+            "value": 0.133988598
+          },
+          {
+            "tech": "ESOL",
+            "year": 2040,
+            "value": 0.3283993438
+          },
+          {
+            "tech": "ESOL",
+            "year": 2050,
+            "value": 0.6317378687
+          },
+          {
+            "tech": "EWIN",
+            "year": 2050,
+            "value": 0.4922895981
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2030,
+            "value": 0.3566766918
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2040,
+            "value": 1.901574336
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2050,
+            "value": 2.911521469
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 59.85078992
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 67.31416981
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 76.38660157
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 60.1759181
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2025,
+            "value": 60.14921008
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2030,
+            "value": 64.08774367
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2040,
+            "value": 57.57083984
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2050,
+            "value": 30.54823825
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2040,
+            "value": 1.040762145
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2050,
+            "value": 8.204916862
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 3.291293244
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 36.30482445
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2025,
+            "value": 0.5990550729
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2030,
+            "value": 4.03481373
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2040,
+            "value": 23.76854268
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2050,
+            "value": 30.70336762
+          },
+          {
+            "tech": "EHYD",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2025,
+            "value": 13.32164261
+          },
+          {
+            "tech": "EHYD",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2030,
+            "value": 23.11817681
+          },
+          {
+            "tech": "EHYD",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2040,
+            "value": 27.4858289
+          },
+          {
+            "tech": "EHYD",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2050,
+            "value": 30.59814552
+          },
+          {
+            "tech": "ENUC",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2025,
+            "value": 90.7102365
+          },
+          {
+            "tech": "ENUC",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2030,
+            "value": 93.77901125
+          },
+          {
+            "tech": "ENUC",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2040,
+            "value": 103.0606789
+          },
+          {
+            "tech": "ENUC",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2050,
+            "value": 114.3994227
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2025,
+            "value": 7.279884612
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2030,
+            "value": 2.543653588
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2040,
+            "value": 3.047592201
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 34.04896213
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 38.05442178
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 49.05161499
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 55.14033555
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2025,
+            "value": 29.23979291
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2030,
+            "value": 33.75630533
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2040,
+            "value": 44.37073388
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2050,
+            "value": 45.76548992
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2025,
+            "value": 2.493155976
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2030,
+            "value": 2.408763014
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2040,
+            "value": 2.487804786
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.37535818
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.68767909
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2025,
+            "value": 9.090679275
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2030,
+            "value": 7.27254342
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2040,
+            "value": 3.63627171
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2050,
+            "value": 44.29750521
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 120
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 131.7585902
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 135.8590157
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 93.63567782
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 0.5990550729
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 4.03481373
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 28.10059807
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 75.21310893
+          },
+          {
+            "tech": "EHYD",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 13.32164261
+          },
+          {
+            "tech": "EHYD",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 23.11817681
+          },
+          {
+            "tech": "EHYD",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 27.4858289
+          },
+          {
+            "tech": "EHYD",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 30.59814552
+          },
+          {
+            "tech": "ENUC",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 90.7102365
+          },
+          {
+            "tech": "ENUC",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 93.77901125
+          },
+          {
+            "tech": "ENUC",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 103.0606789
+          },
+          {
+            "tech": "ENUC",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 114.3994227
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 70.56863965
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 74.3543807
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 96.46994107
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 100.9058255
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 18.30303298
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 15.05666461
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 8.811755586
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 44.29750521
+          }
+        ]
+      },
+      "vTechInp": {
+        "annual_region": [
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "C1",
+            "year": 2030,
+            "value": 0.8916917296
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "C1",
+            "year": 2040,
+            "value": 4.753935839
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "C1",
+            "year": 2050,
+            "value": 7.278803673
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2025,
+            "value": 149.6269748
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2030,
+            "value": 168.2854245
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2040,
+            "value": 190.9665039
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2050,
+            "value": 150.4397953
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W2",
+            "year": 2025,
+            "value": 150.3730252
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W2",
+            "year": 2030,
+            "value": 160.2193592
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W2",
+            "year": 2040,
+            "value": 143.9270996
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W2",
+            "year": 2050,
+            "value": 76.37059561
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "C1",
+            "year": 2040,
+            "value": 1.794417491
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "C1",
+            "year": 2050,
+            "value": 14.14640838
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2040,
+            "value": 5.674643524
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2050,
+            "value": 62.59452492
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W2",
+            "year": 2025,
+            "value": 1.032853574
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W2",
+            "year": 2030,
+            "value": 6.956575395
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W2",
+            "year": 2040,
+            "value": 40.980246
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W2",
+            "year": 2050,
+            "value": 52.93684072
+          },
+          {
+            "tech": "EHYD",
+            "comm": "HYD",
+            "region": "C1",
+            "year": 2025,
+            "value": 13.32164261
+          },
+          {
+            "tech": "EHYD",
+            "comm": "HYD",
+            "region": "C1",
+            "year": 2030,
+            "value": 23.11817681
+          },
+          {
+            "tech": "EHYD",
+            "comm": "HYD",
+            "region": "C1",
+            "year": 2040,
+            "value": 27.4858289
+          },
+          {
+            "tech": "EHYD",
+            "comm": "HYD",
+            "region": "C1",
+            "year": 2050,
+            "value": 30.59814552
+          },
+          {
+            "tech": "ENUC",
+            "comm": "NUC",
+            "region": "C1",
+            "year": 2025,
+            "value": 259.1721043
+          },
+          {
+            "tech": "ENUC",
+            "comm": "NUC",
+            "region": "C1",
+            "year": 2030,
+            "value": 267.9400321
+          },
+          {
+            "tech": "ENUC",
+            "comm": "NUC",
+            "region": "C1",
+            "year": 2040,
+            "value": 294.4590825
+          },
+          {
+            "tech": "ENUC",
+            "comm": "NUC",
+            "region": "C1",
+            "year": 2050,
+            "value": 326.8554935
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "C1",
+            "year": 2025,
+            "value": 7.279884612
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "C1",
+            "year": 2030,
+            "value": 2.543653588
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "C1",
+            "year": 2040,
+            "value": 3.047592201
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 34.04896213
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 38.05442178
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 49.05161499
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 55.14033555
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W2",
+            "year": 2025,
+            "value": 29.23979291
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W2",
+            "year": 2030,
+            "value": 33.75630533
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W2",
+            "year": 2040,
+            "value": 44.37073388
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W2",
+            "year": 2050,
+            "value": 45.76548992
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "C1",
+            "year": 2025,
+            "value": 2.493155976
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "C1",
+            "year": 2030,
+            "value": 2.408763014
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "C1",
+            "year": 2040,
+            "value": 2.487804786
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.37535818
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.68767909
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W2",
+            "year": 2025,
+            "value": 9.090679275
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W2",
+            "year": 2030,
+            "value": 7.27254342
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W2",
+            "year": 2040,
+            "value": 3.63627171
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W2",
+            "year": 2050,
+            "value": 44.29750521
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2025,
+            "value": 300
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2030,
+            "value": 329.3964754
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2040,
+            "value": 339.6475394
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2050,
+            "value": 234.0891945
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2025,
+            "value": 1.032853574
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2030,
+            "value": 6.956575395
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2040,
+            "value": 48.44930702
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2050,
+            "value": 129.677774
+          },
+          {
+            "tech": "EHYD",
+            "comm": "HYD",
+            "year": 2025,
+            "value": 13.32164261
+          },
+          {
+            "tech": "EHYD",
+            "comm": "HYD",
+            "year": 2030,
+            "value": 23.11817681
+          },
+          {
+            "tech": "EHYD",
+            "comm": "HYD",
+            "year": 2040,
+            "value": 27.4858289
+          },
+          {
+            "tech": "EHYD",
+            "comm": "HYD",
+            "year": 2050,
+            "value": 30.59814552
+          },
+          {
+            "tech": "ENUC",
+            "comm": "NUC",
+            "year": 2025,
+            "value": 259.1721043
+          },
+          {
+            "tech": "ENUC",
+            "comm": "NUC",
+            "year": 2030,
+            "value": 267.9400321
+          },
+          {
+            "tech": "ENUC",
+            "comm": "NUC",
+            "year": 2040,
+            "value": 294.4590825
+          },
+          {
+            "tech": "ENUC",
+            "comm": "NUC",
+            "year": 2050,
+            "value": 326.8554935
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2025,
+            "value": 70.56863965
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2030,
+            "value": 74.3543807
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2040,
+            "value": 96.46994107
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2050,
+            "value": 100.9058255
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2025,
+            "value": 18.30303298
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2030,
+            "value": 15.05666461
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2040,
+            "value": 8.811755586
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2050,
+            "value": 44.29750521
+          }
+        ]
+      },
+      "vSupOut": {
+        "annual_region": [
+          {
+            "sup": "RES_HYD",
+            "comm": "HYD",
+            "region": "C1",
+            "year": 2025,
+            "value": 13.32164261
+          },
+          {
+            "sup": "RES_HYD",
+            "comm": "HYD",
+            "region": "C1",
+            "year": 2030,
+            "value": 23.11817681
+          },
+          {
+            "sup": "RES_HYD",
+            "comm": "HYD",
+            "region": "C1",
+            "year": 2040,
+            "value": 27.4858289
+          },
+          {
+            "sup": "RES_HYD",
+            "comm": "HYD",
+            "region": "C1",
+            "year": 2050,
+            "value": 30.59814552
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "C1",
+            "year": 2025,
+            "value": 7.279884612
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "C1",
+            "year": 2030,
+            "value": 2.543653588
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "C1",
+            "year": 2040,
+            "value": 3.047592201
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 34.04896213
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 38.05442178
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 49.05161499
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 55.14033555
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W2",
+            "year": 2025,
+            "value": 29.23979291
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W2",
+            "year": 2030,
+            "value": 33.75630533
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W2",
+            "year": 2040,
+            "value": 44.37073388
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W2",
+            "year": 2050,
+            "value": 45.76548992
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "C1",
+            "year": 2025,
+            "value": 2.493155976
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "C1",
+            "year": 2030,
+            "value": 2.408763014
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "C1",
+            "year": 2040,
+            "value": 2.487804786
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.37535818
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.68767909
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W2",
+            "year": 2025,
+            "value": 9.090679275
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W2",
+            "year": 2030,
+            "value": 7.27254342
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W2",
+            "year": 2040,
+            "value": 3.63627171
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W2",
+            "year": 2050,
+            "value": 44.29750521
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "CENTRAL",
+            "year": 2030,
+            "value": 29.68440254
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "CENTRAL",
+            "year": 2040,
+            "value": 40
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2025,
+            "value": 300
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2030,
+            "value": 300
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2040,
+            "value": 300
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2050,
+            "value": 234.1627178
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2025,
+            "value": 1.032853574
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2030,
+            "value": 6.956575396
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2040,
+            "value": 48.48592778
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2050,
+            "value": 50
+          },
+          {
+            "sup": "SUP_NUC",
+            "comm": "NUC",
+            "region": "C1",
+            "year": 2025,
+            "value": 259.1721043
+          },
+          {
+            "sup": "SUP_NUC",
+            "comm": "NUC",
+            "region": "C1",
+            "year": 2030,
+            "value": 267.9400321
+          },
+          {
+            "sup": "SUP_NUC",
+            "comm": "NUC",
+            "region": "C1",
+            "year": 2040,
+            "value": 294.4590825
+          },
+          {
+            "sup": "SUP_NUC",
+            "comm": "NUC",
+            "region": "C1",
+            "year": 2050,
+            "value": 326.8554935
+          }
+        ],
+        "annual_total": [
+          {
+            "sup": "RES_HYD",
+            "comm": "HYD",
+            "year": 2025,
+            "value": 13.32164261
+          },
+          {
+            "sup": "RES_HYD",
+            "comm": "HYD",
+            "year": 2030,
+            "value": 23.11817681
+          },
+          {
+            "sup": "RES_HYD",
+            "comm": "HYD",
+            "year": 2040,
+            "value": 27.4858289
+          },
+          {
+            "sup": "RES_HYD",
+            "comm": "HYD",
+            "year": 2050,
+            "value": 30.59814552
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2025,
+            "value": 70.56863965
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2030,
+            "value": 74.3543807
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2040,
+            "value": 96.46994107
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2050,
+            "value": 100.9058255
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2025,
+            "value": 18.30303298
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2030,
+            "value": 15.05666461
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2040,
+            "value": 8.811755586
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2050,
+            "value": 44.29750521
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2025,
+            "value": 300
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2030,
+            "value": 329.6844025
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2040,
+            "value": 340
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2050,
+            "value": 234.1627178
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2025,
+            "value": 1.032853574
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2030,
+            "value": 6.956575396
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2040,
+            "value": 48.48592778
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2050,
+            "value": 50
+          },
+          {
+            "sup": "SUP_NUC",
+            "comm": "NUC",
+            "year": 2025,
+            "value": 259.1721043
+          },
+          {
+            "sup": "SUP_NUC",
+            "comm": "NUC",
+            "year": 2030,
+            "value": 267.9400321
+          },
+          {
+            "sup": "SUP_NUC",
+            "comm": "NUC",
+            "year": 2040,
+            "value": 294.4590825
+          },
+          {
+            "sup": "SUP_NUC",
+            "comm": "NUC",
+            "year": 2050,
+            "value": 326.8554935
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2025,
+            "value": 100
+          },
+          {
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2030,
+            "value": 110
+          },
+          {
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2040,
+            "value": 130
+          },
+          {
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2050,
+            "value": 150
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 100
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 110
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 130
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 150
+          },
+          {
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2025,
+            "value": 100
+          },
+          {
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2030,
+            "value": 110
+          },
+          {
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2040,
+            "value": 130
+          },
+          {
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2050,
+            "value": 150
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 300
+          },
+          {
+            "comm": "ELC",
+            "year": 2030,
+            "value": 330
+          },
+          {
+            "comm": "ELC",
+            "year": 2040,
+            "value": 390
+          },
+          {
+            "comm": "ELC",
+            "year": 2050,
+            "value": 450
+          }
+        ]
+      },
+      "vEmsFuelTot": {
+        "annual_region": [
+          {
+            "comm": "CO2",
+            "region": "C1",
+            "year": 2030,
+            "value": 84.71071431
+          },
+          {
+            "comm": "CO2",
+            "region": "C1",
+            "year": 2040,
+            "value": 552.1112842
+          },
+          {
+            "comm": "CO2",
+            "region": "C1",
+            "year": 2050,
+            "value": 1483.685218
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2025,
+            "value": 14214.56261
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2030,
+            "value": 15987.11533
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2040,
+            "value": 18459.59791
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2050,
+            "value": 17797.07394
+          },
+          {
+            "comm": "CO2",
+            "region": "W2",
+            "year": 2025,
+            "value": 14343.27719
+          },
+          {
+            "comm": "CO2",
+            "region": "W2",
+            "year": 2030,
+            "value": 15610.40734
+          },
+          {
+            "comm": "CO2",
+            "region": "W2",
+            "year": 2040,
+            "value": 15967.96824
+          },
+          {
+            "comm": "CO2",
+            "region": "W2",
+            "year": 2050,
+            "value": 10219.66966
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "CO2",
+            "year": 2025,
+            "value": 28557.8398
+          },
+          {
+            "comm": "CO2",
+            "year": 2030,
+            "value": 31682.23338
+          },
+          {
+            "comm": "CO2",
+            "year": 2040,
+            "value": 34979.67743
+          },
+          {
+            "comm": "CO2",
+            "year": 2050,
+            "value": 29500.42882
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-10-19",
+      "version": "0.90.0.9029",
+      "solver": "glpk"
+    }
+  },
+  "co2cap_R1": {
+    "objective": 32668.9521188,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "EBIO",
+            "region": "W1",
+            "year": 2040,
+            "value": 0.01026547983
+          },
+          {
+            "tech": "EBIO",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.02071723618
+          },
+          {
+            "tech": "EGAS",
+            "region": "W1",
+            "year": 2040,
+            "value": 0.03947136065
+          },
+          {
+            "tech": "EGAS",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.1024740374
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 3.448845919
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 0.03344235567
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 0.09489513921
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.4259121045
+          },
+          {
+            "tech": "EWIN",
+            "region": "W1",
+            "year": 2025,
+            "value": 3.972611555
+          },
+          {
+            "tech": "EWIN",
+            "region": "W1",
+            "year": 2030,
+            "value": 0.2339615122
+          },
+          {
+            "tech": "EWIN",
+            "region": "W1",
+            "year": 2040,
+            "value": 0.3888724971
+          },
+          {
+            "tech": "EWIN",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.7285962459
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EBIO",
+            "year": 2040,
+            "value": 0.01026547983
+          },
+          {
+            "tech": "EBIO",
+            "year": 2050,
+            "value": 0.02071723618
+          },
+          {
+            "tech": "EGAS",
+            "year": 2040,
+            "value": 0.03947136065
+          },
+          {
+            "tech": "EGAS",
+            "year": 2050,
+            "value": 0.1024740374
+          },
+          {
+            "tech": "ESOL",
+            "year": 2025,
+            "value": 3.448845919
+          },
+          {
+            "tech": "ESOL",
+            "year": 2030,
+            "value": 0.03344235567
+          },
+          {
+            "tech": "ESOL",
+            "year": 2040,
+            "value": 0.09489513921
+          },
+          {
+            "tech": "ESOL",
+            "year": 2050,
+            "value": 0.4259121045
+          },
+          {
+            "tech": "EWIN",
+            "year": 2025,
+            "value": 3.972611555
+          },
+          {
+            "tech": "EWIN",
+            "year": 2030,
+            "value": 0.2339615122
+          },
+          {
+            "tech": "EWIN",
+            "year": 2040,
+            "value": 0.3888724971
+          },
+          {
+            "tech": "EWIN",
+            "year": 2050,
+            "value": 0.7285962459
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "EBIO",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 1.85037327
+          },
+          {
+            "tech": "EBIO",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 5.250000001
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 13.43006758
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 12.57560588
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 8.842105263
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 4.155034497
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 18.75014625
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 15.67339803
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 14.5
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 15.67221425
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 41.90477581
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 43.85978867
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 49.61621894
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 41.30746231
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 28.74406783
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 41.16937101
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 59.17621341
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 88.2115427
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EBIO",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 1.85037327
+          },
+          {
+            "tech": "EBIO",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 5.250000001
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 13.43006758
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 12.57560588
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 8.842105263
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 4.155034497
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 18.75014625
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 15.67339803
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 14.5
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 15.67221425
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 41.90477581
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 43.85978867
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 49.61621894
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 41.30746231
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 28.74406783
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 41.16937101
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 59.17621341
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 88.2115427
+          }
+        ]
+      },
+      "vTechInp": {
+        "annual_region": [
+          {
+            "tech": "EBIO",
+            "comm": "BIO",
+            "region": "W1",
+            "year": 2040,
+            "value": 5.286780773
+          },
+          {
+            "tech": "EBIO",
+            "comm": "BIO",
+            "region": "W1",
+            "year": 2050,
+            "value": 15
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2025,
+            "value": 33.57516896
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2030,
+            "value": 31.4390147
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2040,
+            "value": 22.10526316
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2050,
+            "value": 10.38758624
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2025,
+            "value": 32.32783837
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2030,
+            "value": 27.02310005
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2040,
+            "value": 25
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2050,
+            "value": 27.02105905
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 41.90477581
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 43.85978867
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 49.61621894
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 41.30746231
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2025,
+            "value": 28.74406783
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2030,
+            "value": 41.16937101
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2040,
+            "value": 59.17621341
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2050,
+            "value": 88.2115427
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EBIO",
+            "comm": "BIO",
+            "year": 2040,
+            "value": 5.286780773
+          },
+          {
+            "tech": "EBIO",
+            "comm": "BIO",
+            "year": 2050,
+            "value": 15
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2025,
+            "value": 33.57516896
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2030,
+            "value": 31.4390147
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2040,
+            "value": 22.10526316
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2050,
+            "value": 10.38758624
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2025,
+            "value": 32.32783837
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2030,
+            "value": 27.02310005
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2040,
+            "value": 25
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2050,
+            "value": 27.02105905
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2025,
+            "value": 41.90477581
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2030,
+            "value": 43.85978867
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2040,
+            "value": 49.61621894
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2050,
+            "value": 41.30746231
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2025,
+            "value": 28.74406783
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2030,
+            "value": 41.16937101
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2040,
+            "value": 59.17621341
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2050,
+            "value": 88.2115427
+          }
+        ]
+      },
+      "vSupOut": {
+        "annual_region": [
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 41.90477581
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 43.85978867
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 49.61621894
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 41.30746231
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2025,
+            "value": 28.74406783
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2030,
+            "value": 41.16937101
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2040,
+            "value": 59.17621341
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2050,
+            "value": 88.2115427
+          },
+          {
+            "sup": "SUP_BIO",
+            "comm": "BIO",
+            "region": "W1",
+            "year": 2040,
+            "value": 5.286780773
+          },
+          {
+            "sup": "SUP_BIO",
+            "comm": "BIO",
+            "region": "W1",
+            "year": 2050,
+            "value": 15
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2025,
+            "value": 33.57516896
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2030,
+            "value": 31.4390147
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2040,
+            "value": 22.10526316
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2050,
+            "value": 10.38758624
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2025,
+            "value": 25
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2030,
+            "value": 25
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2040,
+            "value": 25
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2050,
+            "value": 25
+          }
+        ],
+        "annual_total": [
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2025,
+            "value": 41.90477581
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2030,
+            "value": 43.85978867
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2040,
+            "value": 49.61621894
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2050,
+            "value": 41.30746231
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2025,
+            "value": 28.74406783
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2030,
+            "value": 41.16937101
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2040,
+            "value": 59.17621341
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2050,
+            "value": 88.2115427
+          },
+          {
+            "sup": "SUP_BIO",
+            "comm": "BIO",
+            "year": 2040,
+            "value": 5.286780773
+          },
+          {
+            "sup": "SUP_BIO",
+            "comm": "BIO",
+            "year": 2050,
+            "value": 15
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2025,
+            "value": 33.57516896
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2030,
+            "value": 31.4390147
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2040,
+            "value": 22.10526316
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2050,
+            "value": 10.38758624
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2025,
+            "value": 25
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2030,
+            "value": 25
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2040,
+            "value": 25
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2050,
+            "value": 25
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 100
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 110
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 130
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 150
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 100
+          },
+          {
+            "comm": "ELC",
+            "year": 2030,
+            "value": 110
+          },
+          {
+            "comm": "ELC",
+            "year": 2040,
+            "value": 130
+          },
+          {
+            "comm": "ELC",
+            "year": 2050,
+            "value": 150
+          }
+        ]
+      },
+      "vEmsFuelTot": {
+        "annual_region": [
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2025,
+            "value": 5000
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2030,
+            "value": 4500
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2040,
+            "value": 3500
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2050,
+            "value": 2500
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "CO2",
+            "year": 2025,
+            "value": 5000
+          },
+          {
+            "comm": "CO2",
+            "year": 2030,
+            "value": 4500
+          },
+          {
+            "comm": "CO2",
+            "year": 2040,
+            "value": 3500
+          },
+          {
+            "comm": "CO2",
+            "year": 2050,
+            "value": 2500
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-10-19",
+      "version": "0.90.0.9029",
+      "solver": "glpk"
+    }
+  },
+  "ctco2_R1": {
+    "objective": 29859.2346667,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "EGAS",
+            "region": "W1",
+            "year": 2040,
+            "value": 0.1134665887
+          },
+          {
+            "tech": "EGAS",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.1512752403
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 3.115854669
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 0.1095711556
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 0.2225264493
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.2895190125
+          },
+          {
+            "tech": "EWIN",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.8929931207
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EGAS",
+            "year": 2040,
+            "value": 0.1134665887
+          },
+          {
+            "tech": "EGAS",
+            "year": 2050,
+            "value": 0.1512752403
+          },
+          {
+            "tech": "ESOL",
+            "year": 2025,
+            "value": 3.115854669
+          },
+          {
+            "tech": "ESOL",
+            "year": 2030,
+            "value": 0.1095711556
+          },
+          {
+            "tech": "ESOL",
+            "year": 2040,
+            "value": 0.2225264493
+          },
+          {
+            "tech": "ESOL",
+            "year": 2050,
+            "value": 0.2895190125
+          },
+          {
+            "tech": "EWIN",
+            "year": 2050,
+            "value": 0.8929931207
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 55.14322647
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 60
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 56.49367623
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 4.009483349
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 0.1448258917
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 14.5
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 38.01249494
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 39.61614335
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 46.64876933
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 59.14561278
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 51.09244233
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.446316105
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.03440686
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.326543798
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 60.00197345
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 55.14322647
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 60
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 56.49367623
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 4.009483349
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 0.1448258917
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 14.5
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 38.01249494
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 39.61614335
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 46.64876933
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 59.14561278
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 51.09244233
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 6.446316105
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 5.03440686
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 2.326543798
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 60.00197345
+          }
+        ]
+      },
+      "vTechInp": {
+        "annual_region": [
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2025,
+            "value": 137.8580662
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2030,
+            "value": 150
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2040,
+            "value": 141.2341906
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2050,
+            "value": 10.02370837
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2030,
+            "value": 0.2496998133
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2040,
+            "value": 25.00000001
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2050,
+            "value": 65.53878437
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 39.61614335
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 46.64876933
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 59.14561278
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 51.09244233
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.446316105
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.03440686
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.326543798
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2050,
+            "value": 60.00197345
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2025,
+            "value": 137.8580662
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2030,
+            "value": 150
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2040,
+            "value": 141.2341906
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2050,
+            "value": 10.02370837
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2030,
+            "value": 0.2496998133
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2040,
+            "value": 25.00000001
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2050,
+            "value": 65.53878437
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2025,
+            "value": 39.61614335
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2030,
+            "value": 46.64876933
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2040,
+            "value": 59.14561278
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2050,
+            "value": 51.09244233
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2025,
+            "value": 6.446316105
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2030,
+            "value": 5.03440686
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2040,
+            "value": 2.326543798
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2050,
+            "value": 60.00197345
+          }
+        ]
+      },
+      "vSupOut": {
+        "annual_region": [
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 39.61614335
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 46.64876933
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 59.14561278
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 51.09244233
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.446316105
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.03440686
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.326543798
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2050,
+            "value": 60.00197345
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2025,
+            "value": 137.8580662
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2030,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2040,
+            "value": 141.2341906
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2050,
+            "value": 10.02370837
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2030,
+            "value": 0.2496998133
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2040,
+            "value": 25
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2050,
+            "value": 25
+          }
+        ],
+        "annual_total": [
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2025,
+            "value": 39.61614335
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2030,
+            "value": 46.64876933
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2040,
+            "value": 59.14561278
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2050,
+            "value": 51.09244233
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2025,
+            "value": 6.446316105
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2030,
+            "value": 5.03440686
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2040,
+            "value": 2.326543798
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2050,
+            "value": 60.00197345
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2025,
+            "value": 137.8580662
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2030,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2040,
+            "value": 141.2341906
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2050,
+            "value": 10.02370837
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2030,
+            "value": 0.2496998133
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2040,
+            "value": 25
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2050,
+            "value": 25
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 100
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 110
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 130
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 150
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 100
+          },
+          {
+            "comm": "ELC",
+            "year": 2030,
+            "value": 110
+          },
+          {
+            "comm": "ELC",
+            "year": 2040,
+            "value": 130
+          },
+          {
+            "comm": "ELC",
+            "year": 2050,
+            "value": 150
+          }
+        ]
+      },
+      "vEmsFuelTot": {
+        "annual_region": [
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2025,
+            "value": 13096.51629
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2030,
+            "value": 14263.98319
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2040,
+            "value": 14817.2481
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2050,
+            "value": 4622.42422
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "CO2",
+            "year": 2025,
+            "value": 13096.51629
+          },
+          {
+            "comm": "CO2",
+            "year": 2030,
+            "value": 14263.98319
+          },
+          {
+            "comm": "CO2",
+            "year": 2040,
+            "value": 14817.2481
+          },
+          {
+            "comm": "CO2",
+            "year": 2050,
+            "value": 4622.42422
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-10-19",
+      "version": "0.90.0.9029",
+      "solver": "glpk"
+    }
+  },
+  "resshare_R1": {
+    "objective": 18440.1302982,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "EGAS",
+            "region": "W1",
+            "year": 2040,
+            "value": 0.1134665887
+          },
+          {
+            "tech": "EGAS",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.3520051611
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 2.413582371
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 0.1246936285
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 0.1274640553
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.5022820571
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EGAS",
+            "year": 2040,
+            "value": 0.1134665887
+          },
+          {
+            "tech": "EGAS",
+            "year": 2050,
+            "value": 0.3520051611
+          },
+          {
+            "tech": "ESOL",
+            "year": 2025,
+            "value": 2.413582371
+          },
+          {
+            "tech": "ESOL",
+            "year": 2030,
+            "value": 0.1246936285
+          },
+          {
+            "tech": "ESOL",
+            "year": 2040,
+            "value": 0.1274640553
+          },
+          {
+            "tech": "ESOL",
+            "year": 2050,
+            "value": 0.5022820571
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 60
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 62.94190232
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 74.18970219
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 53.18962479
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 3.26376325
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 33.93294212
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 33.83956616
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 43.96296567
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 52.12557544
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 75
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.215907088
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.598789456
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 60
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 62.94190232
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 74.18970219
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 53.18962479
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 3.26376325
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 33.93294212
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 33.83956616
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 43.96296567
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 52.12557544
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 75
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 5.215907088
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 2.598789456
+          }
+        ]
+      },
+      "vTechInp": {
+        "annual_region": [
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2025,
+            "value": 150
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2030,
+            "value": 157.3547558
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2040,
+            "value": 185.4742555
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2050,
+            "value": 132.974062
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2040,
+            "value": 5.627178018
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2050,
+            "value": 58.50507262
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 33.83956616
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 43.96296567
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 52.12557544
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 75
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.215907088
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.598789456
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2025,
+            "value": 150
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2030,
+            "value": 157.3547558
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2040,
+            "value": 185.4742555
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2050,
+            "value": 132.974062
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2040,
+            "value": 5.627178018
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2050,
+            "value": 58.50507262
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2025,
+            "value": 33.83956616
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2030,
+            "value": 43.96296567
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2040,
+            "value": 52.12557544
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2050,
+            "value": 75
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2030,
+            "value": 5.215907088
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2040,
+            "value": 2.598789456
+          }
+        ]
+      },
+      "vSupOut": {
+        "annual_region": [
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 33.83956616
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 43.96296567
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 52.12557544
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 75
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.215907088
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.598789456
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2025,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2030,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2040,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2050,
+            "value": 132.974062
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2040,
+            "value": 5.627178017
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2050,
+            "value": 25
+          }
+        ],
+        "annual_total": [
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2025,
+            "value": 33.83956616
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2030,
+            "value": 43.96296567
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2040,
+            "value": 52.12557544
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2050,
+            "value": 75
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2030,
+            "value": 5.215907088
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2040,
+            "value": 2.598789456
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2025,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2030,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2040,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2050,
+            "value": 132.974062
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2040,
+            "value": 5.627178017
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2050,
+            "value": 25
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 100
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 110
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 130
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 150
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 100
+          },
+          {
+            "comm": "ELC",
+            "year": 2030,
+            "value": 110
+          },
+          {
+            "comm": "ELC",
+            "year": 2040,
+            "value": 130
+          },
+          {
+            "comm": "ELC",
+            "year": 2050,
+            "value": 150
+          }
+        ]
+      },
+      "vEmsFuelTot": {
+        "annual_region": [
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2025,
+            "value": 14250
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2030,
+            "value": 14948.7018
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2040,
+            "value": 17935.17624
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2050,
+            "value": 15908.81995
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "CO2",
+            "year": 2025,
+            "value": 14250
+          },
+          {
+            "comm": "CO2",
+            "year": 2030,
+            "value": 14948.7018
+          },
+          {
+            "comm": "CO2",
+            "year": 2040,
+            "value": 17935.17624
+          },
+          {
+            "comm": "CO2",
+            "year": 2050,
+            "value": 15908.81995
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-10-19",
+      "version": "0.90.0.9029",
+      "solver": "glpk"
+    }
+  },
+  "nonewnuc_R3": {
+    "objective": 52543.6292655,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "EGAS",
+            "region": "C1",
+            "year": 2040,
+            "value": 0.0187764135
+          },
+          {
+            "tech": "EGAS",
+            "region": "C1",
+            "year": 2050,
+            "value": 0.1580152856
+          },
+          {
+            "tech": "EGAS",
+            "region": "W1",
+            "year": 2040,
+            "value": 0.1134665887
+          },
+          {
+            "tech": "EGAS",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.3489293113
+          },
+          {
+            "tech": "EGAS",
+            "region": "W2",
+            "year": 2030,
+            "value": 0.0002916613204
+          },
+          {
+            "tech": "EGAS",
+            "region": "W2",
+            "year": 2040,
+            "value": 0.2625900442
+          },
+          {
+            "tech": "EGAS",
+            "region": "W2",
+            "year": 2050,
+            "value": 0.1069195715
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 2.436525165
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 0.06193026453
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 0.1608923742
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.3437998873
+          },
+          {
+            "tech": "ESOL",
+            "region": "W2",
+            "year": 2025,
+            "value": 2.370244003
+          },
+          {
+            "tech": "ESOL",
+            "region": "W2",
+            "year": 2030,
+            "value": 0.07205833349
+          },
+          {
+            "tech": "ESOL",
+            "region": "W2",
+            "year": 2040,
+            "value": 0.1675069696
+          },
+          {
+            "tech": "ESOL",
+            "region": "W2",
+            "year": 2050,
+            "value": 0.2879379814
+          },
+          {
+            "tech": "EWIN",
+            "region": "W2",
+            "year": 2050,
+            "value": 0.4922895981
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EGAS",
+            "year": 2030,
+            "value": 0.0002916613204
+          },
+          {
+            "tech": "EGAS",
+            "year": 2040,
+            "value": 0.3948330464
+          },
+          {
+            "tech": "EGAS",
+            "year": 2050,
+            "value": 0.6138641684
+          },
+          {
+            "tech": "ESOL",
+            "year": 2025,
+            "value": 4.806769168
+          },
+          {
+            "tech": "ESOL",
+            "year": 2030,
+            "value": 0.133988598
+          },
+          {
+            "tech": "ESOL",
+            "year": 2040,
+            "value": 0.3283993438
+          },
+          {
+            "tech": "ESOL",
+            "year": 2050,
+            "value": 0.6317378687
+          },
+          {
+            "tech": "EWIN",
+            "year": 2050,
+            "value": 0.4922895981
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2030,
+            "value": 0.3566766918
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2040,
+            "value": 1.901574336
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2050,
+            "value": 2.911521469
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 59.85078992
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 67.31416981
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 76.38660157
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 60.1759181
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2025,
+            "value": 60.14921008
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2030,
+            "value": 64.08774367
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2040,
+            "value": 57.57083984
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2050,
+            "value": 30.54823825
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2040,
+            "value": 1.040762145
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2050,
+            "value": 8.204916862
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 3.291293244
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 36.30482445
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2025,
+            "value": 0.5990550729
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2030,
+            "value": 4.03481373
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2040,
+            "value": 23.76854268
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2050,
+            "value": 30.70336762
+          },
+          {
+            "tech": "EHYD",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2025,
+            "value": 13.32164261
+          },
+          {
+            "tech": "EHYD",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2030,
+            "value": 18.88871135
+          },
+          {
+            "tech": "EHYD",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2040,
+            "value": 27.16872344
+          },
+          {
+            "tech": "EHYD",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2050,
+            "value": 30.59814552
+          },
+          {
+            "tech": "ENUC",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2025,
+            "value": 90.7102365
+          },
+          {
+            "tech": "ENUC",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2030,
+            "value": 93.77901125
+          },
+          {
+            "tech": "ENUC",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2040,
+            "value": 103.0606789
+          },
+          {
+            "tech": "ENUC",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2050,
+            "value": 114.3994227
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2025,
+            "value": 7.279884612
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2030,
+            "value": 6.243787411
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2040,
+            "value": 3.121900704
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 34.04896213
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 38.05442178
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 49.05161499
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 55.14033555
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2025,
+            "value": 29.23979291
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2030,
+            "value": 33.75630533
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2040,
+            "value": 44.37073388
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2050,
+            "value": 45.76548992
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2025,
+            "value": 2.493155976
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2030,
+            "value": 2.938094658
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2040,
+            "value": 2.730601746
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.37535818
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.68767909
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2025,
+            "value": 9.090679275
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2030,
+            "value": 7.27254342
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2040,
+            "value": 3.63627171
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2050,
+            "value": 44.29750521
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 120
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 131.7585902
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 135.8590157
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 93.63567782
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 0.5990550729
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 4.03481373
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 28.10059807
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 75.21310893
+          },
+          {
+            "tech": "EHYD",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 13.32164261
+          },
+          {
+            "tech": "EHYD",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 18.88871135
+          },
+          {
+            "tech": "EHYD",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 27.16872344
+          },
+          {
+            "tech": "EHYD",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 30.59814552
+          },
+          {
+            "tech": "ENUC",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 90.7102365
+          },
+          {
+            "tech": "ENUC",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 93.77901125
+          },
+          {
+            "tech": "ENUC",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 103.0606789
+          },
+          {
+            "tech": "ENUC",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 114.3994227
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 70.56863965
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 78.05451452
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 96.54424958
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 100.9058255
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 18.30303298
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 15.58599626
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 9.054552546
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 44.29750521
+          }
+        ]
+      },
+      "vTechInp": {
+        "annual_region": [
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "C1",
+            "year": 2030,
+            "value": 0.8916917296
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "C1",
+            "year": 2040,
+            "value": 4.753935839
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "C1",
+            "year": 2050,
+            "value": 7.278803673
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2025,
+            "value": 149.6269748
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2030,
+            "value": 168.2854245
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2040,
+            "value": 190.9665039
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2050,
+            "value": 150.4397953
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W2",
+            "year": 2025,
+            "value": 150.3730252
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W2",
+            "year": 2030,
+            "value": 160.2193592
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W2",
+            "year": 2040,
+            "value": 143.9270996
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W2",
+            "year": 2050,
+            "value": 76.37059561
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "C1",
+            "year": 2040,
+            "value": 1.794417491
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "C1",
+            "year": 2050,
+            "value": 14.14640838
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2040,
+            "value": 5.674643524
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2050,
+            "value": 62.59452492
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W2",
+            "year": 2025,
+            "value": 1.032853574
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W2",
+            "year": 2030,
+            "value": 6.956575395
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W2",
+            "year": 2040,
+            "value": 40.980246
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W2",
+            "year": 2050,
+            "value": 52.93684072
+          },
+          {
+            "tech": "EHYD",
+            "comm": "HYD",
+            "region": "C1",
+            "year": 2025,
+            "value": 13.32164261
+          },
+          {
+            "tech": "EHYD",
+            "comm": "HYD",
+            "region": "C1",
+            "year": 2030,
+            "value": 18.88871135
+          },
+          {
+            "tech": "EHYD",
+            "comm": "HYD",
+            "region": "C1",
+            "year": 2040,
+            "value": 27.16872344
+          },
+          {
+            "tech": "EHYD",
+            "comm": "HYD",
+            "region": "C1",
+            "year": 2050,
+            "value": 30.59814552
+          },
+          {
+            "tech": "ENUC",
+            "comm": "NUC",
+            "region": "C1",
+            "year": 2025,
+            "value": 259.1721043
+          },
+          {
+            "tech": "ENUC",
+            "comm": "NUC",
+            "region": "C1",
+            "year": 2030,
+            "value": 267.9400321
+          },
+          {
+            "tech": "ENUC",
+            "comm": "NUC",
+            "region": "C1",
+            "year": 2040,
+            "value": 294.4590825
+          },
+          {
+            "tech": "ENUC",
+            "comm": "NUC",
+            "region": "C1",
+            "year": 2050,
+            "value": 326.8554935
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "C1",
+            "year": 2025,
+            "value": 7.279884612
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "C1",
+            "year": 2030,
+            "value": 6.243787411
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "C1",
+            "year": 2040,
+            "value": 3.121900704
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 34.04896213
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 38.05442178
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 49.05161499
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 55.14033555
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W2",
+            "year": 2025,
+            "value": 29.23979291
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W2",
+            "year": 2030,
+            "value": 33.75630533
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W2",
+            "year": 2040,
+            "value": 44.37073388
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W2",
+            "year": 2050,
+            "value": 45.76548992
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "C1",
+            "year": 2025,
+            "value": 2.493155976
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "C1",
+            "year": 2030,
+            "value": 2.938094658
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "C1",
+            "year": 2040,
+            "value": 2.730601746
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.37535818
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.68767909
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W2",
+            "year": 2025,
+            "value": 9.090679275
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W2",
+            "year": 2030,
+            "value": 7.27254342
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W2",
+            "year": 2040,
+            "value": 3.63627171
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W2",
+            "year": 2050,
+            "value": 44.29750521
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2025,
+            "value": 300
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2030,
+            "value": 329.3964754
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2040,
+            "value": 339.6475394
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2050,
+            "value": 234.0891945
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2025,
+            "value": 1.032853574
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2030,
+            "value": 6.956575395
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2040,
+            "value": 48.44930702
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2050,
+            "value": 129.677774
+          },
+          {
+            "tech": "EHYD",
+            "comm": "HYD",
+            "year": 2025,
+            "value": 13.32164261
+          },
+          {
+            "tech": "EHYD",
+            "comm": "HYD",
+            "year": 2030,
+            "value": 18.88871135
+          },
+          {
+            "tech": "EHYD",
+            "comm": "HYD",
+            "year": 2040,
+            "value": 27.16872344
+          },
+          {
+            "tech": "EHYD",
+            "comm": "HYD",
+            "year": 2050,
+            "value": 30.59814552
+          },
+          {
+            "tech": "ENUC",
+            "comm": "NUC",
+            "year": 2025,
+            "value": 259.1721043
+          },
+          {
+            "tech": "ENUC",
+            "comm": "NUC",
+            "year": 2030,
+            "value": 267.9400321
+          },
+          {
+            "tech": "ENUC",
+            "comm": "NUC",
+            "year": 2040,
+            "value": 294.4590825
+          },
+          {
+            "tech": "ENUC",
+            "comm": "NUC",
+            "year": 2050,
+            "value": 326.8554935
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2025,
+            "value": 70.56863965
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2030,
+            "value": 78.05451452
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2040,
+            "value": 96.54424958
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2050,
+            "value": 100.9058255
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2025,
+            "value": 18.30303298
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2030,
+            "value": 15.58599626
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2040,
+            "value": 9.054552546
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2050,
+            "value": 44.29750521
+          }
+        ]
+      },
+      "vSupOut": {
+        "annual_region": [
+          {
+            "sup": "RES_HYD",
+            "comm": "HYD",
+            "region": "C1",
+            "year": 2025,
+            "value": 13.32164261
+          },
+          {
+            "sup": "RES_HYD",
+            "comm": "HYD",
+            "region": "C1",
+            "year": 2030,
+            "value": 18.88871135
+          },
+          {
+            "sup": "RES_HYD",
+            "comm": "HYD",
+            "region": "C1",
+            "year": 2040,
+            "value": 27.16872344
+          },
+          {
+            "sup": "RES_HYD",
+            "comm": "HYD",
+            "region": "C1",
+            "year": 2050,
+            "value": 30.59814552
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "C1",
+            "year": 2025,
+            "value": 7.279884612
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "C1",
+            "year": 2030,
+            "value": 6.243787411
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "C1",
+            "year": 2040,
+            "value": 3.121900704
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 34.04896213
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 38.05442178
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 49.05161499
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 55.14033555
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W2",
+            "year": 2025,
+            "value": 29.23979291
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W2",
+            "year": 2030,
+            "value": 33.75630533
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W2",
+            "year": 2040,
+            "value": 44.37073388
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W2",
+            "year": 2050,
+            "value": 45.76548992
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "C1",
+            "year": 2025,
+            "value": 2.493155976
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "C1",
+            "year": 2030,
+            "value": 2.938094658
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "C1",
+            "year": 2040,
+            "value": 2.730601746
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.37535818
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.68767909
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W2",
+            "year": 2025,
+            "value": 9.090679275
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W2",
+            "year": 2030,
+            "value": 7.27254342
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W2",
+            "year": 2040,
+            "value": 3.63627171
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W2",
+            "year": 2050,
+            "value": 44.29750521
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "CENTRAL",
+            "year": 2030,
+            "value": 29.68440254
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "CENTRAL",
+            "year": 2040,
+            "value": 40
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2025,
+            "value": 300
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2030,
+            "value": 300
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2040,
+            "value": 300
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2050,
+            "value": 234.1627178
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2025,
+            "value": 1.032853574
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2030,
+            "value": 6.956575396
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2040,
+            "value": 48.48592778
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2050,
+            "value": 50
+          },
+          {
+            "sup": "SUP_NUC",
+            "comm": "NUC",
+            "region": "C1",
+            "year": 2025,
+            "value": 259.1721043
+          },
+          {
+            "sup": "SUP_NUC",
+            "comm": "NUC",
+            "region": "C1",
+            "year": 2030,
+            "value": 267.9400321
+          },
+          {
+            "sup": "SUP_NUC",
+            "comm": "NUC",
+            "region": "C1",
+            "year": 2040,
+            "value": 294.4590825
+          },
+          {
+            "sup": "SUP_NUC",
+            "comm": "NUC",
+            "region": "C1",
+            "year": 2050,
+            "value": 326.8554935
+          }
+        ],
+        "annual_total": [
+          {
+            "sup": "RES_HYD",
+            "comm": "HYD",
+            "year": 2025,
+            "value": 13.32164261
+          },
+          {
+            "sup": "RES_HYD",
+            "comm": "HYD",
+            "year": 2030,
+            "value": 18.88871135
+          },
+          {
+            "sup": "RES_HYD",
+            "comm": "HYD",
+            "year": 2040,
+            "value": 27.16872344
+          },
+          {
+            "sup": "RES_HYD",
+            "comm": "HYD",
+            "year": 2050,
+            "value": 30.59814552
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2025,
+            "value": 70.56863965
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2030,
+            "value": 78.05451452
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2040,
+            "value": 96.54424958
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2050,
+            "value": 100.9058255
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2025,
+            "value": 18.30303298
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2030,
+            "value": 15.58599626
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2040,
+            "value": 9.054552546
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2050,
+            "value": 44.29750521
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2025,
+            "value": 300
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2030,
+            "value": 329.6844025
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2040,
+            "value": 340
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2050,
+            "value": 234.1627178
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2025,
+            "value": 1.032853574
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2030,
+            "value": 6.956575396
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2040,
+            "value": 48.48592778
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2050,
+            "value": 50
+          },
+          {
+            "sup": "SUP_NUC",
+            "comm": "NUC",
+            "year": 2025,
+            "value": 259.1721043
+          },
+          {
+            "sup": "SUP_NUC",
+            "comm": "NUC",
+            "year": 2030,
+            "value": 267.9400321
+          },
+          {
+            "sup": "SUP_NUC",
+            "comm": "NUC",
+            "year": 2040,
+            "value": 294.4590825
+          },
+          {
+            "sup": "SUP_NUC",
+            "comm": "NUC",
+            "year": 2050,
+            "value": 326.8554935
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2025,
+            "value": 100
+          },
+          {
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2030,
+            "value": 110
+          },
+          {
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2040,
+            "value": 130
+          },
+          {
+            "comm": "ELC",
+            "region": "C1",
+            "year": 2050,
+            "value": 150
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 100
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 110
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 130
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 150
+          },
+          {
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2025,
+            "value": 100
+          },
+          {
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2030,
+            "value": 110
+          },
+          {
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2040,
+            "value": 130
+          },
+          {
+            "comm": "ELC",
+            "region": "W2",
+            "year": 2050,
+            "value": 150
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 300
+          },
+          {
+            "comm": "ELC",
+            "year": 2030,
+            "value": 330
+          },
+          {
+            "comm": "ELC",
+            "year": 2040,
+            "value": 390
+          },
+          {
+            "comm": "ELC",
+            "year": 2050,
+            "value": 450
+          }
+        ]
+      },
+      "vEmsFuelTot": {
+        "annual_region": [
+          {
+            "comm": "CO2",
+            "region": "C1",
+            "year": 2030,
+            "value": 84.71071431
+          },
+          {
+            "comm": "CO2",
+            "region": "C1",
+            "year": 2040,
+            "value": 552.1112842
+          },
+          {
+            "comm": "CO2",
+            "region": "C1",
+            "year": 2050,
+            "value": 1483.685218
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2025,
+            "value": 14214.56261
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2030,
+            "value": 15987.11533
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2040,
+            "value": 18459.59791
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2050,
+            "value": 17797.07394
+          },
+          {
+            "comm": "CO2",
+            "region": "W2",
+            "year": 2025,
+            "value": 14343.27719
+          },
+          {
+            "comm": "CO2",
+            "region": "W2",
+            "year": 2030,
+            "value": 15610.40734
+          },
+          {
+            "comm": "CO2",
+            "region": "W2",
+            "year": 2040,
+            "value": 15967.96824
+          },
+          {
+            "comm": "CO2",
+            "region": "W2",
+            "year": 2050,
+            "value": 10219.66966
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "CO2",
+            "year": 2025,
+            "value": 28557.8398
+          },
+          {
+            "comm": "CO2",
+            "year": 2030,
+            "value": 31682.23338
+          },
+          {
+            "comm": "CO2",
+            "year": 2040,
+            "value": 34979.67743
+          },
+          {
+            "comm": "CO2",
+            "year": 2050,
+            "value": 29500.42882
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-10-19",
+      "version": "0.90.0.9029",
+      "solver": "glpk"
+    }
+  },
+  "earlyret_R1": {
+    "objective": 18414.0961074,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "EGAS",
+            "region": "W1",
+            "year": 2040,
+            "value": 0.1134665887
+          },
+          {
+            "tech": "EGAS",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.3265334113
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 2.413582371
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 0.1246936285
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 0.1274640553
+          },
+          {
+            "tech": "ESOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.2991929082
+          },
+          {
+            "tech": "EWIN",
+            "region": "W1",
+            "year": 2050,
+            "value": 0.1024786998
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EGAS",
+            "year": 2040,
+            "value": 0.1134665887
+          },
+          {
+            "tech": "EGAS",
+            "year": 2050,
+            "value": 0.3265334113
+          },
+          {
+            "tech": "ESOL",
+            "year": 2025,
+            "value": 2.413582371
+          },
+          {
+            "tech": "ESOL",
+            "year": 2030,
+            "value": 0.1246936285
+          },
+          {
+            "tech": "ESOL",
+            "year": 2040,
+            "value": 0.1274640553
+          },
+          {
+            "tech": "ESOL",
+            "year": 2050,
+            "value": 0.2991929082
+          },
+          {
+            "tech": "EWIN",
+            "year": 2050,
+            "value": 0.1024786998
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 60
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 62.94190232
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 74.18970219
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 60
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 3.26376325
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 31.46161118
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 33.80591643
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 42.8714164
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 51.07991534
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 53.75881798
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.29517088
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.578526442
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 6.885746468
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 60
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 62.94190232
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 74.18970219
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 60
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 3.26376325
+          },
+          {
+            "tech": "EGAS",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 31.46161118
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 33.80591643
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 42.8714164
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 51.07991534
+          },
+          {
+            "tech": "ESOL",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 53.75881798
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2030,
+            "value": 5.29517088
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2040,
+            "value": 2.578526442
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2050,
+            "value": 6.885746468
+          }
+        ]
+      },
+      "vTechInp": {
+        "annual_region": [
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2025,
+            "value": 150
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2030,
+            "value": 157.3547558
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2040,
+            "value": 185.4742555
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "W1",
+            "year": 2050,
+            "value": 150
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2040,
+            "value": 5.627178018
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "region": "W1",
+            "year": 2050,
+            "value": 54.24415721
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 33.80591643
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 42.8714164
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 51.07991534
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 53.75881798
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.29517088
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.578526442
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2050,
+            "value": 6.885746468
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2025,
+            "value": 150
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2030,
+            "value": 157.3547558
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2040,
+            "value": 185.4742555
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2050,
+            "value": 150
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2040,
+            "value": 5.627178018
+          },
+          {
+            "tech": "EGAS",
+            "comm": "GAS",
+            "year": 2050,
+            "value": 54.24415721
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2025,
+            "value": 33.80591643
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2030,
+            "value": 42.8714164
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2040,
+            "value": 51.07991534
+          },
+          {
+            "tech": "ESOL",
+            "comm": "SOL",
+            "year": 2050,
+            "value": 53.75881798
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2030,
+            "value": 5.29517088
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2040,
+            "value": 2.578526442
+          },
+          {
+            "tech": "EWIN",
+            "comm": "WIN",
+            "year": 2050,
+            "value": 6.885746468
+          }
+        ]
+      },
+      "vSupOut": {
+        "annual_region": [
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2025,
+            "value": 33.80591643
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2030,
+            "value": 42.8714164
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2040,
+            "value": 51.07991534
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "region": "W1",
+            "year": 2050,
+            "value": 53.75881798
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2030,
+            "value": 5.29517088
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2040,
+            "value": 2.578526442
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "region": "W1",
+            "year": 2050,
+            "value": 6.885746468
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2025,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2030,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2040,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "WEST",
+            "year": 2050,
+            "value": 150
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2040,
+            "value": 5.627178017
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "region": "WEST",
+            "year": 2050,
+            "value": 25
+          }
+        ],
+        "annual_total": [
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2025,
+            "value": 33.80591643
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2030,
+            "value": 42.8714164
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2040,
+            "value": 51.07991534
+          },
+          {
+            "sup": "RES_SOL",
+            "comm": "SOL",
+            "year": 2050,
+            "value": 53.75881798
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2025,
+            "value": 6.719197725
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2030,
+            "value": 5.29517088
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2040,
+            "value": 2.578526442
+          },
+          {
+            "sup": "RES_WIN",
+            "comm": "WIN",
+            "year": 2050,
+            "value": 6.885746468
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2025,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2030,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2040,
+            "value": 150
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2050,
+            "value": 150
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2040,
+            "value": 5.627178017
+          },
+          {
+            "sup": "SUP_GAS",
+            "comm": "GAS",
+            "year": 2050,
+            "value": 25
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2025,
+            "value": 100
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2030,
+            "value": 110
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2040,
+            "value": 130
+          },
+          {
+            "comm": "ELC",
+            "region": "W1",
+            "year": 2050,
+            "value": 150
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 100
+          },
+          {
+            "comm": "ELC",
+            "year": 2030,
+            "value": 110
+          },
+          {
+            "comm": "ELC",
+            "year": 2040,
+            "value": 130
+          },
+          {
+            "comm": "ELC",
+            "year": 2050,
+            "value": 150
+          }
+        ]
+      },
+      "vEmsFuelTot": {
+        "annual_region": [
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2025,
+            "value": 14250
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2030,
+            "value": 14948.7018
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2040,
+            "value": 17935.17624
+          },
+          {
+            "comm": "CO2",
+            "region": "W1",
+            "year": 2050,
+            "value": 17287.6728
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "CO2",
+            "year": 2025,
+            "value": 14250
+          },
+          {
+            "comm": "CO2",
+            "year": 2030,
+            "value": 14948.7018
+          },
+          {
+            "comm": "CO2",
+            "year": 2040,
+            "value": 17935.17624
+          },
+          {
+            "comm": "CO2",
+            "year": 2050,
+            "value": 17287.6728
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-10-19",
+      "version": "0.90.0.9029",
+      "solver": "glpk"
+    }
+  }
+}

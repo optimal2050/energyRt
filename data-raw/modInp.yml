@@ -14,6 +14,10 @@ comm:
   name: comm
   type: set
   dimSets: comm
+process:
+  name: process
+  type: set
+  dimSets: process
 sup:
   name: sup
   type: set
@@ -50,6 +54,10 @@ weather:
   name: weather
   type: set
   dimSets: weather
+levy:
+  name: levy
+  type: set
+  dimSets: levy
 pPeriodLen:
   name: pPeriodLen
   dimSets: year
@@ -238,7 +246,7 @@ pSupCost:
   interpolation: back.inter.forth
   colName: cost
   class: supply
-  slot: availability
+  slot: supply
 pSupReserve:
   name: pSupReserve
   dimSets:
@@ -272,7 +280,7 @@ pSupAva:
   - back.inter.forth
   colName: ava
   class: supply
-  slot: availability
+  slot: supply
 pDemand:
   name: pDemand
   dimSets:
@@ -285,7 +293,7 @@ pDemand:
   defVal: 0.0
   interpolation: back.inter.forth
   class: demand
-  slot: dem
+  slot: demand
   colName: dem
 pExportRowPrice:
   name: pExportRowPrice
@@ -298,7 +306,7 @@ pExportRowPrice:
   defVal: 0.0
   interpolation: back.inter.forth
   class: export
-  slot: availability
+  slot: export
   colName: price
 pExportRow:
   name: pExportRow
@@ -315,7 +323,7 @@ pExportRow:
   - back.inter.forth
   - back.inter.forth
   class: export
-  slot: availability
+  slot: export
   colName: exp
 pExportRowRes:
   name: pExportRowRes
@@ -336,7 +344,7 @@ pImportRowPrice:
   defVal: 0.0
   interpolation: back.inter.forth
   class: import
-  slot: availability
+  slot: import
   colName: price
 pImportRow:
   name: pImportRow
@@ -353,7 +361,7 @@ pImportRow:
   - back.inter.forth
   - back.inter.forth
   class: import
-  slot: availability
+  slot: import
   colName: imp
 pImportRowRes:
   name: pImportRowRes
@@ -530,7 +538,7 @@ pTechStockNew:
   - region
   - year
   defVal: 0.0
-  interpolation: back.inter.forth
+  interpolation: ""
 # Share of the PREVIOUS milestone's surviving stock that the exogenous
 # decommissioning schedule keeps. 1 = nothing scheduled to leave. Derived
 # from pTechStock; depends only on CONSECUTIVE years, so it is invariant
@@ -543,7 +551,7 @@ pTechStockSurv:
   - region
   - year
   defVal: 1.0
-  interpolation: back.inter.forth
+  interpolation: ""
 pTechVarom:
   name: pTechVarom
   type: numpar
@@ -990,7 +998,7 @@ pTechShare:
   - back.inter.forth
   class: technology
   slot: ceff
-  colName: share
+  colName: grp.share
 pTechAfc:
   name: pTechAfc
   type: bounds
@@ -1148,7 +1156,7 @@ pStorageOutStockNew:
   - region
   - year
   defVal: 0.0
-  interpolation: .inter.
+  interpolation: ""
 # Share of the previous milestone's surviving stock that the exogenous
 # schedule keeps (1 = nothing scheduled to leave). Derived from `pStorageOutStock`
 # by compute_stock_parameters(); not written by the user.
@@ -1160,7 +1168,7 @@ pStorageOutStockSurv:
   - region
   - year
   defVal: 1.0
-  interpolation: .inter.
+  interpolation: ""
 pStorageOutFixom:
   name: pStorageOutFixom
   dimSets:
@@ -1370,7 +1378,7 @@ pStorageStgStockNew:
   - region
   - year
   defVal: 0.0
-  interpolation: .inter.
+  interpolation: ""
 # Share of the previous milestone's surviving stock that the exogenous
 # schedule keeps (1 = nothing scheduled to leave). Derived from `pStorageStgStock`
 # by compute_stock_parameters(); not written by the user.
@@ -1382,7 +1390,7 @@ pStorageStgStockSurv:
   - region
   - year
   defVal: 1.0
-  interpolation: .inter.
+  interpolation: ""
 pStorageStgInvcost:
   name: pStorageStgInvcost
   dimSets:
@@ -1481,7 +1489,7 @@ pStorageInpStockNew:
   - region
   - year
   defVal: 0.0
-  interpolation: .inter.
+  interpolation: ""
 # Share of the previous milestone's surviving stock that the exogenous
 # schedule keeps (1 = nothing scheduled to leave). Derived from `pStorageInpStock`
 # by compute_stock_parameters(); not written by the user.
@@ -1493,7 +1501,7 @@ pStorageInpStockSurv:
   - region
   - year
   defVal: 1.0
-  interpolation: .inter.
+  interpolation: ""
 pStorageInpInvcost:
   name: pStorageInpInvcost
   dimSets:
@@ -1573,14 +1581,34 @@ pStorageInp2out:
   - year
   type: bounds
   defVal:
-  - 1.0
-  - 1.0
+  - 0.0
+  - .inf
   interpolation:
   - inter.forth
   - inter.forth
   colName: inp2out
   class: storage
   slot: inp2out
+# inp2stg = input capacity / storing capacity, 1/hours -- a charging C-rate.
+# NO binding default (unlike the [1, 1] identities above): [0, Inf] is open,
+# and the maps are conditional joins, so the link exists only where a finite
+# bound is declared and both parts carry capacity variables.
+pStorageInp2stg:
+  name: pStorageInp2stg
+  dimSets:
+  - stg
+  - region
+  - year
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  colName: inp2stg
+  class: storage
+  slot: inp2stg
 # --- capacity -> annual flow, so a capacity is a RATE ------------------------ #
 # The flow bounds read `inp.af.up * cap2act * cap * pTimesliceShare[s]`, mirroring
 # eqTechAfUp. Without the share factor `cap` meant "commodity per TIMESLICE": the
@@ -1595,7 +1623,7 @@ pStorageInp2out:
 # clock -- the level -- that a technology's activity does not.
 #
 # The STORING side deliberately has no cap2act: energy is energy at any
-# resolution, exactly as PyPSA leaves `soc <= e_nom` unscaled by elapsed hours.
+# resolution: the energy bound carries no elapsed-hours weighting.
 pStorageInpCap2act:
   name: pStorageInpCap2act
   dimSets: stg
@@ -1622,14 +1650,27 @@ pStorageDuration:
   - year
   type: bounds
   defVal:
-  - 1.0
-  - 1.0
+  - 0.0
+  - .inf
   interpolation:
   - inter.forth
   - inter.forth
   class: storage
   slot: duration
   colName: duration
+# inp.af / out.af are the ONLY flow-to-capacity links a storage has
+# (eqStorageInpUp / eqStorageOutUp). An infinite upper default deleted those
+# equations wherever the user stated no availability, so the charge / discharge
+# RATE was unbounded: the whole reservoir could be cycled inside one timeslice
+# through converters rated for a fraction of it, which were still built and
+# paid for. Both upper defaults are 1, as `pTechAf` has always had.
+# `inp.af.up` / `out.af.up` = Inf declared explicitly still removes the
+# equation; see `.constraint_map_def` for which map is structural where.
+#
+# `dropIfEmpty: false` because `meqStorageInpUp` is conditional outside
+# `mStorageInpCap`: a declared `inp.af.up = 1` (a weather charging window on a
+# storage with no charger capacity of its own) must not be pruned as "equal to
+# the default", or it would take its own equation with it.
 pStorageInpAf:
   name: pStorageInpAf
   dimSets:
@@ -1639,9 +1680,10 @@ pStorageInpAf:
   - year
   - timeslice
   type: bounds
+  dropIfEmpty: false
   defVal:
   - 0.0
-  - .inf
+  - 1.0
   interpolation:
   - back.inter.forth
   - back.inter.forth
@@ -1659,7 +1701,7 @@ pStorageOutAf:
   type: bounds
   defVal:
   - 0.0
-  - .inf
+  - 1.0
   interpolation:
   - back.inter.forth
   - back.inter.forth
@@ -1750,8 +1792,13 @@ pStorageCout2AOut:
   colName: cout2aout
   class: storage
   slot: aeff
-pStorageCap2AInp:
-  name: pStorageCap2AInp
+# Aux capacity couplings are PER PART: each parameter multiplies its own
+# part's capacity variable (Cap = standing, NCap = newly built). The
+# pre-part-aware pStorageCap2A*/pStorageNCap2A* coupled only the discharger
+# and are renamed to the Out* four below (hard break; the constructor refuses
+# the bare column names with a rename hint).
+pStorageInpCap2AInp:
+  name: pStorageInpCap2AInp
   dimSets:
   - stg
   - acomm
@@ -1761,11 +1808,11 @@ pStorageCap2AInp:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: cap2ainp
+  colName: inp.cap2ainp
   class: storage
   slot: aeff
-pStorageCap2AOut:
-  name: pStorageCap2AOut
+pStorageInpCap2AOut:
+  name: pStorageInpCap2AOut
   dimSets:
   - stg
   - acomm
@@ -1775,11 +1822,11 @@ pStorageCap2AOut:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: cap2aout
+  colName: inp.cap2aout
   class: storage
   slot: aeff
-pStorageNCap2AInp:
-  name: pStorageNCap2AInp
+pStorageInpNCap2AInp:
+  name: pStorageInpNCap2AInp
   dimSets:
   - stg
   - acomm
@@ -1789,11 +1836,11 @@ pStorageNCap2AInp:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: ncap2ainp
+  colName: inp.ncap2ainp
   class: storage
   slot: aeff
-pStorageNCap2AOut:
-  name: pStorageNCap2AOut
+pStorageInpNCap2AOut:
+  name: pStorageInpNCap2AOut
   dimSets:
   - stg
   - acomm
@@ -1803,7 +1850,119 @@ pStorageNCap2AOut:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: ncap2aout
+  colName: inp.ncap2aout
+  class: storage
+  slot: aeff
+pStorageStgCap2AInp:
+  name: pStorageStgCap2AInp
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stg.cap2ainp
+  class: storage
+  slot: aeff
+pStorageStgCap2AOut:
+  name: pStorageStgCap2AOut
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stg.cap2aout
+  class: storage
+  slot: aeff
+pStorageStgNCap2AInp:
+  name: pStorageStgNCap2AInp
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stg.ncap2ainp
+  class: storage
+  slot: aeff
+pStorageStgNCap2AOut:
+  name: pStorageStgNCap2AOut
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stg.ncap2aout
+  class: storage
+  slot: aeff
+pStorageOutCap2AInp:
+  name: pStorageOutCap2AInp
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: out.cap2ainp
+  class: storage
+  slot: aeff
+pStorageOutCap2AOut:
+  name: pStorageOutCap2AOut
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: out.cap2aout
+  class: storage
+  slot: aeff
+pStorageOutNCap2AInp:
+  name: pStorageOutNCap2AInp
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: out.ncap2ainp
+  class: storage
+  slot: aeff
+pStorageOutNCap2AOut:
+  name: pStorageOutNCap2AOut
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: out.ncap2aout
   class: storage
   slot: aeff
 pStorageNCap2Stg:
@@ -2058,8 +2217,8 @@ pTradeIrCdst2Ainp:
   colName: cdst2ainp
   class: trade
   slot: aeff
-pTradeIrCost:
-  name: pTradeIrCost
+pTradeIrVarom:
+  name: pTradeIrVarom
   dimSets:
   - trade
   - src
@@ -2163,7 +2322,7 @@ pTradeStockNew:
   - trade
   - year
   defVal: 0.0
-  interpolation: .inter.
+  interpolation: ""
 # Share of the previous milestone's surviving stock that the exogenous
 # schedule keeps (1 = nothing scheduled to leave). Derived from `pTradeStock`
 # by compute_stock_parameters(); not written by the user.
@@ -2174,7 +2333,7 @@ pTradeStockSurv:
   - trade
   - year
   defVal: 1.0
-  interpolation: .inter.
+  interpolation: ""
 pTradeOlife:
   name: pTradeOlife
   dimSets: trade
@@ -2316,6 +2475,7 @@ pTradeRetCost:
 pTaxCostInp:
   name: pTaxCostInp
   dimSets:
+  - levy
   - comm
   - region
   - year
@@ -2329,6 +2489,7 @@ pTaxCostInp:
 pTaxCostOut:
   name: pTaxCostOut
   dimSets:
+  - levy
   - comm
   - region
   - year
@@ -2342,6 +2503,7 @@ pTaxCostOut:
 pTaxCostBal:
   name: pTaxCostBal
   dimSets:
+  - levy
   - comm
   - region
   - year
@@ -2355,6 +2517,7 @@ pTaxCostBal:
 pSubCostInp:
   name: pSubCostInp
   dimSets:
+  - levy
   - comm
   - region
   - year
@@ -2368,6 +2531,7 @@ pSubCostInp:
 pSubCostOut:
   name: pSubCostOut
   dimSets:
+  - levy
   - comm
   - region
   - year
@@ -2381,6 +2545,7 @@ pSubCostOut:
 pSubCostBal:
   name: pSubCostBal
   dimSets:
+  - levy
   - comm
   - region
   - year
@@ -2391,6 +2556,116 @@ pSubCostBal:
   class: subsidy
   slot: subsidy
   colName: bal
+pTaxProcAct:
+  name: pTaxProcAct
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pTaxProcInp:
+  name: pTaxProcInp
+  dimSets:
+  - levy
+  - process
+  - comm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pTaxProcOut:
+  name: pTaxProcOut
+  dimSets:
+  - levy
+  - process
+  - comm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pTaxProcCap:
+  name: pTaxProcCap
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pTaxProcNcap:
+  name: pTaxProcNcap
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pSubProcAct:
+  name: pSubProcAct
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pSubProcInp:
+  name: pSubProcInp
+  dimSets:
+  - levy
+  - process
+  - comm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pSubProcOut:
+  name: pSubProcOut
+  dimSets:
+  - levy
+  - process
+  - comm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pSubProcCap:
+  name: pSubProcCap
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pSubProcNcap:
+  name: pSubProcNcap
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
 mCommReg:
   name: mCommReg
   type: map
@@ -2409,6 +2684,13 @@ mWeatherRegion:
   dimSets:
   - weather
   - region
+mWeatherRegionAt:
+  name: mWeatherRegionAt
+  type: map
+  dimSets:
+  - weather
+  - region
+  - regionp
 mSupWeatherLo:
   name: mSupWeatherLo
   type: map
@@ -2685,6 +2967,30 @@ mTechOutCommAggTimeslice:
   - comm
   - timeslice
   - timeslicep
+mTechProcAggRegion:
+  name: mTechProcAggRegion
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - regionp
+mTechProcAggTimeslice:
+  name: mTechProcAggTimeslice
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - timeslice
+  - timeslicep
+mStorageProcAggRegion:
+  name: mStorageProcAggRegion
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - regionp
 mTechOneComm:
   name: mTechOneComm
   type: map
@@ -3068,6 +3374,13 @@ mStorageStgCapLo:
   - stg
   - region
   - year
+mStorageStgCapFx:
+  name: mStorageStgCapFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
 mStorageStgCapUp:
   name: mStorageStgCapUp
   type: map
@@ -3077,6 +3390,13 @@ mStorageStgCapUp:
   - year
 mStorageStgNewCapLo:
   name: mStorageStgNewCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgNewCapFx:
+  name: mStorageStgNewCapFx
   type: map
   dimSets:
   - stg
@@ -3105,6 +3425,13 @@ mStorageStgEac:
   - year
 mStorageDurationLo:
   name: mStorageDurationLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageDurationFx:
+  name: mStorageDurationFx
   type: map
   dimSets:
   - stg
@@ -3145,6 +3472,13 @@ mStorageInpCapLo:
   - stg
   - region
   - year
+mStorageInpCapFx:
+  name: mStorageInpCapFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
 mStorageInpCapUp:
   name: mStorageInpCapUp
   type: map
@@ -3154,6 +3488,13 @@ mStorageInpCapUp:
   - year
 mStorageInpNewCapLo:
   name: mStorageInpNewCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpNewCapFx:
+  name: mStorageInpNewCapFx
   type: map
   dimSets:
   - stg
@@ -3187,8 +3528,64 @@ mStorageInp2outLo:
   - stg
   - region
   - year
+mStorageInp2outFx:
+  name: mStorageInp2outFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
 mStorageInp2outUp:
   name: mStorageInp2outUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpStgCap:
+  name: mStorageInpStgCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutCap:
+  name: mStorageOutCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutNew:
+  name: mStorageOutNew
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpOutCap:
+  name: mStorageInpOutCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInp2stgLo:
+  name: mStorageInp2stgLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInp2stgFx:
+  name: mStorageInp2stgFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInp2stgUp:
+  name: mStorageInp2stgUp
   type: map
   dimSets:
   - stg
@@ -3247,8 +3644,8 @@ mStorageCout2AOut:
   - region
   - year
   - timeslice
-mStorageCap2AOut:
-  name: mStorageCap2AOut
+mStorageOutCap2AOut:
+  name: mStorageOutCap2AOut
   type: map
   dimSets:
   - stg
@@ -3256,8 +3653,80 @@ mStorageCap2AOut:
   - region
   - year
   - timeslice
-mStorageNCap2AOut:
-  name: mStorageNCap2AOut
+mStorageOutNCap2AOut:
+  name: mStorageOutNCap2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageInpCap2AInp:
+  name: mStorageInpCap2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageInpCap2AOut:
+  name: mStorageInpCap2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageInpNCap2AInp:
+  name: mStorageInpNCap2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageInpNCap2AOut:
+  name: mStorageInpNCap2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageStgCap2AInp:
+  name: mStorageStgCap2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageStgCap2AOut:
+  name: mStorageStgCap2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageStgNCap2AInp:
+  name: mStorageStgNCap2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageStgNCap2AOut:
+  name: mStorageStgNCap2AOut
   type: map
   dimSets:
   - stg
@@ -3292,8 +3761,8 @@ mStorageCout2AInp:
   - region
   - year
   - timeslice
-mStorageCap2AInp:
-  name: mStorageCap2AInp
+mStorageOutCap2AInp:
+  name: mStorageOutCap2AInp
   type: map
   dimSets:
   - stg
@@ -3301,8 +3770,8 @@ mStorageCap2AInp:
   - region
   - year
   - timeslice
-mStorageNCap2AInp:
-  name: mStorageNCap2AInp
+mStorageOutNCap2AInp:
+  name: mStorageOutNCap2AInp
   type: map
   dimSets:
   - stg
@@ -3707,14 +4176,14 @@ mTaxCost:
   name: mTaxCost
   type: map
   dimSets:
-  - comm
+  - levy
   - region
   - year
 mSubCost:
   name: mSubCost
   type: map
   dimSets:
-  - comm
+  - levy
   - region
   - year
 mAggOut:
@@ -3981,6 +4450,24 @@ mvTechOut:
   - region
   - year
   - timeslice
+meqTechAInp:
+  name: meqTechAInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+meqTechAOut:
+  name: meqTechAOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
 mvTechAInp:
   name: mvTechAInp
   type: map
@@ -4027,6 +4514,24 @@ mvOutTot:
   name: mvOutTot
   type: map
   dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageAInp:
+  name: meqStorageAInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageAOut:
+  name: meqStorageAOut
+  type: map
+  dimSets:
+  - stg
   - comm
   - region
   - year
@@ -4158,6 +4663,16 @@ meqTechShareInpLo:
   - comm
   - year
   - timeslice
+meqTechShareInpFx:
+  name: meqTechShareInpFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - timeslice
 meqTechShareInpUp:
   name: meqTechShareInpUp
   type: map
@@ -4170,6 +4685,16 @@ meqTechShareInpUp:
   - timeslice
 meqTechShareOutLo:
   name: meqTechShareOutLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - timeslice
+meqTechShareOutFx:
+  name: meqTechShareOutFx
   type: map
   dimSets:
   - tech
@@ -4204,8 +4729,24 @@ meqTechAfUp:
   - region
   - year
   - timeslice
+meqTechAfFx:
+  name: meqTechAfFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - timeslice
 meqTechAfsLo:
   name: meqTechAfsLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - timeslice
+meqTechAfsFx:
+  name: meqTechAfsFx
   type: map
   dimSets:
   - tech
@@ -4247,6 +4788,15 @@ meqTechAfcOutLo:
   - comm
   - year
   - timeslice
+meqTechAfcOutFx:
+  name: meqTechAfcOutFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - year
+  - timeslice
 meqTechAfcOutUp:
   name: meqTechAfcOutUp
   type: map
@@ -4258,6 +4808,15 @@ meqTechAfcOutUp:
   - timeslice
 meqTechAfcInpLo:
   name: meqTechAfcInpLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - year
+  - timeslice
+meqTechAfcInpFx:
+  name: meqTechAfcInpFx
   type: map
   dimSets:
   - tech
@@ -4283,6 +4842,15 @@ meqSupAvaLo:
   - region
   - year
   - timeslice
+meqSupAvaFx:
+  name: meqSupAvaFx
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
+  - year
+  - timeslice
 meqSupReserveLo:
   name: meqSupReserveLo
   type: map
@@ -4290,8 +4858,24 @@ meqSupReserveLo:
   - sup
   - comm
   - region
+meqSupReserveFx:
+  name: meqSupReserveFx
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
 meqStorageAfLo:
   name: meqStorageAfLo
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageAfFx:
+  name: meqStorageAfFx
   type: map
   dimSets:
   - stg
@@ -4326,6 +4910,15 @@ meqStorageInpLo:
   - region
   - year
   - timeslice
+meqStorageInpFx:
+  name: meqStorageInpFx
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
 meqStorageOutUp:
   name: meqStorageOutUp
   type: map
@@ -4337,6 +4930,15 @@ meqStorageOutUp:
   - timeslice
 meqStorageOutLo:
   name: meqStorageOutLo
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageOutFx:
+  name: meqStorageOutFx
   type: map
   dimSets:
   - stg
@@ -4356,6 +4958,16 @@ meqTradeFlowUp:
   - timeslice
 meqTradeFlowLo:
   name: meqTradeFlowLo
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+meqTradeFlowFx:
+  name: meqTradeFlowFx
   type: map
   dimSets:
   - trade
@@ -4384,6 +4996,16 @@ meqTradeIrAfLo:
   - dst
   - year
   - timeslice
+meqTradeIrAfFx:
+  name: meqTradeIrAfFx
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
 meqExportRowLo:
   name: meqExportRowLo
   type: map
@@ -4393,8 +5015,26 @@ meqExportRowLo:
   - region
   - year
   - timeslice
+meqExportRowFx:
+  name: meqExportRowFx
+  type: map
+  dimSets:
+  - expp
+  - comm
+  - region
+  - year
+  - timeslice
 meqImportRowLo:
   name: meqImportRowLo
+  type: map
+  dimSets:
+  - imp
+  - comm
+  - region
+  - year
+  - timeslice
+meqImportRowFx:
+  name: meqImportRowFx
   type: map
   dimSets:
   - imp
@@ -4441,6 +5081,13 @@ mTechCapLo:
   - tech
   - region
   - year
+mTechCapFx:
+  name: mTechCapFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
 mTechCapUp:
   name: mTechCapUp
   type: map
@@ -4450,6 +5097,13 @@ mTechCapUp:
   - year
 mTechNewCapLo:
   name: mTechNewCapLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechNewCapFx:
+  name: mTechNewCapFx
   type: map
   dimSets:
   - tech
@@ -4469,6 +5123,13 @@ mTechRetLo:
   - tech
   - region
   - year
+mTechRetFx:
+  name: mTechRetFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
 mTechRetUp:
   name: mTechRetUp
   type: map
@@ -4478,6 +5139,13 @@ mTechRetUp:
   - year
 mStorageOutCapLo:
   name: mStorageOutCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutCapFx:
+  name: mStorageOutCapFx
   type: map
   dimSets:
   - stg
@@ -4497,6 +5165,13 @@ mStorageOutNewCapLo:
   - stg
   - region
   - year
+mStorageOutNewCapFx:
+  name: mStorageOutNewCapFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
 mStorageOutNewCapUp:
   name: mStorageOutNewCapUp
   type: map
@@ -4506,6 +5181,13 @@ mStorageOutNewCapUp:
   - year
 mStorageOutRetLo:
   name: mStorageOutRetLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutRetFx:
+  name: mStorageOutRetFx
   type: map
   dimSets:
   - stg
@@ -4527,6 +5209,13 @@ mStorageInpRetLo:
   - stg
   - region
   - year
+mStorageInpRetFx:
+  name: mStorageInpRetFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
 mStorageInpRetUp:
   name: mStorageInpRetUp
   type: map
@@ -4536,6 +5225,13 @@ mStorageInpRetUp:
   - year
 mStorageStgRetLo:
   name: mStorageStgRetLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgRetFx:
+  name: mStorageStgRetFx
   type: map
   dimSets:
   - stg
@@ -4554,6 +5250,12 @@ mTradeCapLo:
   dimSets:
   - trade
   - year
+mTradeCapFx:
+  name: mTradeCapFx
+  type: map
+  dimSets:
+  - trade
+  - year
 mTradeCapUp:
   name: mTradeCapUp
   type: map
@@ -4562,6 +5264,12 @@ mTradeCapUp:
   - year
 mTradeNewCapLo:
   name: mTradeNewCapLo
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeNewCapFx:
+  name: mTradeNewCapFx
   type: map
   dimSets:
   - trade
@@ -4581,6 +5289,12 @@ mTradeFixom:
   - year
 mTradeRetLo:
   name: mTradeRetLo
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeRetFx:
+  name: mTradeRetFx
   type: map
   dimSets:
   - trade

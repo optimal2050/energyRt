@@ -33,7 +33,7 @@ test_that("analytic equals solve on a lossy corridor, per year and NPV", {
                tolerance = .lct_tol)
   expect_equal(a$levcost$levcost, s$levcost$levcost, tolerance = .lct_tol)
   m <- merge(a$cost_breakdown_npv, s$cost_breakdown_npv, by = "component")
-  expect_setequal(m$component, c("eac", "fixom"))
+  expect_setequal(m$component, c("eac", "fixom", "varom"))
   expect_equal(m$value.x, m$value.y, tolerance = .lct_tol)
 })
 
@@ -108,19 +108,70 @@ test_that("losses shrink the delivered denominator", {
                tolerance = 1e-10)
 })
 
-test_that("@varom is refused with a warning, not silently priced", {
-  # no backend reads pTradeVarom (glpk/energyRt.mod:535); pricing it here would
-  # make the analytic engine disagree with every solver
+test_that("@varom is priced, and charged on what is SENT", {
+  # It becomes `pTradeIrVarom`, which `eqExportIrCost` charges at `src`;
+  # `pTradeIrEff` is applied only on arrival. So the rate is paid on `sent` and
+  # the LCOT divides by `delivered` -- the contribution is exactly varom/teff,
+  # independent of cap2act and utilisation, which cancel.
   h <- newHorizon(period = 2020L)
   with_vo <- .lct_line(varom = data.frame(src = "R1", dst = "R2", varom = 5))
-  expect_warning(
-    lv <- levcost(with_vo, discount = 0.05, horizon = h, method = "analytic",
-                  verbose = FALSE),
-    "no backend reads|excluded")
+  lv <- levcost(with_vo, discount = 0.05, horizon = h, method = "analytic",
+                verbose = FALSE)
   plain <- levcost(.lct_line(), discount = 0.05, horizon = h,
                    method = "analytic", verbose = FALSE)
-  expect_equal(unname(lv$levcost_npv), unname(plain$levcost_npv),
-               tolerance = 1e-10)
+
+  expect_equal(lv$levcost$levcost[1] - plain$levcost$levcost[1],
+               5 / 0.95, tolerance = 1e-10)
+  vc <- lv$cost_breakdown_npv
+  expect_equal(vc$value[vc$component == "varom"], 5 / 0.95, tolerance = 1e-10)
+})
+
+test_that("analytic equals solve with @varom set", {
+  # The regression: the closed form charged no varom at all and the solve path
+  # read only vTradeEac/vTradeFixom, so BOTH engines dropped a cost the
+  # mini-model's objective actually paid.
+  skip_if_no_solver()
+  h  <- newHorizon(period = 2020:2024)
+  tr <- .lct_line(varom = data.frame(src = "R1", dst = "R2", varom = 5))
+  a <- levcost(tr, discount = 0.05, horizon = h, method = "analytic",
+               verbose = FALSE)
+  s <- suppressMessages(suppressWarnings(
+    levcost(tr, discount = 0.05, horizon = h, method = "solve",
+            verbose = FALSE)))
+
+  expect_equal(unname(a$levcost_npv), unname(s$levcost_npv),
+               tolerance = .lct_tol)
+  m <- merge(a$cost_breakdown_npv, s$cost_breakdown_npv, by = "component")
+  expect_equal(m$value.x, m$value.y, tolerance = .lct_tol)
+  # and the varom term is actually non-zero on both sides
+  expect_gt(m$value.x[m$component == "varom"], 0)
+  expect_gt(m$value.y[m$component == "varom"], 0)
+})
+
+test_that("@markup is a transfer and does not enter the levelized cost", {
+  # the importer pays it and the exporter receives it, so it cancels between
+  # `eqImportIrCost` and `eqExportIrCost` and leaves the objective unchanged
+  h <- newHorizon(period = 2020L)
+  only_vo <- .lct_line(varom = data.frame(src = "R1", dst = "R2", varom = 5))
+  with_mk <- .lct_line(varom = data.frame(src = "R1", dst = "R2",
+                                          varom = 5, markup = 3))
+  a <- levcost(only_vo, discount = 0.05, horizon = h, method = "analytic",
+               verbose = FALSE)
+  b <- suppressMessages(levcost(with_mk, discount = 0.05, horizon = h,
+                                method = "analytic", verbose = FALSE))
+  expect_equal(unname(a$levcost_npv), unname(b$levcost_npv),
+               tolerance = 1e-12)
+})
+
+test_that("a timeslice-keyed @varom is refused by the closed form", {
+  # one rate per year is all the annual closed form can represent; `auto` must
+  # fall back to the solver rather than average a sub-annual rate silently
+  h <- newHorizon(period = 2020L)
+  tv <- .lct_line(varom = data.frame(src = "R1", dst = "R2",
+                                     timeslice = "ANNUAL", varom = 5))
+  expect_error(levcost(tv, discount = 0.05, horizon = h, method = "analytic",
+                       verbose = FALSE),
+               "timeslice-keyed")
 })
 
 test_that("the priced direction is selectable and validated", {
@@ -218,7 +269,7 @@ test_that("a vintaged corridor fans out to one levcost per cell", {
                method = "analytic", verbose = FALSE)
   expect_s3_class(x, "levcost_variants")
   expect_length(x, 2L)
-  npv <- levcost_by_variant(x, "npv")
+  npv <- levcost(x, by_variant = "npv")
   expect_setequal(npv$vintage, c("v2020", "v2030"))
   expect_lt(npv$levcost_npv[npv$vintage == "v2030"],
             npv$levcost_npv[npv$vintage == "v2020"])

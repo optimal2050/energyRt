@@ -8,7 +8,9 @@ factor) of a `weather` object, in one of three styles:
   legend;
 
 - `"line"` — the factor against the finest time level (e.g. hour), one
-  line per coarser level (e.g. season), faceted by region;
+  line per coarser level (e.g. season), faceted by region; the coarse
+  level is coloured with a viridis `"H"` gradient (continuous when
+  numeric, e.g. day of year);
 
 - `"area"` — the same as `"line"` with filled areas.
 
@@ -66,9 +68,9 @@ autoplot(
 
   Logical (line/area only). If `TRUE`, place the profile on a real
   datetime axis via
-  [`tsl2dtm()`](https://energyRt.org/reference/timeslices.md); if the
-  timeslice type is not yet supported the categorical axis is kept (with
-  a warning).
+  [`timescales::tsl2dtm()`](https://optimal2050.github.io/timescales/r/reference/timeslice_datetime.html),
+  which needs both a `calendar` and a `year` column; without them the
+  categorical axis is kept (with a warning).
 
 - angle:
 
@@ -97,7 +99,7 @@ A `ggplot` object (or `NULL`, invisibly, if there is nothing to plot).
 ``` r
 if (FALSE) { # \dontrun{
 data("calendars", package = "energyRt")
-W <- getObject(utopia_modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
+W <- getObject(topia$modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
 autoplot(W, calendar = calendars$s4_h24)                     # heatmap
 autoplot(W, style = "line", calendar = calendars$s4_h24)
 } # }

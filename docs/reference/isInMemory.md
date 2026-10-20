@@ -5,12 +5,12 @@ Is object stored in memory?
 ## Usage
 
 ``` r
-isInMemory(obj)
+isInMemory(object)
 ```
 
 ## Arguments
 
-- obj:
+- object:
 
   Object, checks
 

@@ -70,22 +70,25 @@ test_that("a table round-trips through the store with column classes intact", {
   expect_identical(dataset_hash(load_dataset("wtest", verbose = FALSE)),
                    info2$hash)
 
-  # ...and set_store_versioning("hash") keeps versions side by side
-  old_sv <- set_store_versioning("hash")
-  on.exit(set_store_versioning(old_sv), add = TRUE)
-  info3 <- save_dataset(ds_table(3), "wtest", verbose = FALSE)
-  expect_true(grepl("@", basename(info3$path)))
-  expect_length(list.dirs(ds_root("datasets"), recursive = FALSE), 2L)
+  # ...and rehash = FALSE keeps the recorded hash for a change the user
+  # declares insignificant (a version tag, not a content proof)
+  info3 <- save_dataset(ds_table(3), "wtest", rehash = FALSE,
+                        verbose = FALSE)
+  expect_identical(info3$hash, info2$hash)          # hash kept
+  mf3 <- yaml::read_yaml(fp(info3$path, "dataset.yml"))
+  expect_true(isTRUE(mf3$hash_kept))
+  expect_identical(load_dataset("wtest", verbose = FALSE)$wval[1],
+                   ds_table(3)$wval[1])             # content updated
 })
 
 test_that("a non-tabular object (Geoscale map) stores as rds", {
   skip_if_not_installed("geoscales")
   ds_local()
-  gs <- utopia_geoscale()
-  info <- save_dataset(gs, "utopia_map", verbose = FALSE)
+  gs <- topia$geoscales$honeycomb
+  info <- save_dataset(gs, "topia_map", verbose = FALSE)
   expect_identical(info$kind, "object")
   expect_true(file.exists(fp(info$path, "payload.rds")))
-  gs2 <- load_dataset("utopia_map", verbose = FALSE)
+  gs2 <- load_dataset("topia_map", verbose = FALSE)
   expect_identical(dataset_hash(gs2), info$hash)
 })
 
@@ -99,7 +102,7 @@ test_that("the registry indexes datasets and refresh_registry rescans them", {
   unlink(ds_root(), recursive = TRUE)
   info <- save_dataset(ds_table(), "wreg", verbose = FALSE)
   reg <- load_registry()
-  row <- find_registry(reg, type = "dataset", name = "wreg")
+  row <- find_in_registry(reg, type = "dataset", name = "wreg")
   expect_identical(nrow(row), 1L)
   expect_identical(row$hash, info$hash)
 
@@ -107,19 +110,19 @@ test_that("the registry indexes datasets and refresh_registry rescans them", {
   unlink(ds_root("reg.csv"))
   reg2 <- refresh_registry(root = ds_root(), file = ds_root("reg.csv"),
                            write = FALSE)
-  expect_identical(find_registry(reg2, type = "dataset")$name, "wreg")
+  expect_identical(find_in_registry(reg2, type = "dataset")$name, "wreg")
 })
 
 test_that("functional dataset: snapshot identity, drift check, call-hash mode", {
   ds_local()
   args <- list(regions = c("R1", "R2"), calendar = "s4_h24")
-  info <- save_dataset(name = "utp", fun = "energyRt::utopia_profiles",
+  info <- save_dataset(name = "utp", fun = "energyRt::topia_profiles",
                        args = args, verbose = FALSE)
   expect_identical(info$kind, "function")
   mf <- yaml::read_yaml(fp(info$path, "dataset.yml"))
   expect_identical(mf$hash_of, "content")
   expect_true(isTRUE(mf$snapshot))
-  expect_identical(mf$fun, "energyRt::utopia_profiles")
+  expect_identical(mf$fun, "energyRt::topia_profiles")
 
   # snapshot equals a fresh evaluation, and identity is the RESULT hash
   snap <- load_dataset("utp", verbose = FALSE)
@@ -137,7 +140,7 @@ test_that("functional dataset: snapshot identity, drift check, call-hash mode", 
                "no longer reproduces")
 
   # materialize = FALSE records the call only and hashes the call
-  info2 <- save_dataset(name = "utp_call", fun = "energyRt::utopia_profiles",
+  info2 <- save_dataset(name = "utp_call", fun = "energyRt::topia_profiles",
                         args = args, materialize = FALSE, verbose = FALSE)
   mf2 <- yaml::read_yaml(fp(info2$path, "dataset.yml"))
   expect_identical(mf2$hash_of, "call")

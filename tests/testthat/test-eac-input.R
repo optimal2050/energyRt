@@ -78,3 +78,35 @@ test_that("pXEac reads the eac column, not invcost", {
   expect_equal(mi[["pStorageStgEac"]]$colName, "stg.eac")
   expect_equal(mi[["pStorageInpInvcost"]]$colName, "inp.invcost")
 })
+
+# A perpetual annuity at a zero rate is undefined, not zero. `.crf()` computes
+# it as 1/Inf, so an `invcost` with neither a rate nor a life would leave the
+# objective silently -- the same shape as a costless supply.
+
+test_that(".crf is a perpetuity at an infinite life and zero at neither", {
+  crf <- energyRt:::.crf
+  expect_equal(crf(0.07, Inf), 0.07)                       # perpetuity
+  expect_equal(crf(0.07, 25), 0.07 * 1.07^25 / (1.07^25 - 1))
+  expect_equal(crf(0, 25), 1 / 25)                         # straight line
+  expect_equal(crf(0, Inf), 0)                             # the undefined case
+})
+
+test_that("a zero rate with no operational life is refused, not charged as 0", {
+  df <- data.frame(tech = "E_X", rate = 0, life = Inf,
+                   invcost = 1000, ueac = NA_real_,
+                   stringsAsFactors = FALSE)
+  expect_error(energyRt:::.check_perpetual_annuity(df, "tech"), "E_X")
+  expect_error(energyRt:::.check_perpetual_annuity(df, "tech"), "olife")
+
+  # A supplied eac is what the row will actually use, so it is not refused.
+  ok <- df; ok$ueac <- 123
+  expect_silent(energyRt:::.check_perpetual_annuity(ok, "tech"))
+  # Nor is a zero invcost, whose annuity is legitimately zero.
+  ok2 <- df; ok2$invcost <- 0
+  expect_silent(energyRt:::.check_perpetual_annuity(ok2, "tech"))
+  # Nor either half of the combination on its own.
+  expect_silent(energyRt:::.check_perpetual_annuity(
+    transform(df, rate = 0.05), "tech"))
+  expect_silent(energyRt:::.check_perpetual_annuity(
+    transform(df, life = 30), "tech"))
+})

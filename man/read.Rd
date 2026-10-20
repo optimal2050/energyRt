@@ -3,14 +3,15 @@
 \name{read_solution}
 \alias{read_solution}
 \alias{read,scenario-method}
-\title{Read solution}
+\alias{read}
+\title{Read a solved run's solution into a scenario}
 \usage{
-read_solution(obj, run = NULL, ...)
+read_solution(object, run = NULL, ..., ondisk = !isInMemory(object))
 
-\S4method{read}{scenario}(obj, run = NULL, ...)
+\S4method{read}{scenario}(object, run = NULL, ..., ondisk = !isInMemory(object))
 }
 \arguments{
-\item{obj}{scenario object}
+\item{object}{scenario object.}
 
 \item{run}{character, optional run to read: \code{"<solve>"} for a base-problem
 run or \code{"<variant>/<solve>"} — see \code{\link[=scenario_runs]{scenario_runs()}}. The scenario's
@@ -19,19 +20,66 @@ a freshly loaded scenario, the manifest's \verb{default:} run).}
 
 \item{...}{optional \code{solver.dir} (an external solver directory, replacing
 the run resolution; \code{tmp.dir} is the deprecated alias)}
+
+\item{ondisk}{logical. \code{TRUE} writes each variable into the run's
+\verb{modOut/} store as it is read, instead of returning the whole solution in
+memory; the returned \verb{@modOut} is then an on-disk object read lazily.
+Defaults to \code{!isInMemory(obj)}. Needs a run folder, so an external
+\code{solver.dir} falls back to memory. The scenario shell still has to be
+saved: \code{\link[=save_scenario]{save_scenario()}} records the store, and skips rewriting it.}
 }
 \value{
 The function returns the scenario object with populated modOut slot
 from the solved model directory.
 }
 \description{
-The function and method read outputs of solved model/scenario and return the scenario object populated with variables data.
+Reads the variables a solver wrote for one run and returns the scenario with
+its \verb{@modOut} populated. This is the import step: \code{solve_scenario()} leaves
+the raw output on disk, and nothing else reads it.
 }
+\details{
+Without \code{run}, it reads the active run — or, for a freshly loaded scenario,
+the \verb{default:} run named in \code{scenario.yml}. Naming a variant run switches
+the whole in-memory \emph{problem}, settings and parameters together, so
+\code{\link[=getData]{getData()}} stays consistent with the run you are looking at.
+
+Reading alone does not persist anything: \code{\link[=save_scenario]{save_scenario()}} writes the
+\verb{modOut/} store, and \code{\link[=import_solution]{import_solution()}} does both in one call.
+\code{\link[=scenario_solutions]{scenario_solutions()}} lists what each run holds before you choose.
+}
+\section{Why the imported store, and not just \verb{output/}}{
+
+The two are different things, and \verb{modOut/} is not a compressed copy of
+\verb{output/}. The solver's dump is untyped text in the backend's own naming;
+the import normalises the backend away (GDX, CSV, Arrow and Parquet all
+land in one store), synthesises the set aliases no solver writes (\code{src},
+\code{dst}, \code{regionp}, \code{yearp}, \code{acomm}, \code{commp}, \code{timeslicep}), types every
+dimension against its declared set members rather than the values that
+happen to occur, keeps an empty typed skeleton for variables the solver
+skipped so their columns stay known, and computes two variables no solver
+ever wrote — \code{vTechEmsFuel} (emission factors against \code{vTechInp}) and
+\code{vUserCosts} (each cost object against the variable it is defined on).
+
+Re-deriving that on demand would also need \verb{@modInp}, since the set members
+come from the problem — and a variant swap may have replaced it.
+}
+
+\section{The solver's \verb{output/} is never modified}{
+
+Reading a solution only ever reads \verb{output/}, whatever \code{ondisk} is. It is
+the solver's raw dump and, until the solution has been imported, the only
+copy of it — \code{\link[=drop_solver_outputs]{drop_solver_outputs()}} is the one verb that removes it, it
+refuses while the run is not imported, and it is dry-run by default.
+}
+
 \examples{
 \dontrun{
-scen <- read(scen)
+scen <- read_solution(scen)                    # the active run
+scen <- read_solution(scen, run = "low/glpk")  # a variant's run
 }
 }
 \seealso{
-\code{\link[=solve]{solve()}} to run the script, solve the scenario. \code{\link[=write_sc]{write_sc()}} to write model inputs.
+\code{\link[=import_solution]{import_solution()}} to read and save in one step;
+\code{\link[=scenario_solutions]{scenario_solutions()}} to see what each run holds; \code{\link[=solve_scenario]{solve_scenario()}},
+\code{\link[=save_scenario]{save_scenario()}}.
 }

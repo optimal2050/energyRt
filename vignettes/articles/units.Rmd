@@ -319,7 +319,7 @@ supplied is real rather than nominal.
 
 * **Model bricks** — where `@units`, `cap2act` and the chain coefficients sit in
   a process.
-* **UTOPIA I** — a full model built in one consistent unit convention (GW, PJ,
+* **TOPIA I** — a full model built in one consistent unit convention (GW, PJ,
   MEUR, kt).
 * `?convert`, `?getUnits`, `?commodity_properties`, `?commodity_property`,
   `?newCommodity`.

@@ -60,7 +60,7 @@
 #'
 #' @param name character, the object's registered name. Scenarios accept a
 #'   name only; models/repositories/datasets also accept `"name@hash8"`.
-#' @param registry an `ert_registry` tibble to resolve against (default:
+#' @param registry an `en_registry` tibble to resolve against (default:
 #'   [load_registry()]).
 #' @param run character, optional run id activated in the returned scenario
 #'   via [read_solution()] (the cached copy keeps the default run).
@@ -68,7 +68,13 @@
 #'   current.
 #' @param hash character, content hash to pin a stored version.
 #' @param path character, project root directory (must exist).
+#' @param model character, the model a scenario belongs to. A scenario's name
+#'   is a label and may be shared — a 48-country pass can save every scenario
+#'   as `"BY25A_F4"`, distinguished only by the model — in which case the name
+#'   alone is refused and this picks one. See the `model` column of
+#'   [load_registry()].
 #' @param verbose logical.
+#' @param ... passed to the dispatched accessor.
 #'
 #' @return the requested object; `open_project()` returns the previous
 #'   option values, invisibly.
@@ -81,10 +87,15 @@
 #' base <- getScenario("base")
 #' getData(c("base", "policy"), name = "vTechOut", merge = TRUE)
 #' }
-getScenario <- function(name, registry = NULL, run = NULL, refresh = FALSE,
-                        verbose = FALSE) {
+getScenario <- function(name, ...) UseMethod("getScenario")
+
+#' @rdname accessors
+#' @export
+getScenario.character <- function(name, registry = NULL, run = NULL,
+                                  refresh = FALSE, verbose = FALSE,
+                                  model = NULL, ...) {
   stopifnot(is.character(name), length(name) == 1L, nzchar(name))
-  path <- .scenario_resolve(name, registry = registry)
+  path <- .scenario_resolve(name, registry = registry, model = model)
   if (is.null(path)) {
     stop("Scenario '", name, "' was not found in the registry ('",
          get_registry_file(), "') or the scenarios store ('",
@@ -94,9 +105,15 @@ getScenario <- function(name, registry = NULL, run = NULL, refresh = FALSE,
   }
   bank <- .scen_bank()
   stamp <- .scenario_stamp(path)
+  # Cached on the resolved PATH, not the name. A name may be shared by several
+  # scenarios, and the stamp alone cannot separate them: it is
+  # `scenario.yml$updated`, at one-second resolution, so two countries written
+  # in the same second of a parallel pass carry the same stamp and one would be
+  # served for the other.
+  key <- .registry_path_key(path)
   sc <- NULL
-  if (!isTRUE(refresh) && exists(name, envir = bank, inherits = FALSE)) {
-    cached <- get(name, envir = bank, inherits = FALSE)
+  if (!isTRUE(refresh) && exists(key, envir = bank, inherits = FALSE)) {
+    cached <- get(key, envir = bank, inherits = FALSE)
     if (is(cached, "scenario") &&
         identical(cached@misc[[".accessor_stamp"]] %||% "", stamp)) {
       sc <- cached
@@ -105,10 +122,55 @@ getScenario <- function(name, registry = NULL, run = NULL, refresh = FALSE,
   if (is.null(sc)) {
     sc <- load_scenario(path, env = NULL, verbose = verbose)
     sc@misc$.accessor_stamp <- stamp
-    assign(name, sc, envir = bank)
+    assign(key, sc, envir = bank)
   }
   if (!is.null(run)) sc <- read_solution(sc, run = run, echo = FALSE)
   sc
+}
+
+# `run` selection shared by the registry accessors: the scenario's own
+# (main) run by default, a named run, or every recorded run when NULL / NA /
+# "ALL" is given.
+#' @noRd
+.run_is_all <- function(run) {
+  is.null(run) || (length(run) == 1L &&
+                     (is.na(run) || identical(toupper(as.character(run)),
+                                              "ALL")))
+}
+
+# One registry row -> the object it points at. Version resolution and the
+# "entry updated in place" errors belong to the store loaders, so delegate.
+#' @noRd
+.registry_row_object <- function(row, verbose = FALSE) {
+  h <- if (nzchar(row$hash %||% "")) row$hash else NULL
+  switch(row$type,
+    model      = load_model(row$name, hash = h, verbose = verbose),
+    repository = load_repository(row$name, hash = h, verbose = verbose),
+    dataset    = load_dataset(row$name, hash = h, verbose = verbose),
+    scenario   = load_scenario(
+      gsub("[\\/]+", "/", fp(dirname(get_registry_file()), row$path)),
+      env = NULL, verbose = verbose),
+    stop("Registry rows of type '", row$type, "' hold no loadable object.",
+         call. = FALSE))
+}
+
+#' @rdname accessors
+#' @param scenario character, the scenario name to fetch from a registry.
+#' @export
+getScenario.en_registry <- function(name, scenario = NULL, run = NULL,
+                                    refresh = FALSE, verbose = FALSE, ...) {
+  reg <- name          # dispatch put the registry in the generic's first slot
+  stopifnot(is.character(scenario), length(scenario) == 1L, nzchar(scenario))
+  hit <- find_in_registry(reg, type = "scenario", name = scenario)
+  if (!nrow(hit)) {
+    known <- find_in_registry(reg, type = "scenario")$name
+    stop("Scenario '", scenario, "' is not in this registry. Registered ",
+         "scenarios: ",
+         if (length(known)) paste(known, collapse = ", ") else "(none)",
+         call. = FALSE)
+  }
+  getScenario(scenario, registry = reg, run = run, refresh = refresh,
+              verbose = verbose)
 }
 
 #' @rdname accessors
@@ -145,7 +207,7 @@ open_project <- function(path = ".", verbose = TRUE) {
   )
   if (isTRUE(verbose)) {
     n_scen <- tryCatch(
-      nrow(find_registry(load_registry(), type = "scenario")),
+      nrow(find_in_registry(.registry_open(), type = "scenario")),
       error = function(e) 0L)
     message("energyRt project: ", path,
             " (", n_scen, " registered scenario",

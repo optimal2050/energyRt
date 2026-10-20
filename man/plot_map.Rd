@@ -34,7 +34,7 @@ model's own regions. A coarser level aggregates first.}
 
 \item{process}{optional regular expression selecting processes to include.}
 
-\item{geoscale}{a \code{geoscales::Geoscale}, or \code{NULL} to use the scenario's.}
+\item{geoscale}{a \code{geoscales::GeoScale}, or \code{NULL} to use the scenario's.}
 
 \item{palette}{viridis palette option.}
 
@@ -73,8 +73,10 @@ plot_map(scen, name = "vTechRetiredStock")
 \seealso{
 Other geoscale:
 \code{\link[=check_geoscale_regions]{check_geoscale_regions()}},
+\code{\link[=get_process_groups]{get_process_groups()}},
+\code{\link[=model_clusters]{model_clusters()}},
 \code{\link[=plot_geoscale]{plot_geoscale()}},
-\code{\link{setGeoscale,config-method}},
-\code{\link[=utopia_geoscale]{utopia_geoscale()}}
+\code{\link[=process_cluster_sweep]{process_cluster_sweep()}},
+\code{\link{setCalendar,config-method}}
 }
 \concept{geoscale}

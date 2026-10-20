@@ -13,17 +13,17 @@ it prints a status table and returns the underlying tibble invisibly.
 ## Usage
 
 ``` r
-en_check_packages(
-  extras = c("ggplot2", "patchwork", "knitr", "rmarkdown", "tinytex", "sf", "gm"),
-  external = TRUE
-)
+en_check_packages(extras = NULL, external = TRUE)
 ```
 
 ## Arguments
 
 - extras:
 
-  character vector of optional / training R packages to check.
+  character vector of optional R packages to check. `NULL` (default)
+  reads them off the package's own `Suggests`, so the list cannot drift
+  from DESCRIPTION; dev-only tooling is left out. `gm` is appended
+  because the (parked) score export uses it and it is not a dependency.
 
 - external:
 

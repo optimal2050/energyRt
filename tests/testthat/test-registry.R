@@ -1,18 +1,30 @@
 # Persisted project registry (R/registry.R, storage layout 3 stage S1)
 
-test_that("load_registry returns a typed empty tibble when the file is missing", {
-  reg <- load_registry(file.path(tempdir(), "no-such-registry.csv"))
+test_that("newRegistry() is the only way to make one; load_registry refuses", {
+  # Creating a registry is explicit. `load_registry()` reads what exists and
+  # errors otherwise, naming the constructor -- it never invents one, so a
+  # typo'd path can't silently look like an empty project.
+  missing <- file.path(tempdir(), "no-such-registry.csv")
+  expect_error(load_registry(missing), "newRegistry")
+  expect_error(load_registry(missing), "No registry at")
+
+  reg <- newRegistry()
   expect_s3_class(reg, "tbl_df")
+  expect_s3_class(reg, "en_registry")
   expect_identical(nrow(reg), 0L)
   expect_identical(names(reg), energyRt:::.registry_cols)
+
+  # the internal counterpart stays tolerant: the stores register what they
+  # write and must work on a project whose first save is happening now
+  expect_identical(energyRt:::.registry_open(missing), newRegistry())
 })
 
 test_that("registry add/save/load round-trips", {
   f <- tempfile(fileext = ".csv")
-  reg <- load_registry(f)
+  reg <- newRegistry()
   reg <- add_to_registry(reg, "scenario", "BASE", path = "scenarios/BASE",
                       model_hash = "abc123", memo = "first")
-  reg <- add_to_registry(reg, "model", "UTOPIA", path = "models/UTOPIA@abc12345",
+  reg <- add_to_registry(reg, "model", "TOPIA", path = "models/TOPIA@abc12345",
                       hash = "abc12345ffff")
   reg <- add_to_registry(reg, "run", "default/glpk", path = "scenarios/BASE/runs/default/glpk",
                       parent = "BASE")
@@ -21,57 +33,90 @@ test_that("registry add/save/load round-trips", {
   expect_identical(nrow(reg2), 3L)
   expect_setequal(reg2$type, c("scenario", "model", "run"))
   expect_identical(
-    find_registry(reg2, type = "run", parent = "BASE")$name, "default/glpk")
-  # all-character round-trip
-  expect_true(all(vapply(reg2, is.character, logical(1))))
+    find_in_registry(reg2, type = "run", parent = "BASE")$name, "default/glpk")
+  # Character round-trip everywhere except the three lifecycle columns, which
+  # are typed on load because they get filtered on, not merely displayed.
+  typed <- c("sealed", "marked_delete", "delete_importance")
+  expect_true(all(vapply(reg2[setdiff(names(reg2), typed)], is.character,
+                         logical(1))))
+  expect_type(reg2$sealed, "logical")
+  expect_type(reg2$marked_delete, "logical")
+  expect_type(reg2$delete_importance, "double")
+  # an entry that was never marked reads FALSE, not NA
+  expect_false(any(reg2$marked_delete))
+  expect_true(all(is.na(reg2$delete_importance)))
 })
 
-test_that("add_to_registry upserts on (type, name, parent), preserving created/memo", {
-  reg <- load_registry(tempfile(fileext = ".csv"))
+test_that("add_to_registry upserts on (type, path), preserving created/memo", {
+  # The key is the PATH, not the name. It used to be (type, name, parent,
+  # variant), which cannot hold a name that repeats: a scenario's folder is
+  # {scenario}-{model}-{calendar}-{horizon} while its @name is just
+  # {scenario}, so 48 countries saved as "BY25A_F4" collapsed into one row
+  # whose path each save overwrote -- and a later lookup by name loaded
+  # whichever folder had been written last.
+  reg <- newRegistry()
   reg <- add_to_registry(reg, "scenario", "A", path = "p1", memo = "keep me")
   created1 <- reg$created[1]
   Sys.sleep(1.1)  # timestamps have 1s resolution
-  reg <- add_to_registry(reg, "scenario", "A", path = "p2")
+
+  # same path -> upsert
+  reg <- add_to_registry(reg, "scenario", "A", path = "p1")
   expect_identical(nrow(reg), 1L)
-  expect_identical(reg$path, "p2")
   expect_identical(reg$created, created1)   # preserved
   expect_identical(reg$memo, "keep me")     # empty new memo keeps the old
   expect_false(identical(reg$updated, created1))  # updated moved forward
-  # different parent -> separate row
-  reg <- add_to_registry(reg, "scenario", "A", path = "p3", parent = "X")
+
+  # same name, DIFFERENT path -> a second row, which is the fix
+  reg <- add_to_registry(reg, "scenario", "A", path = "p2")
+  expect_identical(nrow(reg), 2L)
+  expect_setequal(reg$path, c("p1", "p2"))
+  expect_identical(unique(reg$name), "A")
+  # the first row is untouched: it is a different folder
+  expect_identical(reg$created[reg$path == "p1"], created1)
+  expect_identical(reg$memo[reg$path == "p1"], "keep me")
+
+  # separator spelling is not a difference -- one folder must not become two
+  reg <- add_to_registry(reg, "scenario", "A", path = "p1/")
   expect_identical(nrow(reg), 2L)
 })
 
 test_that("add() dispatches on the registry tibble and upserts a row", {
-  reg <- load_registry(tempfile(fileext = ".csv"))
-  expect_s3_class(reg, "ert_registry")
+  reg <- newRegistry()
+  expect_s3_class(reg, "en_registry")
   reg <- add(reg, "scenario", "BASE", path = "scenarios/BASE")
-  expect_s3_class(reg, "ert_registry")
+  expect_s3_class(reg, "en_registry")
   expect_identical(nrow(reg), 1L)
   expect_identical(reg$name, "BASE")
-  # upsert, not append
-  reg <- add(reg, "scenario", "BASE", path = "scenarios/BASE2")
+  # upsert on the same folder, not append
+  reg <- add(reg, "scenario", "BASE", path = "scenarios/BASE")
   expect_identical(nrow(reg), 1L)
-  expect_identical(reg$path, "scenarios/BASE2")
+  expect_identical(reg$path, "scenarios/BASE")
   # the subclass survives filtering, so dispatch keeps working downstream
-  expect_s3_class(find_registry(reg, type = "scenario"), "ert_registry")
+  expect_s3_class(find_in_registry(reg, type = "scenario"), "en_registry")
 })
 
-test_that("find_registry filters by type, name, hash prefix, parent", {
-  reg <- load_registry(tempfile(fileext = ".csv"))
+test_that("find_in_registry filters by type, name, hash prefix, parent", {
+  reg <- newRegistry()
   reg <- add_to_registry(reg, "model", "M1", path = "models/M1@11112222",
                       hash = "1111222233334444")
   reg <- add_to_registry(reg, "model", "M2", path = "models/M2@aaaabbbb",
                       hash = "aaaabbbbccccdddd")
   reg <- add_to_registry(reg, "scenario", "S1", path = "scenarios/S1")
-  expect_identical(find_registry(reg, type = "model") |> nrow(), 2L)
-  expect_identical(find_registry(reg, hash = "aaaabbbb")$name, "M2")   # short hash
-  expect_identical(find_registry(reg, hash = "1111222233334444")$name, "M1")
-  expect_identical(find_registry(reg, type = "scenario", name = "S1") |> nrow(), 1L)
-  expect_identical(find_registry(reg, name = "nope") |> nrow(), 0L)
+  expect_identical(find_in_registry(reg, type = "model") |> nrow(), 2L)
+  expect_identical(find_in_registry(reg, hash = "aaaabbbb")$name, "M2")   # short hash
+  expect_identical(find_in_registry(reg, hash = "1111222233334444")$name, "M1")
+  expect_identical(find_in_registry(reg, type = "scenario", name = "S1") |> nrow(), 1L)
+  expect_identical(find_in_registry(reg, name = "nope") |> nrow(), 0L)
 })
 
 test_that("refresh_registry rebuilds from on-disk markers and manifests", {
+  # this test builds a project tree by hand under `root`, so the store options
+  # have to be the project-RELATIVE defaults: refresh_registry() ignores
+  # `root` for an absolute store root (root_join(), registry.R), and the
+  # suite redirects both stores to tempdir()
+  old_sp <- set_scenarios_path("scenarios/")
+  old_mp <- set_models_path("models/")
+  on.exit({ set_scenarios_path(old_sp); set_models_path(old_mp) }, add = TRUE)
   root <- file.path(tempdir(), paste0("regproj", as.integer(runif(1, 1, 1e6))))
   scen_root <- file.path(root, get_scenarios_path())
   mod_root <- file.path(root, get_models_path())
@@ -96,54 +141,56 @@ test_that("refresh_registry rebuilds from on-disk markers and manifests", {
     file.path(scen_root, "NEW3", "runs", "cal-d24", "glpk", "run.yml"))
 
   # model store entry
-  dir.create(file.path(mod_root, "UTOPIA@cafe0123"), recursive = TRUE)
+  dir.create(file.path(mod_root, "TOPIA@cafe0123"), recursive = TRUE)
   yaml::write_yaml(
-    list(layout = 3L, name = "UTOPIA", hash = "cafe0123deadbeef"),
-    file.path(mod_root, "UTOPIA@cafe0123", "model.yml"))
+    list(layout = 3L, name = "TOPIA", hash = "cafe0123deadbeef"),
+    file.path(mod_root, "TOPIA@cafe0123", "model.yml"))
 
   # a directory that is NOT a scenario (no marker) must be skipped
   dir.create(file.path(scen_root, "random_dir"))
 
   reg <- refresh_registry(root = root, file = reg_file, write = TRUE)
   expect_true(file.exists(reg_file))
-  expect_setequal(find_registry(reg, type = "scenario")$name, c("OLD2", "NEW3"))
-  expect_identical(find_registry(reg, type = "model")$name, "UTOPIA")
-  expect_identical(find_registry(reg, type = "model")$hash, "cafe0123deadbeef")
-  expect_identical(find_registry(reg, type = "scenario", name = "NEW3")$model_hash,
+  expect_setequal(find_in_registry(reg, type = "scenario")$name, c("OLD2", "NEW3"))
+  expect_identical(find_in_registry(reg, type = "model")$name, "TOPIA")
+  expect_identical(find_in_registry(reg, type = "model")$hash, "cafe0123deadbeef")
+  expect_identical(find_in_registry(reg, type = "scenario", name = "NEW3")$model_hash,
                    "cafe0123deadbeef")
-  run <- find_registry(reg, type = "run")
-  expect_setequal(run$name, c("glpk", "cal-d24/glpk"))
+  run <- find_in_registry(reg, type = "run")
+  # plain solve labels in `name`; the problem in `variant`
+  expect_setequal(run$name, c("glpk", "glpk"))
+  expect_setequal(run$variant, c("", "cal-d24"))
   expect_setequal(run$parent, "NEW3")
+  expect_identical(
+    find_in_registry(reg, type = "run", variant = "cal-d24")$path,
+    run$path[run$variant == "cal-d24"])
   # paths are relative to the registry file's directory
-  expect_false(any(grepl("^([A-Za-z]:|/)", find_registry(reg, type = "scenario")$path)))
+  expect_false(any(grepl("^([A-Za-z]:|/)", find_in_registry(reg, type = "scenario")$path)))
 
   # refresh again preserves created stamps and stays stable
-  created <- find_registry(reg, type = "scenario", name = "NEW3")$created
+  created <- find_in_registry(reg, type = "scenario", name = "NEW3")$created
   Sys.sleep(1.1)
   reg2 <- refresh_registry(root = root, file = reg_file, write = FALSE)
   expect_identical(
-    find_registry(reg2, type = "scenario", name = "NEW3")$created, created)
+    find_in_registry(reg2, type = "scenario", name = "NEW3")$created, created)
   expect_identical(nrow(reg2), nrow(reg))
   unlink(root, recursive = TRUE)
 })
 
-test_that("deprecated registry shims warn and delegate", {
+test_that("the registry file location round-trips through the live API", {
+  # `get_registry_file()` had no test of its own: its only coverage was through
+  # the deprecated `which_registry()` shim, removed in v0.90. Keep the live
+  # path covered rather than losing it with the shim.
   f <- tempfile(fileext = ".csv")
   old <- set_registry_file(f)
   on.exit(set_registry_file(old), add = TRUE)
+  expect_identical(get_registry_file(), f)
 
-  reg <- add_to_registry(load_registry(f), "scenario", "S", path = "scenarios/S")
+  reg <- add_to_registry(newRegistry(), "scenario", "S", path = "scenarios/S")
   save_registry(reg, f)
-
-  expect_warning(r <- get_registry(), "deprecated")
-  expect_identical(nrow(r), 1L)
-  expect_warning(ex <- registry_exists("S"), "deprecated")
-  expect_true(ex)
-  expect_warning(e <- get_entry("S"), "deprecated")
-  expect_identical(e$name, "S")
-  expect_warning(w <- which_registry(), "deprecated")
-  expect_identical(w$file, f)
-  expect_warning(set_default_registry(), "deprecated")
+  expect_true(file.exists(get_registry_file()))
+  expect_identical(nrow(load_registry()), 1L)
+  expect_identical(find_in_registry(load_registry(), name = "S")$name, "S")
 })
 
 test_that("newScenario returns the object and ignores registry args with a message", {
@@ -153,4 +200,47 @@ test_that("newScenario returns the object and ignores registry args with a messa
   expect_message(s2 <- newScenario("TESTSCEN2", path = NULL, registry = "x"),
                  "deprecated")
   expect_s4_class(s2, "scenario")
+})
+
+
+# ---- registry accessors: getScenario() / getObject() -------------------------
+# Names are unique only WITHIN a type, so the object list is keyed `type/name`;
+# ambiguity is never resolved silently (the .scenario_resolve rule).
+
+test_that("getScenario() dispatches on a registry and on a name", {
+  expect_true(all(c("getScenario.character", "getScenario.en_registry") %in%
+                    as.character(methods("getScenario"))))
+  reg <- add_to_registry(newRegistry(), "scenario", "NOPE", path = "x")
+  # a name that is not in THIS registry is named, with what is
+  expect_error(getScenario(reg, "missing_one"), "not in this registry")
+  expect_error(getScenario(reg, "missing_one"), "NOPE")
+})
+
+test_that("getObject() on a registry keys by type/name and refuses ambiguity", {
+  # a model and a scenario may share a name -- the keys must not collide
+  reg <- newRegistry()
+  reg <- add_to_registry(reg, "model", "TWIN", path = "models/TWIN")
+  reg <- add_to_registry(reg, "scenario", "TWIN", path = "scenarios/TWIN")
+  reg <- add_to_registry(reg, "run", "glpk", path = "scenarios/TWIN/runs/glpk",
+                         parent = "TWIN")
+
+  # nothing is on disk, so loading fails -- but the ROW selection is what this
+  # test pins: two loadable rows for one name, and runs excluded
+  rows <- find_in_registry(reg, name = "TWIN")
+  expect_setequal(rows$type, c("model", "scenario"))
+  expect_identical(nrow(find_in_registry(reg, type = "run")), 1L)
+
+  # empty match: a list by default, an error under drop = TRUE
+  expect_identical(getObject(reg, name = "absent"), list())
+  expect_error(getObject(reg, name = "absent", drop = TRUE), "drop = TRUE")
+})
+
+test_that("the run selector recognises main / a name / ALL", {
+  all_run <- energyRt:::.run_is_all
+  expect_false(all_run("main"))
+  expect_false(all_run("glpk"))
+  expect_true(all_run(NULL))
+  expect_true(all_run(NA))
+  expect_true(all_run("ALL"))
+  expect_true(all_run("all"))
 })

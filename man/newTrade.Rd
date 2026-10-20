@@ -8,6 +8,7 @@ newTrade(
   name = "",
   desc = "",
   commodity = character(),
+  geoframe = character(),
   routes = data.frame(),
   trade = data.frame(),
   fixom = data.frame(),
@@ -33,6 +34,8 @@ newTrade(
 \item{desc}{character. Description of the trade object.}
 
 \item{commodity}{character. The traded commodity short name.}
+
+\item{geoframe}{character. Optional. The geoscale level this object's regions are expressed at; unset (the default) derives it from the region codes. See \code{technology@geoframe} for the full rule, including the consistency checks it turns on. \code{trade} has no \code{region} slot: the level is the one its ROUTES are expressed at, checked against every \code{src} and \code{dst}. A corridor delivers at \code{dst}, so its level may not be coarser than the traded commodity's -- moving a state-level commodity between nations would have to distribute it among the destination's children, which the balance layer does not do.}
 
 \item{routes}{data.frame. Source and destination regions. For bivariate trade define both directions in separate rows.
 \describe{
@@ -65,7 +68,7 @@ newTrade(
 }
 \item{reactance}{numeric. Series reactance \code{x} of the line, in the model's own impedance units. Carried for AC lines and used by nothing unless the model is interpolated with \code{kvl = TRUE}, when it becomes the coefficient of Kirchhoff's voltage law. Presence of a finite \code{reactance} is what marks a route as a PASSIVE AC branch: a controllable DC link has none, because its flow is chosen rather than set by impedance. Must be SYMMETRIC across the two directed rows of a line -- the voltage law constrains the net flow -- and a line under KVL must be declared in both directions. Where several physical circuits have been merged into one route, the value is the EQUIVALENT reactance, \code{1/x_eq = sum(1/x_i)}, not any one circuit's.
 }
-\item{resistance}{numeric. Series resistance \code{r} of the line, same units and same symmetry requirement as \code{reactance}. Recorded for round-tripping with power-system models (PyPSA's \code{Line} carries both). It does not drive losses by itself -- losses are the per-route \code{teff} -- but it is the input \code{lossTranches()} turns into a piecewise-linear loss curve: pass it with the rating it was measured against, since \code{loss_full = r * F} and a resistance alone does not determine a loss fraction.
+\item{resistance}{numeric. Series resistance \code{r} of the line, same units and same symmetry requirement as \code{reactance}. Recorded so a line keeps both parameters through a round trip. It does not drive losses by itself -- losses are the per-route \code{teff} -- but it is the input \code{lossTranches()} turns into a piecewise-linear loss curve: pass it with the rating it was measured against, since \code{loss_full = r * F} and a resistance alone does not determine a loss fraction.
 }
 }}
 
@@ -77,7 +80,7 @@ newTrade(
 Charged where the flow ORIGINATES (\code{src}) and added to
 total system cost, exactly as \code{technology@varom} is. Use
 it for wheeling fees, transit taxes or any real charge per
-unit shipped. Becomes \code{pTradeIrCost}.
+unit shipped. Becomes \code{pTradeIrVarom}.
 
 \code{markup} -- a border price or bilateral charge: a TRANSFER. The
 importing region pays it and the exporting region
@@ -87,12 +90,26 @@ versus a cap. Becomes \code{pTradeIrMarkup}.
 
 Before 0.85 both columns were summed into a single term that cancelled between \code{eqImportIrCost} and \code{eqExportIrCost}, so \code{varom} could not express an operating cost at all; it now enters the objective once, positively, at \code{src}. (A separate parameter \code{pTradeVarom} was once declared in the GLPK and GAMS templates and read by no equation; it has been removed and was never this slot.)}
 
+\item{cluster}{data.frame. Declaration of the object's parallel sub-lines. For trade a cluster is a LOSS TRANCHE: one segment of a piecewise-linear approximation of the quadratic loss curve, with its own share of the capacity and its own \code{teff}. Real losses go as \code{r * f^2}, so the loss FRACTION rises with loading -- which a single \code{teff} cannot express, since under it a half-loaded and a fully-loaded line lose the same proportion.
+This slot declares WHAT the tranches are; the per-tranche values live in the \code{cluster} column of the variant-varying slots (\code{trade}, \code{capacity}, ...). Build both with \code{lossTranches()} rather than by hand.
+There is deliberately no \code{region} column: a trade object has no \code{region} slot -- its scope comes from the route endpoints -- so a region here could restrict nothing, and its absence rejects the mistake at construction rather than deep inside variant expansion.
+REQUIRED whenever any other slot carries a \code{cluster} label, and AUTHORITATIVE: a label used in a slot but not declared here is a typo and an error. Labels are never harvested from the data slots -- a misspelling would otherwise become a variant with defaults for everything it does not carry (no cost, no bound). The share columns are different levers, not substitutes. \code{cap.share.fx} fixes the ratio of the variants' CAPACITIES in every year: loss tranches need it, because each tranche efficiency is calibrated to its place in the capacity stack and the flow must stay free to fill the cheapest first. \code{act.share.lo/up/fx} bounds a variant share of the family THROUGHPUT instead, which is what stops a clustered family collapsing to its cheapest member once regional borders are aggregated away. Both are optional; a variant with neither sizes and runs freely.
+
+\describe{
+\item{cluster}{character. Tranche label, used in the expanded object name.}
+\item{desc}{character. Description of the tranche.}
+\item{share}{numeric. Fraction of the line's capacity this tranche occupies. The shares must sum to 1: the tranche efficiencies are derived from them (\code{lambda_t = loss_full * (alpha_t-1 + alpha_t)}) and are calibrated only when they do. Declaring shares is also what makes the capacities of an INVESTABLE line be tied to those proportions -- without the tie the solver would build the whole corridor as the lowest-loss tranche and the approximation would collapse.
+}
+\item{order}{integer. Fill order, 1 = the lowest-loss tranche. Without it labels sort alphabetically, so "T10" would precede "T2".
+}
+}}
+
 \item{invcost}{data.frame. Investment cost of the trade capacity, as a RATE PER ENDPOINT REGION per unit of capacity. Trade capacity is region-free -- one number per corridor -- but its costs are region-indexed, and each region named in \code{region} pays its own rate on the whole capacity. A corridor whose two endpoints each pay 100 therefore costs 200 in total. Leaving \code{region} unset applies the rate at every endpoint of the route; energyRt reports that rather than correcting it, because the same rate is what a partial-region study would see -- solve a subset of the endpoints and it bears only their share, which is the intended behaviour. Name the regions to vary the rate between them. \code{fixom}, \code{retcost} and \code{eac} follow the same convention.
 
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the \code{cluster} slot.}
-\item{region}{character. Endpoint region bearing this rate. NA applies the rate at every endpoint of the route; name the regions to vary it between them. Must be one of the model's own regions -- a coarser geoscale level is accepted by validation but never reaches the objective.
+\item{region}{character. Endpoint region bearing this rate. NA applies the rate at every endpoint of the route; name the regions to vary it between them. A coarser geoscale level is accepted and charged ONCE at that cell, not once per child region.
 }
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{invcost}{numeric. Investment cost.}
@@ -127,7 +144,7 @@ Before 0.85 both columns were summed into a single term that cancelled between \
 \item{unit}{character. Unit of the auxiliary commodity.}
 }}
 
-\item{aeff}{data.frame. Auxiliary commodity efficiency parameters.
+\item{aeff}{data.frame. Auxiliary commodity efficiency parameters. Rows can be assigned to a single variant via the \code{vintage} and/or \code{cluster} key columns; each variant then carries only its own couplings.
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the \code{cluster} slot.}
@@ -144,6 +161,8 @@ Before 0.85 both columns were summed into a single term that cancelled between \
 \item{optimizeRetirement}{logical. Incidates if the retirement of the trade object should be optimized. Also requires the same parameter in the \code{model} or \code{scenario} class to be set to TRUE to be effective.}
 
 \item{misc}{list. Additional information.}
+
+\item{...}{further named slots of the class, set on the new object.}
 }
 \value{
 trade object with given specifications.

@@ -33,6 +33,6 @@ An S4 class to represent scenario, an interpolated and/or solved model.
 }}
 
 \seealso{
-\code{interpolate()}, \code{solve()}, \code{register()}, \code{summary()}, \code{newScenario()}
+\code{interpolate()}, \code{solve()}, \code{add_to_registry()}, \code{summary()}, \code{newScenario()}
 }
 \concept{class scenario}

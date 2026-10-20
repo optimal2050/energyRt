@@ -3,8 +3,34 @@
 
 #' Print methods for the energyRt classes
 #'
-#' @inheritParams print
+#' @param x the object to print.
+#' @param ... passed to the dispatched print method.
 #'
+#' @examples
+#' # every class prints a summary of what it carries, not its slots
+#' tech <- newTechnology(
+#'   "ECOAL",
+#'   desc    = "Coal power plant",
+#'   input   = data.frame(comm = "COA", unit = "MMBtu"),
+#'   output  = data.frame(comm = "ELC", unit = "MWh"),
+#'   ceff    = data.frame(comm = "COA", cinp2use = 0.4),
+#'   invcost = data.frame(invcost = 2000),
+#'   olife   = data.frame(olife = 30),
+#'   cap2act = 8760
+#' )
+#' print(tech)
+#'
+#' # a model lists its data, calendar, regions and horizon
+#' ek  <- topia$modules$electricity$R3
+#' mod <- newModel("TOPIA", data = ek$repo,
+#'                 calendar = topia$modules$calendars$s4_h24,
+#'                 region = ek$regions,
+#'                 horizon = topia$modules$horizons$base)
+#' mod <- setGeoscale(mod, ek$geoscale)
+#' print(mod)
+#'
+#' # the configuration object behind it
+#' print(mod@config)
 #' @include class-model.R class-modInp.R
 #' @export
 #'
@@ -57,7 +83,10 @@ print.commodity <- function(x, ...) {
   invisible(x)
 }
 
-print.demand <- function(x) {
+#' @method print demand
+#' @rdname print
+#' @export
+print.demand <- function(x, ...) {
   # print demand
   if_print_data_frame <- function(x, sl) {
     if (nrow(slot(x, sl)) != 0) {
@@ -128,6 +157,9 @@ print.summand <- function(x) {
 }
 
 #------------------------------------------------------------------------------
+#' @method print model
+#' @rdname print
+#' @export
 print.model <- function(x, ...) {
   # print model
   if_print_data_frame <- function(x, sl) {
@@ -159,52 +191,24 @@ setMethod("show", "model", function(object) {
 })
 
 #------------------------------------------------------------------------------
-print.region <- function(x) {
-  cat("Name: ", x@name, "\n")
-  # if (x@type != '') cat('type: ', x@type, '\n')
-  if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
-  if (!is.null(x@misc$color)) cat("color: ", x@misc$color, "\n")
-}
 
-#------------------------------------------------------------------------------
-# print.repository <- function(x) {
-#   cat("Name: ", x@name, "\n")
-#   if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
-#   for (i in seq(along = x@data)) {
-#     cat(class(x@data[[i]]), " ", i, ":\n", sep = "")
-#     print(x@data[[i]])
-#   }
-# }
-#
-#------------------------------------------------------------------------------
-print.scenario <- function(x) {
+#' @method print scenario
+#' @rdname print
+#' @export
+print.scenario <- function(x, ...) {
   cat("Name: ", x@name, "\n")
   if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
   if (!is.null(x@model)) {
     cat("Model:\n")
     print(x@model)
   }
-  #    if (!is.null(x@discount)) cat('Discount: ', x@discount, '\n')
-  #    if (!is.null(x@year)) {
-  #      cat('Year:\n')
-  #      print(x@year)
-  #    }
-  #    if (!is.null(x@timeslice)) {
-  #      cat('Timeslice:\n')
-  #      print(x@timeslice)
-  #    }
-  #    if (!is.null(x@repository)) {
-  #      cat('Repository:\n')
-  #      print(x@repository)
-  #    }
-  #    if (!is.null(x@result)) {
-  #      cat('result:\n')
-  #      print(x@result)
-  #    }
 }
 
 #------------------------------------------------------------------------------
-print.supply <- function(x) {
+#' @method print supply
+#' @rdname print
+#' @export
+print.supply <- function(x, ...) {
   # print supply
   if_print_data_frame <- function(x, sl) {
     if (nrow(slot(x, sl)) != 0) {
@@ -227,6 +231,9 @@ print.supply <- function(x) {
 }
 
 #------------------------------------------------------------------------------
+#' @method print technology
+#' @rdname print
+#' @export
 print.technology <- function(x, ...) {
   # print technology
   if_print_data_frame <- function(x, sl) {
@@ -246,7 +253,10 @@ print.technology <- function(x, ...) {
 }
 
 #------------------------------------------------------------------------------
-print.config <- function(x) {
+#' @method print config
+#' @rdname print
+#' @export
+print.config <- function(x, ...) {
   # print model
   if_print_data_frame <- function(x, sl) {
     if (nrow(slot(x, sl)) != 0) {
@@ -255,14 +265,6 @@ print.config <- function(x) {
       cat("\n")
     }
   }
-  # for (i in c("region", "horizon")) {
-  #   if (is.null(slot(x, i))) {
-  #     # cat("There is no ", i, "\n", sep = "")
-  #   } else {
-  #     cat(i, ":\n", sep = "")
-  #     print(slot(x, i))
-  #   }
-  # }
   if_print_data_frame(x, "debug")
   if_print_data_frame(x, "discount")
   # if_print_data_frame(x, 'tax')

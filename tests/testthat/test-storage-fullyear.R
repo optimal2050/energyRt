@@ -14,9 +14,7 @@
 # The flag was silently ignored for years: `.build_meqStorageLevel()` joined
 # `mTimesliceNext` unconditionally, so every storage behaved as `FALSE`
 # regardless -- which made multi-day and seasonal storage unrepresentable and,
-# because the default is TRUE, did so without any user asking for it. It
-# surfaced when a converted PyPSA-Eur battery came out 2.1x oversized and idle
-# 6,624 hours of 8,760 against PyPSA's cyclic-over-the-year equivalent.
+# because the default is TRUE, did so without any user asking for it.
 #
 # These tests pin the map itself (no solver) and then the behaviour it buys.
 # =========================================================================== #
@@ -59,7 +57,7 @@ fy_model <- function(fullYear = TRUE, name = "fy") {
         vintage = data.frame(olife = 30L), cap2act = 1
       ),
       newStorage(
-        "STG", commodity = "ELC", invcost = list(out.invcost = 1),
+        "STG", commodity = "ELC", invcost = list(out.invcost = 1), duration = 1,
         vintage = data.frame(olife = 30L), fullYear = fullYear
       ),
       newDemand("DEM_ELC", commodity = "ELC",

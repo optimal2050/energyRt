@@ -169,7 +169,10 @@ STG_ELC <- newStorage(
   seff = data.frame(inpeff = 0.9, outeff = 0.9, stgeff = 0.999),
   duration = 4,                                   # 4 hours of storage per unit power
   aux  = data.frame(acomm = "MAT", unit = "kt"),
-  aeff = data.frame(acomm = "MAT", ncap2ainp = 0.25))  # material per new capacity
+  # a storage has three parts, so an aux coupling must say WHICH capacity it
+  # scales with: `out.` the discharger, `inp.` the charger, `stg.` the
+  # reservoir. (A technology has one capacity and keeps the bare names.)
+  aeff = data.frame(acomm = "MAT", out.ncap2ainp = 0.25))  # per new discharge capacity
 draw(STG_ELC)
 ```
 
@@ -215,8 +218,10 @@ scales.
 When several commodities are interchangeable on the input (or output)
 side, put them in a **group**. A group is converted to *use* once (via
 `ginp2use` in `geff`), and each member’s contribution is bounded by a
-**share** (`share.lo`/`share.up`/`share.fx`). `cinp2ginp` converts each
-commodity into the group’s common unit.
+**share** (`grp.share.lo`/`grp.share.up`/`grp.share.fx` – named for the
+GROUP they share, since `cap.share.fx` and `act.share.*` on `@cluster`
+are different things). `cinp2ginp` converts each commodity into the
+group’s common unit.
 
 ``` r
 
@@ -231,7 +236,7 @@ CHP <- newTechnology(
   ceff  = data.frame(comm = c("COA", "BIO", "ELC"),
                     cinp2ginp = c(1, 1, NA),
                     cact2cout = c(NA, NA, 0.4),     # 40% efficiency
-                    share.up  = c(1.0, 0.3, NA)),   # at most 30% biomass
+                    grp.share.up = c(1.0, 0.3, NA)),   # max 30% biomass
   cap2act = 8760)                                   # 1 GW x 8760 h = 8760 GWh
 draw(CHP)
 ```
@@ -249,7 +254,7 @@ place for it. Here the fuels are PJ and electricity is GWh:
 *operates* in GWh), and `cap2act = 8760` matches (1 GW × 8760 h). You do
 not have to work the factor out by hand: `convert("PJ", "GWh", 1)` gives
 it. See the *Units* article for where each unit is declared and how
-`convert()` finds a factor.
+[`convert()`](https://energyRt.org/reference/convert.md) finds a factor.
 
 #### Activity, capacity and units
 
@@ -262,19 +267,18 @@ Everything a technology does is measured by its **activity**. Installed
   rated in `GW` running flat out for a year produces 8760 GWh, so
   `cap2act = 8760` with activity in `GWh` — and `cap2act = 31.536` for
   the same plant with activity in `PJ` (1 GW × 8760 h = 31.536 PJ),
-  which is the convention *UTOPIA I* uses.
+  which is the convention *TOPIA I* uses.
 - Capacity itself is bounded in the `capacity` slot: `stock`
   (pre-existing), `cap.lo/up/fx` (total), `ncap.lo/up/fx` (new builds)
   and `ret.lo/up/fx` (retirement). Availability factors `af`/`afs` bound
   activity within capacity: `af.up` caps activity in *each* timeslice as
-  a fraction of capacity — a maximum capacity factor per slice (PyPSA’s
-  `p_max_pu`), with `af.lo` as a must-run floor — while `afs` bounds
-  activity *summed over a timeframe*, so `afs` with
-  `timeslice = "ANNUAL"` is the annual capacity-factor bound
-  (e.g. `afs.lo = 0.4` forces at least 40% annual utilization). A third
-  variant, `afc.*` in the `ceff` slot, applies the same
-  capacity-relative bound to an individual commodity flow instead of
-  total activity.
+  a fraction of capacity — a maximum capacity factor per slice, with
+  `af.lo` as a must-run floor — while `afs` bounds activity *summed over
+  a timeframe*, so `afs` with `timeslice = "ANNUAL"` is the annual
+  capacity-factor bound (e.g. `afs.lo = 0.4` forces at least 40% annual
+  utilization). A third variant, `afc.*` in the `ceff` slot, applies the
+  same capacity-relative bound to an individual commodity flow instead
+  of total activity.
 
 ##### Capacity in input vs. output units
 
@@ -498,19 +502,37 @@ CO2CAP@rhs        # the emission-cap path (interpolated over the horizon)
 #> 2 2050 2000
 ```
 
-[`newConstraintS()`](https://energyRt.org/reference/newConstraint.md) is
-a higher-level shortcut: instead of naming variables you pass a semantic
-`type` (`"capacity"`, `"newcapacity"`, `"inp"`, `"out"`, `"share"`,
-`"growth"`, …) and a subset of processes, and it fills in the right
-variables for you — for instance capping the total new capacity of a
-technology:
+Each left-hand term names the variable it constrains, and `for.sum` says
+which members to sum over — so capping the new capacity of one
+technology reads:
 
 ``` r
 
 # limit total new coal capacity across the horizon
-COALLIM <- newConstraintS(
-  name = "COALLIM", type = "newcapacity", eq = "<=",
-  for.sum = list(tech = "PLANT"), rhs = 50)
+COALLIM <- newConstraint(
+  name = "COALLIM", desc = "Cap on new coal capacity", eq = "<=",
+  cap = list(variable = "vTechNewCap", for.sum = list(tech = "PLANT")),
+  rhs = 50, defVal = 0)
+COALLIM@lhs[[1]]@for.sum$tech
+#> [1] "PLANT"
+```
+
+A term can also be *targeted* rather than enumerated. `process_` is a
+regular expression over process names, `vintage` and `cluster` select
+variants of a vintaged or clustered process, and `classes` restricts to
+a process class — the same filters
+[`newTax()`](https://energyRt.org/reference/newTax.md) and
+[`newSubsidy()`](https://energyRt.org/reference/newSubsidy.md) take. A
+name in `for.sum` that matches nothing is an error, never a silent zero,
+and a declared (base) name expands to all of its realized variants:
+
+``` r
+
+# every vintage of ECOA built in 2030, by regex and by vintage
+newConstraint(
+  name = "ECOA30", eq = "<=",
+  cap = list(variable = "vTechCap", process_ = "^ECOA", vintage = "2030"),
+  for.each = data.frame(year = 2030), rhs = 100, defVal = 0)
 ```
 
 ## Structures
@@ -522,7 +544,7 @@ The bricks above are collected into three nested containers.
 A **repository** is an unordered bag of commodities and processes — the
 reusable “parts library” you draw a model from. Pass objects straight to
 [`newRepository()`](https://energyRt.org/reference/newRepository.md), or
-`add()` them later.
+[`add()`](https://energyRt.org/reference/add.md) them later.
 
 ``` r
 
@@ -553,7 +575,7 @@ mod <- newModel(
   name     = "demo",
   data     = repo,
   region   = "R1",
-  calendar = calendars$season_dn,
+  calendar = calendars$s4_hp3,
   horizon  = newHorizon(period = 2020:2050, intervals = c(1, 10, 10, 10)))
 mod
 #> Name:  demo
@@ -600,12 +622,13 @@ pass `timeframe = "native"` to keep the model’s sub-annual calendar and
 normalise by total generation. If an input commodity has no supply in
 the container it returns `NULL` with a message unless
 `autocomplete = TRUE` (or a `fuel_costs =` price) supplies it. See
-*UTOPIA I* (a-priori screening across technologies) and *UTOPIA II*
+*TOPIA I* (a-priori screening across technologies) and *TOPIA II*
 (ex-post cost with `autoplot`) for worked numbers.
 
 ## See also
 
-- **Units** — where each unit is declared, how `convert()` moves between
+- **Units** — where each unit is declared, how
+  [`convert()`](https://energyRt.org/reference/convert.md) moves between
   them, and what the model checks.
 - **Autoplot** — plots of calendars, horizons, commodity emissions and
   the by-year `supply`/`demand`/`import`/`export` parameters.
@@ -616,5 +639,6 @@ the container it returns `NULL` with a message unless
   [`?newConstraint`](https://energyRt.org/reference/newConstraint.md),
   [`?newRepository`](https://energyRt.org/reference/newRepository.md),
   [`?newModel`](https://energyRt.org/reference/newModel.md),
-  [`?levcost`](https://energyRt.org/reference/levcost.md), `?convert`,
+  [`?levcost`](https://energyRt.org/reference/levcost.md),
+  [`?convert`](https://energyRt.org/reference/convert.md),
   [`?getUnits`](https://energyRt.org/reference/getUnits.md).

@@ -9,12 +9,12 @@ across wind resource clusters, or of capacity across vintages.
 ## Usage
 
 ``` r
-variantSummary(scen, name, by = character(), weight = NULL, ...)
+variantSummary(object, name, by = character(), weight = NULL, ...)
 ```
 
 ## Arguments
 
-- scen:
+- object:
 
   a solved `scenario`.
 
@@ -52,3 +52,27 @@ Other technology process:
 [`newTechnology()`](https://energyRt.org/reference/technology.md),
 [`read_technology_xlsx()`](https://energyRt.org/reference/read_technology_xlsx.md),
 [`write_technology_xlsx()`](https://energyRt.org/reference/write_technology_xlsx.md)
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+open_project(tempdir())
+
+ek  <- topia$modules$electricity$R3
+mod <- newModel("TOPIA", data = ek$repo,
+                calendar = topia$modules$calendars$s4_h24,
+                region = ek$regions,
+                horizon = topia$modules$horizons$base,
+                discount = 0.05)
+mod <- setGeoscale(mod, ek$geoscale)
+
+# split wind into site grades, solve, then read the result BY GRADE rather
+# than by variant name
+mod  <- add(mod, ek$EWIN_SITES, overwrite = TRUE)
+scen <- solve_model(mod, name = "SITES", solver = solver_options$glpk)
+
+variantSummary(scen, "vTechCap", by = "cluster")
+variantSummary(scen, "vTechOut", by = c("cluster", "region"))
+} # }
+```

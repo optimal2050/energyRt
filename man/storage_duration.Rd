@@ -5,7 +5,7 @@
 \title{Split a storage level into duration bands}
 \usage{
 storage_duration(
-  scen,
+  object,
   width = c(12L, 24L, 24L * 7L, 24L * 30L),
   labels = NULL,
   cyclic = NA,
@@ -14,7 +14,7 @@ storage_duration(
 )
 }
 \arguments{
-\item{scen}{a solved scenario.}
+\item{object}{a solved scenario.}
 
 \item{width}{integer vector of window widths in HOURS, strictly increasing.
 The default splits at half a day, a day, a week and 30 days, producing five

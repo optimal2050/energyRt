@@ -14,7 +14,11 @@ test_that("storage keeps its lifespan in @vintage", {
   p <- new("storage")
   expect_identical(names(p@vintage),
                    c("vintage", "region", "cluster", "start", "end", "olife"))
-  expect_identical(names(p@cluster), c("cluster", "desc", "region", "order"))
+  # the same columns on every process class: `cluster`, `desc`, `order`
+  # always, `region` where the class has regional scope, and both shares
+  expect_identical(names(p@cluster),
+                   c("cluster", "desc", "region", "cap.share.fx",
+                     "act.share.lo", "act.share.up", "act.share.fx", "order"))
 })
 
 test_that("legacy start/end/olife arguments still work on storage", {
@@ -72,17 +76,17 @@ test_that("a one-sided duration range leaves the other side open", {
   expect_equal(nrow(newStorage("B4", commodity = "ELC")@duration), 0L)
 })
 
-test_that("the deprecated cap2stg reaches @duration as a fixed ratio", {
-  # The formal default used to be a bare `1`, so `.given(args$duration)` was
-  # always TRUE and this path could only ever raise "supply either ... not
-  # both". It could not have worked for anyone.
-  s <- suppressWarnings(newStorage("OLD", commodity = "ELC", cap2stg = 4))
-  expect_equal(s@duration$duration.fx, 4)
-  expect_error(
-    suppressWarnings(newStorage("OLD", commodity = "ELC",
-                                cap2stg = 4, duration = 6)),
-    "not both"
-  )
+test_that("cap2stg is refused by name, pointing at @duration", {
+  # The v0.80 shim accepted it with a warning; v0.90 refuses it. The message
+  # must name the replacement -- the generic unknown-slot error lists every
+  # valid slot and says nothing about the rename.
+  expect_error(newStorage("OLD", commodity = "ELC", cap2stg = 4),
+               "renamed to `@duration`", fixed = TRUE)
+  expect_error(newStorage("OLD", commodity = "ELC", cap2stg = 4),
+               "no longer accepted")
+  # the replacement itself still takes the scalar shorthand
+  expect_equal(newStorage("NEW", commodity = "ELC",
+                          duration = 4)@duration$duration.fx, 4)
 })
 
 test_that("storage vintages expand with per-vintage capex and windows", {
@@ -221,7 +225,7 @@ test_that("each seff coefficient is filed under its OWN role's commodity", {
         storage  = list(comm = "BAT"),
         output   = list(comm = "KM"),
         seff     = data.frame(inpeff = 0.90, outeff = 6),
-        duration = data.frame(duration.lo = 0, duration.up = 1e6),
+        capacity = data.frame(stg.cap.up = 1e6),
         vintage  = V),
       newDemand("TRIPS", commodity = "KM",
                 demand = data.frame(timeslice = "h03", demand = 60))))

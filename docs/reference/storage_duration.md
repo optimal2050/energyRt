@@ -10,7 +10,7 @@ stacked in an area chart directly.
 
 ``` r
 storage_duration(
-  scen,
+  object,
   width = c(12L, 24L, 24L * 7L, 24L * 30L),
   labels = NULL,
   cyclic = NA,
@@ -21,7 +21,7 @@ storage_duration(
 
 ## Arguments
 
-- scen:
+- object:
 
   a solved scenario.
 

@@ -45,6 +45,8 @@ setMethod("initialize", "model", function(.Object, ...) {
 #' Create new model object
 #'
 #' @param name name of the model
+#' @param desc free-text description of the model.
+#' @param obj a `model` object (the `setHorizon` / `getHorizon` methods).
 #' @param ... configuration parameters (see class config) and model elements (classes commodity, technology, etc.)
 #'
 #' @return model object containing model elements (`@data`) and configuration (`@config`)
@@ -65,18 +67,17 @@ setMethod("initialize", "model", function(.Object, ...) {
 #'   )
 #' }
 newModel <- function(name = "", desc = "", ...) {
-  # browser()
   # mdl <- .data2slots("model", name,
   #                    ignore_args = unique(c(config_slots, horizon_slots)),
   #                    ignore_classes = "repository", ...)
   obj <- new("model")
+  .assert_object_name(name, what = "model")
   obj@name <- name
   obj@desc <- desc
   arg <- list(...)
   if (is_empty(arg)) return(obj)
 
   ## flatten unnamed lists if any ####
-  # browser()
   # nn <- names(arg)
   ii <- sapply(seq_along(arg), function(i) {
     inherits(arg[[i]], "list") && names(arg)[[i]] == ""
@@ -144,7 +145,7 @@ newModel <- function(name = "", desc = "", ...) {
   ### @geoscale ####
   if (!is.null(arg$geoscale)) {
     if (!is_geoscale(arg$geoscale)) {
-      stop('"geoscale" argument must be a "geoscales::Geoscale" object')
+      stop('"geoscale" argument must be a "geoscales::GeoScale" object')
     }
     obj@config@geoscale <- arg$geoscale
     arg$geoscale <- NULL
@@ -244,12 +245,12 @@ newModel <- function(name = "", desc = "", ...) {
 
 
 #' @rdname newModel
+#' @aliases setHorizon getHorizon
 #' @export
 setMethod("setHorizon", signature(obj = "model"),
   # signature(obj = "model", period = "numeric", intervals = "numeric"),
   function(obj, ...) {
     args <- list(...)
-    # browser()
     has_h <- sapply(args, function(x) inherits(x, "horizon"))
     if (any(has_h)) {
       if (sum(has_h) > 1) stop('Two or more "horizon" objects found.')
@@ -271,14 +272,12 @@ setMethod("getHorizon", signature(obj = "model"), function(obj) {
 ## [[ ####
 #' @export
 setMethod("[[", c("model", "ANY"), function(x, i) {
-  # browser()
   flatten_mod_data(x@data)[i]
   }
 )
 
 #' @export
 setMethod("[", c("model", "ANY"), function(x, i) {
-  # browser()
   flatten_mod_data(x@data)[i]
 }
 )
@@ -313,7 +312,6 @@ setMethod("names", "repository", function(x) names(x@data))
 .default_repo_name <- "default_repository"
 
 add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
-  # browser()
   # cls <- c('technology', 'commodity', 'region', 'commodity',
   #          'constraint', 'costs',
   #          'stock', 'reserve',
@@ -484,8 +482,12 @@ add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
 #'
 #' @method add model
 #' @rdname add
+#' @aliases add
 #'
 #' @return model object with added elements to the repository
+#'
+#' @details There is no `add` method for a `scenario`: a scenario's inputs are
+#'   already interpolated. Add objects to the model and interpolate again.
 #' @export
 setMethod("add", "model", add.model)
 

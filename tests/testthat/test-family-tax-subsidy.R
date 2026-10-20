@@ -84,10 +84,10 @@ test_that("family tax-subsidy: balance tax charges the free-disposal surplus", {
 test_that("family tax-subsidy: output subsidy credits every produced unit", {
   skip_if_no_solver()
   scen0 <- suppressMessages(suppressWarnings(interpolate_model(
-    ts_build(newSub("SUBE", comm = "ELC", subsidy = data.frame(out = 0.3))),
+    ts_build(newSubsidy("SUBE", comm = "ELC", subsidy = data.frame(out = 0.3))),
     name = "ts_sub_i", overwrite = TRUE)))
   expect_equal(unique(ff_param(scen0, "pSubCostOut")$value), 0.3)
-  scen <- ts_solve(ts_build(newSub("SUBE", comm = "ELC",
+  scen <- ts_solve(ts_build(newSubsidy("SUBE", comm = "ELC",
                                    subsidy = data.frame(out = 0.3))), "ts_sub_out")
   expect_true(verify_solution(scen)$ok)
   expect_equal(ff_solution_sum(scen, "vSubsCost"), -3, tolerance = 1e-6)
@@ -97,7 +97,7 @@ test_that("family tax-subsidy: output subsidy credits every produced unit", {
 # @covers pSubCostInp pSubCostBal depth=I backends=glpk
 test_that("family tax-subsidy: inp and bal subsidy rates land in modInp", {
   scen <- suppressMessages(suppressWarnings(interpolate_model(
-    ts_build(newSub("SUBE", comm = "ELC",
+    ts_build(newSubsidy("SUBE", comm = "ELC",
                     subsidy = data.frame(inp = 0.1, bal = 0.2))),
     name = "ts_sub_i2", overwrite = TRUE)))
   expect_equal(unique(ff_param(scen, "pSubCostInp")$value), 0.1)

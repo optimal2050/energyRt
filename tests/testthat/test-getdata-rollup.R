@@ -1,10 +1,11 @@
 # =========================================================================== #
-# getData() aggregation-level consistency ("roll-up"): the ANNUAL level
-# reported by timeframe = "lowest" must equal the plain sum over timeslices of
+# getData() aggregation-level consistency ("roll-up"): the level reported by
+# timeframe = "lowest" must equal the weight-ratio sum over timeslices of
 # timeframe = "highest" (the model's internal convention: pTimesliceAgg is the
-# weight RATIO child/parent, which is 1 on both full and uniformly sampled
-# calendars, so fine -> coarse aggregation is a plain sum). timeframe = "all"
-# must contain both levels unchanged.
+# weight RATIO child/parent -- 1 within sub-annual levels and on full
+# calendars, 1/year_fraction into the top slice of a sampled calendar, so the
+# top level is always full-year magnitude). timeframe = "all" must contain
+# both levels unchanged.
 #
 # This is the first direct test of get_data.R's level handling; golden
 # tracked-value tables (helper-goldens.R) rely on exactly this convention.
@@ -25,7 +26,14 @@
   lv <- .ru_levels(scen, name)
   if (nrow(lv$hi) == 0) return(invisible(FALSE))
   grp <- setdiff(colnames(lv$hi), c("timeslice", "value"))
-  agg_hi <- lv$hi[, .(value = sum(value)), by = grp]
+  # child/target weight ratio (1 except into the top slice of a sample)
+  ts <- scen@settings@calendar@timeslice_share
+  w <- stats::setNames(as.numeric(ts$weight), as.character(ts$timeslice))
+  w_lo <- w[unique(as.character(lv$lo$timeslice))[1]]
+  ratio <- w[as.character(lv$hi$timeslice)] / w_lo
+  ratio[!is.finite(ratio)] <- 1
+  agg_hi <- data.table::copy(lv$hi)[, value := value * ratio]
+  agg_hi <- agg_hi[, .(value = sum(value)), by = grp]
   agg_lo <- lv$lo[, .(value = sum(value)), by = grp]
   m <- merge(agg_hi, agg_lo, by = grp, all = TRUE, suffixes = c(".hi", ".lo"))
   expect_false(any(is.na(m$value.hi) | is.na(m$value.lo)),
@@ -85,10 +93,12 @@ test_that("roll-up holds on a sampled (subset) calendar", {
   scen <- suppressMessages(suppressWarnings(
     solve_model(mod, name = "ru_smp", solver = solver_options$glpk,
               tmp.del = TRUE, wait = TRUE)))
-  # weights annualise the sample: top slice carries weight 1/year_fraction
+  # timeframe contract: the top slice is full-year magnitude (weight 1);
+  # sub-annual slices annualise the sample with weight 1/year_fraction
   w <- energyRt:::get_data_slot(scen@modInp@parameters[["pTimesliceWeight"]])
-  expect_equal(unique(w$value), K / m)
-  # the roll-up convention is weight-invariant: still a plain sum
+  expect_setequal(unique(w$value), c(1, K / m))
+  # the roll-up applies the child/target weight ratio (1 within sub-annual
+  # levels; 1/year_fraction into the top slice)
   .ru_expect_rollup(scen, "vTechOut", "sampled")
   # and the solution passes the generic identities on a sampled calendar too
   expect_true(verify_solution(scen)$ok)

@@ -3,11 +3,18 @@
 \docType{class}
 \name{class-constraint}
 \alias{class-constraint}
+\alias{class-summand}
 \alias{summand-class}
 \title{An S4 class to represent a custom constraint.}
 \description{
 Class \code{constraint} is used to define custom constraints in the optimization problem.
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
+
+Class \code{summand} stores information about linear
+terms (a multiplier and a variable)
+in the \code{lhs} of the constraint class.
+It is auto-created by \code{newConstraint} function
+and is not intended to be used directly by the user.
 }
 \details{
 Custom constraints extend the functionality of the model by adding
@@ -47,6 +54,34 @@ for which the summand is defined.
 \item{\code{lhs}}{list. List of summands for the left-hand-side of the equation. This slot is created automatically from all named of unnamed lists passed to the \code{newConstraint} function, except for the named arguments.}
 
 \item{\code{misc}}{list. Any additional information or parameters to store in the constraint object.}
+
+\item{\code{desc}}{character. Description of the linear term.}
+
+\item{\code{variable}}{character. Name of the variable.}
+
+\item{\code{for.sum}}{list. List of sets for which the summand will be created.}
+
+\item{\code{timeframe}}{character. Pins the timeframe level the variable is taken at (e.g. "ANNUAL", "SEASON"): the variable's \code{timeslice} dimension is restricted to that level's timeslices, so summing them yields the level aggregate without double-counting across levels. \code{NA} (default) applies no restriction and sums the variable's native timeslices.}
+
+\item{\code{geoframe}}{character. The spatial twin of \code{timeframe}: pins the geoscale level the variable is taken at (e.g. "zone", "nation"), restricting the variable's \code{region} dimension to that level's regions. \code{NA} (default) applies no restriction. Requires a geoscale on the model configuration.}
+
+\item{\code{process_}}{character. Process filter, as a regular expression over process names (the \verb{_} suffix convention of \code{getData()}). Matched against the declared (base) name as well as the realized variant name, so a pattern naming a vintaged process selects all of its variants. A pattern that matches nothing is an error, never a silent zero. Exact names belong in \code{for.sum}, where a base name expands to its variants.}
+
+\item{\code{classes}}{character. Process class filter, e.g. "technology" or "storage": restricts the variable's process dimension to processes of these classes. Spelled \code{classes} to match the \verb{get_process_*()} family; \code{class} is a reserved S4 slot name.}
+
+\item{\code{vintage}}{character. Vintage filter for vintaged processes. Resolved by joining the variant provenance table, NOT by parsing the mangled variant name -- the name separator is configurable, so a pattern over names is not stable.}
+
+\item{\code{vintage_}}{character. Vintage filter as a regular expression.}
+
+\item{\code{cluster}}{character. Cluster filter for clustered processes, resolved from the variant provenance table in the same way as \code{vintage}.}
+
+\item{\code{cluster_}}{character. Cluster filter as a regular expression.}
+
+\item{\code{mult}}{data.frame. Multiplying coefficients to the variable for each set in the \code{for.sum} slot.}
+
+\item{\code{defVal}}{numeric. Default value for the summand.}
+
+\item{\code{misc}}{list. Additional information.}
 }}
 
 \seealso{

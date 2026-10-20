@@ -10,7 +10,7 @@ analysis (including sonification – see the useR! training course).
 
 ``` r
 getMix(
-  scen,
+  object,
   type = c("generation", "capacity", "new_capacity", "fuel"),
   comm = "ELC",
   region = NULL,
@@ -24,7 +24,7 @@ getMix(
 
 ## Arguments
 
-- scen:
+- object:
 
   a solved `scenario` object, or a **named list** of scenarios (results
   are row-bound with the list names in the `scenario` column).

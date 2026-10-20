@@ -38,8 +38,11 @@ exec(open("inc1.py").read())
 model = ConcreteModel()
 import pandas as pd
 
-# Data source: "sqlite" (input/data.db) or "arrow" (input/<name>.arrow). The R
-# writer (energyRt) rewrites this line at write time based on export_format.
+# Data source: "sqlite" (input/data.db), "feather" (input/<name>.arrow) or
+# "parquet" (input/<name>.parquet). The R writer (energyRt) rewrites this line
+# at write time from the solver's export_format. A table with no rows is not
+# written at all -- the model code never reads those -- so a missing table
+# reads back as empty rather than failing.
 _DATA_FORMAT = "sqlite"
 if _DATA_FORMAT == "sqlite":
     import sqlite3
@@ -47,13 +50,38 @@ if _DATA_FORMAT == "sqlite":
     _con = sqlite3.connect("input/data.db")
 
     def _read_tbl(name):
-        return pd.read_sql_query(f'SELECT * FROM "{name}"', _con)
+        try:
+            return pd.read_sql_query(f'SELECT * FROM "{name}"', _con)
+        except Exception:
+            return pd.DataFrame()
 
 else:
-    import pyarrow.feather as _feather
+    import os
+
+    try:
+        if _DATA_FORMAT == "parquet":
+            import pyarrow.parquet as _pq
+
+            _ext, _reader = ".parquet", _pq.read_table
+        else:
+            import pyarrow.feather as _feather
+
+            _ext, _reader = ".arrow", _feather.read_feather
+    except ImportError:
+        raise SystemExit(
+            "energyRt: the Python package 'pyarrow' is required to read the "
+            "model data in the Arrow exchange format.\n"
+            "  Install it with en_install_python_deps() in R, or select the "
+            "legacy exchange with solver_options$pyomo_cbc_sqlite "
+            '(or solver$export_format <- "SQLite").'
+        )
 
     def _read_tbl(name):
-        return _feather.read_feather("input/" + name + ".arrow")
+        path = "input/" + name + _ext
+        if not os.path.exists(path):
+            return pd.DataFrame()
+        tbl = _reader(path)
+        return tbl.to_pandas() if hasattr(tbl, "to_pandas") else tbl
 
 
 def read_set(name):
@@ -77,6 +105,185 @@ def read_dict(name):
 print("loading model parameters...")
 ##### decl par #####
 sys.stdout.flush()
+
+# A weather-dependent process carries one weather variate, or a handful; the
+# `weather` set reaches thousands on models with per-cluster profiles. The
+# equations below transliterate a GAMS `$` domain restriction, which GAMS
+# iterates sparsely, so evaluating it as a filter over the whole set makes
+# constraint construction O(rows x |weather|). Grouping each mapping once
+# restores sparse iteration.
+def _weather_index(mapping):
+    """{key: [wth, ...]} following `weather` iteration order.
+
+    `weather` is a set, so that order is the one the unindexed filter produced.
+    Preserving it keeps each product's factors in their original sequence, which
+    matters because floating point multiplication is not associative.
+    """
+    order = {w: i for i, w in enumerate(weather)}
+    ix = {}
+    for item in mapping:
+        key = item[1:]
+        ix.setdefault(key[0] if len(key) == 1 else key, []).append(item[0])
+    for k in ix:
+        ix[k].sort(key=order.__getitem__)
+    return ix
+
+
+mTechWeatherAfLo_ix = _weather_index(mTechWeatherAfLo)
+mTechWeatherAfUp_ix = _weather_index(mTechWeatherAfUp)
+mTechWeatherAfsLo_ix = _weather_index(mTechWeatherAfsLo)
+mTechWeatherAfsUp_ix = _weather_index(mTechWeatherAfsUp)
+mTechWeatherAfcLo_ix = _weather_index(mTechWeatherAfcLo)
+mTechWeatherAfcUp_ix = _weather_index(mTechWeatherAfcUp)
+mSupWeatherLo_ix = _weather_index(mSupWeatherLo)
+mSupWeatherUp_ix = _weather_index(mSupWeatherUp)
+mStorageWeatherAfLo_ix = _weather_index(mStorageWeatherAfLo)
+mStorageWeatherAfUp_ix = _weather_index(mStorageWeatherAfUp)
+mStorageWeatherInpAfLo_ix = _weather_index(mStorageWeatherInpAfLo)
+mStorageWeatherInpAfUp_ix = _weather_index(mStorageWeatherInpAfUp)
+mStorageWeatherOutAfLo_ix = _weather_index(mStorageWeatherOutAfLo)
+mStorageWeatherOutAfUp_ix = _weather_index(mStorageWeatherOutAfUp)
+
+
+# Mappings used as a filter over a whole set, once per constraint row, cost
+# O(rows x |set|). Grouping the mapping once makes the iteration sparse, as the
+# GAMS `$` restriction these were transliterated from already is.
+def _group(mapping, driver, val, key):
+    """{key: [member, ...]} following `driver` iteration order.
+
+    `val` is the tuple position of the member being iterated and `key` the
+    positions that select it. Order follows `driver` -- the set the unindexed
+    filter scanned -- so each sum accumulates its terms in the original
+    sequence; floating point addition is not associative.
+    """
+    order = {x: i for i, x in enumerate(driver)}
+    ix = {}
+    for item in mapping:
+        k = tuple(item[i] for i in key)
+        ix.setdefault(k[0] if len(k) == 1 else k, []).append(item[val])
+    for k in ix:
+        ix[k].sort(key=order.__getitem__)
+    return ix
+
+
+mTimesliceFamily_ix = _group(mTimesliceFamily, timeslice, 1, (0,))
+# (weather, region) -> the region whose pWeather series to read. `_group`
+# rather than `_weather_index`: that helper keys on everything AFTER the
+# weather name and emits the weather, which is the wrong way round here.
+mWeatherRegionAt_ix = _group(mWeatherRegionAt, region, 2, (0, 1,))
+
+mRegionFamily_ix = _group(mRegionFamily, region, 1, (0,))
+mTechInpCommSameTimeslice_ix = _group(mTechInpCommSameTimeslice, tech, 0, (1,))
+mTechInpCommAgg_ix = _group(mTechInpCommAgg, tech, 0, (1,))
+mTechAInpCommSameTimeslice_ix = _group(mTechAInpCommSameTimeslice, tech, 0, (1,))
+mTechAInpCommAgg_ix = _group(mTechAInpCommAgg, tech, 0, (1,))
+mTechInpCommAggTimeslice_ix = _group(mTechInpCommAggTimeslice, timeslice, 2, (0, 1, 3))
+mTechAInpCommAggTimeslice_ix = _group(
+    mTechAInpCommAggTimeslice, timeslice, 2, (0, 1, 3))
+mTechOutCommSameTimeslice_ix = _group(mTechOutCommSameTimeslice, tech, 0, (1,))
+mTechOutCommAgg_ix = _group(mTechOutCommAgg, tech, 0, (1,))
+mTechAOutCommSameTimeslice_ix = _group(mTechAOutCommSameTimeslice, tech, 0, (1,))
+mTechAOutCommAgg_ix = _group(mTechAOutCommAgg, tech, 0, (1,))
+mTechOutCommAggTimeslice_ix = _group(mTechOutCommAggTimeslice, timeslice, 2, (0, 1, 3))
+mTechProcAggRegion_ix = _group(mTechProcAggRegion, region, 3, (0, 1, 2))
+mStorageProcAggRegion_ix = _group(mStorageProcAggRegion, region, 3, (0, 1, 2))
+mTechProcAggTimeslice_ix = _group(mTechProcAggTimeslice, timeslice, 3, (0, 1, 2))
+mTechAOutCommAggTimeslice_ix = _group(
+    mTechAOutCommAggTimeslice, timeslice, 2, (0, 1, 3))
+
+
+# Indices for the remaining domain-restriction filters; see _group.
+mAggregateFactor_ix = _group(mAggregateFactor, comm, 1, (0,))
+mCommTimesliceOrParent_ix = _group(mCommTimesliceOrParent, timeslice, 2, (0, 1,))
+mCommTimeslice_ix = _group(mCommTimeslice, timeslice, 1, (0,))
+mDummyExportCost_ix = _group(mDummyExportCost, comm, 0, (1, 2,))
+mDummyExport_ix = _group(mDummyExport, timeslice, 3, (0, 1, 2,))
+mDummyImportCost_ix = _group(mDummyImportCost, comm, 0, (1, 2,))
+mDummyImport_ix = _group(mDummyImport, timeslice, 3, (0, 1, 2,))
+mExpComm_ix = _group(mExpComm, expp, 0, (1,))
+mExportIrCost_ix = _group(mExportIrCost, trade, 0, (1, 2,))
+mExportRowCost_ix = _group(mExportRowCost, expp, 0, (1, 2,))
+mExportRow_ix = _group(mExportRow, timeslice, 4, (0, 1, 2, 3,))
+mImpComm_ix = _group(mImpComm, imp, 0, (1,))
+mImportIrCost_ix = _group(mImportIrCost, trade, 0, (1, 2,))
+mImportRowCost_ix = _group(mImportRowCost, imp, 0, (1, 2,))
+mImportRow_ix = _group(mImportRow, timeslice, 4, (0, 1, 2, 3,))
+mStorageAInpCommAggTimeslice_ix = _group(mStorageAInpCommAggTimeslice, timeslice, 2, (0, 1, 3,))
+mStorageAInpCommAgg_ix = _group(mStorageAInpCommAgg, stg, 0, (1,))
+mStorageAInpCommSameTimeslice_ix = _group(mStorageAInpCommSameTimeslice, stg, 0, (1,))
+mStorageAOutCommAggTimeslice_ix = _group(mStorageAOutCommAggTimeslice, timeslice, 2, (0, 1, 3,))
+mStorageAOutCommAgg_ix = _group(mStorageAOutCommAgg, stg, 0, (1,))
+mStorageAOutCommSameTimeslice_ix = _group(mStorageAOutCommSameTimeslice, stg, 0, (1,))
+mStorageEac_ix = _group(mStorageEac, stg, 0, (1, 2,))
+mStorageFixom_ix = _group(mStorageFixom, stg, 0, (1, 2,))
+mStorageInpCommAggTimeslice_ix = _group(mStorageInpCommAggTimeslice, timeslice, 2, (0, 1, 3,))
+mStorageInpCommAgg_ix = _group(mStorageInpCommAgg, stg, 0, (1,))
+mStorageInpCommSameTimeslice_ix = _group(mStorageInpCommSameTimeslice, stg, 0, (1,))
+mStorageInpComm_ix = _group(mStorageInpComm, comm, 1, (0,))
+mStorageOutCommAggTimeslice_ix = _group(mStorageOutCommAggTimeslice, timeslice, 2, (0, 1, 3,))
+mStorageOutCommAgg_ix = _group(mStorageOutCommAgg, stg, 0, (1,))
+mStorageOutCommSameTimeslice_ix = _group(mStorageOutCommSameTimeslice, stg, 0, (1,))
+mStorageOutComm_ix = _group(mStorageOutComm, comm, 1, (0,))
+mStorageRetCost_ix = _group(mStorageRetCost, stg, 0, (1, 2,))
+mStorageStgComm_ix = _group(mStorageStgComm, comm, 1, (0,))
+mStorageVarom_ix = _group(mStorageVarom, stg, 0, (1, 2,))
+mSubCost_ix = _group(mSubCost, levy, 0, (1, 2,))
+mSupAva_ix = _group(mSupAva, timeslice, 4, (0, 1, 2, 3,))
+mTaxCost_ix = _group(mTaxCost, levy, 0, (1, 2,))
+mTechCinp2AInp_ix = _group(mTechCinp2AInp, comm, 2, (0, 1, 3, 4, 5,))
+mTechCinp2AOut_ix = _group(mTechCinp2AOut, comm, 2, (0, 1, 3, 4, 5,))
+mTechCout2AInp_ix = _group(mTechCout2AInp, comm, 2, (0, 1, 3, 4, 5,))
+mTechCout2AOut_ix = _group(mTechCout2AOut, comm, 2, (0, 1, 3, 4, 5,))
+mTechEac_ix = _group(mTechEac, tech, 0, (1, 2,))
+mTechFixom_ix = _group(mTechFixom, tech, 0, (1, 2,))
+mTechGroupComm_ix = _group(mTechGroupComm, comm, 2, (0, 1,))
+mTechInpComm_ix0_1 = _group(mTechInpComm, tech, 0, (1,))
+mTechInpComm_ix1_0 = _group(mTechInpComm, comm, 1, (0,))
+mTechOutComm_ix = _group(mTechOutComm, comm, 1, (0,))
+mTechRetCost_ix = _group(mTechRetCost, tech, 0, (1, 2,))
+mTechTimeslice_ix = _group(mTechTimeslice, timeslice, 1, (0,))
+mTechVarom_ix = _group(mTechVarom, tech, 0, (1, 2,))
+mTimesliceParentChildE_ix = _group(mTimesliceParentChildE, timeslice, 1, (0,))
+mTradeComm_ix = _group(mTradeComm, comm, 1, (0,))
+mTradeEac_ix = _group(mTradeEac, trade, 0, (1, 2,))
+mTradeFixom_ix = _group(mTradeFixom, trade, 0, (1, 2,))
+mTradeIrCdst2Ainp_ix = _group(mTradeIrCdst2Ainp, region, 2, (0, 1, 3, 4, 5,))
+mTradeIrCdst2Aout_ix = _group(mTradeIrCdst2Aout, region, 2, (0, 1, 3, 4, 5,))
+mTradeIrCsrc2Ainp_ix = _group(mTradeIrCsrc2Ainp, region, 3, (0, 1, 2, 4, 5,))
+mTradeIrCsrc2Aout_ix = _group(mTradeIrCsrc2Aout, region, 3, (0, 1, 2, 4, 5,))
+mTradeRetCost_ix = _group(mTradeRetCost, trade, 0, (1, 2,))
+mTradeRoutes_ix1_02 = _group(mTradeRoutes, region, 1, (0, 2,))
+mTradeRoutes_ix2_01 = _group(mTradeRoutes, region, 2, (0, 1,))
+mTradeTimeslice_ix = _group(mTradeTimeslice, timeslice, 1, (0,))
+mvStorageInp_ix = _group(mvStorageInp, comm, 1, (0, 2, 3, 4,))
+mvStorageOut_ix = _group(mvStorageOut, comm, 1, (0, 2, 3, 4,))
+mvStorageRetiredNewCap_ix2_013 = _group(mvStorageRetiredNewCap, year, 2, (0, 1, 3,))
+mvStorageRetiredNewCap_ix3_012 = _group(mvStorageRetiredNewCap, year, 3, (0, 1, 2,))
+mvSupCost_ix = _group(mvSupCost, sup, 0, (1, 2,))
+mvTechAInp_ix = _group(mvTechAInp, comm, 1, (0, 2, 3, 4,))
+mvTechAOut_ix = _group(mvTechAOut, comm, 1, (0, 2, 3, 4,))
+mvTechAInp_ix3 = {}
+for (t, c, r, y, s) in mvTechAInp:
+    mvTechAInp_ix3.setdefault((t, r, y), []).append((c, s))
+mvTechAOut_ix3 = {}
+for (t, c, r, y, s) in mvTechAOut:
+    mvTechAOut_ix3.setdefault((t, r, y), []).append((c, s))
+mvTechRetiredNewCap_ix2_013 = _group(mvTechRetiredNewCap, year, 2, (0, 1, 3,))
+mvTechRetiredNewCap_ix3_012 = _group(mvTechRetiredNewCap, year, 3, (0, 1, 2,))
+mvTotalCost_ix = _group(mvTotalCost, year, 1, (0,))
+mvTradeRetiredNewCap_ix1_02 = _group(mvTradeRetiredNewCap, year, 1, (0, 2,))
+mvTradeRetiredNewCap_ix2_01 = _group(mvTradeRetiredNewCap, year, 2, (0, 1,))
+
+import gc
+import os
+
+# Building the model allocates tens of millions of components and produces
+# almost no cyclic garbage, so every generational pass walks a growing live set
+# to no purpose. freeze() moves what is already loaded out of the collector's
+# reach; disable() stops the passes for the build itself.
+gc.freeze()
+gc.disable()
+
 print("Building Pyomo model")
 print(
     "variables... "
@@ -142,7 +349,7 @@ model.vStorageStockPhaseOut = Var(
     doc="Exogenous storage capacity leaving on the schedule"
 )
 model.vStorageOutStockCap = Var(
-    mStorageSpan, domain=pyo.NonNegativeReals,
+    mStorageOutCap, domain=pyo.NonNegativeReals,
     doc="Surviving exogenous (legacy) capacity"
 )
 model.vStorageOutRetiredStock = Var(
@@ -276,7 +483,8 @@ model.vStorageEac = Var(
     mStorageEac, domain=pyo.NonNegativeReals, doc="Storage EAC investments"
 )
 model.vStorageOutCap = Var(
-    mStorageSpan, domain=pyo.NonNegativeReals, doc="Storage capacity"
+    mStorageOutCap, domain=pyo.NonNegativeReals,
+    doc="Storage discharging (output) capacity"
 )
 model.vStorageStgCap = Var(
     mStorageStgCap, domain=pyo.NonNegativeReals,
@@ -295,7 +503,8 @@ model.vStorageStgNewCap = Var(
     doc="Storage new energy (storing) capacity"
 )
 model.vStorageOutNewCap = Var(
-    mStorageNew, domain=pyo.NonNegativeReals, doc="Storage new capacity"
+    mStorageOutNew, domain=pyo.NonNegativeReals,
+    doc="Storage new discharging (output) capacity"
 )
 model.vImportTot = Var(
     mImport,
@@ -347,9 +556,10 @@ model.vTradeInv = Var(
 model.vTradeNewCap = Var(
     mTradeNew, domain=pyo.NonNegativeReals, doc="New trade capacity"
 )
+# a user cost term may be NEGATIVE (a subsidy), and eqTotalUserCosts is an equality -- bounding this at 0 made such a model infeasible
 model.vTotalUserCosts = Var(
     mvTotalUserCosts,
-    domain=pyo.NonNegativeReals,
+    domain=pyo.Reals,
     doc="Total additional costs (set by user)",
 )
 exec(open("inc2.py").read())
@@ -366,8 +576,23 @@ if verbose:
 sys.stdout.flush()
 model.eqTechSng2Sng = Constraint(
     meqTechSng2Sng,
-    rule=lambda model, t, r, c, cp, y, s: model.vTechInp[t, c, r, y, s]
-    * pTechCinp2use.get((t, c, r, y, s))
+    rule=lambda model, t, r, c, cp, y, s: (
+        model.vTechInp[t, c, r, y, s] * pTechCinp2use.get((t, c, r, y, s))
+        if (t, c, r, y, s) in mvTechInp
+        else 0
+    )
+    # a technology COARSER than this input draws it at the regions beneath its own
+    + sum(
+        model.vTechInp[t, c, rp, y, s] * pTechCinp2use.get((t, c, r, y, s))
+        for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+    )
+    # ... and the TIME twin: pTimesliceAgg renormalises the intensive rate
+    + sum(
+        pTimesliceAgg.get((y, s, sp))
+        * model.vTechInp[t, c, r, y, sp]
+        * pTechCinp2use.get((t, c, r, y, s))
+        for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
+    )
     == (model.vTechOut[t, cp, r, y, s])
     / (pTechUse2cact.get((t, cp, r, y, s)) * pTechCact2cout.get((t, cp, r, y, s))),
 )
@@ -392,8 +617,18 @@ model.eqTechGrp2Sng = Constraint(
             if (t, c, r, y, s) in mvTechInp
             else 0
         )
-        for c in comm
-        if (t, g, c) in mTechGroupComm
+        # a process COARSER than this input draws it at the finer cells beneath
+        + sum(
+            model.vTechInp[t, c, rp, y, s] * pTechCinp2ginp.get((t, c, r, y, s))
+            for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+        )
+        + sum(
+            pTimesliceAgg.get((y, s, sp))
+            * model.vTechInp[t, c, r, y, sp]
+            * pTechCinp2ginp.get((t, c, r, y, s))
+            for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
+        )
+        for c in mTechGroupComm_ix.get((t, g), ())
     )
     == (model.vTechOut[t, cp, r, y, s])
     / (pTechUse2cact.get((t, cp, r, y, s)) * pTechCact2cout.get((t, cp, r, y, s))),
@@ -412,8 +647,21 @@ if verbose:
 sys.stdout.flush()
 model.eqTechSng2Grp = Constraint(
     meqTechSng2Grp,
-    rule=lambda model, t, r, c, gp, y, s: model.vTechInp[t, c, r, y, s]
-    * pTechCinp2use.get((t, c, r, y, s))
+    rule=lambda model, t, r, c, gp, y, s: (
+        model.vTechInp[t, c, r, y, s] * pTechCinp2use.get((t, c, r, y, s))
+        if (t, c, r, y, s) in mvTechInp
+        else 0
+    )
+    + sum(
+        model.vTechInp[t, c, rp, y, s] * pTechCinp2use.get((t, c, r, y, s))
+        for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+    )
+    + sum(
+        pTimesliceAgg.get((y, s, sp))
+        * model.vTechInp[t, c, r, y, sp]
+        * pTechCinp2use.get((t, c, r, y, s))
+        for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
+    )
     == sum(
         (
             (
@@ -426,8 +674,7 @@ model.eqTechSng2Grp = Constraint(
             if (t, cp, r, y, s) in mvTechOut
             else 0
         )
-        for cp in comm
-        if (t, gp, cp) in mTechGroupComm
+        for cp in mTechGroupComm_ix.get((t, gp), ())
     ),
 )
 if verbose:
@@ -451,8 +698,18 @@ model.eqTechGrp2Grp = Constraint(
             if (t, c, r, y, s) in mvTechInp
             else 0
         )
-        for c in comm
-        if (t, g, c) in mTechGroupComm
+        # a process COARSER than this input draws it at the finer cells beneath
+        + sum(
+            model.vTechInp[t, c, rp, y, s] * pTechCinp2ginp.get((t, c, r, y, s))
+            for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+        )
+        + sum(
+            pTimesliceAgg.get((y, s, sp))
+            * model.vTechInp[t, c, r, y, sp]
+            * pTechCinp2ginp.get((t, c, r, y, s))
+            for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
+        )
+        for c in mTechGroupComm_ix.get((t, g), ())
     )
     == sum(
         (
@@ -466,8 +723,7 @@ model.eqTechGrp2Grp = Constraint(
             if (t, cp, r, y, s) in mvTechOut
             else 0
         )
-        for cp in comm
-        if (t, gp, cp) in mTechGroupComm
+        for cp in mTechGroupComm_ix.get((t, gp), ())
     ),
 )
 if verbose:
@@ -484,12 +740,52 @@ if verbose:
 sys.stdout.flush()
 model.eqTechShareInpLo = Constraint(
     meqTechShareInpLo,
-    rule=lambda model, t, r, g, c, y, s: model.vTechInp[t, c, r, y, s]
+    rule=lambda model, t, r, g, c, y, s: (model.vTechInp[t, c, r, y, s] if (t, c, r, y, s) in mvTechInp else 0)
+        + sum(
+            model.vTechInp[t, c, rp, y, s]
+            for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+        )
+        + sum(
+            pTimesliceAgg.get((y, s, sp)) * model.vTechInp[t, c, r, y, sp]
+            for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
+        )
     >= pTechShareLo.get((t, c, r, y, s))
     * sum(
         (model.vTechInp[t, cp, r, y, s] if (t, cp, r, y, s) in mvTechInp else 0)
-        for cp in comm
-        if (t, g, cp) in mTechGroupComm
+        + sum(
+            model.vTechInp[t, cp, rp, y, s]
+            for rp in mTechProcAggRegion_ix.get((t, cp, r), ())
+        )
+        + sum(
+            pTimesliceAgg.get((y, s, sp)) * model.vTechInp[t, cp, r, y, sp]
+            for sp in mTechProcAggTimeslice_ix.get((t, cp, s), ())
+        )
+        for cp in mTechGroupComm_ix.get((t, g), ())
+    ),
+)
+model.eqTechShareInpFx = Constraint(
+    meqTechShareInpFx,
+    rule=lambda model, t, r, g, c, y, s: (model.vTechInp[t, c, r, y, s] if (t, c, r, y, s) in mvTechInp else 0)
+        + sum(
+            model.vTechInp[t, c, rp, y, s]
+            for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+        )
+        + sum(
+            pTimesliceAgg.get((y, s, sp)) * model.vTechInp[t, c, r, y, sp]
+            for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
+        )
+    == pTechShareLo.get((t, c, r, y, s))
+    * sum(
+        (model.vTechInp[t, cp, r, y, s] if (t, cp, r, y, s) in mvTechInp else 0)
+        + sum(
+            model.vTechInp[t, cp, rp, y, s]
+            for rp in mTechProcAggRegion_ix.get((t, cp, r), ())
+        )
+        + sum(
+            pTimesliceAgg.get((y, s, sp)) * model.vTechInp[t, cp, r, y, sp]
+            for sp in mTechProcAggTimeslice_ix.get((t, cp, s), ())
+        )
+        for cp in mTechGroupComm_ix.get((t, g), ())
     ),
 )
 if verbose:
@@ -506,12 +802,27 @@ if verbose:
 sys.stdout.flush()
 model.eqTechShareInpUp = Constraint(
     meqTechShareInpUp,
-    rule=lambda model, t, r, g, c, y, s: model.vTechInp[t, c, r, y, s]
+    rule=lambda model, t, r, g, c, y, s: (model.vTechInp[t, c, r, y, s] if (t, c, r, y, s) in mvTechInp else 0)
+        + sum(
+            model.vTechInp[t, c, rp, y, s]
+            for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+        )
+        + sum(
+            pTimesliceAgg.get((y, s, sp)) * model.vTechInp[t, c, r, y, sp]
+            for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
+        )
     <= pTechShareUp.get((t, c, r, y, s))
     * sum(
         (model.vTechInp[t, cp, r, y, s] if (t, cp, r, y, s) in mvTechInp else 0)
-        for cp in comm
-        if (t, g, cp) in mTechGroupComm
+        + sum(
+            model.vTechInp[t, cp, rp, y, s]
+            for rp in mTechProcAggRegion_ix.get((t, cp, r), ())
+        )
+        + sum(
+            pTimesliceAgg.get((y, s, sp)) * model.vTechInp[t, cp, r, y, sp]
+            for sp in mTechProcAggTimeslice_ix.get((t, cp, s), ())
+        )
+        for cp in mTechGroupComm_ix.get((t, g), ())
     ),
 )
 if verbose:
@@ -532,8 +843,16 @@ model.eqTechShareOutLo = Constraint(
     >= pTechShareLo.get((t, c, r, y, s))
     * sum(
         (model.vTechOut[t, cp, r, y, s] if (t, cp, r, y, s) in mvTechOut else 0)
-        for cp in comm
-        if (t, g, cp) in mTechGroupComm
+        for cp in mTechGroupComm_ix.get((t, g), ())
+    ),
+)
+model.eqTechShareOutFx = Constraint(
+    meqTechShareOutFx,
+    rule=lambda model, t, r, g, c, y, s: model.vTechOut[t, c, r, y, s]
+    == pTechShareLo.get((t, c, r, y, s))
+    * sum(
+        (model.vTechOut[t, cp, r, y, s] if (t, cp, r, y, s) in mvTechOut else 0)
+        for cp in mTechGroupComm_ix.get((t, g), ())
     ),
 )
 if verbose:
@@ -554,8 +873,7 @@ model.eqTechShareOutUp = Constraint(
     <= pTechShareUp.get((t, c, r, y, s))
     * sum(
         (model.vTechOut[t, cp, r, y, s] if (t, cp, r, y, s) in mvTechOut else 0)
-        for cp in comm
-        if (t, g, cp) in mTechGroupComm
+        for cp in mTechGroupComm_ix.get((t, g), ())
     ),
 )
 if verbose:
@@ -567,49 +885,32 @@ if verbose:
         sep="",
     )
 # eqTechAInp(tech, comm, region, year, timeslice)$mvTechAInp(tech, comm, region, year, timeslice)
+# aux flow at the AUX COMMODITY's slice s; capacity terms are per year x share,
+# flow terms are summed over the technology's own slices sp (self or children)
 if verbose:
     print("eqTechAInp ", end="")
 sys.stdout.flush()
 model.eqTechAInp = Constraint(
-    mvTechAInp,
-    rule=lambda model, t, c, r, y, s: model.vTechAInp[t, c, r, y, s]
-    == (
-        (model.vTechAct[t, r, y, s] * pTechAct2AInp.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechAct2AInp
-        else 0
+    meqTechAInp,
+    # a process coarser than this aux commodity holds the flow in the finer
+    # cells beneath its own; the sum is empty at the commodity's own level
+    rule=lambda model, t, c, r, y, s: (model.vTechAInp[t, c, r, y, s] if (t, c, r, y, s) in mvTechAInp else 0)
+    + sum(model.vTechAInp[t, c, rp, y, s]
+          for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+          if (t, c, rp, y, s) in mvTechAInp)
+    == pTimesliceShare.get((s)) * (
+        ((model.vTechCap[t, r, y] * pTechCap2AInp.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechCap2AInp else 0)
+        + ((model.vTechNewCap[t, r, y] * pTechNCap2AInp.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechNCap2AInp else 0)
+        + (((model.vTechPhaseOut[t, r, y] if (t, r, y) in mvTechPhaseOut else 0) * pTechPho2AInp.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechPho2AInp else 0)
+        + ((((model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0) + sum(model.vTechRetiredNewCap[t, r, yp, y] for yp in year if (t, r, yp, y) in mvTechRetiredNewCap)) * pTechRet2AInp.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechRet2AInp else 0)
     )
-    + (
-        (
-            (model.vTechCap[t, r, y] * pTechCap2AInp.get((t, c, r, y, s)))
-            / (pTechCap2act.get((t)))
+    + sum(
+        pTimesliceAgg.get((y, s, sp)) * (
+            ((model.vTechAct[t, r, y, sp] * pTechAct2AInp.get((t, c, r, y, sp))) if (t, c, r, y, sp) in mTechAct2AInp else 0)
+            + sum(pTechCinp2AInp.get((t, c, cp, r, y, sp)) * model.vTechInp[t, cp, r, y, sp] for cp in mTechCinp2AInp_ix.get((t, c, r, y, sp), ()))
+            + sum(pTechCout2AInp.get((t, c, cp, r, y, sp)) * model.vTechOut[t, cp, r, y, sp] for cp in mTechCout2AInp_ix.get((t, c, r, y, sp), ()))
         )
-        if (t, c, r, y, s) in mTechCap2AInp
-        else 0
-    )
-    + (
-        (model.vTechNewCap[t, r, y] * pTechNCap2AInp.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechNCap2AInp
-        else 0
-    )
-    + (
-        ((model.vTechPhaseOut[t, r, y] if (t, r, y) in mvTechPhaseOut else 0) * pTechPho2AInp.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechPho2AInp
-        else 0
-    )
-    + (
-        (((model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0) + sum(model.vTechRetiredNewCap[t, r, yp, y] for yp in year if (t, r, yp, y) in mvTechRetiredNewCap)) * pTechRet2AInp.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechRet2AInp
-        else 0
-    )
-    + sum(
-        pTechCinp2AInp.get((t, c, cp, r, y, s)) * model.vTechInp[t, cp, r, y, s]
-        for cp in comm
-        if (t, c, cp, r, y, s) in mTechCinp2AInp
-    )
-    + sum(
-        pTechCout2AInp.get((t, c, cp, r, y, s)) * model.vTechOut[t, cp, r, y, s]
-        for cp in comm
-        if (t, c, cp, r, y, s) in mTechCout2AInp
+        for sp in mCommTimesliceOrParent_ix.get((c, s), ())
     ),
 )
 if verbose:
@@ -621,49 +922,32 @@ if verbose:
         sep="",
     )
 # eqTechAOut(tech, comm, region, year, timeslice)$mvTechAOut(tech, comm, region, year, timeslice)
+# aux flow at the AUX COMMODITY's slice s; capacity terms are per year x share,
+# flow terms are summed over the technology's own slices sp (self or children)
 if verbose:
     print("eqTechAOut ", end="")
 sys.stdout.flush()
 model.eqTechAOut = Constraint(
-    mvTechAOut,
-    rule=lambda model, t, c, r, y, s: model.vTechAOut[t, c, r, y, s]
-    == (
-        (model.vTechAct[t, r, y, s] * pTechAct2AOut.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechAct2AOut
-        else 0
+    meqTechAOut,
+    # a process coarser than this aux commodity holds the flow in the finer
+    # cells beneath its own; the sum is empty at the commodity's own level
+    rule=lambda model, t, c, r, y, s: (model.vTechAOut[t, c, r, y, s] if (t, c, r, y, s) in mvTechAOut else 0)
+    + sum(model.vTechAOut[t, c, rp, y, s]
+          for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+          if (t, c, rp, y, s) in mvTechAOut)
+    == pTimesliceShare.get((s)) * (
+        ((model.vTechCap[t, r, y] * pTechCap2AOut.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechCap2AOut else 0)
+        + ((model.vTechNewCap[t, r, y] * pTechNCap2AOut.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechNCap2AOut else 0)
+        + (((model.vTechPhaseOut[t, r, y] if (t, r, y) in mvTechPhaseOut else 0) * pTechPho2AOut.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechPho2AOut else 0)
+        + ((((model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0) + sum(model.vTechRetiredNewCap[t, r, yp, y] for yp in year if (t, r, yp, y) in mvTechRetiredNewCap)) * pTechRet2AOut.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechRet2AOut else 0)
     )
-    + (
-        (
-            (model.vTechCap[t, r, y] * pTechCap2AOut.get((t, c, r, y, s)))
-            / (pTechCap2act.get((t)))
+    + sum(
+        pTimesliceAgg.get((y, s, sp)) * (
+            ((model.vTechAct[t, r, y, sp] * pTechAct2AOut.get((t, c, r, y, sp))) if (t, c, r, y, sp) in mTechAct2AOut else 0)
+            + sum(pTechCinp2AOut.get((t, c, cp, r, y, sp)) * model.vTechInp[t, cp, r, y, sp] for cp in mTechCinp2AOut_ix.get((t, c, r, y, sp), ()))
+            + sum(pTechCout2AOut.get((t, c, cp, r, y, sp)) * model.vTechOut[t, cp, r, y, sp] for cp in mTechCout2AOut_ix.get((t, c, r, y, sp), ()))
         )
-        if (t, c, r, y, s) in mTechCap2AOut
-        else 0
-    )
-    + (
-        (model.vTechNewCap[t, r, y] * pTechNCap2AOut.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechNCap2AOut
-        else 0
-    )
-    + (
-        ((model.vTechPhaseOut[t, r, y] if (t, r, y) in mvTechPhaseOut else 0) * pTechPho2AOut.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechPho2AOut
-        else 0
-    )
-    + (
-        (((model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0) + sum(model.vTechRetiredNewCap[t, r, yp, y] for yp in year if (t, r, yp, y) in mvTechRetiredNewCap)) * pTechRet2AOut.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechRet2AOut
-        else 0
-    )
-    + sum(
-        pTechCinp2AOut.get((t, c, cp, r, y, s)) * model.vTechInp[t, cp, r, y, s]
-        for cp in comm
-        if (t, c, cp, r, y, s) in mTechCinp2AOut
-    )
-    + sum(
-        pTechCout2AOut.get((t, c, cp, r, y, s)) * model.vTechOut[t, cp, r, y, s]
-        for cp in comm
-        if (t, c, cp, r, y, s) in mTechCout2AOut
+        for sp in mCommTimesliceOrParent_ix.get((c, s), ())
     ),
 )
 if verbose:
@@ -685,9 +969,8 @@ model.eqTechAfLo = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfLo.get((wth1, t)) * pWeather.get((wth1, r, y, s))
-        for wth1 in weather
-        if (wth1, t) in mTechWeatherAfLo
+        pTechWeatherAfLo.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mTechWeatherAfLo_ix.get(t, ())
     )
     <= model.vTechAct[t, r, y, s],
 )
@@ -711,9 +994,32 @@ model.eqTechAfUp = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfUp.get((wth1, t)) * pWeather.get((wth1, r, y, s))
-        for wth1 in weather
-        if (wth1, t) in mTechWeatherAfUp
+        pTechWeatherAfUp.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mTechWeatherAfUp_ix.get(t, ())
+    ),
+)
+if verbose:
+    print(
+        datetime.datetime.now().strftime("%H:%M:%S"),
+        " (",
+        round(time.time() - seconds, 2),
+        " s)",
+        sep="",
+    )
+# eqTechAfFx(tech, region, year, timeslice)$meqTechAfFx(tech, region, year, timeslice)
+if verbose:
+    print("eqTechAfFx ", end="")
+sys.stdout.flush()
+model.eqTechAfFx = Constraint(
+    meqTechAfFx,
+    rule=lambda model, t, r, y, s: model.vTechAct[t, r, y, s]
+    == pTechAfLo.get((t, r, y, s))
+    * pTechCap2act.get((t))
+    * model.vTechCap[t, r, y]
+    * pTimesliceShare.get((s))
+    * prod(
+        pTechWeatherAfLo.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mTechWeatherAfLo_ix.get(t, ())
     ),
 )
 if verbose:
@@ -735,14 +1041,29 @@ model.eqTechAfsLo = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfsLo.get((wth1, t)) * pWeather.get((wth1, r, y, s))
-        for wth1 in weather
-        if (wth1, t) in mTechWeatherAfsLo
+        pTechWeatherAfsLo.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mTechWeatherAfsLo_ix.get(t, ())
     )
     <= sum(
-        (model.vTechAct[t, r, y, sp] if (t, r, y, sp) in mvTechAct else 0)
-        for sp in timeslice
-        if (s, sp) in mTimesliceParentChildE
+        pTimesliceAgg.get((y, s, sp))
+        * (model.vTechAct[t, r, y, sp] if (t, r, y, sp) in mvTechAct else 0)
+        for sp in mTimesliceParentChildE_ix.get(s, ())
+    ),
+)
+model.eqTechAfsFx = Constraint(
+    meqTechAfsFx,
+    rule=lambda model, t, r, y, s: pTechAfsLo.get((t, r, y, s))
+    * pTechCap2act.get((t))
+    * model.vTechCap[t, r, y]
+    * pTimesliceShare.get((s))
+    * prod(
+        pTechWeatherAfsLo.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mTechWeatherAfsLo_ix.get(t, ())
+    )
+    == sum(
+        pTimesliceAgg.get((y, s, sp))
+        * (model.vTechAct[t, r, y, sp] if (t, r, y, sp) in mvTechAct else 0)
+        for sp in mTimesliceParentChildE_ix.get(s, ())
     ),
 )
 if verbose:
@@ -760,18 +1081,17 @@ sys.stdout.flush()
 model.eqTechAfsUp = Constraint(
     meqTechAfsUp,
     rule=lambda model, t, r, y, s: sum(
-        (model.vTechAct[t, r, y, sp] if (t, r, y, sp) in mvTechAct else 0)
-        for sp in timeslice
-        if (s, sp) in mTimesliceParentChildE
+        pTimesliceAgg.get((y, s, sp))
+        * (model.vTechAct[t, r, y, sp] if (t, r, y, sp) in mvTechAct else 0)
+        for sp in mTimesliceParentChildE_ix.get(s, ())
     )
     <= pTechAfsUp.get((t, r, y, s))
     * pTechCap2act.get((t))
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfsUp.get((wth1, t)) * pWeather.get((wth1, r, y, s))
-        for wth1 in weather
-        if (wth1, t) in mTechWeatherAfsUp
+        pTechWeatherAfsUp.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mTechWeatherAfsUp_ix.get(t, ())
     ),
 )
 if verbose:
@@ -860,8 +1180,7 @@ model.eqTechActGrp = Constraint(
             if (t, c, r, y, s) in mvTechOut
             else 0
         )
-        for c in comm
-        if (t, g, c) in mTechGroupComm
+        for c in mTechGroupComm_ix.get((t, g), ())
     ),
 )
 if verbose:
@@ -884,11 +1203,23 @@ model.eqTechAfcOutLo = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfcLo.get((wth1, t, c)) * pWeather.get((wth1, r, y, s))
-        for wth1 in weather
-        if (wth1, t, c) in mTechWeatherAfcLo
+        pTechWeatherAfcLo.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mTechWeatherAfcLo_ix.get((t, c), ())
     )
     <= model.vTechOut[t, c, r, y, s],
+)
+model.eqTechAfcOutFx = Constraint(
+    meqTechAfcOutFx,
+    rule=lambda model, t, r, c, y, s: pTechCact2cout.get((t, c, r, y, s))
+    * pTechAfcLo.get((t, c, r, y, s))
+    * pTechCap2act.get((t))
+    * model.vTechCap[t, r, y]
+    * pTimesliceShare.get((s))
+    * prod(
+        pTechWeatherAfcLo.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mTechWeatherAfcLo_ix.get((t, c), ())
+    )
+    == model.vTechOut[t, c, r, y, s],
 )
 if verbose:
     print(
@@ -909,10 +1240,10 @@ model.eqTechAfcOutUp = Constraint(
     * pTechAfcUp.get((t, c, r, y, s))
     * pTechCap2act.get((t))
     * model.vTechCap[t, r, y]
+    * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfcUp.get((wth1, t, c)) * pWeather.get((wth1, r, y, s))
-        for wth1 in weather
-        if (wth1, t, c) in mTechWeatherAfcUp
+        pTechWeatherAfcUp.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mTechWeatherAfcUp_ix.get((t, c), ())
     ),
 )
 if verbose:
@@ -934,11 +1265,22 @@ model.eqTechAfcInpLo = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfcLo.get((wth1, t, c)) * pWeather.get((wth1, r, y, s))
-        for wth1 in weather
-        if (wth1, t, c) in mTechWeatherAfcLo
+        pTechWeatherAfcLo.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mTechWeatherAfcLo_ix.get((t, c), ())
     )
     <= model.vTechInp[t, c, r, y, s],
+)
+model.eqTechAfcInpFx = Constraint(
+    meqTechAfcInpFx,
+    rule=lambda model, t, r, c, y, s: pTechAfcLo.get((t, c, r, y, s))
+    * pTechCap2act.get((t))
+    * model.vTechCap[t, r, y]
+    * pTimesliceShare.get((s))
+    * prod(
+        pTechWeatherAfcLo.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mTechWeatherAfcLo_ix.get((t, c), ())
+    )
+    == model.vTechInp[t, c, r, y, s],
 )
 if verbose:
     print(
@@ -960,9 +1302,8 @@ model.eqTechAfcInpUp = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfcUp.get((wth1, t, c)) * pWeather.get((wth1, r, y, s))
-        for wth1 in weather
-        if (wth1, t, c) in mTechWeatherAfcUp
+        pTechWeatherAfcUp.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mTechWeatherAfcUp_ix.get((t, c), ())
     ),
 )
 if verbose:
@@ -1018,6 +1359,10 @@ model.eqTechCapLo = Constraint(
     mTechCapLo,
     rule=lambda model, t, r, y: model.vTechCap[t, r, y] >= pTechCapLo.get((t, r, y)),
 )
+model.eqTechCapFx = Constraint(
+    mTechCapFx,
+    rule=lambda model, t, r, y: model.vTechCap[t, r, y] == pTechCapLo.get((t, r, y)),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -1050,6 +1395,11 @@ model.eqTechNewCapLo = Constraint(
     mTechNewCapLo,
     rule=lambda model, t, r, y: model.vTechNewCap[t, r, y]
     >= pTechNewCapLo.get((t, r, y)) * pPeriodLen.get((y)),
+)
+model.eqTechNewCapFx = Constraint(
+    mTechNewCapFx,
+    rule=lambda model, t, r, y: model.vTechNewCap[t, r, y]
+    == pTechNewCapLo.get((t, r, y)) * pPeriodLen.get((y)),
 )
 if verbose:
     print(
@@ -1084,8 +1434,7 @@ model.eqTechRetiredNewCap = Constraint(
     meqTechRetiredNewCap,
     rule=lambda model, t, r, y: sum(
         model.vTechRetiredNewCap[t, r, y, yp] * pPeriodLen.get((yp))
-        for yp in year
-        if (t, r, y, yp) in mvTechRetiredNewCap
+        for yp in mvTechRetiredNewCap_ix3_012.get((t, r, y), ())
     )
     <= model.vTechNewCap[t, r, y] * pPeriodLen.get((y)),
 )
@@ -1113,10 +1462,18 @@ model.eqTechStockCap = Constraint(
         for yp in year
         if ((yp, y) in mMilestoneNext and (t, r, yp) in mTechSpan)
     )
-    + pTechStockNew.get((t, r, y))
+    + (pTechStockNew.get((t, r, y)) + (pTechStock.get((t, r, y)) if y in mMilestoneFirst else 0))
     - (model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0)
     * pPeriodLen.get((y)),
 )
+if verbose:
+    print(
+        datetime.datetime.now().strftime("%H:%M:%S"),
+        " (",
+        round(time.time() - seconds, 2),
+        " s)",
+        sep="",
+    )
 # eqTechStockPhaseOut -- what the schedule actually removed.
 if verbose:
     print("eqTechStockPhaseOut ", end="")
@@ -1131,6 +1488,14 @@ model.eqTechStockPhaseOut = Constraint(
         if ((yp, y) in mMilestoneNext and (t, r, yp) in mTechSpan)
     ),
 )
+if verbose:
+    print(
+        datetime.datetime.now().strftime("%H:%M:%S"),
+        " (",
+        round(time.time() - seconds, 2),
+        " s)",
+        sep="",
+    )
 # eqTechRetUp(tech, region, year)$mTechRetUp(tech, region, year)
 if verbose:
     print("eqTechRetUp ", end="")
@@ -1142,8 +1507,7 @@ model.eqTechRetUp = Constraint(
     )
     + sum(
         model.vTechRetiredNewCap[t, r, yp, y]
-        for yp in year
-        if (t, r, yp, y) in mvTechRetiredNewCap
+        for yp in mvTechRetiredNewCap_ix2_013.get((t, r, y), ())
     )
     <= pTechRetUp.get((t, r, y)) * pPeriodLen.get((y)),
 )
@@ -1166,10 +1530,20 @@ model.eqTechRetLo = Constraint(
     )
     + sum(
         model.vTechRetiredNewCap[t, r, yp, y]
-        for yp in year
-        if (t, r, yp, y) in mvTechRetiredNewCap
+        for yp in mvTechRetiredNewCap_ix2_013.get((t, r, y), ())
     )
     >= pTechRetLo.get((t, r, y)) * pPeriodLen.get((y)),
+)
+model.eqTechRetFx = Constraint(
+    mTechRetFx,
+    rule=lambda model, t, r, y: (
+        model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0
+    )
+    + sum(
+        model.vTechRetiredNewCap[t, r, yp, y]
+        for yp in mvTechRetiredNewCap_ix2_013.get((t, r, y), ())
+    )
+    == pTechRetLo.get((t, r, y)) * pPeriodLen.get((y)),
 )
 if verbose:
     print(
@@ -1185,25 +1559,24 @@ model.eqStorageOutRetiredNewCap = Constraint(
     rule=lambda model, st1, r, y: (
         sum(
             model.vStorageOutRetiredNewCap[st1, r, y, yp] * pPeriodLen.get((yp))
-            for yp in year
-            if (st1, r, y, yp) in mvStorageRetiredNewCap
+            for yp in mvStorageRetiredNewCap_ix3_012.get((st1, r, y), ())
         )
         <= model.vStorageOutNewCap[st1, r, y] * pPeriodLen.get((y))
-        if (st1, r, y) in mStorageNew
+        if (st1, r, y) in mStorageOutNew
         else pyo.Constraint.Skip
     ),
 )
 # eqStorageOutStockCap -- the legacy fleet as a recursive balance.
 model.eqStorageOutStockCap = Constraint(
-    mStorageSpan,
+    mStorageOutCap,
     rule=lambda model, st1, r, y: model.vStorageOutStockCap[st1, r, y]
     == pStorageOutStockSurv.get((st1, r, y))
     * sum(
         model.vStorageOutStockCap[st1, r, yp]
         for yp in year
-        if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageSpan)
+        if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageOutCap)
     )
-    + pStorageOutStockNew.get((st1, r, y))
+    + (pStorageOutStockNew.get((st1, r, y)) + (pStorageOutStock.get((st1, r, y)) if y in mMilestoneFirst else 0))
     - (model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0)
     * pPeriodLen.get((y)),
 )
@@ -1217,8 +1590,7 @@ model.eqStorageOutRetUp = Constraint(
     )
     + sum(
         model.vStorageOutRetiredNewCap[st1, r, yp, y]
-        for yp in year
-        if (st1, r, yp, y) in mvStorageRetiredNewCap
+        for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
     )
     <= pStorageOutRetUp.get((st1, r, y)) * pPeriodLen.get((y)),
 )
@@ -1232,10 +1604,22 @@ model.eqStorageOutRetLo = Constraint(
     )
     + sum(
         model.vStorageOutRetiredNewCap[st1, r, yp, y]
-        for yp in year
-        if (st1, r, yp, y) in mvStorageRetiredNewCap
+        for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
     )
     >= pStorageOutRetLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+model.eqStorageOutRetFx = Constraint(
+    mStorageOutRetFx,
+    rule=lambda model, st1, r, y: (
+        model.vStorageOutRetiredStock[st1, r, y]
+        if (st1, r, y) in mvStorageRetiredStock
+        else 0
+    )
+    + sum(
+        model.vStorageOutRetiredNewCap[st1, r, yp, y]
+        for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
+    )
+    == pStorageOutRetLo.get((st1, r, y)) * pPeriodLen.get((y)),
 )
 # eqStorageInpRetiredNewCap(stg, region, year)$meqStorageRetiredNewCap
 model.eqStorageInpRetiredNewCap = Constraint(
@@ -1243,8 +1627,7 @@ model.eqStorageInpRetiredNewCap = Constraint(
     rule=lambda model, st1, r, y: (
         sum(
             model.vStorageInpRetiredNewCap[st1, r, y, yp] * pPeriodLen.get((yp))
-            for yp in year
-            if (st1, r, y, yp) in mvStorageRetiredNewCap
+            for yp in mvStorageRetiredNewCap_ix3_012.get((st1, r, y), ())
         )
         <= model.vStorageInpNewCap[st1, r, y] * pPeriodLen.get((y))
         if (st1, r, y) in mStorageInpNew
@@ -1261,7 +1644,7 @@ model.eqStorageInpStockCap = Constraint(
         for yp in year
         if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageInpCap)
     )
-    + pStorageInpStockNew.get((st1, r, y))
+    + (pStorageInpStockNew.get((st1, r, y)) + (pStorageInpStock.get((st1, r, y)) if y in mMilestoneFirst else 0))
     - (model.vStorageInpRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0)
     * pPeriodLen.get((y)),
 )
@@ -1275,8 +1658,7 @@ model.eqStorageInpRetUp = Constraint(
     )
     + sum(
         model.vStorageInpRetiredNewCap[st1, r, yp, y]
-        for yp in year
-        if (st1, r, yp, y) in mvStorageRetiredNewCap
+        for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
     )
     <= pStorageInpRetUp.get((st1, r, y)) * pPeriodLen.get((y)),
 )
@@ -1290,10 +1672,22 @@ model.eqStorageInpRetLo = Constraint(
     )
     + sum(
         model.vStorageInpRetiredNewCap[st1, r, yp, y]
-        for yp in year
-        if (st1, r, yp, y) in mvStorageRetiredNewCap
+        for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
     )
     >= pStorageInpRetLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+model.eqStorageInpRetFx = Constraint(
+    mStorageInpRetFx,
+    rule=lambda model, st1, r, y: (
+        model.vStorageInpRetiredStock[st1, r, y]
+        if (st1, r, y) in mvStorageRetiredStock
+        else 0
+    )
+    + sum(
+        model.vStorageInpRetiredNewCap[st1, r, yp, y]
+        for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
+    )
+    == pStorageInpRetLo.get((st1, r, y)) * pPeriodLen.get((y)),
 )
 # eqStorageStgRetiredNewCap(stg, region, year)$meqStorageRetiredNewCap
 model.eqStorageStgRetiredNewCap = Constraint(
@@ -1301,8 +1695,7 @@ model.eqStorageStgRetiredNewCap = Constraint(
     rule=lambda model, st1, r, y: (
         sum(
             model.vStorageStgRetiredNewCap[st1, r, y, yp] * pPeriodLen.get((yp))
-            for yp in year
-            if (st1, r, y, yp) in mvStorageRetiredNewCap
+            for yp in mvStorageRetiredNewCap_ix3_012.get((st1, r, y), ())
         )
         <= model.vStorageStgNewCap[st1, r, y] * pPeriodLen.get((y))
         if (st1, r, y) in mStorageStgNew
@@ -1319,7 +1712,7 @@ model.eqStorageStgStockCap = Constraint(
         for yp in year
         if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageStgCap)
     )
-    + pStorageStgStockNew.get((st1, r, y))
+    + (pStorageStgStockNew.get((st1, r, y)) + (pStorageStgStock.get((st1, r, y)) if y in mMilestoneFirst else 0))
     - (model.vStorageStgRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0)
     * pPeriodLen.get((y)),
 )
@@ -1333,8 +1726,7 @@ model.eqStorageStgRetUp = Constraint(
     )
     + sum(
         model.vStorageStgRetiredNewCap[st1, r, yp, y]
-        for yp in year
-        if (st1, r, yp, y) in mvStorageRetiredNewCap
+        for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
     )
     <= pStorageStgRetUp.get((st1, r, y)) * pPeriodLen.get((y)),
 )
@@ -1348,10 +1740,22 @@ model.eqStorageStgRetLo = Constraint(
     )
     + sum(
         model.vStorageStgRetiredNewCap[st1, r, yp, y]
-        for yp in year
-        if (st1, r, yp, y) in mvStorageRetiredNewCap
+        for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
     )
     >= pStorageStgRetLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+model.eqStorageStgRetFx = Constraint(
+    mStorageStgRetFx,
+    rule=lambda model, st1, r, y: (
+        model.vStorageStgRetiredStock[st1, r, y]
+        if (st1, r, y) in mvStorageRetiredStock
+        else 0
+    )
+    + sum(
+        model.vStorageStgRetiredNewCap[st1, r, yp, y]
+        for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
+    )
+    == pStorageStgRetLo.get((st1, r, y)) * pPeriodLen.get((y)),
 )
 # eqStorageRetCost(stg, region, year)$mStorageRetCost
 model.eqStorageRetCost = Constraint(
@@ -1366,8 +1770,7 @@ model.eqStorageRetCost = Constraint(
         )
         + sum(
             model.vStorageOutRetiredNewCap[st1, r, yp, y]
-            for yp in year
-            if (st1, r, yp, y) in mvStorageRetiredNewCap
+            for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
         )
     )
     + pStorageInpRetCost.get((st1, r, y))
@@ -1379,8 +1782,7 @@ model.eqStorageRetCost = Constraint(
         )
         + sum(
             model.vStorageInpRetiredNewCap[st1, r, yp, y]
-            for yp in year
-            if (st1, r, yp, y) in mvStorageRetiredNewCap
+            for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
         )
     )
     + pStorageStgRetCost.get((st1, r, y))
@@ -1392,8 +1794,7 @@ model.eqStorageRetCost = Constraint(
         )
         + sum(
             model.vStorageStgRetiredNewCap[st1, r, yp, y]
-            for yp in year
-            if (st1, r, yp, y) in mvStorageRetiredNewCap
+            for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
         )
     ),
 )
@@ -1403,8 +1804,7 @@ model.eqTradeRetiredNewCap = Constraint(
     rule=lambda model, t1, y: (
         sum(
             model.vTradeRetiredNewCap[t1, y, yp] * pPeriodLen.get((yp))
-            for yp in year
-            if (t1, y, yp) in mvTradeRetiredNewCap
+            for yp in mvTradeRetiredNewCap_ix2_01.get((t1, y), ())
         )
         <= model.vTradeNewCap[t1, y] * pPeriodLen.get((y))
         if (t1, y) in mTradeNew
@@ -1421,7 +1821,7 @@ model.eqTradeStockCap = Constraint(
         for yp in year
         if ((yp, y) in mMilestoneNext and (t1, yp) in mTradeSpan)
     )
-    + pTradeStockNew.get((t1, y))
+    + (pTradeStockNew.get((t1, y)) + (pTradeStock.get((t1, y)) if y in mMilestoneFirst else 0))
     - (model.vTradeRetiredStock[t1, y] if (t1, y) in mvTradeRetiredStock else 0)
     * pPeriodLen.get((y)),
 )
@@ -1435,17 +1835,17 @@ model.eqTradePhaseOut = Constraint(
         if ((yp, y) in mMilestoneNext and (t1, yp) in mTradeSpan)
     )
     - model.vTradeCap[t1, y]
-    + model.vTradeNewCap[t1, y] * pPeriodLen.get((y))
+    + (model.vTradeNewCap[t1, y] if (t1, y) in mTradeNew else 0)
+    * pPeriodLen.get((y))
     - (
         (model.vTradeRetiredStock[t1, y] if (t1, y) in mvTradeRetiredStock else 0)
         + sum(
             model.vTradeRetiredNewCap[t1, yp, y]
-            for yp in year
-            if (t1, yp, y) in mvTradeRetiredNewCap
+            for yp in mvTradeRetiredNewCap_ix1_02.get((t1, y), ())
         )
     )
     * pPeriodLen.get((y))
-    + pTradeStockNew.get((t1, y)),
+    + (pTradeStockNew.get((t1, y)) + (pTradeStock.get((t1, y)) if y in mMilestoneFirst else 0)),
 )
 # eqTradeStockPhaseOut -- what the schedule actually removed.
 model.eqTradeStockPhaseOut = Constraint(
@@ -1466,8 +1866,7 @@ model.eqTradeRetUp = Constraint(
     )
     + sum(
         model.vTradeRetiredNewCap[t1, yp, y]
-        for yp in year
-        if (t1, yp, y) in mvTradeRetiredNewCap
+        for yp in mvTradeRetiredNewCap_ix1_02.get((t1, y), ())
     )
     <= pTradeRetUp.get((t1, y)) * pPeriodLen.get((y)),
 )
@@ -1479,10 +1878,20 @@ model.eqTradeRetLo = Constraint(
     )
     + sum(
         model.vTradeRetiredNewCap[t1, yp, y]
-        for yp in year
-        if (t1, yp, y) in mvTradeRetiredNewCap
+        for yp in mvTradeRetiredNewCap_ix1_02.get((t1, y), ())
     )
     >= pTradeRetLo.get((t1, y)) * pPeriodLen.get((y)),
+)
+model.eqTradeRetFx = Constraint(
+    mTradeRetFx,
+    rule=lambda model, t1, y: (
+        model.vTradeRetiredStock[t1, y] if (t1, y) in mvTradeRetiredStock else 0
+    )
+    + sum(
+        model.vTradeRetiredNewCap[t1, yp, y]
+        for yp in mvTradeRetiredNewCap_ix1_02.get((t1, y), ())
+    )
+    == pTradeRetLo.get((t1, y)) * pPeriodLen.get((y)),
 )
 # eqTradeRetCost(trade, region, year)$mTradeRetCost
 model.eqTradeRetCost = Constraint(
@@ -1493,8 +1902,7 @@ model.eqTradeRetCost = Constraint(
         (model.vTradeRetiredStock[t1, y] if (t1, y) in mvTradeRetiredStock else 0)
         + sum(
             model.vTradeRetiredNewCap[t1, yp, y]
-            for yp in year
-            if (t1, yp, y) in mvTradeRetiredNewCap
+            for yp in mvTradeRetiredNewCap_ix1_02.get((t1, y), ())
         )
     ),
 )
@@ -1516,12 +1924,11 @@ model.eqTechPhaseOut = Constraint(
         (model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0)
         + sum(
             model.vTechRetiredNewCap[t, r, yp, y]
-            for yp in year
-            if (t, r, yp, y) in mvTechRetiredNewCap
+            for yp in mvTechRetiredNewCap_ix2_013.get((t, r, y), ())
         )
     )
     * pPeriodLen.get((y))
-    + pTechStockNew.get((t, r, y)),
+    + (pTechStockNew.get((t, r, y)) + (pTechStock.get((t, r, y)) if y in mMilestoneFirst else 0)),
 )
 # eqStoragePhaseOut -- end-of-life departure, read off the capacity balance.
 # `max(0, dStock)` covers exogenous stock APPEARING mid-horizon: an inflow, not
@@ -1530,32 +1937,31 @@ model.eqStoragePhaseOut = Constraint(
     mvStoragePhaseOut,
     rule=lambda model, st1, r, y: model.vStoragePhaseOut[st1, r, y] * pPeriodLen.get((y))
     == sum(
-        model.vStorageOutCap[st1, r, yp]
+        model.vStorageStgCap[st1, r, yp]
         for yp in year
         if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageSpan)
     )
-    - model.vStorageOutCap[st1, r, y]
-    + (model.vStorageOutNewCap[st1, r, y] if (st1, r, y) in mStorageNew else 0)
+    - model.vStorageStgCap[st1, r, y]
+    + (model.vStorageStgNewCap[st1, r, y] if (st1, r, y) in mStorageStgNew else 0)
     * pPeriodLen.get((y))
     - (
-        (model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0)
+        (model.vStorageStgRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0)
         + sum(
-            model.vStorageOutRetiredNewCap[st1, r, yp, y]
-            for yp in year
-            if (st1, r, yp, y) in mvStorageRetiredNewCap
+            model.vStorageStgRetiredNewCap[st1, r, yp, y]
+            for yp in mvStorageRetiredNewCap_ix2_013.get((st1, r, y), ())
         )
     )
     * pPeriodLen.get((y))
-    + pStorageOutStockNew.get((st1, r, y)),
+    + (pStorageStgStockNew.get((st1, r, y)) + (pStorageStgStock.get((st1, r, y)) if y in mMilestoneFirst else 0)),
 )
 # eqStorageStockPhaseOut -- what the schedule actually removed.
 model.eqStorageStockPhaseOut = Constraint(
     mvStoragePhaseOut,
     rule=lambda model, st1, r, y: model.vStorageStockPhaseOut[st1, r, y]
     * pPeriodLen.get((y))
-    == (1 - pStorageOutStockSurv.get((st1, r, y)))
+    == (1 - pStorageStgStockSurv.get((st1, r, y)))
     * sum(
-        model.vStorageOutStockCap[st1, r, yp]
+        model.vStorageStgStockCap[st1, r, yp]
         for yp in year
         if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageSpan)
     ),
@@ -1576,8 +1982,7 @@ model.eqTechRetCost = Constraint(
             if (t, r, yp, y) in mvTechRetiredNewCap
             else 0
         )
-        for yp in year
-        if (t, r, yp, y) in mvTechRetiredNewCap
+        for yp in mvTechRetiredNewCap_ix2_013.get((t, r, y), ())
     ),
 )
 if verbose:
@@ -1594,15 +1999,17 @@ if verbose:
 sys.stdout.flush()
 # [eac-fix] vintaged new-capacity form (pTechEac applies to NEW capacity only);
 # reverted from the simplified pTechEac*vTechCap (which charged annuity on stock too).
+# vTechNewCap is an annual build rate; pPeriodLen[yp] converts it to the
+# vintage's standing capacity (the same accumulation as eqTechCap).
 model.eqTechEac = Constraint(
     mTechEac,
     rule=lambda model, t, r, y: model.vTechEac[t, r, y]
     == sum(
         pTechEac.get((t, r, yp))
         * (
-            model.vTechNewCap[t, r, yp]
+            pPeriodLen.get((yp)) * model.vTechNewCap[t, r, yp]
             - sum(
-                model.vTechRetiredNewCap[t, r, yp, ye]
+                model.vTechRetiredNewCap[t, r, yp, ye] * pPeriodLen.get((ye))
                 for ye in year
                 if (
                     (t, r, yp, ye) in mvTechRetiredNewCap
@@ -1691,33 +2098,41 @@ model.eqTechVarom = Constraint(
         + sum(
             pTechCvarom.get((t, c, r, y, s))
             * pTimesliceWeight.get((y, s))
-            * model.vTechInp[t, c, r, y, s]
-            for c in comm
-            if (t, c) in mTechInpComm
+            * (model.vTechInp[t, c, r, y, s] if (t, c, r, y, s) in mvTechInp else 0)
+            + sum(
+                pTechCvarom.get((t, c, r, y, s))
+                * pTimesliceWeight.get((y, s))
+                * model.vTechInp[t, c, rp, y, s]
+                for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+            )
+            + sum(
+                pTechCvarom.get((t, c, r, y, s))
+                * pTimesliceWeight.get((y, sp))
+                * model.vTechInp[t, c, r, y, sp]
+                for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
+            )
+            for c in mTechInpComm_ix1_0.get(t, ())
         )
         + sum(
             pTechCvarom.get((t, c, r, y, s))
             * pTimesliceWeight.get((y, s))
             * model.vTechOut[t, c, r, y, s]
-            for c in comm
-            if (t, c) in mTechOutComm
+            for c in mTechOutComm_ix.get(t, ())
         )
-        + sum(
-            pTechAvarom.get((t, c, r, y, s))
-            * pTimesliceWeight.get((y, s))
-            * model.vTechAOut[t, c, r, y, s]
-            for c in comm
-            if (t, c, r, y, s) in mvTechAOut
-        )
-        + sum(
-            pTechAvarom.get((t, c, r, y, s))
-            * pTimesliceWeight.get((y, s))
-            * model.vTechAInp[t, c, r, y, s]
-            for c in comm
-            if (t, c, r, y, s) in mvTechAInp
-        )
-        for s in timeslice
-        if (t, s) in mTechTimeslice
+        for s in mTechTimeslice_ix.get(t, ())
+    )
+    # aux flows sit at their commodity's slices, not the technology's
+    + sum(
+        pTechAvarom.get((t, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vTechAOut[t, c, r, y, s]
+        for (c, s) in mvTechAOut_ix3.get((t, r, y), ())
+    )
+    + sum(
+        pTechAvarom.get((t, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vTechAInp[t, c, r, y, s]
+        for (c, s) in mvTechAInp_ix3.get((t, r, y), ())
     ),
 )
 if verbose:
@@ -1737,9 +2152,8 @@ model.eqSupAvaUp = Constraint(
     rule=lambda model, s1, c, r, y, s: model.vSupOut[s1, c, r, y, s]
     <= pSupAvaUp.get((s1, c, r, y, s))
     * prod(
-        pSupWeatherUp.get((wth1, s1)) * pWeather.get((wth1, r, y, s))
-        for wth1 in weather
-        if (wth1, s1) in mSupWeatherUp
+        pSupWeatherUp.get((wth1, s1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mSupWeatherUp_ix.get(s1, ())
     ),
 )
 if verbose:
@@ -1759,9 +2173,17 @@ model.eqSupAvaLo = Constraint(
     rule=lambda model, s1, c, r, y, s: model.vSupOut[s1, c, r, y, s]
     >= pSupAvaLo.get((s1, c, r, y, s))
     * prod(
-        pSupWeatherLo.get((wth1, s1)) * pWeather.get((wth1, r, y, s))
-        for wth1 in weather
-        if (wth1, s1) in mSupWeatherLo
+        pSupWeatherLo.get((wth1, s1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mSupWeatherLo_ix.get(s1, ())
+    ),
+)
+model.eqSupAvaFx = Constraint(
+    meqSupAvaFx,
+    rule=lambda model, s1, c, r, y, s: model.vSupOut[s1, c, r, y, s]
+    == pSupAvaLo.get((s1, c, r, y, s))
+    * prod(
+        pSupWeatherLo.get((wth1, s1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mSupWeatherLo_ix.get(s1, ())
     ),
 )
 if verbose:
@@ -1782,8 +2204,7 @@ model.eqSupReserve = Constraint(
     == sum(
         pPeriodLen.get((y)) * pTimesliceWeight.get((y, s)) * model.vSupOut[s1, c, r, y, s]
         for y in year
-        for s in timeslice
-        if (s1, c, r, y, s) in mSupAva
+        for s in mSupAva_ix.get((s1, c, r, y), ())
     ),
 )
 if verbose:
@@ -1820,6 +2241,11 @@ model.eqSupReserveLo = Constraint(
     rule=lambda model, s1, c, r: model.vSupReserve[s1, c, r]
     >= pSupReserveLo.get((s1, c, r)),
 )
+model.eqSupReserveFx = Constraint(
+    meqSupReserveFx,
+    rule=lambda model, s1, c, r: model.vSupReserve[s1, c, r]
+    == pSupReserveLo.get((s1, c, r)),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -1840,8 +2266,7 @@ model.eqSupCost = Constraint(
         * pTimesliceWeight.get((y, s))
         * model.vSupOut[s1, c, r, y, s]
         for c in comm
-        for s in timeslice
-        if (s1, c, r, y, s) in mSupAva
+        for s in mSupAva_ix.get((s1, c, r, y), ())
     ),
 )
 if verbose:
@@ -1879,7 +2304,8 @@ model.eqAggOutTot = Constraint(
     == sum(
         pAggregateFactor.get((c, cp))
         * sum(
-            (model.vOutTot[cp, r, y, sp] if (cp, r, y, sp) in mvOutTot else 0)
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vOutTot[cp, r, y, sp] if (cp, r, y, sp) in mvOutTot else 0)
             for sp in timeslice
             if (
                 (c, r, y, sp) in mvOutTot
@@ -1887,8 +2313,7 @@ model.eqAggOutTot = Constraint(
                 and (cp, sp) in mCommTimeslice
             )
         )
-        for cp in comm
-        if (c, cp) in mAggregateFactor
+        for cp in mAggregateFactor_ix.get(c, ())
     ),
 )
 if verbose:
@@ -1911,16 +2336,15 @@ model.eqEmsFuelTot = Constraint(
         * sum(
             pTechEmisComm.get((t, cp))
             * sum(
-                (
+                pTimesliceAgg.get((y, s, sp))
+                * (
                     model.vTechInp[t, cp, r, y, sp]
                     if (t, c, cp, r, y, sp) in mTechEmsFuel
                     else 0
                 )
-                for sp in timeslice
-                if (c, s, sp) in mCommTimesliceOrParent
+                for sp in mCommTimesliceOrParent_ix.get((c, s), ())
             )
-            for t in tech
-            if (t, cp) in mTechInpComm
+            for t in mTechInpComm_ix0_1.get(cp, ())
         )
         for cp in comm
         if (pEmissionFactor.get((c, cp)) > 0)
@@ -1935,73 +2359,38 @@ if verbose:
         sep="",
     )
 # eqStorageAInp(stg, comm, region, year, timeslice)$mvStorageAInp(stg, comm, region, year, timeslice)
+# aux flow at the AUX COMMODITY's slice s: part capacities are per year x share,
+# level/charge/discharge summed over the storage's own slices sp; each flow
+# follows its OWN role's commodity set
 if verbose:
     print("eqStorageAInp ", end="")
 sys.stdout.flush()
 model.eqStorageAInp = Constraint(
-    mvStorageAInp,
-    rule=lambda model, st1, c, r, y, s: model.vStorageAInp[st1, c, r, y, s]
-    ==
-    # [multi-commodity] each referenced flow follows its OWN role's commodity set,
-    # and the two capacity terms leave the commodity sum -- inside it they were
-    # multiplied by 1 for a single-commodity storage but would be counted once per
-    # commodity now that the roles can differ.
-    sum(
-        (
-            (
-                pStorageStg2AInp.get((st1, c, r, y, s))
-                * model.vStorageLevel[st1, cp, r, y, s]
-            )
-            if (st1, c, r, y, s) in mStorageStg2AInp
-            else 0
-        )
-        for cp in comm
-        if (st1, cp) in mStorageStgComm
+    meqStorageAInp,
+    # a process coarser than this aux commodity holds the flow in the finer
+    # cells beneath its own; the sum is empty at the commodity's own level
+    rule=lambda model, st1, c, r, y, s: (model.vStorageAInp[st1, c, r, y, s] if (st1, c, r, y, s) in mvStorageAInp else 0)
+    + sum(model.vStorageAInp[st1, c, rp, y, s]
+          for rp in mStorageProcAggRegion_ix.get((st1, c, r), ())
+          if (st1, c, rp, y, s) in mvStorageAInp)
+    == pTimesliceShare.get((s)) * (
+        ((pStorageOutCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutCap[st1, r, y]) if (st1, c, r, y, s) in mStorageOutCap2AInp else 0)
+        + ((pStorageOutNCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y]) if (st1, c, r, y, s) in mStorageOutNCap2AInp else 0)
+        + ((pStorageInpCap2AInp.get((st1, c, r, y, s)) * model.vStorageInpCap[st1, r, y]) if (st1, c, r, y, s) in mStorageInpCap2AInp else 0)
+        + ((pStorageInpNCap2AInp.get((st1, c, r, y, s)) * model.vStorageInpNewCap[st1, r, y]) if (st1, c, r, y, s) in mStorageInpNCap2AInp else 0)
+        + ((pStorageStgCap2AInp.get((st1, c, r, y, s)) * model.vStorageStgCap[st1, r, y]) if (st1, c, r, y, s) in mStorageStgCap2AInp else 0)
+        + ((pStorageStgNCap2AInp.get((st1, c, r, y, s)) * model.vStorageStgNewCap[st1, r, y]) if (st1, c, r, y, s) in mStorageStgNCap2AInp else 0)
+        + ((pStoragePho2AInp.get((st1, c, r, y, s)) * (model.vStoragePhaseOut[st1, r, y] if (st1, r, y) in mvStoragePhaseOut else 0)) if (st1, c, r, y, s) in mStoragePho2AInp else 0)
+        + ((pStorageRet2AInp.get((st1, c, r, y, s)) * ((model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0) + sum(model.vStorageOutRetiredNewCap[st1, r, yp, y] for yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap))) if (st1, c, r, y, s) in mStorageRet2AInp else 0)
     )
     + sum(
-        (
-            (
-                pStorageCinp2AInp.get((st1, c, r, y, s))
-                * model.vStorageInp[st1, cp, r, y, s]
-            )
-            if (st1, c, r, y, s) in mStorageCinp2AInp
-            else 0
+        pTimesliceAgg.get((y, s, sp)) * (
+            sum(((pStorageStg2AInp.get((st1, c, r, y, sp)) * model.vStorageLevel[st1, cp, r, y, sp]) if (st1, c, r, y, sp) in mStorageStg2AInp else 0) for cp in mStorageStgComm_ix.get(st1, ()))
+            + sum(((pStorageCinp2AInp.get((st1, c, r, y, sp)) * model.vStorageInp[st1, cp, r, y, sp]) if (st1, c, r, y, sp) in mStorageCinp2AInp else 0) for cp in mStorageInpComm_ix.get(st1, ()))
+            + sum(((pStorageCout2AInp.get((st1, c, r, y, sp)) * model.vStorageOut[st1, cp, r, y, sp]) if (st1, c, r, y, sp) in mStorageCout2AInp else 0) for cp in mStorageOutComm_ix.get(st1, ()))
         )
-        for cp in comm
-        if (st1, cp) in mStorageInpComm
-    )
-    + sum(
-        (
-            (
-                pStorageCout2AInp.get((st1, c, r, y, s))
-                * model.vStorageOut[st1, cp, r, y, s]
-            )
-            if (st1, c, r, y, s) in mStorageCout2AInp
-            else 0
-        )
-        for cp in comm
-        if (st1, cp) in mStorageOutComm
-    )
-    + (
-            (pStorageCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageCap2AInp
-            else 0
-        )
-    + (
-            (pStorageNCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageNCap2AInp
-            else 0
-        )
-    + (
-            (pStoragePho2AInp.get((st1, c, r, y, s)) * (model.vStoragePhaseOut[st1, r, y] if (st1, r, y) in mvStoragePhaseOut else 0))
-            if (st1, c, r, y, s) in mStoragePho2AInp
-            else 0
-        )
-    + (
-            (pStorageRet2AInp.get((st1, c, r, y, s)) * ((model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0) + sum(model.vStorageOutRetiredNewCap[st1, r, yp, y] for yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap)))
-            if (st1, c, r, y, s) in mStorageRet2AInp
-            else 0
-        ),
+        for sp in mCommTimesliceOrParent_ix.get((c, s), ())
+    ),
 )
 if verbose:
     print(
@@ -2012,73 +2401,38 @@ if verbose:
         sep="",
     )
 # eqStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, region, year, timeslice)
+# aux flow at the AUX COMMODITY's slice s: part capacities are per year x share,
+# level/charge/discharge summed over the storage's own slices sp; each flow
+# follows its OWN role's commodity set
 if verbose:
     print("eqStorageAOut ", end="")
 sys.stdout.flush()
 model.eqStorageAOut = Constraint(
-    mvStorageAOut,
-    rule=lambda model, st1, c, r, y, s: model.vStorageAOut[st1, c, r, y, s]
-    ==
-    # [multi-commodity] each referenced flow follows its OWN role's commodity set,
-    # and the two capacity terms leave the commodity sum -- inside it they were
-    # multiplied by 1 for a single-commodity storage but would be counted once per
-    # commodity now that the roles can differ.
-    sum(
-        (
-            (
-                pStorageStg2AOut.get((st1, c, r, y, s))
-                * model.vStorageLevel[st1, cp, r, y, s]
-            )
-            if (st1, c, r, y, s) in mStorageStg2AOut
-            else 0
-        )
-        for cp in comm
-        if (st1, cp) in mStorageStgComm
+    meqStorageAOut,
+    # a process coarser than this aux commodity holds the flow in the finer
+    # cells beneath its own; the sum is empty at the commodity's own level
+    rule=lambda model, st1, c, r, y, s: (model.vStorageAOut[st1, c, r, y, s] if (st1, c, r, y, s) in mvStorageAOut else 0)
+    + sum(model.vStorageAOut[st1, c, rp, y, s]
+          for rp in mStorageProcAggRegion_ix.get((st1, c, r), ())
+          if (st1, c, rp, y, s) in mvStorageAOut)
+    == pTimesliceShare.get((s)) * (
+        ((pStorageOutCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutCap[st1, r, y]) if (st1, c, r, y, s) in mStorageOutCap2AOut else 0)
+        + ((pStorageOutNCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y]) if (st1, c, r, y, s) in mStorageOutNCap2AOut else 0)
+        + ((pStorageInpCap2AOut.get((st1, c, r, y, s)) * model.vStorageInpCap[st1, r, y]) if (st1, c, r, y, s) in mStorageInpCap2AOut else 0)
+        + ((pStorageInpNCap2AOut.get((st1, c, r, y, s)) * model.vStorageInpNewCap[st1, r, y]) if (st1, c, r, y, s) in mStorageInpNCap2AOut else 0)
+        + ((pStorageStgCap2AOut.get((st1, c, r, y, s)) * model.vStorageStgCap[st1, r, y]) if (st1, c, r, y, s) in mStorageStgCap2AOut else 0)
+        + ((pStorageStgNCap2AOut.get((st1, c, r, y, s)) * model.vStorageStgNewCap[st1, r, y]) if (st1, c, r, y, s) in mStorageStgNCap2AOut else 0)
+        + ((pStoragePho2AOut.get((st1, c, r, y, s)) * (model.vStoragePhaseOut[st1, r, y] if (st1, r, y) in mvStoragePhaseOut else 0)) if (st1, c, r, y, s) in mStoragePho2AOut else 0)
+        + ((pStorageRet2AOut.get((st1, c, r, y, s)) * ((model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0) + sum(model.vStorageOutRetiredNewCap[st1, r, yp, y] for yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap))) if (st1, c, r, y, s) in mStorageRet2AOut else 0)
     )
     + sum(
-        (
-            (
-                pStorageCinp2AOut.get((st1, c, r, y, s))
-                * model.vStorageInp[st1, cp, r, y, s]
-            )
-            if (st1, c, r, y, s) in mStorageCinp2AOut
-            else 0
+        pTimesliceAgg.get((y, s, sp)) * (
+            sum(((pStorageStg2AOut.get((st1, c, r, y, sp)) * model.vStorageLevel[st1, cp, r, y, sp]) if (st1, c, r, y, sp) in mStorageStg2AOut else 0) for cp in mStorageStgComm_ix.get(st1, ()))
+            + sum(((pStorageCinp2AOut.get((st1, c, r, y, sp)) * model.vStorageInp[st1, cp, r, y, sp]) if (st1, c, r, y, sp) in mStorageCinp2AOut else 0) for cp in mStorageInpComm_ix.get(st1, ()))
+            + sum(((pStorageCout2AOut.get((st1, c, r, y, sp)) * model.vStorageOut[st1, cp, r, y, sp]) if (st1, c, r, y, sp) in mStorageCout2AOut else 0) for cp in mStorageOutComm_ix.get(st1, ()))
         )
-        for cp in comm
-        if (st1, cp) in mStorageInpComm
-    )
-    + sum(
-        (
-            (
-                pStorageCout2AOut.get((st1, c, r, y, s))
-                * model.vStorageOut[st1, cp, r, y, s]
-            )
-            if (st1, c, r, y, s) in mStorageCout2AOut
-            else 0
-        )
-        for cp in comm
-        if (st1, cp) in mStorageOutComm
-    )
-    + (
-            (pStorageCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageCap2AOut
-            else 0
-        )
-    + (
-            (pStorageNCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageNCap2AOut
-            else 0
-        )
-    + (
-            (pStoragePho2AOut.get((st1, c, r, y, s)) * (model.vStoragePhaseOut[st1, r, y] if (st1, r, y) in mvStoragePhaseOut else 0))
-            if (st1, c, r, y, s) in mStoragePho2AOut
-            else 0
-        )
-    + (
-            (pStorageRet2AOut.get((st1, c, r, y, s)) * ((model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0) + sum(model.vStorageOutRetiredNewCap[st1, r, yp, y] for yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap)))
-            if (st1, c, r, y, s) in mStorageRet2AOut
-            else 0
-        ),
+        for sp in mCommTimesliceOrParent_ix.get((c, s), ())
+    ),
 )
 if verbose:
     print(
@@ -2097,8 +2451,8 @@ model.eqStorageLevel = Constraint(
     rule=lambda model, st1, c, r, y, sp, s: model.vStorageLevel[st1, c, r, y, s]
     == pStorageStartLevel.get((st1, c, r, y, s))
     + (
-        (pStorageNCap2Stg.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y])
-        if (st1, r, y) in mStorageNew
+        (pStorageNCap2Stg.get((st1, c, r, y, s)) * model.vStorageStgNewCap[st1, r, y])
+        if (st1, r, y) in mStorageStgNew
         else 0
     )
     # [multi-commodity] the level is kept in `c`, but what fills and empties it need
@@ -2107,16 +2461,24 @@ model.eqStorageLevel = Constraint(
     # has a single term and this is the previous equation exactly.
     + sum(
         pStorageInpEff.get((st1, ci, r, y, sp)) * model.vStorageInp[st1, ci, r, y, sp]
-        for ci in comm
-        if (st1, ci, r, y, sp) in mvStorageInp
+        for ci in mvStorageInp_ix.get((st1, r, y, sp), ())
+    )
+    # a storage COARSER than its charging commodity draws it at the regions
+    # beneath its own; the efficiency is read at the FINE region
+    + sum(
+        sum(
+            pStorageInpEff.get((st1, ci, r, y, sp))
+            * model.vStorageInp[st1, ci, rp, y, sp]
+            for rp in mStorageProcAggRegion_ix.get((st1, ci, r), ())
+        )
+        for ci in mStorageInpComm_ix.get(st1, ())
     )
     + ((pStorageStgEff.get((st1, c, r, y, s))) ** (pTimesliceShare.get((s))))
     * model.vStorageLevel[st1, c, r, y, sp]
     - sum(
         (model.vStorageOut[st1, co, r, y, sp])
         / (pStorageOutEff.get((st1, co, r, y, sp)))
-        for co in comm
-        if (st1, co, r, y, sp) in mvStorageOut
+        for co in mvStorageOut_ix.get((st1, r, y, sp), ())
     ),
 )
 if verbose:
@@ -2143,9 +2505,24 @@ model.eqStorageAfLo = Constraint(
         else pStorageDurationLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
     )
     * prod(
-        pStorageWeatherAfLo.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
-        for wth1 in weather
-        if (wth1, st1) in mStorageWeatherAfLo
+        pStorageWeatherAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mStorageWeatherAfLo_ix.get(st1, ())
+    ),
+)
+model.eqStorageAfFx = Constraint(
+    meqStorageAfFx,
+    rule=lambda model, st1, c, r, y, s: model.vStorageLevel[st1, c, r, y, s]
+    == pStorageAfLo.get((st1, r, y, s))
+    # [2c] the storing side is its own variable where it carries data;
+    # elsewhere the duration ratio is inlined onto the output capacity.
+    * (
+        model.vStorageStgCap[st1, r, y]
+        if (st1, r, y) in mStorageStgCap
+        else pStorageDurationLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
+    )
+    * prod(
+        pStorageWeatherAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mStorageWeatherAfLo_ix.get(st1, ())
     ),
 )
 if verbose:
@@ -2172,9 +2549,8 @@ model.eqStorageAfUp = Constraint(
         else pStorageDurationUp.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
     )
     * prod(
-        pStorageWeatherAfUp.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
-        for wth1 in weather
-        if (wth1, st1) in mStorageWeatherAfUp
+        pStorageWeatherAfUp.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mStorageWeatherAfUp_ix.get(st1, ())
     ),
 )
 if verbose:
@@ -2194,8 +2570,7 @@ model.eqStorageOutLevel = Constraint(
     rule=lambda model, st1, c, r, y, s: sum(
         (model.vStorageOut[st1, co, r, y, s])
         / (pStorageOutEff.get((st1, co, r, y, s)))
-        for co in comm
-        if (st1, co, r, y, s) in mvStorageOut
+        for co in mvStorageOut_ix.get((st1, r, y, s), ())
     )
     <= model.vStorageLevel[st1, c, r, y, s],
 )
@@ -2226,9 +2601,8 @@ model.eqStorageInpUp = Constraint(
     * pTimesliceShare.get((s))
     * pStorageInpAfUp.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherInpAfUp.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
-        for wth1 in weather
-        if (wth1, st1) in mStorageWeatherInpAfUp
+        pStorageWeatherInpAfUp.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mStorageWeatherInpAfUp_ix.get(st1, ())
     ),
 )
 if verbose:
@@ -2258,9 +2632,27 @@ model.eqStorageInpLo = Constraint(
     * pTimesliceShare.get((s))
     * pStorageInpAfLo.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherInpAfLo.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
-        for wth1 in weather
-        if (wth1, st1) in mStorageWeatherInpAfLo
+        pStorageWeatherInpAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mStorageWeatherInpAfLo_ix.get(st1, ())
+    ),
+)
+model.eqStorageInpFx = Constraint(
+    meqStorageInpFx,
+    rule=lambda model, st1, c, r, y, s: model.vStorageInp[st1, c, r, y, s]
+    == (
+        # [2c] the charging side is its own variable where it carries data;
+        # elsewhere inp2out is inlined onto the output capacity.
+        model.vStorageInpCap[st1, r, y]
+        if (st1, r, y) in mStorageInpCap
+        else pStorageInp2outLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
+    )
+    # [rate] capacity is per HOUR, not per timeslice
+    * pStorageInpCap2act.get((st1))
+    * pTimesliceShare.get((s))
+    * pStorageInpAfLo.get((st1, c, r, y, s))
+    * prod(
+        pStorageWeatherInpAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mStorageWeatherInpAfLo_ix.get(st1, ())
     ),
 )
 if verbose:
@@ -2283,9 +2675,8 @@ model.eqStorageOutUp = Constraint(
     * pTimesliceShare.get((s))
     * pStorageOutAfUp.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherOutAfUp.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
-        for wth1 in weather
-        if (wth1, st1) in mStorageWeatherOutAfUp
+        pStorageWeatherOutAfUp.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mStorageWeatherOutAfUp_ix.get(st1, ())
     ),
 )
 if verbose:
@@ -2308,9 +2699,20 @@ model.eqStorageOutLo = Constraint(
     * pTimesliceShare.get((s))
     * pStorageOutAfLo.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherOutAfLo.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
-        for wth1 in weather
-        if (wth1, st1) in mStorageWeatherOutAfLo
+        pStorageWeatherOutAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mStorageWeatherOutAfLo_ix.get(st1, ())
+    ),
+)
+model.eqStorageOutFx = Constraint(
+    meqStorageOutFx,
+    rule=lambda model, st1, c, r, y, s: model.vStorageOut[st1, c, r, y, s]
+    == model.vStorageOutCap[st1, r, y]
+    * pStorageOutCap2act.get((st1))
+    * pTimesliceShare.get((s))
+    * pStorageOutAfLo.get((st1, c, r, y, s))
+    * prod(
+        pStorageWeatherOutAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        for wth1 in mStorageWeatherOutAfLo_ix.get(st1, ())
     ),
 )
 if verbose:
@@ -2326,7 +2728,7 @@ if verbose:
     print("eqStorageOutCap ", end="")
 sys.stdout.flush()
 model.eqStorageOutCap = Constraint(
-    mStorageSpan,
+    mStorageOutCap,
     rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
     == model.vStorageOutStockCap[st1, r, y]
     + sum(
@@ -2346,7 +2748,7 @@ model.eqStorageOutCap = Constraint(
                 (st1, r) in mStorageOlifeInf
                 or ordYear.get((y)) < pStorageOlife.get((st1, r)) + ordYear.get((yp))
             )
-            and (st1, r, yp) in mStorageNew
+            and (st1, r, yp) in mStorageOutNew
         )
     ),
 )
@@ -2391,6 +2793,11 @@ model.eqStorageInpCapLo = Constraint(
     rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
     >= pStorageInpCapLo.get((st1, r, y)),
 )
+model.eqStorageInpCapFx = Constraint(
+    mStorageInpCapFx,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    == pStorageInpCapLo.get((st1, r, y)),
+)
 model.eqStorageInpCapUp = Constraint(
     mStorageInpCapUp,
     rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
@@ -2400,6 +2807,11 @@ model.eqStorageInpNewCapLo = Constraint(
     mStorageInpNewCapLo,
     rule=lambda model, st1, r, y: model.vStorageInpNewCap[st1, r, y]
     >= pStorageInpNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+model.eqStorageInpNewCapFx = Constraint(
+    mStorageInpNewCapFx,
+    rule=lambda model, st1, r, y: model.vStorageInpNewCap[st1, r, y]
+    == pStorageInpNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
 )
 model.eqStorageInpNewCapUp = Constraint(
     mStorageInpNewCapUp,
@@ -2412,10 +2824,33 @@ model.eqStorageInp2outLo = Constraint(
     rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
     >= pStorageInp2outLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y],
 )
+model.eqStorageInp2outFx = Constraint(
+    mStorageInp2outFx,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    == pStorageInp2outLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y],
+)
 model.eqStorageInp2outUp = Constraint(
     mStorageInp2outUp,
     rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
     <= pStorageInp2outUp.get((st1, r, y)) * model.vStorageOutCap[st1, r, y],
+)
+# The inp2stg LINK (charging C-rate, 1/h): charging capacity per unit of
+# storing (energy) capacity. No binding default -- the maps carry only rows
+# with a declared finite bound where both capacity variables exist.
+model.eqStorageInp2stgLo = Constraint(
+    mStorageInp2stgLo,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    >= pStorageInp2stgLo.get((st1, r, y)) * model.vStorageStgCap[st1, r, y],
+)
+model.eqStorageInp2stgFx = Constraint(
+    mStorageInp2stgFx,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    == pStorageInp2stgLo.get((st1, r, y)) * model.vStorageStgCap[st1, r, y],
+)
+model.eqStorageInp2stgUp = Constraint(
+    mStorageInp2stgUp,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    <= pStorageInp2stgUp.get((st1, r, y)) * model.vStorageStgCap[st1, r, y],
 )
 # eqStorageStgCap -- the STORING side's own capacity, in ENERGY. Exists only
 # where the storing part carries data; elsewhere the af bounds inline duration.
@@ -2447,6 +2882,11 @@ model.eqStorageStgCapLo = Constraint(
     rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
     >= pStorageStgCapLo.get((st1, r, y)),
 )
+model.eqStorageStgCapFx = Constraint(
+    mStorageStgCapFx,
+    rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
+    == pStorageStgCapLo.get((st1, r, y)),
+)
 model.eqStorageStgCapUp = Constraint(
     mStorageStgCapUp,
     rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
@@ -2456,6 +2896,11 @@ model.eqStorageStgNewCapLo = Constraint(
     mStorageStgNewCapLo,
     rule=lambda model, st1, r, y: model.vStorageStgNewCap[st1, r, y]
     >= pStorageStgNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+model.eqStorageStgNewCapFx = Constraint(
+    mStorageStgNewCapFx,
+    rule=lambda model, st1, r, y: model.vStorageStgNewCap[st1, r, y]
+    == pStorageStgNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
 )
 model.eqStorageStgNewCapUp = Constraint(
     mStorageStgNewCapUp,
@@ -2468,6 +2913,11 @@ model.eqStorageDurationLo = Constraint(
     rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
     >= pStorageDurationLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y],
 )
+model.eqStorageDurationFx = Constraint(
+    mStorageDurationFx,
+    rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
+    == pStorageDurationLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y],
+)
 model.eqStorageDurationUp = Constraint(
     mStorageDurationUp,
     rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
@@ -2477,6 +2927,11 @@ model.eqStorageOutCapLo = Constraint(
     mStorageOutCapLo,
     rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
     >= pStorageOutCapLo.get((st1, r, y)),
+)
+model.eqStorageOutCapFx = Constraint(
+    mStorageOutCapFx,
+    rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
+    == pStorageOutCapLo.get((st1, r, y)),
 )
 if verbose:
     print(
@@ -2512,6 +2967,11 @@ model.eqStorageOutNewCapLo = Constraint(
     rule=lambda model, st1, r, y: model.vStorageOutNewCap[st1, r, y]
     >= pStorageOutNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
 )
+model.eqStorageOutNewCapFx = Constraint(
+    mStorageOutNewCapFx,
+    rule=lambda model, st1, r, y: model.vStorageOutNewCap[st1, r, y]
+    == pStorageOutNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -2544,7 +3004,8 @@ sys.stdout.flush()
 model.eqStorageInv = Constraint(
     mStorageNew,
     rule=lambda model, st1, r, y: model.vStorageInv[st1, r, y]
-    == pStorageOutInvcost.get((st1, r, y)) * model.vStorageOutNewCap[st1, r, y]
+    == (pStorageOutInvcost.get((st1, r, y)) * model.vStorageOutNewCap[st1, r, y]
+        if (st1, r, y) in mStorageOutNew else 0)
     # [2c] the storing side's capital cost is per unit of ENERGY.
     + (
         pStorageStgInvcost.get((st1, r, y)) * model.vStorageStgNewCap[st1, r, y]
@@ -2570,12 +3031,16 @@ if verbose:
     print("eqStorageEac ", end="")
 sys.stdout.flush()
 # [eac-fix] vintaged new-capacity form (pStorageOutEac applies to NEW capacity only).
+# New-cap variables are annual build rates; pPeriodLen[yp] converts to the
+# vintage's standing capacity (the same accumulation as the cap equations).
 model.eqStorageEac = Constraint(
     mStorageEac,
     rule=lambda model, st1, r, y: model.vStorageEac[st1, r, y]
     == sum(
-        (
-            pStorageOutEac.get((st1, r, yp)) * model.vStorageOutNewCap[st1, r, yp]
+        pPeriodLen.get((yp))
+        * (
+            (pStorageOutEac.get((st1, r, yp)) * model.vStorageOutNewCap[st1, r, yp]
+             if (st1, r, yp) in mStorageOutNew else 0)
             # [2c] the storing side annuitises separately, same lifetime.
             + (
                 pStorageStgEac.get((st1, r, yp))
@@ -2612,7 +3077,7 @@ model.eqStorageEac = Constraint(
             )
             # [eac-fix] the `pStorageOutInvcost <> 0` guard was REMOVED from the summation
             # condition below. It dropped the annuity entirely when a user supplied
-            # `@invcost$eac` without `invcost` (pre-annuitised capex, e.g. a PyPSA import),
+            # `@invcost$eac` without `invcost` (pre-annuitised capex),
             # so the storage was built for FREE -- silently, with an OPTIMAL solve.
             # eqTechEac / eqTradeEac never carried it. pStorageOutEac defaults to 0, so a
             # vintage with no capital cost now contributes a zero-coefficient term instead
@@ -2635,7 +3100,8 @@ sys.stdout.flush()
 model.eqStorageFixom = Constraint(
     mStorageFixom,
     rule=lambda model, st1, r, y: model.vStorageFixom[st1, r, y]
-    == pStorageOutFixom.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
+    == (pStorageOutFixom.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
+        if (st1, r, y) in mStorageOutCap else 0)
     + (
         pStorageStgFixom.get((st1, r, y)) * model.vStorageStgCap[st1, r, y]
         if (st1, r, y) in mStorageStgFixom
@@ -2670,11 +3136,21 @@ model.eqStorageVarom = Constraint(
             pStorageCostInp.get((st1, r, y, s))
             * pTimesliceWeight.get((y, s))
             * model.vStorageInp[st1, c, r, y, s]
-            for s in timeslice
-            if (c, s) in mCommTimeslice
+            for s in mCommTimeslice_ix.get(c, ())
         )
-        for c in comm
-        if (st1, c) in mStorageInpComm
+        for c in mStorageInpComm_ix.get(st1, ())
+    )
+    + sum(
+        sum(
+            sum(
+                pStorageCostInp.get((st1, r, y, s))
+                * pTimesliceWeight.get((y, s))
+                * model.vStorageInp[st1, c, rp, y, s]
+                for s in mCommTimeslice_ix.get(c, ())
+            )
+            for rp in mStorageProcAggRegion_ix.get((st1, c, r), ())
+        )
+        for c in mStorageInpComm_ix.get(st1, ())
     )
     +
     sum(
@@ -2682,11 +3158,9 @@ model.eqStorageVarom = Constraint(
             pStorageCostOut.get((st1, r, y, s))
             * pTimesliceWeight.get((y, s))
             * model.vStorageOut[st1, c, r, y, s]
-            for s in timeslice
-            if (c, s) in mCommTimeslice
+            for s in mCommTimeslice_ix.get(c, ())
         )
-        for c in comm
-        if (st1, c) in mStorageOutComm
+        for c in mStorageOutComm_ix.get(st1, ())
     )
     +
     sum(
@@ -2694,11 +3168,9 @@ model.eqStorageVarom = Constraint(
             pStorageCostStore.get((st1, r, y, s))
             * pTimesliceWeight.get((y, s))
             * model.vStorageLevel[st1, c, r, y, s]
-            for s in timeslice
-            if (c, s) in mCommTimeslice
+            for s in mCommTimeslice_ix.get(c, ())
         )
-        for c in comm
-        if (st1, c) in mStorageStgComm
+        for c in mStorageStgComm_ix.get(st1, ())
     ),
 )
 if verbose:
@@ -2742,8 +3214,7 @@ model.eqImportTot = Constraint(
     )
     + sum(
         (model.vImportRow[i, c, dst, y, s] if (i, c, dst, y, s) in mImportRow else 0)
-        for i in imp
-        if (i, c) in mImpComm
+        for i in mImpComm_ix.get(c, ())
     ),
 )
 if verbose:
@@ -2772,8 +3243,7 @@ model.eqExportTot = Constraint(
     )
     + sum(
         (model.vExportRow[e, c, src, y, s] if (e, c, src, y, s) in mExportRow else 0)
-        for e in expp
-        if (e, c) in mExpComm
+        for e in mExpComm_ix.get(c, ())
     ),
 )
 if verbose:
@@ -2809,6 +3279,11 @@ model.eqTradeFlowLo = Constraint(
     meqTradeFlowLo,
     rule=lambda model, t1, c, src, dst, y, s: model.vTradeIr[t1, c, src, dst, y, s]
     >= pTradeIrLo.get((t1, src, dst, y, s)),
+)
+model.eqTradeFlowFx = Constraint(
+    meqTradeFlowFx,
+    rule=lambda model, t1, c, src, dst, y, s: model.vTradeIr[t1, c, src, dst, y, s]
+    == pTradeIrLo.get((t1, src, dst, y, s)),
 )
 if verbose:
     print(
@@ -2856,6 +3331,14 @@ model.eqTradeIrAfLo = Constraint(
     * model.vTradeCap[t1, y]
     * pTimesliceShare.get((s)),
 )
+model.eqTradeIrAfFx = Constraint(
+    meqTradeIrAfFx,
+    rule=lambda model, t1, c, src, dst, y, s: model.vTradeIr[t1, c, src, dst, y, s]
+    == pTradeIrAfLo.get((t1, src, dst, y, s))
+    * pTradeCap2Act.get((t1))
+    * model.vTradeCap[t1, y]
+    * pTimesliceShare.get((s)),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -2885,14 +3368,11 @@ model.eqImportIrCost = Constraint(
                     if (t1, c, src, r, y, s) in mvTradeIr
                     else 0
                 )
-                for s in timeslice
-                if (t1, s) in mTradeTimeslice
+                for s in mTradeTimeslice_ix.get(t1, ())
             )
-            for c in comm
-            if (t1, c) in mTradeComm
+            for c in mTradeComm_ix.get(t1, ())
         )
-        for src in region
-        if (t1, src, r) in mTradeRoutes
+        for src in mTradeRoutes_ix1_02.get((t1, r), ())
     ),
 )
 if verbose:
@@ -2916,7 +3396,7 @@ model.eqExportIrCost = Constraint(
                 (
                     (
                         (
-                            pTradeIrCost.get((t1, r, dst, y, s))
+                            pTradeIrVarom.get((t1, r, dst, y, s))
                             - pTradeIrMarkup.get((t1, r, dst, y, s))
                         )
                         * model.vTradeIr[t1, c, r, dst, y, s]
@@ -2925,14 +3405,11 @@ model.eqExportIrCost = Constraint(
                     if (t1, c, r, dst, y, s) in mvTradeIr
                     else 0
                 )
-                for s in timeslice
-                if (t1, s) in mTradeTimeslice
+                for s in mTradeTimeslice_ix.get(t1, ())
             )
-            for c in comm
-            if (t1, c) in mTradeComm
+            for c in mTradeComm_ix.get(t1, ())
         )
-        for dst in region
-        if (t1, r, dst) in mTradeRoutes
+        for dst in mTradeRoutes_ix2_01.get((t1, r), ())
     ),
 )
 if verbose:
@@ -2969,6 +3446,11 @@ model.eqExportRowLo = Constraint(
     rule=lambda model, e, c, r, y, s: model.vExportRow[e, c, r, y, s]
     >= pExportRowLo.get((e, r, y, s)),
 )
+model.eqExportRowFx = Constraint(
+    meqExportRowFx,
+    rule=lambda model, e, c, r, y, s: model.vExportRow[e, c, r, y, s]
+    == pExportRowLo.get((e, r, y, s)),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -2988,8 +3470,7 @@ model.eqExportRowCum = Constraint(
         pPeriodLen.get((y)) * pTimesliceWeight.get((y, s)) * model.vExportRow[e, c, r, y, s]
         for r in region
         for y in year
-        for s in timeslice
-        if (e, c, r, y, s) in mExportRow
+        for s in mExportRow_ix.get((e, c, r, y), ())
     ),
 )
 if verbose:
@@ -3028,8 +3509,7 @@ model.eqExportRowCost = Constraint(
         * pTimesliceWeight.get((y, s))
         * model.vExportRow[e, c, r, y, s]
         for c in comm
-        for s in timeslice
-        if (e, c, r, y, s) in mExportRow
+        for s in mExportRow_ix.get((e, c, r, y), ())
     ),
 )
 if verbose:
@@ -3066,6 +3546,11 @@ model.eqImportRowLo = Constraint(
     rule=lambda model, i, c, r, y, s: model.vImportRow[i, c, r, y, s]
     >= pImportRowLo.get((i, r, y, s)),
 )
+model.eqImportRowFx = Constraint(
+    meqImportRowFx,
+    rule=lambda model, i, c, r, y, s: model.vImportRow[i, c, r, y, s]
+    == pImportRowLo.get((i, r, y, s)),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -3085,8 +3570,7 @@ model.eqImportRowCum = Constraint(
         pPeriodLen.get((y)) * pTimesliceWeight.get((y, s)) * model.vImportRow[i, c, r, y, s]
         for r in region
         for y in year
-        for s in timeslice
-        if (i, c, r, y, s) in mImportRow
+        for s in mImportRow_ix.get((i, c, r, y), ())
     ),
 )
 if verbose:
@@ -3125,8 +3609,7 @@ model.eqImportRowCost = Constraint(
         * pTimesliceWeight.get((y, s))
         * model.vImportRow[i, c, r, y, s]
         for c in comm
-        for s in timeslice
-        if (i, c, r, y, s) in mImportRow
+        for s in mImportRow_ix.get((i, c, r, y), ())
     ),
 )
 if verbose:
@@ -3205,6 +3688,10 @@ model.eqTradeCapLo = Constraint(
     mTradeCapLo,
     rule=lambda model, t1, y: model.vTradeCap[t1, y] >= pTradeCapLo.get((t1, y)),
 )
+model.eqTradeCapFx = Constraint(
+    mTradeCapFx,
+    rule=lambda model, t1, y: model.vTradeCap[t1, y] == pTradeCapLo.get((t1, y)),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -3237,6 +3724,11 @@ model.eqTradeNewCapLo = Constraint(
     mTradeNewCapLo,
     rule=lambda model, t1, y: model.vTradeNewCap[t1, y] * pPeriodLen.get((y))
     >= pTradeNewCapLo.get((t1, y)),
+)
+model.eqTradeNewCapFx = Constraint(
+    mTradeNewCapFx,
+    rule=lambda model, t1, y: model.vTradeNewCap[t1, y] * pPeriodLen.get((y))
+    == pTradeNewCapLo.get((t1, y)),
 )
 if verbose:
     print(
@@ -3290,7 +3782,7 @@ model.eqTradeEac = Constraint(
     mTradeEac,
     rule=lambda model, t1, r, y: model.vTradeEac[t1, r, y]
     == sum(
-        pTradeEac.get((t1, r, yp)) * model.vTradeNewCap[t1, yp]
+        pTradeEac.get((t1, r, yp)) * pPeriodLen.get((yp)) * model.vTradeNewCap[t1, yp]
         for yp in year
         if (
             (t1, yp) in mTradeNew
@@ -3352,8 +3844,7 @@ model.eqTradeIrAInp = Constraint(
             for cp in comm
             if ((t1, cp) in mTradeComm and (t1, cp, r, dst, y, s) in mvTradeIr)
         )
-        for dst in region
-        if (t1, c, r, dst, y, s) in mTradeIrCsrc2Ainp
+        for dst in mTradeIrCsrc2Ainp_ix.get((t1, c, r, y, s), ())
     )
     + sum(
         pTradeIrCdst2Ainp.get((t1, c, src, r, y, s))
@@ -3362,8 +3853,7 @@ model.eqTradeIrAInp = Constraint(
             for cp in comm
             if ((t1, cp) in mTradeComm and (t1, cp, src, r, y, s) in mvTradeIr)
         )
-        for src in region
-        if (t1, c, src, r, y, s) in mTradeIrCdst2Ainp
+        for src in mTradeIrCdst2Ainp_ix.get((t1, c, r, y, s), ())
     ),
 )
 if verbose:
@@ -3388,8 +3878,7 @@ model.eqTradeIrAOut = Constraint(
             for cp in comm
             if ((t1, cp) in mTradeComm and (t1, cp, r, dst, y, s) in mvTradeIr)
         )
-        for dst in region
-        if (t1, c, r, dst, y, s) in mTradeIrCsrc2Aout
+        for dst in mTradeIrCsrc2Aout_ix.get((t1, c, r, y, s), ())
     )
     + sum(
         pTradeIrCdst2Aout.get((t1, c, src, r, y, s))
@@ -3398,8 +3887,7 @@ model.eqTradeIrAOut = Constraint(
             for cp in comm
             if ((t1, cp) in mTradeComm and (t1, cp, src, r, y, s) in mvTradeIr)
         )
-        for src in region
-        if (t1, c, src, r, y, s) in mTradeIrCdst2Aout
+        for src in mTradeIrCdst2Aout_ix.get((t1, c, r, y, s), ())
     ),
 )
 if verbose:
@@ -3418,7 +3906,7 @@ model.eqTradeIrAInpTot = Constraint(
     mvTradeIrAInpTot,
     rule=lambda model, c, r, y, s: model.vTradeIrAInpTot[c, r, y, s]
     == sum(
-        model.vTradeIrAInp[t1, c, r, y, sp]
+        pTimesliceAgg.get((y, s, sp)) * model.vTradeIrAInp[t1, c, r, y, sp]
         for t1 in trade
         for sp in timeslice
         if ((c, s, sp) in mCommTimesliceOrParent and (t1, c, r, y, sp) in mvTradeIrAInp)
@@ -3440,7 +3928,7 @@ model.eqTradeIrAOutTot = Constraint(
     mvTradeIrAOutTot,
     rule=lambda model, c, r, y, s: model.vTradeIrAOutTot[c, r, y, s]
     == sum(
-        model.vTradeIrAOut[t1, c, r, y, sp]
+        pTimesliceAgg.get((y, s, sp)) * model.vTradeIrAOut[t1, c, r, y, sp]
         for t1 in trade
         for sp in timeslice
         if ((c, s, sp) in mCommTimesliceOrParent and (t1, c, r, y, sp) in mvTradeIrAOut)
@@ -3535,17 +4023,17 @@ model.eqOutTot = Constraint(
     + (model.vTradeIrAOutTot[c, r, y, s] if (c, r, y, s) in mvTradeIrAOutTot else 0)
     # [agg-rewrite] up-aggregation of immediately-finer children (replaces vOut2Lo)
     + sum(
-        pTimesliceAgg.get((y, s, sp), 0) * model.vOutTot[c, r, y, sp]
-        for sp in timeslice
-        if ((s, sp) in mTimesliceFamily and (c, r, y, sp) in mvOutTot)
+        pTimesliceAgg.get((y, s, sp)) * model.vOutTot[c, r, y, sp]
+        for sp in mTimesliceFamily_ix.get(s, ())
+        if (c, r, y, sp) in mvOutTot
     )
     # [nested-regions] up-aggregation of the immediately-finer region level.
     # Plain sum: regional quantities are extensive, unlike the intensive
     # timeslice values above.
     + sum(
         model.vOutTot[c, rp, y, s]
-        for rp in region
-        if ((r, rp) in mRegionFamily and (c, rp, y, s) in mvOutTot)
+        for rp in mRegionFamily_ix.get(r, ())
+        if (c, rp, y, s) in mvOutTot and (c, s) in mCommTimeslice
     ),
 )
 if verbose:
@@ -3574,17 +4062,17 @@ model.eqInpTot = Constraint(
     + (model.vTradeIrAInpTot[c, r, y, s] if (c, r, y, s) in mvTradeIrAInpTot else 0)
     # [agg-rewrite] up-aggregation of immediately-finer children (replaces vInp2Lo)
     + sum(
-        pTimesliceAgg.get((y, s, sp), 0) * model.vInpTot[c, r, y, sp]
-        for sp in timeslice
-        if ((s, sp) in mTimesliceFamily and (c, r, y, sp) in mvInpTot)
+        pTimesliceAgg.get((y, s, sp)) * model.vInpTot[c, r, y, sp]
+        for sp in mTimesliceFamily_ix.get(s, ())
+        if (c, r, y, sp) in mvInpTot
     )
     # [nested-regions] up-aggregation of the immediately-finer region level.
     # Plain sum: regional quantities are extensive, unlike the intensive
     # timeslice values above.
     + sum(
         model.vInpTot[c, rp, y, s]
-        for rp in region
-        if ((r, rp) in mRegionFamily and (c, rp, y, s) in mvInpTot)
+        for rp in mRegionFamily_ix.get(r, ())
+        if (c, rp, y, s) in mvInpTot and (c, s) in mCommTimeslice
     ),
 )
 if verbose:
@@ -3632,31 +4120,27 @@ model.eqTechInpTot = Constraint(
     rule=lambda model, c, r, y, s: model.vTechInpTot[c, r, y, s]
     == sum(
         (model.vTechInp[t, c, r, y, s] if (t, c, r, y, s) in mvTechInp else 0)
-        for t in tech
-        if (t, c) in mTechInpCommSameTimeslice
+        for t in mTechInpCommSameTimeslice_ix.get(c, ())
     )
     + sum(
         sum(
-            (model.vTechInp[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechInp else 0)
-            for sp in timeslice
-            if (t, c, sp, s) in mTechInpCommAggTimeslice
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vTechInp[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechInp else 0)
+            for sp in mTechInpCommAggTimeslice_ix.get((t, c, s), ())
         )
-        for t in tech
-        if (t, c) in mTechInpCommAgg
+        for t in mTechInpCommAgg_ix.get(c, ())
     )
     + sum(
         (model.vTechAInp[t, c, r, y, s] if (t, c, r, y, s) in mvTechAInp else 0)
-        for t in tech
-        if (t, c) in mTechAInpCommSameTimeslice
+        for t in mTechAInpCommSameTimeslice_ix.get(c, ())
     )
     + sum(
         sum(
-            (model.vTechAInp[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechAInp else 0)
-            for sp in timeslice
-            if (t, c, sp, s) in mTechAInpCommAggTimeslice
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vTechAInp[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechAInp else 0)
+            for sp in mTechAInpCommAggTimeslice_ix.get((t, c, s), ())
         )
-        for t in tech
-        if (t, c) in mTechAInpCommAgg
+        for t in mTechAInpCommAgg_ix.get(c, ())
     ),
 )
 if verbose:
@@ -3676,31 +4160,27 @@ model.eqTechOutTot = Constraint(
     rule=lambda model, c, r, y, s: model.vTechOutTot[c, r, y, s]
     == sum(
         (model.vTechOut[t, c, r, y, s] if (t, c, r, y, s) in mvTechOut else 0)
-        for t in tech
-        if (t, c) in mTechOutCommSameTimeslice
+        for t in mTechOutCommSameTimeslice_ix.get(c, ())
     )
     + sum(
         sum(
-            (model.vTechOut[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechOut else 0)
-            for sp in timeslice
-            if (t, c, sp, s) in mTechOutCommAggTimeslice
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vTechOut[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechOut else 0)
+            for sp in mTechOutCommAggTimeslice_ix.get((t, c, s), ())
         )
-        for t in tech
-        if (t, c) in mTechOutCommAgg
+        for t in mTechOutCommAgg_ix.get(c, ())
     )
     + sum(
         (model.vTechAOut[t, c, r, y, s] if (t, c, r, y, s) in mvTechAOut else 0)
-        for t in tech
-        if (t, c) in mTechAOutCommSameTimeslice
+        for t in mTechAOutCommSameTimeslice_ix.get(c, ())
     )
     + sum(
         sum(
-            (model.vTechAOut[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechAOut else 0)
-            for sp in timeslice
-            if (t, c, sp, s) in mTechAOutCommAggTimeslice
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vTechAOut[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechAOut else 0)
+            for sp in mTechAOutCommAggTimeslice_ix.get((t, c, s), ())
         )
-        for t in tech
-        if (t, c) in mTechAOutCommAgg
+        for t in mTechAOutCommAgg_ix.get(c, ())
     ),
 )
 if verbose:
@@ -3721,31 +4201,27 @@ model.eqStorageInpTot = Constraint(
     rule=lambda model, c, r, y, s: model.vStorageInpTot[c, r, y, s]
     == sum(
         (model.vStorageInp[st1, c, r, y, s] if (st1, c, r, y, s) in mvStorageInp else 0)
-        for st1 in stg
-        if (st1, c) in mStorageInpCommSameTimeslice
+        for st1 in mStorageInpCommSameTimeslice_ix.get(c, ())
     )
     + sum(
         sum(
-            (model.vStorageInp[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageInp else 0)
-            for sp in timeslice
-            if (st1, c, sp, s) in mStorageInpCommAggTimeslice
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vStorageInp[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageInp else 0)
+            for sp in mStorageInpCommAggTimeslice_ix.get((st1, c, s), ())
         )
-        for st1 in stg
-        if (st1, c) in mStorageInpCommAgg
+        for st1 in mStorageInpCommAgg_ix.get(c, ())
     )
     + sum(
         (model.vStorageAInp[st1, c, r, y, s] if (st1, c, r, y, s) in mvStorageAInp else 0)
-        for st1 in stg
-        if (st1, c) in mStorageAInpCommSameTimeslice
+        for st1 in mStorageAInpCommSameTimeslice_ix.get(c, ())
     )
     + sum(
         sum(
-            (model.vStorageAInp[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageAInp else 0)
-            for sp in timeslice
-            if (st1, c, sp, s) in mStorageAInpCommAggTimeslice
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vStorageAInp[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageAInp else 0)
+            for sp in mStorageAInpCommAggTimeslice_ix.get((st1, c, s), ())
         )
-        for st1 in stg
-        if (st1, c) in mStorageAInpCommAgg
+        for st1 in mStorageAInpCommAgg_ix.get(c, ())
     ),
 )
 if verbose:
@@ -3765,31 +4241,27 @@ model.eqStorageOutTot = Constraint(
     rule=lambda model, c, r, y, s: model.vStorageOutTot[c, r, y, s]
     == sum(
         (model.vStorageOut[st1, c, r, y, s] if (st1, c, r, y, s) in mvStorageOut else 0)
-        for st1 in stg
-        if (st1, c) in mStorageOutCommSameTimeslice
+        for st1 in mStorageOutCommSameTimeslice_ix.get(c, ())
     )
     + sum(
         sum(
-            (model.vStorageOut[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageOut else 0)
-            for sp in timeslice
-            if (st1, c, sp, s) in mStorageOutCommAggTimeslice
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vStorageOut[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageOut else 0)
+            for sp in mStorageOutCommAggTimeslice_ix.get((st1, c, s), ())
         )
-        for st1 in stg
-        if (st1, c) in mStorageOutCommAgg
+        for st1 in mStorageOutCommAgg_ix.get(c, ())
     )
     + sum(
         (model.vStorageAOut[st1, c, r, y, s] if (st1, c, r, y, s) in mvStorageAOut else 0)
-        for st1 in stg
-        if (st1, c) in mStorageAOutCommSameTimeslice
+        for st1 in mStorageAOutCommSameTimeslice_ix.get(c, ())
     )
     + sum(
         sum(
-            (model.vStorageAOut[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageAOut else 0)
-            for sp in timeslice
-            if (st1, c, sp, s) in mStorageAOutCommAggTimeslice
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vStorageAOut[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageAOut else 0)
+            for sp in mStorageAOutCommAggTimeslice_ix.get((st1, c, s), ())
         )
-        for st1 in stg
-        if (st1, c) in mStorageAOutCommAgg
+        for st1 in mStorageAOutCommAgg_ix.get(c, ())
     ),
 )
 if verbose:
@@ -3811,8 +4283,7 @@ model.eqDummyImportCost = Constraint(
         pTimesliceWeight.get((y, s))
         * pDummyImportCost.get((c, r, y, s))
         * (model.vDummyImport[c, r, y, s] if (c, r, y, s) in mDummyImport else 0)
-        for s in timeslice
-        if (c, r, y, s) in mDummyImport
+        for s in mDummyImport_ix.get((c, r, y), ())
     ),
 )
 if verbose:
@@ -3834,8 +4305,7 @@ model.eqDummyExportCost = Constraint(
         pTimesliceWeight.get((y, s))
         * pDummyExportCost.get((c, r, y, s))
         * (model.vDummyExport[c, r, y, s] if (c, r, y, s) in mDummyExport else 0)
-        for s in timeslice
-        if (c, r, y, s) in mDummyExport
+        for s in mDummyExport_ix.get((c, r, y), ())
     ),
 )
 if verbose:
@@ -3846,33 +4316,104 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTaxCost(comm, region, year)$mTaxCost(comm, region, year)
+# eqTaxCost(levy, region, year)$mTaxCost(levy, region, year)
 if verbose:
     print("eqTaxCost ", end="")
 sys.stdout.flush()
 model.eqTaxCost = Constraint(
     mTaxCost,
-    rule=lambda model, c, r, y: model.vTaxCost[c, r, y]
+    rule=lambda model, lv, r, y: model.vTaxCost[lv, r, y]
     == sum(
-        pTaxCostOut.get((c, r, y, s))
+        pTaxCostOut.get((lv, c, r, y, s))
         * pTimesliceWeight.get((y, s))
         * model.vOutTot[c, r, y, s]
+        for c in comm
         for s in timeslice
-        if ((c, r, y, s) in mvOutTot and (c, s) in mCommTimeslice)
+        if ((c, r, y, s) in mvOutTot and (c, s) in mCommTimeslice and pTaxCostOut.get((lv, c, r, y, s)) != 0)
     )
     + sum(
-        pTaxCostInp.get((c, r, y, s))
+        pTaxCostInp.get((lv, c, r, y, s))
         * pTimesliceWeight.get((y, s))
         * model.vInpTot[c, r, y, s]
+        for c in comm
         for s in timeslice
-        if ((c, r, y, s) in mvInpTot and (c, s) in mCommTimeslice)
+        if ((c, r, y, s) in mvInpTot and (c, s) in mCommTimeslice and pTaxCostInp.get((lv, c, r, y, s)) != 0)
     )
     + sum(
-        pTaxCostBal.get((c, r, y, s))
+        pTaxCostBal.get((lv, c, r, y, s))
         * pTimesliceWeight.get((y, s))
         * model.vBalance[c, r, y, s]
+        for c in comm
         for s in timeslice
-        if ((c, r, y, s) in mvBalance and (c, s) in mCommTimeslice)
+        if ((c, r, y, s) in mvBalance and (c, s) in mCommTimeslice and pTaxCostBal.get((lv, c, r, y, s)) != 0)
+    )
+    + sum(
+        pTaxProcAct.get((lv, t, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vTechAct[t, r, y, s]
+        for t in tech
+        for s in timeslice
+        if ((t, r, y, s) in mvTechAct and pTaxProcAct.get((lv, t, r, y, s)) != 0)
+    )
+    + sum(
+        pTaxProcInp.get((lv, t, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vTechInp[t, c, r, y, s]
+        for t in tech
+        for c in comm
+        for s in timeslice
+        if ((t, c, r, y, s) in mvTechInp and pTaxProcInp.get((lv, t, c, r, y, s)) != 0)
+    )
+    + sum(
+        pTaxProcOut.get((lv, t, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vTechOut[t, c, r, y, s]
+        for t in tech
+        for c in comm
+        for s in timeslice
+        if ((t, c, r, y, s) in mvTechOut and pTaxProcOut.get((lv, t, c, r, y, s)) != 0)
+    )
+    + sum(
+        pTaxProcCap.get((lv, t, r, y))
+        * model.vTechCap[t, r, y]
+        for t in tech
+        if ((t, r, y) in mTechSpan and pTaxProcCap.get((lv, t, r, y)) != 0)
+    )
+    + sum(
+        pTaxProcNcap.get((lv, t, r, y))
+        * model.vTechNewCap[t, r, y]
+        for t in tech
+        if ((t, r, y) in mTechNew and pTaxProcNcap.get((lv, t, r, y)) != 0)
+    )
+    + sum(
+        pTaxProcInp.get((lv, st1, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vStorageInp[st1, c, r, y, s]
+        for st1 in stg
+        for c in comm
+        for s in timeslice
+        if ((st1, c) in mStorageInpComm and (c, s) in mCommTimeslice and pTaxProcInp.get((lv, st1, c, r, y, s)) != 0)
+    )
+    + sum(
+        pTaxProcOut.get((lv, st1, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vStorageOut[st1, c, r, y, s]
+        for st1 in stg
+        for c in comm
+        for s in timeslice
+        if ((st1, c) in mStorageOutComm and (c, s) in mCommTimeslice and pTaxProcOut.get((lv, st1, c, r, y, s)) != 0)
+    )
+    + sum(
+        pTaxProcCap.get((lv, st1, r, y))
+        * model.vStorageOutCap[st1, r, y]
+        for st1 in stg
+        if ((st1, r, y) in mStorageOutCap and pTaxProcCap.get((lv, st1, r, y)) != 0)
+    )
+    + sum(
+        pTaxProcNcap.get((lv, st1, r, y))
+        * model.vStorageOutNewCap[st1, r, y]
+        for st1 in stg
+        if ((st1, r, y) in mStorageOutNew and pTaxProcNcap.get((lv, st1, r, y)) != 0)
     ),
 )
 if verbose:
@@ -3883,33 +4424,104 @@ if verbose:
         " s)",
         sep="",
     )
-# eqSubsCost(comm, region, year)$mSubCost(comm, region, year)
+# eqSubsCost(levy, region, year)$mSubCost(levy, region, year)
 if verbose:
     print("eqSubsCost ", end="")
 sys.stdout.flush()
 model.eqSubsCost = Constraint(
     mSubCost,
-    rule=lambda model, c, r, y: model.vSubsCost[c, r, y]
+    rule=lambda model, lv, r, y: model.vSubsCost[lv, r, y]
     == -sum(
-        pSubCostOut.get((c, r, y, s))
+        pSubCostOut.get((lv, c, r, y, s))
         * pTimesliceWeight.get((y, s))
         * model.vOutTot[c, r, y, s]
+        for c in comm
         for s in timeslice
-        if ((c, r, y, s) in mvOutTot and (c, s) in mCommTimeslice)
+        if ((c, r, y, s) in mvOutTot and (c, s) in mCommTimeslice and pSubCostOut.get((lv, c, r, y, s)) != 0)
     )
     - sum(
-        pSubCostInp.get((c, r, y, s))
+        pSubCostInp.get((lv, c, r, y, s))
         * pTimesliceWeight.get((y, s))
         * model.vInpTot[c, r, y, s]
+        for c in comm
         for s in timeslice
-        if ((c, r, y, s) in mvInpTot and (c, s) in mCommTimeslice)
+        if ((c, r, y, s) in mvInpTot and (c, s) in mCommTimeslice and pSubCostInp.get((lv, c, r, y, s)) != 0)
     )
     - sum(
-        pSubCostBal.get((c, r, y, s))
+        pSubCostBal.get((lv, c, r, y, s))
         * pTimesliceWeight.get((y, s))
         * model.vBalance[c, r, y, s]
+        for c in comm
         for s in timeslice
-        if ((c, r, y, s) in mvBalance and (c, s) in mCommTimeslice)
+        if ((c, r, y, s) in mvBalance and (c, s) in mCommTimeslice and pSubCostBal.get((lv, c, r, y, s)) != 0)
+    )
+    - sum(
+        pSubProcAct.get((lv, t, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vTechAct[t, r, y, s]
+        for t in tech
+        for s in timeslice
+        if ((t, r, y, s) in mvTechAct and pSubProcAct.get((lv, t, r, y, s)) != 0)
+    )
+    - sum(
+        pSubProcInp.get((lv, t, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vTechInp[t, c, r, y, s]
+        for t in tech
+        for c in comm
+        for s in timeslice
+        if ((t, c, r, y, s) in mvTechInp and pSubProcInp.get((lv, t, c, r, y, s)) != 0)
+    )
+    - sum(
+        pSubProcOut.get((lv, t, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vTechOut[t, c, r, y, s]
+        for t in tech
+        for c in comm
+        for s in timeslice
+        if ((t, c, r, y, s) in mvTechOut and pSubProcOut.get((lv, t, c, r, y, s)) != 0)
+    )
+    - sum(
+        pSubProcCap.get((lv, t, r, y))
+        * model.vTechCap[t, r, y]
+        for t in tech
+        if ((t, r, y) in mTechSpan and pSubProcCap.get((lv, t, r, y)) != 0)
+    )
+    - sum(
+        pSubProcNcap.get((lv, t, r, y))
+        * model.vTechNewCap[t, r, y]
+        for t in tech
+        if ((t, r, y) in mTechNew and pSubProcNcap.get((lv, t, r, y)) != 0)
+    )
+    - sum(
+        pSubProcInp.get((lv, st1, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vStorageInp[st1, c, r, y, s]
+        for st1 in stg
+        for c in comm
+        for s in timeslice
+        if ((st1, c) in mStorageInpComm and (c, s) in mCommTimeslice and pSubProcInp.get((lv, st1, c, r, y, s)) != 0)
+    )
+    - sum(
+        pSubProcOut.get((lv, st1, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vStorageOut[st1, c, r, y, s]
+        for st1 in stg
+        for c in comm
+        for s in timeslice
+        if ((st1, c) in mStorageOutComm and (c, s) in mCommTimeslice and pSubProcOut.get((lv, st1, c, r, y, s)) != 0)
+    )
+    - sum(
+        pSubProcCap.get((lv, st1, r, y))
+        * model.vStorageOutCap[st1, r, y]
+        for st1 in stg
+        if ((st1, r, y) in mStorageOutCap and pSubProcCap.get((lv, st1, r, y)) != 0)
+    )
+    - sum(
+        pSubProcNcap.get((lv, st1, r, y))
+        * model.vStorageOutNewCap[st1, r, y]
+        for st1 in stg
+        if ((st1, r, y) in mStorageOutNew and pSubProcNcap.get((lv, st1, r, y)) != 0)
     ),
 )
 if verbose:
@@ -3929,104 +4541,84 @@ model.eqCost = Constraint(
     rule=lambda model, r, y: model.vTotalCost[r, y]
     == +sum(
         (model.vSupCost[s1, r, y] if (s1, r, y) in mvSupCost else 0)
-        for s1 in sup
-        if (s1, r, y) in mvSupCost
+        for s1 in mvSupCost_ix.get((r, y), ())
     )
     + sum(
         (model.vTechEac[t, r, y] if (t, r, y) in mTechEac else 0)
-        for t in tech
-        if (t, r, y) in mTechEac
+        for t in mTechEac_ix.get((r, y), ())
     )
     + sum(
         (model.vTechRetCost[t, r, y] if (t, r, y) in mTechRetCost else 0)
-        for t in tech
-        if (t, r, y) in mTechRetCost
+        for t in mTechRetCost_ix.get((r, y), ())
     )
     + sum(
         (model.vStorageRetCost[st1, r, y] if (st1, r, y) in mStorageRetCost else 0)
-        for st1 in stg
-        if (st1, r, y) in mStorageRetCost
+        for st1 in mStorageRetCost_ix.get((r, y), ())
     )
     + sum(
         (model.vTradeRetCost[t1, r, y] if (t1, r, y) in mTradeRetCost else 0)
-        for t1 in trade
-        if (t1, r, y) in mTradeRetCost
+        for t1 in mTradeRetCost_ix.get((r, y), ())
     )
     + sum(
         (model.vTechFixom[t, r, y] if (t, r, y) in mTechFixom else 0)
-        for t in tech
-        if (t, r, y) in mTechFixom
+        for t in mTechFixom_ix.get((r, y), ())
     )
     + sum(
         (model.vTechVarom[t, r, y] if (t, r, y) in mTechVarom else 0)
-        for t in tech
-        if (t, r, y) in mTechVarom
+        for t in mTechVarom_ix.get((r, y), ())
     )
     + sum(
         (model.vStorageEac[st1, r, y] if (st1, r, y) in mStorageEac else 0)
-        for st1 in stg
-        if (st1, r, y) in mStorageEac
+        for st1 in mStorageEac_ix.get((r, y), ())
     )
     + sum(
         (model.vStorageFixom[st1, r, y] if (st1, r, y) in mStorageFixom else 0)
-        for st1 in stg
-        if (st1, r, y) in mStorageFixom
+        for st1 in mStorageFixom_ix.get((r, y), ())
     )
     + sum(
         (model.vStorageVarom[st1, r, y] if (st1, r, y) in mStorageVarom else 0)
-        for st1 in stg
-        if (st1, r, y) in mStorageVarom
+        for st1 in mStorageVarom_ix.get((r, y), ())
     )
     + sum(
         (model.vImportRowCost[i, r, y] if (i, r, y) in mImportRowCost else 0)
-        for i in imp
-        if (i, r, y) in mImportRowCost
+        for i in mImportRowCost_ix.get((r, y), ())
     )
     + sum(
         (model.vExportRowCost[e, r, y] if (e, r, y) in mExportRowCost else 0)
-        for e in expp
-        if (e, r, y) in mExportRowCost
+        for e in mExportRowCost_ix.get((r, y), ())
     )
     + sum(
         (model.vTradeEac[t1, r, y] if (t1, r, y) in mTradeEac else 0)
-        for t1 in trade
-        if (t1, r, y) in mTradeEac
+        for t1 in mTradeEac_ix.get((r, y), ())
     )
     + sum(
         (model.vTradeFixom[t1, r, y] if (t1, r, y) in mTradeFixom else 0)
-        for t1 in trade
-        if (t1, r, y) in mTradeFixom
+        for t1 in mTradeFixom_ix.get((r, y), ())
     )
     + sum(
         (model.vImportIrCost[t1, r, y] if (t1, r, y) in mImportIrCost else 0)
-        for t1 in trade
-        if (t1, r, y) in mImportIrCost
+        for t1 in mImportIrCost_ix.get((r, y), ())
     )
     + sum(
         (model.vExportIrCost[t1, r, y] if (t1, r, y) in mExportIrCost else 0)
-        for t1 in trade
-        if (t1, r, y) in mExportIrCost
+        for t1 in mExportIrCost_ix.get((r, y), ())
     )
     + sum(
-        (model.vTaxCost[c, r, y] if (c, r, y) in mTaxCost else 0)
-        for c in comm
-        if (c, r, y) in mTaxCost
+        (model.vTaxCost[lv, r, y] if (lv, r, y) in mTaxCost else 0)
+        for lv in mTaxCost_ix.get((r, y), ())
     )
     + sum(
-        (model.vSubsCost[c, r, y] if (c, r, y) in mSubCost else 0)
-        for c in comm
-        if (c, r, y) in mSubCost
+        (model.vSubsCost[lv, r, y] if (lv, r, y) in mSubCost else 0)
+        for lv in mSubCost_ix.get((r, y), ())
     )
     + (model.vTotalUserCosts[r, y] if (r, y) in mvTotalUserCosts else 0)
     + sum(
         (model.vDummyImportCost[c, r, y] if (c, r, y) in mDummyImportCost else 0)
-        for c in comm
-        if (c, r, y) in mDummyImportCost
+        for c in mDummyImportCost_ix.get((r, y), ())
     )
     + sum(
         (model.vDummyExportCost[c, r, y] if (c, r, y) in mDummyExportCost else 0)
-        for c in comm
-        if (c, r, y) in mDummyExportCost
+        for c in mDummyExportCost_ix.get((r, y), ())
     ),
 )
 if verbose:
@@ -4046,8 +4638,7 @@ model.eqObjective = Constraint(
     == sum(
         model.vTotalCost[r, y] * pPeriodLen.get((y)) * pDiscountFactor.get((r, y))
         for r in region
-        for y in year
-        if (r, y) in mvTotalCost
+        for y in mvTotalCost_ix.get(r, ())
     )
 )
 if verbose:
@@ -4066,7 +4657,16 @@ exec(open("inc_constraints.py").read())
 exec(open("inc_costs.py").read())
 exec(open("inc_solver.py").read())
 # opt = SolverFactory('cplex');
-exec(open("inc4.py").read())
+try:
+    exec(open("inc4.py").read())
+except SystemExit as _exc:
+    # A preset may stop here rather than solve -- writing a matrix, for
+    # instance. Flush the log it has written so far (SystemExit would discard
+    # the buffer) and skip teardown for the reason given at the end of the file.
+    flog.flush()
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(_exc.code if isinstance(_exc.code, int) else 0)
 flog.write('"solver",,"' + str(datetime.datetime.now().strftime("%H:%M:%S")) + '"\n')
 print("solving... ")
 slv = opt.solve(model, tee=True)
@@ -4091,3 +4691,10 @@ exec(open("inc5.py").read())
 exec(open("output.py").read())
 flog.write('"done",,"' + str(datetime.datetime.now().strftime("%H:%M:%S")) + '"\n')
 flog.close()
+# Every file this script produces is written and closed above. Interpreter
+# teardown would now walk the whole model to free memory the process is about to
+# return to the OS regardless, which costs minutes at full-year scale and
+# changes nothing on disk.
+sys.stdout.flush()
+sys.stderr.flush()
+os._exit(0)

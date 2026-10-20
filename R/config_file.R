@@ -321,6 +321,8 @@ en_config_show <- function() {
       origin <- applied[[n]]
     } else if (identical(src, "envvar")) {
       origin <- toupper(paste0("ENERGYRT_", n))
+      # `neos_email` keeps an upstream env var name rather than the ENERGYRT_
+      # prefix, because the Pyomo NEOS shim reads it (see R/options.R).
       if (identical(n, "neos_email")) origin <- "NEOS_EMAIL"
     } else if (identical(src, "option")) {
       origin <- paste0("en.", n)

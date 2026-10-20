@@ -10,30 +10,39 @@ Two views of a `demand` object:
 
 - `style = "line"`:
 
-  **profiles** – the within-year demand shape by region and year.
-  Timeslices with an hour tag (`"..._h07"`) are drawn against the hour
-  of day (faceted season x region when a season prefix is present);
-  other calendars fall back to the timeslice sequence.
+  **profiles** – the within-year demand shape, drawn by the same engine
+  as [`plot_weather()`](https://energyRt.org/reference/plot_weather.md):
+  the finest time level on `x`, one line per coarser level, faceted by
+  region and year.
+
+- `style = "heatmap"`:
+
+  a calendar heatmap of the demand shape – the same layout as the
+  [`plot_weather()`](https://energyRt.org/reference/plot_weather.md)
+  heatmap (finest timeframe on `y`, next on `x`), faceted by region and
+  year.
 
 ## Usage
 
 ``` r
 plot_demand(
   object,
-  style = c("area", "line"),
+  style = c("area", "line", "heatmap"),
   year = NULL,
   interpolate = TRUE,
   palette = "D",
+  calendar = NULL,
   ...
 )
 
 # S3 method for class 'demand'
 autoplot(
   object,
-  style = c("area", "line"),
+  style = c("area", "line", "heatmap"),
   year = NULL,
   interpolate = TRUE,
   palette = "D",
+  calendar = NULL,
   ...
 )
 ```
@@ -46,13 +55,14 @@ autoplot(
 
 - style:
 
-  `"area"` (annual totals) or `"line"` (timeslice profiles).
+  `"area"` (annual totals), `"line"` (timeslice profiles) or `"heatmap"`
+  (calendar heatmap by region).
 
 - year:
 
   Optional integer vector of years. For `"area"` these are the
   interpolation targets (default: range of the given years); for
-  `"line"` they filter which given years are shown.
+  `"line"` and `"heatmap"` they filter which given years are shown.
 
 - interpolate:
 
@@ -63,6 +73,10 @@ autoplot(
 
   viridis palette option, as in
   [`ggplot2::scale_fill_viridis_d()`](https://ggplot2.tidyverse.org/reference/scale_viridis.html).
+
+- calendar:
+
+  Optional `calendar` object ordering the heatmap's timeslice axis.
 
 - ...:
 

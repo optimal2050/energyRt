@@ -35,6 +35,7 @@
 #' @slot optimizeRetirement `r get_slot_doc("technology", "optimizeRetirement")`
 #' @slot fullYear `r get_slot_doc("technology", "fullYear")`
 #' @slot timeframe `r get_slot_doc("technology", "timeframe")`
+#' @slot geoframe `r get_slot_doc("technology", "geoframe")`
 #' @slot region `r get_slot_doc("technology", "region")`
 #' @slot misc `r get_slot_doc("technology", "misc")`
 #'
@@ -72,6 +73,7 @@ setClass("technology",
     # upgrade.technology = "character",
     fullYear = "logical",
     timeframe = "character",
+    geoframe = "character",
     region = "character",
     misc = "list"
   ),
@@ -133,9 +135,9 @@ setClass("technology",
       use2cact = numeric(),
       cact2cout = numeric(),
       cinp2ginp = numeric(),
-      share.lo = numeric(),
-      share.up = numeric(),
-      share.fx = numeric(),
+      grp.share.lo = numeric(),
+      grp.share.up = numeric(),
+      grp.share.fx = numeric(),
       afc.lo = numeric(), # !!! check and potentially rename avc.*
       afc.up = numeric(),
       afc.fx = numeric(),
@@ -170,12 +172,12 @@ setClass("technology",
       # as `ncap2ainp` lands once at construction. Multiplying a standing
       # quantity instead would recur every year.
       #
-      # TIMESLICE WARNING, inherited deliberately from `ncap2ainp`: the term
-      # carries NO `pTimesliceShare`, and `vTechAInp`/`vTechAOut` enter a
-      # PER-TIMESLICE balance. A coefficient given with `timeslice = NA`
-      # therefore applies in every slice and the annual total comes out
-      # multiplied by the slice count -- 8760x on an hourly calendar. Give a
-      # per-slice value, or name one slice.
+      # AUX TIMESLICE: every aux flow sits at the AUX COMMODITY's timeslices.
+      # The capacity-type couplings (cap, ncap, pho, ret) are PER-YEAR
+      # coefficients, booked into each aux slice as its share of the year, so
+      # `timeslice = NA` gives the annual total on any calendar; the flow-type
+      # couplings (act, cinp, cout) are summed over the process's own slices
+      # inside each aux slice.
       pho2ainp = numeric(),
       pho2aout = numeric(),
       ret2ainp = numeric(),
@@ -217,6 +219,7 @@ setClass("technology",
       vintage = character(),
       cluster = character(),
       weather = character(),
+      transform = character(),
       comm = character(),
       wafc.lo = numeric(),
       wafc.up = numeric(),
@@ -280,6 +283,10 @@ setClass("technology",
       cluster = character(),
       desc = character(),
       region = character(),
+      cap.share.fx = numeric(),
+      act.share.lo = numeric(),
+      act.share.up = numeric(),
+      act.share.fx = numeric(),
       order = integer(),
       stringsAsFactors = FALSE
     ),
@@ -322,6 +329,7 @@ setClass("technology",
     ),
     optimizeRetirement = TRUE,
     # upgrade.technology = character(),
+    geoframe = character(),
     region = character(),
     timeframe = character(),
     misc = list()
@@ -365,6 +373,7 @@ setMethod("initialize", "technology", function(.Object, ...) {
 #' @param cluster `r get_slot_doc("technology", "cluster")`
 #' @param vintage `r get_slot_doc("technology", "vintage")`
 #' @param olife deprecated, use the `olife` column of `vintage`.
+#' @param geoframe `r get_slot_doc("technology", "geoframe")`
 #' @param region `r get_slot_doc("technology", "region")`
 #' @param start deprecated, use the `start` column of `vintage`.
 #' @param end deprecated, use the `end` column of `vintage`.
@@ -468,6 +477,7 @@ newTechnology <- function(
     cluster = data.frame(),
     vintage = data.frame(),
     olife = data.frame(),
+    geoframe = character(),
     region = character(),
     start = data.frame(),
     end = data.frame(),
@@ -498,6 +508,7 @@ newTechnology <- function(
     cluster = cluster,
     vintage = vintage,
     olife = olife,
+    geoframe = geoframe,
     region = region,
     start = start,
     end = end,
@@ -580,10 +591,14 @@ checkInpOut <- function(tech) {
   # Define technology type by parameter
   for (i in comm) {
     # Group ?
-    if (any(!is.na(tech@ceff[tech@ceff$comm == i, c(
-      "cinp2ginp", "share.lo",
-      "share.up", "share.fx"
-    )]))) {
+    # `intersect`, not a literal set: an object deserialised from a store
+    # written before these columns were renamed carries the old names, and a
+    # hard selection errors with "undefined columns selected" rather than
+    # simply finding nothing to check.
+    gcols <- intersect(c("cinp2ginp", "grp.share.lo", "grp.share.up",
+                         "grp.share.fx"), names(tech@ceff))
+    if (length(gcols) &&
+        any(!is.na(tech@ceff[tech@ceff$comm == i, gcols]))) {
       if (is.na(ctype[i, "group"])) {
         stop('Wrong commodity "', tech@name, '": "', i, '"')
       }

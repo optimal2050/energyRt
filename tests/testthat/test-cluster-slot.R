@@ -1,12 +1,17 @@
 # The `@cluster` slot DECLARES a technology's clusters -- what they are and
 # where they exist -- mirroring how `@group` declares input groups whose data
-# lives in `@input$group`. It is optional: empty means labels are harvested from
-# the variant-varying slots, populated makes it authoritative.
+# lives in `@input$group`. It is REQUIRED whenever another slot carries a
+# `cluster` label, and authoritative.
 #
 # The reason it exists: a mistyped label used to produce a phantom technology
 # carrying whatever data held the misspelling and DEFAULTS for everything else --
 # i.e. no investment cost and no capacity bound, a free unlimited generator --
 # while stripping the real cluster of its availability limit. Silently.
+#
+# Harvesting labels out of the data slots was the earlier behaviour, guarded by
+# a cross-slot consistency check. The guard had a hole (one label, or one
+# cluster-carrying slot, and the typo was undetectable), so the roster is now
+# mandatory and the guard is gone with it.
 
 mk_win <- function(...) {
   newTechnology("EWIN", output = list(comm = "ELC"),
@@ -15,8 +20,12 @@ mk_win <- function(...) {
 
 test_that("@cluster slot exists with the declaration columns", {
   expect_true("cluster" %in% slotNames("technology"))
+  # One definition on every process class: `cluster`, `desc`, `order` always,
+  # `region` where the class has regional scope, `cap.share.fx` where it has a
+  # capacity to tie, and `act.share.*` everywhere.
   expect_identical(names(new("technology")@cluster),
-                   c("cluster", "desc", "region", "order"))
+                   c("cluster", "desc", "region", "cap.share.fx",
+                     "act.share.lo", "act.share.up", "act.share.fx", "order"))
 })
 
 test_that("declaring clusters is enough to create the variants, in `order`", {
@@ -48,20 +57,31 @@ test_that("an undeclared (mistyped) label is rejected, naming the slot", {
   expect_error(vt_expand_one(t3), "afs")
 })
 
-test_that("without a declaration, cross-slot inconsistency is still caught", {
+test_that("labels with no declaration are refused, naming slots and the fix", {
+  # consistent labels, but no roster: the set is undeclared, so there is nothing
+  # authoritative to check a typo against
   t4 <- mk_win(
-    invcost = data.frame(cluster = c("best", "mid"), invcost = c(1500, 1300)),
-    afs     = data.frame(cluster = c("bset", "mid"), timeslice = "ANNUAL",
-                         afs.up = c(0.45, 0.32)))
-  expect_error(vt_expand_one(t4), "Inconsistent cluster")
-})
-
-test_that("consistent labels without a declaration are fine (no false positive)", {
-  t5 <- mk_win(
     invcost = data.frame(cluster = c("best", "mid"), invcost = c(1500, 1300)),
     afs     = data.frame(cluster = c("best", "mid"), timeslice = "ANNUAL",
                          afs.up = c(0.45, 0.32)))
-  expect_equal(length(vt_expand_one(t5)$objects), 2L)
+  expect_error(vt_expand_one(t4), "declares no `cluster` roster")
+  expect_error(vt_expand_one(t4), "invcost")        # where the labels came from
+  expect_error(vt_expand_one(t4), "cluster = data.frame")  # the fix to paste
+
+  # the same holds for the single-slot case, which the old consistency guard
+  # could not see at all
+  t5 <- mk_win(
+    invcost = data.frame(cluster = c("best", "mid"), invcost = c(1500, 1300)))
+  expect_error(vt_expand_one(t5), "declares no `cluster` roster")
+})
+
+test_that("declaring the roster makes the same object expand", {
+  t6 <- mk_win(
+    cluster = c("best", "mid"),
+    invcost = data.frame(cluster = c("best", "mid"), invcost = c(1500, 1300)),
+    afs     = data.frame(cluster = c("best", "mid"), timeslice = "ANNUAL",
+                         afs.up = c(0.45, 0.32)))
+  expect_equal(length(vt_expand_one(t6)$objects), 2L)
 })
 
 test_that("labels that collapse under sanitisation are rejected", {

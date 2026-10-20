@@ -4,14 +4,26 @@
 \alias{getUnits}
 \alias{getUnits,commodity-method}
 \alias{getUnits,technology-method}
-\alias{get_units}
+\alias{getUnits,supply-method}
+\alias{getUnits,demand-method}
+\alias{getUnits,import-method}
+\alias{getUnits,export-method}
+\alias{getUnits,storage-method}
 \title{Get parameter units for energyRt class objects}
 \usage{
 \S4method{getUnits}{commodity}(object, slots = NULL, ...)
 
 \S4method{getUnits}{technology}(object, slots = NULL, complete = FALSE, ...)
 
-get_units(object, ...)
+\S4method{getUnits}{supply}(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+\S4method{getUnits}{demand}(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+\S4method{getUnits}{import}(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+\S4method{getUnits}{export}(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+\S4method{getUnits}{storage}(object, slots = NULL, complete = FALSE, units = NULL, ...)
 }
 \arguments{
 \item{object}{A \code{commodity} or \code{technology} S4 object.}
@@ -26,6 +38,11 @@ formula are reported even when they carry no data yet; commodity-linked
 units are then resolved from the declared ports when unambiguous and
 left as placeholder tokens otherwise. Default \code{FALSE} (populated
 parameters only).}
+
+\item{units}{named list of base units (\code{capacity}, \code{activity}, \code{use},
+\code{costs}) for the classes that carry no \verb{@units} slot. \code{NULL} (default)
+resolves what it can from the object and leaves the rest as placeholder
+tokens.}
 }
 \value{
 A data.frame with columns \code{slot}, \code{parameter}, \code{comm}, \code{description},

@@ -24,10 +24,6 @@ obj_glpk_r <- function(scen, tag) {
   getData(s, "vObjective", merge = TRUE)$value
 }
 
-.have_glpk <- function() {
-  nzchar(Sys.which("glpsol")) ||
-    (!is.null(get_glpk_path()) && nzchar(get_glpk_path()))
-}
 
 gs3 <- function() {
   geoscales::geoscale_from_leaftable(
@@ -80,7 +76,7 @@ test_that("a filtered geoscale yields the hand-built sub-territory model", {
   expect_setequal(unique(as.character(ds$region)), c("R1", "R2"))
   expect_equal(sum(ds$value), sum(dh$value))
 
-  skip_if(!.have_glpk(), "GLPK (glpsol) not available")
+  skip_if_no_solver()
   os <- obj_glpk_r(scen_s, "smp12")
   oh <- obj_glpk_r(scen_h, "hand12")
   expect_false(is.na(os))
@@ -88,7 +84,7 @@ test_that("a filtered geoscale yields the hand-built sub-territory model", {
 })
 
 test_that("sample objectives add up to the full model without cross trade", {
-  skip_if(!.have_glpk(), "GLPK (glpsol) not available")
+  skip_if_no_solver()
   gs <- gs3()
   o_full <- obj_glpk_r(suppressMessages(interpolate_model(
     mk3(), "full3", ondisk = FALSE)), "full3")
@@ -117,7 +113,9 @@ test_that("boundary-crossing trade routes are dropped with a message", {
       geoscales::filter_geoscale(gs, "region", c("R1", "R2"),
                                  drop_empty_geoframes = TRUE),
       ondisk = FALSE)),
-    "dropping trade route")
+    # dropped content is reported ONCE at the end; `verbose = TRUE` names each
+    # route instead (R/sample_region.R)
+    "trade route\\(s\\) outside the sample")
   expect_false("TR23" %in% as.character(scen@modInp@sets$trade))
 })
 
@@ -136,7 +134,7 @@ test_that("a priced boundary stub equals the explicit export object", {
     boundary_prices = bp, ondisk = FALSE))
   expect_true("EXP_TR23_R22R3" %in% as.character(scen@modInp@sets$expp))
 
-  skip_if(!.have_glpk(), "GLPK (glpsol) not available")
+  skip_if_no_solver()
   exp_obj <- newExport("EXP_TR23_R22R3", commodity = "ELC",
                        export = data.frame(region = "R2", price = 50,
                                            exp.up = 4))

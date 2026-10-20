@@ -1,12 +1,31 @@
-# Functions t install external packages and libraries
+# Functions to install external packages and libraries
+
+# The optimal2050 siblings and the bundled solver binary: every energyRt
+# dependency that is NOT on CRAN. `geoscales` and `timescales` are in Imports,
+# the rest in Suggests. Two consumers read this: `en_install_deps()`, which
+# installs them and subtracts them from the CRAN set, and `en_check_packages()`.
+# `inst/install.R` carries the same list because it must run BEFORE energyRt
+# exists -- keep the two in step.
+.en_sibling_refs <- function() {
+  c("optimal2050/nestedscales", "optimal2050/timescales",
+    "optimal2050/geoscales", "optimal2050/glpsol",
+    "optimal2050/multimod", "optimal2050/mmcloud")
+}
+
+.en_sibling_pkgs <- function() sub(".*/", "", .en_sibling_refs())
 
 #' Install Julia packages
 #'
 #' @param pkgs A character vector of Julia packages to install. The default is
-#'  \code{c("JuMP", "HiGHS", "Cbc", "Clp", "RData", "RCall", "CodecBzip2",
-#'  "Gadfly", "DataFrames", "CSV", "SQLite", "Dates")}.
-#'  If you have pre-installed CPLEX or Gurobi, you can add them to the list.
+#'  \code{c("JuMP", "HiGHS", "GLPK", "Cbc", "Arrow", "RData", "DataFrames")}:
+#'  the solvers the shipped `julia_*` presets name, plus `Arrow` for the default
+#'  data exchange (see [get_exchange_format()]), `RData` for the
+#'  `julia_highs_rdata` preset, and `DataFrames`, which the generated code uses.
+#'  The `julia_cplex*` and `julia_cuopt*` presets need `CPLEX` / `cuOpt`, which
+#'  are licensed or GPU-specific and so are not installed by default -- add them
+#'  to `pkgs` yourself. `Dates` is a Julia standard library and needs no install.
 #'
+#' @param update logical; also run `Pkg.update()` after adding the packages.
 #' @return NULL if the completion is successful. The verification of the installation is
 #' done by the user or by the function \code{en_check_julia()}.
 #' @export
@@ -18,22 +37,29 @@
 en_install_julia_pkgs <- function(pkgs = NULL, update = FALSE) {
 
   if (is.null(pkgs)) {
-    pkgs <- c("JuMP", "HiGHS", "Cbc", "Clp", "RData", "RCall", "CodecBzip2",
-              "Gadfly", "DataFrames", "CSV", "SQLite", "Dates")
+    # One entry per Julia package the shipped presets actually name: HiGHS,
+    # GLPK and Cbc are the solvers behind `julia_highs*`, `julia_glpk` and
+    # `julia_cbc`. `Arrow` reads the model data and writes the solution (the
+    # default exchange); `RData` serves the `julia_highs_rdata` preset;
+    # `DataFrames` is used by the generated code. Neither `CSV` nor `SQLite` is
+    # used by the Julia path -- the generated code writes csv with plain
+    # `println` and never opens a database.
+    pkgs <- c("JuMP", "HiGHS", "GLPK", "Cbc", "Arrow", "RData", "DataFrames")
   }
 
-  # check if Julia is installed and available on the path
-  
-  jp <- get_julia_path() |> paste0("julia")
-  if (!file.exists(jp)) {
-    # try default path
-    jp <- Sys.which("julia")
+  # Locate the julia executable. `.en_which()` is the same resolver
+  # `en_check_dependencies()` uses: it tries the energyRt-configured path
+  # (which carries a trailing /) with and without the `.exe` suffix, then the
+  # system PATH. Resolving it by hand here used to miss `julia.exe` on Windows
+  # and, with no path configured, tested the RELATIVE name `julia` -- which
+  # matches any file or directory of that name in the working directory.
+  jp <- .en_which("julia", get_julia_path())
+  if (is.na(jp)) {
+    stop("Cannot locate the julia executable on the path. If Julia is not ",
+         "installed, download it from https://julialang.org/downloads/",
+         call. = FALSE)
   }
-  if (!file.exists(jp)) {
-    stop("\nCannot locate julia executable on the path.", 
-         "In Julia is not installed, download and install from https://julialang.org/downloads/")
-  }
-  
+
   message("Using Julia at ", jp, "\n")
   
   # create a temporary file to install Julia packages
@@ -51,94 +77,80 @@ en_install_julia_pkgs <- function(pkgs = NULL, update = FALSE) {
   }
   close(tmp_con)
 
-  # run Julia with the script
-  system2(jp, c("--color=yes", tmp_file))
+  # run Julia with the script. The exit status is the only signal that
+  # `Pkg.add()` worked: discarding it let this function report success for a
+  # failed install, which its own @return promised it would not.
+  status <- system2(jp, c("--color=yes", tmp_file))
 
   # remove the temporary file
   unlink(tmp_file)
+
+  if (!identical(as.integer(status), 0L)) {
+    stop("Julia exited with status ", status,
+         " -- the packages were not installed. The Julia output above says why.",
+         call. = FALSE)
+  }
 
   return(invisible())
 }
 
 
-#' Install Python/Pyomo dependencies
+#' Install Python/Pyomo dependencies (deprecated)
 #'
-#' @description
-#' Installs the Python library layer energyRt needs for the Pyomo backend. When
-#' a conda/mamba executable is available (the recommended route) it creates or
-#' reuses a named environment and installs `pyomo`, a solver (`coincbc`), and the
-#' result-IO helpers from conda-forge. Otherwise it falls back to `pip` into the
-#' configured Python (see [set_python_path()]); note that `pip` cannot supply the
-#' CBC solver binary, which must then be installed separately.
+#' Superseded by `multimod::mm_setup_python()`, which owns the one conda
+#' environment shared by energyRt and multimod. This forwards to it and will be
+#' removed.
 #'
-#' This installs *libraries only*. It does not install Python or conda
-#' themselves --- see [en_check_dependencies()] for guidance on the system layer.
+#' `solver`, `channel` and `use_conda` are no longer honoured: the replacement
+#' installs with `pip` inside a conda environment, so it cannot supply the CBC
+#' binary. Install a shell solver separately if you still need one; `highspy`
+#' is part of the default package set.
 #'
-#' @section HiGHS version:
-#' `highspy` supplies HiGHS in-process and is the only Pyomo route to it;
-#' `SolverFactory("highs")` resolves to a shell solver requiring a `highs`
-#' executable. `solver_options$pyomo_highs_barrier` needs **HiGHS >= 1.13**: on
-#' 1.7.2 the `solver = "ipm"` option hangs before the solver starts and is not
-#' interruptible by a time limit. Check the installed version with
-#' `en_check_pyomo()`.
-#'
-#' @param env character. Name of the conda environment to create/use.
+#' @param env character. Forwarded as `env_name`.
 #' @param packages character vector of Python packages to install.
-#' @param solver character. Conda solver package to install (e.g. `"coincbc"`).
-#' @param channel character. Conda channel.
-#' @param use_conda logical or NULL. Force conda (`TRUE`) or pip (`FALSE`); `NULL`
-#'   auto-detects (conda if found, else pip).
+#' @param solver,channel,use_conda Ignored, with a warning when set.
 #'
 #' @return NULL, invisibly. Verify with [en_check_pyomo()].
 #' @family solver
 #' @export
-#'
 #' @examples
 #' \dontrun{
-#' en_install_python_deps()                 # conda env with pyomo + highspy + cbc
-#' en_install_python_deps(use_conda = FALSE) # pip into current python
+#' # create (or top up) the python environment the Pyomo backend uses
+#' en_install_python_deps()
+#'
+#' # a named environment and an explicit solver
+#' en_install_python_deps(env = "energyRt", solver = "highs")
 #' }
-en_install_python_deps <- function(env = "energyRt",
-                                   packages = c("pyomo", "pandas", "pyarrow",
-                                                "highspy"),
-                                   solver = "coincbc",
-                                   channel = "conda-forge",
+en_install_python_deps <- function(env = "multimod",
+                                   packages = NULL,
+                                   solver = NULL,
+                                   channel = NULL,
                                    use_conda = NULL) {
-  conda <- .en_which("mamba")
-  if (is.na(conda)) conda <- .en_which("conda")
-  want_conda <- if (is.null(use_conda)) !is.na(conda) else isTRUE(use_conda)
+  lifecycle_msg <- paste0(
+    "en_install_python_deps() is deprecated. Use ",
+    "multimod::mm_setup_python() instead - energyRt and multimod now share ",
+    "one conda environment.")
+  warning(lifecycle_msg, call. = FALSE)
 
-  if (want_conda) {
-    if (is.na(conda)) {
-      stop("conda/mamba not found on PATH. Install miniforge ",
-           "(https://conda-forge.org/) or call with use_conda = FALSE for pip.",
-           call. = FALSE)
-    }
-    message("Using ", conda, " to install into conda env '", env, "'")
-    envs <- tryCatch(system2(conda, c("env", "list"), stdout = TRUE),
-                     error = function(e) character(0))
-    has_env <- any(grepl(paste0("^", env, "([ ]|$)"), trimws(envs)))
-    if (!has_env) {
-      message("Creating conda env '", env, "' ...")
-      system2(conda, c("create", "-y", "-n", env, "python"))
-    }
-    system2(conda, c("install", "-y", "-n", env, "-c", channel,
-                     unique(c(packages, solver))))
-  } else {
-    py <- .en_which("python", get_python_path())
-    if (is.na(py)) py <- .en_which("python3", get_python_path())
-    if (is.na(py)) {
-      stop("python not found. Call set_python_path() or install Python first.",
-           call. = FALSE)
-    }
-    message("Using pip via ", py)
-    system2(py, c("-m", "pip", "install", "--upgrade", packages))
-    # `highspy` ships HiGHS as a wheel, so the pip route still yields a solver.
-    message("Note: pip cannot provide the CBC binary. `highspy` (installed ",
-            "above) supplies HiGHS -- see solver_options$pyomo_highs_barrier. ",
-            "Install CBC separately, or use conda, if CBC is required.")
+  ignored <- c("solver", "channel", "use_conda")[
+    !vapply(list(solver, channel, use_conda), is.null, logical(1))]
+  if (length(ignored) > 0) {
+    warning("Ignored by mm_setup_python(): ", paste(ignored, collapse = ", "),
+            ". It installs with pip and cannot supply a solver binary.",
+            call. = FALSE)
   }
-  return(invisible())
+
+  if (!requireNamespace("multimod", quietly = TRUE)) {
+    stop("This needs the 'multimod' package.
+",
+         '  pak::pak("optimal2050/multimod")', call. = FALSE)
+  }
+
+  args <- list(env_name = env)
+  # NULL would mean "install nothing"; omit so mm_setup_python()'s list wins.
+  if (!is.null(packages)) args$packages <- packages
+  do.call(multimod::mm_setup_python, args)
+  invisible(NULL)
 }
 
 
@@ -147,7 +159,7 @@ en_install_python_deps <- function(env = "energyRt",
 #' @description
 #' Orchestrator that auto-installs the *safe* library layer: optional R packages,
 #' Julia solver packages (via [en_install_julia_pkgs()]) when Julia is present,
-#' and Python/Pyomo packages (via [en_install_python_deps()]) when Python or
+#' and Python/Pyomo packages (via [multimod::mm_setup_python()]) when Python or
 #' conda is present. System software that is missing (Julia, Python, conda, GAMS)
 #' is *not* auto-installed --- the function reports it and points to the
 #' platform-specific instructions printed by [en_check_dependencies()].
@@ -177,11 +189,43 @@ en_install_deps <- function(julia = TRUE, python = TRUE, r = TRUE, recheck = TRU
           "gdxtools missing; install pak then pak::pkg_install('lolow/gdxtools').")
       }
     }
-    r_opt <- c("jsonlite", "readxl", "openxlsx")
+    # The optional CRAN layer is read off Suggests rather than hard-coded, so it
+    # cannot drift from DESCRIPTION the way a copied list does. Dev-only tools
+    # and the siblings (handled below, none of which is on CRAN) are excluded.
+    sug <- tryCatch(
+      trimws(gsub("[(][^)]*[)]", "", strsplit(
+        utils::packageDescription("energyRt", fields = "Suggests"), ",")[[1]])),
+      error = function(e) character(0))
+    sug <- sug[nzchar(sug)]
+    r_opt <- setdiff(sug, c("pak", "testthat", "devtools", "withr",
+                            .en_sibling_pkgs()))
     r_missing <- r_opt[!vapply(r_opt, requireNamespace, logical(1), quietly = TRUE)]
     if (length(r_missing)) {
       message("Installing optional R packages: ", paste(r_missing, collapse = ", "))
-      try(utils::install.packages(r_missing), silent = TRUE)
+      tryCatch(utils::install.packages(r_missing),
+               error = function(e) message("  failed: ", conditionMessage(e)))
+      # requireNamespace() is the verdict, not install.packages()' own return:
+      # it warns rather than errors for a package it cannot reach.
+      still <- r_missing[!vapply(r_missing, requireNamespace, logical(1), quietly = TRUE)]
+      if (length(still)) {
+        cli::cli_alert_warning(
+          "Still missing after install: {paste(still, collapse = ', ')}")
+      }
+    }
+
+    # The optimal2050 siblings and the bundled solver binary -- GitHub, not CRAN.
+    for (sib in .en_sibling_refs()) {
+      nm <- sub(".*/", "", sib)
+      if (requireNamespace(nm, quietly = TRUE)) next
+      if (!requireNamespace("pak", quietly = TRUE)) {
+        cli::cli_alert_info(
+          "{nm} missing; install pak then pak::pkg_install('{sib}').")
+        next
+      }
+      message("Installing ", nm, " ...")
+      tryCatch(pak::pkg_install(sib),
+               error = function(e)
+                 cli::cli_alert_warning("{nm}: {conditionMessage(e)}"))
     }
   }
 
@@ -199,9 +243,15 @@ en_install_deps <- function(julia = TRUE, python = TRUE, r = TRUE, recheck = TRU
     has_py <- !is.na(.en_which("python", get_python_path())) ||
       !is.na(.en_which("python3", get_python_path()))
     has_conda <- !is.na(.en_which("mamba")) || !is.na(.en_which("conda"))
-    if (has_py || has_conda) {
+    if (!requireNamespace("multimod", quietly = TRUE)) {
+      cli::cli_alert_warning(paste(
+        "Python setup is owned by multimod, which is not installed; skipping.",
+        "Install it with pak::pkg_install('optimal2050/multimod')."))
+    } else if (has_py || has_conda) {
       message("Installing Python/Pyomo dependencies ...")
-      try(en_install_python_deps(), silent = TRUE)
+      tryCatch(multimod::mm_setup_python(),
+               error = function(e)
+                 cli::cli_alert_warning("mm_setup_python(): {conditionMessage(e)}"))
     } else {
       cli::cli_alert_warning(
         "Python/conda not found; skipping. Install miniforge first.")
@@ -267,7 +317,7 @@ en_setup <- function(ref = "optimal2050/energyRt") {
     }
   } else {
     cli::cli_alert_success(
-      "No system libraries to install on {os} (on Windows, GLPK ships with Rtools).")
+      "No system libraries to install on {os} (GLPK comes with the glpsol package; on Windows it also ships with Rtools).")
   }
 
   # Dependency status: reuse the existing read-only reports.

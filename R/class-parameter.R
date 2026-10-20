@@ -91,7 +91,6 @@ setMethod("initialize", signature = "parameter",
     }
     if (any(!is.character(dimSets)) || # length(dimSets) == 0 ||
       any(!(dimSets %in% .dimSets))) {
-      browser()
       stop("Unknown dimSets: ", dimSets, "\nParameter: ", name)
     }
     if (all(type != levels(.Object@type))) stop("Wrong type")
@@ -123,22 +122,6 @@ setMethod("initialize", signature = "parameter",
     if (!is.null(check)) .Object@check <- check
     .Object@defVal <- defVal
     .Object@interpolation <- interpolation
-    # .Object@inClass$class <- cls
-    # .Object@inClass$slot <- slot
-    # make @data
-    # data <- data.frame(
-    #   tech = character(), techp = character(), sup = character(),
-    #   weather = character(), dem = character(),
-    #   acomm = character(), comm = character(), commp = character(),
-    #   group = character(), region = character(), regionp = character(),
-    #   src = character(), dst = character(),
-    #   year = integer(), yearp = numeric(), timeslicep = character(),
-    #   timeslice = character(), stg = character(),
-    #   expp = character(), imp = character(), trade = character(),
-    #   type = factor(levels = c("lo", "up")),
-    #   value = numeric(), stringsAsFactors = FALSE
-    # )
-    # dimSets <- .Object@dimSets
     data <- as.data.frame(array(character(), c(0, length(.dimSets)),
                                 dimnames = list(character(), .dimSets)),
                           stringsAsFactors = FALSE)
@@ -147,7 +130,6 @@ setMethod("initialize", signature = "parameter",
     data$year <- integer()
     data$yearp <- integer()
     # data <- as_tibble(data)
-    # browser()
 
     if (type == "bounds") dimSets <- c(dimSets, "type")
     if (any(type == c("numpar", "bounds"))) dimSets <- c(dimSets, "value")
@@ -181,7 +163,7 @@ setMethod("initialize", signature = "parameter",
         !is.na(dropIfEmpty)) {
       .Object@misc$dropIfEmpty <- as.logical(dropIfEmpty)
     }
-    # `prune: { value: v }` (modInp.yml) lets `prune_parameters()` drop rows
+    # `prune: { value: v }` (modInp.yml) lets `drop_default_values()` drop rows
     # equal to `v` (lossless when `v == defVal`; absent tuples read as default).
     # The dependent variable-column removal is multimod `trim`'s cascade job.
     if (!is.null(prune)) {
@@ -220,10 +202,8 @@ setMethod(
     # if (!is.data.table(data)) browser() # DEBUG
     if (!is.data.table(data)) { # DEBUG
       # warning("\nDEBUG info: class ", class(data), " in ", obj@name, "@data\n")
-      # browser()
     }
     # if (obj@name == "ordYear") browser() # DEBUG
-    # browser()
     if (nrow(data) > 0) {
       if (ncol(data) != ncol(obj@data) ||
         any(sort(colnames(data)) != sort(colnames(obj@data)))) {
@@ -246,7 +226,6 @@ setMethod(
       # class2 <- function(x) if (inherits(x, "integer")) "numeric" else class(x)
       if (nrow(obj@data) > 0 && # !!! rewrite with exact match
           any(sapply(data, class) != sapply(obj@data, class))) {
-        browser()
         stop("Column classes mismatch: ", obj@name, "\n",
              "Expected: ", paste(sapply(obj@data, class), collapse = ", "),
              "\nGot: ", paste(sapply(data, class), collapse = ", "),
@@ -270,7 +249,6 @@ setMethod(
 setMethod(
   ".dat2par", signature(obj = "parameter", data = "character"),
   function(obj, data) {
-    # browser()
     if (obj@type != "set") {
       message("Error: ", obj@name, " parameter:")
       print(head(data))
@@ -288,11 +266,12 @@ setMethod(
     # !!! rewrite with dplyr or data.table
     # nn <- nrow(obj@data) + 1:length(data)
     # obj@data[nn, ] <- data
-    # browser()
     obj@data <- rbindlist(list(as.data.table(obj@data), as.data.table(data)),
                           use.names = FALSE)
-    if (ncol(obj@data) != 1) browser()
-    if (is.factor(obj@data[[1]])) browser()
+    if (isDebug() && ncol(obj@data) != 1)
+      cli::cli_warn("Set {obj@name}: expected one column, got {ncol(obj@data)}.")
+    if (isDebug() && is.factor(obj@data[[1]]))
+      cli::cli_warn("Set {obj@name}: column is a factor, not character.")
     obj
   }
 )
@@ -301,7 +280,6 @@ setMethod(
 setMethod(
   ".dat2par", signature(obj = "parameter", data = "numeric"),
   function(obj, data) {
-    # browser()
     if (obj@type != "set") {
       stop("Set type of parameter is expected for the numeric data. \n",
            "Parameter: ", obj@name, ", data: ", head(data), "...")
@@ -341,7 +319,6 @@ setMethod(
 # setMethod('.drop_set_value', signature(obj = 'parameter', dimSets = "character", value = "character"),
 .drop_set_value <- function(obj, dimSets, value) {
   # !!! better name? value -> ? dimSets -> dimSet?
-  # browser()
   if (length(dimSets) != 1 || all(dimSets != obj@dimSets)) {
     stop(
       "Inconsistent sets in parameter ", obj@name,
@@ -350,7 +327,8 @@ setMethod(
   }
   # obj@data <- obj@data[!(obj@data[, dimSets] %in% value), , drop = FALSE]
   ii <- obj@data[[dimSets]] %in% value
-  if (length(dimSets) > 1) browser() # check filter below
+  if (isDebug() && length(dimSets) > 1)
+    cli::cli_warn("drop_set_value(): the filter assumes ONE dimSet, got {length(dimSets)}.")
   obj@data <- obj@data |> filter(!ii)
   obj
 }

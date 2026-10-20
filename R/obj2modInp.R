@@ -1,8 +1,11 @@
 setGeneric("ob2mi", function(scen, obj, extra_params) standardGeneric("ob2mi"))
 setGeneric("d2p", function(obj, data, path) standardGeneric("d2p"))
 
-get_data_slot <- function(obj, optional = FALSE) {
-  # browser()
+# Returns the WHOLE materialised data slot. Every writer reads a parameter's
+# data through here: they used to truncate to the `@misc$nValues` row-count
+# cache instead, so a stale count silently made an engine write less data than
+# GLPK, which never truncated.
+get_data_slot <- function(obj, optional = FALSE, dedup = TRUE) {
   data <- NULL
   if (isOnDisk(obj)) {
     data <- get_lazy_data(obj, "data", optional = optional)
@@ -15,6 +18,22 @@ get_data_slot <- function(obj, optional = FALSE) {
   if (is.null(data)) {
     data <- obj@data
   }
+  # In bulk mode `d2p()` parks chunks in `@misc$.pending_chunks` instead of
+  # rebuilding the accumulated table on every write (see there). Readers always
+  # get the complete, de-duplicated view; `.flush_pending_parameters()` makes it
+  # permanent once the object loop is done. `dedup = FALSE` is for `d2p()`
+  # itself, which must not pay for the merge it is deferring.
+  if (dedup) {
+    pend <- .pending_chunks(obj)
+    if (length(pend) > 0) {
+      data <- unique(rbindlist(c(list(data), pend),
+        use.names = TRUE, ignore.attr = TRUE
+      ))
+    } else if (isTRUE(obj@misc[[".dedup_pending"]]) &&
+               !is.null(data) && nrow(data) > 0) {
+      data <- unique(data)
+    }
+  }
   return(data)
 }
 
@@ -26,7 +45,6 @@ setMethod(
   signature(obj = "parameter", data = "data.frame", path = "character"),
   function(obj, data, path = NULL) {
     # ondisk <- !is.null(path) && isOnDisk(obj)
-    # browser()
 
     # args <- list(...)
 
@@ -75,7 +93,7 @@ setMethod(
     # order columns
     # data <- .force_year_class_df(data)
     # data <- .force_value_class_df(data)
-    data <- force_cols_classes(data)
+    if (!isTRUE(attr(data, "en_cols_forced"))) data <- force_cols_classes(data)
     data <- select(data, all_of(colnames(obj@data)))
     data <- as.data.table(data)
 
@@ -106,13 +124,60 @@ setMethod(
     # of an on-disk parameter the store does not exist yet (while the object's
     # onDisk bookkeeping already records dims), so a missing dataset is normal
     # here — hence optional, never the moved-folder error.
-    data_exist <- get_data_slot(obj, optional = TRUE) |>
-      force_cols_classes() # !!! ToDo: add filters
-    data <- rbindlist(list(data_exist, data),
-      use.names = TRUE,
-      ignore.attr = TRUE # workaround for NA values in csv files
-    )
-    data <- unique(data)
+    #
+    # Only the NEW chunk is de-duplicated here, and the accumulated table is
+    # left alone. De-duplicating (and re-coercing) the whole accumulated table
+    # on EVERY write made interpolation quadratic in the number of objects:
+    # a 26-region model writing ~58M weather rows over 1,113 objects spent most
+    # of its interpolation inside this one `unique()`. Set union is
+    # associative, so a single `unique()` per parameter once the object loop is
+    # done -- `.dedup_pending_parameters()`, called from `interpolate_model()`
+    # -- yields the identical table. Readers are covered in the meantime by the
+    # `.dedup_pending` branch of `get_data_slot()`.
+    #
+    # `data_exist` needs no class coercion: every chunk is normalised on the
+    # way in (`force_cols_classes()` above) and `get_data_slot()` normalises
+    # on-disk reads. The on-disk branch keeps the eager behaviour -- it pays a
+    # parquet round-trip per call anyway, so the dedup is not what costs there.
+    if (isTRUE(getOption("en.bulk_param_write", FALSE))) {
+      # BULK MODE (the object loop of `interpolate_model()`): park the chunk and
+      # return. Appending is O(chunk) instead of O(accumulated), which is what
+      # takes the loop from quadratic to linear in the number of objects.
+      # `get_data_slot()` merges pending chunks for any reader in the meantime,
+      # and `.flush_pending_parameters()` collapses them once the loop ends.
+      # The on-disk path parks too — the eager branch below pays a FULL Arrow
+      # read-append-rewrite per call, quadratic in writes-per-parameter; the
+      # flush performs one disk write per parameter instead. The store path is
+      # kept for the flush when the object does not carry one yet.
+      if (isOnDisk(obj) && !is.null(path) && is.null(getObjPath(obj))) {
+        obj@misc[[".pending_path"]] <- path
+      }
+      # The chunks live in a per-interpolation store, not in the object:
+      # appending to a list held in `@misc` copied the whole list on every
+      # write, quadratic in the number of writes per parameter. The object
+      # carries only its key, set on its first bulk write.
+      key <- obj@misc[[".pending_key"]]
+      if (is.null(key)) {
+        key <- .pending_new_key()
+        obj@misc[[".pending_key"]] <- key
+      }
+      .pending_add(key, data)
+      return(obj)
+    }
+    data_exist <- get_data_slot(obj, optional = TRUE, dedup = FALSE)
+    if (isOnDisk(obj)) {
+      data <- rbindlist(list(force_cols_classes(data_exist), data),
+        use.names = TRUE,
+        ignore.attr = TRUE # workaround for NA values in csv files
+      )
+      data <- unique(data)
+    } else {
+      data <- rbindlist(list(data_exist, unique(data)),
+        use.names = TRUE,
+        ignore.attr = TRUE # workaround for NA values in csv files
+      )
+      data <- unique(data)
+    }
 
     if (isOnDisk(obj)) {
       if (is.null(path)) {
@@ -121,23 +186,10 @@ setMethod(
           stop("Path to the parameter ", obj@name, " is not specified.")
         }
       }
-      # write data to disk
-      partitioning_dim <- NULL
-      if (any(colnames(data) == "year")) {
-        partitioning_dim <- "year"
-      }
-
-      # browser()
+      # write data to disk in the store's own codec (or `storage_format` for a
+      # store that does not exist yet)
       obj@data <- data
-      obj <- obj2disk(obj)
-      # arrow::write_dataset(
-      #   data,
-      #   path = path,
-      #   format = "parquet",
-      #   partitioning = partitioning_dim,
-      #   existing_data_behavior = "overwrite" # !!! ToDo: consider on-disk merge
-      # )
-      # obj@data <- obj@data[0,] # clear data in memory
+      obj <- obj2disk(obj, format = .store_format(fp(path, "data")))
       obj@data <- reset_slot(obj@data)
     } else {
       # assign data to the parameter
@@ -152,7 +204,6 @@ setMethod(
   "d2p",
   signature(obj = "parameter", data = "character", path = "character"),
   function(obj, data, path = NULL) {
-    # browser()
 
     if (is.null(data)) {
       return(obj)
@@ -217,10 +268,10 @@ setMethod(
       ) |>
         unique()
 
-      # write data to disk
-      partitioning_dim <- NULL
+      # write data to disk (see the numeric method: keep the store's codec)
       obj@data <- data
-      obj <- obj2disk(obj, path = path)
+      obj <- obj2disk(obj, path = path,
+                      format = .store_format(fp(path, "data")))
       obj@data <- reset_slot(obj@data)
     } else {
       obj@data <- rbindlist(
@@ -231,8 +282,10 @@ setMethod(
     }
 
 
-    if (ncol(obj@data) != 1) invisible()  # browser() disabled
-    if (is.factor(obj@data[[1]])) invisible()  # browser() disabled
+    if (isDebug() && ncol(obj@data) != 1)
+      cli::cli_warn("Set {obj@name}: expected one column, got {ncol(obj@data)}.")
+    if (isDebug() && is.factor(obj@data[[1]]))
+      cli::cli_warn("Set {obj@name}: column is a factor, not character.")
     obj
   }
 )
@@ -259,7 +312,7 @@ setMethod(
 
 #' Update parameter in the scenario by adding data to it
 #'
-#' @param scen scenario object
+#' @param object scenario object
 #' @param param character, name of the parameter to update
 #' @param data data.frame, data to update the parameter with
 #' @param path character, path to the parameter on disk,
@@ -268,32 +321,51 @@ setMethod(
 #'
 #' @returns the updated `scenario` object, invisibly.
 #' @export
-update_parameter <- function(scen, param, data, path = NULL) {
-  # browser()
+#' @examples
+#' \donttest{
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
+#' scen <- interpolate_model(mod, name = "EX")
+#'
+#' # write one parameter back after editing it outside the model. The data
+#' # must carry exactly the parameter's own columns -- `getData()` adds the
+#' # scenario name and the variant provenance, which are not part of it.
+#' af <- as.data.frame(getData(scen, "pTechAf", merge = TRUE))
+#' af <- af[, c("tech", "region", "year", "timeslice", "type", "value")]
+#' af$value <- af$value * 0.98
+#'
+#' scen <- update_parameter(scen, "pTechAf", af)
+#' }
+update_parameter <- function(object, param, data, path = NULL) {
 
   if (is.null(data)) {
-    return(scen)
+    return(object)
   }
   if (!inherits(data, "data.frame")) {
     stop("Data must be a data.frame, not ", class(data))
   }
   if (nrow(data) == 0) {
-    return(scen)
+    return(object)
   }
 
-  if (isOnDisk(scen)) {
+  if (isOnDisk(object)) {
     if (is.null(path)) {
       # check if the path exists in the parameter
-      path <- getObjPath(scen@modInp@parameters[[param]])
+      path <- getObjPath(object@modInp@parameters[[param]])
       if (is.null(path)) {
-        path <- getObjPath(scen@modInp)
+        path <- getObjPath(object@modInp)
         if (is.null(path)) {
           stop(
             "Cannot create path to the parameter ", param, ".",
             "The path to the parameters is not specified in the scenario."
           )
         } else {
-          # `<scen>/modInp` + the slot name + the parameter name. `obj2disk()`
+          # `<object>/modInp` + the slot name + the parameter name. `obj2disk()`
           # writes each parameter to `<modInp path>/parameters/<name>`, so the
           # `parameters` segment is not optional -- without it this fallback
           # pointed at a directory that never exists, and it fires exactly when
@@ -303,15 +375,15 @@ update_parameter <- function(scen, param, data, path = NULL) {
       }
     }
     # set the path to the parameter and mark it as on disk
-    scen@modInp@parameters[[param]] <- scen@modInp@parameters[[param]] |>
+    object@modInp@parameters[[param]] <- object@modInp@parameters[[param]] |>
       setObjPath(path) |>
       mark_ondisk()
   }
   # update the parameter with the new data
-  scen@modInp@parameters[[param]] <- scen@modInp@parameters[[param]] |>
+  object@modInp@parameters[[param]] <- object@modInp@parameters[[param]] |>
     d2p(data, path = path)
 
-  return(scen)
+  return(object)
 }
 
 # Pack the wide bounds columns (<colName>.lo / .up / .fx) of an object slot into
@@ -378,9 +450,6 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "commodity", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    # .checkTimesliceLevel(obj, extra_params)
-    # .check_timeframe(obj, scen)
-    # browser()
 
     obj@name <- toString(obj@name)
     # obj <- .filter_data_in_slots(obj, extra_params$region, "region")
@@ -430,32 +499,6 @@ setMethod(
       force_cols_classes()
     scen <- update_parameter(scen, "mCommTimeslice", dat)
 
-    # browser()
-    ## pDummyImportCost ####
-    # !!! ToDo: move to "generic parameters"
-    # if (any(is.na(extra_params$debug$comm) | extra_params$debug$comm == obj@name)) {
-    #   extra_params$debug$comm[is.na(extra_params$debug$comm)] <- obj@name
-    #   dbg <- extra_params$debug[
-    #     !is.na(extra_params$debug$comm) &
-    #       extra_params$debug$comm == obj@name, ,
-    #     drop = FALSE
-    #   ]
-    #   extra_params$comm <- obj@name
-    #   scen@parameters[["pDummyImportCost"]] <- .dat2par(
-    #     scen@parameters[["pDummyImportCost"]],
-    #     .interp_numpar(
-    #       dbg, "dummyImport",
-    #       scen@parameters[["pDummyImportCost"]], extra_params
-    #     )
-    #   )
-    #   scen@parameters[["pDummyExportCost"]] <- .dat2par(
-    #     scen@parameters[["pDummyExportCost"]],
-    #     .interp_numpar(
-    #       dbg, "dummyExport",
-    #       scen@parameters[["pDummyExportCost"]], extra_params
-    #     )
-    #   )
-    # }
     scen
   }
 )
@@ -467,11 +510,10 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "demand", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    # dem <- mod@data$utopia_repository@data$DEM_ELC
+    # dem <- mod@data$topia_repository@data$DEM_ELC
     dem <- obj
     dem@name <- toString(dem@name)
 
-    # browser()
 
     # check if only one commodity is specified
     if (length(dem@commodity) != 1) {
@@ -497,7 +539,6 @@ setMethod(
 
     # dem <- .filter_data_in_slots(dem, approxim$region, "region")
     # approxim <- .fix_approximation_list(approxim, comm = dem@commodity)
-    # dem <- .disaggregateTimesliceLevel(dem, approxim)
 
     ## pDemand ####
     dat <- data.table(
@@ -543,8 +584,6 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "export", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    # .checkTimesliceLevel(app, approxim)
-    # browser()
     exp <- obj
     exp@name <- toString(exp@name)
     if (length(exp@commodity) != 1) {
@@ -563,18 +602,6 @@ setMethod(
         '" is not declared in the model.'
       )
     }
-    # exp <- .filter_data_in_slots(exp, approxim$region, "region")
-    # browser()
-    # approxim <- .fix_approximation_list(approxim,
-    #                                     comm = exp@commodity,
-    #                                     lev = character(0)
-    #                                     # lev = exp@timeframe
-    # )
-    # exp <- .disaggregateTimesliceLevel(exp, approxim)
-    # mExpTimeslice <- data.table(expp = rep(exp@name, length(approxim$timeslice)), timeslice = approxim$timeslice)
-    # obj@parameters[["mExpTimeslice"]] <- .dat2par(obj@parameters[["mExpTimeslice"]], mExpTimeslice)
-    # mExpComm <- data.table(expp = exp@name, comm = exp@commodity)
-    # obj@parameters[["mExpComm"]] <- .dat2par(obj@parameters[["mExpComm"]], mExpComm)
 
 
     ## pExportRowPrice ####
@@ -626,58 +653,6 @@ setMethod(
     }
 
 
-    # mExportRow <- merge0(merge0(mExpTimeslice, list(region = approxim$region)), list(year = approxim$mileStoneYears))
-    # if (!is.null(pExportRow) && nrow(pExportRow) != 0) {
-    #   pExportRow2 <- pExportRow |>
-    #     filter(type == "up" & value == 0) |>
-    #     select(any_of(colnames(mExportRow)))
-    #   # pExportRow2 <- pExportRow[pExportRow$type == "up" & pExportRow$value == 0,
-    #   #                           colnames(pExportRow) %in% colnames(mExportRow),
-    #   #                           drop = FALSE]
-    #   if (nrow(pExportRow2) != 0) {
-    #     # pExportRow2 <- mExportRow[1, 1:2, drop = FALSE]
-    #     if (ncol(pExportRow2) != ncol(mExportRow)) pExportRow2 <- merge0(mExportRow, pExportRow2)
-    #     mExportRow <- mExportRow[(!duplicated(rbind(mExportRow, pExportRow2), fromLast = TRUE)[1:nrow(mExportRow)]), , drop = FALSE]
-    #   }
-    # }
-    # mExportRow$comm <- exp@commodity
-    # obj@parameters[["mExportRow"]] <- .dat2par(obj@parameters[["mExportRow"]], mExportRow)
-    # if (!is.null(pExportRow) && any(pExportRow$type == "up" & pExportRow$value != Inf & pExportRow$value != 0)) {
-    #   mExportRowUp <- pExportRow |>
-    #     filter(type == "up" & value != Inf & value != 0) |>
-    #     select(any_of(obj@parameters[["mExportRowUp"]]@dimSets))
-    #   # mExportRowUp <- pExportRow[
-    #   #   pExportRow$type == "up" & pExportRow$value != Inf & pExportRow$value != 0,
-    #   #   colnames(pExportRow) %in% obj@parameters[["mExportRowUp"]]@dimSets,
-    #   #   drop = FALSE]
-    #   mExportRowUp$comm <- exp@commodity
-    #   if (!all(obj@parameters[["mExportRowUp"]]@dimSets %in% mExportRowUp)) {
-    #     mExportRowUp <- merge0(mExportRow, mExportRowUp)
-    #   }
-    #   obj@parameters[["mExportRowUp"]] <-
-    #     .dat2par(obj@parameters[["mExportRowUp"]], mExportRowUp)
-    #   meqExportRowLo <- pExportRow |>
-    #     filter(type == "lo" & value != 0) |>
-    #     select(any_of(obj@parameters[["meqExportRowLo"]]@dimSets))
-    #   # pExportRow[pExportRow$type == "lo" & pExportRow$value != 0,
-    #   #            colnames(pExportRow) %in% obj@parameters[["meqExportRowLo"]]@dimSets,
-    #   #            drop = FALSE]
-    #   meqExportRowLo$comm <- exp@commodity
-    #   if (!all(obj@parameters[["meqExportRowLo"]]@dimSets %in% meqExportRowLo)) {
-    #     meqExportRowLo <- merge0(mExportRow, meqExportRowLo)
-    #   }
-    #   obj@parameters[["meqExportRowLo"]] <- .dat2par(
-    #     obj@parameters[["meqExportRowLo"]],
-    #     merge0(mExportRow, meqExportRowLo)
-    #   )
-    # }
-    # if (!is.null(pExportRowRes)) {
-    #   pExportRowRes$comm <- exp@commodity
-    #   obj@parameters[["mExportRowCumUp"]] <- .dat2par(
-    #     obj@parameters[["mExportRowCumUp"]],
-    #     pExportRowRes[pExportRowRes$value != Inf, c("expp", "comm"), drop = FALSE]
-    #   )
-    # }
     scen
   }
 )
@@ -689,7 +664,6 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "import", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    # .checkTimesliceLevel(app, approxim)
     # imp <- .upper_case(app)
     imp <- obj
     imp@name <- toString(imp@name)
@@ -713,21 +687,6 @@ setMethod(
       )
     }
 
-    # imp <- .filter_data_in_slots(imp, approxim$region, "region")
-    # browser()
-    # approxim <- .fix_approximation_list(approxim,
-    #                                     comm = imp@commodity,
-    #                                     lev = character(0)
-    #                                     # lev = imp@timeframe
-    # )
-    # imp <- .disaggregateTimesliceLevel(imp, approxim)
-    # mImpTimeslice <- data.table(
-    #   imp = rep(imp@name, length(approxim$timeslice)),
-    #   timeslice = approxim$timeslice)
-    # obj@parameters[["mImpTimeslice"]] <-
-    #   .dat2par(obj@parameters[["mImpTimeslice"]], mImpTimeslice)
-    # mImpComm <- data.table(imp = imp@name, comm = imp@commodity)
-    # obj@parameters[["mImpComm"]] <- .dat2par(obj@parameters[["mImpComm"]], mImpComm)
 
     # pImportRowPrice <- .interp_numpar(
     #   imp@import, "price",
@@ -785,60 +744,8 @@ setMethod(
       scen <- update_parameter(scen, "pImportRow", dat)
     }
 
-    # mImportRow <- merge0(merge0(mImpTimeslice, list(region = approxim$region)), list(year = approxim$mileStoneYears))
-    # if (!is.null(pImportRow) && nrow(pImportRow) != 0) {
-    #   pImportRow2 <- pImportRow |>
-    #     filter(type == "up" & value == 0) |>
-    #     select(any_of(colnames(mImportRow)))
-    #   # pImportRow[pImportRow$type == "up" & pImportRow$value == 0,
-    #   #            colnames(pImportRow) %in% colnames(mImportRow), drop = FALSE]
-    #   if (nrow(pImportRow2) != 0) {
-    #     pImportRow2 <- mImportRow[1, 1:2, drop = FALSE]
-    #     if (ncol(pImportRow2) != ncol(mImportRow)) pImportRow2 <- merge0(mImportRow, pImportRow2)
-    #     mImportRow <- mImportRow[(!duplicated(rbind(mImportRow, pImportRow2), fromLast = TRUE)[1:nrow(mImportRow)]), , drop = FALSE]
-    #   }
-    # }
-    # mImportRow$comm <- imp@commodity
-    # obj@parameters[["mImportRow"]] <- .dat2par(obj@parameters[["mImportRow"]], mImportRow)
 
 
-    # if (!is.null(pImportRow)) {
-    #   mImportRowUp <- pImportRow |>
-    #     filter(type == "up" & value != Inf & value != 0) |>
-    #     select(any_of(obj@parameters[["mImportRowUp"]]@dimSets))
-    #   # pImportRow[
-    #   #   pImportRow$type == "up" & pImportRow$value != Inf & pImportRow$value != 0,
-    #   #   colnames(pImportRow) %in% obj@parameters[["mImportRowUp"]]@dimSets,
-    #   #   drop = FALSE]
-    #   mImportRowUp$comm <- imp@commodity
-    #   if (!all(obj@parameters[["mImportRowUp"]]@dimSets %in% mImportRowUp)) {
-    #     mImportRowUp <- merge0(mImportRow, mImportRowUp)
-    #   }
-    #   obj@parameters[["mImportRowUp"]] <- .dat2par(obj@parameters[["mImportRowUp"]], mImportRowUp)
-    #   meqImportRowLo <- pImportRow |>
-    #     filter(type == "lo" & value != 0) |>
-    #     select(any_of(obj@parameters[["meqImportRowLo"]]@dimSets))
-    #   # meqImportRowLo <- pImportRow[
-    #   #   pImportRow$type == "lo" & pImportRow$value != 0,
-    #   #   colnames(pImportRow) %in% obj@parameters[["meqImportRowLo"]]@dimSets,
-    #   #   drop = FALSE]
-    #   meqImportRowLo$comm <- imp@commodity
-    #   if (!all(obj@parameters[["meqImportRowLo"]]@dimSets %in% meqImportRowLo)) {
-    #     meqImportRowLo <- merge0(mImportRow, meqImportRowLo)
-    #   }
-    #   obj@parameters[["meqImportRowLo"]] <- .dat2par(
-    #     obj@parameters[["meqImportRowLo"]],
-    #     merge0(mImportRow, meqImportRowLo)
-    #   )
-    # }
-    # if (!is.null(pImportRowRes)) {
-    #   pImportRowRes$comm <- exp@commodity
-    #   obj@parameters[["mImportRowCumUp"]] <- .dat2par(
-    #     obj@parameters[["mImportRowCumUp"]],
-    #     pImportRowRes[pImportRowRes$value != Inf, c("expp", "comm"),
-    #                   drop = FALSE]
-    #   )
-    # }
     scen
   }
 )
@@ -869,63 +776,6 @@ setMethod(
       )
     }
 
-    # browser()
-    # approxim <- .fix_approximation_list(approxim, comm = sup@commodity,
-    # lev = sup@timeframe) # dropped
-    # approxim <- .fix_approximation_list(approxim, comm = sup@commodity)
-    # sup <- .disaggregateTimesliceLevel(sup, approxim)
-    # if (length(sup@region) != 0) {
-    #   approxim$region <- approxim$region[approxim$region %in% sup@region]
-    #   ss <- getSlots("supply")
-    #   ss <- names(ss)[ss %in% "data.frame"]
-    #   ss <- ss[sapply(ss, function(x) {
-    #     (any(colnames(slot(sup, x)) == "region") &&
-    #       any(!is.na(slot(sup, x)$region)))
-    #   })]
-    #   for (sl in ss) {
-    #     if (any(!is.na(slot(sup, sl)$region) &
-    #       !(slot(sup, sl)$region %in% sup@region))) {
-    #       rr <- !is.na(slot(sup, sl)$region) &
-    #         !(slot(sup, sl)$region %in% sup@region)
-    #       warning(
-    #         paste('There are data supply "', sup@name, '" for unused region: "',
-    #           paste(unique(slot(sup, sl)$region[rr]), collapse = '", "'), '"',
-    #           sep = ""
-    #         )
-    #       )
-    #       slot(sup, sl) <- slot(sup, sl)[!rr, , drop = FALSE]
-    #     }
-    #   }
-    #   mSupSpan <- data.table(
-    #     sup = rep(sup@name, length(sup@region)),
-    #     region = sup@region
-    #   )
-    #   obj@parameters[["mSupSpan"]] <- .dat2par(
-    #     obj@parameters[["mSupSpan"]],
-    #     mSupSpan
-    #   )
-    # } else {
-    #   mSupSpan <- data.table(
-    #     sup = rep(sup@name, length(approxim$region)),
-    #     region = approxim$region
-    #   )
-    #   obj@parameters[["mSupSpan"]] <- .dat2par(
-    #     obj@parameters[["mSupSpan"]],
-    #     mSupSpan
-    #   )
-    # }
-    # sup <- .filter_data_in_slots(sup, approxim$region, "region")
-    # mSupTimeslice <- data.table(
-    #   sup = rep(sup@name, length(approxim$timeslice)),
-    #   timeslice = approxim$timeslice
-    # )
-    # obj@parameters[["mSupTimeslice"]] <-
-    #   .dat2par(obj@parameters[["mSupTimeslice"]], mSupTimeslice)
-    # browser()
-    # mSupComm <- data.table(sup = sup@name, comm = sup@commodity)
-    # obj@parameters[["mSupComm"]] <-
-    #   .dat2par(obj@parameters[["mSupComm"]], mSupComm)
-    # browser()
 
     ## pSupCost ####
     # scen@modInp@parameters$pSupCost@data
@@ -939,7 +789,6 @@ setMethod(
     #   obj@parameters[["pSupCost"]],
     #   pSupCost
     # )
-    # browser()
     dat <- data.table(
       sup = sup@name,
       comm = sup@commodity,
@@ -954,15 +803,6 @@ setMethod(
     dat <- dat[!is.na(dat$value), , drop = FALSE]
     if (nrow(dat) > 0) scen <- update_parameter(scen, "pSupCost", dat)
 
-    ## pSupReserve ####
-    # scen@modInp@parameters$pSupReserve@data
-    # pSupReserve <- .interp_bounds(
-    #   sup@reserve, "res", obj@parameters[["pSupReserve"]],
-    #   approxim, c("sup", "comm"), c(sup@name, sup@commodity)
-    # )
-    # obj@parameters[["pSupReserve"]] <-
-    #   .dat2par(obj@parameters[["pSupReserve"]], pSupReserve)
-    # browser()
     dat <- .pack_bounds_long(sup@reserve, "res", c("region"))
     if (!is.null(dat)) {
       dat <- data.table(sup = sup@name, comm = sup@commodity, dat) |>
@@ -970,14 +810,6 @@ setMethod(
       scen <- update_parameter(scen, "pSupReserve", dat)
     }
 
-    ## pSupAva ####
-    # scen@modInp@parameters$pSupAva@data
-    # pSupAva <- .interp_bounds(
-    #   sup@supply, "ava",
-    #   obj@parameters[["pSupAva"]], approxim, c("sup", "comm"),
-    #   c(sup@name, sup@commodity)
-    # )
-    # obj@parameters[["pSupAva"]] <- .dat2par(obj@parameters[["pSupAva"]], pSupAva)
     dat <- .pack_bounds_long(sup@supply, "ava", c("region", "year", "timeslice"))
     if (!is.null(dat)) {
       dat <- data.table(sup = sup@name, comm = sup@commodity, dat) |>
@@ -987,135 +819,7 @@ setMethod(
 
 
 
-    # zero_ava_up <- pSupAva[pSupAva$value == 0 & pSupAva$type == "up",
-    #                        colnames(pSupAva) != "value", drop = FALSE]
-    # browser()
-    # if (is.null(pSupAva)) {
-    #   zero_ava_up <- NULL
-    # } else {
-    #   zero_ava_up <- pSupAva |>
-    #     filter(value == 0, type == "up") |>
-    #     select(-any_of("value"))
-    #   # browser()
-    # }
-    # # mSupAva <- merge0(merge0(mSupSpan, list(comm = sup@commodity, year = approxim$mileStoneYears)), mSupTimeslice)
-    # mSupAva <- mSupSpan |>
-    #   merge0(list(comm = sup@commodity, year = approxim$mileStoneYears)) |>
-    #   merge0(mSupTimeslice)
 
-    # if (!is.null(zero_ava_up) && nrow(zero_ava_up) != 0) {
-    #   if (all(colnames(mSupAva) %in% colnames(zero_ava_up))) {
-    #     # mSupAva <-
-    #     #   mSupAva[(!duplicated(
-    #     #     rbind(mSupAva, zero_ava_up[, colnames(mSupAva)]),
-    #     #     fromLast = TRUE))[1:nrow(mSupAva)], ]
-    #     ii <- mSupAva |>
-    #       rbind(select(zero_ava_up, all_of(colnames(mSupAva)))) |>
-    #       duplicated(fromLast = TRUE)
-    #     # filter(n() <= nrow(mSupAva))
-    #     ii <- ii[1:nrow(mSupAva)]
-    #     mSupAva <- mSupAva[!ii, ]
-    #   } else {
-    #     # mSupAva <- mSupAva[(!duplicated(rbind(mSupAva, merge0(mSupAva, zero_ava_up[, colnames(zero_ava_up) %in% colnames(mSupAva), drop = FALSE])[, colnames(mSupAva)]), fromLast = TRUE))[1:nrow(mSupAva)], ]
-    #     ii <- mSupAva |>
-    #       rbind(
-    #         merge0(mSupAva, select(zero_ava_up, any_of(colnames(mSupAva))))
-    #       ) |>
-    #       select(all_of(colnames(mSupAva))) |>
-    #       duplicated(fromLast = TRUE)
-    #     ii <- ii[1:nrow(mSupAva)] # ???
-    #     mSupAva <- mSupAva[!ii, ]
-    #   }
-    # }
-    # obj@parameters[["mSupAva"]] <- .dat2par(obj@parameters[["mSupAva"]], mSupAva)
-    # mvSupReserve <- merge0(mSupComm, mSupSpan)
-    # obj@parameters[["mvSupReserve"]] <-
-    #   .dat2par(obj@parameters[["mvSupReserve"]], mvSupReserve)
-    # if (all(c("sup", "comm", "region") %in% colnames(pSupReserve))) {
-    #   obj@parameters[["mSupReserveUp"]] <-
-    #     .dat2par(
-    #       obj@parameters[["mSupReserveUp"]],
-    #       pSupReserve[
-    #         pSupReserve$type == "up" & pSupReserve$value != Inf,
-    #         c("sup", "comm", "region")
-    #       ]
-    #     )
-    #   obj@parameters[["meqSupReserveLo"]] <-
-    #     .dat2par(
-    #       obj@parameters[["meqSupReserveLo"]],
-    #       pSupReserve[
-    #         pSupReserve$type == "lo" & pSupReserve$value != 0,
-    #         c("sup", "comm", "region")
-    #       ]
-    #     )
-    # } else {
-    #   # obj@parameters[["mSupReserveUp"]] <- .dat2par(
-    #   #   obj@parameters[["mSupReserveUp"]],
-    #   #   merge0(mvSupReserve, pSupReserve[pSupReserve$type == "up" & pSupReserve$value != Inf,
-    #   #     colnames(pSupReserve) %in% c("sup", "comm", "region"),
-    #   #     drop = FALSE
-    #   #   ])
-    #   # )
-    #   .null_to_empty_param("pSupReserve", obj@parameters)
-    #   # browser()
-    #   obj@parameters[["mSupReserveUp"]] <-
-    #     .dat2par(
-    #       obj@parameters[["mSupReserveUp"]],
-    #       merge0(
-    #         mvSupReserve,
-    #         select(
-    #           filter(pSupReserve, type == "up" & value != Inf),
-    #           any_of(c("sup", "comm", "region"))
-    #         )
-    #       )
-    #     )
-    #   # obj@parameters[["meqSupReserveLo"]] <- .dat2par(
-    #   #   obj@parameters[["meqSupReserveLo"]],
-    #   #   merge0(mvSupReserve, pSupReserve[pSupReserve$type == "lo" & pSupReserve$value != 0,
-    #   #     colnames(pSupReserve) %in% c("sup", "comm", "region"),
-    #   #     drop = FALSE
-    #   #   ])
-    #   # )
-    #   obj@parameters[["meqSupReserveLo"]] <-
-    #     .dat2par(
-    #       obj@parameters[["meqSupReserveLo"]],
-    #       merge0(
-    #         mvSupReserve,
-    #         select(
-    #           filter(pSupReserve, type == "lo" & value != 0),
-    #           any_of(c("sup", "comm", "region"))
-    #         )
-    #       )
-    #     )
-    # }
-    # .null_to_empty_param("pSupAva", obj@parameters)
-    # obj@parameters[["meqSupAvaLo"]] <- .dat2par(
-    #   obj@parameters[["meqSupAvaLo"]],
-    #   # merge0(mSupAva, pSupAva[pSupAva$type == "lo" & pSupAva$value != 0, colnames(pSupAva) %in% colnames(mSupAva)])
-    #   merge0(
-    #     mSupAva,
-    #     select(
-    #       filter(pSupAva, type == "lo" & value != 0),
-    #       all_of(colnames(mSupAva))
-    #     )
-    #   )
-    # )
-    # # .null_to_empty_param("pSupAva", obj@parameters)
-    # # browser()
-    # obj@parameters[["mSupAvaUp"]] <- .dat2par(
-    #   obj@parameters[["mSupAvaUp"]],
-    #   # merge0(mSupAva, pSupAva[pSupAva$type == "up" & pSupAva$value != Inf,
-    #   # colnames(pSupAva) %in% colnames(mSupAva)])
-    #   merge0(
-    #     mSupAva,
-    #     select(
-    #       filter(pSupAva, type == "up" & value != Inf),
-    #       all_of(colnames(mSupAva))
-    #     )
-    #   )
-    # )
-    # For weather
-    # browser()
 
     ## pSupReserve ####
     # scen@modInp@parameters$pSupReserve@data
@@ -1130,15 +834,6 @@ setMethod(
     scen <- update_parameter(scen, "pSupReserve", dat)
 
 
-    # if (nrow(sup@weather) > 0) {
-    #   tmp <- .toWeatherImply(sup@weather, "wava", "sup", sup@name)
-    #   obj@parameters[["pSupWeather"]] <-
-    #     .dat2par(obj@parameters[["pSupWeather"]], tmp$par)
-    #   obj@parameters[["mSupWeatherUp"]] <-
-    #     .dat2par(obj@parameters[["mSupWeatherUp"]], tmp$mapup)
-    #   obj@parameters[["mSupWeatherLo"]] <-
-    #     .dat2par(obj@parameters[["mSupWeatherLo"]], tmp$maplo)
-    # }
 
     ## pSupWeather ####
     # scen@modInp@parameters$pSupWeather@data
@@ -1149,25 +844,6 @@ setMethod(
       scen <- update_parameter(scen, "pSupWeather", dat)
     }
 
-    # t1 <- mSupAva[, c("sup", "region", "year")] |> unique()
-    # t1 <- t1[!duplicated(t1), ]
-    # t2 <- pSupCost[pSupCost$value != 0, colnames(pSupCost)[colnames(pSupCost) %in% c("sup", "region", "year")], drop = FALSE]
-    # t2 <- t2[!duplicated(t2), , drop = FALSE]
-    # browser()
-    # .null_to_empty_param("pSupCost", obj@parameters)
-    # t2 <- pSupCost |>
-    #   filter(value != 0) |>
-    #   select(any_of(c("sup", "region", "year"))) |>
-    #   unique()
-    # if (!is.null(t2) && ncol(t2) != 3) {
-    #   browser()
-    #   # t2 <- merge0(t2, mSupAva[!duplicated(mSupAva[, c("sup", "region", "year")]),
-    #   #                          c("sup", "region", "year")])
-    #   t2 <- merge0(t2, unique(mSupAva[, c("sup", "region", "year")]))
-    # }
-    # mvSupCost <- merge0(t1, t2)
-    # mvSupCost <- mvSupCost[!duplicated(mvSupCost), ]
-    # obj@parameters[["mvSupCost"]] <- .dat2par(obj@parameters[["mvSupCost"]], mvSupCost)
     scen
   }
 )
@@ -1179,7 +855,6 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "weather", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-  # browser()
   wth <- obj
   wth@name <- toString(wth@name)
   # if (length(wth@timeframe) == 0 && length(approxim$calendar@timeslices_in_frame) > 1) {
@@ -1188,19 +863,6 @@ setMethod(
   if (length(wth@timeframe) == 0) {
     stop("Weather object must have a timeframe.")
   }
-  #
-  # if (length(wth@timeframe) == 0) {
-  #   wth@timeframe <- names(approxim$calendar@timeslices_in_frame)[1]
-  # }
-  # approxim <- .fix_approximation_list(approxim, lev = wth@timeframe)
-  # # region fix
-  # if (length(wth@region) != 0) {
-  #   approxim$region <- approxim$region[approxim$region %in% wth@region]
-  # }
-  # wth@region <- approxim$region
-  # browser()
-  # wth <- .filter_data_in_slots(wth, approxim$region, "region")
-  # wth <- .disaggregateTimesliceLevel(wth, approxim)
 
   ## pWeather ####
   # scen@modInp@parameters$pWeather@data
@@ -1212,6 +874,15 @@ setMethod(
     value = as.numeric(wth@weather$wval)
   ) |>
     force_cols_classes()
+  # A row leaving `region` NA is a wildcard, and it is the obvious way to write
+  # a region-agnostic profile. Resolve it to the object's OWN scope -- the same
+  # `.weather_scope()` the two weather maps use -- not to every region: left NA
+  # here, `unfold_parameters()` has no `weather` key in `.region_allowed()` and
+  # falls back to the whole region set, which in a multi-level model means
+  # every coarse level as well. The maps meanwhile read `@region`, so the
+  # parameter claimed the series where the maps said it did not live.
+  dat <- .expand_na_region(dat, .weather_scope(
+    wth, .weather_region_span(scen), .scen_geo_hierarchy(scen)))
   scen <- update_parameter(scen, "pWeather", dat)
 
   # obj@parameters[["pWeather"]]@defVal <- wth@defVal
@@ -1313,7 +984,7 @@ setMethod(
       if (is_empty(slot_info)) {next}
       slot_data <- get_lazy_data(obj, s)
       for (p in slot_info) {
-        # mod@data$utopia_repository@data$STGELC@seff
+        # mod@data$topia_repository@data$STGELC@seff
         #
         # Per-parameter COPY. Assigning back into `slot_data` made the first
         # parameter's commodity stick for every later one bound to the same
@@ -1396,32 +1067,12 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "tax", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    for (s in slotNames(obj)) {
-      if (s %in% c("name", "timeframe", "commodity", "region")) {next}
-      slot_info <- get_slot_meta(class(obj), s)
-      if (is_empty(slot_info)) {next}
-      slot_data <- get_lazy_data(obj, s)
-      # The commodity is carried on the object (@comm), not in the data slot.
-      # An empty @region means the tax applies to all regions (kept as NA and
-      # expanded when the mTaxCost map is built); a non-empty @region restricts
-      # the tax to those regions.
-      slot_data <- slot_data |> mutate(comm = obj@comm, .before = 1)
-      if (length(obj@region) > 0) {
-        slot_data <- slot_data |>
-          select(-any_of("region")) |>
-          tidyr::crossing(region = obj@region)
-      }
-      for (p in slot_info) {
-        dat <- make_data_param(
-          scen = scen,
-          obj_name = obj@name,
-          slot_data = slot_data,
-          par_meta = p,
-          class_col = "tax"
-        )
-        scen <- update_parameter(scen, p$name, dat)
-      }
-    }
+    # Routing (which rate column reaches which parameter) is not expressible in
+    # the declarative `get_slot_meta()` mapping: `inp`/`out` belong to the
+    # commodity parameters or to the process parameters depending on whether
+    # the instrument carries process targeting, and feeding both would charge
+    # one unit of flow twice. See R/levy.R.
+    scen <- .levy_emit(scen, obj, "tax")
     return(scen)
   }
 )
@@ -1433,32 +1084,12 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "subsidy", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    for (s in slotNames(obj)) {
-      if (s %in% c("name", "timeframe", "commodity", "region")) {next}
-      slot_info <- get_slot_meta("subsidy", s)
-      if (is_empty(slot_info)) {next}
-      slot_data <- get_lazy_data(obj, s)
-      # The commodity is carried on the object (@comm), not in the data slot.
-      # An empty @region means the subsidy applies to all regions (kept as NA
-      # and expanded when the mSubCost map is built); a non-empty @region
-      # restricts the subsidy to those regions.
-      slot_data <- slot_data |> mutate(comm = obj@comm, .before = 1)
-      if (length(obj@region) > 0) {
-        slot_data <- slot_data |>
-          select(-any_of("region")) |>
-          tidyr::crossing(region = obj@region)
-      }
-      for (p in slot_info) {
-        dat <- make_data_param(
-          scen = scen,
-          obj_name = obj@name,
-          slot_data = slot_data,
-          par_meta = p,
-          class_col = "sub"
-        )
-        scen <- update_parameter(scen, p$name, dat)
-      }
-    }
+    # Routing (which rate column reaches which parameter) is not expressible in
+    # the declarative `get_slot_meta()` mapping: `inp`/`out` belong to the
+    # commodity parameters or to the process parameters depending on whether
+    # the instrument carries process targeting, and feeding both would charge
+    # one unit of flow twice. See R/levy.R.
+    scen <- .levy_emit(scen, obj, "subsidy")
     return(scen)
   }
 )
@@ -1527,6 +1158,11 @@ setMethod(
     # regions of that level (the spatial twin of `calendar@timeframes`).
     # NULL when no geoscale is attached.
     geo_hierarchy = .scen_geo_hierarchy(scen),
+    # variant provenance (name, class, base, vintage, cluster), so a summand's
+    # `vintage` / `cluster` filter resolves by JOIN rather than by parsing the
+    # mangled variant name -- the separator is user-configurable. NULL when no
+    # process has variants.
+    variant = scen@modInp@sets$variant,
     year = ss@horizon@period,
     timeslice = scen@modInp@sets$timeslice,
     calendar = ss@calendar,
@@ -1547,7 +1183,7 @@ setMethod(
 
 # The unwired ob2mi("horizon") and ob2mi("calendar") methods were archived to
 # depreciated/R/ob2mi-horizon-calendar.R (never dispatched; ob2mi("horizon") was
-# the sole consumer of the `fn` list in the archived R/fn.R). Horizon/calendar
+# the sole consumer of the `fn` list in depreciated/R/fn.R). Horizon/calendar
 # parameters are built by ob2mi("settings") below and the `calendar` recipe.
 
 # =============================================================================#
@@ -1587,6 +1223,15 @@ setMethod(
       obj@parameters[[i]] <- .resetParameter(obj@parameters[[i]])
     }
     obj <- .drop_config_param(obj)
+    # Rates declared at a coarse geoscale level are inherited by the regions
+    # below them -- a region's own rows override -- BEFORE the region filter
+    # would drop them. The coarse rows are interpolated on their own below: a
+    # process declared at the coarse region annuitises at that rate.
+    .rate_inh <- .inherit_rates(
+      as.data.frame(app@discount),
+      .geo_hierarchy(tryCatch(getGeoscale(app), error = function(e) NULL), approxim$region),
+      as.character(approxim$region))
+    app@discount <- .rate_inh$rates
     app <- .filter_data_in_slots(app, approxim$region, "region")
     obj@parameters[["mTimesliceParentChild"]] <- .dat2par(
       obj@parameters[["mTimesliceParentChild"]],
@@ -1606,7 +1251,6 @@ setMethod(
         stringsAsFactors = FALSE
       )
     )
-    # browser()
     if (length(approxim$calendar@next_in_timeframe) != 0) {
       obj@parameters[["mTimesliceNext"]] <-
         .dat2par(obj@parameters[["mTimesliceNext"]],
@@ -1631,6 +1275,14 @@ setMethod(
                             obj@parameters[["pWacc"]], approxim_no_mileStone_Year,
                             all.val = TRUE
     )
+    if (nrow(.rate_inh$coarse) > 0L) {
+      .apx_c <- approxim_no_mileStone_Year
+      .apx_c$region <- unique(as.character(.rate_inh$coarse$region))
+      pSdr <- rbind(pSdr, .interp_numpar(.rate_inh$coarse, "sdr", obj@parameters[["pSdr"]],
+                                         .apx_c, all.val = TRUE))
+      pWacc <- rbind(pWacc, .interp_numpar(.rate_inh$coarse, "wacc", obj@parameters[["pWacc"]],
+                                           .apx_c, all.val = TRUE))
+    }
     for (.r in list(list("pSdr", pSdr), list("pWacc", pWacc))) {
       obj@parameters[[.r[[1]]]] <-
         .dat2par(obj@parameters[[.r[[1]]]],
@@ -1647,7 +1299,6 @@ setMethod(
     )
     approxim_comm$timeslice <- approxim$calendar@timeslice_share$timeslice
 
-    # browser()
     data.table::setNumericRounding(2) # ignore small differences in 'unique' function
     # add pTimesliceWeight from calendar@misc$pTimesliceWeight o @timeslice_share$weight
     if (!is_null(approxim$calendar@misc$pTimesliceWeight)) {
@@ -1680,7 +1331,10 @@ setMethod(
     #   left_join(, by = "timeslice")
 
     a <- pTimesliceWeight_tmp |>
-      left_join(approxim$calendar@timeslice_ancestry, by = c("timeslice" = "child")) |>
+      # On a multi-level calendar a child has several ancestors, and the weights
+      # carry one row per year, so the pairing is many-to-many by construction.
+      left_join(approxim$calendar@timeslice_ancestry, by = c("timeslice" = "child"),
+                relationship = "many-to-many") |>
       left_join(select(approxim$calendar@timeslice_share, -weight),
                 by = c("parent" = "timeslice")) |>
       rename(weight = value) |>
@@ -1701,6 +1355,13 @@ setMethod(
       rename(timeslice = parent) |>
       as.data.table()
 
+    # The top (ANNUAL) slice is full-year magnitude (weight = 1) by the
+    # timeframe contract; the descendant mean reproduces the sub-annual
+    # 1/year_fraction instead, so recomputation never overrides the top
+    # row (a differing pair would both survive the unique() below).
+    .top_ts <- as.character(approxim$calendar@timeslice_share$timeslice[1])
+    ab <- ab[timeslice != .top_ts]
+
     pTimesliceWeight_tmp <- rbind(pTimesliceWeight_tmp, ab) |>
       filter(year %in% approxim$mileStoneYears) |>
       unique()
@@ -1716,15 +1377,29 @@ setMethod(
       pTimesliceWeight_tmp
     )
     # agg-rewrite: intensive timeslice-aggregation weight pTimesliceAgg[year, parent, child]
-    # = pTimesliceWeight[year, child] / pTimesliceWeight[year, parent], over IMMEDIATE
-    # parent-child pairs (@timeslice_family). Used to up-aggregate commodity totals
-    # between adjacent levels (eqOutTot/eqInpTot), replacing *2Lo disaggregation.
-    pTimesliceAgg_tmp <- dplyr::as_tibble(approxim$calendar@timeslice_family) |>
+    # = pTimesliceWeight[year, child] / pTimesliceWeight[year, parent], over SELF
+    # pairs plus ALL ancestor-descendant pairs (@timeslice_ancestry). Immediate
+    # pairs drive the one-level roll-up in eqOutTot/eqInpTot; the transitive and
+    # self pairs serve the cross-into-coarser sums (eqEmsFuelTot, the *Tot Agg
+    # branches, eqAggOutTot, eqTradeIrA*Tot, eqTechAfs*), whose pairing sets are
+    # self-or-descendant. The ratio is 1 on a full calendar and everywhere
+    # sub-annual; 1/year_fraction where the parent is the top (ANNUAL) slice.
+    .agg_pairs <- rbind(
+      data.table(
+        parent = as.character(approxim$calendar@timeslice_share$timeslice),
+        child = as.character(approxim$calendar@timeslice_share$timeslice)),
+      data.table(
+        parent = as.character(approxim$calendar@timeslice_ancestry$parent),
+        child = as.character(approxim$calendar@timeslice_ancestry$child))
+    ) |> unique()
+    pTimesliceAgg_tmp <- dplyr::as_tibble(.agg_pairs) |>
       dplyr::transmute(timeslice = as.character(parent),
                        timeslicep = as.character(child)) |>
+      # Joined on the child alone: each (parent, child) pair must fan out across
+      # every year before `w_parent` is attached by (year, timeslice) below.
       dplyr::left_join(dplyr::rename(pTimesliceWeight_tmp,
                                      timeslicep = timeslice, w_child = value),
-                       by = "timeslicep") |>
+                       by = "timeslicep", relationship = "many-to-many") |>
       dplyr::left_join(dplyr::rename(pTimesliceWeight_tmp, w_parent = value),
                        by = c("year", "timeslice")) |>
       dplyr::filter(!is.na(w_child) & !is.na(w_parent) & w_parent != 0) |>
@@ -1733,11 +1408,9 @@ setMethod(
     obj@parameters[["pTimesliceAgg"]] <- .dat2par(
       obj@parameters[["pTimesliceAgg"]], pTimesliceAgg_tmp)
     rm(pTimesliceAgg_tmp)
-    # browser()
     rm(a, b, ab, pTimesliceWeight_tmp)
 
     if (nrow(app@horizon@intervals) == 0) { # ???
-      invisible()  # browser() disabled
       app <- setHorizon(app,
                         horizon = app@horizon@period,
                         intervals = rep(1, length(app@horizon@period)))
@@ -1750,7 +1423,6 @@ setMethod(
       obj@parameters[["mMilestoneFirst"]],
       data.table(year = min(app@horizon@intervals$mid))
     )
-    # browser()
     obj@parameters[["mMilestoneNext"]] <- .dat2par(
       obj@parameters[["mMilestoneNext"]],
       data.table(year = app@horizon@intervals$mid[-nrow(app@horizon@intervals)],
@@ -1771,7 +1443,6 @@ setMethod(
       data.table(region = app@region,
                  regionp = app@region)
     )
-    # browser()
     # tmp <- data.frame(year = .get_data_slot(obj@parameters$year))
     tmp <- .get_data_slot(obj@parameters$year)
     # tmp$value <- seq_along(tmp$year)
@@ -1787,7 +1458,6 @@ setMethod(
                             app@horizon@intervals$start + 1),
                  stringsAsFactors = FALSE)
     )
-    # browser()
     # Cumulative discount factor for the objective -- built from the SOCIAL
     # discount rate. The financing rate (`wacc`) never enters here; it is spent
     # in R/eac.R annuitising investment.
@@ -1806,7 +1476,6 @@ setMethod(
       )
     pYearFraction <- .get_data_slot(obj@parameters$year)
     pYearFraction$value <- app@yearFraction$fraction
-    # browser()
     obj@parameters[["pYearFraction"]] <-
       .dat2par(obj@parameters[["pYearFraction"]], pYearFraction)
     obj@parameters[["pYearFraction"]]@defVal <- 1 # !!! temporary fix
@@ -1826,11 +1495,10 @@ force_cols_classes <- function(dtf) {
   force_class <- "integer"
   # force_class <- "numeric"
   for (y in year_vars) {
-    if (!is.null(dtf[[y]]) && !inherits(dtf, force_class)) {
+    if (!is.null(dtf[[y]]) && !inherits(dtf[[y]], force_class)) {
       dtf[[y]] <- as(dtf[[y]], force_class)
     }
   }
-  # browser()
   string_vars <- c(
     "comm", "commp",
     "timeslice", "timeslicep",
@@ -1843,7 +1511,7 @@ force_cols_classes <- function(dtf) {
   )
 
   for (s in string_vars) {
-    if (!is.null(dtf[[s]]) && !inherits(dtf, "character")) {
+    if (!is.null(dtf[[s]]) && !inherits(dtf[[s]], "character")) {
       dtf[[s]] <- as.character(dtf[[s]])
     }
   }
@@ -1863,6 +1531,122 @@ force_cols_classes <- function(dtf) {
   }
 
   as.data.table(dtf)
+}
+
+# Store of the chunks `d2p()` parks in bulk mode: one environment per parameter
+# object, keyed by `@misc$.pending_key`, inside `.interp_clock` (dropped at the
+# start of every interpolation). Appending to an environment copies nothing.
+.pending_store <- function() {
+  st <- .interp_clock$pending
+  if (is.null(st)) {
+    st <- new.env(parent = emptyenv())
+    st$.n <- 0L
+    .interp_clock$pending <- st
+  }
+  st
+}
+.pending_new_key <- function() {
+  st <- .pending_store()
+  st$.n <- st$.n + 1L
+  key <- paste0("k", st$.n)
+  e <- new.env(parent = emptyenv())
+  e$n <- 0L
+  assign(key, e, envir = st)
+  key
+}
+.pending_add <- function(key, chunk) {
+  e <- get(key, envir = .pending_store())
+  e$n <- e$n + 1L
+  assign(as.character(e$n), chunk, envir = e)
+  invisible()
+}
+# The parked chunks of a parameter, in write order (legacy `@misc` list first).
+.pending_chunks <- function(obj) {
+  old <- obj@misc[[".pending_chunks"]]
+  key <- obj@misc[[".pending_key"]]
+  st <- .interp_clock$pending
+  if (is.null(key) || is.null(st) || !exists(key, envir = st, inherits = FALSE)) {
+    return(old)
+  }
+  e <- get(key, envir = st)
+  if (e$n == 0L) return(old)
+  c(old, unname(mget(as.character(seq_len(e$n)), envir = e)))
+}
+.pending_drop <- function(obj) {
+  key <- obj@misc[[".pending_key"]]
+  st <- .interp_clock$pending
+  if (!is.null(key) && !is.null(st) && exists(key, envir = st, inherits = FALSE)) {
+    rm(list = key, envir = st)
+  }
+  invisible()
+}
+
+# Merge the chunks `d2p()` parked in bulk mode into each parameter's `@data`.
+#
+# In bulk mode `d2p()` appends to `@misc$.pending_chunks` rather than rebuilding
+# (and re-de-duplicating) the accumulated table on every write -- doing that per
+# write is what made the object loop quadratic in the number of objects. Set
+# union is associative, so collapsing once here reproduces exactly the table the
+# eager path produced. Called by `interpolate_model()` after the object loop;
+# a no-op when nothing is pending.
+.flush_pending_parameters <- function(scen) {
+  for (nm in names(scen@modInp@parameters)) {
+    p <- scen@modInp@parameters[[nm]]
+    pend <- .pending_chunks(p)
+    if (length(pend) == 0 && !isTRUE(p@misc[[".dedup_pending"]]) &&
+        is.null(p@misc[[".pending_key"]])) next
+    if (length(pend) > 0) {
+      if (isOnDisk(p)) {
+        # one disk write per parameter: existing store content + all parked
+        # chunks, deduplicated once (set union is associative, so this equals
+        # the eager per-write result)
+        base <- get_data_slot(p, optional = TRUE, dedup = FALSE)
+        full <- unique(rbindlist(
+          c(if (!is.null(base) && nrow(base) > 0) list(force_cols_classes(base)),
+            pend),
+          use.names = TRUE, ignore.attr = TRUE))
+        pth <- getObjPath(p)
+        if (is.null(pth)) pth <- p@misc[[".pending_path"]]
+        if (is.null(pth)) {
+          stop("on-disk parameter '", nm, "' has no store path at flush",
+               call. = FALSE)
+        }
+        p@data <- full
+        p <- obj2disk(p, format = .store_format(fp(pth, "data")))
+        p@data <- reset_slot(p@data)
+      } else {
+        p@data <- unique(rbindlist(c(list(p@data), pend),
+          use.names = TRUE, ignore.attr = TRUE
+        ))
+      }
+    } else if (!isOnDisk(p) && !is.null(p@data) && nrow(p@data) > 0) {
+      p@data <- unique(p@data)
+    }
+    .pending_drop(p)
+    p@misc[[".pending_chunks"]] <- NULL
+    p@misc[[".pending_key"]] <- NULL
+    p@misc[[".pending_path"]] <- NULL
+    p@misc[[".dedup_pending"]] <- NULL
+    scen@modInp@parameters[[nm]] <- p
+  }
+
+  # Post-condition. Bulk mode parks chunks in `@misc$.pending_chunks`; if any
+  # survive this flush the scenario ships with unmaterialised `@data`, which
+  # writes out as a model with missing parameters and solves to OPTIMAL with
+  # objective 0 -- silently. Assert instead of hoping.
+  .left <- names(scen@modInp@parameters)[vapply(
+    scen@modInp@parameters,
+    function(p) length(.pending_chunks(p)) > 0L, logical(1))]
+  if (length(.left) > 0L) {
+    stop("interpolation left ", length(.left),
+         " parameter(s) unmaterialised after the final flush: ",
+         paste(utils::head(.left, 10), collapse = ", "),
+         if (length(.left) > 10L) ", ..." else "",
+         "\n  Their `@data` is still parked in `@misc$.pending_chunks`, so the ",
+         "model would be written out with those parameters empty.",
+         call. = FALSE)
+  }
+  scen
 }
 
 # =============================================================================#
@@ -1942,90 +1726,100 @@ make_data_param <- function(
     return(.empty_param_data(scen@modInp@parameters[[par_meta$name]]))
   }
 
+  # HOT PATH: this function runs once per (object x slot x parameter) --
+  # hundreds of thousands of calls on tiny tables per interpolation -- so it is
+  # written in base subsetting. The dplyr verbs it replaces spent their time in
+  # per-call tidyselect/DataMask setup, ~2/3 of the whole ob2mi stage on the
+  # 41-node vintaged model. Selection order, melt row order (row-major, as
+  # pivot_longer) and the filter/unique sequence reproduce the verb chain
+  # exactly.
+  dim_sets <- scen@modInp@parameters[[par_meta$name]]@dimSets
+
+  # add the object-name key column (constant). Appended, not prepended: the
+  # closing dim_sets reorder fixes every column position, so the intermediate
+  # position is free and the data.frame() constructor is avoided.
+  .prepend_class_col <- function(dat) {
+    if (is.null(class_col) || !is.null(dat[[class_col]])) return(dat)
+    dat[[class_col]] <- rep.int(obj_name, nrow(dat))
+    dat
+  }
+
+  # first-occurrence dedup in row order, radix instead of the column-pasting
+  # duplicated.data.frame
+  .dedup <- function(dat) {
+    if (nrow(dat) < 2L) return(dat)
+    if (isTRUE(getOption("en.bulk_param_write", FALSE))) return(dat)
+    dat[!duplicated(data.table::as.data.table(dat)), , drop = FALSE]
+  }
+
   if (par_meta$type == "bounds") {
-    # browser()
     bound_names <- paste0(par_meta$colName, c(".lo", ".up", ".fx"))
-    # names(bound_names) <- c("lo", "up", "fx")
 
-    dat <- slot_data |>
-      select(any_of(c(
-        scen@modInp@parameters[[par_meta$name]]@dimSets,
-        bound_names
-      )))
+    keep <- intersect(c(dim_sets, bound_names), names(slot_data))
+    dat <- slot_data[, keep, drop = FALSE]
 
-    if (!is.null(class_col) && is.null(dat[[class_col]])) {
-      dat <- dat |> mutate({{class_col}} := obj_name, .before = 1)
-    }
+    dat <- .prepend_class_col(dat)
 
     # dimension columns absent from the slot data (e.g. objects saved under an
     # older class version without a `timeslice` column) are unset -> NA wildcard
-    for (m in setdiff(scen@modInp@parameters[[par_meta$name]]@dimSets,
-                      names(dat))) {
+    for (m in setdiff(dim_sets, names(dat))) {
       dat[[m]] <- rep(NA, nrow(dat))
     }
 
-    # Pack RAW (sparse) bounds in long format with `type` in {lo, up, fx}.
-    # Interpolation is deferred to `interpolate_parameters`.
-    dat <- dat |>
-      pivot_longer(
-        cols = any_of(bound_names),
-        names_to = "type",
-        values_to = "value",
-        names_prefix = paste0(par_meta$colName, ".")
-      )
+    # Pack RAW (sparse) bounds in long format with `type` in {lo, up, fx}:
+    # row-major melt, one long row per (source row x present bound column).
+    present <- intersect(bound_names, names(dat))
+    id_cols <- setdiff(names(dat), present)
+    n <- nrow(dat)
+    k <- length(present)
+    long <- dat[rep(seq_len(n), each = k), id_cols, drop = FALSE]
+    long$type <- rep.int(
+      substring(present, nchar(par_meta$colName) + 2L), n)
+    # rbind stacks the k bound columns; column-major read = row-major melt
+    long$value <- as.vector(do.call(rbind, unname(dat[present])))
+    rownames(long) <- NULL
+    dat <- long
 
     # fixed (fx) bounds -> explicit lo + up rows (see .expand_fx_bounds)
     dat <- .expand_fx_bounds(dat)
 
-    dat <- dat |>
-      select(all_of(c(
-        scen@modInp@parameters[[par_meta$name]]@dimSets,
-        "type", "value"
-      ))) |>
-      force_cols_classes()
+    dat <- force_cols_classes(
+      dat[, c(dim_sets, "type", "value"), drop = FALSE])
 
   } else {
-  # browser()
     # Pack RAW (sparse) numeric values. Interpolation is deferred to
     # `interpolate_parameters`.
-    dat <- slot_data |>
-      select(any_of(c(
-        scen@modInp@parameters[[par_meta$name]]@dimSets,
-        short_name
-        ))) |>
-      # `all_of()`: renaming from a character variable is a tidyselect
-      # "external vector" selection, deprecated since tidyselect 1.1.0.
-      rename(value = all_of(short_name)) |>
-      filter(!is.na(value)) |>
-      unique()
+    keep <- intersect(c(dim_sets, short_name), names(slot_data))
+    dat <- slot_data[, keep, drop = FALSE]
+    names(dat)[names(dat) == short_name] <- "value"
+    dat <- .dedup(dat[!is.na(dat$value), , drop = FALSE])
 
-    if (!is.null(class_col) && is.null(dat[[class_col]])) {
-      dat <- dat |> mutate({{class_col}} := obj_name, .before = 1)
-    }
+    dat <- .prepend_class_col(dat)
 
     # dimension columns absent from the slot data (e.g. objects saved under an
     # older class version without a `timeslice` column) are unset -> NA wildcard
-    for (m in setdiff(scen@modInp@parameters[[par_meta$name]]@dimSets,
-                      names(dat))) {
+    for (m in setdiff(dim_sets, names(dat))) {
       dat[[m]] <- rep(NA, nrow(dat))
     }
 
-    dat <- dat |>
-      select(all_of(c(
-        scen@modInp@parameters[[par_meta$name]]@dimSets,
-        "value"
-      ))) |>
-      force_cols_classes()
+    dat <- force_cols_classes(
+      dat[, c(dim_sets, "value"), drop = FALSE])
   }
 
   # !!! add optional or essential info to metadata and filter NAs for optional
-  dat <- dat |>
-    filter(!is.na(value)) |>
-    unique()
+  dat <- .dedup(dat[!is.na(dat$value), , drop = FALSE])
+  rownames(dat) <- NULL
+  # classes are already the canonical ones; d2p() need not coerce again
+  attr(dat, "en_cols_forced") <- TRUE
 
   dat
 }
 # =============================================================================#
+# `.modInp` is baked package data, so the scan below is a pure function of its
+# arguments; ob2mi calls it once per (object x slot) and the linear pass over
+# ~500 registry entries added up. Process-lifetime cache, keyed on the args.
+.slot_meta_cache <- new.env(parent = emptyenv())
+
 get_slot_meta <- function(class = NULL,
                           slot = NULL,
                           type = NULL,
@@ -2037,31 +1831,19 @@ get_slot_meta <- function(class = NULL,
                           flat = length(return_names) == 1,
                           ...
                           ) {
-  # sname = colName
-  # browser()
-  # ll <- lapply(.modInp, function(x) {
-  #   # if (x$name == "pTechAct2AOut") browser()
-  #   # if (x$name == "pTechCap2Act") browser()
-  #
-  #   if (!is.null(class) && !any(x$class %in% class)) {return(NULL)}
-  #   if (!is.null(slot) && !any(x$slot %in% slot)) {return(NULL)}
-  #   if (!is.null(type) && !any(x$type %in% type)) {return(NULL)}
-  #   if (!is.null(dimSets) && !all(dimSets %in% x$dimSets)) {return(NULL)}
-  #   if (!is.null(return_names)) {
-  #     x <- x[names(x) %in% return_names]
-  #   }
-  #   x
-  # })
-  # ll <- ll[!sapply(ll, is_empty)]
 
-  # browser()
+  .enc <- function(v) if (is.null(v)) "<NULL>" else paste(v, collapse = ",")
+  .key <- paste(.enc(class), .enc(slot), .enc(type), .enc(dimSets),
+                .enc(colName), .enc(return_names), isTRUE(flat), sep = "|")
+  .hit <- .slot_meta_cache[[.key]]
+  if (!is.null(.hit)) return(.hit)
+
   ll <- list()
   # for ( in seq_along(.modInp)) {
   for (x in .modInp) {
     # if (x$name == "pTechAct2AOut") browser()
     # if (x$name == "pTechCap2Act") browser()
     # x <- .modInp[[i]]
-    # browser()
     if (!is.null(class) && !any(x$class %in% class)) {next}
     if (!is.null(slot) && !any(x$slot %in% slot)) {next}
     if (!is.null(type) && !any(x$type %in% type)) {next}
@@ -2069,7 +1851,6 @@ get_slot_meta <- function(class = NULL,
     if (!is.null(colName) && !any(x$colName %in% colName)) {next}
     x_name <- x$name
     if (!is.null(return_names)) {
-      # browser()
       if (length(return_names) > 1 || isFALSE(flat)) {
         x <- x[names(x) %in% return_names]
       } else {
@@ -2086,40 +1867,10 @@ get_slot_meta <- function(class = NULL,
     ll[[x_name]] <- x
   }
   # names(ll)
+  .slot_meta_cache[[.key]] <- ll
   ll
 }
 
-if (FALSE) {
-  # test
-  ll <- get_slot_meta("technology", slot = "cap2act", return_names = "slot")
-  names(ll)
-  ll |> unlist()
-  flatten(ll)
-  as.data.frame(ll)
-  ll <- get_slot_meta(class = "technology",
-                      type = "numpar",
-                      return_names = "slot")
-  ll
-  str(ll)
-  names(ll)
-  # ll[["pTechEac"]]
-  get_slot_meta(class = "technology",
-                # slot = "tech",
-                type = "numpar",
-                dimSets = c("region", "year", "timeslice")
-                )
-  get_slot_meta(class = "tech", slot = "tech", type = "numpar",
-                dimSets = c("region", "year", "timeslice"), return_names = "slot")
-  ll <- get_slot_meta(colName = "wval", return_names = "defVal", flat = TRUE)
-  ll <- get_slot_meta(colName = "waf", return_names = "defVal")
-  ll <- get_slot_meta(colName = "waf")
-  class(ll)
-  ll
-  ll |> as.data.table()
-  ll |> unlist()
-  ll |> flatten()
-
-}
 # =============================================================================#
 
 

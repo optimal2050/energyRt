@@ -28,40 +28,25 @@ get_julia_path <- function() {
 }
 
 # Functions to write Julia/JuMP model and data files
+# Arrow.jl reads and writes the IPC ("feather") format only -- it has no
+# parquet reader or writer. Refuse a parquet request loudly: served silently as
+# feather, R would then look for `output/<var>.parquet`, find nothing, and read
+# the scenario back empty.
+.assert_julia_arrow_format <- function(fmt, what) {
+  if (identical(tolower(fmt), "parquet")) {
+    stop("The Julia/JuMP backend cannot exchange parquet: Arrow.jl reads and ",
+         "writes IPC only. Set `", what, "` to \"feather\" (or use the Pyomo ",
+         "backend, which supports parquet).", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
 .write_model_JuMP <- function(arg, scen) {
+  # Arrow in and out unless the preset asks for the legacy RData bundle;
+  # `exchange_format` supplies the default (R/exchange.R).
+  scen@settings@solver <- .resolve_exchange_formats(scen@settings@solver)
   run_code <- scen@settings@sourceCode[["JuMP"]]
   run_codeout <- scen@settings@sourceCode[["JuMPOutput"]]
-  # # resolving `prod` issue in JuMP/Julia. temporary solution
-  # # UPDATE: the issue can be resolved by adding 'init = 1':
-  # # prod(...; init = 1)
-  # # The addition is not is currently not automated - ToDo.
-  # # the for-loop below doesn't work for formatted Julia script
-  # for (i in grep("^[@].*prod[(]", run_code)) {
-  #   # browser() # julia code is not formatted
-  #   tx <- gsub("^[@].*prod[(]", "", run_code[i])
-  #   k <- 1
-  #   while (k != 0) {
-  #     tx <- gsub("^[^)(]*", "", tx)
-  #     if (substr(tx, 1, 1) == "(") k <- k + 1 else k <- k - 1
-  #     tx <- gsub("^[)(]", "", tx)
-  #   }
-  #   run_code[i] <- paste0(gsub(
-  #     "[*][ ]*prod[(]", "*(1 + sum(-1 + ",
-  #     substr(run_code[i], 1, nchar(run_code[i]) - nchar(tx))
-  #   ), ")", tx)
-  # }
-  # [weather-prod] VERIFIED FIXED 2026-08-19 -- the guard that used to sit here is gone.
-  # It refused any model with more than one weather factor on the same process,
-  # because an early JuMP translation could not express the product. The emitted
-  # Julia now does, and carries the explicit identity the empty case needs:
-  #
-  #   prod( pTechWeatherAfUp[...] * pWeather[...]
-  #         for wth1 in weather if (wth1, t) in mTechWeatherAfUp ; init = 1)
-  #
-  # Checked on a two-factor technology (W1 = .9/.8/.7/.6, W2 = .5/.6/.7/.8 over
-  # four seasons): GLPK and Julia/HiGHS agree on the objective to 1.0000000000.
-  # Dropping a factor would roughly double af.up and halve capacity, so the
-  # objective is a sharp test. The old text is in git history at R/write_jump.R.
   # For downsize (rename?)
   fdownsize <- names(scen@modInp@parameters)[
     sapply(scen@modInp@parameters, function(x) length(x@misc$rem_col) != 0)
@@ -124,14 +109,6 @@ get_julia_path <- function() {
   for (i in names(scen@modInp@parameters)) {
     tmp <- .get_data_slot(scen@modInp@parameters[[i]])
     colnames(tmp) <- gsub("[.]1", "p", colnames(tmp))
-    # if (!is.null(scen@modInp@parameters[[i]]@data$year)) {
-    #   scen@modInp@parameters[[i]]@data$year <-
-    #     as.character(as.integer(scen@modInp@parameters[[i]]@data$year))
-    # }
-    # if (!is.null(scen@modInp@parameters[[i]]@data$yearp)) {
-    #   scen@modInp@parameters[[i]]@data$yearp <-
-    #     as.character(as.integer(scen@modInp@parameters[[i]]@data$yearp))
-    # }
     if (scen@modInp@parameters[[i]]@type != "bounds") {
       dat[[i]] <- tmp
     } else {
@@ -142,7 +119,6 @@ get_julia_path <- function() {
       dat[[paste0(i, "Lo")]] <- select(filter(tmp, type == "lo"), -type)
     }
   }
-  # browser()
   # data.tables - > data.frames to avoid warning:
   # ┌ Warning: Conversion of RData.RExtPtr to Julia is not implemented
   # └ @ RData C:\Users\...\.julia\packages\RData\L5u8v\src\convert.jl:198
@@ -151,19 +127,35 @@ get_julia_path <- function() {
     })
 
   # Data exchange: Arrow IPC/feather (one file per table in `input/`, read in
-  # Julia via Arrow.jl) when the solver requests it, else the legacy single
-  # `data.RData` (read via RData.jl). Julia's Arrow.jl reads IPC ("feather"); a
-  # `parquet` request is served as feather here (Arrow.jl does not read parquet).
+  # Julia via Arrow.jl) by default, else the legacy single `data.RData` (read
+  # via RData.jl). Arrow.jl reads IPC only, so a `parquet` request is refused
+  # here rather than silently served as feather -- the two sides would then
+  # disagree about the extension and the solve would read nothing.
   .ex_fmt <- scen@settings@solver$export_format
-  .use_arrow <- !is.null(.ex_fmt) &&
-    tolower(.ex_fmt) %in% c("feather", "ipc", "arrow", "parquet")
+  .use_arrow <- .is_arrow_exchange(.ex_fmt)
+  if (.use_arrow) .assert_julia_arrow_format(.ex_fmt, "export_format")
   if (.use_arrow) {
     in_dir <- fp(arg$solver.dir, "input")
-    dir.create(in_dir, showWarnings = FALSE)
+    dir.create(in_dir, showWarnings = FALSE, recursive = TRUE)
+    .check_exchange_path_len(
+      in_dir, names(dat)[vapply(dat, function(d) nrow(d) > 0L, logical(1))],
+      "feather")
     for (i in names(dat)) {
+      # An empty table is never read by the generated code (see .toJuliaHead),
+      # so writing it is pure overhead -- on a TOPIA-size model most tables
+      # are empty.
+      if (!nrow(dat[[i]])) next
       .write_exchange_table(dat[[i]], fp(in_dir, i), format = "feather")
     }
     cat(paste(
+      # A missing Arrow.jl otherwise fails as a bare `ArgumentError: Package
+      # Arrow not found`, which says nothing about how to proceed.
+      'if Base.find_package("Arrow") === nothing',
+      '    error("energyRt: the Julia package `Arrow` is required to read " *',
+      '          "the model data. Install it with en_install_julia_pkgs() " *',
+      '          "in R, or select the legacy exchange with " *',
+      '          "solver_options\\$julia_highs_rdata.")',
+      "end",
       "using Arrow",
       "using DataFrames",
       "dt = Dict{String, DataFrame}()",
@@ -178,7 +170,6 @@ get_julia_path <- function() {
       sep = "\n", file = zz_data_julia
     )
   }
-  # browser()
   for (j in c("set", "map", "numpar", "bounds")) {
     for (i in names(scen@modInp@parameters)) {
       if (scen@modInp@parameters[[i]]@type == j) {
@@ -238,8 +229,8 @@ get_julia_path <- function() {
   # `open("output/v<Name>.csv")` to `open_var(...)`. Meta files (variable_list /
   # raw_data_set / log) keep streaming CSV. CSV output is unchanged when not Arrow.
   .im_fmt <- scen@settings@solver$import_format
-  if (!is.null(.im_fmt) &&
-      tolower(.im_fmt) %in% c("feather", "ipc", "arrow", "parquet")) {
+  if (.is_arrow_exchange(.im_fmt)) {
+    .assert_julia_arrow_format(.im_fmt, "import_format")
     cat(.jump_arrow_output_helpers(), sep = "\n", file = zz_modout)
     run_codeout <- gsub(
       'open\\("output/(v[A-Z][A-Za-z0-9_]*)\\.csv", "w"\\)',
@@ -283,94 +274,8 @@ get_julia_path <- function() {
   return(paste0(x, collapse = ""))
 }
 
-# Generate Julia code, return the code as a character vector
-.toJulia <- function(obj) {
-  as_numpar <- function(data, name, name2, def) {
-    # browser()
-    # add here the line: sizehint!(PARAMETER, nrow(dt["PARAMETER"])
-    if (ncol(obj@data) == 1) {
-      return(c(
-        paste0("# ", name),
-        paste0(name, " = ", data$value)
-      ))
-    } else {
-      data <- data[data$value != Inf & data$value != def, ]
-      rtt <- paste0("# ", name, name2, "\n", name, "Def = ", def, ";\n")
-      if (nrow(data) == 0) {
-        return(paste0(rtt, name, " = Dict()"))
-      }
-      val <- as.character(data[1, ncol(data)])
-      if (!any(grep("[.e]", val))) val <- paste0(val, ".")
-      rtt <- c(rtt,
-               paste0(name, " = Dict((:",
-                      paste0(data[1, -ncol(data)], collapse = ", :"),
-                      ") => ", val, ");"))
-      if (nrow(data) == 1) {
-        return(rtt)
-      }
-      kk <- paste0(name, "[(:", data[-1, 1])
-      for (i in seq_len(ncol(data) - 2) + 1) {
-        kk <- paste0(kk, ", :", data[-1, i])
-      }
-      kk <- paste0(kk, ")] = ", data[-1, "value"])
-      return(c(rtt, kk))
-    }
-  }
-  # The whole materialised slot is written. This used to truncate to the
-  # `@misc$nValues` row-count cache, so a stale count silently made this engine
-  # write less data than GLPK, which never truncated.
-  obj@data <- get_data_slot(obj)
-  if (obj@type == "set") {
-    tmp <- ""
-    if (nrow(obj@data) > 0) {
-      tmp <- paste0("\n  (:", paste0(sort(obj@data[[1]]),
-        collapse = "),\n  (:"
-      ), ")\n")
-    }
-    return(c(paste0("# ", obj@name), paste0(obj@name, " = [", tmp, "]")))
-  } else if (obj@type == "map") {
-    ret <- paste0("# ", obj@name)
-    if (ncol(obj@data) > 1) ret <-
-        paste0(ret, "(", paste0(obj@dimSets, collapse = ", "), ")")
-    if (nrow(obj@data) == 0) {
-      return(c(ret, paste0(obj@name, " = []")))
-    } else {
-      return(c(
-        ret, paste0(obj@name, " = Set()"),
-        paste0("push!(", obj@name, ", ", paste0("(:", apply(
-          obj@data, 1,
-          function(x) paste(x, collapse = ",:")
-        ), "))\n"), collapse = "")
-      ))
-    }
-  } else if (obj@type == "numpar") {
-    return(as_numpar(
-      obj@data, obj@name,
-      paste0("(", paste0(obj@dimSets, collapse = ", "), ")"),
-      obj@defVal
-    ))
-  } else if (obj@type == "bounds") {
-    hh <- paste0("(", paste0(obj@dimSets, collapse = ", "), ")")
-    return(c(
-      as_numpar(
-        # obj@data[obj@data$type == "lo", 1 - ncol(obj@data), drop = FALSE],
-        select(filter(obj@data, type == "lo"), -type),
-        paste(obj@name, "Lo", sep = ""), hh, obj@defVal[1]
-      ),
-      as_numpar(
-        # obj@data[obj@data$type == "up", 1 - ncol(obj@data), drop = FALSE],
-        select(filter(obj@data, type == "up"), -type),
-        paste(obj@name, "Up", sep = ""), hh, obj@defVal[2]
-      )
-    ))
-  } else {
-    stop("Must realise")
-  }
-}
-
 .toJuliaHead <- function(obj) {
   as_numpar <- function(data, name, name2, def) {
-    # browser()
     # add here the line: sizehint!(PARAMETER, nrow(dt["PARAMETER"])
     if (ncol(obj@data) == 1) {
       return(c(
@@ -381,12 +286,10 @@ get_julia_path <- function() {
       data <- data[data$value != Inf & data$value != def, ]
       rtt <- paste0("# ", name, name2, "\n", name, "Def = ", def, ";\n")
       if (nrow(data) == 0) {
-        return(
-          c(
-            paste0(rtt, name, " = Dict()"),
-            paste0('sizehint!(', name, ', nrow(dt["', name, '"]))')
-          )
-        )
+        # No `sizehint!` here: it would index `dt[name]`, and a table with no
+        # rows is not written at all (see .write_model_JuMP), so the key is
+        # absent and the lookup would throw a KeyError.
+        return(paste0(rtt, name, " = Dict()"))
       }
       colnames(data) <- gsub("[.]1", "p", colnames(data))
       return(c(
@@ -404,9 +307,6 @@ get_julia_path <- function() {
       ))
     }
   }
-  # The whole materialised slot is written. This used to truncate to the
-  # `@misc$nValues` row-count cache, so a stale count silently made this engine
-  # write less data than GLPK, which never truncated.
   obj@data <- get_data_slot(obj)
   if (obj@type == "map" || obj@type == "set") {
     ret <- paste0("# ", obj@name)
@@ -486,7 +386,6 @@ names(.alias_set) <- .set_al
 .aliasName <- function(x) {
   if (!all(x %in% .set_al)) {
     cat("Unknown .set_al\n")
-    browser()
     stop("Unknown set")
   }
   .alias_set[x]
@@ -499,7 +398,6 @@ names(.alias_set) <- .set_al
 #   .fremset[x]
 # }
 .generate_loop_julia <- function(set_num, set_loop) {
-  # browser()
   # Consdition split and divet by subset
   while (!is.null(set_loop) && substr(set_loop, 1, 1) == "(" &&
          substr(set_loop, nchar(set_loop), nchar(set_loop)) == ")") {
@@ -642,7 +540,8 @@ names(.alias_set) <- .set_al
       rs <- paste0(rs, ");")
       tmp <- substr(tmp, 2, nchar(tmp))
     } else {
-      browser()
+      stop("Cannot parse the equation template; unrecognised token at: ",
+           substr(tmp, 1, 40), call. = FALSE)
     }
   }
   rs
@@ -668,11 +567,22 @@ names(.alias_set) <- .set_al
 # Julia `_VarFile` helper for DIRECT per-variable Arrow solution output. A drop-in
 # for the CSV file handle: `open_var()` replaces `open(..., "w")`; the unchanged
 # `println(vf, ...)` / `close(vf)` calls (dispatched on `_VarFile`) accumulate rows
-# and write `output/<var>.arrow` (zstd) on close. The first `println` (the CSV
-# header string) sets the column names; row `println`s drop the interleaved ","
-# separators. Empty variables emit a typed 0-row table. Injected by
-# `.write_model_JuMP` only when the solution is imported as Arrow.
-.jump_arrow_output_helpers <- function() {
+# and write `output/<var>.arrow` on close, in the codec `exchange_compression`
+# names. The first `println` (the CSV header string) sets the column names; row
+# `println`s drop the interleaved "," separators. Empty variables emit a typed
+# 0-row table. Injected by `.write_model_JuMP` only when the solution is
+# imported as Arrow.
+.jump_arrow_output_helpers <- function(
+    compression = get_exchange_compression()) {
+  # Arrow.jl spells the codec as a Symbol and takes `nothing` for none; it has
+  # no compression-level argument (`exchange_compression_level` is R-side only).
+  compress <- switch(tolower(compression),
+    uncompressed = "nothing",
+    lz4 = ":lz4",
+    zstd = ":zstd",
+    stop("Unsupported exchange compression for Arrow.jl: '", compression,
+         "'. Use \"zstd\", \"lz4\", or \"uncompressed\".", call. = FALSE)
+  )
   c(
     "using Arrow, DataFrames",
     "mutable struct _VarFile",
@@ -695,7 +605,8 @@ names(.alias_set) <- .set_al
     '        col = n == 0 ? (c == "value" ? Float64[] : String[]) : [vf.rows[r][i] for r in 1:n]',
     "        push!(cols, Symbol(c) => col)",
     "    end",
-    '    Arrow.write(vf.base * ".arrow", DataFrame(cols); compress = :zstd)',
+    paste0('    Arrow.write(vf.base * ".arrow", DataFrame(cols); compress = ',
+           compress, ')'),
     "end",
     ""
   )

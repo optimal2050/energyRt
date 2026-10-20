@@ -80,14 +80,24 @@
 #'     \item{\code{horizon}}{A \code{horizon} object, numeric year vector, or
 #'       \code{NULL} (derives from \code{@olife}).}
 #'     \item{\code{calendar}}{A \code{calendar} object or \code{NULL}.}
-#'     \item{\code{timeframe}}{\code{"ANNUAL"} (default) or \code{"native"}.
+#'     \item{\code{timeframe}}{\code{"auto"} (default), \code{"ANNUAL"} or
+#'       \code{"native"}.
 #'       \code{"ANNUAL"} prices the technology on a single annual time-timeslice: any
 #'       weather profile is collapsed to an annual capacity factor (applied as the
 #'       technology's annual availability), so capacity is sized to serve unit
 #'       annual demand at that factor (textbook LCOE). \code{"native"} keeps the
 #'       supplied (sub-annual) calendar and normalises by total generation --
 #'       useful when the technology is analysed together with storage or
-#'       transmission, where sub-annual dispatch matters.}
+#'       transmission, where sub-annual dispatch matters; it requires a
+#'       \code{calendar} holding the process's timeslices and will not choose one
+#'       for you.
+#'       \code{"auto"} annualizes when that collapse is sound and prices natively
+#'       when it is not. It is unsound when a process carries more than one
+#'       \code{@weather} factor (the annual mean of a product is not the product of
+#'       the annual means, so the pair has no single annual equivalent) or has
+#'       parameter rows pinned to a named sub-annual timeslice (the slice stops
+#'       existing). An explicit \code{"ANNUAL"} declines in those cases rather than
+#'       return a number built on an invalid collapse.}
 #'     \item{\code{backstop}}{Logical, default \code{TRUE}. Enables a very
 #'       expensive dummy-import slack on the output commodity balance so the
 #'       mini-model always solves even when the technology cannot serve a timeslice on
@@ -165,13 +175,25 @@
 #'   priced in its own region so the variants cannot serve each other's demand;
 #'   without that isolation they compete for one unit of demand and the result
 #'   silently sums across them. The stacked tables are reachable with
-#'   [levcost_by_variant()], and \code{autoplot()} compares the variants.
+#'   \code{levcost(x, by_variant = )}, and \code{autoplot()} compares the
+#'   variants.
 #'   \code{$frontier} is \code{NULL} on this path -- the frontier corners are a
 #'   per-commodity sweep, orthogonal to variants, and are not fanned out.
 #'   A technology with no vintages or clusters is unaffected and still returns a
 #'   single \code{"levcost"} object.
 #'
-#' @seealso [levcost_by_variant()]
+#' @param by_variant for a technology declaring vintages or clusters: `FALSE`
+#'   (default) returns the result object; `TRUE` (= `"levcost"`), `"npv"` or
+#'   `"components"` returns that per-variant table instead. Passing an existing
+#'   result — `levcost(lc, by_variant = "npv")` — extracts without re-solving.
+#' @param by_region `FALSE` (default) prices a process once, in one of the
+#'   regions it spans. `TRUE` prices it once PER region and returns a
+#'   `levcost_list` named by region — the ladder a technology whose costs or
+#'   efficiency vary by region actually has. levcost() builds a single-region
+#'   mini-model, so without this a multi-region process reports only its first
+#'   region's cost. On a container the entries are named `<process>@<region>`.
+#'   A `trade` is unaffected: it spans two regions by construction and is
+#'   priced across both at once.
 #' @export
 #'
 #' @include solve.R
@@ -191,6 +213,13 @@ setGeneric("levcost", function(object, comm, name, ...) {
   standardGeneric("levcost")
 })
 
+# `levcost_variants` is the S3 class a variant fan-out returns; registering it
+# lets levcost() dispatch on an existing result (`by_variant =` without a
+# re-solve). The plain `levcost` result is registered too, so passing one back
+# reports what is wrong instead of failing S4 dispatch.
+setOldClass(c("levcost_variants", "levcost_list", "list"))
+setOldClass(c("levcost", "list"))
+
 # Scratch anchor for levcost mini-scenarios. Keeps them out of the project's
 # scenarios store (they used to land under get_scenarios_path() and be indexed
 # by refresh_registry() as real scenarios). interpolate_model(ondisk = FALSE)
@@ -201,11 +230,58 @@ setGeneric("levcost", function(object, comm, name, ...) {
      paste0(.path_slug(name), "_", format(Sys.time(), "%Y%m%d%H%M%OS3")))
 }
 
-setMethod("levcost", "technology", function(object, comm, name, ...) {
-  comm_arg <- if (missing(comm)) NULL else comm
-  .levcost_with_cache("technology", object, c(list(comm = comm_arg), list(...)),
-                      levcost_technology_)
-})
+# Price a process once PER REGION it spans.
+#
+# levcost() builds a single-region mini-model whose region is synthetic
+# ("REGION"), so anything region-aware is invisible to it: a technology whose
+# parameters vary by region is priced at ONE of them, and a cluster scoped to a
+# region matches none. Pricing region by region restores both -- each run sees
+# that region's parameters and the clusters that exist there.
+#
+# Returns a `levcost_list` named by region, the class the container path
+# already returns, so print / autoplot / report handle it unchanged.
+#' @noRd
+.levcost_each_region <- function(price_one, regions, what = "process") {
+  regions <- unique(regions[!is.na(regions) & nzchar(regions)])
+  if (length(regions) == 0L) {
+    stop("`by_region = TRUE` needs a ", what, " that names its regions; this ",
+         "one names none, so there is nothing to price per region.",
+         call. = FALSE)
+  }
+  out <- lapply(regions, function(r)
+    tryCatch(price_one(r),
+             error = function(e) {
+               warning("levcost(): region '", r, "' could not be priced: ",
+                       conditionMessage(e), call. = FALSE)
+               NULL
+             }))
+  names(out) <- regions
+  out <- Filter(Negate(is.null), out)
+  class(out) <- c("levcost_list", "list")
+  out
+}
+
+setMethod("levcost", "technology",
+  function(object, comm, name, by_variant = FALSE, by_region = FALSE, ...) {
+    comm_arg <- if (missing(comm)) NULL else comm
+    dots <- list(...)
+    if (isTRUE(by_region)) {
+      return(.levcost_each_region(
+        function(r) {
+          d <- dots
+          d$region <- r
+          res <- .levcost_with_cache("technology", object,
+                                     c(list(comm = comm_arg), d),
+                                     levcost_technology_)
+          if (isFALSE(by_variant)) res else .levcost_by_variant(res, by_variant)
+        },
+        .levcost_tech_regions(object), what = "technology"))
+    }
+    res <- .levcost_with_cache("technology", object,
+                               c(list(comm = comm_arg), dots),
+                               levcost_technology_)
+    if (isFALSE(by_variant)) res else .levcost_by_variant(res, by_variant)
+  })
 
 #' @rdname levcost
 setMethod("levcost", "storage", function(object, comm, name, ...) {
@@ -358,6 +434,56 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
 # Each @weather row (weather name + waf.lo/up/fx coefficient) is turned into the
 # matching af.lo/up/fx = coefficient x annual-CF row on @af; the @weather slot is
 # then cleared so the mini-model needs no weather object or sub-annual calendar.
+# Can a process be priced on a collapsed ANNUAL timeframe?
+#
+# Annualization replaces the calendar with a single ANNUAL slice and rewrites
+# each weather profile as one annual capacity factor. Two things make that
+# substitution invalid rather than merely approximate:
+#
+#   * MORE THAN ONE weather factor on one process. `.levcost_weatherize_annual()`
+#     emits one `@af` row per `@weather` row, all at `timeslice = NA`, so they
+#     collide on a single key. Pre-combining them does not help either: the
+#     annual mean of a product is not the product of the annual means unless the
+#     series are uncorrelated, so two factors have no single annual equivalent.
+#   * SUB-ANNUAL parameter rows. A row pinned to a named timeslice refers to a
+#     slice the collapsed calendar no longer contains, so the model either fails
+#     its domain check or silently drops the row.
+#
+# Returns the reasons, empty when the collapse is sound. `auto` falls back to the
+# native timeframe on a non-empty result; an explicit `"ANNUAL"` declines.
+#' @noRd
+.levcost_annual_blockers <- function(techs) {
+  if (!is.list(techs)) techs <- list(techs)
+  multi <- FALSE
+  sub   <- character()
+  for (t in techs) {
+    if (methods::.hasSlot(t, "weather") && NROW(t@weather) > 1L) multi <- TRUE
+    for (sl in methods::slotNames(t)) {
+      if (sl == "weather") next
+      d <- methods::slot(t, sl)
+      if (!is.data.frame(d) || nrow(d) == 0) next
+      for (k in intersect(c("timeslice", "slice"), names(d))) {
+        v <- unique(as.character(d[[k]]))
+        v <- v[!is.na(v) & nzchar(v) & v != "ANNUAL"]
+        if (length(v) > 0)
+          sub <- c(sub, paste0("@", sl, " (", paste(utils::head(v, 3),
+                                                    collapse = ", "), ")"))
+      }
+    }
+  }
+  reasons <- character()
+  if (multi)
+    reasons <- c(reasons, paste0(
+      "more than one @weather factor on a single process -- each would become ",
+      "its own annual availability row and they collide, and the annual mean of ",
+      "a product is not the product of the annual means"))
+  if (length(sub) > 0)
+    reasons <- c(reasons, paste0(
+      "sub-annual parameter rows the collapsed calendar would not contain: ",
+      paste(unique(sub), collapse = "; ")))
+  reasons
+}
+
 .levcost_weatherize_annual <- function(tech, weather_objects, timeslice_share,
                                        verbose = TRUE) {
   wdf <- tech@weather
@@ -407,6 +533,44 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
   }
   tech@weather <- tech@weather[0, , drop = FALSE]
   tech
+}
+
+# Bring a weather object DOWN to the region levcost is costing.
+#
+# A profile may be declared at a coarser region than the technology sits in --
+# one adm1 series shared by its adm2 children (`mWeatherRegionAt`). The
+# single-region mini-model levcost builds knows only the technology's own
+# region, so subsetting to it would drop every row and the capacity factor
+# would silently vanish: measured on a 2-child fixture, levcost came out
+# 0.650514 with the profile at the parent against 0.867352 with a copy per
+# child -- the same system, 33% apart, no warning.
+#
+# The values are identical whichever label they carry, so the nearest ancestor
+# the weather serves is RELABELLED to `region`. Returns NULL when nothing
+# resolves, leaving the caller's existing behaviour untouched.
+#' @noRd
+.levcost_localize_weather <- function(w, region, gs = NULL) {
+  region <- region[1]
+  if (!.hasSlot(w, "weather") || !is.data.frame(w@weather) ||
+      nrow(w@weather) == 0 || !"region" %in% names(w@weather)) return(NULL)
+  wr <- as.character(w@weather$region)
+  if (any(is.na(wr) | wr == region)) return(NULL)   # already usable as-is
+  if (is.null(gs) || !is_geoscale(gs)) return(NULL)
+
+  h <- tryCatch(.geo_hierarchy(gs, region), error = function(e) NULL)
+  if (is.null(h)) return(NULL)
+  anc <- setdiff(as.character(h$region), region)
+  cand <- intersect(unique(wr), anc)
+  if (length(cand) == 0) return(NULL)
+  if (length(cand) > 1) {                            # nearest = finest level
+    cand <- cand[which.max(.geo_region_rank(h)[cand])]
+  }
+  keep <- wr == cand
+  w@weather <- w@weather[keep, , drop = FALSE]
+  w@weather$region <- region                         # relabel, values unchanged
+  if (.hasSlot(w, "region") && is.character(w@region) && length(w@region) > 0)
+    w@region <- region
+  w
 }
 
 # Subset a weather object's @region slot and @weather table to a single region.
@@ -495,7 +659,7 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
 }
 .levcost_container <- function(container, name, comm = NULL, autocomplete = FALSE,
                                fuel_costs = NULL, verbose = TRUE,
-                               classes = NULL, ...) {
+                               classes = NULL, by_region = FALSE, ...) {
   # No name: price every process the container holds that levcost() can price.
   # `classes` narrows it -- classes = "technology" is exactly the historical
   # single-class behaviour, one process at a time.
@@ -510,7 +674,8 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
       tryCatch(.levcost_container(container, name = p$name, comm = comm,
                                   autocomplete = autocomplete,
                                   fuel_costs = fuel_costs, verbose = verbose,
-                                  classes = p$class, ...),
+                                  classes = p$class, by_region = by_region,
+                                  ...),
                error = function(e) {
                  warning("levcost(): ", p$class, " '", p$name, "' could not be ",
                          "priced: ", conditionMessage(e), call. = FALSE)
@@ -518,6 +683,20 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
                }))
     names(out) <- vapply(procs, `[[`, character(1), "name")
     out <- Filter(Negate(is.null), out)
+    # `by_region` makes each entry a per-region list; flatten to one level so
+    # the result stays a plain `levcost_list`, keyed `<process>@<region>`
+    if (isTRUE(by_region)) {
+      flat <- list()
+      for (nm in names(out)) {
+        el <- out[[nm]]
+        if (inherits(el, "levcost_list")) {
+          for (r in names(el)) flat[[paste0(nm, "@", r)]] <- el[[r]]
+        } else {
+          flat[[nm]] <- el
+        }
+      }
+      out <- flat
+    }
     # `levcost_list` is the class the VARIANT path already returns, so its
     # print / autoplot / plot methods and report()'s handling of a multi-result
     # apply to this unchanged
@@ -558,11 +737,38 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
   # its data to it (a multi-region kit tech would otherwise reference regions the
   # mini-model has not declared, or mismatch demand rows)
   reg1 <- dots$region
+  tr <- .levcost_tech_regions(tech)
+  # `by_region`: one mini-model per region the process spans, rather than one
+  # for its first region. A trade is excluded -- it spans two regions by
+  # construction and is priced across both at once.
+  if (isTRUE(by_region) && !identical(cls, "trade")) {
+    rr <- if (is.null(reg1)) tr else intersect(as.character(reg1), tr)
+    if (length(rr) > 1L) {
+      return(.levcost_each_region(
+        function(r) {
+          d <- dots
+          d$region <- r
+          do.call(.levcost_container,
+                  c(list(container = container, name = name, comm = comm,
+                         autocomplete = autocomplete, fuel_costs = fuel_costs,
+                         verbose = verbose, classes = classes,
+                         by_region = FALSE), d))
+        },
+        rr, what = class(container)[1]))
+    }
+  }
   if (is.null(reg1)) {
-    tr <- .levcost_tech_regions(tech)
     reg1 <- if (length(tr) > 0) tr[1] else NULL
   } else {
-    reg1 <- reg1[1]
+    # The container methods pass the WHOLE region set (a model hands over
+    # `cfg@region`), so taking `reg1[1]` would price EVERY process as if it
+    # lived in the container's first region. One that does not then has its
+    # region-keyed rows -- invcost, fixom, ceff -- subset away below, and the
+    # result is a levelized cost carrying fuel only: about 25x too cheap, with
+    # no warning. Pick a region the process actually lives in.
+    hit <- intersect(as.character(reg1), tr)
+    reg1 <- if (length(hit) > 0) hit[1] else
+      if (length(tr) > 0) tr[1] else reg1[1]
   }
   # A trade spans two regions by construction and its costs are charged in
   # BOTH; subsetting it to one would silently halve the capital charge.
@@ -580,7 +786,14 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
       wall <- tryCatch(getObjects(container, "weather"), error = function(e) list())
       wsel <- wall[intersect(names(wall), wneed)]
       if (length(wsel) > 0) {
-        if (!is.null(reg1)) wsel <- lapply(wsel, .levcost_subset_weather_region, region = reg1)
+        if (!is.null(reg1)) {
+          gs1 <- tryCatch(getGeoscale(container), error = function(e) NULL)
+          wsel <- lapply(wsel, function(w) {
+            loc <- .levcost_localize_weather(w, reg1, gs1)
+            if (!is.null(loc)) loc else
+              .levcost_subset_weather_region(w, region = reg1)
+          })
+        }
         dots$weather <- unname(wsel)
       }
     }
@@ -603,11 +816,15 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
 }
 
 #' @rdname levcost
-setMethod("levcost", "repository", function(object, comm, name, ...) {
-  comm_arg <- if (missing(comm)) NULL else comm
-  name_arg <- if (missing(name)) NULL else name
-  .levcost_container(object, name = name_arg, comm = comm_arg, ...)
-})
+setMethod("levcost", "repository",
+  function(object, comm, name, by_variant = FALSE, by_region = FALSE, ...) {
+    comm_arg <- if (missing(comm)) NULL else comm
+    name_arg <- if (missing(name)) NULL else name
+    res <- .levcost_container(object, name = name_arg, comm = comm_arg,
+                              by_region = by_region, ...)
+    if (isFALSE(by_variant) || inherits(res, "levcost_list")) res else
+      .levcost_by_variant(res, by_variant)
+  })
 
 # The scalar rate a levelised cost is annuitised at: the cost of CAPITAL, not
 # the social discount rate. Levelised cost answers "what must this unit earn per
@@ -623,7 +840,8 @@ setMethod("levcost", "repository", function(object, comm, name, ...) {
 }
 
 #' @rdname levcost
-setMethod("levcost", "model", function(object, comm, name, ...) {
+setMethod("levcost", "model",
+          function(object, comm, name, by_variant = FALSE, by_region = FALSE, ...) {
   comm_arg <- if (missing(comm)) NULL else comm
   name_arg <- if (missing(name)) NULL else name
   cfg  <- object@config
@@ -643,14 +861,26 @@ setMethod("levcost", "model", function(object, comm, name, ...) {
   }
   disc <- if (!is.null(dots$discount)) dots$discount else .levcost_model_discount(cfg)
   dots$calendar <- dots$region <- dots$horizon <- dots$discount <- NULL
-  do.call(.levcost_container, c(list(object, name = name_arg, comm = comm_arg,
-    calendar = cal, region = reg, horizon = hor, discount = disc), dots))
+  res <- do.call(.levcost_container,
+                 c(list(object, name = name_arg, comm = comm_arg,
+                        calendar = cal, region = reg, horizon = hor,
+                        discount = disc, by_region = by_region), dots))
+  if (isFALSE(by_variant) || inherits(res, "levcost_list")) res else
+    .levcost_by_variant(res, by_variant)
 })
 
 #' @rdname levcost
 setMethod("levcost", "scenario", function(object, comm, name, ...) {
-  .levcost_scenario(object, name = if (missing(name)) NULL else name,
-                    comm = if (missing(comm)) NULL else comm, ...)
+  dots <- list(...)
+  by_variant <- if (is.null(dots$by_variant)) FALSE else dots$by_variant
+  dots$by_variant <- NULL
+  res <- do.call(.levcost_scenario,
+                 c(list(object, name = if (missing(name)) NULL else name,
+                        comm = if (missing(comm)) NULL else comm), dots))
+  # same contract as the object path: TRUE / "npv" / "components" reduce a
+  # multi-variant result to its tidy table, anything else returns the object
+  if (isFALSE(by_variant) || !inherits(res, "levcost_variants")) res else
+    .levcost_by_variant(res, by_variant)
 })
 
 # Fuel cost of a process in a solved scenario: sum over inputs of
@@ -727,14 +957,66 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
   setNames(a$x, as.character(a$year))
 }
 
+# A scenario holds EXPANDED processes (`EWIN_VIN2035_CL01`), while the name a
+# caller knows is usually the base one `getVariants()` reports. Resolve each
+# given name to the processes it stands for: itself when the scenario declares
+# it, otherwise every variant of that base. An unknown name is passed through so
+# the caller gets the "not a technology ..." message rather than silence.
+#' @noRd
+.levcost_scen_names <- function(scen, name) {
+  prov <- tryCatch(getVariants(scen), error = function(e) NULL)
+  unlist(lapply(as.character(name), function(nm) {
+    if (!is.null(.levcost_scen_class(scen, nm))) return(nm)
+    if (is.null(prov) || !NROW(prov)) return(nm)
+    v <- prov$name[!is.na(prov$base) & prov$base == nm]
+    if (length(v)) v else nm
+  }), use.names = FALSE)
+}
+
 # Ex-post levelized cost of a process in a SOLVED scenario: the discounted sum of
 # the process's own costs (annualised investment `vTechEac`, `vTechFixom`,
 # `vTechVarom`, plus attributed fuel cost) divided by its discounted output.
 .levcost_scenario <- function(scen, name, comm = NULL, discount = NULL,
                               base_year = NULL, verbose = TRUE, ...) {
-  if (is.null(name) || !nzchar(name)) {
+  if (is.null(name) || !length(name) || !any(nzchar(as.character(name)))) {
     message("levcost(): please give the process `name = ` to price."); return(invisible(NULL))
   }
+
+  # One call may name several processes, or one base that expands into many.
+  # Price each and bundle them exactly as the declared-object path does, so
+  # `autoplot()`, `by_variant = ` and the report plumbing see one shape.
+  nms <- unique(.levcost_scen_names(scen, name))
+  if (length(nms) > 1L) {
+    # A variant the solver never built has no output to divide by, which is not
+    # an error here -- it is the usual case for the grades that lost. Report
+    # them once, rather than one message per variant.
+    per_variant <- suppressMessages(lapply(nms, function(nm)
+      .levcost_scenario(scen, name = nm, comm = comm, discount = discount,
+                        base_year = base_year, verbose = FALSE, ...)))
+    names(per_variant) <- nms
+    per_variant <- Filter(function(x) inherits(x, "levcost"), per_variant)
+    skipped <- setdiff(nms, names(per_variant))
+    if (length(skipped) && isTRUE(verbose)) {
+      message("levcost(): ", length(skipped), " of ", length(nms),
+              " variant(s) were not priced -- no output in the solved ",
+              "scenario: ", paste(utils::head(skipped, 5), collapse = ", "),
+              if (length(skipped) > 5) ", ..." else "")
+    }
+    if (!length(per_variant)) return(invisible(NULL))
+    if (length(per_variant) == 1L) return(per_variant[[1]])
+    prov <- tryCatch(getVariants(scen), error = function(e) NULL)
+    bases <- if (is.null(prov)) character(0) else
+      unique(prov$base[match(names(per_variant), prov$name)])
+    bases <- bases[!is.na(bases)]
+    if (length(bases) == 1L && !is.null(prov)) {
+      return(.levcost_variants_object(per_variant, prov, bases))
+    }
+    # several unrelated processes: a plain list, since `levcost_variants`
+    # describes the variants of ONE base
+    class(per_variant) <- c("levcost_list", "list")
+    return(per_variant)
+  }
+  name <- nms[[1L]]
   # `@stage`, not the number of variables: `modOut` pre-populates one empty
   # `variable` per declared variable, so a failed solve has as many as a good one.
   if (!isTRUE(scen@status$interpolated) ||
@@ -824,8 +1106,8 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
 #   share_lo_eff, share_hi_eff   – effective range after intersecting all group
 #                                  member constraints (the true feasible band)
 #
-# Only groups where at least one commodity has an explicit share.up or
-# share.lo > 0 are included (skip fully-unconstrained groups).
+# Only groups where at least one commodity has an explicit grp.share.up or
+# grp.share.lo > 0 are included (skip fully-unconstrained groups).
 
 #' Extract feasible share ranges for grouped inputs/outputs
 #'
@@ -836,6 +1118,20 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
 #' @param object A \code{technology} S4 object.
 #' @return A \code{data.frame} or \code{NULL} if no constrained groups found.
 #' @export
+#' @examples
+#' # a co-firing plant whose biomass may cover at most 30% of the fuel group
+#' chp <- newTechnology(
+#'   "CHP",
+#'   input   = data.frame(comm = c("COA", "BIO"), group = "fuel"),
+#'   output  = data.frame(comm = "ELC"),
+#'   group   = data.frame(group = "fuel", unit = "MMBtu"),
+#'   ceff    = data.frame(comm = c("COA", "BIO"), cinp2use = c(0.40, 0.35),
+#'                        grp.share.up = c(1, 0.3)),
+#'   cap2act = 8760
+#' )
+#'
+#' # the feasible share band per commodity, and what it does to efficiency
+#' tech_share_frontier(chp)
 tech_share_frontier <- function(object) {
   stopifnot(inherits(object, "technology"))
   tech_name <- if (nzchar(object@name)) object@name else "TECH"
@@ -845,20 +1141,20 @@ tech_share_frontier <- function(object) {
     sl <- setNames(rep(0,        length(comms)), comms)
     if (nrow(object@ceff) == 0) return(list(up = su, lo = sl))
     ci <- object@ceff[object@ceff$comm %in% comms, , drop = FALSE]
-    if ("share.up" %in% names(ci))
+    if ("grp.share.up" %in% names(ci))
       for (cm in comms) {
-        r <- ci[ci$comm == cm & !is.na(ci$share.up), , drop = FALSE]
-        if (nrow(r) > 0) su[[cm]] <- r$share.up[1]
+        r <- ci[ci$comm == cm & !is.na(ci$grp.share.up), , drop = FALSE]
+        if (nrow(r) > 0) su[[cm]] <- r$grp.share.up[1]
       }
-    if ("share.lo" %in% names(ci))
+    if ("grp.share.lo" %in% names(ci))
       for (cm in comms) {
-        r <- ci[ci$comm == cm & !is.na(ci$share.lo), , drop = FALSE]
-        if (nrow(r) > 0) sl[[cm]] <- r$share.lo[1]
+        r <- ci[ci$comm == cm & !is.na(ci$grp.share.lo), , drop = FALSE]
+        if (nrow(r) > 0) sl[[cm]] <- r$grp.share.lo[1]
       }
-    if ("share.fx" %in% names(ci))
+    if ("grp.share.fx" %in% names(ci))
       for (cm in comms) {
-        r <- ci[ci$comm == cm & !is.na(ci$share.fx), , drop = FALSE]
-        if (nrow(r) > 0) { su[[cm]] <- r$share.fx[1]; sl[[cm]] <- r$share.fx[1] }
+        r <- ci[ci$comm == cm & !is.na(ci$grp.share.fx), , drop = FALSE]
+        if (nrow(r) > 0) { su[[cm]] <- r$grp.share.fx[1]; sl[[cm]] <- r$grp.share.fx[1] }
       }
     list(up = su, lo = sl)
   }
@@ -1048,6 +1344,12 @@ levcost_chain_ <- function(
       cm_obj <- repo_comms[[cm]]
       if (isS4(cm_obj) && .hasSlot(cm_obj, "emis") && nrow(cm_obj@emis) > 0)
         cm_obj@emis <- cm_obj@emis[0L, , drop = FALSE]
+      # A screening model is one region with no hierarchy, so a commodity
+      # balanced at a coarser `@geoframe` would be refused outright ("no
+      # geoscale with coarser levels"). Drop the declaration, as `@emis` is
+      # dropped: what is screened here is the technology, per region.
+      if (isS4(cm_obj) && .hasSlot(cm_obj, "geoframe"))
+        cm_obj@geoframe <- character(0)
       commodity_objects[[cm]] <- cm_obj
     } else {
       unit_val <- ""
@@ -1283,7 +1585,7 @@ levcost_chain_ <- function(
 # `@vintage`; left as-is `expand_variants()` inside `interpolate_model()` would
 # expand them a second time and suffix the names twice.
 #' @noRd
-.levcost_devintage <- function(obj, region) {
+.levcost_devintage <- function(obj, region, real_region = NULL) {
   # Collapse the cell's rows to ONE region-blanked row, column by column:
   # a broadcast olife row and a window row legitimately coexist after
   # expansion, and the old `vt[1, ]` lost whichever was not first. Each
@@ -1311,20 +1613,73 @@ levcost_chain_ <- function(
 
   # Rows are already timesliced to this cell, so the selectors carry no information;
   # blanking them is what stops a second expansion.
+  #
+  # The `region` COLUMN moves with the pin below. The technology path gives each
+  # cell its own artificial region, so a cost row left keyed to the REAL region
+  # matches nothing downstream: `.la_series()` drops it for a default of 0, the
+  # mini-model's parameter lookup does the same, and the cell then prices at zero
+  # and reports NA. Storage and trade pin the real region, so there it is a no-op.
+  #
+  # `real_region` says which region the rows currently speak for. `@region` is
+  # often empty (a technology with no declared region exists everywhere), so the
+  # caller passes the region levcost resolved; with neither, nothing is
+  # relabelled rather than guess and collide two regions' rows onto one key.
+  has_reg <- methods::.hasSlot(obj, "region")
+  old_reg <- if (!is.null(real_region)) as.character(real_region)
+             else if (has_reg) as.character(obj@region) else character()
+  old_reg <- old_reg[!is.na(old_reg) & nzchar(old_reg)]
   for (sl in methods::slotNames(obj)) {
     if (sl %in% c("vintage", "cluster")) next
     d <- methods::slot(obj, sl)
     if (!is.data.frame(d) || nrow(d) == 0) next
+    touched <- FALSE
     hit <- intersect(.variant_dims, names(d))
-    if (length(hit) == 0) next
-    for (cc in hit) d[[cc]] <- NA_character_
-    methods::slot(obj, sl) <- d
+    if (length(hit) > 0) {
+      for (cc in hit) d[[cc]] <- NA_character_
+      touched <- TRUE
+    }
+    if (has_reg && length(region) > 0 && length(old_reg) > 0 &&
+        "region" %in% names(d)) {
+      # Only the cell's own region is relabelled: overwriting every row would
+      # promote a foreign region's row into the cell and duplicate the key.
+      # An NA row is a broadcast and already applies, so it is left alone.
+      rr <- as.character(d$region)
+      pin <- !is.na(rr) & rr %in% old_reg
+      if (any(pin)) {
+        rr[pin] <- region[1]
+        d$region <- rr
+        touched <- TRUE
+      }
+    }
+    if (touched) methods::slot(obj, sl) <- d
   }
 
   # A `trade` has no `region` slot at all -- its geography is `@routes` (src/dst)
   # and its capacity carries no region index -- so pinning one is both
   # impossible and meaningless. Technology and storage both have it.
   if (methods::.hasSlot(obj, "region")) obj@region <- region
+  obj
+}
+
+#' Drop a devintaged cell's build window, keeping its lifetime
+#'
+#' `.levcost_devintage()` carries `start`/`end` through, and for a levelized
+#' cost they are actively wrong: the question is what a unit of THIS vintage
+#' costs, not whether it could have been built inside the priced horizon.
+#' Left in, a vintage whose window falls outside the priced horizon cannot be
+#' built at all: the mini-model goes infeasible, and the closed form prices it
+#' to ZERO via the backstop -- which reads as a free technology. Both engines
+#' read the window (`levcost_analytic.R` resolves it in `.la_eval()`), so
+#' neither is safe without this. `olife` is untouched; it is what drives the
+#' annuity.
+#'
+#' Shared by all three fan-out paths: technology, storage and trade.
+#' @noRd
+.levcost_unwindow <- function(obj) {
+  v <- obj@vintage
+  if (NROW(v) == 0) return(obj)
+  for (cc in intersect(c("start", "end"), names(v))) v[[cc]] <- NA_integer_
+  obj@vintage <- v
   obj
 }
 
@@ -1356,17 +1711,52 @@ levcost_chain_ <- function(
 # With a region per variant the rows must exist in each, otherwise only the first
 # cell sees the supply and the rest are unservable.
 #' @noRd
+# Re-point a parent model's availability table at the screening regions.
+#
+# Three cases, and only the first one is a plain spread:
+#
+#   * the table says nothing region-specific for this screening model (one row,
+#     or rows keyed only by year / timeslice): give every region a copy;
+#   * every screening region has its OWN row: keep them, so a region is priced
+#     at its own price rather than at some average;
+#   * the rows name regions this model does not have -- another region's price,
+#     or a COARSER level such as a zone, since the screening model carries no
+#     hierarchy: they cannot be told apart here, so screening takes the
+#     cheapest. A levelized cost is an a-priori lower bound, and the
+#     alternative (replicating every row into every region) wrote a repeated
+#     (sup, comm, region, year, timeslice) key and interpolation stopped with
+#     "multiplied a series".
+#
+# Rows that differ by year or timeslice are preserved in every case: the
+# collapse happens WITHIN such a group, never across it.
+#' @noRd
 .levcost_spread_region <- function(df, regions) {
   if (is.null(df) || nrow(df) == 0 || length(regions) == 0) return(df)
   if (!"region" %in% names(df)) return(df)
-  if (length(regions) == 1L) {
-    df$region <- regions
-    return(df)
+  own <- df[!is.na(df$region) & df$region %in% regions, , drop = FALSE]
+  if (nrow(own) > 0 && all(regions %in% own$region)) {
+    rownames(own) <- NULL
+    return(own)
   }
-  base <- df[rep(seq_len(nrow(df)), times = length(regions)), , drop = FALSE]
-  base$region <- rep(regions, each = nrow(df))
-  rownames(base) <- NULL
-  base
+  price <- intersect(c("cost", "price"), names(df))
+  # group on DIMENSIONS only: `ava.up` and friends are values, and treating one
+  # as a key would keep the duplicate rows this function exists to collapse
+  grp <- intersect(c("year", "timeslice", "vintage", "cluster", "comm",
+                     "group"), names(df))
+  cheapest <- function(d) {
+    if (nrow(d) <= 1) return(d)
+    if (length(price) > 0) d[which.min(d[[price[1]]]), , drop = FALSE]
+    else d[1, , drop = FALSE]
+  }
+  base <- if (length(grp) > 0 && nrow(unique(df[grp])) > 1) {
+    key <- do.call(paste, c(lapply(grp, function(g) as.character(df[[g]])),
+                            list(sep = "")))
+    do.call(rbind, lapply(split(df, key), cheapest))
+  } else cheapest(df)
+  out <- base[rep(seq_len(nrow(base)), times = length(regions)), , drop = FALSE]
+  out$region <- rep(regions, each = nrow(base))
+  rownames(out) <- NULL
+  out
 }
 
 # Unit labels of a technology; shared by the plain and per-variant return paths.
@@ -1466,33 +1856,51 @@ levcost_chain_ <- function(
   )
 }
 
-#' Per-variant levelized cost tables
-#'
-#' Stack the per-variant tables of a [levcost()] result computed for a vintaged
-#' or clustered technology, keyed by variant.
-#'
-#' @param x A `levcost_variants` object, as returned by [levcost()] for a
-#'   technology declaring vintages and/or clusters.
-#' @param what Which table to stack: `"levcost"` (levelized cost by year),
-#'   `"npv"` (one row per variant), or `"components"` (cost breakdown by year).
-#'
-#' @return A data.frame with `tech`, `variant`, `vintage` and `cluster` key
-#'   columns prepended to the requested table.
-#' @export
-levcost_by_variant <- function(x, what = c("levcost", "npv", "components")) {
-  what <- match.arg(what)
-  if (!inherits(x, "levcost_variants"))
-    stop("`x` must be a `levcost_variants` object (a levcost() result for a ",
-         "technology with vintages or clusters).", call. = FALSE)
-  key <- attr(x, "variants")
-  tbl <- switch(what,
+# Per-variant tables of a levcost result. Reached through
+# `levcost(x, by_variant = )` -- both on a fresh computation and on an
+# already-computed `levcost_variants` object (the method below), so the
+# tables never require a re-solve.
+#' @noRd
+.levcost_by_variant <- function(x, what = c("levcost", "npv", "components")) {
+  if (isTRUE(what)) what <- "levcost"
+  what <- match.arg(as.character(what), c("levcost", "npv", "components"))
+  if (!inherits(x, "levcost_variants")) {
+    stop("`by_variant` needs a levcost() result for a technology declaring ",
+         "vintages or clusters; this one has none.", call. = FALSE)
+  }
+  switch(what,
     levcost    = attr(x, "by_variant"),
     npv        = attr(x, "by_variant_npv"),
     components = attr(x, "by_variant_components"))
-  if (is.null(tbl)) return(NULL)
-  tbl
 }
 
+#' Per-variant levelized cost tables, from an existing result
+#'
+#' `levcost()` on a `levcost_variants` object stacks its per-variant tables
+#' without re-solving: `levcost(lc, by_variant = "npv")`.
+#'
+#' @rdname levcost
+#' @export
+setMethod("levcost", "levcost_variants",
+  function(object, comm, name, by_variant = TRUE, ...) {
+    .levcost_by_variant(object, by_variant)
+  })
+
+# A result from a technology with no vintages/clusters: say so, rather than
+# letting S4 dispatch fail with "unable to find an inherited method".
+#' @rdname levcost
+#' @export
+setMethod("levcost", "levcost",
+  function(object, comm, name, by_variant = FALSE, ...) {
+    if (isFALSE(by_variant)) {
+      stop("`object` is already a levcost() result. Pass `by_variant = ` to ",
+           "stack its per-variant tables, or call levcost() on the process ",
+           "object to price it again.", call. = FALSE)
+    }
+    .levcost_by_variant(object, by_variant)
+  })
+
+#' @method print levcost_variants
 #' @export
 print.levcost_variants <- function(x, ...) {
   npv <- attr(x, "by_variant_npv")
@@ -1504,7 +1912,7 @@ print.levcost_variants <- function(x, ...) {
                             names(npv)), drop = FALSE]
     print(show, row.names = FALSE)
   }
-  cat("\nUse levcost_by_variant(x) for the stacked tables, ",
+  cat("\nUse levcost(x, by_variant = ) for the stacked tables, ",
       "autoplot(x) to compare.\n", sep = "")
   invisible(x)
 }
@@ -1522,7 +1930,7 @@ levcost_technology_ <- function(
     base_year      = NULL,
     horizon        = NULL,
     calendar       = NULL,
-    timeframe      = c("ANNUAL", "native"),
+    timeframe      = c("auto", "ANNUAL", "native"),
     region         = NULL,
     weather        = NULL,
     frontier       = TRUE,
@@ -1616,7 +2024,13 @@ levcost_technology_ <- function(
     vprov  <- vinfo$prov
     reg_v  <- .levcost_variant_regions(region, vprov, .variant_prefix_default())
     # One devintaged copy per cell, each pinned to its own artificial region.
-    tech_objects <- Map(.levcost_devintage, vinfo$objects, reg_v)
+    # `.levcost_unwindow()` as on the storage and trade paths: the build window
+    # is not part of what a unit of this vintage costs, and a window outside the
+    # priced horizon otherwise prices the cell to zero.
+    tech_objects <- Map(function(o, r)
+                          .levcost_unwindow(.levcost_devintage(o, r,
+                                                               real_region = region)),
+                        vinfo$objects, reg_v)
     names(tech_objects) <- vapply(tech_objects, function(o) o@name, character(1))
     # Structural attributes (@input/@output/@aux/@units) are variant-invariant,
     # but @ceff is not: derive shares, commodities and units from the FIRST cell
@@ -1680,14 +2094,14 @@ levcost_technology_ <- function(
   share_lo <- setNames(rep(0,        length(out_comms)), out_comms)
   if (has_grouped_output && nrow(object@ceff) > 0) {
     ceff_out <- object@ceff[object@ceff$comm %in% out_comms, , drop = FALSE]
-    for (slot_name in c("share.up", "share.lo", "share.fx")) {
+    for (slot_name in c("grp.share.up", "grp.share.lo", "grp.share.fx")) {
       if (!slot_name %in% names(ceff_out)) next
       for (cm in out_comms) {
         rows <- ceff_out[ceff_out$comm == cm & !is.na(ceff_out[[slot_name]]), , drop = FALSE]
         if (nrow(rows) == 0) next
-        if (slot_name == "share.up") share_up[[cm]] <- rows[[slot_name]][1]
-        if (slot_name == "share.lo") share_lo[[cm]] <- rows[[slot_name]][1]
-        if (slot_name == "share.fx") { share_up[[cm]] <- rows[[slot_name]][1]
+        if (slot_name == "grp.share.up") share_up[[cm]] <- rows[[slot_name]][1]
+        if (slot_name == "grp.share.lo") share_lo[[cm]] <- rows[[slot_name]][1]
+        if (slot_name == "grp.share.fx") { share_up[[cm]] <- rows[[slot_name]][1]
                                        share_lo[[cm]] <- rows[[slot_name]][1] }
       }
     }
@@ -1714,14 +2128,14 @@ levcost_technology_ <- function(
     .sl <- setNames(rep(0,        length(.gc)), .gc)
     if (nrow(object@ceff) > 0) {
       .ci <- object@ceff[object@ceff$comm %in% .gc, , drop = FALSE]
-      for (.sn in c("share.up", "share.lo", "share.fx")) {
+      for (.sn in c("grp.share.up", "grp.share.lo", "grp.share.fx")) {
         if (!.sn %in% names(.ci)) next
         for (.cm in .gc) {
           .r <- .ci[.ci$comm == .cm & !is.na(.ci[[.sn]]), , drop = FALSE]
           if (nrow(.r) == 0) next
-          if (.sn == "share.up") .su[[.cm]] <- .r[[.sn]][1]
-          if (.sn == "share.lo") .sl[[.cm]] <- .r[[.sn]][1]
-          if (.sn == "share.fx") { .su[[.cm]] <- .r[[.sn]][1]; .sl[[.cm]] <- .r[[.sn]][1] }
+          if (.sn == "grp.share.up") .su[[.cm]] <- .r[[.sn]][1]
+          if (.sn == "grp.share.lo") .sl[[.cm]] <- .r[[.sn]][1]
+          if (.sn == "grp.share.fx") { .su[[.cm]] <- .r[[.sn]][1]; .sl[[.cm]] <- .r[[.sn]][1] }
         }
       }
     }
@@ -1744,7 +2158,11 @@ levcost_technology_ <- function(
   # Which aux commodities are consumed as inputs?  Look for non-NA values in
   # any of the input-type @aeff columns (cinp2ainp, act2ainp, cap2ainp, etc.).
   inp_aux_cols  <- c("cinp2ainp", "cout2ainp", "act2ainp", "cap2ainp", "ncap2ainp",
-                     "sinp2ainp", "sout2ainp", "stg2ainp")
+                     "sinp2ainp", "sout2ainp", "stg2ainp",
+                     # storage per-part capacity couplings
+                     "inp.cap2ainp", "inp.ncap2ainp",
+                     "stg.cap2ainp", "stg.ncap2ainp",
+                     "out.cap2ainp", "out.ncap2ainp")
   aux_inp_comms <- character(0)
   if (.hasSlot(object, "aeff") && nrow(object@aeff) > 0 && length(aux_comms) > 0) {
     aeff_inp_cols <- intersect(inp_aux_cols, names(object@aeff))
@@ -1774,6 +2192,9 @@ levcost_technology_ <- function(
   if (is.null(base_year)) base_year <- min(hor_years)
 
   # ── 6. Calendar ─────────────────────────────────────────────────────────────
+  # Tracked because the ANNUAL path legitimately defaults to a single-slice
+  # calendar, while the native path must not: see the timeframe resolution below.
+  calendar_supplied <- !is.null(calendar)
   if (is.null(calendar)) calendar <- newCalendar()
 
   # ── 7. Pull supplies / commodities from repo ─────────────────────────────────
@@ -1820,7 +2241,44 @@ levcost_technology_ <- function(
     else stop("`weather` must be a 'weather' object or a list of 'weather' objects.")
   }
 
-  # ── 7b. Annual timeframe (default) ──────────────────────────────────────────
+  # ── 7b. Resolve the pricing timeframe ───────────────────────────────────────
+  # `auto` annualizes when the collapse is sound and prices on the native
+  # calendar when it is not; an explicit `"ANNUAL"` declines rather than price
+  # something the collapse would misrepresent. The cells are scanned, not the
+  # parent: a per-cluster weather row is one factor per cell, which is fine.
+  annual_blockers <- .levcost_annual_blockers(tech_objects)
+  if (identical(timeframe, "auto")) {
+    timeframe <- if (length(annual_blockers) > 0) "native" else "ANNUAL"
+    if (identical(timeframe, "native") && verbose)
+      message("levcost(): pricing '", tech_name, "' on its native timeframe; it ",
+              "cannot be annualized -- ",
+              paste(annual_blockers, collapse = "; "), ".")
+  } else if (identical(timeframe, "ANNUAL") && length(annual_blockers) > 0) {
+    stop("levcost(timeframe = \"ANNUAL\") cannot price '", tech_name, "': ",
+         paste(annual_blockers, collapse = "; "), ".",
+         "
+Price it with `timeframe = \"native\"` and a matching `calendar = `.",
+         call. = FALSE)
+  }
+
+  # A native sub-annual process needs a calendar holding its timeslices, and
+  # levcost() will not choose one: the choice changes both the problem size and
+  # the numbers, so it belongs to the caller.
+  if (identical(timeframe, "native") && !calendar_supplied) {
+    tf_need <- unique(unlist(lapply(tech_objects, function(t)
+      if (methods::.hasSlot(t, "timeframe")) as.character(t@timeframe)
+      else character())))
+    tf_need <- tf_need[!is.na(tf_need) & nzchar(tf_need) & tf_need != "ANNUAL"]
+    if (length(tf_need) > 0 || length(weather_objects) > 0)
+      stop("levcost(timeframe = \"native\") needs a `calendar = ` containing the ",
+           "timeslices of '", tech_name, "'",
+           if (length(tf_need) > 0)
+             paste0(" (timeframe ", paste(tf_need, collapse = "/"), ")") else "",
+           ". None was supplied, and levcost() does not pick one for you.",
+           call. = FALSE)
+  }
+
+  # ── 7c. Annual timeframe collapse ───────────────────────────────────────────
   # `levcost` measures the cost of dispatchable generation, so by default it
   # prices the technology on an ANNUAL timeframe: any weather profile is
   # collapsed to an annual capacity factor (share-weighted mean, applied as the
@@ -1854,6 +2312,16 @@ levcost_technology_ <- function(
     }
     weather_objects <- list()
     calendar <- newCalendar()          # annual, single ANNUAL timeslice
+    # ... and the process's own timeframe. `get_process_timeframe()` reads
+    # `@timeframe` to build the timeslice domain, so a process left declaring a
+    # sub-annual timeframe is indexed at slices this calendar does not contain
+    # (`pTechAfLo[...,HOUR] out of domain`). The commodity gets the same
+    # treatment below; both halves are needed.
+    if (methods::.hasSlot(object, "timeframe")) object@timeframe <- "ANNUAL"
+    tech_objects <- lapply(tech_objects, function(t) {
+      if (methods::.hasSlot(t, "timeframe")) t@timeframe <- "ANNUAL"
+      t
+    })
   }
 
   # ── 8. Auto-create commodity objects ─────────────────────────────────────────
@@ -1871,6 +2339,12 @@ levcost_technology_ <- function(
       # calendar (mCommTimeslice).
       if (identical(timeframe, "ANNUAL") && .hasSlot(cm_obj, "timeframe"))
         cm_obj@timeframe <- "ANNUAL"
+      # A screening model is one region with no hierarchy, so a commodity
+      # balanced at a coarser `@geoframe` would be refused outright ("no
+      # geoscale with coarser levels"). Drop the declaration, as `@emis` is
+      # dropped: what is screened here is the technology, per region.
+      if (isS4(cm_obj) && .hasSlot(cm_obj, "geoframe"))
+        cm_obj@geoframe <- character(0)
       commodity_objects[[cm]] <- cm_obj
     } else {
       unit_val <- ""
@@ -2502,10 +2976,10 @@ levcost_technology_ <- function(
         for (grp in inp_frontier_groups) {
           grp_comms <- in_group_comms[[grp]]
           already_fixed <- character(0)
-          if ("share.fx" %in% names(original_ceff)) {
+          if ("grp.share.fx" %in% names(original_ceff)) {
             for (cm in grp_comms) {
               rf <- original_ceff[original_ceff$comm == cm &
-                !is.na(original_ceff$share.fx), , drop = FALSE]
+                !is.na(original_ceff$grp.share.fx), , drop = FALSE]
               if (nrow(rf) > 0) already_fixed <- c(already_fixed, cm)
             }
           }
@@ -2518,11 +2992,11 @@ levcost_technology_ <- function(
             fx_val  <- if (is.finite(inp_su)) inp_su else 1.0
             other_comms <- setdiff(grp_comms, prim_inp)
             other_fx    <- if (length(other_comms) > 0) (1 - fx_val) / length(other_comms) else 0
-            if (!"share.fx" %in% names(object@ceff)) object@ceff$share.fx <- NA_real_
+            if (!"grp.share.fx" %in% names(object@ceff)) object@ceff$grp.share.fx <- NA_real_
             for (cm in grp_comms) {
               rows <- which(object@ceff$comm == cm)
               if (length(rows) > 0)
-                object@ceff$share.fx[rows] <- if (cm == prim_inp) fx_val else other_fx
+                object@ceff$grp.share.fx[rows] <- if (cm == prim_inp) fx_val else other_fx
             }
             suffix   <- paste0("_fr_", prim_out, "_", prim_inp)
             scen_ifr <- build_and_solve_(dobj_ifr, suffix = suffix)
@@ -2696,6 +3170,22 @@ levcost_technology_ <- function(
 #' @param base_size Integer. Base font size passed to \code{theme_energyRt()}.
 #' @return A list of class \code{"share_frontier_plots"}, or \code{NULL}.
 #' @export
+#' @examples
+#' # a co-firing plant whose biomass may cover at most 30% of the fuel group
+#' chp <- newTechnology(
+#'   "CHP",
+#'   input   = data.frame(comm = c("COA", "BIO"), group = "fuel"),
+#'   output  = data.frame(comm = "ELC"),
+#'   group   = data.frame(group = "fuel", unit = "MMBtu"),
+#'   ceff    = data.frame(comm = c("COA", "BIO"), cinp2use = c(0.40, 0.35),
+#'                        grp.share.up = c(1, 0.3)),
+#'   cap2act = 8760
+#' )
+#'
+#' # one ggplot per (direction x group)
+#' p <- plot_share_frontier(tech_share_frontier(chp))
+#' names(p)
+#' p[[1]]
 plot_share_frontier <- function(object, title = NULL, base_size = 11L) {
   if (is.null(object) || nrow(object) == 0) return(NULL)
   check_package("ggplot2")
@@ -2784,13 +3274,17 @@ plot_share_frontier <- function(object, title = NULL, base_size = 11L) {
     }
   }
   if (length(all_plots) == 0L) return(NULL)
+  n_total <- length(all_plots)
+  if (n_total > 16L) all_plots <- all_plots[seq_len(16L)]
   n_panels <- length(all_plots)
   attr(all_plots, "n_per_row") <- min(n_panels, 4L)
   attr(all_plots, "n_panels")  <- n_panels
+  attr(all_plots, "n_total")   <- n_total
   class(all_plots) <- c("share_frontier_plots", "list")
   all_plots
 }
 
+#' @method print share_frontier_plots
 #' @export
 print.share_frontier_plots <- function(x, ...) {
   if (requireNamespace("patchwork", quietly = TRUE)) {
@@ -2816,6 +3310,7 @@ print.share_frontier_plots <- function(x, ...) {
                            import = "Import",
                            export = "Export (credit)")
 
+#' @method print levcost
 #' @export
 print.levcost <- function(x, ...) {
   cat("levcost\n")
@@ -2833,6 +3328,7 @@ print.levcost <- function(x, ...) {
   invisible(x)
 }
 
+#' @method print levcost_list
 #' @export
 print.levcost_list <- function(x, ...) {
   cat("levcost_list (", length(x), " processes)\n", sep = "")
@@ -2888,7 +3384,7 @@ autoplot.levcost <- function(object,
     df <- object$frontier
     if (is.null(df) || nrow(df) == 0) {
       message("No frontier data available. Run levcost() with frontier = TRUE ",
-              "and a grouped technology with >= 2 output commodities with share.up.")
+              "and a grouped technology with >= 2 output commodities with grp.share.up.")
       return(invisible(NULL))
     }
     yr_sel <- if (!is.null(year)) as.integer(year) else min(df$year, na.rm = TRUE)
@@ -2941,7 +3437,7 @@ autoplot.levcost <- function(object,
     p  <- plot_share_frontier(df, title = paste0("Share Mix: ", names(object$levcost_npv)))
     if (is.null(p)) {
       message("No share constraint data available. The technology may have no ",
-              "grouped inputs or outputs with share.up / share.lo constraints.")
+              "grouped inputs or outputs with grp.share.up / grp.share.lo constraints.")
       return(invisible(NULL))
     }
     return(p)
@@ -3088,7 +3584,9 @@ autoplot.levcost_list <- function(object,
                                   type = c("components", "npv", "totals",
                                            "frontier", "input_frontier"),
                                   year = NULL, cost_unit = NULL,
-                                  cost_unit_comm = NULL, ...) {
+                                  cost_unit_comm = NULL,
+                                  top_n = NULL, sort = !is.null(top_n),
+                                  groups = NULL, ...) {
   check_package("ggplot2")
   type <- match.arg(type)
 
@@ -3117,31 +3615,261 @@ autoplot.levcost_list <- function(object,
   plot_df$component <- factor(plot_df$component,
                               levels = c(comp_ord, setdiff(unique(plot_df$component), comp_ord)))
 
+  # Ordering and capping. The default keeps the list's own order (a variants
+  # fan-out is in vintage order); `sort`/`top_n` are for cross-technology
+  # comparisons: most expensive first, capped with a caption.
+  caption <- NULL
+  tot <- stats::aggregate(value ~ tech, plot_df, sum, na.rm = TRUE)
+  if (isTRUE(sort)) {
+    plot_df$tech <- factor(plot_df$tech,
+                           levels = tot$tech[order(-tot$value)])
+  } else {
+    plot_df$tech <- factor(plot_df$tech, levels = unique(plot_df$tech))
+  }
+  if (!is.null(top_n) && is.finite(top_n) && top_n < nrow(tot)) {
+    keep <- tot$tech[order(-tot$value)][seq_len(top_n)]
+    plot_df <- plot_df[plot_df$tech %in% keep, , drop = FALSE]
+    plot_df$tech <- droplevels(plot_df$tech)
+    caption <- paste0("showing the ", top_n, " most expensive of ",
+                      nrow(tot), " processes")
+  }
+
+  # `groups` (a .proc_groups() list) facets by topology group; strips carry
+  # the short index, the index table maps it back to the structure
+  if (!is.null(groups) && length(groups) > 0) {
+    gmap <- unlist(lapply(groups, function(g)
+      stats::setNames(rep(g$index %||% g$label, length(g$members)),
+                      g$members)))
+    plot_df$group <- unname(gmap[as.character(plot_df$tech)])
+    plot_df$group[is.na(plot_df$group)] <- "other"
+    plot_df <- .facet_cap(plot_df, "group")
+  }
+
   # y-axis label: an explicit `cost_unit` wins; otherwise fall back to the
   # units the levcost results carry (same contract as autoplot.levcost) --
   # every element shares the source object's units, so the first one speaks
   # for the list
-  y_lbl <- "Levelized Cost"
-  if (!is.null(cost_unit) && nzchar(cost_unit)) {
-    y_lbl <- paste0("Levelized cost [", cost_unit, "]")
-  } else {
-    u <- object[[1]]$units
-    cu <- if (!is.null(u$costs) && nzchar(u$costs)) u$costs else ""
-    au <- if (!is.null(u$activity) && nzchar(u$activity)) u$activity else ""
-    if (nzchar(cu)) {
-      y_lbl <- paste0("Levelized cost [",
-                      if (nzchar(au)) paste0(cu, " / ", au) else cu, "]")
-    }
-  }
+  y_lbl <- .levcost_cost_axis_label(cost_unit, object[[1]]$units)
 
-  ggplot2::ggplot(plot_df, ggplot2::aes(x = tech, y = value, fill = component)) +
+  p <- ggplot2::ggplot(plot_df,
+                       ggplot2::aes(x = tech, y = value, fill = component)) +
     ggplot2::geom_col(position = "stack") +
     ggplot2::scale_fill_brewer(palette = "Set2",
                                labels = .levcost_comp_labels[levels(plot_df$component)]) +
     ggplot2::labs(title = "NPV LCOE comparison", x = "Technology",
-                  y = y_lbl, fill = "Component") +
+                  y = y_lbl, fill = "Component", caption = caption) +
     theme_energyRt() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 30, hjust = 1))
+  if (!is.null(plot_df$group))
+    p <- p + ggplot2::facet_wrap(~group, scales = "free_x")
+  .facet_caption(p, plot_df)
+}
+
+# ── Variant figures: comparing cells across vintage / cluster / region ───────
+# A variant fan-out is a GRID, but `autoplot.levcost_list()` only knows `tech`,
+# so it can only put raw cell names (`PWR_VIN2030_CLT3`) on one axis. These
+# helpers recover the grid so one dimension can go on x and another into facets.
+# The dimensions come from the fan-out's own provenance (the `variants`
+# attribute), never from parsing a cell name.
+
+# Shared with the `levcost_list` method: an explicit `cost_unit` wins, else the
+# units the result carries.
+#' @noRd
+.levcost_cost_axis_label <- function(cost_unit = NULL, units = NULL) {
+  if (!is.null(cost_unit) && nzchar(cost_unit))
+    return(paste0("Levelized cost [", cost_unit, "]"))
+  cu <- if (!is.null(units$costs) && nzchar(units$costs)) units$costs else ""
+  au <- if (!is.null(units$activity) && nzchar(units$activity)) units$activity else ""
+  if (nzchar(cu))
+    return(paste0("Levelized cost [",
+                  if (nzchar(au)) paste0(cu, " / ", au) else cu, "]"))
+  "Levelized Cost"
+}
+
+#' @noRd
+.levcost_dim_label <- function(d) {
+  lbl <- c(variant = "Variant", vintage = "Vintage", cluster = "Cluster",
+           region = "Region")[d]
+  unname(ifelse(is.na(lbl), d, lbl))
+}
+
+# Long NPV-component frame for one fan-out, or for a `by_region = TRUE` list of
+# them. One row per (cell, component).
+#' @noRd
+.levcost_variants_long <- function(object) {
+  one <- function(obj, region_hint = NA_character_) {
+    key <- attr(obj, "variants")
+    if (is.null(key) || nrow(key) == 0) return(NULL)
+    parts <- lapply(names(obj), function(nm) {
+      lc <- obj[[nm]]
+      if (is.null(lc)) return(NULL)
+      k <- key[key$variant == nm, , drop = FALSE]
+      if (nrow(k) == 0) return(NULL)
+      cbd <- lc$cost_breakdown_npv
+      cmp <- if (is.null(cbd) || nrow(cbd) == 0 ||
+                 !all(c("component", "value") %in% names(cbd))) {
+        data.frame(component = "total", value = as.numeric(lc$levcost_npv),
+                   stringsAsFactors = FALSE)
+      } else {
+        cbd[, c("component", "value"), drop = FALSE]
+      }
+      # the REAL region, as extraction rewrote it -- never the artificial one
+      reg <- region_hint
+      if (!is.null(lc$levcost) && "region" %in% names(lc$levcost) &&
+          nrow(lc$levcost) > 0) {
+        r <- unique(as.character(lc$levcost$region))
+        r <- r[!is.na(r)]
+        if (length(r) == 1L) reg <- r
+      }
+      data.frame(variant = nm,
+                 vintage = as.character(k$vintage[1]),
+                 cluster = as.character(k$cluster[1]),
+                 region  = as.character(reg),
+                 cmp, stringsAsFactors = FALSE)
+    })
+    do.call(rbind, Filter(Negate(is.null), parts))
+  }
+
+  df <- if (inherits(object, "levcost_variants")) {
+    one(object)
+  } else if (is.list(object) &&
+             any(vapply(object, inherits, logical(1), "levcost_variants"))) {
+    # `by_region = TRUE` nests region -> fan-out; the list names are the regions
+    nms <- names(object)
+    do.call(rbind, Filter(Negate(is.null), lapply(seq_along(object), function(i) {
+      o <- object[[i]]
+      if (!inherits(o, "levcost_variants")) return(NULL)
+      one(o, region_hint = if (!is.null(nms)) nms[i] else NA_character_)
+    })))
+  } else NULL
+
+  if (is.null(df) || nrow(df) == 0) return(NULL)
+  rownames(df) <- NULL
+  df
+}
+
+# Which variant dimensions actually distinguish cells. A figure keyed on a
+# constant dimension says nothing, so `report()` asks this before drawing.
+#' @noRd
+.levcost_variant_dims <- function(df) {
+  if (is.null(df) || nrow(df) == 0) return(character())
+  Filter(function(d) {
+    v <- unique(df[[d]][!is.na(df[[d]]) & nzchar(df[[d]])])
+    length(v) > 1L
+  }, intersect(c("vintage", "cluster", "region"), names(df)))
+}
+
+# `x` carries one dimension, `facet` the others; anything left over is AVERAGED,
+# never summed -- a levelized cost is a rate, so adding two cells is meaningless.
+# The caption says when that happened, and when panels were capped.
+#' @noRd
+.levcost_variant_plot <- function(df, x = "variant", facet = NULL,
+                                  cost_unit = NULL, units = NULL,
+                                  title = NULL, angle = NULL) {
+  check_package("ggplot2")
+  keep <- unique(c(x, facet))
+  dims <- intersect(c("vintage", "cluster", "region"), names(df))
+  drop <- setdiff(dims, keep)
+  grp  <- c(keep, "component")
+  fml  <- stats::as.formula(paste("value ~", paste(grp, collapse = " + ")))
+  sub  <- df[, c(grp, "value"), drop = FALSE]
+  collapsed <- any(stats::aggregate(fml, sub, length)$value > 1)
+  d <- stats::aggregate(fml, sub, mean, na.rm = TRUE)
+
+  comp_ord <- intersect(.levcost_comp_order, unique(d$component))
+  d$component <- factor(d$component,
+                        levels = c(comp_ord,
+                                   setdiff(unique(d$component), comp_ord)))
+  # a plain column name keeps aes() out of rlang territory
+  d$.xv <- factor(as.character(d[[x]]), levels = unique(as.character(df[[x]])))
+
+  if (!is.null(facet)) d <- .facet_cap(d, facet)
+  n_panel <- attr(d, "n_panels")
+  n_total <- attr(d, "n_total")
+  if (is.null(n_panel)) n_panel <- 1L
+  if (is.null(n_total)) n_total <- 1L
+  d$.xv <- droplevels(d$.xv)
+
+  cap <- character()
+  if (collapsed && length(drop) > 0)
+    cap <- c(cap, paste0("averaged over ", paste(drop, collapse = ", ")))
+  if (!is.null(facet) && n_total > n_panel)
+    cap <- c(cap, paste0("showing ", n_panel, " of ", n_total, " panels"))
+
+  # A cell label is long, so rotate once there are more than a handful and let
+  # ggplot drop colliding labels rather than overprint them.
+  n_x <- length(levels(d$.xv))
+  ang <- if (!is.null(angle)) angle else
+    if (identical(x, "variant") || n_x > 6L) 45 else 0
+
+  p <- ggplot2::ggplot(d, ggplot2::aes(x = .xv, y = value, fill = component)) +
+    ggplot2::geom_col(position = "stack") +
+    ggplot2::scale_x_discrete(
+      guide = ggplot2::guide_axis(angle = ang, check.overlap = n_x > 12L)) +
+    ggplot2::scale_fill_brewer(
+      palette = "Set2",
+      labels = .levcost_comp_labels[levels(d$component)]) +
+    ggplot2::labs(title = title,
+                  caption = if (length(cap)) paste(cap, collapse = "; ") else NULL,
+                  x = .levcost_dim_label(x),
+                  y = .levcost_cost_axis_label(cost_unit, units),
+                  fill = "Component") +
+    theme_energyRt()
+  if (!is.null(facet)) {
+    p <- p + ggplot2::facet_wrap(facet) +
+      ggplot2::labs(subtitle = paste0(
+        "by ", paste(.levcost_dim_label(facet), collapse = " + ")))
+  }
+  attr(p, "n_panels") <- n_panel
+  attr(p, "n_x") <- n_x
+  p
+}
+
+#' Compare levelized cost across a technology's variant grid
+#'
+#' `autoplot()` for a variant fan-out -- the result of `levcost()` on a
+#' technology declaring `@vintage` or `@cluster`. The fan-out is a grid, so `x`
+#' and `facet` pick which dimension goes where; any dimension left out is
+#' averaged, because a levelized cost is a rate and cells cannot be summed.
+#'
+#' @param object A `levcost_variants` object.
+#' @param type `"npv"` (default) draws the variant comparison; any other value
+#'   is passed to the `levcost_list` method.
+#' @param x Dimension on the x axis: `"auto"` (the full cell label, same as
+#'   `"variant"`), `"variant"`, `"vintage"`, `"cluster"` or `"region"`.
+#' @param facet Dimensions to facet by, or `NULL`. The panel count is capped and
+#'   the caption reports the cap.
+#' @param cost_unit Cost unit for the y axis; defaults to the units carried by
+#'   the result.
+#' @param angle x-label angle. By default labels rotate once they would collide.
+#' @param ... Passed to the `levcost_list` method for other `type`s.
+#' @returns A `ggplot` object.
+#' @exportS3Method ggplot2::autoplot
+autoplot.levcost_variants <- function(object,
+                                      type = c("npv", "components", "totals",
+                                               "frontier", "input_frontier"),
+                                      x = c("auto", "variant", "vintage",
+                                            "cluster", "region"),
+                                      facet = NULL, cost_unit = NULL,
+                                      angle = NULL, ...) {
+  type <- match.arg(type)
+  x    <- match.arg(x)
+  if (!identical(type, "npv"))
+    return(autoplot.levcost_list(object, type = type, cost_unit = cost_unit, ...))
+
+  # Without provenance the grid cannot be recovered -- an object built by hand,
+  # or serialized before the `variants` attribute existed. Fall back to the
+  # list method, which needs only the elements themselves.
+  df <- .levcost_variants_long(object)
+  if (is.null(df) || nrow(df) == 0)
+    return(autoplot.levcost_list(object, type = "npv",
+                                 cost_unit = cost_unit, ...))
+  if (identical(x, "auto")) x <- "variant"
+  facet <- intersect(facet, c("vintage", "cluster", "region"))
+  if (length(facet) == 0) facet <- NULL
+  .levcost_variant_plot(df, x = x, facet = facet, cost_unit = cost_unit,
+                        units = object[[1]]$units,
+                        title = attr(object, "base_tech"), angle = angle)
 }
 
 # -- plot() for the levcost S3 classes ----------------------------------------
@@ -3161,4 +3889,182 @@ plot.levcost <- function(x, y, ...) {
 plot.levcost_list <- function(x, y, ...) {
   check_package("ggplot2")
   ggplot2::autoplot(x, ...)
+}
+
+
+# ---------------------------------------------------------------------------
+# (was R/levcost_cache.R, merged 2026-09-21)
+# ---------------------------------------------------------------------------
+
+# =============================================================================#
+# levcost_cache.R — on-disk cache for levcost() results.
+#
+# A levcost result is a pure function of (object content, assumptions), so it
+# is cached under a key that contains everything affecting the output and
+# nothing else. Cached results live WITH the object they price when that
+# object is saved (`<owner>/levcost/`); results for in-memory objects are
+# temporary and land in the project-level `get_levcost_cache_path()` folder
+# (default `levcosts/`). Artifacts: `<name-slug>@<key8>.rds` (the levcost list
+# with `$scenario` stripped) plus a `.yml` sidecar carrying the FULL key — the
+# 8-character filename is an address, the sidecar is the authority.
+# =============================================================================#
+
+# Arguments that select cache behavior; stripped from the compute call.
+.levcost_cache_args <- c("cache", "force", "cache_dir")
+
+# Arguments that never affect the result and are excluded from the key.
+.levcost_key_drop <- c(.levcost_cache_args, "verbose", "max_failures",
+                       "as_scenario", "full_output")
+
+# The folder an object's derived artifacts belong to, or NULL when the object
+# is in-memory / unsaved (reports and levcost caches are then temporary).
+.object_store_dir <- function(x) {
+  if (is(x, "scenario")) {
+    p <- x@path
+    if (length(p) == 1L && nzchar(p) && dir.exists(p)) return(p)
+    return(NULL)
+  }
+  if (is(x, "model") || is(x, "repository")) {
+    p <- x@misc[["path"]]
+    if (!is.null(p) && dir.exists(p)) return(p)
+    cand <- tryCatch(
+      if (is(x, "model")) .model_store_resolve(x@name, NULL) else
+        .repo_store_resolve(x@name, NULL),
+      error = function(e) NULL)
+    if (!is.null(cand) && dir.exists(cand)) return(cand)
+  }
+  NULL
+}
+
+# Resolution order: explicit cache_dir > owning folder (saved objects only) >
+# the project-level temporary tier.
+.levcost_cache_dir <- function(owner = NULL, cache_dir = NULL) {
+  if (!is.null(cache_dir)) return(cache_dir)
+  own <- if (!is.null(owner)) .object_store_dir(owner) else NULL
+  if (!is.null(own)) return(fp(own, "levcost"))
+  get_levcost_cache_path()
+}
+
+# The cache key: engine + object content + normalized assumptions. S4 values
+# in the assumptions (repo, horizon, calendar, weather objects) enter as
+# content hashes; a solver option list enters as its name/lang only (never
+# paths); everything else is keyed as passed, sorted by name.
+.levcost_cache_key <- function(class, object, args) {
+  a <- args[setdiff(names(args), .levcost_key_drop)]
+  a <- if (length(a)) a[order(names(a))] else list()
+  norm_one <- function(v) {
+    if (isS4(v)) return(object_hash(v))
+    if (is.list(v) && !is.data.frame(v)) {
+      if (!is.null(v[["lang"]])) {
+        return(list(name = v[["name"]], lang = v[["lang"]]))
+      }
+      return(lapply(v, norm_one))   # e.g. repo = list of S4 objects
+    }
+    v
+  }
+  rlang::hash(list(engine = paste0("levcost/", class), ver = 1L,
+                   object = object_hash(object), args = lapply(a, norm_one)))
+}
+
+.levcost_cache_base <- function(dir, name, key) {
+  fp(dir, paste0(.path_slug(name), "@", substr(key, 1, 8)))
+}
+
+# Recursively drop the solved mini-scenario(s): they are working state, large,
+# and reproducible; the cached artifact is the result tables only.
+.levcost_strip_scenario <- function(result) {
+  if (is.list(result) && !is.data.frame(result)) {
+    at <- attributes(result)
+    result$scenario <- NULL
+    out <- lapply(result, function(el) {
+      if (is.list(el) && !is.data.frame(el)) .levcost_strip_scenario(el) else el
+    })
+    at$names <- names(out)   # lapply drops class and co.; restore everything
+    attributes(out) <- at
+    return(out)
+  }
+  result
+}
+
+.levcost_cache_read <- function(dir, name, key, verbose = TRUE) {
+  base <- .levcost_cache_base(dir, name, key)
+  rds <- paste0(base, ".rds")
+  yml <- paste0(base, ".yml")
+  if (!file.exists(rds) || !file.exists(yml)) return(NULL)
+  side <- tryCatch(yaml::read_yaml(yml), error = function(e) NULL)
+  if (is.null(side) || !identical(side$key, key)) return(NULL)
+  res <- tryCatch(readRDS(rds), error = function(e) NULL)
+  if (is.null(res)) return(NULL)
+  if (isTRUE(verbose)) {
+    message("levcost: cached result is current: ", rds,
+            " (force = TRUE to recompute)")
+  }
+  res
+}
+
+.levcost_cache_write <- function(dir, name, key, result, class, method = NULL) {
+  ok <- tryCatch({
+    if (!dir.exists(dir)) dir.create(dir, recursive = TRUE)
+    base <- .levcost_cache_base(dir, name, key)
+    saveRDS(.levcost_strip_scenario(result), paste0(base, ".rds"))
+    yaml::write_yaml(list(
+      kind = "levcost", version = 1L, key = key, class = class,
+      process = name, method = method,
+      created = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+      energyRt_version = as.character(utils::packageVersion("energyRt"))
+    ), paste0(base, ".yml"))
+    TRUE
+  }, error = function(e) {
+    warning("levcost: could not write the cache entry: ",
+            conditionMessage(e), call. = FALSE)
+    FALSE
+  })
+  invisible(ok)
+}
+
+# The single integration point, called by the levcost() methods: split the
+# cache arguments out of the dots, consult the cache, run the driver on a
+# miss (`fun(object, <dots minus cache args>)`), and record the fresh result.
+# `as_scenario` requests bypass the cache read (the cached artifact has no
+# $scenario) but the computed result is still recorded.
+.levcost_with_cache <- function(class, object, dots, fun) {
+  cache <- dots[["cache"]] %||% TRUE
+  force <- dots[["force"]] %||% FALSE
+  verbose <- dots[["verbose"]] %||% TRUE
+  name <- if (isS4(object) && .hasSlot(object, "name")) object@name else "levcost"
+  dir <- .levcost_cache_dir(object, dots[["cache_dir"]])
+  key <- .levcost_cache_key(class, object, dots)
+  bypass <- isTRUE(dots[["as_scenario"]]) || isTRUE(dots[["full_output"]])
+  if (isTRUE(cache) && !isTRUE(force) && !bypass) {
+    hit <- .levcost_cache_read(dir, name, key, verbose = verbose)
+    if (!is.null(hit)) return(hit)
+  }
+  res <- do.call(fun, c(list(object),
+                        dots[setdiff(names(dots), .levcost_cache_args)]))
+  if (isTRUE(cache) && !bypass && !is.null(res)) {
+    .levcost_cache_write(dir, name, key, res, class = class,
+                         method = res[["method"]] %||% dots[["method"]])
+  }
+  res
+}
+
+#' Clear cached levcost results
+#'
+#' Deletes the levcost cache entries belonging to an object (its owning
+#' folder's `levcost/` for saved objects, the project-level
+#' [get_levcost_cache_path()] folder otherwise), or a directory given
+#' directly.
+#'
+#' @param x an energyRt object whose cache should be cleared, or a character
+#'   path to a levcost cache directory.
+#' @return the deleted directory, invisibly.
+#' @export
+#' @examples
+#' # drop every memoized levelised cost (they are keyed on the inputs that
+#' # produced them, so this is only needed after editing a scenario in place)
+#' clear_levcost_cache()
+clear_levcost_cache <- function(x = NULL) {
+  dir <- if (is.character(x)) x else .levcost_cache_dir(x)
+  if (!is.null(dir) && dir.exists(dir)) unlink(dir, recursive = TRUE)
+  invisible(dir)
 }

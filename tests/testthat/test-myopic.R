@@ -31,7 +31,7 @@ test_that("myopic reproduces the foresight capacity path (no intertemporal coupl
   on.exit(set_scenarios_path(old_sp), add = TRUE)
 
   mod <- my_mod(years = yrs, olife = 50L, demand = 1, name = "fe")
-  fore <- solve_scenario(interpolate_model(mod, name = "fe-fs"), echo = FALSE)
+  fore <- solve_scenario(interpolate_model(mod, name = "fe_fs"), echo = FALSE)
   cap_fore <- my_by_year(fore, "vTechCap", yrs)
 
   res <- solve_myopic(mod, name = "fe", verbose = FALSE)
@@ -115,10 +115,40 @@ test_that("store = 'variants': one scenario, one variant per step", {
   expect_identical(vy$sequence, "vs")
   expect_identical(vy$step, 2L)
   expect_identical(vy$decided, 2021L)
+  # `params:` records HOW the method was configured, so a reloaded sequence
+  # can say what produced it; the flat keys say WHICH step this is. The window
+  # size is `step_size` there -- two `step:` keys meaning different things in
+  # one file would be a trap.
+  expect_true(is.list(vy$params))
+  expect_identical(vy$params$step_size, 1L)
+  expect_identical(vy$params$store, "variants")
+  expect_true(!is.null(vy$params$carry))
   # each step's problem is switchable after loading
   back <- suppressMessages(load_scenario(p, env = NULL, verbose = FALSE))
   runs3 <- scenario_runs(back)
   expect_identical(nrow(runs3[runs3$modinp == "own", ]), 3L)
+})
+
+test_that("store = 'scenarios': one scenario per step, names stay valid", {
+  skip_if_no_solver()
+  old_sp <- set_scenarios_path(my_scen_path("ss"))
+  on.exit(set_scenarios_path(old_sp), add = TRUE)
+
+  # The per-step scenario name is an OBJECT name, not a run label: dashes are
+  # legal in `vlab` but rejected by .assert_object_name(), so composing the
+  # two with "-" made this whole store mode unusable -- and the failure
+  # surfaced wrapped in the driver's infeasibility hint.
+  res <- solve_myopic(my_mod(years = 2020:2022, name = "ss"),
+                      name = "ss", store = "scenarios", verbose = FALSE)
+  expect_identical(res$steps$status, rep("solved", 3L))
+  expect_identical(res$steps$run,
+                   c("ss_s01_2020", "ss_s02_2021", "ss_s03_2022"))
+  expect_true(all(vapply(res$steps$run, energyRt:::check_name, logical(1))))
+
+  # one folder per step, and no variants: each step is its own scenario
+  expect_identical(length(res$scenarios), 3L)
+  expect_true(all(vapply(res$scenarios,
+                         function(s) !nzchar(.run_variant(s)), logical(1))))
 })
 
 test_that("stitching: each year exactly once, incl. with overlap", {
@@ -191,7 +221,7 @@ test_that("storage capacity carries across steps (three parts, no re-build)", {
   on.exit(set_scenarios_path(old_sp), add = TRUE)
 
   mod <- my_stg_mod(years = yrs, name = "sg")
-  fore <- solve_scenario(interpolate_model(mod, name = "sg-fs"), echo = FALSE)
+  fore <- solve_scenario(interpolate_model(mod, name = "sg_fs"), echo = FALSE)
   out_fore <- my_by_year(fore, "vStorageOutCap", yrs)
   expect_gt(out_fore[["2020"]], 0) # the fixture really builds storage
 
@@ -214,7 +244,7 @@ test_that("trade capacity carries across steps (region-free family)", {
   on.exit(set_scenarios_path(old_sp), add = TRUE)
 
   mod <- my_trd_mod(years = yrs, name = "tr")
-  fore <- solve_scenario(interpolate_model(mod, name = "tr-fs"), echo = FALSE)
+  fore <- solve_scenario(interpolate_model(mod, name = "tr_fs"), echo = FALSE)
   cap_fore <- my_by_year(fore, "vTradeCap", yrs)
   expect_gt(cap_fore[["2020"]], 0) # the fixture really builds the link
 
@@ -243,7 +273,7 @@ test_that("a vintaged build is carried onto the RIGHT variant (provenance)", {
   # the ledger routed the carry through provenance: applying it to the
   # pristine model writes the stock rows WITH the vintage selector
   w <- horizon_windows(mod@config@horizon)[[2]]
-  mod2 <- apply_ledger(mod, res$ledger, w$horizon)
+  mod2 <- energyRt:::apply_ledger(mod, res$ledger, w$horizon)
   tech2 <- energyRt:::.model_find_object(mod2, "TECH", "technology")$obj
   cap_df <- tech2@capacity
   expect_true("vintage" %in% names(cap_df))

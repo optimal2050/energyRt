@@ -27,9 +27,10 @@
 #
 # The mini-model is one cycle, weighted up to a year, rather than 8760
 # timeslices: a calendar of two timeslices (CHG, DIS) with
-# `year_fraction = 1/cycles` gives `weight = cycles` and `share * weight == 1`,
-# so one modelled cycle IS a year. `fullYear = FALSE` closes the cycle inside
-# the representative period. Note `year_fraction` must be passed to BOTH
+# `year_fraction = 1/cycles` gives the CHG/DIS slices `weight = cycles` and
+# `share * weight == 1`, so one modelled cycle IS a year (the top slice is
+# full-year magnitude, weight 1, and carries no flows here). `fullYear = FALSE`
+# closes the cycle inside the representative period. Note `year_fraction` must be passed to BOTH
 # `make_timetable()` and `newCalendar()` -- the latter validates the shares
 # against its own default of 1 and errors otherwise.
 #
@@ -37,7 +38,7 @@
 # timeslice weight, so annual delivered energy is `vStorageOut * weight`.
 # =============================================================================
 
-#' Scalar value of a storage ratio slot (`duration`, `inp2out`)
+#' Scalar value of a storage ratio slot (`duration`, `inp2out`, `inp2stg`)
 #'
 #' A levelized cost needs a definite sizing, so a genuine range is refused: the
 #' model would pick a point on it, and which point depends on the rest of the
@@ -115,6 +116,9 @@
 
   duration <- .lcs_ratio(object@duration, "duration", years, region, 1)
   inp2out  <- .lcs_ratio(object@inp2out,  "inp2out",  years, region, 1)
+  # legacy objects predate the slot; treat an absent slot as undeclared
+  i2s_df <- tryCatch(object@inp2stg, error = function(e) data.frame())
+  inp2stg <- .lcs_ratio(i2s_df, "inp2stg", years, region, NA_real_)
   if (any(duration <= 0)) .la_unsupported("duration must be positive")
 
   # unit basis: one unit delivered per cycle
@@ -122,7 +126,18 @@
   stgCap    <- delivered / outeff
   charged   <- delivered / (outeff * inpeff)
   outCap    <- stgCap / duration
-  inpCap    <- outCap * inp2out
+  # the ratio triangle: prefer the declared inp2out route; a storage sized by
+  # its C-rate alone (inp2stg declared, inp2out not) uses inp = stg * inp2stg
+  has_i2o <- nrow(object@inp2out) > 0
+  inpCap  <- if (!has_i2o && !all(is.na(inp2stg))) stgCap * inp2stg
+             else outCap * inp2out
+  if (has_i2o && !all(is.na(inp2stg)) &&
+      any(abs(stgCap * inp2stg - outCap * inp2out) >
+            1e-6 * pmax(abs(outCap * inp2out), 1e-12))) {
+    warning("levcost(): storage '", object@name, "' declares both inp2out ",
+            "and inp2stg and they disagree; sizing the charger by inp2out.",
+            call. = FALSE)
+  }
 
   caps <- list(out = outCap, stg = stgCap, inp = inpCap)
   for (p in c("stg", "inp"))
@@ -251,13 +266,15 @@
 #' Flows are per-timeslice, costs are already annual: the cost equations carry
 #' the timeslice weight, the flow variables do not. So annual delivered energy is
 #' `sum(vStorageOut) * cycles`, and multiplying the costs by anything would
-#' double-count.
+#' double-count. Flows are read at `timeframe = "highest"` (raw slices): the
+#' timeframe roll-up annualizes with the child/top weight ratio, which is the
+#' same `cycles` factor — reading "lowest" AND multiplying would double-count.
 #' @noRd
 .levcost_storage_extract <- function(sc, ctx) {
   years <- ctx$hor_years
   get <- function(v) tryCatch({
     d <- getData(sc, name = v, merge = TRUE, drop.zeros = FALSE,
-                 timeframe = "lowest")
+                 timeframe = "highest")
     if (is.null(d) || nrow(d) == 0) return(NULL)
     as.data.frame(d)
   }, error = function(e) NULL)
@@ -307,24 +324,6 @@
   object@capacity <- cap
   if (verbose) message("Capacity constraints stripped for the ", what, ".")
   object
-}
-
-#' Drop a devintaged cell's build window, keeping its lifetime
-#'
-#' `.levcost_devintage()` carries `start`/`end` through, and for a levelized
-#' cost they are actively wrong: the question is what a unit of THIS vintage
-#' costs, not whether it could have been built inside the priced horizon. Left
-#' in, the two engines disagree -- the closed form never reads the window and
-#' returns a number, while the mini-model honours it and a vintage whose window
-#' falls outside the horizon goes INFEASIBLE. `olife` is untouched; it is what
-#' drives the annuity.
-#' @noRd
-.levcost_unwindow <- function(obj) {
-  v <- obj@vintage
-  if (NROW(v) == 0) return(obj)
-  for (cc in intersect(c("start", "end"), names(v))) v[[cc]] <- NA_integer_
-  obj@vintage <- v
-  obj
 }
 
 #' Turn per-year totals and an output series into a `levcost` object
@@ -418,7 +417,7 @@
 #'   As in [levcost()] for a technology.
 #' @param ... Ignored, for signature compatibility with the technology method.
 #' @return A `levcost` object -- the same shape the technology method returns.
-#' @export
+#' @keywords internal
 levcost_storage_ <- function(
     object,
     comm       = NULL,

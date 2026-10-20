@@ -29,12 +29,12 @@ count is the main dial between realism and model size:
 | calendar | structure | timeslices |
 |---|---|---:|
 | `annual` | one annual timeslice | 1 |
-| `utopia_seasons` | 4 seasons × day/night/peak | 12 |
+| `topia_seasons` | 4 seasons × day/night/peak | 12 |
 | `s4_h24` | 4 seasons × 24 hours | 96 |
 | `m12_h24` | 12 months × 24 hours | 288 |
 | `d365` | 365 days | 365 |
 
-Model variables scale roughly linearly with timeslices — the 96-timeslice UTOPIA base
+Model variables scale roughly linearly with timeslices — the 96-timeslice TOPIA base
 case solves in seconds on GLPK, the 288-timeslice variant is noticeably heavier.
 
 # The `make_timetable()` grammar
@@ -53,7 +53,7 @@ head(tt)          # 4 x 24 = 96 leaf timeslices, equal shares
 ```
 
 Unequal **shares** are given per timeslice; a nested `list(<share>, <LEVEL> = ...)`
-attaches child levels. UTOPIA's 12-timeslice calendar makes peak hours short and
+attaches child levels. TOPIA's 12-timeslice calendar makes peak hours short and
 winter nights long:
 
 ```{r tt-shares}
@@ -109,7 +109,7 @@ seasons are `WIN/SPR/SUM/FAL` in calendar order):
 
 ```{r calendars-data}
 names(calendars)
-calendars$utopia_seasons@desc
+topia$modules$calendars$topia_seasons@desc
 s4 <- as.data.frame(calendars$s4@timetable)[, c("SEASON", "share")]
 s4$share <- round(s4$share, 4)
 s4
@@ -124,21 +124,100 @@ cycles all follow the sample:
 calendars$s4_h24_subset_2seasons@year_fraction   # WIN + SUM
 ```
 
-Pick one and pass it to `newModel(calendar = ...)`; the UTOPIA vignettes use
+Pick one and pass it to `newModel(calendar = ...)`; the TOPIA vignettes use
 `calendars$s4_h24` throughout.
 
-# Timeslice-string helpers
+# Fiscal and non-calendar years
 
-Timeslice names encode time; a few helpers translate between encodings:
+A milestone in energyRt is an **integer** year --- `horizon@intervals$mid` ---
+and that stays true whatever the reporting convention. What changes for a
+fiscal year is where the year *begins*, which is a property of the calendar:
 
-```{r helpers}
-hour2HOUR(c(0, 13, 23))        # hour of day -> "h00" "h13" "h23"
-yday2YDAY(c(1, 365))           # day of year -> "d001" "d365"
-head(tsl_formats)              # known timeslice-name formats (a dataset)
+```{r fiscal-calendar}
+cal_fy <- newCalendar(
+  timetable  = make_timetable(list(SEASON = c("WINTER", "SUMMER"))),
+  year_start = list(month = 4L, day = 1L)   # April-start, e.g. India, Japan
+)
+cal_fy@year_start
 ```
 
-`tsl2dtm()` / `dtm2tsl()` convert timeslice strings to/from date-times — useful
-when joining model output with observed hourly data.
+This follows the convention `timescales` uses: model year `y` spans
+`[year_start(y), year_start(y + 1))`, and `y` is the **starting** Gregorian
+year, so "FY 2021-22" is model year 2021.
+
+A non-January anchor changes how milestones are *displayed*. `year_label()`
+gives one label per milestone:
+
+```{r fiscal-labels}
+hor <- newHorizon(2025:2034, c(1, 4, 5))
+mod <- newModel("fy_demo", region = "R1", calendar = cal_fy, horizon = hor)
+
+year_label(mod)
+```
+
+The label is presentation only. It never reaches the solver: the sets, the
+parameter tables, the backend files and the decoded solution all keep the
+integer year. Ask for labels explicitly when you want them:
+
+```{r fiscal-getdata, eval = FALSE}
+getData(scen, "vTechCap", yearsAsFactors = TRUE)   # year as labelled factor
+getData(scen, "vTechCap")                          # year as integer (default)
+```
+
+To name periods yourself --- whether or not a fiscal calendar is involved ---
+give `intervals` a `label` column. An explicit label always wins over the
+derived one, and labels must be unique:
+
+```{r fiscal-explicit}
+newHorizon(intervals = data.frame(
+  start = c(2025, 2030),
+  mid   = c(2025, 2030),
+  end   = c(2029, 2034),
+  label = c("FY2025-26", "FY2030-31")
+))@intervals
+```
+
+One limit worth knowing: because the key is the integer `mid`, two milestones
+cannot share a calendar year. Labels rename periods; they do not add them.
+
+The anchor is currently carried and reported, not acted on --- it sets the
+default labels and travels with the calendar, but timeslice-to-timestamp
+alignment and `year_fraction` still work on the calendar year.
+
+# Reading time off a timeslice
+
+A timeslice name is a label, not a data structure: what `"d100_h20"` means is
+decided by the calendar it belongs to, so every conversion takes that calendar.
+They live in [timescales](https://optimal2050.github.io/timescales/), which
+owns the calendar vocabulary:
+
+```{r helpers}
+library(timescales)
+
+# label -> number. The calendar is consulted; the text is never parsed.
+tsl2hour(c("d001_h00", "d100_h20"), "d365_h24")    # 0 20
+tsl2yday(c("d001_h00", "d100_h20"), "d365_h24")    # 1 100
+
+# MONTH is not a timeframe of d365_h24 -- it is derived from the calendar
+tsl2month(c("d001_h00", "d100_h20"), "d365_h24")   # 1 4
+
+# number -> label
+hour2HOUR(c(0, 13, 23))                            # "h00" "h13" "h23"
+yday2YDAY(c(1, 365))                               # "d001" "d365"
+```
+
+A timeframe is available when the calendar determines it. `tsl2hour()` works on
+`"d365_h24"`, where each timeslice is one hour, and is an error on `"m12"`,
+where a month spans twenty-four of them -- rather than returning a guess.
+
+`tsl2dtm()` / `dtm2tsl()` convert between timeslices and date-times, which is
+what you want when joining model output with observed hourly data. Timeslice
+labels carry no year, so `tsl2dtm()` asks for one:
+
+```{r dtm}
+tsl2dtm(c("d001_h00", "d100_h20"), "d365_h24", year = 2021)
+dtm2tsl(as.POSIXct("2021-04-10 20:00", tz = "UTC"), "d365_h24")
+```
 
 # Timeframes: commodities and processes
 
@@ -159,13 +238,20 @@ and processes whose timeframes follow it — annual bookkeeping stays cheap.
 
 # Choosing a resolution
 
-* Start coarse (`utopia_seasons`-like, ~12 timeslices) while the model structure
+* Start coarse (`topia_seasons`-like, ~12 timeslices) while the model structure
   is in flux — solves are instant.
 * Move to hour-within-season (`s4_h24`, 96) once storage, VRE profiles
   or peak pricing matter — intra-day dynamics need real hours.
 * Full-year hourly detail (`m12_h24`, 288 or `d365`+hours) is for final
   runs; check tractability with `model_size()` first.
+* On a **multi-year** horizon, interpolate with `fold = TRUE`. A weather series
+  that is the same in every milestone year is stored once instead of once per
+  year, which is usually the single largest saving in an hourly model — on a
+  4-region `d365_h24` model over 7 milestones it cuts the interpolated data by
+  ~84%. Folding only collapses values that are uniform across the whole
+  dimension, so it never changes the solution; a model with a genuinely
+  different weather year per milestone simply does not fold.
 
-The [UTOPIA vignettes](utopia-build.html) build one model and run it on these
+The [TOPIA vignettes](topia-build.html) build one model and run it on these
 calendars interchangeably — resolution is a configuration choice, not a
 rewrite.

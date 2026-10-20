@@ -7,7 +7,7 @@
 check_geoscale_regions(geoscale, region, level = NULL)
 }
 \arguments{
-\item{geoscale}{A \code{geoscales::Geoscale}.}
+\item{geoscale}{A \code{geoscales::GeoScale}.}
 
 \item{region}{Character vector of declared model regions.}
 
@@ -22,11 +22,19 @@ Warns when the two disagree. This is deliberately a warning, not an error:
 than the model uses (a world map for a two-country model) is normal and
 useful.
 }
+\examples{
+# returns the declared regions the geoscale cannot place, and warns about them
+gs <- topia$geoscales$squares
+check_geoscale_regions(gs, c("W1", "W2", "C1"))        # all placed: character(0)
+suppressWarnings(check_geoscale_regions(gs, c("W1", "NOWHERE")))
+}
 \seealso{
 Other geoscale:
+\code{\link[=get_process_groups]{get_process_groups()}},
+\code{\link[=model_clusters]{model_clusters()}},
 \code{\link[=plot_geoscale]{plot_geoscale()}},
 \code{\link[=plot_map]{plot_map()}},
-\code{\link{setGeoscale,config-method}},
-\code{\link[=utopia_geoscale]{utopia_geoscale()}}
+\code{\link[=process_cluster_sweep]{process_cluster_sweep()}},
+\code{\link{setCalendar,config-method}}
 }
 \concept{geoscale}

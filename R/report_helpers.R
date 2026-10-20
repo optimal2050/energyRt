@@ -1,9 +1,7 @@
-# Shared helpers for report templates.
-# Extracted from the inline helper block of inst/templates/report_generic.Rmd
-# so that all shipped templates and user-authored templates use one exported
-# implementation instead of copy-pasted chunks. Every emitter takes an
-# explicit `output` argument (auto-detected from the knitr context by
-# default), which also makes the helpers unit-testable outside a render.
+# Shared helpers for report templates: one exported implementation used by
+# shipped and user-authored templates alike. Every emitter takes an explicit
+# `output` argument (auto-detected from the knitr context by default), which
+# also makes the helpers unit-testable outside a render.
 
 #' Report template helpers
 #'
@@ -142,11 +140,22 @@ report_fmt_val <- function(x, digits = 4L) {
 }
 
 #' @describeIn report_helpers Emit an image at a fraction of the line width;
-#'   the ONLY way images enter a report page.
+#'   the ONLY way images enter a report page. With a `caption` the image
+#'   is a pandoc markdown figure (`![caption](path)` alone in a paragraph):
+#'   `<figure>`/`<figcaption>` in HTML, a numbered `figure` environment in
+#'   LaTeX, a captioned figure in Word.
 #' @export
-report_img <- function(path, frac = 1, output = report_output()) {
+report_img <- function(path, frac = 1, output = report_output(),
+                       caption = NULL) {
   if (is.null(path) || !file.exists(path)) return(invisible(NULL))
   p <- gsub("\\\\", "/", path)
+  if (!is.null(caption) && nzchar(caption)) {
+    # markdown escaping only: pandoc renders the caption per format
+    cap <- gsub("([\\[\\]])", "\\\\\\1", caption)
+    cat("\n![", cap, "](", p, "){width=", round(frac * 100), "%}\n\n",
+        sep = "")
+    return(invisible(NULL))
+  }
   if (output == "html") {
     cat("<img src='", p, "' style='width:", round(frac * 100),
         "%;height:auto' />\n", sep = "")
@@ -216,11 +225,32 @@ report_pagebreak <- function(output = report_output()) {
   invisible(NULL)
 }
 
+#' @param base numeric, figure height in inches for a single panel row.
+#' @param per_row numeric, inches added for every further panel row.
+#' @param max numeric, cap on the returned height in inches.
+#' @describeIn report_helpers Figure height (inches) from a ggplot's facet
+#'   layout: `base` for one panel row, `per_row` more for every further
+#'   row, capped at `max`. Non-ggplot input returns `base`.
+#' @export
+report_fig_height <- function(p, base = 3.2, per_row = 1.5, max = 9) {
+  rows <- 1L
+  if (inherits(p, "ggplot")) {
+    rows <- tryCatch({
+      lay <- ggplot2::ggplot_build(p)$layout$layout
+      if (is.data.frame(lay) && "ROW" %in% names(lay))
+        max(1L, max(lay$ROW, na.rm = TRUE)) else 1L
+    }, error = function(e) 1L)
+  }
+  min(max, base + per_row * (rows - 1L))
+}
+
 #' @describeIn report_helpers Rasterise a ggplot at `dpi` and return the png
 #'   path (uniform pipeline for all three formats; avoids knitr fig options,
-#'   which docx partly rejects).
+#'   which docx partly rejects). `h_in = NULL` sizes by the facet layout
+#'   via [report_fig_height()].
 #' @export
-report_plot_png <- function(p, w_in, h_in, dpi = 150) {
+report_plot_png <- function(p, w_in, h_in = NULL, dpi = 150) {
+  if (is.null(h_in)) h_in <- report_fig_height(p)
   tmp <- tempfile(fileext = ".png")
   grDevices::png(tmp, width = round(w_in * dpi), height = round(h_in * dpi),
                  res = dpi, bg = "white")
@@ -229,15 +259,29 @@ report_plot_png <- function(p, w_in, h_in, dpi = 150) {
   tmp
 }
 
+#' @describeIn report_helpers Emit a ggplot as a report figure: in-plot
+#'   `title`/`subtitle` are dropped (the document names the figure), the
+#'   height follows the facet layout unless `h_in` is given, and `caption`
+#'   becomes a pandoc figure caption. `NULL` plots emit nothing.
+#' @export
+report_fig <- function(p, w_in = 7, h_in = NULL, caption = NULL, frac = 1,
+                       dpi = 150, output = report_output()) {
+  if (is.null(p)) return(invisible(NULL))
+  if (inherits(p, "ggplot"))
+    p <- p + ggplot2::labs(title = NULL, subtitle = NULL)
+  report_img(report_plot_png(p, w_in, h_in, dpi = dpi), frac,
+             output = output, caption = caption)
+}
+
 #' @describeIn report_helpers Section divider + bold title (+ gray note);
 #'   Word gets a markdown heading.
 #' @export
 report_sec <- function(title, note = NULL, output = report_output()) {
   if (output == "html") {
-    cat("\n<hr class='ert-rule-thin' />\n")
+    cat("\n<hr class='en-rule-thin' />\n")
     cat("<p><strong>", .report_html_esc(title), "</strong>", sep = "")
     if (!is.null(note) && nzchar(note))
-      cat(" <span class='ert-gray'><small>", .report_html_esc(note),
+      cat(" <span class='en-gray'><small>", .report_html_esc(note),
           "</small></span>", sep = "")
     cat("</p>\n")
   } else if (output == "word") {
@@ -245,10 +289,10 @@ report_sec <- function(title, note = NULL, output = report_output()) {
       paste0(" (", note, ")") else "", "\n\n", sep = "")
   } else {
     cat("\n\\vspace{8pt}\n")
-    cat("\\textcolor{ert_blue}{\\rule{\\linewidth}{0.6pt}}\\par\\vspace{2pt}\n")
+    cat("\\textcolor{en_blue}{\\rule{\\linewidth}{0.6pt}}\\par\\vspace{2pt}\n")
     cat("\\textbf{\\small ", .report_tex_esc(title), "}", sep = "")
     if (!is.null(note) && nzchar(note))
-      cat(" \\textcolor{ert_gray}{\\small ", .report_tex_esc(note), "}",
+      cat(" \\textcolor{en_gray}{\\small ", .report_tex_esc(note), "}",
           sep = "")
     cat("\\par\\vspace{2pt}\n")
   }
@@ -299,7 +343,7 @@ report_tbl <- function(df, caption = NULL, digits = 4L,
     }
   }
   wrap <- output == "html" && isTRUE(scroll) && nrow(df) > 15
-  if (wrap) cat("<div class='ert-scroll'>\n")
+  if (wrap) cat("<div class='en-scroll'>\n")
   k <- if (output == "html") {
     knitr::kable(df, format = "html", row.names = FALSE,
                  table.attr = "class='kable-table'")
@@ -315,12 +359,12 @@ report_tbl <- function(df, caption = NULL, digits = 4L,
   if (n_more > 0) {
     note <- paste0("... ", n_more, " more rows (of ", n_all, ")")
     if (output == "html") {
-      cat("<p class='ert-gray'><small>", .report_html_esc(note),
+      cat("<p class='en-gray'><small>", .report_html_esc(note),
           "</small></p>\n", sep = "")
     } else if (output == "word") {
       cat("*", note, "*\n\n", sep = "")
     } else {
-      cat("{\\small\\color{ert_gray} ", .report_tex_esc(note), "}\\par\n",
+      cat("{\\small\\color{en_gray} ", .report_tex_esc(note), "}\\par\n",
           sep = "")
     }
   }
@@ -335,27 +379,27 @@ report_css <- function(output = report_output()) {
   cat("<style>
 body       { font-family: Arial, sans-serif; font-size: 13px; margin: 20px; }
 h1, h2     { color: #1f497d; }
-.ert-gray  { color: #808080; }
-.ert-rule      { border: none; border-top: 2px solid #1f497d; margin: 8px 0 4px; }
-.ert-rule-thin { border: none; border-top: 1px solid #1f497d; margin: 6px 0 4px; }
-.ert-two-col   { display: flex; gap: 20px; align-items: flex-start; }
-.ert-col-main  { flex: 0 0 52%; min-width: 0; }
-.ert-col-side  { flex: 0 0 45%; min-width: 0; }
-.ert-kp-table  { border-collapse: collapse; font-size: 12px; }
-.ert-kp-table td { padding: 2px 12px 2px 0; vertical-align: top; }
-.ert-kp-table td:first-child { font-family: monospace; }
+.en-gray  { color: #808080; }
+.en-rule      { border: none; border-top: 2px solid #1f497d; margin: 8px 0 4px; }
+.en-rule-thin { border: none; border-top: 1px solid #1f497d; margin: 6px 0 4px; }
+.en-two-col   { display: flex; gap: 20px; align-items: flex-start; }
+.en-col-main  { flex: 0 0 52%; min-width: 0; }
+.en-col-side  { flex: 0 0 45%; min-width: 0; }
+.en-kp-table  { border-collapse: collapse; font-size: 12px; }
+.en-kp-table td { padding: 2px 12px 2px 0; vertical-align: top; }
+.en-kp-table td:first-child { font-family: monospace; }
 table.kable-table { border-collapse: collapse; font-size: 11px; margin: 4px 0 8px; }
 table.kable-table th { border-top: 1.5px solid #333; border-bottom: 1px solid #888;
                        padding: 3px 12px 3px 4px; text-align: left; }
 table.kable-table td { border: none; padding: 2px 12px 2px 4px; }
 table.kable-table tbody tr:last-child td { border-bottom: 1.5px solid #333; }
 table.kable-table tbody tr:nth-child(odd) { background: #f7f7f7; }
-.ert-scroll { max-height: 320px; overflow-y: auto;
+.en-scroll { max-height: 320px; overflow-y: auto;
               border-bottom: 1.5px solid #333; margin: 4px 0 8px; }
-.ert-scroll table.kable-table { margin: 0; }
-.ert-scroll table.kable-table thead th { position: sticky; top: 0;
+.en-scroll table.kable-table { margin: 0; }
+.en-scroll table.kable-table thead th { position: sticky; top: 0;
               background: #fff; z-index: 1; }
-.ert-scroll table.kable-table tbody tr:last-child td { border-bottom: none; }
+.en-scroll table.kable-table tbody tr:last-child td { border-bottom: none; }
 </style>\n")
   invisible(NULL)
 }
@@ -370,11 +414,11 @@ report_header <- function(name, desc = "", image_file = NULL,
   has_img <- !is.null(image_file) && nzchar(image_file) &&
     file.exists(image_file)
   if (output == "html") {
-    cat("<div class='ert-two-col'>\n<div style='flex:1;min-width:0'>\n")
+    cat("<div class='en-two-col'>\n<div style='flex:1;min-width:0'>\n")
     cat("<h1 style='margin:0 0 4px'>", .report_html_esc(name), "</h1>\n",
         sep = "")
     if (nzchar(desc))
-      cat("<p class='ert-gray' style='margin:2px 0 8px 0'>",
+      cat("<p class='en-gray' style='margin:2px 0 8px 0'>",
           .report_html_esc(desc), "</p>\n", sep = "")
     cat("</div>\n")
     if (has_img) {
@@ -383,7 +427,7 @@ report_header <- function(name, desc = "", image_file = NULL,
       report_img(image_file, 1, output = output)
       cat("</div>\n")
     }
-    cat("</div>\n<hr class='ert-rule' />\n")
+    cat("</div>\n<hr class='en-rule' />\n")
   } else if (output == "word") {
     cat("# ", name, "\n\n", sep = "")
     if (nzchar(desc)) cat("*", desc, "*\n\n", sep = "")
@@ -391,10 +435,10 @@ report_header <- function(name, desc = "", image_file = NULL,
   } else {
     txt_w <- if (has_img) 1 - frac - 0.03 else 1
     cat("\\begin{minipage}[t]{", txt_w, "\\textwidth}\n", sep = "")
-    cat("{\\Large\\bfseries\\color{ert_blue} ", .report_tex_esc(name),
+    cat("{\\Large\\bfseries\\color{en_blue} ", .report_tex_esc(name),
         "}\\par\n", sep = "")
     if (nzchar(desc))
-      cat("{\\small\\color{ert_gray} ", .report_tex_esc(desc), "}\\par\n",
+      cat("{\\small\\color{en_gray} ", .report_tex_esc(desc), "}\\par\n",
           sep = "")
     cat("\\end{minipage}")
     if (has_img) {
@@ -404,7 +448,7 @@ report_header <- function(name, desc = "", image_file = NULL,
       cat("\\end{minipage}\n")
     }
     cat("\n\\vspace{4pt}\n")
-    cat("\\textcolor{ert_blue}{\\rule{\\textwidth}{1.5pt}}\\par\\vspace{4pt}\n")
+    cat("\\textcolor{en_blue}{\\rule{\\textwidth}{1.5pt}}\\par\\vspace{4pt}\n")
   }
   invisible(NULL)
 }

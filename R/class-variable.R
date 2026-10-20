@@ -222,7 +222,8 @@ d2v <- function(obj, data, path = NULL) {
       stop("Path to the variable ", obj@name, " is not specified.")
     }
     obj@data <- data
-    obj <- obj2disk(obj)
+    # keep the store's own codec (see d2p in R/obj2modInp.R)
+    obj <- obj2disk(obj, format = .store_format(fp(path, "data")))
     obj@data <- reset_slot(obj@data)
   } else {
     obj@data <- data
@@ -294,18 +295,37 @@ as.data.frame.variable <- function(x, ...) as.data.frame(get_data_slot(x), ...)
 
 #' Get one solved variable from a scenario
 #'
-#' @param scen a scenario.
+#' @param object a scenario.
 #' @param name character, the variable's name.
 #' @param data logical, return the values (default) or the `variable` object.
 #' @returns a data.frame, a `variable`, or NULL if there is no such variable.
 #' @family variable
 #' @export
-get_variable <- function(scen, name, data = TRUE) {
-  v <- tryCatch(scen@modOut@variables[[name]], error = function(e) NULL)
+#' @examples
+#' \dontrun{
+#' open_project(tempdir())
+#'
+#' ek   <- topia$modules$electricity$R3
+#' mod  <- newModel("TOPIA", data = ek$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = ek$regions,
+#'                  horizon = topia$modules$horizons$base,
+#'                  discount = 0.05)
+#' mod <- setGeoscale(mod, ek$geoscale)
+#' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+#'
+#' # the solved values
+#' get_variable(scen, "vTechCap")
+#'
+#' # the `variable` object itself, with its sets and units
+#' get_variable(scen, "vTechCap", data = FALSE)
+#' }
+get_variable <- function(object, name, data = TRUE) {
+  v <- tryCatch(object@modOut@variables[[name]], error = function(e) NULL)
   if (is.null(v)) return(NULL)
   if (inherits(v, "data.frame")) {
     # A scenario saved before `modOut@variables` held typed objects.
-    warning("Scenario '", scen@name, "' predates the `variable` class; ",
+    warning("Scenario '", object@name, "' predates the `variable` class; ",
             "re-save it with save_scenario().")
     return(if (data) v else NULL)
   }

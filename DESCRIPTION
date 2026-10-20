@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.88.0.9000
-Date: 2026-08-28
+Version: 0.90.0
+Date: 2026-10-19
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -12,7 +12,8 @@ Authors@R:
    person(given = "Vladimir", 
           family = "Potashnikov", 
           email = "potashnikov.vu@gmail.com", 
-          role = c("aut")),
+          role = c("aut"),
+          comment = "contributed 2016-2022"),
    person(given = "Tarun",
           family = "Sharma",
           email = "tarunsharma@ms.iitr.ac.in",
@@ -20,33 +21,38 @@ Authors@R:
           comment = c(ORCID = "0000-0003-3636-2858")))
 URL: https://energyRt.org, https://github.com/optimal2050/energyRt
 BugReports: https://github.com/optimal2050/energyRt/issues
-Description: A macro-language for energy system modeling in R. Describe an
-    energy system as R objects (commodities, technologies, supply, demand,
-    storage, trade), compile it into a capacity-expansion and dispatch
-    optimization model, solve it on one of four interchangeable backends
-    (GLPK/MathProg, Julia/JuMP, Python/Pyomo, or GAMS), and analyze tidy
-    results with built-in tools for levelized costs, technology reports,
-    and plotting.
+Description: A macro-language for energy system modeling in R. Describe the
+    system as reusable building blocks (commodities, technologies, supply,
+    demand, storage, trade); energyRt compiles them into a least-cost
+    capacity-expansion and dispatch optimization model, solves it in
+    'GLPK'/'MathProg', 'Julia'/'JuMP', 'Python'/'Pyomo' or 'GAMS', or through
+    a direct LP matrix, and returns tidy results. Time resolution, geography
+    and solver are separate choices, so one can change without rewriting the
+    model. Built-in tools cover structural validation, levelized costs,
+    reports, and plotting.
 Depends: R (>= 4.3)
-Imports: methods, grid, generics, data.table, DBI, RSQLite, tibble,
-        tidyr, dplyr, rlang, stringr, lubridate, purrr, arrow,
-        progressr, tictoc, cli, zoo, options (>= 0.2.0),
-        glue, plyr, grDevices, utils, tools, yaml
-Suggests: shiny, DT, pak, gdxtools (== 0.7.1), knitr, rmarkdown, sf, ggplot2, testthat
-        (>= 3.0.0), devtools, openxlsx, jsonlite, readxl, httr2, xml2,
-        base64enc, tinytex, patchwork, geoscales (>= 0.5.0), timescales (>= 0.5.0), waldo
+Imports: methods, grid, stats, generics, data.table, tibble, tidyr, dplyr, rlang,
+        stringr, lubridate, purrr, arrow, progressr, cli,
+        options (>= 0.2.0), grDevices, utils, tools, yaml,
+        geoscales (>= 0.6.0), timescales (>= 0.6.0)
+Suggests: shiny, DT, pak, knitr, rmarkdown, sf, ggplot2,
+        testthat (>= 3.0.0), devtools, openxlsx, jsonlite, readxl,
+        httr2, xml2, base64enc, tinytex, patchwork,
+        waldo, withr, mmcloud, DBI, RSQLite, multimod,
+        nestedscales, glpsol
+Remotes: optimal2050/geoscales, optimal2050/timescales,
+        optimal2050/nestedscales
 SystemRequirements: Julia (>= 1.6) with JuMP or Python (>= 3.7) with
         Pyomo or GAMS (>= 24.9) or GLPK (>= 4.0)
-License: AGPL (>= 3)
+License: Apache License (>= 2)
 VignetteBuilder: knitr
 LazyData: true
 Encoding: UTF-8
 Collate: 
     'accessors.R'
     'arrow.R'
-    'arrow_filter.R'
     'carry.R'
-    'docs.R'
+    'utils.R'
     'zzz.R'
     'options.R'
     'generics.R'
@@ -78,103 +84,89 @@ Collate:
     'print.R'
     'plot.R'
     'check.R'
-    'map_calendar.R'
     'geoscale.R'
-    'map_region.R'
+    'mapping-builders.R'
     'check_levels.R'
     'class-costs.R'
-    'combine_vintages.R'
-    'commodity_properties.R'
+    'cloud.R'
     'compare_inputs.R'
     'compare_models.R'
     'report.R'
     'compare_scenarios.R'
     'compare_values.R'
     'config_file.R'
-    'utils.R'
     'convert.R'
+    'data.R'
     'data2slots.R'
-    'dataset_store.R'
-    'densify.R'
     'design.R'
     'discount_rates.R'
     'draw.R'
+    'drop_default_values.R'
     'eac.R'
     'energyRt-package.R'
     'exchange.R'
+    'expand_default_values.R'
     'fold.R'
-    'fold_artificial.R'
     'get_data.R'
-    'get_data_objects.R'
-    'get_object.R'
-    'get_region.R'
     'install.R'
-    'interp.R'
-    'interp_progress.R'
-    'interp_shared.R'
-    'interpolation_funs.R'
-    'legacy_api_shims.R'
+    'interpolation-support.R'
+    'interpolation.R'
     'solve.R'
     'levcost.R'
     'levcost_analytic.R'
-    'levcost_cache.R'
     'levcost_storage.R'
     'levcost_trade.R'
+    'levy.R'
     'log.R'
-    'map_closure.R'
-    'map_constraint.R'
-    'map_costagg.R'
-    'map_filter.R'
-    'map_lifespan.R'
-    'map_membership.R'
-    'map_value.R'
-    'mapping_engine.R'
-    'mapping_helpers.R'
-    'mapping_registry.R'
+    'mapping-engine.R'
+    'mapping-filter.R'
     'model_size.R'
-    'model_store.R'
+    'multimod-constraints.R'
+    'multimod-import.R'
     'neos.R'
     'obj2modInp.R'
-    'paths_rebase.R'
+    'operability.R'
+    'parent-levels.R'
     'plot_scenario.R'
     'plot_map.R'
-    'process_designer.R'
-    'prune.R'
+    'plot_trade_network.R'
     'read.R'
+    'store-scenario.R'
+    'portability.R'
+    'region.R'
+    'process-groups.R'
+    'process-levels.R'
+    'process_designer.R'
+    'read_sequence.R'
     'registry.R'
-    'repo_store.R'
     'report_cache.R'
+    'report_elements.R'
     'report_helpers.R'
-    'runs.R'
-    'sample_region.R'
-    'seal.R'
+    'solve_by_region.R'
+    'solve_by_sample.R'
+    'solve_guided.R'
     'solve_myopic.R'
     'solver_log.R'
-    'start_level.R'
     'start_msg.R'
-    'stock_path.R'
     'storage_duration.R'
-    'supply_curve.R'
+    'store-objects.R'
     'techspec.R'
     'timeslices.R'
+    'topia.R'
     'trade_kvl.R'
-    'trade_losses.R'
     'units.R'
-    'utopia-data.R'
-    'utopia-geoscale.R'
-    'utopia_profiles.R'
-    'utopia_shapes.R'
     'variants.R'
     'verify_solution.R'
-    'vintage_lifespan.R'
+    'vintage.R'
     'vre-data.R'
     'write.R'
     'write_gams.R'
     'write_glpk.R'
     'write_jump.R'
+    'write_mm.R'
     'write_pyomo.R'
     'xlsx-technology.R'
 Config/testthat/edition: 3
 Config/testthat/parallel: false
-Config/roxygen2/version: 8.0.0
+Config/roxygen2/version: 8.1.1
 Roxygen: list(markdown = TRUE)

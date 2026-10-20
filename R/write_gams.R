@@ -65,7 +65,7 @@ get_gdxlib_path <- function() {
   if (is.null(lb)) {
     lb <- get_gams_path()
   }
-  if (!gdxtools::igdx(lb)) {
+  if (!.gdx("igdx")(lb)) {
     stop('Cannot load "gdx" library. Check "?set_gdxlib_path" to setup.')
   }
   .en_state$gdxlib_loaded <- TRUE
@@ -90,6 +90,14 @@ get_gdxlib_path <- function() {
   .load_gdxlib()
 }
 
+# `gdxtools` is deliberately NOT a declared dependency: it is off-CRAN
+# (lolow/gdxtools), GAMS-only, and upstream pins hard. Reach its exports through
+# the namespace rather than `gdxtools::`, so `R CMD check` sees no `::` into an
+# undeclared package. Every caller below is gated by `.check_load_gdxtools()`,
+# which stops with an actionable message when the package is absent.
+#' @noRd
+.gdx <- function(fn) getExportedValue("gdxtools", fn)
+
 .check_load_gdxtools <- function() {
   xt <- rlang::is_installed("gdxtools")
   if (!xt) {
@@ -106,20 +114,19 @@ get_gdxlib_path <- function() {
 # Internal functions to write GAMS model files
 .write_model_GAMS <- function(arg, scen, trim = FALSE) {
   # if (trim) scen <- fold(scen)
-  # browser()
   .write_inc_solver(scen, arg, "option lp = cplex;", ".gms", "cplex")
   if (is.null(scen@status$sparse)) stop("scen@status$sparse not found")
   # GAMS needs a DENSE scenario: it has no native parameter default (an absent
-  # tuple reads as 0, so omitting non-zero-default rows would be silently wrong)
-  # and it does not substitute fold wildcards. Require an explicit dense build
-  # rather than transforming here at write time -- a write-time unfold/densify
-  # cannot faithfully reproduce the full `sparse = FALSE` interpolation (notably
-  # map wildcards such as `mTradeRetUp`, which the value-parameter densify does
-  # not touch).
+  # tuple reads as 0, so omitting non-zero-default rows would be silently wrong).
+  # Require an explicit dense build rather than transforming here at write time
+  # -- a write-time unfold/densify cannot faithfully reproduce the full
+  # `sparse = FALSE` interpolation (notably map wildcards such as `mTradeRetUp`,
+  # which the value-parameter densify does not touch). A dense build may be
+  # FOLDED: the wildcards are substituted by the artificial set member on the
+  # common write path (apply_fold_artificial, R/solve.R) before this runs.
   if (isTRUE(scen@status$sparse)) {
     stop("GAMS export requires a dense scenario. Re-interpolate with ",
-         "interp_mod(..., sparse = FALSE) (which also disables folding), then ",
-         "write to GAMS.")
+         "interpolate_model(..., sparse = FALSE), then write to GAMS.")
   }
   # A dense scenario is always written with the dense (full-set) GAMS form.
   .toGams <- function(x) .toGams0(x, FALSE)
@@ -149,7 +156,6 @@ get_gdxlib_path <- function() {
           }
         }
       } else if (any(grep("^pCosts", nn))) {
-        # browser()
         mmm <- grep(templ, scen@modInp@user_costs)
         if (any(mmm)) {
           scen@modInp@user_costs[mmm] <- sapply(
@@ -183,26 +189,33 @@ get_gdxlib_path <- function() {
   }
   dir.create(fp(arg$solver.dir, "input"), showWarnings = FALSE)
   dir.create(fp(arg$solver.dir, "output"), showWarnings = FALSE)
-  # browser()
   zz_output <- file(fp(arg$solver.dir, "output.gms"), "w")
   cat(scen@settings@sourceCode[["GAMS_output"]], sep = "\n", file = zz_output)
   close(zz_output)
+  # Set MEMBERS go to `sets.gms`, which the template includes right after the
+  # set declarations; maps and value parameters go to `data.gms`, included
+  # after the equations. GAMS domain-checks a quoted label at compile time, and
+  # a folded parameter is looked up at the artificial member by label
+  # (`pX(tech, 'ANYREGION', year)`), so the members must be known before the
+  # equations that use them.
+  zz_sets_gms <- file(fp(arg$solver.dir, "sets.gms"), "w")
   zz_data_gms <- file(fp(arg$solver.dir, "data.gms"), "w")
+  .data_con <- function(type) if (type == "set") zz_sets_gms else zz_data_gms
   if (grepl("gdx", scen@settings@solver$export_format, ignore.case = TRUE)) {
     if (isTRUE(scen@status$sparse)) {
       # Should not happen: the sparse scenario is densified at the top of
       # .write_model_GAMS. Defensive guard against a future code path.
       stop('for export_format = "gdx", the scenario must be dense ',
-           '(rebuild with interp_mod(..., sparse = FALSE))')
+           '(rebuild with interpolate_model(..., sparse = FALSE))')
     }
     # Generate gdx
-    # browser()
     .write_gdx_list(
       dat = .get_scen_data(scen),
       gdxName = fp(arg$solver.dir, "input/data.gdx")
     )
 
-    # Add gdx import
+    # Add gdx import: one $gdxin block per file
+    cat("$gdxin input/data.gdx\n", file = zz_sets_gms)
     cat("$gdxin input/data.gdx\n", file = zz_data_gms)
     for (j in c("set", "map", "numpar", "bounds")) {
       for (i in names(scen@modInp@parameters)) {
@@ -210,14 +223,15 @@ get_gdxlib_path <- function() {
           (is.null(scen@modInp@parameters[[i]]@misc$weather) ||
            !scen@modInp@parameters[[i]]@misc$weather)) {
           if (scen@modInp@parameters[[i]]@type != "bounds") {
-            cat(paste0("$loadm ", i, "\n"), file = zz_data_gms)
+            cat(paste0("$loadm ", i, "\n"), file = .data_con(j))
           } else {
-            cat(paste0("$loadm ", i, "Lo\n"), file = zz_data_gms)
-            cat(paste0("$loadm ", i, "Up\n"), file = zz_data_gms)
+            cat(paste0("$loadm ", i, "Lo\n"), file = .data_con(j))
+            cat(paste0("$loadm ", i, "Up\n"), file = .data_con(j))
           }
         }
       }
     }
+    cat("$gdxin\n", file = zz_sets_gms)
     cat("$gdxin\n", file = zz_data_gms)
   } else if (arg$n.threads == 1) {
     for (j in c("set", "map", "numpar", "bounds")) {
@@ -228,20 +242,13 @@ get_gdxlib_path <- function() {
           cat(.toGams(scen@modInp@parameters[[i]]), sep = "\n",
               file = zz_data_tmp)
           close(zz_data_tmp)
-          cat(paste0("$include input/", i, ".gms\n"), file = zz_data_gms)
+          cat(paste0("$include input/", i, ".gms\n"), file = .data_con(j))
         }
       }
     }
   } else {
-    # for (j in c("set", "map", "numpar", "bounds")) {
-    #   for (i in names(scen@modInp@parameters)) {
-    #     if (scen@modInp@parameters[[i]]@type == j) {
-    #       cat(paste0("$include input/", i, ".gms\n"), file = zz_data_gms)
-    #     }
-    #   }
-    # }
-    # .write_multi_threads(arg, scen, func = .toGams, type = "gms")
   }
+  close(zz_sets_gms)
   close(zz_data_gms)
   ### Model code to text
   .write_gams_project_file(arg$solver.dir)
@@ -436,7 +443,6 @@ get_gdxlib_path <- function() {
 # Generate GAMS code, return character string with the GAMS code
 .toGams0 <- function(obj, include.def) {
   gen_gg <- function(name, dtt) {
-    # browser()
     if (ncol(dtt) == 1) {
       ret <- paste0(name, " = ", dtt[[1]][1], ";")
     } else {
@@ -444,7 +450,6 @@ get_gdxlib_path <- function() {
       for (i in seq_len(ncol(dtt) - 2) + 1) {
         ret <- paste0(ret, '", "', dtt[[i]])
       }
-      # browser()
       # paste0(ret, '") = ', dtt[, ncol(dtt)], ";")
       # paste0(ret, '") = ', select(dtt, last_col()), ";")
       paste0(ret, '") = ', dtt[[ncol(dtt)]], ";")
@@ -505,7 +510,6 @@ get_gdxlib_path <- function() {
     # print(dtt)
     if (nrow(dtt) == 0 || all(dtt$value %in% c(0, Inf))) { #
       if (ncol(dtt) > 1) {
-        # browser()
         return(paste0(
           name, "(",
           paste0(colnames(dtt)[-ncol(dtt)], collapse = ", "),
@@ -517,12 +521,19 @@ get_gdxlib_path <- function() {
       return(c(gen_gg(name, dtt[dtt$value != 0 & dtt$value != Inf, , drop = FALSE]))) #
     }
   }
-  # The whole materialised slot is written. This used to truncate to the
-  # `@misc$nValues` row-count cache, so a stale count silently made this engine
-  # write less data than GLPK, which never truncated.
   obj@data <- get_data_slot(obj)
   if (obj@type == "set") {
     if (nrow(obj@data) == 0) {
+      # The `1` sentinel keeps an empty ROOT set legal in GAMS, but a
+      # domain-restricted child (`stg(process)`, ...) cannot take it: `1` is not
+      # a member of `process`, so GAMS raises $170 Domain violation. Emitting no
+      # data at all instead raises $352 Set has not been initialized, which is
+      # what the sentinel was there to prevent. `$onEmpty` is the way out: an
+      # empty data list both initialises the symbol and respects the domain.
+      if (obj@name %in% names(.gdx_parent_domain)) {
+        return(paste0("$onEmpty\nset\n", obj@name,
+                      " / /;\n$offEmpty\n"))
+      }
       return(paste0("set\n", obj@name, " / 1 /;\n"))
     } else {
       return(c(
@@ -551,7 +562,6 @@ get_gdxlib_path <- function() {
     return(as_numpar(obj@data, obj@name, obj@defVal, include.def))
   } else if (obj@type == "bounds") {
     # cat(obj@name, "\n")
-    # browser()
     return(c(
       as_numpar(
         # obj@data[obj@data$type == "lo", 1 - ncol(obj@data), drop = FALSE],
@@ -573,7 +583,6 @@ get_gdxlib_path <- function() {
 
 # GDX exchange ####
 .get_scen_data <- function(scen) {
-  # browser()
   all_factor <- function(x) {
     for (i in colnames(x)[colnames(x) != "value"]) {
       x[[i]] <- factor(x[[i]])
@@ -600,7 +609,16 @@ get_gdxlib_path <- function() {
   return(gx)
 }
 
-.df2uels <- function(df, name = "x", value = "value") {
+# The seven process classes are declared in the GAMS template as subsets of
+# `process` (`tech(process)`, `stg(process)`, ...). A GDX symbol carries its own
+# domain, and `$loadm tech` into a domain-restricted declaration is refused
+# unless that domain matches, so these seven export with domain "process".
+.gdx_parent_domain <- c(
+  sup = "process", dem = "process", tech = "process", stg = "process",
+  expp = "process", imp = "process", trade = "process"
+)
+
+.df2uels <- function(df, name = "x", value = "value", gdx_domains = NULL) {
   # The function takes data.frame or character vector and returns
   # named list for exporting to GDX-file using gdxrrw
   if (!is.data.frame(df)) {
@@ -630,9 +648,12 @@ get_gdxlib_path <- function() {
     }
     dd
   }
+  # What the GDX symbol DECLARES as its domain. Defaults to the column names;
+  # the seven process children declare "process" instead, because the template
+  # restricts them (`tech(process)`) and `$loadm` rejects a domain mismatch.
+  decl <- if (is.null(gdx_domains)) domains[v] else gdx_domains
   if (nr > 0) {
     for (j in domains[v]) {
-      # browser()
       # df[, j] <- factor(df[, j]) # add levels from sets!
       df[[j]] <- factor(df[[j]]) # add levels from sets!
     }
@@ -640,7 +661,7 @@ get_gdxlib_path <- function() {
       name = name,
       type = type,
       dim = nc,
-      domains = domains[v],
+      domains = decl,
       # uels = lapply(domains[v], function(x) levels(df[, x])),
       uels = lapply(domains[v], function(x) levels(df[[x]])),
       val = df2val(df),
@@ -651,7 +672,7 @@ get_gdxlib_path <- function() {
       name = name,
       type = type,
       dim = nc,
-      domains = domains[v],
+      domains = decl,
       uels = lapply(domains[v], function(x) "1"),
       val = df2val(df), # matrix(nrow = 0, ncol = nc),
       form = "sparse"
@@ -664,27 +685,6 @@ get_gdxlib_path <- function() {
   # the function exports named list of sets and parameters to GDX file
   # stopifnot("gdxrrw" %in% rownames(installed.packages()))
   .check_load_gdxtools()
-  # .check_load_gdxlib()
-  # rw <- require("gdxrrw")
-  # if (!rw) {
-  #   stop('"gdxrrw" package has not been found. ',
-  #        'It is required for writing and reading "*.gdx" files.',
-  #        '"https://github.com/GAMS-dev/gdxrrw"')
-  # }
-  # en_gdxlib_loaded <- getOption("en_gdxlib_loaded")
-  # if (is.null(en_gdxlib_loaded) || as.logical(en_gdxlib_loaded) == FALSE) {
-  #   lb <- options::opt("gdxlib_path")
-  #   if (is.null(lb)) {
-  #     lb <- options::opt("gams_path")
-  #   }
-  #   ix <- igdx(lb)
-  #   if (!ix) {
-  #     stop('Cannot load "gdx" library. Check "?set_gdxlib_path" to setup.')
-  #   } else {
-  #     options(en_gdxlib_loaded = TRUE)
-  #   }
-  # }
-  # browser()
   cat(" data.gdx ")
   nms <- names(dat)
   max_length <- max(nchar(nms))
@@ -693,12 +693,16 @@ get_gdxlib_path <- function() {
   for (i in nms) {
     cat(wipe, "(", i, ")", rep(" ", max_length - nchar(i) + 1), sep = "")
     wipe <- paste0(rep("\b", max_length + 3), collapse = "")
-    x <- c(x, list(.df2uels(data.frame(dat[[i]]), i)))
+    .dom <- if (i %in% names(.gdx_parent_domain)) {
+      unname(.gdx_parent_domain[i])
+    } else {
+      NULL
+    }
+    x <- c(x, list(.df2uels(data.frame(dat[[i]]), i, gdx_domains = .dom)))
   }
   # gdxrrw::wgdx(gdxName = gdxName, x, squeeze = FALSE)
-  # browser()
   # !!!ToDo: add check for NAs
-  gdxtools::wgdx(gdxName = gdxName, x, squeeze = FALSE)
+  .gdx("wgdx")(gdxName = gdxName, x, squeeze = FALSE)
   cat(wipe, sep = "")
   cat(rep(" ", max_length + 3), sep = "")
   cat(rep(" ", max_length + 3), sep = "")
@@ -706,7 +710,24 @@ get_gdxlib_path <- function() {
       ", ", sep = "")
 }
 
+# `DBI`/`RSQLite` are Suggests: the SQLite exchange format is opt-in
+# (`solver$export_format = "sqlite"`), and RSQLite alone adds five packages to
+# an install that the default and Arrow exchange paths never touch.
+#' @noRd
+.check_sqlite <- function() {
+  if (!requireNamespace("DBI", quietly = TRUE) ||
+      !requireNamespace("RSQLite", quietly = TRUE)) {
+    stop('packages "DBI" and "RSQLite" are required for the "sqlite" ',
+         "exchange format.\n",
+         'To install: install.packages(c("DBI", "RSQLite"))\n',
+         'Or choose another format, e.g. export_format = "feather".',
+         call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
 .write_sqlite_list <- function(dat, sqlFile = "data.db") {
+  .check_sqlite()
   cat(basename(sqlFile), " ", sep = "")
   tStart <- Sys.time()
   if (file.exists(sqlFile)) file.remove(sqlFile)

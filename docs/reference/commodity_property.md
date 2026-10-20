@@ -66,7 +66,7 @@ commodity_property(COA, "lhv")
 commodity_property(COA, "lhv", "range")
 #> [1] 24.1 27.2
 commodity_property(COA)
-#>   property value   min   max sd       dist unit comment
-#> 1      lhv 25.80 24.10 27.20 NA    uniform GJ/t    <NA>
-#> 2  density  0.85  0.75  0.95 NA triangular t/m3    <NA>
+#>   cluster property value   min   max sd       dist unit comment
+#> 1    <NA>      lhv 25.80 24.10 27.20 NA    uniform GJ/t    <NA>
+#> 2    <NA>  density  0.85  0.75  0.95 NA triangular t/m3    <NA>
 ```
