@@ -47,8 +47,12 @@ The number of rows in \code{timetable} is equal to the total number
 of time-timeslices on the lowest level.
 Every timeframe is a set of timeslices ("timeslices") - a named fragment
 of time with a year-share. Timeframes have nested structure.
-Currently, every "parent"-timeframe must have the same number of
-elements as the "child"-timeframe. (This may change in the future.)
+A parent may have any number of children, so a level can be irregular
+(months of 28-31 days above the days of the year). Each timeslice is named
+by the shortest trailing part of its path of labels that is unique (a day
+numbered through the year keeps its own label under a month; an hour needs
+its day), and the lowest level keeps the \code{timeslice} column of the
+timetable when it names every row uniquely.
 \describe{
 \item{ANNUAL}{character, annual, the top level of timeframes}
 \item{TIMEFRAME2}{character, (optional) first subannual level of timeframes}

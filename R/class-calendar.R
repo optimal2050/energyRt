@@ -206,8 +206,12 @@ make_timetable <- function(struct = list(ANNUAL = "ANNUAL"),
 #' of time-timeslices on the lowest level.
 #' Every timeframe is a set of timeslices ("timeslices") - a named fragment
 #' of time with a year-share. Timeframes have nested structure.
-#' Currently, every "parent"-timeframe must have the same number of
-#' elements as the "child"-timeframe. (This may change in the future.)
+#' A parent may have any number of children, so a level can be irregular
+#' (months of 28-31 days above the days of the year). Each timeslice is named
+#' by the shortest trailing part of its path of labels that is unique (a day
+#' numbered through the year keeps its own label under a month; an hour needs
+#' its day), and the lowest level keeps the `timeslice` column of the
+#' timetable when it names every row uniquely.
 #' \describe{
 #'   \item{ANNUAL}{character, annual, the top level of timeframes}
 #'   \item{TIMEFRAME2}{character, (optional) first subannual level of timeframes}
@@ -452,13 +456,6 @@ setMethod("print", "calendar", function(x, ...) {
       sep = ""
     ))
   }
-  # check length
-  if (length(ll) != prod(sapply(
-    select(dtf, -share),
-    function(x) length(unique(x))
-  ))) {
-    message("Irregular calendar / time series")
-  }
 }
 
 # internal function to ??? create timeslices table from a given list with structure
@@ -575,7 +572,7 @@ setMethod("print", "calendar", function(x, ...) {
 }
 
 # internal function to populate all slots of `calendar` from given calendar@timetable
-.complete_calendar <- function(obj, year_fraction = 1) {
+.complete_calendar <- function(obj, year_fraction = 1, ref = NULL) {
   if (nrow(obj@timetable) == 0) {
     warning('no timeslices desc, using default: "ANNUAL"')
     obj@timetable <- make_timetable()
@@ -598,69 +595,48 @@ setMethod("print", "calendar", function(x, ...) {
   # number of timeslices on every level
   obj@timeslices_in_frame <- sapply(d, function(x) length(unique(x)))
 
+  # The calendar is built from the timetable's rows, so a level may have a
+  # different number of children under each parent (months of 28-31 days).
+  # `node` holds, per row, the name of the timeslice the row belongs to at
+  # every level.
+  fnames <- colnames(d)
+  nframes <- length(fnames)
+  if (nframes == 0) stop("Empty timeframes / timeslices")
+  node <- .calendar_nodes(as.data.frame(obj@timetable), fnames, ref = ref)
+
   # share of every timeslice in a year
-  obj@timeslice_share <- data.table(
-    timeslice = rep(as.character(NA), sum(cumprod(obj@timeslices_in_frame))),
-    share = as.numeric(NA),
-    weight = 1.
-  )
   # Timeframe contract: the top (ANNUAL) slice is FULL-YEAR magnitude --
   # share = weight = 1 regardless of sampling -- while sub-annual slices
   # keep their true duration shares (summing to year_fraction) and weight
   # 1/year_fraction. Sums crossing into ANNUAL annualize via
   # pTimesliceAgg = weight[child]/weight[parent] = 1/year_fraction; every
   # sub-annual level keeps sum(share * weight) == 1.
-  obj@timeslice_share[1, "timeslice"] <- dtf[1, 1]
-  obj@timeslice_share[1, "share"] <- 1
-  obj@timeslice_share[1, "weight"] <- 1
-  k <- 1
-  if (ncol(dtf) > 3) {
-    for (i in 2:(ncol(dtf) - 2)) {
-      # tmp <- apply(dtf[, 2:i, drop = FALSE], 1, paste, collapse = "_")
-      timeslice_names <- apply(select(dtf, 2:i), 1, paste, collapse = "_")
-      # ROW-ORDER grouping: a bare tapply sorts groups alphabetically, which
-      # silently reorders any vocabulary that does not collate
-      # chronologically (e.g. seasons WIN/SPR/SUM/FAL) -- and
-      # `@next_in_year` (full-year storage) is derived from this order.
-      # The timetable's row order IS the calendar's chronology.
-      timeslice_names <- factor(timeslice_names,
-                                levels = unique(timeslice_names))
-      # tmp <- tapply(dtf[, ncol(dtf)], tmp, sum)
-      wh <- tapply(dtf[, weight], timeslice_names, sum)
-      # w <- 1/year_fraction
-      sh <- tapply(dtf[, share], timeslice_names, sum)
-      wh <- wh / sum(wh * sh)
-      obj@timeslice_share$timeslice[k + seq(along = sh)] <- names(sh)
-      obj@timeslice_share$share[k + seq(along = sh)] <- sh
-      obj@timeslice_share$weight[k + seq(along = sh)] <- wh
-      k <- (k + length(sh))
-    }
+  shares <- list(data.table(timeslice = node[1, 1], share = 1, weight = 1))
+  for (i in seq_len(nframes)[-1]) {
+    # ROW-ORDER grouping: a bare tapply sorts groups alphabetically, which
+    # silently reorders any vocabulary that does not collate
+    # chronologically (e.g. seasons WIN/SPR/SUM/FAL) -- and
+    # `@next_in_year` (full-year storage) is derived from this order.
+    # The timetable's row order IS the calendar's chronology.
+    timeslice_names <- factor(node[, i], levels = unique(node[, i]))
+    # share-weighted mean of the rows' weights: a parent's weight must not
+    # depend on how many children it has (months of 28-31 days)
+    sh <- tapply(dtf$share, timeslice_names, sum)
+    wh <- tapply(dtf$share * dtf$weight, timeslice_names, sum) / sh
+    wh <- wh / sum(wh * sh)
+    shares[[i]] <- data.table(timeslice = names(sh), share = as.numeric(sh),
+                              weight = as.numeric(wh))
   }
+  obj@timeslice_share <- rbindlist(shares)
 
   # @structure
-  nframes <- select(obj@timetable, 1:timeslice, -timeslice) |> ncol()
-  fnames <- names(obj@timeslices_in_frame)
-  if (nframes > 2) {
-    tmp <- nchar(obj@timeslice_share$timeslice) -
-      nchar(gsub("[_]", "", obj@timeslice_share$timeslice)) + 2
-    names(tmp) <- obj@timeslice_share$timeslice
-    tmp[obj@timetable[[1]][1]] <- 1
-    obj@timeframes <- lapply(
-      1:nframes,
-      # 1:(ncol(obj@timetable) - 2),
-      function(x) names(tmp)[tmp == x]
-    )
-  } else if (nframes == 1) {
+  if (nframes == 1) {
     obj@timeframes <- list()
     obj@timeframes[fnames[1]] <- fnames[1]
-  } else if (nframes == 2) {
-    obj@timeframes <- list()
-    obj@timeframes[[fnames[1]]] <- fnames[1]
-    obj@timeframes[[fnames[2]]] <- obj@timetable[[fnames[2]]] #|> sort()
   } else {
-    stop("Empty timeframes / timeslices")
+    obj@timeframes <- lapply(seq_len(nframes), function(i) unique(node[, i]))
   }
-  names(obj@timeframes) <- colnames(d)
+  names(obj@timeframes) <- fnames
 
   obj@default_timeframe <- colnames(d)[ncol(d)]
 
@@ -672,23 +648,17 @@ setMethod("print", "calendar", function(x, ...) {
     obj@timeslice_family <- obj@timeslice_family[0, , drop = FALSE]
     obj@timeslice_ancestry <- obj@timeslice_ancestry[0, , drop = FALSE]
   } else {
-    obj@timeslice_family <- obj@timeslice_family[0, ] |> as.data.frame()
-    # obj@timeslice_family$lev <- numeric()
-    obj@timeslice_family[1:(nrow(obj@timeslice_share) - 1), ] <- NA
-    i <- 1
-    k <- 0
-    z <- 1
-    while (i != ncol(dtf) - 2) {
-      l <- obj@timeslices_in_frame[i + 1]
-      for (j in 1:obj@timeslices_in_frame[i]) {
-        obj@timeslice_family$parent[k + 1:l] <- obj@timeslice_share$timeslice[z]
-        obj@timeslice_family$child[k + 1:l] <- obj@timeslice_share$timeslice[1 + k + 1:l]
-        # obj@timeslice_family[k + 1:l, 'lev'] <- i + 1
-        k <- k + l
-        z <- z + 1
+    # parent-child pairs level by level; children stay grouped under their
+    # parent in chronological order, which `@next_in_timeframe` relies on
+    obj@timeslice_family <- do.call(rbind, lapply(
+      seq_len(nframes - 1),
+      function(i) {
+        x <- unique(data.frame(parent = node[, i], child = node[, i + 1],
+                               stringsAsFactors = FALSE))
+        x[order(match(x$parent, unique(x$parent))), , drop = FALSE]
       }
-      i <- i + 1
-    }
+    ))
+    rownames(obj@timeslice_family) <- NULL
     # @timeslice_ancestry
     tmp <- obj@timeslice_family
     tmp$nlev <- NA
@@ -750,6 +720,77 @@ setMethod("print", "calendar", function(x, ...) {
   obj@next_in_timeframe <- as.data.table(obj@next_in_timeframe)
   obj@next_in_year <- as.data.table(obj@next_in_year)
   obj
+}
+
+# Name of the timeslice each timetable row belongs to, at every level.
+# A timeslice at level i is the path of labels from level 2 down to i. Its
+# name is the shortest trailing part of that path that is still unique
+# (so a day numbered through the year keeps its own label under a month,
+# while an hour needs its day). In a regular calendar every label repeats
+# under each parent, so this is the full path joined by "_", as before.
+# The lowest level takes the timetable's `timeslice` column when it names
+# every row uniquely. With `ref` (the timetable of the calendar the rows were
+# taken from) the names are those of `ref`, so a sample keeps the full
+# calendar's names even where a shorter label would be unique in the sample.
+.calendar_nodes <- function(tt, frames, ref = NULL) {
+  n <- nrow(tt)
+  nfr <- length(frames)
+  if (!is.null(ref)) {
+    idx <- match(as.character(tt$timeslice), as.character(ref$timeslice))
+    if (anyNA(idx)) {
+      stop("Timeslices not in the reference calendar: ",
+           paste(utils::head(tt$timeslice[is.na(idx)], 4), collapse = ", "),
+           call. = FALSE)
+    }
+    out <- .calendar_nodes(as.data.frame(ref), frames)[idx, , drop = FALSE]
+  } else {
+    out <- .calendar_node_names(tt, frames)
+  }
+  for (i in seq_len(nfr)[-1]) {
+    # row order is the calendar's chronology: a timeslice's rows must be
+    # contiguous, or the successor chains would jump between parents
+    r <- rle(out[, i])$values
+    if (anyDuplicated(r)) {
+      stop("Timetable row order breaks the calendar's chronology: the rows of ",
+           frames[i], " '", r[duplicated(r)][1], "' are not contiguous. ",
+           "Rows must run in time order (a structural requirement; ",
+           "hour-major order is the usual cause).", call. = FALSE)
+    }
+  }
+  nms <- unlist(lapply(seq_len(nfr), function(i) unique(out[, i])))
+  if (anyDuplicated(nms)) {
+    stop("Timeslice names repeat across timeframes: \"",
+         paste(unique(nms[duplicated(nms)]), collapse = "\", \""), "\"",
+         call. = FALSE)
+  }
+  out
+}
+
+.calendar_node_names <- function(tt, frames) {
+  n <- nrow(tt)
+  nfr <- length(frames)
+  lab <- lapply(frames, function(f) as.character(tt[[f]]))
+  out <- matrix(NA_character_, n, nfr, dimnames = list(NULL, frames))
+  out[, 1] <- lab[[1]]
+  for (i in seq_len(nfr)[-1]) {
+    path <- do.call(paste, c(lab[2:i], sep = "_"))
+    np <- length(unique(path))
+    nm <- path
+    if (i == nfr && !is.null(tt$timeslice) &&
+        !anyDuplicated(tt$timeslice) && np == n) {
+      nm <- as.character(tt$timeslice)
+    } else {
+      for (s in i:2) {
+        cand <- do.call(paste, c(lab[s:i], sep = "_"))
+        if (length(unique(cand)) == np) {
+          nm <- cand
+          break
+        }
+      }
+    }
+    out[, i] <- nm
+  }
+  out
 }
 
 # initialize calendar object from given list ("struct") or "timetable"

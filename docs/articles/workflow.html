@@ -253,7 +253,7 @@ valid names cannot contain; duplicate parts are dropped, so a scenario
 and model sharing a name appear once):</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/scenarios_path.html">get_scenarios_path</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpEdLL9G/wf"</span></span>
+<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpQZrbPJ/wf"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">scen</span><span class="op">@</span><span class="va">path</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "BASE-TOPIA-s4_h24-base"</span></span></code></pre></div>
 <p>Saving a scenario writes an <strong>Arrow-backed</strong> folder that
@@ -597,10 +597,10 @@ draws — and keeps every run:</p>
 <span><span class="va">ens</span><span class="op">$</span><span class="va">runs</span></span>
 <span><span class="fu"><a href="../reference/sample_summary.html">sample_summary</a></span><span class="op">(</span><span class="va">ens</span>, <span class="st">"vTechCap"</span>, probs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.5</span>, <span class="fl">0.95</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Samples are drawn as whole members of a calendar level — seasons,
-weeks, days — because a calendar sample has to be a complete cross; a
-ragged pick of individual timeslices is silently re-expanded by the
-calendar constructor. <code><a href="../reference/calendar_samples.html">calendar_samples()</a></code> builds that
-specification on its own if you want to look at it or edit it first.</p>
+weeks, days. A hand-edited sample need not be a complete cross: its
+calendar is irregular and keeps the full calendar’s timeslice names.
+<code><a href="../reference/calendar_samples.html">calendar_samples()</a></code> builds the specification on its own, so
+it can be inspected or edited first.</p>
 <p>Two rules follow from how a sampled calendar works, and both are
 enforced rather than left to be discovered. A sample must keep
 <strong>at least two members</strong> at every level: a single season
