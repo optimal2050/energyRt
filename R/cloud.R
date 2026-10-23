@@ -244,7 +244,11 @@ set_hf_token <- function(token = NULL) {
     "nvidia-smi || true",
     # cuOpt's wheels bundle their own CUDA runtime, so a plain python image and
     # the driver are enough -- no CUDA devel image, no apt.
-    "pip install -q --no-cache-dir cuopt-cu12",
+    # A download that stalls mid-file is not retried by pip itself, so the
+    # install is repeated; the solver call fails the job if all attempts fail.
+    paste("for i in 1 2 3 4 5; do",
+          "pip install -q --no-cache-dir --retries 10 --timeout 120 cuopt-cu12 && break;",
+          "echo \"pip install attempt $i failed\"; sleep 15; done"),
     # cuopt_cli dispatches on the extension and reads .gz directly, so the
     # matrix is never unpacked inside the container.
     # GPU memory sampled every second during the solve; the peak goes to the log
