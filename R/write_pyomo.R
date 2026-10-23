@@ -337,8 +337,11 @@ get_python_path <- function() {
 .toPyomo <- function(obj) {
   as_numpar <- function(data, name, name2, def) {
     # no infinity literal in a Pyomo coefficient; see `.glpk_default()` in
-    # write_glpk.R for why the substitute is unreachable and fail-closed
-    if (def == Inf) def <- 0
+    # write_glpk.R for why the substitute is unreachable and fail-closed.
+    # BOTH signs: a floor's `defVal = -Inf` reached the emitted source as the
+    # bare token `-Inf`, which Python has no binding for, so importing
+    # `inc_constraints.py` died with a NameError.
+    if (def == Inf || def == -Inf) def <- 0
     if (ncol(obj@data) == 1) {
       if (nrow(obj@data) == 1) def <- obj@data[[1]]
       return(paste0("# ", name, name2, "\n", name, " = toPar(set(), ",
@@ -482,8 +485,11 @@ get_python_path <- function() {
 .toPyomSQLite <- function(obj) {
   as_numpar <- function(data, name, name2, def) {
     # no infinity literal in a Pyomo coefficient; see `.glpk_default()` in
-    # write_glpk.R for why the substitute is unreachable and fail-closed
-    if (def == Inf) def <- 0
+    # write_glpk.R for why the substitute is unreachable and fail-closed.
+    # BOTH signs: a floor's `defVal = -Inf` reached the emitted source as the
+    # bare token `-Inf`, which Python has no binding for, so importing
+    # `inc_constraints.py` died with a NameError.
+    if (def == Inf || def == -Inf) def <- 0
     if (ncol(obj@data) == 1) {
       stop(".toPyomSQLite: check @data in ", obj@name)
     } else {

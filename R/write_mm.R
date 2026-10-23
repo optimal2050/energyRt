@@ -44,19 +44,21 @@
   m <- multimod_from_energyRt(scen, verbose = isTRUE(arg$echo))
   options(op)
 
-  # `on_empty_row` defaults to "user_constraints": a `^eqCns` row with no
-  # coefficients reads `0 <op> rhs`, binds nothing, and still solves to
-  # Optimal, so it is refused rather than written.
-  lp <- multimod::model_to_lp(m, verbose = isTRUE(arg$echo))
-
-  if (isTRUE(arg$echo)) {
-    cat("  matrix: ", nrow(lp$A), " rows x ", ncol(lp$A), " cols, ",
-        length(lp$A@x), " nonzeros\n", sep = "")
-  }
-
+  # The matrix is built block by block and streamed to the file, so the LP
+  # is never held in memory. The solver preset may carry `engine` ("native",
+  # the default, or "r"), `presolve` (default TRUE: the doubleton
+  # substitution applied as the entries pass through) and `threads` for
+  # multimod's writer. `on_empty_row` defaults to "user_constraints": a
+  # `^eqCns` row with no coefficients reads `0 <op> rhs`, binds nothing, and
+  # still solves to Optimal, so it is refused rather than written.
+  sv <- scen@settings@solver
+  op <- options(multimod.engine = sv$engine %||% "native")
+  if (!is.null(sv$threads)) op <- c(op, options(multimod.threads = sv$threads))
+  on.exit(options(op), add = TRUE)
   multimod::write_mps(m, fp(arg$solver.dir, "model.mps"),
                       index_dir = arg$solver.dir, format = "parquet",
-                      lp = lp, verbose = isTRUE(arg$echo))
+                      stream = TRUE, presolve = isTRUE(sv$presolve %||% TRUE),
+                      verbose = isTRUE(arg$echo))
 
   # The matrix is solved by `.call_solver()`'s `mm` branch, in this process or
   # on a rented GPU. There is no external command.
