@@ -297,6 +297,8 @@ add_to_registry <- function(reg, type, name, path,
   # and an occupied name is left alone), so for those this is a no-op.
   ii <- which(reg$type == type & .registry_path_key(reg$path) ==
                 .registry_path_key(path))
+  # a dataset entry holds several versions under one path: one row per version
+  if (identical(type, "dataset") && nzchar(hash)) ii <- ii[reg$hash[ii] == hash]
   row <- tibble(
     type = type, name = name, hash = hash,
     model = as.character(model), model_hash = model_hash,
@@ -637,4 +639,77 @@ refresh_registry <- function(root = ".", file = get_registry_file(),
 
   if (write) save_registry(reg, file)
   reg
+}
+
+
+# =============================================================================
+# The references table: who points at which dataset version
+# =============================================================================
+#
+# One CSV beside the registry, one row per pointer a saved scenario (or one
+# of its runs) holds into the dataset store: the object and slot that the
+# version fills, the version's name and hash, and the entry's path. Written
+# with each manifest, so dependents, collection and "which scenarios use
+# this version" are a table read, never a walk over the scenarios' manifests.
+
+.refs_cols <- c("scenario", "run", "object", "slot", "name", "hash", "path", "updated")
+
+.refs_file <- function(reg_file = get_registry_file()) {
+  fp(dirname(reg_file), "energyRt_refs.csv")
+}
+
+.refs_empty <- function() {
+  as.data.frame(stats::setNames(rep(list(character()), length(.refs_cols)), .refs_cols),
+                stringsAsFactors = FALSE)
+}
+
+.refs_open <- function(file = .refs_file()) {
+  if (!file.exists(file)) return(.refs_empty())
+  d <- utils::read.csv(file, stringsAsFactors = FALSE, colClasses = "character")
+  for (cn in setdiff(.refs_cols, names(d))) d[[cn]] <- character(nrow(d))
+  d[, .refs_cols]
+}
+
+.refs_save <- function(refs, file = .refs_file()) {
+  dir.create(dirname(file), recursive = TRUE, showWarnings = FALSE)
+  utils::write.csv(refs[, .refs_cols], file, row.names = FALSE)
+  invisible(file)
+}
+
+#' Replace the references a scenario (and run) holds
+#' @param rows A data frame with columns object, slot, name, hash, path; NULL
+#'   or zero rows remove the scenario's references.
+#' @keywords internal
+#' @noRd
+.refs_replace <- function(scenario, rows, run = "", file = .refs_file()) {
+  refs <- .refs_open(file)
+  refs <- refs[!(refs$scenario == scenario & refs$run == (run %||% "")), , drop = FALSE]
+  if (!is.null(rows) && nrow(rows)) {
+    add <- data.frame(scenario = scenario, run = run %||% "",
+                      object = as.character(rows$object), slot = as.character(rows$slot),
+                      name = as.character(rows$name), hash = as.character(rows$hash),
+                      path = as.character(rows$path %||% ""), updated = .registry_now(),
+                      stringsAsFactors = FALSE)
+    refs <- rbind(refs, add)
+  }
+  .refs_save(refs, file)
+  invisible(refs)
+}
+
+#' The references into one dataset version (or every version of a name)
+#' @keywords internal
+#' @noRd
+.refs_dependents <- function(name, hash = NULL, file = .refs_file()) {
+  refs <- .refs_open(file)
+  keep <- refs$name == name
+  if (!is.null(hash) && nzchar(hash)) keep <- keep & startsWith(refs$hash, hash)
+  refs[keep, , drop = FALSE]
+}
+
+.refs_drop <- function(scenario, run = NULL, file = .refs_file()) {
+  refs <- .refs_open(file)
+  keep <- refs$scenario != scenario
+  if (!is.null(run)) keep <- keep | refs$run != run
+  .refs_save(refs[keep, , drop = FALSE], file)
+  invisible(NULL)
 }

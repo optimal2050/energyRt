@@ -70,6 +70,11 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 * Results in Arrow stores, readable when larger than memory;
   `getData(run = )` reads several runs at once.
 * `prepare_for_sharing()` and `strip_user_info()`.
+* The dataset store keeps versions by content under one name
+  (`datasets/<name>/<hash>/`): saving other content under a name adds a
+  version instead of overwriting, `load_dataset(name, hash = )` pins one,
+  and the registry lists every version. A references table beside the
+  registry records which scenario points at which version.
 
 ### Validation and comparison
 

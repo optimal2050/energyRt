@@ -412,7 +412,7 @@ save_model <- function(
     find_in_registry(.registry_open(), type = reg_type, name = name, hash = hash),
     error = function(e) NULL)
   if (!is.null(hit) && nrow(hit)) {
-    d <- fp(dirname(get_registry_file()), hit$path)
+    d <- unique(fp(dirname(get_registry_file()), hit$path))
     d <- d[file.exists(fp(d, manifest))]
     # Return only on a unique hit. Registry rows are keyed on path, so a name
     # with two version folders (`<slug>/` and `<slug>@<hash8>/`) yields two
@@ -441,12 +441,12 @@ save_model <- function(
   }
   dd <- cand
   if (!is.null(hash) && nzchar(hash)) {
-    mf_hash <- vapply(dd, function(d) {
+    keep <- vapply(dd, function(d) {
       mf <- tryCatch(yaml::read_yaml(fp(d, manifest)),
                      error = function(e) NULL)
-      mf$hash %||% ""
-    }, character(1))
-    keep <- startsWith(mf_hash, hash)
+      hs <- c(mf$hash %||% "", names(mf$versions %||% list()))
+      any(startsWith(hs, hash))
+    }, logical(1))
     if (length(dd) && !any(keep)) {
       stop(reg_type, " '", name, "' version @", substr(hash, 1, 8),
            " is not in the store ('", root, "'): it now holds @",
@@ -1044,16 +1044,85 @@ dataset_hash <- function(x) {
   list(kind = "object", payload_class = as.list(class(x)), format = "rds")
 }
 
+# Write one version of a dataset: the parquet parts (or payload.rds) go
+# directly into the version directory `<entry>/<hash>/`.
+.dataset_write_version <- function(x, vdir, format) {
+  if (is.data.frame(x)) {
+    data2disk(x, path = vdir, format = format)
+    return(list(kind = "table",
+                payload_class = as.list(class(x)),
+                dim = as.list(dim(x)),
+                cols = lapply(as.list(x), function(col) class(col)[1]),
+                format = format))
+  }
+  dir.create(vdir, recursive = TRUE, showWarnings = FALSE)
+  saveRDS(x, fp(vdir, "payload.rds"))
+  list(kind = "object", payload_class = as.list(class(x)), format = "rds")
+}
+
+# The versions an entry holds, from its manifest. A legacy entry (payload
+# under `data/` or `payload.rds` beside the manifest, one version) is listed
+# under its own hash with `dir = "."`-relative markers, so it reads like any
+# other version and is never moved.
+.dataset_versions_of <- function(path, mf) {
+  v <- mf$versions %||% list()
+  h <- mf$hash %||% ""
+  legacy <- dir.exists(fp(path, "data")) || file.exists(fp(path, "payload.rds"))
+  if (nzchar(h) && legacy && is.null(v[[h]])) {
+    v[[h]] <- list(legacy = TRUE,
+                   kind = mf$kind, format = mf$format, dim = mf$dim, cols = mf$cols,
+                   payload_class = mf$payload_class,
+                   fun = mf$fun, args = mf$args, result_hash = mf$result_hash,
+                   snapshot = mf$snapshot,
+                   created = mf$created, memo = mf$memo)
+    v[[h]] <- v[[h]][!vapply(v[[h]], is.null, logical(1))]
+  }
+  v
+}
+
+# The directory holding a version's payload and that version's manifest
+# fields. `hash` may be a prefix; NULL means the current version.
+.dataset_version <- function(path, mf, hash = NULL) {
+  v <- .dataset_versions_of(path, mf)
+  h <- hash %||% mf$hash %||% ""
+  key <- names(v)[startsWith(names(v), h)]
+  if (length(key) > 1L) {
+    stop("Dataset '", mf$name, "': the hash prefix '", h, "' matches ",
+         length(key), " versions.")
+  }
+  if (length(key) == 1L) {
+    vf <- v[[key]]
+    if (isTRUE(vf$legacy)) {
+      dir <- if (dir.exists(fp(path, "data"))) fp(path, "data") else path
+      return(list(hash = key, dir = dir, fields = vf))
+    }
+    return(list(hash = key, dir = fp(path, key), fields = vf))
+  }
+  if (is.null(hash)) {
+    # a manifest without a versions list and no hash: whatever lies beside it
+    dir <- if (dir.exists(fp(path, "data"))) fp(path, "data") else path
+    return(list(hash = h, dir = dir, fields = mf))
+  }
+  NULL
+}
+
 # Read a payload back per its manifest. Tables are coerced to the recorded
 # class and column types (parquet does not round-trip e.g. integer years
-# by itself).
-.dataset_read_payload <- function(path, mf) {
-  if (identical(mf$kind, "table") ||
-      (identical(mf$kind, "function") && dir.exists(fp(path, "data")))) {
-    d <- en_open_dataset(fp(path, "data")) |> dplyr::collect()
+# by itself). `hash` selects a version (prefix allowed); NULL is the current.
+.dataset_read_payload <- function(path, mf, hash = NULL) {
+  ver <- .dataset_version(path, mf, hash)
+  if (is.null(ver)) {
+    stop("Dataset '", mf$name, "' has no version '", hash, "'.")
+  }
+  vf <- ver$fields
+  vdir <- ver$dir
+  if (identical(vf$kind, "table") ||
+      (identical(vf$kind, "function") && !file.exists(fp(vdir, "payload.rds")) &&
+       length(list.files(vdir, pattern = "[.](parquet|feather|arrow)$")))) {
+    d <- en_open_dataset(vdir) |> dplyr::collect()
     d <- as.data.frame(d)
-    for (cn in intersect(names(mf$cols %||% list()), names(d))) {
-      cl <- mf$cols[[cn]]
+    for (cn in intersect(names(vf$cols %||% list()), names(d))) {
+      cl <- vf$cols[[cn]]
       cur <- class(d[[cn]])[1]
       if (!identical(cur, cl)) {
         d[[cn]] <- switch(cl,
@@ -1065,7 +1134,7 @@ dataset_hash <- function(x) {
           d[[cn]])
       }
     }
-    cls <- unlist(mf$payload_class %||% list())
+    cls <- unlist(vf$payload_class %||% list())
     if ("data.table" %in% cls) d <- data.table::as.data.table(d)
     # normalize the attribute order to R's construction order — serialization
     # (and thus repository_hash/model_hash of an owner holding this table)
@@ -1075,8 +1144,8 @@ dataset_hash <- function(x) {
     attributes(d) <- at[c(ord, setdiff(names(at), ord))]
     return(d)
   }
-  if (file.exists(fp(path, "payload.rds"))) {
-    return(readRDS(fp(path, "payload.rds")))
+  if (file.exists(fp(vdir, "payload.rds"))) {
+    return(readRDS(fp(vdir, "payload.rds")))
   }
   NULL
 }
@@ -1086,8 +1155,16 @@ dataset_hash <- function(x) {
 #' @description
 #' `save_dataset()` writes a payload — a data.frame (a weather or demand
 #' series), a `geoscales::GeoScale` map, or any R object — into the
-#' store `<datasets_path>/<name>/` (see
-#' [get_datasets_path()]). Saving identical content again is a no-op. A
+#' store `<datasets_path>/<name>/` (see [get_datasets_path()]). An entry
+#' holds its versions by content: the payload of each version lives under
+#' `<name>/<hash>/` and the entry's `dataset.yml` names the current version
+#' and lists every version present. Saving identical content again is a
+#' no-op; saving other content under the same name adds a version and
+#' makes it current, nothing is overwritten; saving content already stored
+#' as an older version makes that version current again. `load_dataset()`
+#' takes the current version by name, or a pinned one by `hash` (full or a
+#' prefix, also as `name@hash`). An entry written before versions, with its
+#' payload beside the manifest, reads as its single version. A
 #' stored dataset can then be REFERENCED by repositories, models, and
 #' scenarios instead of embedded — see the `embed_datasets` argument of
 #' [save_repository()], [save_model()] and [save_scenario()]: the table is
@@ -1210,11 +1287,18 @@ save_dataset <- function(
   }
   path <- gsub("[\\/]+", "/", path)
 
+  # One entry per name, its versions by content beneath it: the manifest
+  # names the current version and lists every version present; saving
+  # different content under a name adds a version and moves the current
+  # marker, nothing is overwritten; a version already present (current or
+  # not) is made current without a write.
   mf_path <- fp(path, "dataset.yml")
   prev <- NULL
   hash_kept <- FALSE
+  versions <- list()
   if (file.exists(mf_path)) {
     prev <- tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
+    versions <- .dataset_versions_of(path, prev %||% list())
     if (!overwrite && !is.null(prev) && identical(prev$hash, h)) {
       if (verbose) {
         message("Dataset '", name, "' (", h8,
@@ -1224,23 +1308,53 @@ save_dataset <- function(
                             path = path)))
     }
     .seal_guard(prev, "dataset", name, "unseal_dataset")
+    if (!overwrite && !is.null(versions[[h]])) {
+      vf <- versions[[h]]
+      yaml::write_yaml(c(
+        prev[setdiff(names(prev), c("hash", "updated", "versions",
+                                    "kind", "format", "dim", "cols", "payload_class",
+                                    "fun", "args", "result_hash", "snapshot"))],
+        list(hash = h), vf[setdiff(names(vf), c("legacy", "created", "memo"))],
+        list(updated = .registry_now(), versions = versions)), mf_path)
+      if (verbose) {
+        message("Dataset '", name, "' (", h8, ") is a stored version: made current.")
+      }
+      kind <- vf$kind
+      if (isTRUE(registry)) {
+        tryCatch({
+          reg <- .registry_open()
+          reg <- add_to_registry(reg, "dataset", name,
+                                 path = .registry_rel_path(path), hash = h, memo = memo)
+          save_registry(reg)
+        }, error = function(e) NULL)
+      }
+      return(invisible(list(name = name, hash = h, kind = kind, path = path)))
+    }
     if (!isTRUE(rehash) && nzchar(prev$hash %||% "")) {
+      # the content changed but the hash is kept: that version is rewritten
       h <- prev$hash
       h8 <- substr(h, 1, 8)
       hash_kept <- TRUE
+      if (isTRUE(versions[[h]]$legacy)) {
+        unlink(fp(path, c("data", "payload.rds")), recursive = TRUE, force = TRUE)
+      } else {
+        unlink(fp(path, h), recursive = TRUE, force = TRUE)
+      }
+      versions[[h]] <- NULL
     }
-    .store_entry_wipe(path)
   }
 
   dir.create(path, recursive = TRUE, showWarnings = FALSE)
   payload_fields <- if (!is.null(fun) && !isTRUE(materialize)) {
     list(kind = "function", format = "none")
   } else {
-    pf <- .dataset_write_payload(x, path, format)
+    pf <- .dataset_write_version(x, fp(path, h), format)
     if (!is.null(fun)) pf$kind <- "function"
     pf
   }
   kind <- payload_fields$kind
+  versions[[h]] <- c(payload_fields, fun_fields,
+                     list(created = .registry_now(), memo = memo))
 
   write("dataset", fp(path, "class"), append = FALSE)
   write(as.character(.SCENARIO_LAYOUT), fp(path, "layout"), append = FALSE)
@@ -1256,7 +1370,8 @@ save_dataset <- function(
     list(created = prev$created %||% .registry_now(),
          updated = .registry_now(),
          energyRt_version = as.character(utils::packageVersion("energyRt")),
-         memo = memo),
+         memo = memo,
+         versions = versions),
     if (hash_kept) list(hash_kept = TRUE),
     .lifecycle_carry(prev)
   ), mf_path)
@@ -1305,7 +1420,8 @@ save_dataset <- function(
   for (d in list.dirs(root, recursive = FALSE)) {
     mf <- tryCatch(yaml::read_yaml(fp(d, "dataset.yml")),
                    error = function(e) NULL)
-    if (!is.null(mf) && identical(mf$hash, hash)) {
+    if (!is.null(mf) &&
+        (identical(mf$hash, hash) || hash %in% names(mf$versions %||% list()))) {
       return(list(name = mf$name, path = gsub("[\\/]+", "/", d)))
     }
   }
@@ -1316,7 +1432,11 @@ save_dataset <- function(
 # snapshot: the owner's hash was computed over materialized content, and a
 # re-evaluation that drifted would silently break that identity.
 .dataset_payload <- function(path, mf, prefer_snapshot = TRUE,
-                             strict = FALSE, verbose = TRUE) {
+                             strict = FALSE, verbose = TRUE, hash = NULL) {
+  # a version other than the current one is read as stored
+  if (!is.null(hash) && !startsWith(mf$hash %||% "", hash)) {
+    return(.dataset_read_payload(path, mf, hash))
+  }
   if (identical(mf$kind, "function")) {
     has_snapshot <- isTRUE(mf$snapshot)
     if (isTRUE(prefer_snapshot) && has_snapshot) {
@@ -1356,6 +1476,12 @@ save_dataset <- function(
 #' @export
 load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
                          strict = FALSE, verbose = TRUE) {
+  # `name@hash` names a version
+  if (is.null(path) && grepl("@", name, fixed = TRUE)) {
+    parts <- strsplit(name, "@", fixed = TRUE)[[1]]
+    name <- parts[1]
+    if (is.null(hash)) hash <- parts[2]
+  }
   if (is.null(path)) {
     if (dir.exists(name) && file.exists(fp(name, "dataset.yml"))) {
       path <- name
@@ -1376,7 +1502,7 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
   }
   .mark_notice("dataset", path, mf$name %||% name)
   x <- .dataset_payload(path, mf, prefer_snapshot = !isTRUE(evaluate),
-                        strict = strict, verbose = verbose)
+                        strict = strict, verbose = verbose, hash = hash)
   if (verbose) {
     cat("Dataset '", mf$name, "' (", mf$kind, ") loaded from '", path,
         "'\n", sep = "")
@@ -1493,7 +1619,8 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
     }
     mf <- yaml::read_yaml(fp(path, "dataset.yml"))
     payload <- .dataset_payload(path, mf, prefer_snapshot = TRUE,
-                                strict = strict, verbose = FALSE)
+                                strict = strict, verbose = FALSE,
+                                hash = ref$hash)
     methods::slot(obj, slot_name) <- payload
   }
   obj@misc[["dataset_ref"]] <- NULL

@@ -89,8 +89,16 @@ other R object.
 
 \code{save_dataset()} writes a payload — a data.frame (a weather or demand
 series), a \code{geoscales::GeoScale} map, or any R object — into the
-store \verb{<datasets_path>/<name>/} (see
-\code{\link[=get_datasets_path]{get_datasets_path()}}). Saving identical content again is a no-op. A
+store \verb{<datasets_path>/<name>/} (see \code{\link[=get_datasets_path]{get_datasets_path()}}). An entry
+holds its versions by content: the payload of each version lives under
+\verb{<name>/<hash>/} and the entry's \code{dataset.yml} names the current version
+and lists every version present. Saving identical content again is a
+no-op; saving other content under the same name adds a version and
+makes it current, nothing is overwritten; saving content already stored
+as an older version makes that version current again. \code{load_dataset()}
+takes the current version by name, or a pinned one by \code{hash} (full or a
+prefix, also as \code{name@hash}). An entry written before versions, with its
+payload beside the manifest, reads as its single version. A
 stored dataset can then be REFERENCED by repositories, models, and
 scenarios instead of embedded — see the \code{embed_datasets} argument of
 \code{\link[=save_repository]{save_repository()}}, \code{\link[=save_model]{save_model()}} and \code{\link[=save_scenario]{save_scenario()}}: the table is

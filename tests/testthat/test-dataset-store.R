@@ -42,7 +42,8 @@ test_that("a table round-trips through the store with column classes intact", {
   ds_local()
   info <- save_dataset(ds_table(), "wtest", verbose = FALSE)
   expect_identical(info$kind, "table")
-  expect_true(dir.exists(fp(info$path, "data")))
+  # the version lives under the name, by its hash
+  expect_true(dir.exists(fp(info$path, info$hash)))
 
   # identical content again is a no-op
   expect_message(save_dataset(ds_table(), "wtest"), "already in the store")
@@ -87,7 +88,7 @@ test_that("a non-tabular object (Geoscale map) stores as rds", {
   gs <- topia$geoscales$honeycomb
   info <- save_dataset(gs, "topia_map", verbose = FALSE)
   expect_identical(info$kind, "object")
-  expect_true(file.exists(fp(info$path, "payload.rds")))
+  expect_true(file.exists(fp(info$path, info$hash, "payload.rds")))
   gs2 <- load_dataset("topia_map", verbose = FALSE)
   expect_identical(dataset_hash(gs2), info$hash)
 })
