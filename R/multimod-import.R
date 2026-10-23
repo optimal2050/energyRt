@@ -884,31 +884,44 @@ populate_sets_with_log <- function(model, scenario) {
     dims <- en_param@dimSets
     if (length(dims) == 0) next
     
-    # Load data if available
+    # The distinct members of each dimension column. On-disk data is not
+    # collected: Arrow takes the distinct values of one column at a time,
+    # so only the members reach R (a parameter's full table can hold
+    # millions of rows for a few thousand members).
     path <- en_param@misc$path
-    data <- NULL
-    
+    column_members <- NULL
     if (!is.null(path) && (dir.exists(path) || file.exists(path))) {
-      data <- tryCatch(
-        multimod::load_arrow_data(path, collect = TRUE),
+      ds <- tryCatch(
+        multimod::load_arrow_data(path, collect = FALSE),
         error = function(e) {
           cat("  Warning: could not load", pname, "-", conditionMessage(e), "\n")
           NULL
         }
       )
+      if (!is.null(ds)) {
+        col_names <- names(ds)
+        column_members <- function(i) {
+          if (i > length(col_names)) return(NULL)
+          v <- dplyr::collect(dplyr::distinct(dplyr::select(ds, dplyr::all_of(col_names[i]))))
+          as.character(v[[1]])
+        }
+      }
     } else if (!is.null(en_param@data) && nrow(en_param@data) > 0) {
       data <- en_param@data
+      column_members <- function(i) {
+        if (i > ncol(data)) return(NULL)
+        as.character(unique(data[[i]]))
+      }
     }
-    
-    # Extract members for each dimension
-    if (!is.null(data) && nrow(data) > 0) {
+
+    if (!is.null(column_members)) {
       for (i in seq_along(dims)) {
         dim_name <- dims[i]
-        if (dim_name %in% names(set_members) && i <= ncol(data)) {
-          members <- as.character(data[[i]])
-          set_members[[dim_name]] <- c(set_members[[dim_name]], members)
-          set_sources[[dim_name]] <- c(set_sources[[dim_name]], pname)
-        }
+        if (!dim_name %in% names(set_members)) next
+        members <- column_members(i)
+        if (is.null(members)) next
+        set_members[[dim_name]] <- c(set_members[[dim_name]], members)
+        set_sources[[dim_name]] <- c(set_sources[[dim_name]], pname)
       }
     }
   }
