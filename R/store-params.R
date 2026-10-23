@@ -122,6 +122,12 @@
                 filter = NULL, origin = .param_origin(p, scen),
                 resolved = .param_version_dir(hit$path, h))
     p@misc$param_ref <- ref
+    # the store version is now the table's home: a copy in the scenario's
+    # own store would double the disk and win over the reference at load
+    local <- p@misc$path
+    if (isOnDisk(p) && !is.null(local) && dir.exists(fp(local, "data"))) {
+      unlink(fp(local, "data"), recursive = TRUE, force = TRUE)
+    }
     mi@parameters[[pname]] <- p
     entries[[length(entries) + 1L]] <- list(
       object = pname, slot = "data", via = "parameter",

@@ -85,6 +85,12 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   references; the lazy readers follow them; a writer that changes a table
   drops its reference. A weather or demand table whose version is gone is
   recomputed from the model.
+* The `mm` route no longer copies the scenario's tables into the multimod
+  model: multimod reads them from the scenario's store or the dataset store
+  as the matrix is built (`multimod_from_energyRt(inMemory = FALSE)`), a
+  table held in memory is attached rather than dropped, and the memo size
+  is the preset's `data_cache_gb` (32 by default). The cloud wait starts
+  with the memo cleared.
 
 ### Validation and comparison
 

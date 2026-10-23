@@ -243,3 +243,36 @@ test_that("a scenario's large tables are saved once in the store and load back t
   expect_false(identical(pe3[[1]]$hash, before[["pWeather"]]))
   expect_length(yaml::read_yaml(fp(get_datasets_path(), "pWeather", "dataset.yml"))$versions, 2L)
 })
+
+test_that("the mm import reads referenced tables in place and builds the same LP", {
+  skip_if_not_installed("multimod")
+  skip_if_not_installed("highs")
+  pr_local_model()
+  unlink(pr_root(), recursive = TRUE)
+  withr::local_options(energyRt.param_ref_min_rows = 1, energyRt.ondisk_min_rows = 1,
+                       energyRt.mm_keep_wildcards = TRUE)
+  scen <- suppressMessages(interpolate_model(pr_model(), name = "prs_mm",
+                                             path = pr_root("scenarios", "prs_mm")))
+  saved <- suppressMessages(save_scenario(scen, verbose = FALSE))
+  ld <- suppressMessages(load_scenario(saved@path, env = NULL, verbose = FALSE))
+  full <- suppressMessages(suppressWarnings(multimod_from_energyRt(ld, inMemory = TRUE, verbose = FALSE)))
+  lazy <- suppressMessages(suppressWarnings(multimod_from_energyRt(ld, inMemory = FALSE, verbose = FALSE)))
+  # referenced parameters carry the store directory and the hash, no table
+  pw <- lazy$parameters[["pWeather"]]
+  expect_identical(pw$misc$ref$hash, ld@modInp@parameters[["pWeather"]]@misc$param_ref$hash)
+  expect_true(dir.exists(pw$misc$path))
+  expect_equal(NROW(pw$data), 0L)
+  # multimod reads the same rows
+  a <- multimod::get_data(full, "pWeather", type = "parameter")
+  b <- multimod::get_data(lazy, "pWeather", type = "parameter")
+  expect_identical(dataset_hash(force_cols_classes(as.data.frame(b))),
+                   dataset_hash(force_cols_classes(as.data.frame(a))))
+  # and the same LP
+  lf <- multimod::model_to_lp(full)
+  ll <- multimod::model_to_lp(lazy)
+  expect_identical(dim(ll$A), dim(lf$A))
+  expect_equal(sum(abs(ll$A@x)), sum(abs(lf$A@x)))
+  sf <- multimod::solve_highs(full, attach = FALSE)
+  sl <- multimod::solve_highs(lazy, attach = FALSE)
+  expect_equal(sl$objective, sf$objective, tolerance = 1e-9)
+})

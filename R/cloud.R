@@ -99,6 +99,13 @@ set_hf_token <- function(token = NULL) {
   # killed R session can still poll or cancel the job.
   .cloud_note_job(arg, job)
 
+  # nothing of the matrix is needed through the wait: multimod's memo of the
+  # tables it read goes, and the heap the build used is collected
+  if (requireNamespace("multimod", quietly = TRUE) &&
+      "clear_data_cache" %in% getNamespaceExports("multimod")) {
+    multimod::clear_data_cache()
+  }
+  gc(FALSE)
   stage <- mmcloud::cloud_wait(job, poll = s$cloud_poll %||% 15,
                                max_wait = s$cloud_max_wait %||% Inf,
                                echo = isTRUE(arg$echo))

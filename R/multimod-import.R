@@ -418,6 +418,30 @@ convert_parameter <- function(en_param, orig_param = NULL, inMemory = FALSE,
     result$data <- loaded
     result$misc$inMemory <- TRUE
     result$misc$path <- NULL
+  } else {
+    # The table stays where it is and multimod reads it there. A referenced
+    # table is read from the dataset store's version (the directory of its
+    # parts), keyed by its content hash in multimod's memo; a table held in
+    # memory is attached, as there is nothing on disk to point at.
+    ref <- param_misc$param_ref
+    data_dir <- .en_param_data_dir(en_param)
+    if (!is.null(data_dir) && !isTRUE(.has_wildcard_param(en_param))) {
+      # on disk, in the scenario's store or the dataset store: read there
+      result$misc$path <- data_dir
+      result$misc$inMemory <- FALSE
+      if (!is.null(ref)) result$misc$ref <- list(name = ref$name, hash = ref$hash, nrow = ref$nrow)
+    } else if (is.null(data_dir) && !is.null(en_param@data) && nrow(en_param@data) > 0) {
+      result$data <- collect_scenario_parameter_data(en_param, scenario = scenario)
+      result$misc$inMemory <- TRUE
+      result$misc$path <- NULL
+      result$misc$onDisk <- NULL
+    } else if (!is.null(data_dir)) {
+      # a folded table that must be unfolded on read: collected
+      result$data <- collect_scenario_parameter_data(en_param, scenario = scenario)
+      result$misc$inMemory <- TRUE
+      result$misc$path <- NULL
+      result$misc$onDisk <- NULL
+    }
   }
 
   # Preserve class if original had one
@@ -573,7 +597,7 @@ collect_scenario_parameter_data <- function(en_param, scenario = NULL) {
     return(.unfold_param_data(as.data.frame(en_param@data), en_param, scenario))
   }
 
-  param_path <- en_param@misc$path
+  param_path <- .en_param_data_dir(en_param) %||% en_param@misc$path
   if (!is.null(param_path) && (dir.exists(param_path) || file.exists(param_path))) {
     data <- tryCatch(
       multimod::load_arrow_data(param_path, collect = TRUE),
@@ -615,7 +639,8 @@ create_link_log_entry <- function(multimod_name, scenario_name, type, status,
     # scenario legitimately reports n_rows = 0 here while being perfectly
     # readable, so row counts alone cannot tell a lazy link from a lost one.
     resolvable = (!is.null(en_param@data) && nrow(en_param@data) > 0) ||
-      !is.null(en_param@misc$path) || isTRUE(en_param@misc$onDisk),
+      !is.null(en_param@misc$path) || isTRUE(en_param@misc$onDisk) ||
+        !is.null(en_param@misc$param_ref),
     inMemory = inMemory
   )
 }
@@ -681,7 +706,8 @@ multimod_import_data <- function(model, scenario, inMemory = scenario@inMemory, 
   # data in hand. The lazy path loads straight from the parameter store later,
   # with no scenario to resolve membership against, so it would read the
   # wildcard rows back and silently drop them on the join.
-  if (!isTRUE(inMemory) && .scenario_is_folded(scenario)) {
+  if (!isTRUE(inMemory) && .scenario_is_folded(scenario) &&
+      !isTRUE(getOption("energyRt.mm_keep_wildcards", FALSE))) {
     stop("This scenario was interpolated with fold = TRUE, so its parameters ",
          "carry wildcard (NA) index values that must be expanded on read.\n",
          "  Pass inMemory = TRUE to multimod_import_data(); the lazy path ",
@@ -888,7 +914,7 @@ populate_sets_with_log <- function(model, scenario) {
     # collected: Arrow takes the distinct values of one column at a time,
     # so only the members reach R (a parameter's full table can hold
     # millions of rows for a few thousand members).
-    path <- en_param@misc$path
+    path <- .en_param_data_dir(en_param) %||% en_param@misc$path
     column_members <- NULL
     if (!is.null(path) && (dir.exists(path) || file.exists(path))) {
       ds <- tryCatch(
@@ -1652,4 +1678,15 @@ multimod_from_energyRt <- function(object, gms = NULL, prefer = c("spec", "hint"
 #' @exportS3Method multimod::as_multimod
 as_multimod.scenario <- function(x, ...) {
   multimod_from_energyRt(x, ...)
+}
+
+
+# Does a parameter's table carry wildcard (NA) index values that the reader
+# must expand? Numeric parameters and bounds pass folded on the matrix route
+# (`energyRt.mm_keep_wildcards`); maps never carry them after interpolation.
+.has_wildcard_param <- function(en_param) {
+  if (isTRUE(getOption("energyRt.mm_keep_wildcards", FALSE)) &&
+      as.character(en_param@type) %in% c("numpar", "bounds")) return(FALSE)
+  fi <- en_param@misc$fold_info
+  !is.null(fi) && length(fi) > 0
 }

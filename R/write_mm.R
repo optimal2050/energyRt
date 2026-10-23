@@ -39,9 +39,15 @@
          "skipped; something re-enabled it.", call. = FALSE)
   }
 
-  # folded numeric parameters stay folded when this multimod can look them up
-  op <- options(energyRt.mm_keep_wildcards = .mm_reads_wildcards())
-  m <- multimod_from_energyRt(scen, verbose = isTRUE(arg$echo))
+  # folded numeric parameters stay folded when this multimod can look them up;
+  # the tables are not copied into the model: multimod reads them from the
+  # scenario's store or the dataset store as the matrix is built, through a
+  # memo of `data_cache_gb` gigabytes (a preset field; 32 by default)
+  sv0 <- scen@settings@solver
+  op <- options(energyRt.mm_keep_wildcards = .mm_reads_wildcards(),
+                multimod.data_cache_gb = sv0$data_cache_gb %||% 32)
+  m <- multimod_from_energyRt(scen, inMemory = isTRUE(sv0$import_in_memory),
+                              verbose = isTRUE(arg$echo))
   options(op)
 
   # The matrix is built block by block and streamed to the file, so the LP
