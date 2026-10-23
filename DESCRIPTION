@@ -150,6 +150,7 @@ Collate:
     'start_msg.R'
     'storage_duration.R'
     'store-objects.R'
+    'store-params.R'
     'techspec.R'
     'timeslices.R'
     'topia.R'

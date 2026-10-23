@@ -188,11 +188,13 @@ setMethod(
       }
       # write data to disk in the store's own codec (or `storage_format` for a
       # store that does not exist yet)
+      obj <- .param_ref_clear(obj)
       obj@data <- data
       obj <- obj2disk(obj, format = .store_format(fp(path, "data")))
       obj@data <- reset_slot(obj@data)
     } else {
       # assign data to the parameter
+      obj <- .param_ref_clear(obj)
       obj@data <- data
     }
     return(obj)
@@ -1611,10 +1613,12 @@ force_cols_classes <- function(dtf) {
           stop("on-disk parameter '", nm, "' has no store path at flush",
                call. = FALSE)
         }
+        p <- .param_ref_clear(p)
         p@data <- full
         p <- obj2disk(p, format = .store_format(fp(pth, "data")))
         p@data <- reset_slot(p@data)
       } else {
+        p <- .param_ref_clear(p)
         p@data <- unique(rbindlist(c(list(p@data), pend),
           use.names = TRUE, ignore.attr = TRUE
         ))

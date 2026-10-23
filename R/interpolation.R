@@ -1268,6 +1268,7 @@ interpolate_model <- function(object, name = NULL, ...,
   scen@status$sparse <- isTRUE(sparse)
   scen@status$folded <- fold_dims
   scen@status$pruned <- isTRUE(prune)
+  scen@status$drop_default <- isTRUE(drop_default)
   scen@status$parent_levels <- parent_levels
 
   # Post-interpolation consistency checks (NA index columns, schema, duplicate
@@ -2401,6 +2402,8 @@ interpolate_bounds <- function(
 #' @returns the scenario with the parameter slot updated.
 #' @noRd
 .interp_write_param <- function(scen, pn, new_data) {
+  # the table changes: a reference into the dataset store no longer holds
+  scen@modInp@parameters[[pn]] <- .param_ref_clear(scen@modInp@parameters[[pn]])
   param <- scen@modInp@parameters[[pn]]
   if (isOnDisk(param)) {
     ppath <- getObjPath(param)

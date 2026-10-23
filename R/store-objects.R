@@ -1185,7 +1185,9 @@ dataset_hash <- function(x) {
 #' `hash =`) via the registry first, then by scanning the store; `path`
 #' bypasses resolution. It returns the bare payload.
 #'
-#' @param x the payload to store (omit for a functional dataset).
+#' @param hash character, full or short content hash to pin a version; for
+#'   `save_dataset()`, the content hash of `x` when the caller has computed
+#'   it already (`dataset_hash()`), which spares a second pass.
 #' @param name character, dataset name, `"name@hash8"`, or a store directory
 #'   path.
 #' @param fun character, a namespaced generator `"pkg::fun"` (functional
@@ -1245,6 +1247,7 @@ save_dataset <- function(
     overwrite = FALSE,
     rehash = TRUE,
     memo = "",
+    hash = NULL,
     verbose = TRUE) {
   stopifnot(is.character(name), length(name) == 1L, nzchar(name))
   # "arrow" and "ipc" are aliases for feather, as in save_scenario(). These
@@ -1279,7 +1282,8 @@ save_dataset <- function(
     }
   } else {
     if (missing(x)) stop("Nothing to save: pass `x`, or `fun` + `args`.")
-    h <- dataset_hash(x)
+    # a caller that hashed the payload already passes the hash in
+    h <- hash %||% dataset_hash(x)
   }
   h8 <- substr(h, 1, 8)
   if (is.null(path)) {

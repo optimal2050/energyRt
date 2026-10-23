@@ -689,6 +689,7 @@
         stop(paste0(msg, collapse = "\n"))
       } else {
         msg_small_err <- c(msg_small_err, i)
+        scen@modInp@parameters[[i]] <- .param_ref_clear(scen@modInp@parameters[[i]])
         scen@modInp@parameters[[i]]@data[
           scen@modInp@parameters[[i]]@data$value > -1e-7 &
           scen@modInp@parameters[[i]]@data$value < 0, "value"] <- 0

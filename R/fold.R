@@ -384,6 +384,7 @@
 # .fold_write_back: persist new parameter data, mirroring interpolate_parameters.
 # -----------------------------------------------------------------------------#
 .fold_write_back <- function(param, new_data) {
+  param <- .param_ref_clear(param)
   new_data <- new_data |>
     force_cols_classes() |>
     as.data.frame() |>

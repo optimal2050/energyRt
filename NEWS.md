@@ -75,6 +75,16 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   version instead of overwriting, `load_dataset(name, hash = )` pins one,
   and the registry lists every version. A references table beside the
   registry records which scenario points at which version.
+* `save_scenario()` stores a scenario's large interpolated tables (numeric
+  parameters, bounds and maps from `energyRt.param_ref_min_rows` rows, 1e6
+  by default; weather and demand series from `energyRt.ondisk_min_rows`) as
+  versions in the dataset store and keeps a reference on the parameter:
+  the table is written once and shared by every scenario and variant with
+  the same content; the scenario's own store holds the small tables and
+  any table changed after its reference. `load_scenario()` resolves the
+  references; the lazy readers follow them; a writer that changes a table
+  drops its reference. A weather or demand table whose version is gone is
+  recomputed from the model.
 
 ### Validation and comparison
 

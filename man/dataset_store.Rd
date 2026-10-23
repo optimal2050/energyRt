@@ -66,7 +66,9 @@ version tag, not a content proof.}
 
 \item{verbose}{logical.}
 
-\item{hash}{character, full or short content hash to pin a version.}
+\item{hash}{character, full or short content hash to pin a version; for
+\code{save_dataset()}, the content hash of \code{x} when the caller has computed
+it already (\code{dataset_hash()}), which spares a second pass.}
 
 \item{evaluate}{logical, for a functional entry: re-evaluate the recorded
 call (verifying \code{result_hash}) instead of only reading the snapshot.

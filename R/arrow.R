@@ -243,6 +243,16 @@ save_scenario <- function(
     file = log_file, append = TRUE
   )
 
+  # The large tables of the modInp become references into the dataset
+  # store: each written once, shared by content across scenarios and
+  # variants; the scenario's own store keeps the small tables and any table
+  # changed after its reference. On every save, so the manifest lists the
+  # references a loaded scenario still holds.
+  th <- .thin_param_tables(object@modInp, object, format = format,
+                           verbose = verbose)
+  object@modInp <- th$modInp
+  ds_entries <- c(ds_entries, th$entries)
+
   if (!ondisk_data) {
     if (verbose) {
       cat("Saving large slots of scenario object",
@@ -371,8 +381,19 @@ save_scenario <- function(
     source = "embedded"
   )
   .write_scenario_manifest(object, format, model = mf_model,
-                           datasets = if (length(ds_entries)) ds_entries)
+                           datasets = ds_entries)
   .registry_record_scenario(object)
+  # the references table: which versions this scenario points at
+  tryCatch({
+    pe <- Filter(function(e) identical(e$via, "parameter"), ds_entries)
+    rows <- if (length(pe)) data.frame(
+      object = vapply(pe, function(e) e$object, ""), slot = "data",
+      name = vapply(pe, function(e) e$name, ""), hash = vapply(pe, function(e) e$hash, ""),
+      path = vapply(pe, function(e) e$path %||% "", ""), stringsAsFactors = FALSE) else NULL
+    .refs_replace(.registry_rel_path(object@path), rows, run = .run_variant(object) %||% "")
+  }, error = function(e) {
+    warning("Could not update the references table (", conditionMessage(e), ")", call. = FALSE)
+  })
   # the returned in-memory object keeps its full model, datasets & sourceCode
   if (!is.null(full_model)) object@model <- full_model
   if (!is.null(model_ds_backup)) object@model <- model_ds_backup
@@ -606,6 +627,15 @@ obj2disk <- function(
           save_i <- obj@misc$onDisk[[s]]$dim[1] >= max(1L, min_rows)
         } else {
           save_i <- obj@misc$onDisk[[s]]$length >= max(1L, min_rows)
+        }
+        if (isTRUE(save_i) && methods::is(obj, "parameter") &&
+            identical(s, "data") && !is.null(obj@misc$param_ref)) {
+          # the rows live in the dataset store; the slot is emptied and the
+          # parameter keeps its own path, where a later write would land
+          slot(obj, s) <- reset_slot(slot(obj, s))
+          obj <- setObjPath(obj, path = fp(path))
+          isSaved <- TRUE
+          save_i <- FALSE
         }
         if (isTRUE(save_i)) {
           xs <- data2disk(
@@ -908,6 +938,12 @@ get_lazy_data <- function(obj,
   path <- paste(c(path, slot, element), collapse = "/")
   if (file.exists(path) || dir.exists(path)) path <- normalizePath(path)
   qu <- try(en_open_dataset(path), silent = TRUE)
+  if (inherits(qu, "try-error") && identical(slot, "data") && .hasSlot(obj, "misc") &&
+      !is.null(obj@misc$param_ref)) {
+    # a referenced table: its rows are in the dataset store
+    alt <- .param_ref_data_dir(obj)
+    if (!is.null(alt)) qu <- try(en_open_dataset(alt), silent = TRUE)
+  }
   if (inherits(qu, "try-error")) {
     ff <- list.files(path)
     if (length(ff) == 0) {
@@ -1240,6 +1276,11 @@ load_scenario <- function(
               conditionMessage(e), ")", call. = FALSE)
       scen_obj
     })
+  # parameter tables referenced into the dataset store: resolved at path level
+  resolved <- .resolve_param_refs(scen_obj, ignore_errors = ignore_errors,
+                                  verbose = verbose)
+  if (isFALSE(resolved)) return(invisible(FALSE))
+  scen_obj <- resolved
 
   # restore the sourceCode blocks dropped at save time (identical to the
   # package templates then; refilled from the CURRENT package — a re-solve

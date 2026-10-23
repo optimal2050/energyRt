@@ -644,6 +644,8 @@ drop_scenario_run <- function(object, run, force = FALSE) {
   scen@misc$variant <- if (nzchar(variant)) variant else NULL
   scen@modInp <- .upgrade_modInp(
     .modinp_rebase(vdata$modInp, .problem_modinp_root(scen)))
+  r <- .resolve_param_refs(scen, ignore_errors = TRUE, verbose = FALSE)
+  if (!isFALSE(r)) scen <- r
   scen
 }
 
