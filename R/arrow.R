@@ -558,45 +558,48 @@ obj2disk <- function(
           }
         }
         if (make_progress_bar) p <- progressr::progressor(along = nm)
+        # The list is taken out of the slot once and put back once:
+        # `slot(obj, s)[[i]] <- x` duplicates the slot on every element,
+        # which is quadratic in the number of objects in a repository.
+        lst <- slot(obj, s)
+        info <- obj@misc$onDisk[[s]]
+        changed <- FALSE
         for (i in nm) { # loop over list
           if (make_progress_bar) p(i)
-          if (isS4(slot(obj, s)[[i]])) { # list of S4
-            # cat("\n", s, i, "\n")
-            slot(obj, s)[[i]] <- obj2disk(
-              slot(obj, s)[[i]],
+          if (isS4(lst[[i]])) { # list of S4
+            lst[[i]] <- obj2disk(
+              lst[[i]],
               path = fp(path, s, i),
               save_not_S4 = TRUE,
               format = format,
               verbose = verbose,
               min_rows = min_rows
             )
-            # if (inherits(obj, "weather")) browser()
-            if (isOnDisk(slot(obj, s)[[i]])) isSaved <- TRUE
+            changed <- TRUE
+            if (isOnDisk(lst[[i]])) isSaved <- TRUE
           } else { # call data2disk for not S4 elements
-            # if (i == "vObjective") browser()
-            if (any(obj@misc$onDisk[[s]][[i]]$class %in% "data.frame")) {
-              save_i <- obj@misc$onDisk[[s]][[i]]$dim[1] >= max(1L, min_rows)
+            if (any(info[[i]]$class %in% "data.frame")) {
+              save_i <- info[[i]]$dim[1] >= max(1L, min_rows)
             } else {
-              save_i <- obj@misc$onDisk[[s]][[i]]$length >= max(1L, min_rows)
+              save_i <- info[[i]]$length >= max(1L, min_rows)
             }
             if (isTRUE(save_i)) {
               xs <- data2disk(
-                # !!! check why not all data.frames are data.tables
-                obj = as.data.table(slot(obj, s)[[i]]),
+                obj = as.data.table(lst[[i]]),
                 path = fp(path, s, i),
                 format = format,
                 verbose = verbose
               )
               if (xs) {
                 isSaved <- TRUE
-                # dim_list[[i]] <- dim(slot(obj, s)[[i]])
-                slot(obj, s)[[i]] <- reset_slot(slot(obj, s)[[i]])
-                # slot(obj, s) <- setObjPath(slot(obj, s),
-                # path = fp(path, s))
+                lst[[i]] <- reset_slot(lst[[i]])
+                changed <- TRUE
               }
             }
           }
         }
+        if (changed) slot(obj, s) <- lst
+        rm(lst)
         # save dim_list
       } else { # obj@s slot is not S4
         if (any(obj@misc$onDisk[[s]]$class %in% "data.frame")) {
@@ -1040,14 +1043,12 @@ set_ondisk_slots <- function(obj) {
               obj@misc$onDisk[[s]][[i]]$class <- class(slot(obj, s)[[i]])
               obj@misc$onDisk[[s]][[i]]$dim <- dim(slot(obj, s)[[i]])
               obj@misc$onDisk[[s]][[i]]$length <- length(slot(obj, s)[[i]])
-              obj@misc$onDisk[[s]][[i]]$size <- object.size(slot(obj, s)[[i]])
             }
           } else {
             obj@misc$onDisk[[s]] <- list()
             obj@misc$onDisk[[s]]$class <- class(slot(obj, s))
             obj@misc$onDisk[[s]]$dim <- dim(slot(obj, s))
             obj@misc$onDisk[[s]]$length <- length(slot(obj, s))
-            obj@misc$onDisk[[s]]$size <- size(slot(obj, s))
           }
         }
       } else {

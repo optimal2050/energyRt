@@ -3,7 +3,7 @@
 \name{get_hf_token}
 \alias{get_hf_token}
 \alias{set_hf_token}
-\title{Hugging Face access token}
+\title{Cloud platform access token}
 \usage{
 get_hf_token()
 

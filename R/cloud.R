@@ -21,7 +21,7 @@
   }
 }
 
-#' Hugging Face access token
+#' Cloud platform access token
 #'
 #' Re-exported from \pkg{mmcloud} so cloud solving can be configured without
 #' loading that package explicitly. See [mmcloud::get_hf_token()] for the
@@ -79,10 +79,14 @@ set_hf_token <- function(token = NULL) {
   if (arg$echo) {
     cat(sprintf("Uploading %.2f GB ...\n", file.size(gz) / 1e9))
   }
+  # the multimod route reads the solution file compressed: a text file of
+  # one line per column shrinks four to five times, and the platform's own
+  # upload of the job's output is what the wait after the solve is made of
+  sol_name <- if (identical(writer, "mm")) "model.sol.gz" else "model.sol"
   job <- mmcloud::cloud_run(
     inputs    = gz,
-    outputs   = "model.sol",
-    script    = .cloud_worker_script(s),
+    outputs   = sol_name,
+    script    = .cloud_worker_script(s, gzip_solution = identical(writer, "mm")),
     flavor    = s$cloud_flavor %||% "a10g-large",
     timeout   = s$cloud_timeout %||% "3h",
     namespace = s$cloud_namespace,
@@ -121,7 +125,7 @@ set_hf_token <- function(token = NULL) {
 
   if (identical(writer, "mm")) {
     # cuOpt returns primals only: the duals in the decoded solution are NA.
-    .mm_decode_solution(arg$solver.dir, fp(arg$solver.dir, "model.sol"),
+    .mm_decode_solution(arg$solver.dir, fp(arg$solver.dir, sol_name),
                         solver = "cuopt", echo = isTRUE(arg$echo))
   } else {
     .cloud_decode_solution(arg$solver.dir, echo = isTRUE(arg$echo))
@@ -130,8 +134,8 @@ set_hf_token <- function(token = NULL) {
 }
 
 # The `hf_*` option names are gone: transport settings are `cloud_*` and solver
-# settings are `gpu_*`, because `hf_method` and friends were never Hugging Face
-# settings at all -- they are cuOpt flags. An unrecognised field on a solver
+# settings are `gpu_*`, because `hf_method` and friends were never platform
+# settings at all -- they are solver flags. An unrecognised field on a solver
 # spec is SILENTLY IGNORED, and the defaults it falls back to are not benign:
 # an unset namespace resolves to the token's personal account (HTTP 402), an
 # unset time limit lets cuopt_cli stop after its own 60 s, and the default
@@ -230,7 +234,7 @@ set_hf_token <- function(token = NULL) {
 # The container script. The solver's stdout is deliberately NOT redirected: it
 # is the only live progress signal, and cuOpt's own --log-file is buffered for
 # tens of minutes.
-.cloud_worker_script <- function(s) {
+.cloud_worker_script <- function(s, gzip_solution = FALSE) {
   opts <- c(sprintf("--method %s", s$gpu_method %||% 1L))
   if (!is.null(s$gpu_time_limit)) {
     opts <- c(opts, sprintf("--time-limit %s", s$gpu_time_limit))
@@ -248,6 +252,7 @@ set_hf_token <- function(token = NULL) {
     paste("cuopt_cli /job/model.mps.gz --solution-file /out/model.sol",
           paste(opts, collapse = " ")),
     "echo VRAM_PEAK_MIB $(sort -n /tmp/vram.log 2>/dev/null | tail -1)",
+    if (gzip_solution) "gzip -1 /out/model.sol" else character(),
     "ls -l /out")
 }
 
