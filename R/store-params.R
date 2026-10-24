@@ -189,6 +189,29 @@
   .param_ref_data_dir(p)
 }
 
+#' Empty the in-memory tables a scenario holds that are already persisted
+#'
+#' A parameter whose rows are on disk (the scenario's store or a referenced
+#' version) can be read back lazily at any time; once the matrix is
+#' written, keeping its table in memory through a solve only holds RAM.
+#' Tables that exist nowhere else (an unsaved scenario, pending chunks) are
+#' kept.
+#' @keywords internal
+#' @noRd
+.shed_persisted_tables <- function(scen) {
+  mi <- scen@modInp
+  for (pname in names(mi@parameters)) {
+    p <- mi@parameters[[pname]]
+    if (!isOnDisk(p) || is.null(p@data) || !nrow(p@data)) next
+    if (length(.pending_chunks(p))) next
+    if (is.null(.en_param_data_dir(p))) next
+    p@data <- reset_slot(p@data)
+    mi@parameters[[pname]] <- p
+  }
+  scen@modInp <- mi
+  scen
+}
+
 #' Drop a parameter's reference: its table is about to change
 #' @keywords internal
 #' @noRd

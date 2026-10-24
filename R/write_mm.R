@@ -66,6 +66,16 @@
                       stream = TRUE, presolve = isTRUE(sv$presolve %||% TRUE),
                       verbose = isTRUE(arg$echo))
 
+  # The matrix is on disk: nothing of it is needed through the solve. The
+  # model, multimod's memo and the scenario's tables that are persisted
+  # elsewhere go, and the heap the build used is collected.
+  rm(m)
+  if ("clear_data_cache" %in% getNamespaceExports("multimod")) {
+    multimod::clear_data_cache()
+  }
+  scen <- .shed_persisted_tables(scen)
+  gc(FALSE)
+
   # The matrix is solved by `.call_solver()`'s `mm` branch, in this process or
   # on a rented GPU. There is no external command.
   scen@settings@solver$cmdline <- ""

@@ -89,8 +89,10 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   model: multimod reads them from the scenario's store or the dataset store
   as the matrix is built (`multimod_from_energyRt(inMemory = FALSE)`), a
   table held in memory is attached rather than dropped, and the memo size
-  is the preset's `data_cache_gb` (32 by default). The cloud wait starts
-  with the memo cleared.
+  is the preset's `data_cache_gb` (32 by default). Once the matrix is
+  written, the model, the memo and the scenario's tables that are persisted
+  on disk or in the store are released, so a solve, local or in the cloud,
+  waits with the memory free.
 
 ### Validation and comparison
 

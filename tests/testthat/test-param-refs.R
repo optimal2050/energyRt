@@ -276,3 +276,26 @@ test_that("the mm import reads referenced tables in place and builds the same LP
   sl <- multimod::solve_highs(lazy, attach = FALSE)
   expect_equal(sl$objective, sf$objective, tolerance = 1e-9)
 })
+
+test_that("tables persisted on disk or in the store are shed from memory and read back lazily", {
+  pr_local_model()
+  unlink(pr_root(), recursive = TRUE)
+  withr::local_options(energyRt.param_ref_min_rows = 1, energyRt.ondisk_min_rows = 1)
+  scen <- suppressMessages(interpolate_model(pr_model(), name = "prs_shed",
+                                             path = pr_root("scenarios", "prs_shed")))
+  saved <- suppressMessages(save_scenario(scen, verbose = FALSE))
+  ld <- suppressMessages(load_scenario(saved@path, env = NULL, verbose = FALSE))
+  # a table brought into memory while on disk
+  p <- ld@modInp@parameters[["pWeather"]]
+  full <- get_data_slot(p)
+  p@data <- data.table::as.data.table(full)
+  ld@modInp@parameters[["pWeather"]] <- p
+  expect_equal(nrow(ld@modInp@parameters[["pWeather"]]@data), nrow(full))
+  shed <- .shed_persisted_tables(ld)
+  expect_equal(nrow(shed@modInp@parameters[["pWeather"]]@data), 0L)
+  expect_identical(dataset_hash(force_cols_classes(get_data_slot(shed@modInp@parameters[["pWeather"]]))),
+                   dataset_hash(force_cols_classes(full)))
+  # a table that is nowhere else stays
+  mem <- pr_scen(pTechAf = pr_param("pTechAf", pr_af()))
+  expect_equal(nrow(.shed_persisted_tables(mem)@modInp@parameters[["pTechAf"]]@data), 8L)
+})
