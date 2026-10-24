@@ -453,7 +453,7 @@ print.solve_settings_cmp <- function(x, ...) {
 audit_coefficients <- function(x, solver.dir = NULL, ratio = 1e6,
                                keep = FALSE) {
   mps <- if (is.character(x)) {
-    if (dir.exists(x)) .glpsol_write_mps(x)
+    if (dir.exists(x)) .write_matrix_glpk(x)
     else if (file.exists(x)) x
     else stop("`x` is neither a directory nor a file: ", x, call. = FALSE)
   } else if (is(x, "scenario")) {
@@ -463,7 +463,7 @@ audit_coefficients <- function(x, solver.dir = NULL, ratio = 1e6,
     d <- if (is.null(solver.dir)) tempfile("audit_") else solver.dir
     dir.create(d, recursive = TRUE, showWarnings = FALSE)
     write_script(x, solver.dir = d, solver = list(name = "glpk", lang = "GLPK"))
-    .glpsol_write_mps(d)
+    .write_matrix_glpk(d)
   } else {
     stop("`x` must be a scenario, a run directory or an MPS file.",
          call. = FALSE)
@@ -555,7 +555,7 @@ print.coefficient_audit <- function(x, n = 12L, ...) {
 }
 
 # Re-emit a written GLPK run directory as free MPS via `glpsol --check`.
-.glpsol_write_mps <- function(dir, file = "model.mps") {
+.write_matrix_glpk <- function(dir, file = "model.mps") {
   mod <- file.path(dir, "energyRt.mod")
   if (!file.exists(mod)) {
     stop("no energyRt.mod in ", dir, call. = FALSE)

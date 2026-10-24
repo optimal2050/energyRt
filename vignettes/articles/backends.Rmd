@@ -32,7 +32,7 @@ library(energyRt)
 | **Julia / cuOpt** (GPU) | `JuMP` | NVIDIA cuOpt | open-source | **Linux only.** First-order (PDLP) needs no factorization, so it fits models whose barrier does not; add crossover for duals. |
 | **GAMS** | `GAMS` | CPLEX, CBC | proprietary | Needs a GAMS license; supports GDX I/O and fine solver tuning. |
 | **NEOS** (remote) | `PYOMO` / `GAMS` | CPLEX, CBC, … | free service | Solve on the [NEOS server](https://neos-server.org) — no local commercial solver needed. |
-| **mmcloud_pyomo** (cloud GPU) | `PYOMO` (as MPS) | HiGHS / cuOpt on a cloud GPU | service | **Experimental.** Writes the problem as MPS and solves it remotely, for models too large for local RAM. |
+| **Matrix (MPS)** | `mm` or `PYOMO` (as MPS) | HiGHS in R or Julia; cuOpt on a local GPU (WSL) or a cloud GPU | open-source / service | **Experimental.** The problem is written as an MPS file and solved by `multimod::solve_mps()`; the cloud presets run it on a rented GPU through 'mmcloud'. |
 
 See the **Installation and Settings** article for how to install each runtime
 and the library layer (`en_check_dependencies()`, `en_install_deps()`).
@@ -174,24 +174,40 @@ solve_model(model, solver = solver_options$neos_pyomo_cplex_barrier)
 The low-level NEOS interface (submit/poll/fetch a job, list solvers, …) is also
 exported — see `?neos` and the `neos_*` functions.
 
-## mmcloud_pyomo (cloud GPU)
+## Matrix route: local and cloud GPU
 
 **Experimental — in testing.** Where NEOS dispatches the *model text*, this
-route writes the problem as an **MPS file locally** and sends that to a GPU
-solver in the cloud, decoding the solution back into the scenario. It exists
-for models whose build or solve does not fit a laptop: the MPS is produced by
-the Pyomo formulation, so nothing new has to be written for the model itself.
+route writes the problem as an **MPS file locally** and solves that file with
+`multimod::solve_mps()`, decoding the solution back into the scenario. The
+matrix is written by multimod (`lang = "mm"`, positional names resolved by its
+index files) or by the Pyomo formulation (`pyomo_*` presets). The preset names
+the writer, the solver and the place:
+
+| preset | solver | place |
+|---|---|---|
+| `mm_highs`, `mm_highs_barrier` | HiGHS | in the R session |
+| `mm_julia_highs_barrier` | HiGHS through Julia (HiPO interior point) | local |
+| `mm_cuopt_wsl` | cuOpt PDLP | local GPU through WSL (Windows) |
+| `mm_cuopt_cloud` | cuOpt PDLP | rented GPU, through 'mmcloud' |
+| `pyomo_cuopt_cloud` | cuOpt PDLP on a Pyomo-written matrix | rented GPU, through 'mmcloud' |
 
 ```{r}
-solve_model(model, solver = solver_options$mmcloud_pyomo)
-# or, to recover duals from a first-order solve:
-solve_model(model, solver = solver_options$mmcloud_pyomo_crossover)
+solve_model(model, solver = solver_options$mm_cuopt_wsl)
+cloud <- solver_options$mm_cuopt_cloud
+cloud$cloud_namespace <- "my-org"   # the account billed for the job
+cloud$cloud_flavor <- "h200"
+solve_model(model, solver = cloud)
+# a crossover variant of each cuOpt preset recovers a basic solution and duals
+solve_model(model, solver = solver_options$mm_cuopt_cloud_crossover)
 ```
 
-Being experimental, treat results as provisional and cross-check a smaller
-variant against a local backend before relying on them. Access is via a token
-(`get_hf_token()`), and the preset carries the machine flavour and a wall-clock
-timeout, so a run that exceeds it returns nothing rather than partial results.
+Being experimental, results are provisional; a smaller variant should be
+cross-checked against a local backend before they are relied on. The cloud
+presets need a token for the service (`mmcloud::set_hf_token()`), and carry the
+machine flavour and a wall-clock timeout, so a run that exceeds it returns
+nothing rather than partial results. The former preset names `mmcloud`,
+`mmcloud_crossover`, `mmcloud_pyomo` and `mmcloud_pyomo_crossover` stop with a
+message naming their replacement.
 
 # All preset `solver_options`
 
@@ -199,19 +215,21 @@ The presets shipped with the package (generated from the installed data):
 
 ```{r presets, eval = TRUE, echo = FALSE}
 so <- energyRt::solver_options
+# renamed presets are stubs that only name their replacement
+so <- Filter(function(x) is.null(x$renamed_to), so)
 field <- function(x, nm, default = "—") if (is.null(x[[nm]])) default else x[[nm]]
 lang_label <- c(GLPK = "GLPK/MathProg", PYOMO = "Python/Pyomo",
-                JuMP = "Julia/JuMP", GAMS = "GAMS")
+                JuMP = "Julia/JuMP", GAMS = "GAMS", mm = "multimod (MPS)")
 tab <- do.call(rbind, lapply(so, function(x) data.frame(
   preset   = x$name,
   backend  = unname(lang_label[field(x, "lang", NA)]),
   solver   = field(x, "solver"),
-  # NOT keyed on `backend`: that marks the R-side GAMS/NEOS route only, while
-  # `neos_pyomo_*` dispatches inside Python via `inc_solver`. The name is the
-  # reliable marker for both.
+  # NEOS: keyed on the name, since `neos_pyomo_*` dispatches inside Python
+  # via `inc_solver` and carries no `backend`. Matrix presets: `where`.
   remote   = if (grepl("^neos_", x$name)) "NEOS"
-             else if (identical(field(x, "backend", ""), "mmcloud_pyomo"))
-               "cloud GPU" else "",
+             else if (identical(field(x, "where", ""), "remote")) "cloud GPU"
+             else if (identical(field(x, "where", ""), "wsl")) "local GPU (WSL)"
+             else "",
   exchange = field(x, "export_format", "default"),
   stringsAsFactors = FALSE)))
 knitr::kable(tab, row.names = FALSE,

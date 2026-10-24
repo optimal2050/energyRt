@@ -66,6 +66,10 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 * First-order LP solvers (cuOpt, HiGHS PDLP), and `lang = "mm"`, which builds
   the problem matrix with **multimod**. Remote solving on the NEOS server and
   on cloud GPUs.
+* Matrix presets (`backend = "mm"`) are solved by `multimod::solve_mps()`:
+  HiGHS in the R session or through Julia, cuOpt on a local GPU through WSL
+  (`mm_cuopt_wsl`) or on a rented GPU (`mm_cuopt_cloud`, `pyomo_cuopt_cloud`).
+  A preset's `mm_solver` and `where` choose the solver and the place.
 * `interpolate_model()` is about 6x faster on large models;
   `fx_equ = TRUE` writes fixed bounds as single equality rows (about 25% fewer
   rows on hourly VRE models).
@@ -147,6 +151,14 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   `arrow_format` is split into `storage_format` and `exchange_format`.
 * UTOPIA is TOPIA (regions `W1`/`W2`, `C1`-`C6`, `E1`-`E3`); the test tier
   `nightly` is `full`.
+* The cloud presets are renamed: `mmcloud` is `mm_cuopt_cloud`,
+  `mmcloud_crossover` is `mm_cuopt_cloud_crossover`, `mmcloud_pyomo` is
+  `pyomo_cuopt_cloud`, `mmcloud_pyomo_crossover` is
+  `pyomo_cuopt_cloud_crossover`; a solve with a former name stops and names
+  its replacement. `mm_engine` is replaced by `mm_solver` and `where`;
+  settings stored by earlier versions are still read.
+* `get_hf_token()` and `set_hf_token()` are removed: use
+  `mmcloud::get_hf_token()` and `mmcloud::set_hf_token()`.
 
 ## Bug fixes
 

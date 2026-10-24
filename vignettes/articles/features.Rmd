@@ -152,13 +152,14 @@ model definition does not change between them.
   first-order CPU preset `julia_highs_pdlp` and the GPU presets `julia_cuopt`
   and `mm_cuopt_wsl`.
 - **GPU solving.** NVIDIA cuOpt runs through JuMP on Linux, or on Windows
-  through WSL; the same presets run on cloud hardware through the experimental
-  mmcloud route below. See [Solver backends](backends.html) for setup and the
-  validation required before a first-order solution is trusted.
+  through WSL (`mm_cuopt_wsl`), and on cloud hardware (`mm_cuopt_cloud`)
+  through the experimental route below. See [Solver backends](backends.html)
+  for setup and the validation required before a first-order solution is
+  trusted.
 - **Remote execution.** [NEOS](https://neos-server.org/) runs supported solver
-  jobs without a local licence; the *(experimental)*
-  mmcloud route ships the problem to
-  cloud hardware, streams progress and retrieves the solution.
+  jobs without a local licence; the *(experimental)* cloud presets
+  (`mm_cuopt_cloud`, `pyomo_cuopt_cloud`) ship the problem to
+  cloud hardware through `mmcloud`, stream progress and retrieve the solution.
 - **Solutions from elsewhere.** `read_solution()` decodes a solution produced
   outside energyRt, so a model written here can be solved anywhere and read
   back.

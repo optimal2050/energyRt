@@ -233,6 +233,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   } else if (is.list(arg[["solver"]])) {
     scen@settings@solver <- arg[["solver"]]
   }
+  .check_renamed_preset(scen@settings@solver)
   # The two should be the same object by now; a mismatch means one of the
   # branches above failed to keep them in sync. Reported only under
   # `options(en.debug = 1)` -- this used to drop into `browser()`, which halts
@@ -462,24 +463,14 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     return(invisible())
   }
 
-  # Local backend, no solver process: the matrix written by multimod is solved
-  # in this session by HiGHS and decoded through the index files into
-  # tmp.dir/output/, so read_solution() is unchanged.
-  if (identical(scen@settings@solver$backend, "mm")) {
-    rs <- .mm_call_solver(arg, scen)
-    if (rs != 0) stop(paste("multimod solve error code", rs))
-    if (arg$echo) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")
-    return(invisible())
-  }
-
-  # Remote backend: solve on a rented GPU via Hugging Face Jobs. The WRITE phase
-  # already produced model.mps in arg$solver.dir -- by multimod for lang = "mm",
-  # or by the preset's inc4 hook for lang = "PYOMO". .cloud_call_solver ships
-  # it, waits, and decodes the returned solution into tmp.dir/output/ so
-  # read_solution() is unchanged.
-  if (identical(scen@settings@solver$backend, "mmcloud")) {
-    rs <- .cloud_call_solver(arg, scen)
-    if (rs != 0) stop(paste("Cloud solve error code", rs))
+  # Matrix backend: the model is solved through an MPS file -- written by
+  # multimod in the write phase (lang = "mm") or by Pyomo (lang = "PYOMO") --
+  # by multimod::solve_mps(), in this process, on a local GPU or a rented one,
+  # and decoded into tmp.dir/output/ so read_solution() is unchanged.
+  # `backend = "mmcloud"` is how earlier versions stored a cloud preset.
+  if (isTRUE(scen@settings@solver$backend %in% c("mm", "mmcloud"))) {
+    rs <- .solve_matrix(arg, scen)
+    if (rs != 0) stop(paste("Matrix solve error code", rs))
     if (arg$echo) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")
     return(invisible())
   }

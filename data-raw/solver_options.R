@@ -98,13 +98,17 @@ raise SystemExit(0)"}
 # faster and 5.4x smaller at 19.85M nonzeros.
 
 ## multimod matrix, solved locally by HiGHS, in-process ######################
-# An optional `highs_options` field (named list) is passed to HiGHS as is,
-# e.g. `solver$highs_options <- list(presolve = "off")`.
+# Every matrix preset has `backend = "mm"`: the matrix is solved by
+# multimod::solve_mps(), with `mm_solver` ("highs", "julia_highs", "cuopt") and
+# `where` ("local", "wsl", "remote"). An optional `highs_options` field (named
+# list) is passed to HiGHS as is, e.g. `solver$highs_options <- list(presolve = "off")`.
 mm_highs <- list(
   name = "mm_highs",
   lang = "mm",
   solver = "HiGHS",
-  backend = "mm"
+  backend = "mm",
+  mm_solver = "highs",
+  where = "local"
 )
 
 # the same, solved by HiGHS's interior point method without crossover --
@@ -126,77 +130,81 @@ mm_highs_barrier_bs3$highs_options$user_bound_scale <- -3L
 # julia_* presets do.
 mm_julia_highs_barrier <- mm_highs_barrier
 mm_julia_highs_barrier$name <- "mm_julia_highs_barrier"
-mm_julia_highs_barrier$mm_engine <- "julia"
+mm_julia_highs_barrier$mm_solver <- "julia_highs"
 mm_julia_highs_barrier_bs3 <- mm_highs_barrier_bs3
 mm_julia_highs_barrier_bs3$name <- "mm_julia_highs_barrier_bs3"
-mm_julia_highs_barrier_bs3$mm_engine <- "julia"
-
-## Cloud solve on a rented GPU (Hugging Face Jobs) ############################
-# `backend = "mmcloud"` makes .call_solver ship the locally written matrix, run
-# cuOpt on a GPU, and decode the returned solution into <solver.dir>/output/ so
-# read_solution() is unchanged. Requires a Hugging Face token (set_hf_token(),
-# HF_TOKEN, or `hf auth login`) and `huggingface_hub` in the python energyRt
-# already uses.
-#
-# Local build, remote solve -- not the other way round: measured on the 41-node
-# full-year model, `cpu-performance` costs MORE per hour than `a10g-large`
-# ($1.90 vs $1.50), the rented cores are ~1.9x slower than a desktop, and the
-# build is single-threaded, so building remotely is slower AND dearer. Cloud
-# building is worth it only to escape a local memory ceiling.
-#
-# cuOpt returns PRIMALS ONLY -- the duals in a decoded solution are NA.
-mmcloud <- mm_highs
-mmcloud$name <- "mmcloud"
-mmcloud$backend <- "mmcloud"
-mmcloud$cloud_flavor <- "a10g-large"
-mmcloud$cloud_timeout <- "3h"
-# cuOpt PDLP. linopy defaults cuOpt to method=3 (barrier) because cuOpt's own
-# default 0 (concurrent) crashes; barrier asked for 118.9 GB of VRAM on a 36M
-# nonzero model and died on a 22 GB card. 1 is what every large model solved with.
-mmcloud$gpu_method <- 1L
-
-mmcloud_crossover <- mmcloud
-mmcloud_crossover$name <- "mmcloud_crossover"
-# Crossover recovers the exact vertex optimum: measured 1.5e-7 relative error
-# against 2.3e-4 without, for a small extra solve.
-mmcloud_crossover$gpu_solver_options <- "--crossover 1"
+mm_julia_highs_barrier_bs3$mm_solver <- "julia_highs"
 
 ## multimod matrix, solved by cuOpt on a local GPU, through WSL (Windows) ####
-# `mm_engine = "cuopt_wsl"`: cuOpt is distributed for Linux, so `cuopt_cli` runs
-# inside WSL on the local NVIDIA card, reading the matrix under /mnt/<drive>/.
-# The solver fields are the cloud route's. The install is found through the
-# optional fields `wsl_user` and `cuopt_cli`, else the environment variables
-# ENERGYRT_WSL_USER and ENERGYRT_CUOPT_CLI, else WSL's default user and
-# `cuopt_cli` on its PATH. PDLP needs roughly 0.7 GB of GPU memory plus ~300
+# cuOpt is distributed for Linux, so `cuopt_cli` runs inside WSL on the local
+# NVIDIA card, reading the matrix under /mnt/<drive>/. The install is found
+# through the optional fields `wsl_user` and `cuopt_cli`, else the environment
+# variables ENERGYRT_WSL_USER and ENERGYRT_CUOPT_CLI (or multimod's
+# MULTIMOD_WSL_USER and MULTIMOD_CUOPT_CLI), else WSL's default user and
+# `cuopt_cli` on its PATH. PDLP needs roughly 0.7 GB of GPU memory plus ~350
 # bytes per presolved nonzero.
 # cuOpt returns PRIMALS ONLY -- duals are NA -- unless crossover runs.
 mm_cuopt_wsl <- mm_highs
 mm_cuopt_wsl$name <- "mm_cuopt_wsl"
 mm_cuopt_wsl$highs_options <- NULL
 mm_cuopt_wsl$solver <- "cuOpt"
-mm_cuopt_wsl$mm_engine <- "cuopt_wsl"
-# PDLP, as on the cloud route (concurrent mode crashes; barrier exhausts GPU memory)
+mm_cuopt_wsl$mm_solver <- "cuopt"
+mm_cuopt_wsl$where <- "wsl"
+# cuOpt PDLP. linopy defaults cuOpt to method=3 (barrier) because cuOpt's own
+# default 0 (concurrent) crashes; barrier asked for 118.9 GB of VRAM on a 36M
+# nonzero model and died on a 22 GB card. 1 is what every large model solved with.
 mm_cuopt_wsl$gpu_method <- 1L
 mm_cuopt_wsl$gpu_time_limit <- 7200
 
 mm_cuopt_wsl_crossover <- mm_cuopt_wsl
 mm_cuopt_wsl_crossover$name <- "mm_cuopt_wsl_crossover"
+# Crossover recovers the exact vertex optimum: measured 1.5e-7 relative error
+# against 2.3e-4 without, for a small extra solve.
 mm_cuopt_wsl_crossover$gpu_solver_options <- "--crossover 1"
 
-## Pyomo-written matrix, same GPU transport ###################################
+## multimod matrix, solved by cuOpt on a rented GPU ###########################
+# The matrix written here is uploaded through the 'mmcloud' package, solved by
+# cuOpt on a cloud GPU and returned compressed. `cloud_flavor`, `cloud_timeout`,
+# `cloud_namespace` (the account billed), `cloud_provider` (default "hf_jobs"),
+# `cloud_image`, `cloud_poll`, `cloud_max_wait`. Requires a token for the
+# service (mmcloud::set_hf_token(), HF_TOKEN, or `hf auth login`) and
+# `huggingface_hub` in the python mmcloud uses.
+#
+# Local build, remote solve -- not the other way round: measured on the 41-node
+# full-year model, `cpu-performance` costs MORE per hour than `a10g-large`
+# ($1.90 vs $1.50), the rented cores are ~1.9x slower than a desktop, and the
+# build is single-threaded, so building remotely is slower AND dearer. Cloud
+# building is worth it only to escape a local memory ceiling.
+mm_cuopt_cloud <- mm_cuopt_wsl
+mm_cuopt_cloud$name <- "mm_cuopt_cloud"
+mm_cuopt_cloud$where <- "remote"
+mm_cuopt_cloud$gpu_time_limit <- NULL
+mm_cuopt_cloud$cloud_flavor <- "a10g-large"
+mm_cuopt_cloud$cloud_timeout <- "3h"
+
+mm_cuopt_cloud_crossover <- mm_cuopt_cloud
+mm_cuopt_cloud_crossover$name <- "mm_cuopt_cloud_crossover"
+mm_cuopt_cloud_crossover$gpu_solver_options <- "--crossover 1"
+
+## Pyomo-written matrix, solved by cuOpt on a rented GPU ######################
 # Kept because it is the route every large model solved with before the
 # multimod writer existed, and because its decoder tolerates a matrix whose
-# index files were lost. Prefer `mmcloud` for new work.
-mmcloud_pyomo <- pyomo_mps
-mmcloud_pyomo$name <- "mmcloud_pyomo"
-mmcloud_pyomo$backend <- "mmcloud"
-mmcloud_pyomo$cloud_flavor <- "a10g-large"
-mmcloud_pyomo$cloud_timeout <- "3h"
-mmcloud_pyomo$gpu_method <- 1L
+# index files were lost. Prefer `mm_cuopt_cloud` for new work.
+pyomo_cuopt_cloud <- pyomo_mps
+pyomo_cuopt_cloud$name <- "pyomo_cuopt_cloud"
+pyomo_cuopt_cloud$backend <- "mm"
+pyomo_cuopt_cloud$mm_solver <- "cuopt"
+pyomo_cuopt_cloud$where <- "remote"
+pyomo_cuopt_cloud$cloud_flavor <- "a10g-large"
+pyomo_cuopt_cloud$cloud_timeout <- "3h"
+pyomo_cuopt_cloud$gpu_method <- 1L
 
-mmcloud_pyomo_crossover <- mmcloud_pyomo
-mmcloud_pyomo_crossover$name <- "mmcloud_pyomo_crossover"
-mmcloud_pyomo_crossover$gpu_solver_options <- "--crossover 1"
+pyomo_cuopt_cloud_crossover <- pyomo_cuopt_cloud
+pyomo_cuopt_cloud_crossover$name <- "pyomo_cuopt_cloud_crossover"
+pyomo_cuopt_cloud_crossover$gpu_solver_options <- "--crossover 1"
+
+## Renamed presets: a solve with one of these stops and names the new preset
+renamed_preset <- function(old, new) list(name = old, renamed_to = new)
 
 ## Python/Pyomo via NEOS (remote solve; no local solver, needs env var NEOS_EMAIL)
 # The scenario is still BUILT locally (Pyomo reads the data into the
@@ -620,7 +628,7 @@ solver_options <- list(
   pyomo_highs = pyomo_highs,
   pyomo_highs_barrier = pyomo_highs_barrier,
   pyomo_mps = pyomo_mps,
-  # multimod-written matrix (lang = "mm"): local HiGHS, or a rented GPU
+  # multimod-written matrix (lang = "mm"): HiGHS, Julia, a local or rented GPU
   mm_highs = mm_highs,
   mm_highs_barrier = mm_highs_barrier,
   mm_highs_barrier_bs3 = mm_highs_barrier_bs3,
@@ -628,11 +636,16 @@ solver_options <- list(
   mm_julia_highs_barrier_bs3 = mm_julia_highs_barrier_bs3,
   mm_cuopt_wsl = mm_cuopt_wsl,
   mm_cuopt_wsl_crossover = mm_cuopt_wsl_crossover,
-  mmcloud = mmcloud,
-  mmcloud_crossover = mmcloud_crossover,
-  # Pyomo-written matrix on the same GPU transport
-  mmcloud_pyomo = mmcloud_pyomo,
-  mmcloud_pyomo_crossover = mmcloud_pyomo_crossover,
+  mm_cuopt_cloud = mm_cuopt_cloud,
+  mm_cuopt_cloud_crossover = mm_cuopt_cloud_crossover,
+  # Pyomo-written matrix on a rented GPU
+  pyomo_cuopt_cloud = pyomo_cuopt_cloud,
+  pyomo_cuopt_cloud_crossover = pyomo_cuopt_cloud_crossover,
+  # renamed (no aliases): a solve with one of these stops and names the new one
+  mmcloud = renamed_preset("mmcloud", "mm_cuopt_cloud"),
+  mmcloud_crossover = renamed_preset("mmcloud_crossover", "mm_cuopt_cloud_crossover"),
+  mmcloud_pyomo = renamed_preset("mmcloud_pyomo", "pyomo_cuopt_cloud"),
+  mmcloud_pyomo_crossover = renamed_preset("mmcloud_pyomo_crossover", "pyomo_cuopt_cloud_crossover"),
   # Python/Pyomo via NEOS (remote solve)
   neos_pyomo_cplex = neos_pyomo_cplex,
   neos_pyomo_cplex_barrier = neos_pyomo_cplex_barrier,

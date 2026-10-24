@@ -5,7 +5,7 @@
 \alias{solver_options}
 \title{Solver presets}
 \format{
-A named list of 46 solver settings objects.
+A named list of solver settings objects.
 }
 \source{
 \code{data-raw/solver_options.R}
@@ -18,11 +18,16 @@ Ready-made solver configurations to pass to \code{\link[=solve_scenario]{solve_s
 \code{solver = solver_options[["<name>"]]}. The name encodes the route and the
 algorithm: a bare backend (\code{glpk}), \verb{pyomo_*} for the Python route, \verb{mm_*}
 for the multimod matrix route, and a \verb{_barrier} suffix for the interior-point
-method rather than simplex.
+method rather than simplex. The matrix presets name the matrix writer, the
+solver and the place: \code{mm_cuopt_wsl} (cuOpt on a local GPU through WSL),
+\code{mm_cuopt_cloud} (cuOpt on a rented GPU), \code{pyomo_cuopt_cloud} (a Pyomo-written
+matrix on a rented GPU).
 }
 \details{
 These entries are data only -- selecting one does not check that the solver
-is installed.
+is installed. The former names \code{mmcloud}, \code{mmcloud_crossover},
+\code{mmcloud_pyomo} and \code{mmcloud_pyomo_crossover} remain as entries that stop a
+solve and name their replacement.
 }
 \examples{
 names(solver_options)

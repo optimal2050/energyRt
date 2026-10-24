@@ -33,12 +33,17 @@
 #' `solver = solver_options[["<name>"]]`. The name encodes the route and the
 #' algorithm: a bare backend (`glpk`), `pyomo_*` for the Python route, `mm_*`
 #' for the multimod matrix route, and a `_barrier` suffix for the interior-point
-#' method rather than simplex.
+#' method rather than simplex. The matrix presets name the matrix writer, the
+#' solver and the place: `mm_cuopt_wsl` (cuOpt on a local GPU through WSL),
+#' `mm_cuopt_cloud` (cuOpt on a rented GPU), `pyomo_cuopt_cloud` (a Pyomo-written
+#' matrix on a rented GPU).
 #'
 #' These entries are data only -- selecting one does not check that the solver
-#' is installed.
+#' is installed. The former names `mmcloud`, `mmcloud_crossover`,
+#' `mmcloud_pyomo` and `mmcloud_pyomo_crossover` remain as entries that stop a
+#' solve and name their replacement.
 #'
-#' @format A named list of 46 solver settings objects.
+#' @format A named list of solver settings objects.
 #' @source `data-raw/solver_options.R`
 #' @seealso [solve_scenario()]
 #' @examples

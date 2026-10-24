@@ -110,7 +110,7 @@ options::define_option(
 # Cloud credentials are NOT options here. The `mmcloud` package owns them --
 # it is what talks to the service and what the python transfer helper inherits
 # `HF_TOKEN` from -- so defining them again would give two sources of truth for
-# one token. Use `set_hf_token()`, which forwards to mmcloud.
+# one token. Set it with `mmcloud::set_hf_token()`.
 
 # Defaults ####################################################################
 
