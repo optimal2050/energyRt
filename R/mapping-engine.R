@@ -1426,6 +1426,7 @@ recipe_value <- function(scen, names, fmp) {
   for (nm in names) {
     df <- hit$value[[nm]]
     if (!is.null(df) && nrow(df) > 0) scen <- .set_map(scen, nm, df, fmp)
+    if (nm == "meqTechActSng") scen <- .set_map_rule(scen, nm, .meqTechActSng_rule(scen))
   }
   left <- setdiff(hit$left, names)
   if (length(left)) {

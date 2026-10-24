@@ -37,7 +37,8 @@ map_mvTechAct <- function(scen, fmp) {
   if (is.null(tech_span) || is.null(tech_timeslice)) return(scen)
   act <- .drop_region_gaps(scen, as.data.frame(merge0(tech_span, tech_timeslice)),
                            "tech", "technology")
-  .set_map(scen, "mvTechAct", act, fmp)
+  scen <- .set_map(scen, "mvTechAct", act, fmp)
+  .set_map_rule(scen, "mvTechAct", .mvTechAct_rule(scen))
 }
 
 map_mvTechInp <- function(scen, fmp) {
@@ -54,7 +55,8 @@ map_mvTechOut <- function(scen, fmp) {
   act <- .gds(scen, "mvTechAct"); out <- .gds(scen, "mTechOutComm")
   if (is.null(act) || is.null(out)) return(scen)
   dom <- .flow_region_spread(scen, as.data.frame(merge0(act, out)), "tech")
-  .set_map(scen, "mvTechOut", .filt_cr(scen, dom), fmp)
+  scen <- .set_map(scen, "mvTechOut", .filt_cr(scen, dom), fmp)
+  .set_map_rule(scen, "mvTechOut", .mvTechOut_rule(scen))
 }
 
 # mTechProcAggRegion: for a technology COARSER than a commodity it touches, its

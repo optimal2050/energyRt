@@ -62,6 +62,10 @@ figure/
 # backends, rewritten on every suite run (tools/test/lib/runner.R)
 tools/test/.backend-probe.json
 
+# the interpolation profile log of a project opened under vignettes/ by a
+# render: per-machine measurements
+vignettes/logs/
+
 # roadmap and testing articles withheld pending reconsideration (kept locally)
 vignettes/articles/roadmap.Rmd
 docs/articles/roadmap.html

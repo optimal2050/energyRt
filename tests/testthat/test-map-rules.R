@@ -3,7 +3,8 @@
 # read, the scenario saves without them, and the multimod import carries the
 # rule to the matrix route. Fixtures: helper-param-refs.R.
 
-mr_maps <- c("mTechTimeslice", "mCommTimeslice", "mWeatherTimeslice")
+mr_maps <- c("mTechTimeslice", "mCommTimeslice", "mWeatherTimeslice",
+             "mvTechAct", "mvTechOut", "meqTechActSng")
 
 as_tuples <- function(d) {
   d <- as.data.frame(d)
@@ -14,7 +15,7 @@ as_tuples <- function(d) {
 }
 
 mr_interpolate <- function(name, rules, ...) {
-  withr::with_options(list(energyRt.map_rules = rules),
+  withr::with_options(list(energyRt.map_rules = rules, energyRt.map_rules_verify = TRUE),
     suppressMessages(interpolate_model(pr_model(), name = name,
                                        path = pr_root("scenarios", name), ...)))
 }
@@ -36,6 +37,41 @@ test_that("a rule enumerates the join of its tables", {
                                      cols = c("tech", "timeslice"))$hash)
   bad <- .map_rule(of = "w", tables = list(w = data.frame(weather = "W1")), cols = c("weather", "region"))
   expect_error(.rule_tuples(bad), "in none of its tables")
+  # gates keep the matching rows, subtractions drop them; year comes back integer
+  span <- data.frame(tech = c("A", "A", "B"), region = c("R1", "R2", "R1"), year = c(2025L, 2025L, 2030L))
+  cr <- data.frame(comm = "ELC", region = "R1")
+  gaps <- data.frame(tech = "B", region = "R1")
+  g <- .map_rule(of = c("span", "pf", "fs"), gate = "cr", minus = "gaps", cols = c("tech", "region", "year", "timeslice"),
+                 tables = list(span = span, pf = pf, fs = fs, cr = cr, gaps = gaps))
+  got <- .rule_tuples(g)
+  expect_true(is.integer(got$year))
+  expect_equal(as_tuples(got), as_tuples(data.frame(tech = "A", region = "R1", year = 2025L, timeslice = "y")))
+})
+
+test_that("the activity, output and single-output domains carry exact rules on the tier fixtures", {
+  skip_if_no_fixtures()
+  pr_local_model()
+  unlink(pr_root(), recursive = TRUE)
+  env <- .mapping_fixture_env()
+  for (nm in c("tm_core", "tm_flows", "tm_io", "tm_weather")) {
+    build <- env[[nm]]
+    scen <- withr::with_options(list(energyRt.map_rules = TRUE, energyRt.map_rules_verify = TRUE),
+      suppressMessages(suppressWarnings(interpolate_model(build(), name = paste0("mr_", nm),
+                                                          path = pr_root("scenarios", paste0("mr_", nm))))))
+    rp <- .rule_params(scen)
+    expect_true(all(c("mTechTimeslice", "mvTechAct") %in% rp), info = nm)
+    if (.no_coarse_processes(scen)) expect_true("mvTechOut" %in% rp, info = nm)
+  }
+})
+
+test_that("the TOPIA model interpolates with every rule verified against its table", {
+  pr_local_model()
+  unlink(pr_root(), recursive = TRUE)
+  scen <- withr::with_options(list(energyRt.map_rules = TRUE, energyRt.map_rules_verify = TRUE),
+    suppressMessages(suppressWarnings(interpolate_model(ut_build("R1", "s4_h24"), name = "mr_topia",
+                                                        path = pr_root("scenarios", "mr_topia")))))
+  expect_true(all(mr_maps %in% .rule_params(scen)))
+  for (nm in mr_maps) expect_equal(nrow(scen@modInp@parameters[[nm]]@data), 0L, info = nm)
 })
 
 test_that("the timeslice maps equal their rules and keep only the rule after interpolation", {

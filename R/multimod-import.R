@@ -419,7 +419,8 @@ convert_parameter <- function(en_param, orig_param = NULL, inMemory = FALSE,
   if (!is.null(rule) && is.null(.en_param_data_dir(en_param)) &&
       (is.null(en_param@data) || nrow(en_param@data) == 0)) {
     result["data"] <- list(NULL)
-    result$rule <- multimod::mapping_rule(of = rule$of, tables = rule$tables, cols = rule$cols)
+    result$rule <- multimod::mapping_rule(of = rule$of, gate = rule$gate, minus = rule$minus,
+                                          tables = rule$tables, cols = rule$cols)
     result$misc <- list(inMemory = TRUE, path = NULL, onDisk = NULL)
     if (!is.null(orig_param) && !is.null(class(orig_param))) class(result) <- class(orig_param)
     return(result)
