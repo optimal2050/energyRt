@@ -8,9 +8,11 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 * The per-object timeslice maps (`mTechTimeslice` and its siblings,
   `mCommTimeslice`, `mWeatherTimeslice`), the technology activity and output
-  domains (`mvTechAct`, `mvTechOut`) and `meqTechActSng` are defined by a
-  rule, the join of the small tables they are made of, and their tables are
-  dropped at the end of `interpolate_model()`. Readers see the same tuples;
+  domains (`mvTechAct`, `mvTechOut`), `meqTechActSng` and the
+  availability-factor maps (`meqTechAfLo`, `meqTechAfUp`, `meqTechAfFx`,
+  where the bound is one number per technology, region and year) are
+  defined by a rule, the join of the small tables they are made of, and
+  their tables are dropped at the end of `interpolate_model()`. Readers see the same tuples;
   the multimod route enumerates the rule itself and the saved scenario no
   longer carries the tables. The output and single-output domains keep
   their tables in a model with coarse processes.

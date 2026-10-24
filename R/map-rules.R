@@ -269,3 +269,34 @@
   .map_rule(of = c(base$of, "onecomm"), gate = base$gate, minus = minus, tables = tables,
             cols = c("tech", "comm", "region", "year", "timeslice"))
 }
+
+# --- constraint domains that are cells of the activity domain ----------------
+#
+# The availability-factor maps hold, for each (tech, region, year) cell they
+# cover, either every timeslice of mvTechAct or none: the bound is one number
+# per cell when pTechAf carries no per-timeslice rows. Such a map is
+# mvTechAct gated by its cells. The builder's table decides: the rule is
+# recorded only when the table equals the activity domain restricted to the
+# table's own cells, which one semi-join counts.
+.cells_rule <- function(scen, name, cell_cols = c("tech", "region", "year")) {
+  tbl <- .gds(scen, name)
+  act <- .gds(scen, "mvTechAct")
+  base <- .mvTechAct_rule(scen)
+  if (is.null(tbl) || is.null(act) || is.null(base)) return(NULL)
+  if (!all(cell_cols %in% colnames(tbl)) || !all(cell_cols %in% colnames(act))) return(NULL)
+  cells <- dplyr::distinct(as.data.frame(tbl)[, cell_cols, drop = FALSE])
+  if (anyNA(cells)) return(NULL)
+  a <- data.table::as.data.table(act)
+  c2 <- data.table::as.data.table(force_cols_classes(cells))
+  covered <- sum(!is.na(c2[a, on = cell_cols, which = TRUE, mult = "first"]))
+  if (covered != nrow(tbl)) return(NULL)
+  tables <- base$tables
+  tables$cells <- cells
+  .map_rule(of = base$of, gate = "cells", minus = base$minus, tables = tables,
+            cols = c("tech", "region", "year", "timeslice"))
+}
+
+.set_cells_rules <- function(scen, names) {
+  for (nm in names) scen <- .set_map_rule(scen, nm, .cells_rule(scen, nm))
+  scen
+}

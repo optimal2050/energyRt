@@ -72,6 +72,32 @@ test_that("the TOPIA model interpolates with every rule verified against its tab
                                                         path = pr_root("scenarios", "mr_topia")))))
   expect_true(all(mr_maps %in% .rule_params(scen)))
   for (nm in mr_maps) expect_equal(nrow(scen@modInp@parameters[[nm]]@data), 0L, info = nm)
+  # the availability-factor maps: one bound per cell in this model
+  af <- intersect(c("meqTechAfLo", "meqTechAfUp", "meqTechAfFx"),
+                  names(Filter(function(p) nrow(get_data_slot(p)) > 0, scen@modInp@parameters)))
+  expect_true(length(af) > 0)
+  expect_true(all(af %in% .rule_params(scen)))
+})
+
+test_that("an availability-factor map with per-timeslice bounds keeps its table", {
+  pr_local_model()
+  unlink(pr_root(), recursive = TRUE)
+  # a technology whose af.up is open on some timeslices: the Up map covers
+  # part of the cell, not a whole one
+  repo <- newRepository(
+    "mrr",
+    newCommodity("ELC", timeframe = "SL"),
+    newTechnology("GAS", output = list(comm = "ELC"),
+                  af = data.frame(timeslice = pr_slices, af.up = c(0.9, Inf, 0.7, Inf)),
+                  invcost = list(invcost = 1000), olife = list(olife = 30), cap2act = 1),
+    newDemand("DEM", commodity = "ELC", demand = data.frame(timeslice = pr_slices, demand = 10)))
+  cal <- newCalendar(timetable = make_timetable(struct = list(ANNUAL = "ANNUAL", SL = pr_slices)), name = "prc")
+  mod <- newModel("mrm", region = "R1", discount = 0, calendar = cal, horizon = newHorizon(2025), repo = repo)
+  scen <- withr::with_options(list(energyRt.map_rules = TRUE, energyRt.map_rules_verify = TRUE),
+    suppressMessages(suppressWarnings(interpolate_model(mod, name = "mr_af", path = pr_root("scenarios", "mr_af")))))
+  expect_false("meqTechAfUp" %in% .rule_params(scen))
+  expect_gt(nrow(scen@modInp@parameters[["meqTechAfUp"]]@data), 0)
+  expect_true("mvTechAct" %in% .rule_params(scen))
 })
 
 test_that("the timeslice maps equal their rules and keep only the rule after interpolation", {

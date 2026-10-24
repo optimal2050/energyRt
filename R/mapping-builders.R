@@ -629,11 +629,11 @@ map_meqBalFx <- function(scen, fmp) .cjoin(scen, "meqBalFx", fmp)
 map_meqTechAfLo     <- function(scen, fmp) {
   scen <- .weather_lo_default(scen, "mTechWeatherAfLo", "pTechAf", "mvTechAct", "tech")
   if (isTRUE(getOption("energyRt.fx_equ", TRUE))) return(.tech_af_fx_maps(scen, fmp))
-  .cjoin(scen, "meqTechAfLo", fmp)
+  .set_cells_rules(.cjoin(scen, "meqTechAfLo", fmp), "meqTechAfLo")
 }
 map_meqTechAfUp     <- function(scen, fmp) {
   if (isTRUE(getOption("energyRt.fx_equ", TRUE))) return(scen)
-  .cjoin(scen, "meqTechAfUp", fmp)
+  .set_cells_rules(.cjoin(scen, "meqTechAfUp", fmp), "meqTechAfUp")
 }
 # built together with meqTechAfLo / meqTechAfUp by .tech_af_fx_maps()
 map_meqTechAfFx     <- function(scen, fmp) scen
@@ -669,7 +669,10 @@ map_meqTechAfFx     <- function(scen, fmp) scen
   }
   scen <- .set_map(scen, "meqTechAfLo", lo, fmp)
   scen <- .set_map(scen, "meqTechAfUp", up, fmp)
-  .set_map(scen, "meqTechAfFx", fx, fmp)
+  scen <- .set_map(scen, "meqTechAfFx", fx, fmp)
+  # each map is the activity domain at its cells when the bound is one number
+  # per (tech, region, year); the rule then replaces the table (R/map-rules.R)
+  .set_cells_rules(scen, c("meqTechAfLo", "meqTechAfUp", "meqTechAfFx"))
 }
 
 # value of a `bounds` parameter (`type`/`value` columns) of side `type` at each
