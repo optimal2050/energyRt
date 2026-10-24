@@ -20,6 +20,7 @@ save_dataset(
   overwrite = FALSE,
   rehash = TRUE,
   memo = "",
+  hash = NULL,
   verbose = TRUE
 )
 
@@ -33,7 +34,7 @@ load_dataset(
 )
 }
 \arguments{
-\item{x}{the payload to store (omit for a functional dataset).}
+\item{x}{the dataset payload.}
 
 \item{name}{character, dataset name, \code{"name@hash8"}, or a store directory
 path.}
@@ -64,11 +65,9 @@ version tag, not a content proof.}
 
 \item{memo}{character, optional registry note.}
 
-\item{verbose}{logical.}
+\item{hash}{character, full or short content hash to pin a version.}
 
-\item{hash}{character, full or short content hash to pin a version; for
-\code{save_dataset()}, the content hash of \code{x} when the caller has computed
-it already (\code{dataset_hash()}), which spares a second pass.}
+\item{verbose}{logical.}
 
 \item{evaluate}{logical, for a functional entry: re-evaluate the recorded
 call (verifying \code{result_hash}) instead of only reading the snapshot.

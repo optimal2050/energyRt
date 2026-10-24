@@ -126,17 +126,17 @@
 # `options(energyRt.map_rules_verify = TRUE)`: the rule must enumerate the
 # table the builder wrote, tuple for tuple, else the interpolation stops.
 .verify_map_rule <- function(p, nm) {
-  tup <- function(d) {
-    d <- as.data.frame(d)[, p@dimSets, drop = FALSE]
-    for (j in seq_along(d)) d[[j]] <- as.character(d[[j]])
-    d <- unique(d)
-    d <- d[do.call(order, d), , drop = FALSE]
-    rownames(d) <- NULL
-    d
+  cols <- p@dimSets
+  canon <- function(d) {
+    d <- data.table::as.data.table(force_cols_classes(as.data.frame(d)))[, cols, with = FALSE]
+    unique(d, by = cols)
   }
-  a <- tup(get_data_slot(p))
-  b <- tup(.rule_tuples(p@misc$rule))
-  if (!identical(a, b)) {
+  a <- canon(get_data_slot(p))
+  b <- canon(.rule_tuples(p@misc$rule))
+  # the same set of tuples: equal counts and nothing on either side alone
+  same <- nrow(a) == nrow(b) &&
+    nrow(data.table::fsetdiff(a, b)) == 0L && nrow(data.table::fsetdiff(b, a)) == 0L
+  if (!same) {
     stop("map rule for '", nm, "' enumerates ", nrow(b), " tuples where the table has ",
          nrow(a), ".", call. = FALSE)
   }
