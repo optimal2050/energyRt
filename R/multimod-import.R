@@ -413,6 +413,18 @@ convert_parameter <- function(en_param, orig_param = NULL, inMemory = FALSE,
     onDisk = source_on_disk
   )
 
+  # A map defined by a rule and holding no table: multimod gets the rule and
+  # enumerates it itself (in integer codes on the matrix route)
+  rule <- param_misc$rule
+  if (!is.null(rule) && is.null(.en_param_data_dir(en_param)) &&
+      (is.null(en_param@data) || nrow(en_param@data) == 0)) {
+    result["data"] <- list(NULL)
+    result$rule <- multimod::mapping_rule(of = rule$of, tables = rule$tables, cols = rule$cols)
+    result$misc <- list(inMemory = TRUE, path = NULL, onDisk = NULL)
+    if (!is.null(orig_param) && !is.null(class(orig_param))) class(result) <- class(orig_param)
+    return(result)
+  }
+
   if (isTRUE(inMemory)) {
     loaded <- collect_scenario_parameter_data(en_param, scenario = scenario)
     result$data <- loaded
@@ -438,6 +450,11 @@ convert_parameter <- function(en_param, orig_param = NULL, inMemory = FALSE,
     } else if (!is.null(data_dir)) {
       # a folded table that must be unfolded on read: collected
       result$data <- collect_scenario_parameter_data(en_param, scenario = scenario)
+      result$misc$inMemory <- TRUE
+      result$misc$path <- NULL
+      result$misc$onDisk <- NULL
+    } else {
+      # no rows anywhere: an empty table, not one held elsewhere
       result$misc$inMemory <- TRUE
       result$misc$path <- NULL
       result$misc$onDisk <- NULL
@@ -916,7 +933,19 @@ populate_sets_with_log <- function(model, scenario) {
     # millions of rows for a few thousand members).
     path <- .en_param_data_dir(en_param) %||% en_param@misc$path
     column_members <- NULL
-    if (!is.null(path) && (dir.exists(path) || file.exists(path))) {
+    rule <- en_param@misc$rule
+    if (!is.null(rule) && is.null(.en_param_data_dir(en_param)) &&
+        (is.null(en_param@data) || nrow(en_param@data) == 0)) {
+      # a rule map: the members of each dimension from the rule's own tables
+      tabs <- rule$tables
+      column_members <- function(i) {
+        if (i > length(dims)) return(NULL)
+        nm <- dims[i]
+        v <- unlist(lapply(tabs, function(t) if (nm %in% names(t)) as.character(t[[nm]]) else NULL),
+                    use.names = FALSE)
+        if (is.null(v)) NULL else unique(v)
+      }
+    } else if (!is.null(path) && (dir.exists(path) || file.exists(path))) {
       ds <- tryCatch(
         multimod::load_arrow_data(path, collect = FALSE),
         error = function(e) {

@@ -151,6 +151,7 @@ Collate:
     'storage_duration.R'
     'store-objects.R'
     'store-params.R'
+    'map-rules.R'
     'techspec.R'
     'timeslices.R'
     'topia.R'

@@ -98,6 +98,10 @@
   entries <- list()
   for (pname in names(mi@parameters)) {
     p <- mi@parameters[[pname]]
+    if (!is.null(p@misc$rule)) {                      # a rule holds no table
+      n0 <- .param_nrow(p)
+      if (is.na(n0) || n0 == 0L) next
+    }
     ref <- p@misc$param_ref
     if (!is.null(ref)) {
       # referenced and unchanged: the manifest lists it again

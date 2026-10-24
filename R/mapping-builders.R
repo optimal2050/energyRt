@@ -34,12 +34,21 @@
 }
 
 # -- per-object / per-commodity timeslice maps --------------------------------- #
-map_mCommTimeslice  <- function(scen, fmp) .set_cal(scen, "mCommTimeslice", .comm_timeslice_df(scen), fmp)
-map_mTechTimeslice  <- function(scen, fmp) .set_cal(scen, "mTechTimeslice",  .proc_timeslice_for(.process_timeslice_df(scen), get_process_class(scen), "technology", "tech"),  fmp)
-map_mSupTimeslice   <- function(scen, fmp) .set_cal(scen, "mSupTimeslice",   .proc_timeslice_for(.process_timeslice_df(scen), get_process_class(scen), "supply",     "sup"),   fmp)
-map_mTradeTimeslice <- function(scen, fmp) .set_cal(scen, "mTradeTimeslice", .proc_timeslice_for(.process_timeslice_df(scen), get_process_class(scen), "trade",      "trade"), fmp)
-map_mImpTimeslice   <- function(scen, fmp) .set_cal(scen, "mImpTimeslice",   .proc_timeslice_for(.process_timeslice_df(scen), get_process_class(scen), "import",     "imp"),   fmp)
-map_mExpTimeslice   <- function(scen, fmp) .set_cal(scen, "mExpTimeslice",   .proc_timeslice_for(.process_timeslice_df(scen), get_process_class(scen), "export",     "expp"),  fmp)
+# The table is written for the builders that read it; the rule (R/map-rules.R)
+# is recorded beside it and defines the map once the tables are stripped.
+.proc_timeslice_map <- function(scen, name, cls, key, fmp) {
+  scen <- .set_cal(scen, name, .proc_timeslice_for(.process_timeslice_df(scen), get_process_class(scen), cls, key), fmp)
+  .set_map_rule(scen, name, .proc_timeslice_rule(scen, cls, key))
+}
+map_mCommTimeslice  <- function(scen, fmp) {
+  scen <- .set_cal(scen, "mCommTimeslice", .comm_timeslice_df(scen), fmp)
+  .set_map_rule(scen, "mCommTimeslice", .comm_timeslice_rule(scen))
+}
+map_mTechTimeslice  <- function(scen, fmp) .proc_timeslice_map(scen, "mTechTimeslice",  "technology", "tech",  fmp)
+map_mSupTimeslice   <- function(scen, fmp) .proc_timeslice_map(scen, "mSupTimeslice",   "supply",     "sup",   fmp)
+map_mTradeTimeslice <- function(scen, fmp) .proc_timeslice_map(scen, "mTradeTimeslice", "trade",      "trade", fmp)
+map_mImpTimeslice   <- function(scen, fmp) .proc_timeslice_map(scen, "mImpTimeslice",   "import",     "imp",   fmp)
+map_mExpTimeslice   <- function(scen, fmp) .proc_timeslice_map(scen, "mExpTimeslice",   "export",     "expp",  fmp)
 
 # -- timeslice ancestry / next maps -------------------------------------------- #
 map_mTimesliceParentChild <- function(scen, fmp) {
@@ -167,7 +176,12 @@ map_mWeatherTimeslice <- function(scen, fmp) {
   if (is.null(df) || nrow(df) == 0) return(scen)
   scen@modInp@parameters[["mWeatherTimeslice"]] <-
     d2p(scen@modInp@parameters[["mWeatherTimeslice"]], df, fmp("mWeatherTimeslice"))
-  scen
+  # the rule: every weather series with every leaf timeslice
+  .set_map_rule(scen, "mWeatherTimeslice", .map_rule(
+    of = c("weather", "leaf"),
+    tables = list(weather = data.frame(weather = unique(df$weather), stringsAsFactors = FALSE),
+                  leaf = data.frame(timeslice = leaves, stringsAsFactors = FALSE)),
+    cols = c("weather", "timeslice")))
 }
 
 # -- registry for the calendar family -------------------------------------- #

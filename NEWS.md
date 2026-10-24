@@ -6,6 +6,12 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## License
 
+* The per-object timeslice maps (`mTechTimeslice` and its siblings,
+  `mCommTimeslice`, `mWeatherTimeslice`) are defined by a rule, the join of
+  the small tables they are made of, and their tables are dropped at the end
+  of `interpolate_model()`. Readers see the same tuples; the multimod route
+  enumerates the rule itself and the saved scenario no longer carries the
+  tables. `options(energyRt.map_rules = FALSE)` keeps the tables.
 * Relicensed from AGPL-3 to Apache-2.0. Releases up to v0.89 remain AGPL-3.
 
 ## New features

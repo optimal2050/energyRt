@@ -18,6 +18,12 @@ get_data_slot <- function(obj, optional = FALSE, dedup = TRUE) {
   if (is.null(data)) {
     data <- obj@data
   }
+  # A map defined by a rule (R/map-rules.R) holds no table: its tuples are
+  # enumerated here, so every reader sees them as it would see the table.
+  if ((is.null(data) || nrow(data) == 0) && !is.null(obj@misc$rule) &&
+      length(.pending_chunks(obj)) == 0) {
+    return(.rule_tuples(obj@misc$rule))
+  }
   # In bulk mode `d2p()` parks chunks in `@misc$.pending_chunks` instead of
   # rebuilding the accumulated table on every write (see there). Readers always
   # get the complete, de-duplicated view; `.flush_pending_parameters()` makes it

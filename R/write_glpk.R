@@ -237,10 +237,11 @@ get_glpk_path <- function() {
 }
 
 
-# Convert one scenario parameter to GMPL (GLPK/CBC) text. The interp_mod()
-# pipeline keeps each parameter's `@data` slot authoritative, so the whole slot
-# is written.
+# Convert one scenario parameter to GMPL (GLPK/CBC) text. The whole table is
+# written, read through get_data_slot() as the other writers do, so a map
+# defined by a rule (R/map-rules.R) is written as its tuples.
 .sm_to_glpk <- function(obj) {
+  obj@data <- get_data_slot(obj)
   if (obj@type == "set") {
     if (nrow(obj@data) == 0) {
       ret <- c(paste("set ", obj@name, " := ;", sep = ""), "")

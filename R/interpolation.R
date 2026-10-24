@@ -1305,6 +1305,8 @@ interpolate_model <- function(object, name = NULL, ...,
   # op log above needs set_log_file(); this appends whenever a sink resolves.
   .interp_profile_log(scen, object, ondisk,
                       difftime(Sys.time(), .log_t0, units = "secs"))
+  # maps defined by a rule keep the rule only (R/map-rules.R)
+  scen <- .strip_rule_tables(scen, verbose = verbose)
   scen
 }
 
