@@ -163,3 +163,50 @@ test_that("sealed versions record their dependents; unsealing shows and guards t
   expect_identical(nrow(r), 0L)
   expect_identical(nrow(store_blast_radius("svd", type = "model")), 0L)
 })
+
+test_that("a model built from objects of a sealed repository references the selection", {
+  sv_local()
+  unlink(sv_root(), recursive = TRUE)
+  base <- sv_mod("svsel", fixom = 1)
+  repo <- base@data[[1]]
+  expect_gt(length(repo@data), 1L)
+  save_repository(repo, verbose = FALSE)
+  suppressMessages(seal_repository(repo@name))
+  mf <- yaml::read_yaml(fp(sv_root("repositories"), repo@name, "repository.yml"))
+  expect_setequal(names(mf$versions[[1]]$objects), names(repo@data))
+
+  # select from the sealed version: every object but the last
+  sealed <- load_repository(repo@name, verbose = FALSE)
+  keep <- names(sealed@data)[-length(sealed@data)]
+  sel <- do.call(newRepository, c(list(name = "svsel_part"), unname(sealed@data[keep])))
+  mod <- base
+  mod@data <- list(svsel_part = sel)
+  saved <- save_model(mod, verbose = FALSE)
+  mm <- yaml::read_yaml(fp(saved@misc$path, "model.yml"))
+  re <- mm$repositories[[1]]
+  expect_identical(re$source, "ref")
+  expect_identical(re$name, repo@name)
+  expect_identical(re$as, "svsel_part")
+  expect_setequal(unlist(re$objects), keep)
+
+  back <- load_model(mod@name, verbose = FALSE)
+  expect_identical(names(back@data), "svsel_part")
+  expect_identical(back@data[[1]]@name, "svsel_part")
+  expect_setequal(names(back@data[[1]]@data), keep)
+  expect_identical(object_hash(back@data[[1]]@data[[keep[1]]]),
+                   object_hash(repo@data[[keep[1]]]))
+  # the sealed version records the model as a dependent
+  expect_true("svsel" %in% store_blast_radius(repo@name, type = "repository")$name)
+
+  # a changed object is not the sealed one: the repository is copied in
+  sel2 <- sel
+  o <- sel2@data[[keep[1]]]
+  o@desc <- paste(o@desc, "changed")
+  sel2@data[[keep[1]]] <- o
+  mod2 <- base
+  mod2@name <- "svsel2"
+  mod2@data <- list(svsel_part = sel2)
+  s2 <- save_model(mod2, verbose = FALSE)
+  expect_identical(yaml::read_yaml(fp(s2@misc$path, "model.yml"))$repositories[[1]]$source,
+                   "embedded")
+})

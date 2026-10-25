@@ -121,6 +121,11 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   otherwise; `"full"` copies everything in. `save_scenario()` no longer
   stores an unsealed model in the model store to reference it. Changed: a
   scenario whose model is stored but not sealed now carries its own copy.
+* A model whose repository holds unchanged objects of one sealed repository
+  version (taken with `getObject()` from a loaded sealed repository)
+  references that version with the object names and the hash of the
+  selected objects, verified by `load_model()`. Sealing a repository records
+  each object's hash for this.
 * Sealing a model or repository freezes its content as a version
   (`<entry>/<hash>/`): unsealed saves update the entry in place and leave the
   sealed versions untouched, and references and `load_*(hash = )` reach a

@@ -272,10 +272,13 @@ save_model <- function(
     if (!isTRUE(embed_repos) && nzchar(rh)) {
       store_dir <- .sealed_entry("repository", repo@name, rh)
     }
+    sel <- if (is.null(store_dir) && !isTRUE(embed_repos)) .selection_of(repo)
     if (!is.null(store_dir)) {
       repo_entries[[rp]] <- list(name = repo@name, hash = rh,
                                  source = "ref",
                                  path = .registry_rel_path(store_dir))
+    } else if (!is.null(sel)) {
+      repo_entries[[rp]] <- sel
     } else if (isFALSE(embed_repos)) {
       stop("embed_repos = FALSE, but repository '", repo@name, "' (",
            substr(rh, 1, 8), ") is not a sealed version in the repository store ('",
@@ -497,6 +500,45 @@ save_model <- function(
   if (any(startsWith(vers, hash))) return(path)
   if (isTRUE(mf$sealed) && startsWith(as.character(mf$hash %||% ""), hash)) return(path)
   NULL
+}
+
+# --- selections from sealed repositories -------------------------------------
+# A sealed repository version records the hash of each of its objects. An
+# object loaded from a sealed version carries its origin (`misc$origin`:
+# repository and version hash; `@misc` is outside every hash). A model
+# repository whose objects all come unchanged from one sealed version is
+# saved as a reference to that version plus the object names, and the hash
+# of the selected objects, verified at load.
+
+.repository_object_hashes <- function(repo) {
+  if (!length(repo@data)) return(character())
+  vapply(repo@data, function(o) rlang::hash(.strip_volatile(o)), character(1))
+}
+
+.selection_hash <- function(hashes) {
+  rlang::hash(as.list(hashes[order(names(hashes))]))
+}
+
+# The selection reference for a model repository, or NULL when its objects
+# are not all unchanged objects of one sealed repository version.
+.selection_of <- function(repo) {
+  objs <- repo@data
+  if (!length(objs)) return(NULL)
+  org <- lapply(objs, function(o) if (isS4(o) && .hasSlot(o, "misc")) o@misc$origin)
+  if (any(vapply(org, is.null, logical(1)))) return(NULL)
+  key <- unique(vapply(org, function(x) paste(x$repository, x$hash, sep = "@"), ""))
+  if (length(key) != 1L) return(NULL)
+  from <- org[[1]]
+  path <- .sealed_entry("repository", from$repository, from$hash)
+  if (is.null(path)) return(NULL)
+  mf <- .entry_manifest("repository", path)
+  rec <- unlist(mf$versions[[from$hash]]$objects %||% list())
+  if (!length(rec) || !all(names(objs) %in% names(rec))) return(NULL)
+  oh <- .repository_object_hashes(repo)
+  if (!identical(unname(oh), unname(rec[names(oh)]))) return(NULL)
+  list(name = from$repository, hash = from$hash, source = "ref",
+       path = .registry_rel_path(path), as = repo@name,
+       objects = names(oh), objects_hash = .selection_hash(oh))
 }
 
 # --- dependents of sealed versions -----------------------------------------
@@ -850,6 +892,22 @@ load_model <- function(name, hash = NULL, path = NULL, env = NULL,
            "  Run refresh_registry() to rescan, or re-save the model with ",
            "embed_repos = TRUE from a session that has the repository.")
     }
+    if (!is.null(ref$objects)) {
+      objs <- unlist(ref$objects)
+      miss <- setdiff(objs, names(r@data))
+      if (length(miss)) {
+        stop("Model '", mod@name, "': repository '", ref$name, "@",
+             substr(ref$hash, 1, 8), "' lacks the selected object(s) ",
+             paste(miss, collapse = ", "), ".", call. = FALSE)
+      }
+      r@data <- r@data[objs]
+      if (!identical(.selection_hash(.repository_object_hashes(r)), ref$objects_hash)) {
+        stop("Model '", mod@name, "': the objects selected from repository '",
+             ref$name, "@", substr(ref$hash, 1, 8), "' do not match their ",
+             "recorded hash.", call. = FALSE)
+      }
+      r@name <- ref$as %||% r@name
+    }
     mod@data[[rp]] <- r
   }
 
@@ -1145,6 +1203,17 @@ load_repository <- function(name, hash = NULL, path = NULL, env = NULL,
          "' must contain exactly one repository object")
   }
   repo <- .repo_rebase(get(nm, envir = e), pdir)
+  # objects of a sealed version carry their origin (see .selection_of())
+  if (!identical(gsub("[\\/]+", "/", pdir), gsub("[\\/]+", "/", path))) {
+    vh <- basename(pdir)
+    for (ob in names(repo@data)) {
+      o <- repo@data[[ob]]
+      if (isS4(o) && .hasSlot(o, "misc")) {
+        o@misc$origin <- list(repository = repo@name, hash = vh)
+        repo@data[[ob]] <- o
+      }
+    }
+  }
   # dataset refs resolve eagerly: a live object never holds a stub
   for (ob in names(repo@data)) {
     o <- repo@data[[ob]]
@@ -1977,7 +2046,14 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
   }
   payload <- c(model = "mod.RData", repository = "repo.RData")[type]
   if (sealed && !is.na(payload)) {
+    objs <- if (identical(type, "repository") && file.exists(fp(e$path, payload))) {
+      .repository_object_hashes(load_repository(e$name, path = e$path, verbose = FALSE))
+    }
     fields$versions <- .store_seal_version(e$path, mf, payload)
+    h <- as.character(mf$hash %||% "")
+    if (length(objs) && h %in% names(fields$versions)) {
+      fields$versions[[h]]$objects <- as.list(objs)
+    }
   }
   .entry_manifest_update(type, e$path, fields)
   .registry_sync_entry(type, e$path, e$name)
