@@ -39,11 +39,14 @@ test_that("sealing a repository moves its payload into a version folder", {
   unlink(sv_root(), recursive = TRUE)
   repo <- sv_mod("svr", fixom = 1)@data[[1]]
   st <- save_repository(repo, verbose = FALSE)
-  h1 <- st@misc$hash
   entry <- st@misc$path
   expect_true(file.exists(fp(entry, "repo.RData")))
+  # an unsealed save records a save id, not a content hash
+  expect_false(isTRUE(yaml::read_yaml(fp(entry, "repository.yml"))$hashed))
 
   suppressMessages(seal_repository(repo@name))
+  h1 <- yaml::read_yaml(fp(entry, "repository.yml"))$hash
+  expect_identical(h1, repository_hash(repo))
   expect_false(file.exists(fp(entry, "repo.RData")))
   expect_true(file.exists(fp(entry, h1, "repo.RData")))
   mf <- yaml::read_yaml(fp(entry, "repository.yml"))
@@ -68,8 +71,9 @@ test_that("after unsealing, new content goes to the entry and the sealed version
   unlink(sv_root(), recursive = TRUE)
   repo1 <- sv_mod("svu", fixom = 1)@data[[1]]
   rn <- repo1@name
-  h1 <- save_repository(repo1, verbose = FALSE)@misc$hash
+  e1 <- save_repository(repo1, verbose = FALSE)@misc$path
   suppressMessages(seal_repository(rn))
+  h1 <- yaml::read_yaml(fp(e1, "repository.yml"))$hash
   suppressMessages(unseal_repository(rn))
   # still the sealed version by name until something new is saved
   expect_identical(sv_fixom(load_repository(rn, verbose = FALSE)), 1)
@@ -110,8 +114,9 @@ test_that("a sealed model version loads by name, by hash and from a scenario", {
   sv_local()
   unlink(sv_root(), recursive = TRUE)
   m1 <- save_model(sv_mod("svs", fixom = 1), verbose = FALSE)
-  h1 <- m1@misc$hash
   suppressMessages(seal_model("svs"))
+  h1 <- yaml::read_yaml(fp(m1@misc$path, "model.yml"))$hash
+  expect_identical(h1, model_hash(sv_mod("svs", fixom = 1)))
   expect_true(file.exists(fp(m1@misc$path, h1, "mod.RData")))
   expect_identical(sv_fixom(load_model("svs", verbose = FALSE)), 1)
 
@@ -209,4 +214,23 @@ test_that("a model built from objects of a sealed repository references the sele
   s2 <- save_model(mod2, verbose = FALSE)
   expect_identical(yaml::read_yaml(fp(s2@misc$path, "model.yml"))$repositories[[1]]$source,
                    "embedded")
+})
+
+test_that("unsealed saves record a save id; sealing computes the content hash", {
+  sv_local()
+  unlink(sv_root(), recursive = TRUE)
+  m <- sv_mod("svlazy", fixom = 1)
+  s1 <- save_model(m, verbose = FALSE)
+  mf <- yaml::read_yaml(fp(s1@misc$path, "model.yml"))
+  expect_false(isTRUE(mf$hashed))
+  expect_match(mf$hash, "^u[0-9]{14}")
+  # an identical re-save is written again under a new save id
+  s2 <- save_model(m, verbose = FALSE)
+  expect_false(identical(s2@misc$hash, s1@misc$hash))
+  suppressMessages(seal_model("svlazy"))
+  mf <- yaml::read_yaml(fp(s1@misc$path, "model.yml"))
+  expect_true(isTRUE(mf$hashed))
+  expect_identical(mf$hash, model_hash(m))
+  # a sealed entry is hashed on save: identical content is a no-op
+  expect_message(save_model(m), "already in the store")
 })

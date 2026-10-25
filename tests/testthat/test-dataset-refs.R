@@ -130,6 +130,7 @@ dr_local_model <- function(env = parent.frame()) {
 }
 
 test_that("save_model references the geoscale map and repo tables; load restores", {
+  withr::local_options(energyRt.lazy_hash = FALSE)  # content hashes on every save
   skip_if_not_installed("geoscales")
   dr_local_model()
   unlink(dr_root(), recursive = TRUE)

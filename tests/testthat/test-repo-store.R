@@ -37,6 +37,7 @@ test_that("repository_hash is stable, misc-blind, and content-sensitive", {
 })
 
 test_that("save_repository / load_repository round-trips; identical content is a no-op", {
+  withr::local_options(energyRt.lazy_hash = FALSE)  # content hashes on every save
   rs_local_store()
   repo <- rs_repo()
   h8 <- substr(repository_hash(repo), 1, 8)
@@ -72,6 +73,7 @@ test_that("save_repository / load_repository round-trips; identical content is a
 })
 
 test_that("save_model references a sealed repository; load_model resolves it", {
+  withr::local_options(energyRt.lazy_hash = FALSE)  # content hashes on every save
   rs_local_store()
   mod <- sp_tech(c(80, 80, 80), optret = FALSE, name = "rsm")
   repo_name <- names(mod@data)[1]

@@ -76,6 +76,7 @@ test_that("model_hash is stable across rebuilds and blind to @misc noise", {
 })
 
 test_that("save_model / load_model round-trips; identical content is a no-op", {
+  withr::local_options(energyRt.lazy_hash = FALSE)  # content hashes on every save
   ms_local_store()
   mod <- sp_tech(c(100, 100, 100), optret = FALSE, name = "msm")
   h8 <- substr(model_hash(mod), 1, 8)
@@ -211,6 +212,7 @@ test_that("re-saving a referenced scenario keeps the reference", {
 })
 
 test_that("other content under a stored name is copied in, the entry untouched", {
+  withr::local_options(energyRt.lazy_hash = FALSE)  # content hashes on every save
   skip_if_no_solver()
   ms_local_store()
   first <- sp_tech(c(50, 50, 50), optret = FALSE, name = "msname")

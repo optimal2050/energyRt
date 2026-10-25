@@ -217,24 +217,27 @@ save_model <- function(
   # so re-saving a just-saved/just-loaded model is a genuine no-op and an
   # edited one a clean update (never a spurious new entry, never an entry
   # overwritten with empty data).
-  if (!isInMemory(object)) object <- obj2mem(object, verbose = FALSE)
+  object <- .deep_mem(object)
   # CRITICAL ORDER: the model hash is computed on the FULL model, before any
   # repository is replaced by a store reference below — the recorded hash
   # identifies the complete content regardless of how the repositories are
   # persisted (embedded vs referenced).
-  h <- model_hash(object)
-  h8 <- substr(h, 1, 8)
   if (is.null(path)) {
-    path <- .store_entry_dir(get_models_path(), object@name, h, type = "model")
+    path <- .store_entry_dir(get_models_path(), object@name, "", type = "model")
   }
   path <- gsub("[\\/]+", "/", path)
-
   mf_path <- fp(path, "model.yml")
-  prev <- NULL
+  prev <- if (file.exists(mf_path)) {
+    tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
+  }
+  # the content hash only when the entry is sealed (no-op or refusal) or
+  # lazy hashing is off; otherwise a save id
+  hashed <- !.lazy_hash() || isTRUE(prev$sealed)
+  h <- if (hashed) model_hash(object) else .save_id()
+  h8 <- substr(h, 1, 8)
   hash_kept <- FALSE
-  if (file.exists(mf_path)) {
-    prev <- tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
-    if (!overwrite && !is.null(prev) && identical(prev$hash, h)) {
+  if (!is.null(prev)) {
+    if (!overwrite && hashed && identical(prev$hash, h)) {
       if (verbose) {
         message("Model '", object@name, "' (", h8, ") is already in the store: ",
                 path)
@@ -267,7 +270,11 @@ save_model <- function(
   for (rp in names(object@data)) {
     repo <- object@data[[rp]]
     if (!is(repo, "repository")) next
-    rh <- tryCatch(repository_hash(repo), error = function(e) "")
+    rh <- if (isFALSE(embed_repos) || (!isTRUE(embed_repos) && .has_sealed("repository", repo@name))) {
+      tryCatch(repository_hash(repo), error = function(e) "")
+    } else {
+      ""
+    }
     store_dir <- NULL
     if (!isTRUE(embed_repos) && nzchar(rh)) {
       store_dir <- .sealed_entry("repository", repo@name, rh)
@@ -361,6 +368,7 @@ save_model <- function(
     updated = .registry_now(),
     energyRt_version = as.character(utils::packageVersion("energyRt")),
     format = format,
+    hashed = hashed,
     repositories = unname(repo_entries)
   ), if (length(ds_entries)) list(datasets = ds_entries),
      if (hash_kept) list(hash_kept = TRUE),
@@ -447,6 +455,11 @@ save_model <- function(
   if (!nzchar(h)) stop("The entry at '", path, "' has no hash to seal.", call. = FALSE)
   # nothing to move: already a sealed version, or a manifest-only entry
   if (!file.exists(fp(path, payload))) return(versions)
+  # the same content sealed before: the version is there, the copy goes
+  if (file.exists(fp(vdir, payload))) {
+    unlink(fp(path, setdiff(.store_payload_items(path, mf), h)), recursive = TRUE)
+    return(versions)
+  }
   items <- setdiff(.store_payload_items(path, mf), h)
   dir.create(vdir, showWarnings = FALSE)
   for (it in items) {
@@ -476,6 +489,31 @@ save_model <- function(
   if (file.exists(fp(path, payload)) && (!pinned || startsWith(cur, hash))) return(path)
   if (!pinned && nzchar(cur) && file.exists(fp(path, cur, payload))) return(fp(path, cur))
   NULL
+}
+
+# --- lazy hashing -----------------------------------------------------------
+# An unsealed save records a save id (`u<time><random>`, `hashed: false` in
+# the manifest) instead of a content hash: hashing a large model takes
+# minutes and a full copy in memory. The content hash is computed only when a
+# decision needs it: saving onto a sealed entry, comparing with the sealed
+# versions of a name (reference or copy), and sealing.
+# options(energyRt.lazy_hash = FALSE) hashes every save.
+.lazy_hash <- function() isTRUE(getOption("energyRt.lazy_hash", TRUE))
+
+.save_id <- function() {
+  paste0("u", format(Sys.time(), "%Y%m%d%H%M%S"),
+         paste(sprintf("%04x", sample.int(65536L, 2L) - 1L), collapse = ""))
+}
+
+# Does the store hold sealed content under this name (a sealed entry or
+# sealed versions)? Only then is a content hash worth computing to compare.
+.has_sealed <- function(type, name) {
+  resolve <- switch(type, model = .model_store_resolve,
+                    repository = .repo_store_resolve)
+  path <- tryCatch(resolve(name, NULL), error = function(e) NULL)
+  if (is.null(path)) return(FALSE)
+  mf <- .entry_manifest(type, path)
+  isTRUE(mf$sealed) || length(mf$versions %||% list()) > 0L
 }
 
 # --- save modes -------------------------------------------------------------
@@ -510,8 +548,23 @@ save_model <- function(
 # saved as a reference to that version plus the object names, and the hash
 # of the selected objects, verified at load.
 
+# Bring a model, repository or object fully into memory: obj2mem() stops at a
+# container that is itself in memory, while its repositories' objects can
+# still hold their tables on disk.
+.deep_mem <- function(x) {
+  if (!isS4(x)) return(x)
+  if (!isInMemory(x)) x <- obj2mem(x, verbose = FALSE)
+  if (.hasSlot(x, "data") && is.list(x@data)) {
+    for (k in seq_along(x@data)) {
+      if (isS4(x@data[[k]])) x@data[[k]] <- .deep_mem(x@data[[k]])
+    }
+  }
+  x
+}
+
 .repository_object_hashes <- function(repo) {
   if (!length(repo@data)) return(character())
+  repo <- .deep_mem(repo)
   vapply(repo@data, function(o) rlang::hash(.strip_volatile(o)), character(1))
 }
 
@@ -838,6 +891,11 @@ load_model <- function(name, hash = NULL, path = NULL, env = NULL,
     stop("'", fp(pdir, "mod.RData"), "' must contain exactly one model object")
   }
   mod <- .model_rebase(get(nm, envir = e), pdir)
+  # loaded from a sealed version: its identity is that version's hash (the
+  # stored copy may carry the save id of the save before sealing)
+  if (!identical(gsub("[\\/]+", "/", pdir), gsub("[\\/]+", "/", path))) {
+    mod@misc$hash <- basename(pdir)
+  }
 
   # resolve repository references (repos saved to the repository store rather
   # than embedded — see save_model(embed_repos=))
@@ -901,6 +959,8 @@ load_model <- function(name, hash = NULL, path = NULL, env = NULL,
              paste(miss, collapse = ", "), ".", call. = FALSE)
       }
       r@data <- r@data[objs]
+      od <- r@misc$onDisk$data
+      if (!is.null(od)) r@misc$onDisk$data <- od[intersect(names(od), objs)]
       if (!identical(.selection_hash(.repository_object_hashes(r)), ref$objects_hash)) {
         stop("Model '", mod@name, "': the objects selected from repository '",
              ref$name, "@", substr(ref$hash, 1, 8), "' do not match their ",
@@ -1049,21 +1109,23 @@ save_repository <- function(
   }
   # rehydrate a thinned repository: hash the true content, never re-save
   # an empty shell (see save_model)
-  if (!isInMemory(repo)) repo <- obj2mem(repo, verbose = FALSE)
-  h <- repository_hash(repo)
-  h8 <- substr(h, 1, 8)
+  repo <- .deep_mem(repo)
   if (is.null(path)) {
-    path <- .store_entry_dir(get_repositories_path(), repo@name, h,
+    path <- .store_entry_dir(get_repositories_path(), repo@name, "",
                              type = "repository")
   }
   path <- gsub("[\\/]+", "/", path)
-
   mf_path <- fp(path, "repository.yml")
-  prev <- NULL
+  prev <- if (file.exists(mf_path)) {
+    tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
+  }
+  # the content hash only when the entry is sealed or lazy hashing is off
+  hashed <- !.lazy_hash() || isTRUE(prev$sealed)
+  h <- if (hashed) repository_hash(repo) else .save_id()
+  h8 <- substr(h, 1, 8)
   hash_kept <- FALSE
-  if (file.exists(mf_path)) {
-    prev <- tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
-    if (!overwrite && !is.null(prev) && identical(prev$hash, h)) {
+  if (!is.null(prev)) {
+    if (!overwrite && hashed && identical(prev$hash, h)) {
       if (verbose) {
         message("Repository '", repo@name, "' (", h8,
                 ") is already in the store: ", path)
@@ -1117,7 +1179,8 @@ save_repository <- function(
     created = prev$created %||% .registry_now(),
     updated = .registry_now(),
     energyRt_version = as.character(utils::packageVersion("energyRt")),
-    format = format
+    format = format,
+    hashed = hashed
   ), if (length(ds_entries)) list(datasets = ds_entries),
      if (hash_kept) list(hash_kept = TRUE),
      if (length(prev$versions)) list(versions = prev$versions),
@@ -1206,6 +1269,7 @@ load_repository <- function(name, hash = NULL, path = NULL, env = NULL,
   # objects of a sealed version carry their origin (see .selection_of())
   if (!identical(gsub("[\\/]+", "/", pdir), gsub("[\\/]+", "/", path))) {
     vh <- basename(pdir)
+    repo@misc$hash <- vh
     for (ob in names(repo@data)) {
       o <- repo@data[[ob]]
       if (isS4(o) && .hasSlot(o, "misc")) {
@@ -2046,10 +2110,40 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
   }
   payload <- c(model = "mod.RData", repository = "repo.RData")[type]
   if (sealed && !is.na(payload)) {
-    objs <- if (identical(type, "repository") && file.exists(fp(e$path, payload))) {
-      .repository_object_hashes(load_repository(e$name, path = e$path, verbose = FALSE))
+    objs <- NULL
+    if (file.exists(fp(e$path, payload))) {
+      # the payload is loaded once: its content hash (for a lazily saved
+      # entry) and, for a repository, its objects' hashes
+      x <- if (identical(type, "repository")) {
+        load_repository(e$name, path = e$path, verbose = FALSE)
+      } else {
+        load_model(e$name, path = e$path, verbose = FALSE)
+      }
+      # hashed on its full content, as saves hash it: a thinned object
+      # hashes its empty slots, and a loaded container can be in memory
+      # while its objects' tables are still on disk
+      x <- .deep_mem(x)
+      if (isFALSE(mf$hashed)) {
+        mf$hash <- if (identical(type, "repository")) repository_hash(x) else model_hash(x)
+        mf$hashed <- TRUE
+        fields$sealed_hash <- mf$hash
+        fields$hash <- mf$hash
+        fields$hashed <- TRUE
+      }
+      if (identical(type, "repository")) objs <- .repository_object_hashes(x)
+      rm(x)
     }
     fields$versions <- .store_seal_version(e$path, mf, payload)
+    # a model saved under a save id re-records itself, under its content
+    # hash, on the sealed repository versions it references
+    if (identical(type, "model")) {
+      for (re in mf$repositories %||% list()) {
+        if (!identical(re$source, "ref")) next
+        .dependents_add("repository", .abs_store_path(re$path), re$hash,
+                        list(type = "model", name = e$name,
+                             path = .registry_rel_path(e$path), hash = mf$hash))
+      }
+    }
     h <- as.character(mf$hash %||% "")
     if (length(objs) && h %in% names(fields$versions)) {
       fields$versions[[h]]$objects <- as.list(objs)

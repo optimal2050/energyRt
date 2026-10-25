@@ -101,6 +101,7 @@ test_that("scenario_dir hook names the folder; the scenario loads back by name",
 })
 
 test_that("store_entry hook names store folders; name resolution still works", {
+  withr::local_options(energyRt.lazy_hash = FALSE)  # content hashes on every save
   pb_reset()
   pb_local_store()
   set_path_builder(store_entry = function(type, name) {

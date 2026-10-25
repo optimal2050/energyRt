@@ -106,8 +106,11 @@ save_scenario <- function(
     model_hash_ <- if (!isInMemory(object@model) &&
                        nzchar(object@model@misc$hash %||% "")) {
       object@model@misc$hash
+    } else if (isFALSE(embed_model) || !.lazy_hash() ||
+               .has_sealed("model", object@model@name)) {
+      tryCatch(model_hash(.deep_mem(object@model)), error = function(e) "")
     } else {
-      tryCatch(model_hash(object@model), error = function(e) "")
+      ""   # no sealed version to compare with: copied in, not hashed
     }
     store_dir <- .sealed_entry("model", object@model@name, model_hash_)
     if (!is.null(store_dir)) {

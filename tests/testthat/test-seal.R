@@ -31,6 +31,7 @@ sl_mod <- function(name, fixom = 1) {
 }
 
 test_that("a changed model UPDATES IN PLACE: same folder, new hash", {
+  withr::local_options(energyRt.lazy_hash = FALSE)  # content hashes on every save
   sl_local()
   unlink(sl_root("models"), recursive = TRUE)
   m1 <- save_model(sl_mod("ipm", fixom = 1), verbose = FALSE)
@@ -77,6 +78,7 @@ test_that("a reference keeps its sealed version when the name moves on", {
 })
 
 test_that("seal freezes an entry; unseal reopens it", {
+  withr::local_options(energyRt.lazy_hash = FALSE)  # content hashes on every save
   sl_local()
   unlink(sl_root("models"), recursive = TRUE)
   m <- save_model(sl_mod("slm", fixom = 1), verbose = FALSE)
@@ -169,6 +171,7 @@ test_that("mark_delete queues; delete_marked honors importance and seals", {
 })
 
 test_that("pinned-version load in plain layout errors when superseded", {
+  withr::local_options(energyRt.lazy_hash = FALSE)  # content hashes on every save
   sl_local()
   unlink(sl_root("models"), recursive = TRUE)
   m1 <- save_model(sl_mod("pin", fixom = 1), verbose = FALSE)

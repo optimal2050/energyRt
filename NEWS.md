@@ -121,6 +121,13 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   otherwise; `"full"` copies everything in. `save_scenario()` no longer
   stores an unsealed model in the model store to reference it. Changed: a
   scenario whose model is stored but not sealed now carries its own copy.
+* Unsealed saves of models and repositories record a save id instead of a
+  content hash (`hashed: false` in the manifest), so saving a large model no
+  longer serializes it for hashing. The content hash is computed when a
+  decision needs it: saving onto a sealed entry, comparing with the sealed
+  versions of a name, and sealing (which now loads and hashes the payload).
+  An identical re-save of an unsealed entry is written again.
+  `options(energyRt.lazy_hash = FALSE)` hashes every save.
 * A model whose repository holds unchanged objects of one sealed repository
   version (taken with `getObject()` from a loaded sealed repository)
   references that version with the object names and the hash of the
