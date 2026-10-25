@@ -103,3 +103,24 @@ test_that("family tax-subsidy: inp and bal subsidy rates land in modInp", {
   expect_equal(unique(ff_param(scen, "pSubCostInp")$value), 0.1)
   expect_equal(unique(ff_param(scen, "pSubCostBal")$value), 0.2)
 })
+
+test_that("family tax-subsidy: a levy charges each flow once, at its own level", {
+  ek <- topia$modules$electricity$R3
+  mod <- setGeoscale(newModel("TOPIA", data = ek$repo,
+    calendar = topia$modules$calendars$s4_h24, region = ek$regions,
+    horizon = topia$modules$horizons$base, discount = 0.05), ek$geoscale)
+  scen <- suppressMessages(suppressWarnings(interpolate_model(mod,
+    newTax("TCO2", comm = "CO2", tax = data.frame(out = 10)),
+    newTax("TCOA", comm = "COA", tax = data.frame(inp = 1)),
+    newTax("TP", process = "ECOA", tax = data.frame(act = 1)),
+    name = "ts_levels", verbose = FALSE)))
+  m <- as.data.frame(get_data_slot(scen@modInp@parameters$mTaxCost))
+  reg <- function(l) sort(unique(as.character(m$region[m$levy == l])))
+  # CO2 is balanced at the regions, COA at the zones; ECOA runs in the regions
+  expect_identical(reg("TCO2"), c("C1", "W1", "W2"))
+  expect_identical(reg("TCOA"), c("CENTRAL", "WEST"))
+  expect_identical(reg("TP"), c("C1", "W1", "W2"))
+  expect_error(suppressMessages(suppressWarnings(interpolate_model(mod,
+    newTax("TX", comm = "COA", region = "W1", tax = data.frame(inp = 1)),
+    name = "ts_off", verbose = FALSE))), "balanced at")
+})

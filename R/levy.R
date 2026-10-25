@@ -361,6 +361,8 @@
       rt_proc <- tidyr::crossing(
         rt[setdiff(names(rt), "process")], process = roster)
     }
+    rt_proc <- .levy_place(rt_proc, .levy_proc_regions(scen, unique(rt_proc$process)),
+                           "process", obj)
     for (col in proc_cols) {
       par_name <- .levy_proc_params[[cls]][[col]]
       dat <- make_data_param(
@@ -371,6 +373,8 @@
   }
 
   if (length(comm_cols) > 0) {
+    own <- .comm_region_df(scen)          # NULL without a geoscale
+    if (!is.null(own) && nrow(own) > 0) rt <- .levy_place(rt, own, "comm", obj)
     for (col in comm_cols) {
       par_name <- .levy_comm_params[[cls]][[col]]
       dat <- make_data_param(
@@ -381,4 +385,48 @@
   }
 
   scen
+}
+
+# The regions a process is declared in, one row per (process, region).
+.levy_proc_regions <- function(scen, processes) {
+  pr <- get_process_region(scen, process = processes, return_list = FALSE)
+  as.data.frame(pr)[, c("process", "region")]
+}
+
+# A levy charges a flow once, at the level the flow is defined at: a commodity
+# rate at the commodity's own regions (`mCommRegion`), a process rate at the
+# regions the process is declared in. A coarser region holds the roll-up of its
+# sub-regions, which a rate there would charge a second time.
+#
+# Rows without a region take every region of their key's level; a named region
+# off that level is an error.
+#' @param rt rate rows.
+#' @param own `data.frame(<key>, region)`: the level of each key.
+#' @param key `"comm"` or `"process"`.
+#' @keywords internal
+#' @noRd
+.levy_place <- function(rt, own, key, obj) {
+  rt <- as.data.frame(rt)
+  own <- unique(as.data.frame(own)[, c(key, "region")])
+  if (!"region" %in% names(rt)) rt$region <- NA_character_
+  named <- rt[!is.na(rt$region), , drop = FALSE]
+  bad <- unique(named[!paste(named[[key]], named$region) %in%
+                        paste(own[[key]], own$region), c(key, "region")])
+  if (nrow(bad) > 0) {
+    lvl <- own$region[own[[key]] == bad[[key]][1]]
+    stop("levy '", obj@name, "': ", key, " '", bad[[key]][1], "' is ",
+         if (key == "comm") "balanced" else "declared", " at ",
+         paste0("'", utils::head(lvl, 6), "'", collapse = ", "),
+         if (length(lvl) > 6) ", ..." else "", "; region '", bad$region[1],
+         "' is not one of them. A coarser region holds the sum of its ",
+         "sub-regions, which would be charged twice; a region with no such ",
+         "flow would charge nothing.", call. = FALSE)
+  }
+  open <- rt[is.na(rt$region), setdiff(names(rt), "region"), drop = FALSE]
+  placed <- if (nrow(open) > 0) {
+    dplyr::inner_join(open, own, by = key, relationship = "many-to-many")
+  } else {
+    NULL
+  }
+  dplyr::bind_rows(named, placed)
 }

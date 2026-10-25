@@ -233,6 +233,10 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   from both sides, `aeff$cout2ainp` / `cinp2aout` bind, sub-region emissions
   are counted, coarse supply keeps its cost, and `get_process_*(process = )` is
   honoured.
+* A tax or subsidy without `@region` charged the coarse regions of a geoscale
+  too, i.e. the roll-up of their sub-regions a second time. A commodity rate
+  now applies at the commodity's own regions and a process rate at the regions
+  the process is declared in; a region off that level is an error.
 * Content hashes of models with a geoscale are stable between R sessions
   (the S7 class object was hashed), so such models match their sealed
   versions in a new session.
