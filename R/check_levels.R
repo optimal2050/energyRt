@@ -414,7 +414,7 @@ NULL
 #' @noRd
 .level_check_objects <- function(scen) {
   out <- list()
-  data <- scen@model@data
+  data <- .scen_build_model(scen)@data
   for (rp in data) {
     objs <- if (methods::is(rp, "repository")) rp@data else list(rp)
     for (o in objs) {

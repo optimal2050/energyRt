@@ -108,7 +108,6 @@ Collate:
     'fold.R'
     'get_data.R'
     'install.R'
-    'interpolate-base.R'
     'interpolation-support.R'
     'interpolation.R'
     'solve.R'

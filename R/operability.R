@@ -246,7 +246,7 @@ process_operability <- function(object) {
 
 .op_constraints <- function(scen, years) {
   res <- list()
-  objs <- .model_objects(scen@model)
+  objs <- .model_objects(.scen_build_model(scen))
   for (k in objs) {
     if (!methods::is(k, "constraint") || length(k@lhs) != 1L) next
     if (!as.character(k@eq) %in% c("<=", "==")) next

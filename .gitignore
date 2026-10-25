@@ -73,3 +73,7 @@ docs/articles/articles/roadmap.html
 vignettes/articles/testing.Rmd
 docs/articles/testing.html
 docs/articles/articles/testing.html
+
+# testthat writes this after a run with failures
+tests/testthat/testthat-problems.rds
+tests/testthat/_problems/

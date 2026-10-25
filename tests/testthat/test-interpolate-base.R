@@ -93,6 +93,7 @@ test_that("anything beyond the supported additions is interpolated in full", {
                    name = "X2"), "class technology")
   expect_match(msg(mod, .ib_new()[[3]], name = "X3", fold = TRUE),
                "`fold` differs")
+  expect_match(msg(mod, .ib_ref_add(), name = "X6"), "already in the base")
   mod2 <- add(mod, newTechnology("ENEW", input = list(comm = "GAS"),
                                  output = list(comm = "ELC")))
   expect_match(msg(mod2, .ib_new()[[3]], name = "X4"), "model differs")

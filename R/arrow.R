@@ -100,7 +100,23 @@ save_scenario <- function(
     embed_model <- embed_model %||% TRUE
     embed_datasets <- embed_datasets %||% TRUE
   }
-  if (!isTRUE(embed_model) && nzchar(object@model@name %||% "")) {
+  # the model interpolate_model() was given, when it is a sealed version:
+  # referenced by the identity recorded then, with no hashing here
+  id <- object@misc$model_id
+  id_dir <- if (!isTRUE(embed_model) && !is.null(id$hash) &&
+                identical(id$name, object@model@name)) {
+    .sealed_entry("model", id$name, id$hash)
+  } else {
+    NULL
+  }
+  if (!is.null(id_dir)) {
+    model_ref <- list(name = id$name, hash = id$hash, source = "ref",
+                      path = .registry_rel_path(id_dir))
+    model_added <- intersect(as.character(object@misc$added %||% character()),
+                             names(object@model@data))
+    if (length(model_added)) model_ref$added <- model_added
+    model_hash_ <- id$hash
+  } else if (!isTRUE(embed_model) && nzchar(object@model@name %||% "")) {
     # a model loaded thinned from a sealed version carries that version's
     # hash; anything else is hashed on its content
     model_hash_ <- if (!isInMemory(object@model) &&

@@ -194,7 +194,7 @@ solve_by_region <- function(object, name = NULL, ...,
     }
     # counted after variant expansion: a k-step price curve is k objects
     n_stub <- if (ok) {
-      tryCatch(length(sol@model@data[["boundary_stubs"]]@data),
+      tryCatch(length(.scen_build_model(sol)@data[["boundary_stubs"]]@data),
                error = function(e) 0L)
     } else {
       0L

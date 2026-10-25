@@ -187,7 +187,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   .mi_prev <- getOption("energyRt.on_missing_input", "stop")
   options(energyRt.on_missing_input = on_missing_input)
   on.exit(options(energyRt.on_missing_input = .mi_prev), add = TRUE)
-  # A derived scenario: the base plus what the new objects add (R/interpolate-base.R).
+  # A derived scenario: the base plus what the new objects add (below).
   if (!is.null(base)) {
     .derived <- .interpolate_from_base(object, base, name = name, args = list(...),
                                        ondisk = ondisk, given = .given, fold = fold,
@@ -229,6 +229,9 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   object <- .upgrade_model_summands(object)
   # Same for storages serialized before the `inp2stg` slot.
   object <- .upgrade_model_storages(object)
+  # `scen@model` keeps the model as given (plus the repositories added below);
+  # the expanded build copy is used only while interpolating
+  .model_given <- object
 
   # NOTE: the `kvl` hook is NOT here. It has to run after the model is both
   # complete (objects arriving through `...` are folded in further down) and
@@ -399,6 +402,9 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
                                    verbose = verbose)
       object@misc$hash <- NULL   # changed: no longer the stored version
       scen@model <- object
+      # what .scen_build_model() needs to cut the model the same way again
+      scen@misc$spatial <- list(regions = scen@settings@region,
+                                boundary_prices = boundary_prices)
     } else if (identical(.spatial_mode, "pruned")) {
       stop("A pruned geoscale (coarser atom layer) requests a full-",
            "territory solve at the parent level. Aggregate the model first ",
@@ -427,9 +433,13 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # whole repositories -> added to the model
   ii <- vapply(args, function(x) inherits(x, "repository"), logical(1))
   if (any(ii)) {
-    for (repo in args[ii]) object <- add(object, repo, overwrite = overwrite)
+    for (repo in args[ii]) {
+      object <- add(object, repo, overwrite = overwrite)
+      .model_given <- add(.model_given, repo, overwrite = overwrite)
+    }
     scen@misc$added <- c(scen@misc$added, vapply(args[ii], function(r) r@name, ""))
     object@misc$hash <- NULL   # changed: no longer the stored version
+    .model_given@misc$hash <- NULL
     args <- args[!ii]
   }
 
@@ -440,8 +450,10 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
     scen_specific_repo <- newRepository(name = paste0(scen@name, "_repo")) |>
       add(args[ii], overwrite = overwrite)
     object <- add(object, scen_specific_repo, overwrite = overwrite)
+    .model_given <- add(.model_given, scen_specific_repo, overwrite = overwrite)
     scen@misc$added <- c(scen@misc$added, scen_specific_repo@name)
     object@misc$hash <- NULL   # changed: no longer the stored version
+    .model_given@misc$hash <- NULL
     args <- args[!ii]
   }
   scen@model <- object # keep scen@model in sync with the (possibly extended) model
@@ -546,39 +558,10 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # Non-destructive: only the internal build copy is expanded, the caller's model
   # object is untouched. The link back to each base object is kept in
   # `sets$variant` (see R/variants.R).
-  .interp_step(verbose, "expanding vintage/cluster variants")
-  .tech_variants <- expand_variants(object, prefix = .variant_prefix(scen@settings),
-                                    verbose = verbose)
+  .tech_variants <- .build_model(object, prefix = .variant_prefix(scen@settings),
+                                 verbose = verbose)
   object <- .tech_variants$model    # the sets below are collected from `object`
   scen@model <- object              # ... while get_process_*() read scen@model
-  .assert_variants_expanded(object)
-
-  # A commodity declaring `@cluster` is a bundle of resource tiers that must
-  # not pool: each becomes its own commodity with its own balance, and the
-  # references from clustered processes are repointed. Before the sets below
-  # freeze `sets$comm`, so the clones are declared members like any commodity.
-  .interp_step(verbose, "materializing commodity clusters")
-  object <- materialize_commodity_clusters(
-    object, verbose = verbose, prefix = .variant_prefix(scen@settings))
-  scen@model <- object
-
-  # A weather object declaring `@cluster` holds one series per resource tier;
-  # each tier a process references becomes its own weather object here and the
-  # link is repointed. BEFORE the transform step, so the two compose: the
-  # cluster picks the series, a transform then derives from it.
-  .interp_step(verbose, "materializing weather clusters")
-  object <- materialize_weather_clusters(
-    object, verbose = verbose, prefix = .variant_prefix(scen@settings))
-  scen@model <- object
-
-  # Links that name a weather transform get their own derived weather object,
-  # cloned once per (weather, transform) and repointed here -- the backends
-  # only ever see plain pWeather series. Must run after `expand_variants()`
-  # (each variant owns its link rows) and before the sets below freeze
-  # `sets$weather`. Like the expansion, only the build copy is touched.
-  .interp_step(verbose, "materializing weather transforms")
-  object <- materialize_weather_transforms(object, verbose = verbose)
-  scen@model <- object
 
   # `kvl`: enforce Kirchhoff's voltage law on the AC network -- the trade routes
   # that carry a `reactance`. OFF by default, because it is a restriction: a
@@ -595,6 +578,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # exists. And `.kvl_for_each()` needs the SCENARIO's calendar and horizon,
   # which a `...` argument may have replaced, not the model's own.
   if (isTRUE(kvl)) {
+    scen@misc$kvl <- TRUE
     kvl_cns <- .kvl_build(object, prov = .tech_variants$provenance,
                           settings = scen@settings, verbose = verbose)
     # Added as ONE named repository rather than one `add()` per cycle, so the
@@ -1327,6 +1311,8 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
                       difftime(Sys.time(), .log_t0, units = "secs"))
   # maps defined by a rule keep the rule only (R/map-rules.R)
   scen <- .strip_rule_tables(scen, verbose = verbose)
+  # the model as given; .scen_build_model() rebuilds the expanded copy
+  scen@model <- .model_given
   scen
 }
 
@@ -4894,5 +4880,458 @@ setMethod("interpolate", signature(object = "scenario"),
         1 / ex$share),
       stringsAsFactors = FALSE))
   }
+  out
+}
+
+# ---------------------------------------------------------------------------
+# (was R/interpolate-base.R, merged 2026-10-25)
+# ---------------------------------------------------------------------------
+
+# Derived scenarios: `interpolate_model(..., base = REF)`.
+#
+# A derived scenario is its base plus a few objects that leave the base's sets,
+# maps and parameters untouched: user constraints, user cost terms, taxes and
+# subsidies. Only what those objects contribute is computed -- in a throwaway
+# copy of the base, through the same pipeline stages, in the same order -- and
+# appended to a copy of the base. The result equals a full interpolation of the
+# model with the base's additions and the new ones.
+#
+# Anything else (a new process or commodity, a replaced object, another
+# calendar, horizon, geoscale or build setting) changes tables the base already
+# holds, and is interpolated in full; `.base_refusal()` says why.
+
+# Parameter names a stage loops over: all of them, or the given subset.
+.param_subset <- function(scen, params = NULL) {
+  nm <- names(scen@modInp@parameters)
+  if (is.null(params)) nm else nm[nm %in% params]
+}
+
+# Classes a derived scenario can add without a full interpolation.
+.base_delta_classes <- c("constraint", "costs", "tax", "subsidy")
+
+# Arguments of interpolate_model() whose explicit use forces a full run.
+.base_full_args <- c("code", "kvl", "boundary_prices", ".prefilter",
+                     "parent_levels", "fx_equ", "on_missing_input")
+
+# Identity of the model a scenario was interpolated from. A model loaded thinned
+# from the store and not rehydrated is the stored version itself, so its
+# recorded hash stands for it; anything in memory may have been changed since
+# it was loaded and is hashed on its content.
+.model_identity <- function(m) {
+  h <- m@misc$hash %||% ""
+  if (!isInMemory(m) && nzchar(h)) return(h)
+  model_hash(.deep_mem(m))
+}
+
+# The objects passed through `...`, flattened out of their repositories.
+.base_additions <- function(args) {
+  objs <- list()
+  bad <- character()
+  for (a in args) {
+    items <- if (inherits(a, "repository")) a@data else list(a)
+    for (o in items) {
+      if (inherits(o, .base_delta_classes)) {
+        objs[[length(objs) + 1L]] <- o
+      } else {
+        bad <- c(bad, class(o)[1])
+      }
+    }
+  }
+  list(objects = objs, bad = unique(bad))
+}
+
+# NULL when `object` + `args` can be built on `base`, else the reason it cannot.
+.base_refusal <- function(object, base, args, given, fold, sparse, prune,
+                          check_model = TRUE, name = NULL) {
+  st <- base@status
+  if (!isTRUE(st$sparse)) {
+    return("the base was built dense (sparse = FALSE)")
+  }
+  folded <- as.character(st$folded %||% character())
+  obj_dims <- intersect(folded, c("comm", "tech", "stg", "trade"))
+  if (length(obj_dims)) {
+    return(paste0("the base is folded over ", paste(obj_dims, collapse = ", "),
+                  ", decided over the whole column"))
+  }
+  if (isTRUE(given[["fold"]])) {
+    req <- if (isTRUE(fold)) c("region", "timeslice", "year")
+      else if (is.null(fold) || isFALSE(fold)) character(0)
+      else intersect(as.character(fold), .foldable_dims)
+    if (!setequal(req, folded)) return("`fold` differs from the base")
+  }
+  if (isTRUE(given[["sparse"]]) && !isTRUE(sparse)) {
+    return("`sparse` differs from the base")
+  }
+  if (isTRUE(given[["prune"]]) && !identical(isTRUE(prune), isTRUE(st$pruned))) {
+    return("`prune` differs from the base")
+  }
+  full <- .base_full_args[vapply(.base_full_args,
+                                 function(a) isTRUE(given[[a]]), logical(1))]
+  if (length(full)) {
+    return(paste0("`", full[1], "` is given"))
+  }
+  add <- .base_additions(args)
+  if (length(add$bad)) {
+    return(paste0("an object of class ", add$bad[1], " is added"))
+  }
+  nm <- vapply(add$objects, function(o) o@name, character(1))
+  dup <- unique(nm[duplicated(nm)])
+  if (length(dup)) return(paste0("'", dup[1], "' is passed twice"))
+  repos <- vapply(Filter(function(a) inherits(a, "repository"), args),
+                  function(r) r@name, character(1))
+  if (any(!vapply(args, inherits, logical(1), "repository")) && !is.null(name)) {
+    repos <- c(repos, paste0(name, "_repo"))
+  }
+  rclash <- intersect(repos, names(base@model@data))
+  if (length(rclash)) {
+    return(paste0("repository '", rclash[1], "' is already in the base"))
+  }
+  have <- collect_object_names(base@model, classes = NULL)$name
+  clash <- intersect(nm, have)
+  if (length(clash)) {
+    return(paste0("'", clash[1], "' replaces an object of the base"))
+  }
+  if (!check_model) return(NULL)
+  id <- base@misc$model_id
+  if (is.null(id$hash)) {
+    return("the base did not record the model it was built from")
+  }
+  if (!identical(object@name, id$name) || !identical(.model_identity(object), id$hash)) {
+    return("the model differs from the one the base was built from")
+  }
+  NULL
+}
+
+# A parameter with its rows in memory and no reference: about to be written.
+.param_to_memory <- function(p) {
+  if (!is.null(p@misc$rule)) return(p)
+  if (isInMemory(p) && is.null(p@misc$param_ref)) return(p)
+  d <- get_data_slot(p)
+  p@misc$param_ref <- NULL
+  p@misc$onDisk <- NULL
+  p <- mark_inMemory(setObjPath(p, NULL))
+  p@data <- if (NROW(d)) {
+    data.table::as.data.table(d)[, colnames(p@data), with = FALSE]
+  } else {
+    .empty_param_data(p)
+  }
+  p
+}
+
+# The base's tables in memory, except references that are not written to: a
+# derived scenario never writes into the base's own store, and its referenced
+# tables stay references.
+.base_materialize <- function(mi, touched) {
+  for (pn in names(mi@parameters)) {
+    p <- mi@parameters[[pn]]
+    keep_ref <- !is.null(p@misc$param_ref) && !(pn %in% touched)
+    if (keep_ref) next
+    mi@parameters[[pn]] <- .param_to_memory(p)
+  }
+  mark_inMemory(mi)
+}
+
+# The vTotalUserCosts equation from its terms (the same string the full
+# pipeline writes), and its terms back from that string.
+.wrap_user_costs <- function(terms) {
+  if (length(terms) == 0) {
+    return(paste0(
+      "eqTotalUserCosts(region, year)$mvTotalUserCosts(region, year).. ",
+      "vTotalUserCosts(region, year) =e= 0;"
+    ))
+  }
+  paste0(
+    "eqTotalUserCosts(region, year)$mvTotalUserCosts(region, year)..",
+    "   vTotalUserCosts(region, year) =e= ",
+    gsub("[+][ ]*[-]", "-", paste0(terms, collapse = " + ")), ";"
+  )
+}
+
+.unwrap_user_costs <- function(eq) {
+  if (length(eq) == 0 || identical(eq, .wrap_user_costs(character()))) {
+    return(character())
+  }
+  if (length(eq) > 1) return(eq)           # not wrapped yet
+  sub(";$", "", sub("^.*?=e= ", "", eq, perl = TRUE))
+}
+
+# Levy names in the order the full pipeline collects them: taxes, then
+# subsidies, each in model order.
+.levy_names <- function(model) {
+  on <- collect_object_names(model, classes = c("tax", "subsidy"))
+  c(on$name[on$class %in% "tax"], on$name[on$class %in% "subsidy"])
+}
+
+.levy_param_names <- function() {
+  unique(unlist(c(.levy_comm_params, .levy_proc_params)))
+}
+
+#' Build a derived scenario from an interpolated base
+#'
+#' Called by [interpolate_model()] when `base` is given. Returns `NULL` (with a
+#' message saying why) when the request needs a full interpolation.
+#' @keywords internal
+#' @noRd
+.interpolate_from_base <- function(object, base, name, args, ondisk, given,
+                                   fold, sparse, prune, verbose) {
+  t0 <- Sys.time()
+  if (!inherits(base, "scenario") || !isTRUE(base@status$interpolated)) {
+    stop("`base` must be an interpolated scenario.", call. = FALSE)
+  }
+  if (inherits(object, "scenario")) {
+    if (!identical(object@name, base@name)) {
+      message("base = '", base@name, "': `object` is another scenario; ",
+              "interpolating in full.")
+      return(NULL)
+    }
+    object <- NULL
+  }
+  # the base passed as `object` is its own model
+  why <- .base_refusal(object, base, args, given, fold, sparse, prune,
+                       check_model = !is.null(object),
+                       name = name %||% paste0("scen_", base@model@name))
+  if (!is.null(why)) {
+    message("base = '", base@name, "': ", why, "; interpolating in full.")
+    return(NULL)
+  }
+  if (is.null(name)) {
+    name <- paste0("scen_", base@model@name)
+    if (verbose) message("Scenario name not provided; using default: ", name)
+  }
+  .assert_object_name(name, what = "scenario")
+  if (isTRUE(ondisk) && verbose) {
+    message("Derived scenario '", name, "' is built in memory; ",
+            "save it with save_scenario().")
+  }
+
+  # -- the copy -------------------------------------------------------------
+  levy_par <- intersect(.levy_param_names(), names(base@modInp@parameters))
+  levy_map <- c("mTaxCost", "mSubCost")
+  agg_map <- c("mvTotalCost", "mvTotalUserCosts")
+  scen <- base
+  scen@name <- name
+  scen@modInp <- .base_materialize(base@modInp,
+                                   touched = c("levy", levy_par, levy_map, agg_map))
+  scen@modOut <- new("modOut")
+  scen@status$solved <- FALSE
+  scen@status$script <- FALSE
+  scen@misc$run <- NULL
+  scen@misc$base <- list(name = base@name, path = base@path %||% "",
+                         model = base@misc$model_id)
+  scen <- mark_inMemory(scen)
+  scen@path <- fp(get_scenarios_path(), .scenario_dir_name(
+    name, scen@model@name, scen@settings@calendar@name,
+    scen@settings@horizon@name)) |> .fix_path()
+
+  # the additions join the model as interpolate_model() adds them:
+  # repositories first, then the loose objects as one repository
+  repos <- Filter(function(a) inherits(a, "repository"), args)
+  bricks <- Filter(function(a) !inherits(a, "repository"), args)
+  model <- scen@model
+  added <- character()
+  for (r in repos) {
+    model <- add(model, r)
+    added <- c(added, r@name)
+  }
+  if (length(bricks)) {
+    br <- newRepository(name = paste0(name, "_repo")) |> add(bricks)
+    model <- add(model, br)
+    added <- c(added, br@name)
+  }
+  model@misc$hash <- NULL
+  scen@model <- model
+  scen@misc$added <- c(scen@misc$added, added)
+  new_objs <- .base_additions(args)$objects
+  levies <- Filter(function(o) inherits(o, c("tax", "subsidy")), new_objs)
+  cns <- Filter(function(o) inherits(o, c("constraint", "costs")), new_objs)
+  .interp_step(verbose, paste0("base '", base@name, "': adding ",
+                               length(levies), " levies, ", length(cns),
+                               " constraint(s) / cost term(s)"))
+
+  # -- levy set --------------------------------------------------------------
+  if (length(levies)) {
+    scen@modInp@sets$levy <- .levy_names(scen@model)
+    dup <- unique(scen@modInp@sets$levy[duplicated(scen@modInp@sets$levy)])
+    if (length(dup)) {
+      stop("A tax and a subsidy share the name ", paste0("'", dup, "'", collapse = ", "),
+           ".", call. = FALSE)
+    }
+    p <- scen@modInp@parameters$levy
+    p@data <- .empty_param_data(p)
+    scen@modInp@parameters$levy <- d2p(p, scen@modInp@sets$levy, NULL)
+  }
+
+  # -- the delta, in a throwaway copy ----------------------------------------
+  delta <- scen
+  for (pn in c(levy_par, levy_map)) {
+    p <- delta@modInp@parameters[[pn]]
+    if (!is.null(p)) {
+      p@data <- .empty_param_data(p)
+      delta@modInp@parameters[[pn]] <- p
+    }
+  }
+  for (o in levies) delta <- ob2mi(delta, o, list())
+  delta <- .flush_pending_parameters(delta)
+  if (length(levies)) {
+    delta <- interpolate_parameters(delta, drop_default = isTRUE(scen@status$drop_default),
+                                    params = levy_par)
+    delta <- .filter_params_by_declared_timeslices(delta, params = levy_par)
+    delta <- .filter_params_by_declared_regions(delta, params = levy_par)
+    nofmp <- function(x) NULL
+    delta <- map_mTaxCost(delta, nofmp)
+    delta <- map_mSubCost(delta, nofmp)
+  }
+  old_pars <- names(delta@modInp@parameters)
+  old_cns <- names(delta@modInp@user_constraints)
+  delta@modInp@user_costs <- character()
+  if (length(cns)) {
+    approxim <- .constraint_approxim(delta)
+    for (o in cns) delta <- ob2mi(delta, o, list(approxim = approxim))
+  }
+  new_pars <- setdiff(names(delta@modInp@parameters), old_pars)
+  dpars <- c(levy_par, levy_map, new_pars)
+  if (isTRUE(scen@status$pruned)) {
+    delta <- drop_default_values(delta, params = dpars)
+  }
+  fold_dims <- as.character(scen@status$folded %||% character())
+  if (length(fold_dims)) {
+    delta <- fold_parameters(delta, dims = fold_dims, params = dpars)
+    delta <- unfold_parameters(delta, dims = .foldable_dims, types = "map",
+                               params = dpars)
+  } else {
+    delta <- unfold_parameters(delta, dims = .foldable_dims, params = dpars)
+  }
+
+  # -- the delta joins the copy ------------------------------------------------
+  for (pn in c(levy_par, levy_map)) {
+    p <- delta@modInp@parameters[[pn]]
+    if (is.null(p)) next
+    d <- get_data_slot(p)
+    if (NROW(d)) {
+      scen@modInp@parameters[[pn]] <- d2p(scen@modInp@parameters[[pn]],
+                                          as.data.frame(d), NULL)
+    }
+  }
+  for (pn in new_pars) scen@modInp@parameters[[pn]] <- delta@modInp@parameters[[pn]]
+  new_cns <- setdiff(names(delta@modInp@user_constraints), old_cns)
+  scen@modInp@user_constraints[new_cns] <- delta@modInp@user_constraints[new_cns]
+  terms <- c(.unwrap_user_costs(scen@modInp@user_costs), delta@modInp@user_costs)
+  rm(delta)
+
+  # -- cost aggregation over the whole scenario --------------------------------
+  base_cells <- .coarse_cost_cells(scen)
+  for (pn in agg_map) {
+    p <- scen@modInp@parameters[[pn]]
+    if (!is.null(p)) {
+      p@data <- .empty_param_data(p)
+      scen@modInp@parameters[[pn]] <- p
+    }
+  }
+  scen@modInp@user_costs <- terms
+  scen <- build_mappings(scen, fmp = NULL, recipes = "cost_agg")
+  scen <- .extend_discount_to_coarse(scen, skip = base_cells)
+  scen@modInp@user_costs <- .wrap_user_costs(terms)
+
+  .en_log("interpolate", scen@name,
+          duration = difftime(Sys.time(), t0, units = "secs"),
+          model = scen@model@name, base = base@name)
+  if (verbose) {
+    message("Derived scenario '", scen@name, "' from '", base@name, "' in ",
+            format(round(difftime(Sys.time(), t0, units = "secs"), 1)))
+  }
+  scen
+}
+
+# ---------------------------------------------------------------------------
+# (was R/build-model.R, merged 2026-10-25)
+# ---------------------------------------------------------------------------
+
+# The model interpolate_model() builds from: the model as given, with every
+# vintage/cluster group expanded into one object per cell, clustered commodities
+# and weather split into one object per tier, and weather transforms
+# materialized. A scenario keeps the model as given in `@model`; readers that
+# need the built objects (verify_solution(), levcost(), check_levels(), the
+# source-table recompute) take them from .scen_build_model().
+
+#' Expand a model into the objects the interpolation pipeline reads
+#' @param object a model.
+#' @param prefix variant-name prefixes (`.variant_prefix(settings)`).
+#' @return `list(model =, provenance =)`; `provenance` is `sets$variant`.
+#' @keywords internal
+#' @noRd
+.build_model <- function(object, prefix, verbose = FALSE) {
+  # one ordinary object per (vintage, cluster) cell of every variant-capable
+  # process; the link back to the base object is the provenance
+  .interp_step(verbose, "expanding vintage/cluster variants")
+  tv <- expand_variants(object, prefix = prefix, verbose = verbose)
+  object <- tv$model
+  .assert_variants_expanded(object)
+  # a commodity declaring `@cluster` becomes one commodity per tier, and the
+  # references from clustered processes are repointed
+  .interp_step(verbose, "materializing commodity clusters")
+  object <- materialize_commodity_clusters(object, verbose = verbose,
+                                           prefix = prefix)
+  # one weather object per tier a process references; before the transforms,
+  # so a transform derives from the tier's series
+  .interp_step(verbose, "materializing weather clusters")
+  object <- materialize_weather_clusters(object, verbose = verbose,
+                                         prefix = prefix)
+  # one derived weather object per (weather, transform) link
+  .interp_step(verbose, "materializing weather transforms")
+  object <- materialize_weather_transforms(object, verbose = verbose)
+  object@misc$built <- TRUE
+  list(model = object, provenance = tv$provenance)
+}
+
+# the last built model, keyed by the scenario it was built for
+.scen_model_cache <- new.env(parent = emptyenv())
+
+#' The built model of a scenario
+#'
+#' Rebuilds, once per scenario, the objects interpolate_model() built from
+#' `scen@model`: the spatial cut (when the scenario samples regions),
+#' .build_model(), and the Kirchhoff cycle constraints (when interpolated with
+#' `kvl = TRUE`).
+#' @keywords internal
+#' @noRd
+.scen_build_model <- function(scen, verbose = FALSE) {
+  m <- scen@model
+  # a scenario interpolated before the model was kept as given carries the
+  # built objects already, and so does one still being interpolated
+  if (!methods::is(m, "model") || is.null(scen@misc$model_id) ||
+      isTRUE(m@misc$built)) {
+    return(m)
+  }
+  key <- rlang::hash(list(scen@name, scen@path, scen@misc$model_id,
+                          scen@misc$added, scen@misc$spatial$regions,
+                          lapply(m@data, function(r) names(r@data))))
+  hit <- .scen_model_cache$entry
+  if (!is.null(hit) && identical(hit$key, key)) return(hit$model)
+  m <- .deep_mem(m)
+  sp <- scen@misc$spatial
+  if (!is.null(sp)) {
+    # interpolate_model() cuts the model before the scenario's own
+    # repositories join it
+    added <- intersect(as.character(scen@misc$added), names(m@data))
+    own <- m@data[added]
+    m@data <- m@data[setdiff(names(m@data), added)]
+    m <- .subset_model_regions(m, keep = sp$regions,
+                               boundary_prices = sp$boundary_prices,
+                               verbose = FALSE)
+    for (r in own) m <- add(m, r)
+  }
+  b <- .build_model(m, prefix = .variant_prefix(scen@settings),
+                    verbose = verbose)
+  out <- b$model
+  if (isTRUE(scen@misc$kvl)) {
+    cns <- .kvl_build(out, prov = b$provenance, settings = scen@settings,
+                      verbose = FALSE)
+    if (length(cns)) {
+      out <- add(out, do.call(newRepository,
+                              c(list("kvl_cycles"), unname(cns))))
+    }
+    out@misc$built <- TRUE
+  }
+  .scen_model_cache$entry <- list(key = key, model = out)
   out
 }

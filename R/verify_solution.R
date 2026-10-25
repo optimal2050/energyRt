@@ -770,7 +770,7 @@ print.solution_verification <- function(x, detail = c("full", "issues"), ...) {
 
 .vs_check_inputs_present <- function(ctx) {
   scen <- ctx$scen
-  obs <- tryCatch(getObjects(scen@model), error = function(e) NULL)
+  obs <- tryCatch(getObjects(.scen_build_model(scen)), error = function(e) NULL)
   if (is.null(obs) || !length(obs)) return(.vs_skip("model carries no objects"))
   sets <- scen@modInp@sets
   pars <- scen@modInp@parameters
@@ -821,7 +821,7 @@ print.solution_verification <- function(x, detail = c("full", "issues"), ...) {
 # `report`. An unresolved unit is one still carrying a `{token}` placeholder
 # after substitution.
 .vs_check_units <- function(ctx) {
-  obs <- tryCatch(getObjects(ctx$scen@model), error = function(e) NULL)
+  obs <- tryCatch(getObjects(.scen_build_model(ctx$scen)), error = function(e) NULL)
   if (is.null(obs) || !length(obs)) return(.vs_skip("model carries no objects"))
   rows <- list()
   seen <- list()
@@ -1060,7 +1060,7 @@ print.solution_verification <- function(x, detail = c("full", "issues"), ...) {
 
 .vs_check_inputs_values <- function(ctx) {
   scen <- ctx$scen
-  obs <- tryCatch(getObjects(scen@model), error = function(e) NULL)
+  obs <- tryCatch(getObjects(.scen_build_model(scen)), error = function(e) NULL)
   if (is.null(obs) || !length(obs)) return(.vs_skip("model carries no objects"))
   years <- .vs_milestone_years(scen)
   bad <- list()
@@ -1148,7 +1148,7 @@ print.solution_verification <- function(x, detail = c("full", "issues"), ...) {
 # zeros without rebuilding the full domain.
 .vs_check_inputs_bounds <- function(ctx) {
   scen <- ctx$scen
-  obs <- tryCatch(getObjects(scen@model), error = function(e) NULL)
+  obs <- tryCatch(getObjects(.scen_build_model(scen)), error = function(e) NULL)
   if (is.null(obs) || !length(obs)) return(.vs_skip("model carries no objects"))
   years <- .vs_milestone_years(scen)
   bad <- list()

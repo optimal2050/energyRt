@@ -298,9 +298,13 @@
          "recomputing it is not supported. save_dataset() the table to restore it.")
   }
   if (is.null(scen@model)) stop("The scenario carries no model to recompute '", pname, "' from.")
+  # the built model names its objects as the sets do (one weather object per
+  # tier or transform); the origin may list them as the model gives them
+  set_nm <- c(weather = "weather", demand = "dem")[origin$class]
+  want <- union(origin$objects, as.character(scen@modInp@sets[[set_nm]]))
   objs <- Filter(function(o) methods::is(o, origin$class) &&
-                   methods::.hasSlot(o, "name") && o@name %in% origin$objects,
-                 .model_objects(scen@model))
+                   methods::.hasSlot(o, "name") && o@name %in% want,
+                 .model_objects(.scen_build_model(scen)))
   if (!length(objs)) {
     stop("None of the ", origin$class, " objects '", paste(origin$objects, collapse = "', '"),
          "' are in the scenario's model.")

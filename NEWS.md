@@ -97,6 +97,11 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   reused and its store is never written to, and the result equals a full
   interpolation. Anything else is interpolated in full, with a message saying
   why. The saved scenario names its base in `scenario.yml`.
+* A scenario keeps the model as given in `@model`: the variants, tiers and
+  transform clones interpolation builds are rebuilt when a reader needs them.
+  A saved scenario references its sealed model instead of copying it, also
+  for models with vintages, clusters or a spatial sample. `getObject()` on a
+  scenario returns the objects as defined.
 
 ### Results and project management
 

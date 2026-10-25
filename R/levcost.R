@@ -906,7 +906,7 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
 
 # The class of a named process in a solved scenario's model.
 .levcost_scen_class <- function(scen, name) {
-  mdl <- tryCatch(scen@model, error = function(e) NULL)
+  mdl <- tryCatch(.scen_build_model(scen), error = function(e) NULL)
   if (is.null(mdl)) return(NULL)
   for (cl in .LEVCOST_CLASSES) {
     objs <- tryCatch(getObjects(mdl, cl), error = function(e) list())
@@ -936,7 +936,7 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
   # `timeframe = "lowest"` is pinned by the caller, not inherited: levcost wants
   # ANNUAL totals, and the getData() default is now "highest" (native).
   if (is.null(inp) || !nrow(inp)) return(setNames(numeric(0), character(0)))
-  sups <- tryCatch(getObjects(scen@model, "supply"), error = function(e) list())
+  sups <- tryCatch(getObjects(.scen_build_model(scen), "supply"), error = function(e) list())
   price <- list()
   for (s in sups) {
     cm <- as.character(s@commodity)
@@ -1038,7 +1038,7 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
   # levelized cost is per unit OF -- is that times the route's efficiency.
   if (identical(cls, "trade")) {
     teff <- tryCatch({
-      td <- getObjects(scen@model, "trade")[[name]]@trade
+      td <- getObjects(.scen_build_model(scen), "trade")[[name]]@trade
       if (NROW(td) && "teff" %in% names(td)) {
         v <- unique(stats::na.omit(as.numeric(td$teff)))
         if (length(v) == 1L) v else 1
@@ -1750,7 +1750,8 @@ levcost_chain_ <- function(
   }
   base <- if (length(grp) > 0 && nrow(unique(df[grp])) > 1) {
     key <- do.call(paste, c(lapply(grp, function(g) as.character(df[[g]])),
-                            list(sep = "")))
+                            list(sep = "
+")))
     do.call(rbind, lapply(split(df, key), cheapest))
   } else cheapest(df)
   out <- base[rep(seq_len(nrow(base)), times = length(regions)), , drop = FALSE]

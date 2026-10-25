@@ -282,7 +282,7 @@ test_that("tranching does not change the cycle basis", {
   # three. A basis that counted tranches would find 9 - 3 + 1 = 7.
   expect_equal(length(energyRt:::.kvl_scenario_cycles(scen)), 1)
   # ... and every name the constraint sums over is a real trade set member.
-  cn <- scen@model@data[["kvl_cycles"]]@data
+  cn <- .scen_build_model(scen)@data[["kvl_cycles"]]@data
   nms <- unique(unlist(lapply(cn, function(k)
     unlist(lapply(k@lhs, function(s) s@for.sum$trade)))))
   expect_length(nms, 9)                       # 3 lines x 3 tranches
@@ -364,7 +364,7 @@ test_that("a VINTAGED AC line names set members that exist", {
                             kvl_line("L23", "R2", "R3", 0.2),
                             kvl_line("L13", "R1", "R3", 0.4)))
   scen <- suppressMessages(interpolate_model(m, name = "kvt5", kvl = TRUE))
-  cn <- scen@model@data[["kvl_cycles"]]@data
+  cn <- .scen_build_model(scen)@data[["kvl_cycles"]]@data
   nms <- unique(unlist(lapply(cn, function(k)
     unlist(lapply(k@lhs, function(s) s@for.sum$trade)))))
   expect_true(all(c("L12_VIN2020", "L12_VIN2030") %in% nms))
