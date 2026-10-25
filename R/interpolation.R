@@ -370,6 +370,7 @@ interpolate_model <- function(object, name = NULL, ...,
       object <- .subset_model_regions(object, keep = scen@settings@region,
                                    boundary_prices = boundary_prices,
                                    verbose = verbose)
+      object@misc$hash <- NULL   # changed: no longer the stored version
       scen@model <- object
     } else if (identical(.spatial_mode, "pruned")) {
       stop("A pruned geoscale (coarser atom layer) requests a full-",
@@ -400,6 +401,8 @@ interpolate_model <- function(object, name = NULL, ...,
   ii <- vapply(args, function(x) inherits(x, "repository"), logical(1))
   if (any(ii)) {
     for (repo in args[ii]) object <- add(object, repo, overwrite = overwrite)
+    scen@misc$added <- c(scen@misc$added, vapply(args[ii], function(r) r@name, ""))
+    object@misc$hash <- NULL   # changed: no longer the stored version
     args <- args[!ii]
   }
 
@@ -410,6 +413,8 @@ interpolate_model <- function(object, name = NULL, ...,
     scen_specific_repo <- newRepository(name = paste0(scen@name, "_repo")) |>
       add(args[ii], overwrite = overwrite)
     object <- add(object, scen_specific_repo, overwrite = overwrite)
+    scen@misc$added <- c(scen@misc$added, scen_specific_repo@name)
+    object@misc$hash <- NULL   # changed: no longer the stored version
     args <- args[!ii]
   }
   scen@model <- object # keep scen@model in sync with the (possibly extended) model

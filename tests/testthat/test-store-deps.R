@@ -2,8 +2,9 @@
 # guard it feeds (delete_marked()).
 #
 # What would break silently without these:
-#   * referencing is the DEFAULT since save_scenario(embed_model = NULL) stores
-#     the model, so deleting one entry can break many -- and only at load time;
+#   * a scenario references a SEALED model version (save_scenario(mode =
+#     "ref"), the default), so deleting one entry can break many -- and only at
+#     load time;
 #   * an EMBEDDED copy is not a dependency, and confusing the two would either
 #     block harmless deletions or permit harmful ones;
 #   * the prompt must never run in a non-interactive session: menu() reading
@@ -31,8 +32,17 @@ sd_local_store <- function(env = parent.frame()) {
 }
 
 # an interpolated (unsolved) scenario is enough: the reference is recorded on
-# save, not on solve
+# save, not on solve. Only a sealed model version is referenced, so the model
+# is stored and sealed first.
+sd_seal <- function(mod) {
+  mf <- tryCatch(yaml::read_yaml(sd_root("models", mod@name, "model.yml")),
+                 error = function(e) NULL)
+  if (isTRUE(mf$sealed)) return(invisible(NULL))
+  suppressMessages(save_model(mod, verbose = FALSE))
+  suppressMessages(seal_model(mod@name))
+}
 sd_scen <- function(mod, name) {
+  sd_seal(mod)
   sc <- interpolate_model(mod, name = name, path = sd_root("scenarios", name))
   suppressMessages(save_scenario(sc, verbose = FALSE))
 }
@@ -72,9 +82,11 @@ test_that("a dependent pinned to a superseded version reports current = FALSE", 
   sd_scen(mod, "sd_pin")
   expect_true(store_dependents("sdver", type = "model")$current)
 
-  # the entry updates IN PLACE, so the scenario's recorded hash goes stale
+  # the name released and saved anew: the scenario's version is no longer
+  # current, but it stays and still loads
+  suppressMessages(unseal_model("sdver", force = TRUE))
   mod2 <- sp_tech(c(80, 80, 70), optret = FALSE, name = "sdver")
-  suppressMessages(save_model(mod2, overwrite = TRUE, verbose = FALSE))
+  suppressMessages(save_model(mod2, verbose = FALSE))
   expect_false(store_dependents("sdver", type = "model")$current)
 })
 
@@ -83,6 +95,7 @@ test_that("delete_marked refuses a referenced entry and never prompts in batch",
   mod <- sp_tech(c(70, 70, 70), optret = FALSE, name = "sdkeep")
   sd_scen(mod, "sd_dep")
 
+  suppressMessages(unseal_model("sdkeep", force = TRUE))
   suppressMessages(mark_delete("sdkeep", type = "model"))
   dry <- suppressMessages(delete_marked(types = "model"))
   row <- dry[dry$name == "sdkeep", ]
@@ -99,6 +112,7 @@ test_that("ignore_refs deletes anyway, and the dependent then fails loudly", {
   mod <- sp_tech(c(60, 60, 60), optret = FALSE, name = "sdgone")
   s <- sd_scen(mod, "sd_orphaned")
 
+  suppressMessages(unseal_model("sdgone", force = TRUE))
   suppressMessages(mark_delete("sdgone", type = "model"))
   suppressMessages(delete_marked(types = "model", dry_run = FALSE,
                                  ignore_refs = TRUE))

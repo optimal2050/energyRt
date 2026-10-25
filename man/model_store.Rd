@@ -10,6 +10,7 @@ save_model(
   path = NULL,
   embed_repos = NULL,
   embed_datasets = NULL,
+  mode = NULL,
   registry = TRUE,
   format = get_storage_format(),
   overwrite = FALSE,
@@ -24,12 +25,12 @@ load_model(name, hash = NULL, path = NULL, env = NULL, verbose = TRUE)
 
 \item{path}{character, explicit store directory (bypasses the registry).}
 
-\item{embed_repos}{\code{NULL} (default), \code{TRUE}, or \code{FALSE}. Controls whether
-the model's repositories are embedded in the store entry or referenced
-from the repository store (see \code{\link[=save_repository]{save_repository()}}). \code{NULL}: reference a
-repository when its identical content is already stored, embed
-otherwise. \code{TRUE}: always embed. \code{FALSE}: require a store hit for every
-repository. The model hash is always taken over the FULL model, so it is
+\item{embed_repos}{\code{NULL} (default: by \code{mode}), \code{TRUE}, or \code{FALSE}.
+Controls whether the model's repositories are embedded in the store
+entry or referenced from the repository store (see \code{\link[=save_repository]{save_repository()}}).
+\code{NULL}: reference a repository whose identical content is a sealed
+version, embed otherwise. \code{TRUE}: always embed. \code{FALSE}: require a
+sealed version for every repository. The model hash is always taken over the FULL model, so it is
 unaffected by this choice; \code{load_model()} resolves references back.}
 
 \item{embed_datasets}{the same choice one level further down, for the big
@@ -37,6 +38,13 @@ data tables (weather/demand) of embedded repositories and the geoscale
 map on \verb{@config} — see \code{\link[=save_dataset]{save_dataset()}}. \code{NULL} (default) references
 whatever identical content is already in the dataset store; \code{TRUE}
 always embeds; \code{FALSE} requires a store hit.}
+
+\item{mode}{\code{"ref"} or \code{"full"}; defaults to
+\code{getOption("energyRt.save_mode", "ref")}. \code{"ref"} references a
+repository whose exact content is a SEALED version in the repository
+store and copies the others in; \code{"full"} copies every repository and
+dataset in (a self-contained entry). An explicit \code{embed_repos} /
+\code{embed_datasets} overrides the mode for its level.}
 
 \item{registry}{logical, add/refresh the registry row on save.}
 

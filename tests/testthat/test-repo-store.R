@@ -71,14 +71,19 @@ test_that("save_repository / load_repository round-trips; identical content is a
                "refresh_registry")
 })
 
-test_that("save_model references a stored repository; load_model resolves it", {
+test_that("save_model references a sealed repository; load_model resolves it", {
   rs_local_store()
   mod <- sp_tech(c(80, 80, 80), optret = FALSE, name = "rsm")
   repo_name <- names(mod@data)[1]
   h_full <- model_hash(mod)
 
   save_repository(mod@data[[1]], verbose = FALSE)
-  saved <- save_model(mod, verbose = FALSE)
+  # stored but not sealed: copied in
+  save_model(mod, verbose = FALSE)
+  mf <- yaml::read_yaml(rs_root("models", "rsm", "model.yml"))
+  expect_identical(mf$repositories[[1]]$source, "embedded")
+  suppressMessages(seal_repository(mod@data[[1]]@name))
+  saved <- save_model(mod, overwrite = TRUE, verbose = FALSE)
 
   # manifest records the reference; the hash is of the FULL model
   store_dir <- rs_root("models", "rsm")
@@ -123,7 +128,7 @@ test_that("embed_repos = TRUE embeds; FALSE requires a store hit", {
 
   mod2 <- sp_tech(c(55, 55, 55), optret = FALSE, name = "rse2")
   expect_error(save_model(mod2, embed_repos = FALSE, verbose = FALSE),
-               "save_repository")
+               "sealed version")
 })
 
 test_that("the full chain resolves: scenario -> model ref -> repository ref", {
@@ -131,7 +136,9 @@ test_that("the full chain resolves: scenario -> model ref -> repository ref", {
   rs_local_store()
   mod <- sp_tech(c(40, 40, 40), optret = FALSE, name = "rsc")
   save_repository(mod@data[[1]], verbose = FALSE)
+  suppressMessages(seal_repository(mod@data[[1]]@name))
   save_model(mod, verbose = FALSE)
+  suppressMessages(seal_model("rsc"))
 
   sc <- interpolate_model(mod, name = "rsc", path = rs_root("scen"))
   sol <- solve_scenario(sc)

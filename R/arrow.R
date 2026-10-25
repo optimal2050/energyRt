@@ -6,16 +6,20 @@
 #'
 #' @param object scenario object.
 #' @param path character. Path to scenario directory.
-#' @param embed_model `NULL` (default), `TRUE`, or `FALSE`. Controls whether
-#'   the model is embedded in the saved scenario or referenced from the model
-#'   store (see [save_model()]). `NULL`: reference the store entry, saving the
-#'   model to the store first when nothing is stored under that name; embed
-#'   when the name is taken by different content (store entries update in
-#'   place, so writing would replace the version other scenarios reference).
-#'   `TRUE`: always embed (self-contained folder). `FALSE`: require an
-#'   existing store hit, error otherwise, and never write to the store.
-#'   A referenced save stores only `{name, hash, path}`; [load_scenario()]
-#'   resolves it back via the registry / model store.
+#' @param mode `"ref"` or `"full"`; defaults to
+#'   `getOption("energyRt.save_mode", "ref")`. `"ref"` references the model
+#'   when its exact content is a SEALED version in the model store
+#'   ([seal_model()]) and copies it in otherwise; `"full"` copies the model
+#'   and the datasets in (a self-contained folder). An explicit
+#'   `embed_model` / `embed_datasets` overrides the mode for its level.
+#' @param embed_model `NULL` (default: by `mode`), `TRUE`, or `FALSE`.
+#'   Controls whether the model is embedded in the saved scenario or
+#'   referenced from the model store (see [save_model()]). `NULL`: reference
+#'   a sealed version holding the model's exact content, embed otherwise.
+#'   `TRUE`: always embed (self-contained folder). `FALSE`: require a sealed
+#'   version, error otherwise. A referenced save stores only
+#'   `{name, hash, path}` and is recorded on the sealed version
+#'   ([store_blast_radius()]); [load_scenario()] resolves it back.
 #' @param embed_datasets the same choice for the big data tables and maps —
 #'   the geoscale on `@settings` and, when the model is embedded, its
 #'   geoscale and its repositories' weather/demand tables (see
@@ -48,6 +52,7 @@ save_scenario <- function(
     path = object@path,
     embed_model = NULL,
     embed_datasets = NULL,
+    mode = NULL,
     format = get_storage_format(),
     overwrite = TRUE,
     clean_start = FALSE,
@@ -91,32 +96,29 @@ save_scenario <- function(
   # `misc$model_ref`; the returned in-memory object keeps its model.
   model_ref <- NULL
   model_hash_ <- ""
+  if (identical(.save_mode(mode), "full")) {
+    embed_model <- embed_model %||% TRUE
+    embed_datasets <- embed_datasets %||% TRUE
+  }
   if (!isTRUE(embed_model) && nzchar(object@model@name %||% "")) {
-    model_hash_ <- tryCatch(model_hash(object@model), error = function(e) "")
-    store_dir <- if (nzchar(model_hash_)) {
-      tryCatch(.model_store_resolve(object@model@name, model_hash_),
-               error = function(e) NULL)
+    # a model loaded thinned from a sealed version carries that version's
+    # hash; anything else is hashed on its content
+    model_hash_ <- if (!isInMemory(object@model) &&
+                       nzchar(object@model@misc$hash %||% "")) {
+      object@model@misc$hash
+    } else {
+      tryCatch(model_hash(object@model), error = function(e) "")
     }
-    if (is.null(store_dir) && is.null(embed_model)) {
-      # The auto-store happens HERE, before obj2disk() below thins the model:
-      # model_hash() hashes content, so a thinned model hashes differently
-      # from its in-memory original and would be stored under one hash and
-      # referenced by another.
-      st <- .model_autostore(object@model, format = format, verbose = verbose)
-      if (!is.null(st)) {
-        model_hash_ <- st$hash
-        store_dir <- st$path
-      }
-    }
+    store_dir <- .sealed_entry("model", object@model@name, model_hash_)
     if (!is.null(store_dir)) {
       model_ref <- list(name = object@model@name, hash = model_hash_,
                         source = "ref",
                         path = .registry_rel_path(store_dir))
     } else if (isFALSE(embed_model)) {
       stop("embed_model = FALSE, but model '", object@model@name, "' (",
-           substr(model_hash_, 1, 8), ") is not in the model store ('",
-           get_models_path(), "'). save_model() it first, or use ",
-           "embed_model = NULL/TRUE.")
+           substr(model_hash_, 1, 8), ") is not a sealed version in the model ",
+           "store ('", get_models_path(), "'). save_model() and seal_model() ",
+           "it first, or use embed_model = NULL/TRUE.")
     }
   }
   full_model <- NULL

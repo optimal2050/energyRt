@@ -9,6 +9,7 @@ save_scenario(
   path = object@path,
   embed_model = NULL,
   embed_datasets = NULL,
+  mode = NULL,
   format = get_storage_format(),
   overwrite = TRUE,
   clean_start = FALSE,
@@ -21,16 +22,14 @@ save_scenario(
 
 \item{path}{character. Path to scenario directory.}
 
-\item{embed_model}{\code{NULL} (default), \code{TRUE}, or \code{FALSE}. Controls whether
-the model is embedded in the saved scenario or referenced from the model
-store (see \code{\link[=save_model]{save_model()}}). \code{NULL}: reference the store entry, saving the
-model to the store first when nothing is stored under that name; embed
-when the name is taken by different content (store entries update in
-place, so writing would replace the version other scenarios reference).
-\code{TRUE}: always embed (self-contained folder). \code{FALSE}: require an
-existing store hit, error otherwise, and never write to the store.
-A referenced save stores only \verb{\{name, hash, path\}}; \code{\link[=load_scenario]{load_scenario()}}
-resolves it back via the registry / model store.}
+\item{embed_model}{\code{NULL} (default: by \code{mode}), \code{TRUE}, or \code{FALSE}.
+Controls whether the model is embedded in the saved scenario or
+referenced from the model store (see \code{\link[=save_model]{save_model()}}). \code{NULL}: reference
+a sealed version holding the model's exact content, embed otherwise.
+\code{TRUE}: always embed (self-contained folder). \code{FALSE}: require a sealed
+version, error otherwise. A referenced save stores only
+\verb{\{name, hash, path\}} and is recorded on the sealed version
+(\code{\link[=store_blast_radius]{store_blast_radius()}}); \code{\link[=load_scenario]{load_scenario()}} resolves it back.}
 
 \item{embed_datasets}{the same choice for the big data tables and maps —
 the geoscale on \verb{@settings} and, when the model is embedded, its
@@ -38,6 +37,13 @@ geoscale and its repositories' weather/demand tables (see
 \code{\link[=save_dataset]{save_dataset()}}). \code{NULL} (default) references whatever identical
 content is already in the dataset store; \code{TRUE} always embeds; \code{FALSE}
 requires a store hit.}
+
+\item{mode}{\code{"ref"} or \code{"full"}; defaults to
+\code{getOption("energyRt.save_mode", "ref")}. \code{"ref"} references the model
+when its exact content is a SEALED version in the model store
+(\code{\link[=seal_model]{seal_model()}}) and copies it in otherwise; \code{"full"} copies the model
+and the datasets in (a self-contained folder). An explicit
+\code{embed_model} / \code{embed_datasets} overrides the mode for its level.}
 
 \item{format}{file format (currently \code{parquet} only, arrow or feather will be implemented in further releases).}
 

@@ -109,11 +109,12 @@ test_that("save_model / load_model round-trips; identical content is a no-op", {
   expect_error(load_model("no-such-model", verbose = FALSE), "refresh_registry")
 })
 
-test_that("a stored model is referenced, not embedded; load resolves it", {
+test_that("a sealed model is referenced, not embedded; load resolves it", {
   skip_if_no_solver()
   ms_local_store()
   mod <- sp_tech(c(70, 70, 70), optret = FALSE, name = "msref")
   save_model(mod, verbose = FALSE)
+  suppressMessages(seal_model("msref"))
 
   sc <- interpolate_model(mod, name = "msref", path = ms_root("scen-ref"))
   sol <- solve_scenario(sc)
@@ -147,42 +148,42 @@ test_that("a stored model is referenced, not embedded; load resolves it", {
     "model store")
 })
 
-test_that("the default stores the model, then references it", {
+test_that("an unsealed model is copied in; once sealed it is referenced", {
   skip_if_no_solver()
   ms_local_store()
   mod <- sp_tech(c(60, 60, 60), optret = FALSE, name = "msauto")
   h <- model_hash(mod)
-  # nothing in the store to start with
   expect_null(energyRt:::.model_store_resolve("msauto", NULL))
 
+  # nothing sealed: the scenario carries its own copy, the store stays empty
   sc <- interpolate_model(mod, name = "msauto", path = ms_root("scen-auto"))
-  sol <- solve_scenario(sc)
-  saved <- suppressMessages(save_scenario(sol, verbose = FALSE))
+  saved <- suppressMessages(save_scenario(solve_scenario(sc), verbose = FALSE))
+  expect_identical(yaml::read_yaml(file.path(saved@path, "scenario.yml"))$model$source,
+                   "embedded")
+  expect_null(energyRt:::.model_store_resolve("msauto", NULL))
+  # stored but not sealed: still copied
+  save_model(mod, verbose = FALSE)
+  saved <- suppressMessages(save_scenario(saved, verbose = FALSE))
+  expect_identical(yaml::read_yaml(file.path(saved@path, "scenario.yml"))$model$source,
+                   "embedded")
 
-  # the model landed in the store, under its name, with its content hash
-  store_dir <- ms_root("models", "msauto")
-  expect_true(file.exists(file.path(store_dir, "mod.RData")))
-  expect_identical(yaml::read_yaml(file.path(store_dir, "model.yml"))$hash, h)
-
-  # and the scenario references it rather than embedding a copy
-  mf <- yaml::read_yaml(file.path(saved@path, "scenario.yml"))
+  # sealed: referenced by its hash, no copy in the scenario
+  suppressMessages(seal_model("msauto"))
+  sc2 <- interpolate_model(mod, name = "msauto2", path = ms_root("scen-auto2"))
+  saved2 <- suppressMessages(save_scenario(solve_scenario(sc2), verbose = FALSE))
+  mf <- yaml::read_yaml(file.path(saved2@path, "scenario.yml"))
   expect_identical(mf$model$source, "ref")
   expect_identical(mf$model$hash, h)
-  expect_false(dir.exists(file.path(saved@path, "model", "data")))
-
-  back <- suppressMessages(load_scenario(saved@path, env = NULL,
-                                         verbose = FALSE))
+  expect_false(dir.exists(file.path(saved2@path, "model", "data")))
+  back <- suppressMessages(load_scenario(saved2@path, env = NULL, verbose = FALSE))
   expect_identical(back@model@name, "msauto")
   expect_gt(length(back@model@data), 0L)
+  expect_identical(length(list.dirs(ms_root("models"), recursive = FALSE)), 1L)
 
-  # a second scenario from the same model reuses the one entry
-  sc2 <- interpolate_model(mod, name = "msauto2", path = ms_root("scen-auto2"))
-  saved2 <- suppressMessages(save_scenario(solve_scenario(sc2),
-                                           verbose = FALSE))
-  expect_identical(
-    yaml::read_yaml(file.path(saved2@path, "scenario.yml"))$model$hash, h)
-  expect_identical(
-    length(list.dirs(ms_root("models"), recursive = FALSE)), 1L)
+  # mode = "full" copies even a sealed model in
+  full <- suppressMessages(save_scenario(saved2, mode = "full", verbose = FALSE))
+  expect_identical(yaml::read_yaml(file.path(full@path, "scenario.yml"))$model$source,
+                   "embedded")
 })
 
 test_that("re-saving a referenced scenario keeps the reference", {
@@ -192,6 +193,8 @@ test_that("re-saving a referenced scenario keeps the reference", {
   ms_local_store()
   mod <- sp_tech(c(65, 65, 65), optret = FALSE, name = "msagain")
   h <- model_hash(mod)
+  save_model(mod, verbose = FALSE)
+  suppressMessages(seal_model("msagain"))
   sc <- interpolate_model(mod, name = "msagain", path = ms_root("scen-again"))
   saved <- suppressMessages(save_scenario(solve_scenario(sc), verbose = FALSE))
 
@@ -207,22 +210,20 @@ test_that("re-saving a referenced scenario keeps the reference", {
   expect_identical(mf$model$hash, h)
 })
 
-test_that("an occupied model name embeds rather than replacing the entry", {
+test_that("other content under a stored name is copied in, the entry untouched", {
   skip_if_no_solver()
   ms_local_store()
   first <- sp_tech(c(50, 50, 50), optret = FALSE, name = "msname")
   save_model(first, verbose = FALSE)
   h1 <- model_hash(first)
 
-  # same name, different content: the store entry updates IN PLACE, so an
-  # implicit save would replace the version other scenarios reference
+  # same name, different content: not a sealed version, so the scenario
+  # carries its own copy and the store is never written
   other <- sp_tech(c(50, 50, 55), optret = FALSE, name = "msname")
   expect_false(identical(model_hash(other), h1))
   sc <- interpolate_model(other, name = "msname_s", path = ms_root("scen-nm"))
   sol <- solve_scenario(sc)
-  saved <- NULL
-  expect_message(saved <- save_scenario(sol, verbose = TRUE),
-                 "already holds a different version")
+  saved <- suppressMessages(save_scenario(sol, verbose = FALSE))
 
   mf <- yaml::read_yaml(file.path(saved@path, "scenario.yml"))
   expect_identical(mf$model$source, "embedded")
@@ -253,7 +254,7 @@ test_that("embed_model = TRUE embeds even when the store has the model", {
   expect_identical(back@model@name, "msemb")
 })
 
-test_that("embed_model = FALSE errors when the model is not stored", {
+test_that("embed_model = FALSE errors when the model is not a sealed version", {
   skip_if_no_solver()
   ms_local_store()
   mod <- sp_tech(c(30, 30, 30), optret = FALSE, name = "msreq")
@@ -261,7 +262,11 @@ test_that("embed_model = FALSE errors when the model is not stored", {
   sol <- solve_scenario(sc)
   expect_error(
     suppressMessages(save_scenario(sol, embed_model = FALSE, verbose = FALSE)),
-    "save_model")
+    "seal_model")
+  save_model(mod, verbose = FALSE)
+  expect_error(
+    suppressMessages(save_scenario(sol, embed_model = FALSE, verbose = FALSE)),
+    "sealed version")
 })
 
 test_that("default sourceCode blocks are dropped on save and restored on load", {

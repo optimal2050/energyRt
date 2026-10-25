@@ -115,6 +115,12 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   references; the lazy readers follow them; a writer that changes a table
   drops its reference. A weather or demand table whose version is gone is
   recomputed from the model.
+* `save_model()` and `save_scenario()` take `mode = "ref"` (default,
+  `options(energyRt.save_mode)`) or `"full"`. `"ref"` references a repository
+  or model only when its exact content is a SEALED version, and copies it in
+  otherwise; `"full"` copies everything in. `save_scenario()` no longer
+  stores an unsealed model in the model store to reference it. Changed: a
+  scenario whose model is stored but not sealed now carries its own copy.
 * Sealing a model or repository freezes its content as a version
   (`<entry>/<hash>/`): unsealed saves update the entry in place and leave the
   sealed versions untouched, and references and `load_*(hash = )` reach a

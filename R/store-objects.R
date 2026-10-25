@@ -126,12 +126,18 @@ object_hash <- function(x) {
 #'   path.
 #' @param hash character, full or short content hash to pin a version.
 #' @param path character, explicit store directory (bypasses the registry).
-#' @param embed_repos `NULL` (default), `TRUE`, or `FALSE`. Controls whether
-#'   the model's repositories are embedded in the store entry or referenced
-#'   from the repository store (see [save_repository()]). `NULL`: reference a
-#'   repository when its identical content is already stored, embed
-#'   otherwise. `TRUE`: always embed. `FALSE`: require a store hit for every
-#'   repository. The model hash is always taken over the FULL model, so it is
+#' @param mode `"ref"` or `"full"`; defaults to
+#'   `getOption("energyRt.save_mode", "ref")`. `"ref"` references a
+#'   repository whose exact content is a SEALED version in the repository
+#'   store and copies the others in; `"full"` copies every repository and
+#'   dataset in (a self-contained entry). An explicit `embed_repos` /
+#'   `embed_datasets` overrides the mode for its level.
+#' @param embed_repos `NULL` (default: by `mode`), `TRUE`, or `FALSE`.
+#'   Controls whether the model's repositories are embedded in the store
+#'   entry or referenced from the repository store (see [save_repository()]).
+#'   `NULL`: reference a repository whose identical content is a sealed
+#'   version, embed otherwise. `TRUE`: always embed. `FALSE`: require a
+#'   sealed version for every repository. The model hash is always taken over the FULL model, so it is
 #'   unaffected by this choice; `load_model()` resolves references back.
 #' @param embed_datasets the same choice one level further down, for the big
 #'   data tables (weather/demand) of embedded repositories and the geoscale
@@ -183,6 +189,7 @@ save_model <- function(
     path = NULL,
     embed_repos = NULL,
     embed_datasets = NULL,
+    mode = NULL,
     registry = TRUE,
     format = get_storage_format(),
     overwrite = FALSE,
@@ -190,6 +197,10 @@ save_model <- function(
     verbose = TRUE) {
   stopifnot(is(object, "model"))
   if (!nzchar(object@name)) stop("The model must have a non-empty @name")
+  if (identical(.save_mode(mode), "full")) {
+    embed_repos <- embed_repos %||% TRUE
+    embed_datasets <- embed_datasets %||% TRUE
+  }
   # "arrow" and "ipc" are aliases for feather, as in save_scenario(). These
   # stores used to pin parquet here for hash stability; they no longer do.
   # dataset_hash()/model_hash() run .dataset_canonical() over the payload,
@@ -259,8 +270,7 @@ save_model <- function(
     rh <- tryCatch(repository_hash(repo), error = function(e) "")
     store_dir <- NULL
     if (!isTRUE(embed_repos) && nzchar(rh)) {
-      store_dir <- tryCatch(.repo_store_resolve(repo@name, rh),
-                            error = function(e) NULL)
+      store_dir <- .sealed_entry("repository", repo@name, rh)
     }
     if (!is.null(store_dir)) {
       repo_entries[[rp]] <- list(name = repo@name, hash = rh,
@@ -268,7 +278,7 @@ save_model <- function(
                                  path = .registry_rel_path(store_dir))
     } else if (isFALSE(embed_repos)) {
       stop("embed_repos = FALSE, but repository '", repo@name, "' (",
-           substr(rh, 1, 8), ") is not in the repository store ('",
+           substr(rh, 1, 8), ") is not a sealed version in the repository store ('",
            get_repositories_path(), "'). save_repository() it first, or ",
            "use embed_repos = NULL/TRUE.")
     } else {
@@ -462,6 +472,30 @@ save_model <- function(
   cur <- as.character(mf$hash %||% "")[1]
   if (file.exists(fp(path, payload)) && (!pinned || startsWith(cur, hash))) return(path)
   if (!pinned && nzchar(cur) && file.exists(fp(path, cur, payload))) return(fp(path, cur))
+  NULL
+}
+
+# --- save modes -------------------------------------------------------------
+# `ref` (default): a component is referenced when its exact content is a
+# SEALED version in its store, copied in otherwise; `full`: every component is
+# copied in. Project default: options(energyRt.save_mode = "ref").
+.save_mode <- function(mode = NULL) {
+  mode <- mode %||% getOption("energyRt.save_mode", "ref")
+  match.arg(as.character(mode)[1], c("ref", "full"))
+}
+
+# The store entry holding `hash` of `name` as a SEALED version (or a sealed
+# entry whose current content it is), else NULL: only those are referenced.
+.sealed_entry <- function(type, name, hash) {
+  if (!nzchar(hash %||% "")) return(NULL)
+  resolve <- switch(type, model = .model_store_resolve,
+                    repository = .repo_store_resolve)
+  path <- tryCatch(resolve(name, hash), error = function(e) NULL)
+  if (is.null(path)) return(NULL)
+  mf <- .entry_manifest(type, path)
+  vers <- as.character(names(mf$versions %||% list()))
+  if (any(startsWith(vers, hash))) return(path)
+  if (isTRUE(mf$sealed) && startsWith(as.character(mf$hash %||% ""), hash)) return(path)
   NULL
 }
 
@@ -709,56 +743,6 @@ store_blast_radius <- function(x, type = NULL, version = NULL, prune = FALSE) {
 .model_store_resolve <- function(name, hash = NULL) {
   .store_resolve(name, hash, reg_type = "model", root = get_models_path(),
                  manifest = "model.yml")
-}
-
-# Put a model in the store on behalf of save_scenario(embed_model = NULL), so
-# that referencing is the default rather than something the user has to arm by
-# calling save_model() first.
-#
-# Never destructive: a store entry updates IN PLACE, so writing over an entry
-# that holds different content under the same name would replace the version
-# other scenarios reference. An occupied name is therefore left alone and the
-# caller embeds instead.
-#
-# Returns list(hash, path) on success, NULL when the caller should embed.
-.model_autostore <- function(mod, format = get_storage_format(),
-                             verbose = TRUE) {
-  if (!is(mod, "model") || !nzchar(mod@name %||% "")) return(NULL)
-  cur <- tryCatch(.model_store_resolve(mod@name, NULL),
-                  error = function(e) NULL)
-  if (!is.null(cur)) {
-    cur_h <- tryCatch(yaml::read_yaml(fp(cur, "model.yml"))$hash %||% "",
-                      error = function(e) "")
-    # A thinned model carries the hash of the entry it was written from
-    # (save_model() records misc$hash before writing mod.RData), so a scenario
-    # loaded from a reference re-references its entry without rehydrating.
-    if (!isInMemory(mod) && nzchar(cur_h) &&
-        identical(mod@misc$hash %||% "", cur_h)) {
-      return(list(hash = cur_h, path = cur))
-    }
-    if (verbose) {
-      message("Model '", mod@name, "' is embedded in this scenario: the ",
-              "model store already holds a different version (@",
-              substr(cur_h, 1, 8), ") under that name. save_model() to ",
-              "update the store, or rename the model.")
-    }
-    return(NULL)
-  }
-  st <- tryCatch(
-    save_model(mod, format = format, registry = TRUE, verbose = FALSE),
-    error = function(e) {
-      warning("Model '", mod@name, "' could not be stored (",
-              conditionMessage(e), "); embedding it in the scenario instead.",
-              call. = FALSE)
-      NULL
-    })
-  if (is.null(st)) return(NULL)
-  h <- st@misc$hash %||% ""
-  p <- st@misc$path %||% ""
-  if (!nzchar(h) || !nzchar(p)) return(NULL)
-  if (verbose) message("Model '", mod@name, "' (", substr(h, 1, 8),
-                       ") stored in '", get_models_path(), "'")
-  list(hash = h, path = p)
 }
 
 # Rebase the on-disk paths of a stored model to the directory it was actually

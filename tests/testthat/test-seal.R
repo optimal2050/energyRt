@@ -55,22 +55,25 @@ test_that("a changed model UPDATES IN PLACE: same folder, new hash", {
   expect_length(list.dirs(sl_root("models"), recursive = FALSE), 1L)
 })
 
-test_that("an outdated reference warns and loads the current version", {
+test_that("a reference keeps its sealed version when the name moves on", {
   sl_local()
   unlink(sl_root(), recursive = TRUE)
   mod <- sl_mod("rwm", fixom = 1)
   repo <- mod@data[[1]]
   save_repository(repo, verbose = FALSE)
-  suppressMessages(save_model(mod, verbose = FALSE))   # repo saved as ref
+  suppressMessages(seal_repository(repo@name))
+  suppressMessages(save_model(mod, verbose = FALSE))   # repo referenced
 
-  # the repository moves on: same name, new content, updated in place
+  # the repository name moves on: released, new content in the entry
+  suppressMessages(unseal_repository(repo@name, force = TRUE))
   repo2 <- sl_mod("rwm", fixom = 9)@data[[1]]
   save_repository(repo2, verbose = FALSE)
 
-  expect_warning(back <- load_model("rwm", verbose = FALSE),
-                 "loading the current version")
+  expect_no_warning(back <- load_model("rwm", verbose = FALSE))
   expect_identical(
-    back@data[[1]]@data[["TECH"]]@fixom$fixom[1], 9)
+    back@data[[1]]@data[["TECH"]]@fixom$fixom[1], 1)
+  expect_identical(
+    load_repository(repo@name, verbose = FALSE)@data[["TECH"]]@fixom$fixom[1], 9)
 })
 
 test_that("seal freezes an entry; unseal reopens it", {
