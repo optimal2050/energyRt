@@ -121,6 +121,12 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   otherwise; `"full"` copies everything in. `save_scenario()` no longer
   stores an unsealed model in the model store to reference it. Changed: a
   scenario whose model is stored but not sealed now carries its own copy.
+* `store_versions()` lists the versions of models and repositories (current
+  payload and sealed versions) with when they were sealed and updated, their
+  size and their verified dependents. `store_gc()` lists, and with
+  `dry_run = FALSE` deletes, sealed versions that are neither current nor
+  referenced. `delete_marked()` keeps an entry while any of its sealed
+  versions has a dependent.
 * Unsealed saves of models and repositories record a save id instead of a
   content hash (`hashed: false` in the manifest), so saving a large model no
   longer serializes it for hashing. The content hash is computed when a

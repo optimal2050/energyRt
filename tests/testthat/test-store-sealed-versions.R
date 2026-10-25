@@ -234,3 +234,44 @@ test_that("unsealed saves record a save id; sealing computes the content hash", 
   # a sealed entry is hashed on save: identical content is a no-op
   expect_message(save_model(m), "already in the store")
 })
+
+test_that("store_versions lists versions with times and dependents; store_gc removes garbage", {
+  sv_local()
+  unlink(sv_root(), recursive = TRUE)
+  m1 <- sv_mod("svgc", fixom = 1)
+  save_model(m1, verbose = FALSE)
+  suppressMessages(seal_model("svgc"))
+  sc <- interpolate_model(m1, name = "svgc_scen", path = sv_root("scenarios", "svgc_scen"))
+  saved <- suppressMessages(save_scenario(sc, verbose = FALSE))
+  suppressMessages(unseal_model("svgc", force = TRUE))
+  save_model(sv_mod("svgc", fixom = 2), verbose = FALSE)
+
+  v <- store_versions("svgc", type = "model")
+  expect_identical(names(v)[1:9], c("name", "type", "version", "status", "sealed_at",
+                                    "updated", "size_mb", "n_dependents", "dependents"))
+  expect_setequal(v$status, c("current", "sealed"))
+  expect_s3_class(v$sealed_at, "POSIXct")
+  expect_identical(v$dependents[v$status == "sealed"], "scenario svgc_scen")
+  expect_identical(v$version[v$status == "current"], "(unsealed)")
+  expect_true(all(c("svgc") %in% store_versions()$name))
+
+  # referenced: kept, and the entry cannot be deleted whole
+  g <- suppressMessages(store_gc(type = "model"))
+  expect_identical(g$action, "kept_referenced")
+  suppressMessages(mark_delete("svgc", type = "model"))
+  dm <- suppressMessages(delete_marked(types = "model"))
+  expect_identical(dm$action[dm$name == "svgc"], "skipped_referenced")
+  suppressMessages(unmark_delete("svgc", type = "model"))
+
+  # the dependent gone: garbage, deleted on request
+  unlink(saved@path, recursive = TRUE)
+  g <- suppressMessages(store_gc(type = "model"))
+  expect_identical(g$action, "would_delete")
+  sealed_dir <- g$path
+  expect_true(dir.exists(sealed_dir))
+  suppressMessages(store_gc(type = "model", dry_run = FALSE))
+  expect_false(dir.exists(sealed_dir))
+  v <- store_versions("svgc", type = "model")
+  expect_identical(v$status, "current")
+  expect_identical(sv_fixom(load_model("svgc", verbose = FALSE)), 2)
+})
