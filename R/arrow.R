@@ -1307,13 +1307,13 @@ load_scenario <- function(
       error = function(e) NULL)
     if (is.null(mod) && !is.null(ref$path)) {
       cand <- fp(dirname(get_registry_file()), ref$path)
-      cand_h <- tryCatch(yaml::read_yaml(fp(cand, "model.yml"))$hash,
-                         error = function(e) "")
       # accept the recorded path only when it still holds the recorded
-      # VERSION — an in-place-updated entry falls through to the warning
-      if (file.exists(fp(cand, "mod.RData")) &&
-          startsWith(cand_h %||% "", ref$hash %||% "")) {
-        mod <- tryCatch(load_model(ref$name, path = cand, verbose = FALSE),
+      # VERSION (as its current payload or a sealed version) -- an
+      # in-place-updated entry falls through to the warning
+      if (!is.null(.store_payload_dir(cand, .entry_manifest("model", cand),
+                                      "mod.RData", ref$hash))) {
+        mod <- tryCatch(load_model(ref$name, hash = ref$hash, path = cand,
+                                   verbose = FALSE),
                         error = function(e) NULL)
       }
     }

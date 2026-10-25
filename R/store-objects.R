@@ -243,7 +243,7 @@ save_model <- function(
     }
     # changed content: the entry updates IN PLACE — clear the previous
     # payload, keep the derived-artifact caches beside it
-    .store_entry_wipe(path)
+    .store_entry_wipe(path, keep = c("reports", "levcost", names(prev$versions %||% list())))
   }
 
   # Repository references: with embed_repos = NULL (auto), each repository
@@ -351,6 +351,7 @@ save_model <- function(
     repositories = unname(repo_entries)
   ), if (length(ds_entries)) list(datasets = ds_entries),
      if (hash_kept) list(hash_kept = TRUE),
+     if (length(prev$versions)) list(versions = prev$versions),
      .lifecycle_carry(prev)), mf_path)
   # the returned in-memory object keeps its full repositories and geoscale
   if (!is.null(full_repos)) object@data <- full_repos
@@ -399,6 +400,62 @@ save_model <- function(
   ff <- list.files(path, all.files = TRUE, no.. = TRUE)
   unlink(fp(path, setdiff(ff, keep)), recursive = TRUE, force = TRUE)
   invisible(TRUE)
+}
+
+# Sealed versions of a model or repository entry. The entry folder holds the
+# manifest and, while unsealed, the payload (`mod.RData` / `repo.RData` and
+# its `data/`), updated in place. Sealing moves the payload into
+# `<entry>/<hash>/` and records the version in the manifest's `versions`; a
+# sealed version is never modified, and survives unsealing and later saves
+# for as long as it is kept.
+.store_meta_items <- c("model.yml", "repository.yml", "class", "layout",
+                       "reports", "levcost")
+
+# the payload items of an entry's root (everything but metadata and versions)
+.store_payload_items <- function(path, mf) {
+  ff <- list.files(path, all.files = TRUE, no.. = TRUE)
+  setdiff(ff, c(.store_meta_items, names(mf$versions %||% list())))
+}
+
+# Move the root payload into `<entry>/<hash>/`; returns the manifest's
+# `versions` with this version added. Sealing again a sealed version is a
+# no-op.
+.store_seal_version <- function(path, mf, payload) {
+  h <- as.character(mf$hash %||% "")[1]
+  versions <- mf$versions %||% list()
+  vdir <- fp(path, h)
+  if (!nzchar(h)) stop("The entry at '", path, "' has no hash to seal.", call. = FALSE)
+  # nothing to move: already a sealed version, or a manifest-only entry
+  if (!file.exists(fp(path, payload))) return(versions)
+  items <- setdiff(.store_payload_items(path, mf), h)
+  dir.create(vdir, showWarnings = FALSE)
+  for (it in items) {
+    if (!file.rename(fp(path, it), fp(vdir, it))) {
+      file.copy(fp(path, it), vdir, recursive = TRUE)
+      unlink(fp(path, it), recursive = TRUE)
+    }
+  }
+  versions[[h]] <- list(sealed_at = .registry_now(),
+                        created = mf$updated %||% mf$created %||% .registry_now())
+  versions
+}
+
+# The folder holding the payload to load: the sealed version a hash names,
+# else the root payload (when it is the requested hash or none is asked
+# for), else the current sealed version.
+.store_payload_dir <- function(path, mf, payload, hash = NULL) {
+  if (is.null(mf)) return(if (file.exists(fp(path, payload))) path else NULL)
+  vers <- as.character(names(mf$versions %||% list()))
+  hash <- if (is.null(hash)) NULL else as.character(hash)[1]
+  pinned <- !is.null(hash) && !is.na(hash) && nzchar(hash)
+  if (pinned) {
+    hit <- vers[startsWith(vers, hash)]
+    if (length(hit) == 1L && file.exists(fp(path, hit, payload))) return(fp(path, hit))
+  }
+  cur <- as.character(mf$hash %||% "")[1]
+  if (file.exists(fp(path, payload)) && (!pinned || startsWith(cur, hash))) return(path)
+  if (!pinned && nzchar(cur) && file.exists(fp(path, cur, payload))) return(fp(path, cur))
+  NULL
 }
 
 .store_resolve <- function(name, hash, reg_type, root, manifest) {
@@ -559,7 +616,10 @@ load_model <- function(name, hash = NULL, path = NULL, env = NULL,
       path <- .model_store_resolve(name, hash)
     }
   }
-  if (is.null(path) || !file.exists(fp(path, "mod.RData"))) {
+  pdir <- if (!is.null(path)) {
+    .store_payload_dir(path, .entry_manifest("model", path), "mod.RData", hash)
+  }
+  if (is.null(pdir)) {
     stop("Model '", if (is.null(hash)) name else paste0(name, "@", hash),
          "' was not found in the registry or the model store ('",
          get_models_path(), "').\n",
@@ -568,11 +628,11 @@ load_model <- function(name, hash = NULL, path = NULL, env = NULL,
   }
   .mark_notice("model", path, name)
   e <- new.env(parent = emptyenv())
-  nm <- load(fp(path, "mod.RData"), envir = e)
+  nm <- load(fp(pdir, "mod.RData"), envir = e)
   if (length(nm) != 1L || !is(get(nm, envir = e), "model")) {
-    stop("'", fp(path, "mod.RData"), "' must contain exactly one model object")
+    stop("'", fp(pdir, "mod.RData"), "' must contain exactly one model object")
   }
-  mod <- .model_rebase(get(nm, envir = e), path)
+  mod <- .model_rebase(get(nm, envir = e), pdir)
 
   # resolve repository references (repos saved to the repository store rather
   # than embedded — see save_model(embed_repos=))
@@ -593,9 +653,10 @@ load_model <- function(name, hash = NULL, path = NULL, env = NULL,
                          error = function(e) "")
       # accept the recorded path only when it still holds the recorded
       # VERSION — an in-place-updated entry falls through to the warning
-      if (file.exists(fp(cand, "repo.RData")) &&
-          startsWith(cand_h %||% "", ref$hash %||% "")) {
-        r <- tryCatch(load_repository(ref$name, path = cand, verbose = FALSE),
+      if (!is.null(.store_payload_dir(cand, .entry_manifest("repository", cand),
+                                      "repo.RData", ref$hash))) {
+        r <- tryCatch(load_repository(ref$name, hash = ref$hash, path = cand,
+                                      verbose = FALSE),
                       error = function(e) NULL)
       }
     }
@@ -796,7 +857,7 @@ save_repository <- function(
       h8 <- substr(h, 1, 8)
       hash_kept <- TRUE
     }
-    .store_entry_wipe(path)
+    .store_entry_wipe(path, keep = c("reports", "levcost", names(prev$versions %||% list())))
   }
 
   # Large data slots already in the dataset store become {name, hash} refs:
@@ -838,6 +899,7 @@ save_repository <- function(
     format = format
   ), if (length(ds_entries)) list(datasets = ds_entries),
      if (hash_kept) list(hash_kept = TRUE),
+     if (length(prev$versions)) list(versions = prev$versions),
      .lifecycle_carry(prev)), mf_path)
 
   # the caller keeps a fully-loaded object: restore the referenced payloads
@@ -901,7 +963,10 @@ load_repository <- function(name, hash = NULL, path = NULL, env = NULL,
       path <- .repo_store_resolve(name, hash)
     }
   }
-  if (is.null(path) || !file.exists(fp(path, "repo.RData"))) {
+  pdir <- if (!is.null(path)) {
+    .store_payload_dir(path, .entry_manifest("repository", path), "repo.RData", hash)
+  }
+  if (is.null(pdir)) {
     stop("Repository '",
          if (is.null(hash)) name else paste0(name, "@", hash),
          "' was not found in the registry or the repository store ('",
@@ -911,12 +976,12 @@ load_repository <- function(name, hash = NULL, path = NULL, env = NULL,
   }
   .mark_notice("repository", path, name)
   e <- new.env(parent = emptyenv())
-  nm <- load(fp(path, "repo.RData"), envir = e)
+  nm <- load(fp(pdir, "repo.RData"), envir = e)
   if (length(nm) != 1L || !is(get(nm, envir = e), "repository")) {
-    stop("'", fp(path, "repo.RData"),
+    stop("'", fp(pdir, "repo.RData"),
          "' must contain exactly one repository object")
   }
-  repo <- .repo_rebase(get(nm, envir = e), path)
+  repo <- .repo_rebase(get(nm, envir = e), pdir)
   # dataset refs resolve eagerly: a live object never holds a stub
   for (ob in names(repo@data)) {
     o <- repo@data[[ob]]
@@ -1746,6 +1811,10 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
          sealed_hash = mf$hash %||% "")
   } else {
     list(sealed = FALSE)
+  }
+  payload <- c(model = "mod.RData", repository = "repo.RData")[type]
+  if (sealed && !is.na(payload)) {
+    fields$versions <- .store_seal_version(e$path, mf, payload)
   }
   .entry_manifest_update(type, e$path, fields)
   .registry_sync_entry(type, e$path, e$name)
