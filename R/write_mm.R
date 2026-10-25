@@ -57,14 +57,20 @@
   # multimod's writer. `on_empty_row` defaults to "user_constraints": a
   # `^eqCns` row with no coefficients reads `0 <op> rhs`, binds nothing, and
   # still solves to Optimal, so it is refused rather than written.
+  # `substitute` names the definition equations substituted while the matrix
+  # is built (their rows and the defined columns are never written); by
+  # default the activity and output definitions, `character()` for none.
   sv <- scen@settings@solver
   op <- options(multimod.engine = sv$engine %||% "native")
   if (!is.null(sv$threads)) op <- c(op, options(multimod.threads = sv$threads))
   on.exit(options(op), add = TRUE)
-  multimod::write_mps(m, fp(arg$solver.dir, "model.mps"),
-                      index_dir = arg$solver.dir, format = "parquet",
-                      stream = TRUE, presolve = isTRUE(sv$presolve %||% TRUE),
-                      verbose = isTRUE(arg$echo))
+  wargs <- list(m, fp(arg$solver.dir, "model.mps"),
+                index_dir = arg$solver.dir, format = "parquet",
+                stream = TRUE, presolve = isTRUE(sv$presolve %||% TRUE),
+                verbose = isTRUE(arg$echo))
+  sub <- .mm_substitute(sv, m)
+  if (!is.null(sub)) wargs$substitute <- sub
+  do.call(multimod::write_mps, wargs)
 
   # The matrix is on disk: nothing of it is needed through the solve. The
   # model, multimod's memo and the scenario's tables that are persisted
@@ -93,4 +99,24 @@
 # some index columns are wildcards (NA)?
 .mm_reads_wildcards <- function() {
   exists(".mx_param_wildcard", envir = asNamespace("multimod"), inherits = FALSE)
+}
+
+#' Definition equations to substitute while multimod builds the matrix
+#'
+#' The preset's `substitute` field, or by default those of
+#' `c("eqTechAfFx", "eqTechActSng")` the model holds; `character()` turns it
+#' off. NULL when the installed multimod's `write_mps()` has no `substitute`
+#' argument (it then builds every row).
+#' @keywords internal
+#' @noRd
+.mm_substitute <- function(sv, m) {
+  if (!"substitute" %in% names(formals(multimod::write_mps))) {
+    if (length(sv$substitute)) {
+      warning("The installed multimod cannot substitute equations; `substitute` is ignored.",
+              call. = FALSE)
+    }
+    return(NULL)
+  }
+  if (!is.null(sv$substitute)) return(as.character(sv$substitute))
+  intersect(c("eqTechAfFx", "eqTechActSng"), names(m$equations))
 }

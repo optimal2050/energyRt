@@ -68,14 +68,43 @@ opt.options['run_crossover'] = 'off'"}
 ## Write a named free-MPS file instead of solving. `inc4` runs after the model is
 ## complete and before `opt.solve()`, so the model can be serialised and the solve
 ## skipped. `symbolic_solver_labels` keeps energyRt's own variable and constraint
-## names; JuMP's `write_to_file` emits generic `c1_2`/`OBJ` labels instead, which
-## cannot be mapped back to model objects. For handing a model to an external
-## solver (e.g. NVIDIA cuOpt's `cuopt_cli`) and reading the solution back.
+## names. Beside the matrix the hook writes, from Pyomo's own symbol map, the
+## index tables multimod decodes a solution against (`model_col_index.parquet`,
+## `model_row_index.parquet`: each label with its symbol and index tuple): a
+## label cannot be split back into its tuple, since members contain underscores.
+## For handing a model to an external solver (e.g. NVIDIA cuOpt's `cuopt_cli`)
+## and reading the solution back with multimod::read_mps_solution().
 pyomo_mps <- pyomo_highs
 pyomo_mps$name <- "pyomo_mps"
 pyomo_mps$inc4 <- {
-"model.write('model.mps', io_options={'symbolic_solver_labels': True})
-print('MPS written to model.mps; skipping solve', flush=True)
+"_fn, _sid = model.write('model.mps', io_options={'symbolic_solver_labels': True})
+import pyarrow as _pa, pyarrow.parquet as _pq
+from pyomo.environ import Var as _Var, Constraint as _Con
+def _row_names(_lab, _c):
+    # the MPS writer names a row by the constraint's type around its label
+    if _c.equality:
+        return ['c_e_' + _lab + '_']
+    if _c.has_lb() and _c.has_ub():
+        return ['r_l_' + _lab + '_', 'r_u_' + _lab + '_']
+    return ['c_l_' + _lab + '_'] if _c.has_lb() else ['c_u_' + _lab + '_']
+def _index_table(_kind):
+    _rows = []
+    for _lab, _obj in model.solutions.symbol_map[_sid].bySymbol.items():
+        if _obj.ctype is not _kind:
+            continue
+        _ix = _obj.index()
+        _ix = () if _ix is None else (_ix if isinstance(_ix, tuple) else (_ix,))
+        _sym = _obj.parent_component().local_name
+        for _nm in (_row_names(_lab, _obj) if _kind is _Con else [_lab]):
+            _rows.append((_nm, _sym, _ix))
+    _k = max([len(r[2]) for r in _rows], default=0)
+    _cols = {'symbol': [r[1] for r in _rows], 'name': [r[0] for r in _rows]}
+    for _d in range(_k):
+        _cols['i' + str(_d + 1)] = [str(r[2][_d]) if _d < len(r[2]) else None for r in _rows]
+    return _pa.table(_cols)
+_pq.write_table(_index_table(_Var), 'model_col_index.parquet')
+_pq.write_table(_index_table(_Con), 'model_row_index.parquet')
+print('MPS written to model.mps with its index tables; skipping solve', flush=True)
 raise SystemExit(0)"}
 
 ## The matrix routes #########################################################
@@ -202,7 +231,6 @@ pyomo_cuopt_cloud$gpu_method <- 1L
 pyomo_cuopt_cloud_crossover <- pyomo_cuopt_cloud
 pyomo_cuopt_cloud_crossover$name <- "pyomo_cuopt_cloud_crossover"
 pyomo_cuopt_cloud_crossover$gpu_solver_options <- "--crossover 1"
-
 ## Renamed presets: a solve with one of these stops and names the new preset
 renamed_preset <- function(old, new) list(name = old, renamed_to = new)
 
@@ -298,6 +326,74 @@ julia_highs <- list(
   lang = "JuMP",
   solver = "HiGHS"
 )
+
+## Write the JuMP model as an MPS matrix instead of solving ####################
+# `inc3` runs once the model is built, before `optimize!`. JuMP's own names
+# (`vTechCap[("ECOA", "R1", 2025)]`) cannot appear in an MPS file, so the hook
+# names every variable `c<k>` and every constraint `r<k>`, writes the matrix and
+# beside it the column index (name, symbol, index tuple, read from JuMP's
+# containers) that multimod decodes a solution against, then exits. The row
+# index carries no rows: duals are not decoded on this route.
+julia_mps <- julia_highs
+julia_mps$name <- "julia_mps"
+julia_mps$inc3 <- {'
+using Arrow
+let
+    _flat(x) = x isa Tuple ? reduce(vcat, map(_flat, collect(x)); init = String[]) : [string(x)]
+    _sym = String[]; _nm = String[]; _ix = Vector{Vector{String}}()
+    _add(s, v, ix) = (n = "c" * string(length(_nm)); set_name(v, n);
+                      push!(_sym, string(s)); push!(_nm, n); push!(_ix, ix))
+    for (s, obj) in object_dictionary(model)
+        if obj isa VariableRef
+            _add(s, obj, String[])
+        elseif obj isa JuMP.Containers.DenseAxisArray && eltype(obj) <: VariableRef
+            for idx in Iterators.product(axes(obj)...)
+                _add(s, obj[idx...], _flat(idx))
+            end
+        elseif obj isa JuMP.Containers.SparseAxisArray && eltype(obj) <: VariableRef
+            for (key, v) in obj.data
+                _add(s, v, _flat(key))
+            end
+        elseif obj isa AbstractArray && eltype(obj) <: VariableRef
+            for I in CartesianIndices(obj)
+                _add(s, obj[I], _flat(Tuple(I)))
+            end
+        end
+    end
+    length(_nm) == num_variables(model) ||
+        error("matrix writer: ", num_variables(model) - length(_nm),
+              " variable(s) are not in a named container")
+    _r = 0
+    for (F, S) in list_of_constraint_types(model)
+        F == VariableRef && continue
+        for c in all_constraints(model, F, S)
+            set_name(c, "r" * string(_r)); _r += 1
+        end
+    end
+    write_to_file(model, "model.mps")
+    _k = isempty(_ix) ? 0 : maximum(length.(_ix))
+    _cols = Pair{Symbol, Any}[:symbol => _sym, :name => _nm]
+    for d in 1:_k
+        push!(_cols, Symbol("i", d) => [length(x) >= d ? x[d] : missing for x in _ix])
+    end
+    Arrow.write("model_col_index.arrow", (; _cols...))
+    Arrow.write("model_row_index.arrow", (symbol = String[], name = String[]))
+    println("MPS written to model.mps with its index tables; skipping solve")
+end
+exit(0)
+'}
+
+## JuMP-written matrix, solved by cuOpt on a rented GPU #######################
+# `solver` stays HiGHS: it is the package the JuMP model is built with (the
+# hook exits before any solve); cuOpt, Linux only, is chosen by `mm_solver`.
+julia_cuopt_cloud <- julia_mps
+julia_cuopt_cloud$name <- "julia_cuopt_cloud"
+julia_cuopt_cloud$backend <- "mm"
+julia_cuopt_cloud$mm_solver <- "cuopt"
+julia_cuopt_cloud$where <- "remote"
+julia_cuopt_cloud$cloud_flavor <- "a10g-large"
+julia_cuopt_cloud$cloud_timeout <- "3h"
+julia_cuopt_cloud$gpu_method <- 1L
 
 
 julia_highs_barrier <- julia_highs
@@ -641,6 +737,9 @@ solver_options <- list(
   # Pyomo-written matrix on a rented GPU
   pyomo_cuopt_cloud = pyomo_cuopt_cloud,
   pyomo_cuopt_cloud_crossover = pyomo_cuopt_cloud_crossover,
+  # JuMP-written matrix: written only, or solved on a rented GPU
+  julia_mps = julia_mps,
+  julia_cuopt_cloud = julia_cuopt_cloud,
   # renamed (no aliases): a solve with one of these stops and names the new one
   mmcloud = renamed_preset("mmcloud", "mm_cuopt_cloud"),
   mmcloud_crossover = renamed_preset("mmcloud_crossover", "mm_cuopt_cloud_crossover"),

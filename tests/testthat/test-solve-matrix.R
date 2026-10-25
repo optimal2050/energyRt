@@ -69,6 +69,49 @@ test_that("hf_* fields are refused with their new names", {
                "hf_flavor -> cloud_flavor")
 })
 
+test_that("the output templates give every variable's dimensions in order", {
+  d <- .template_dim_names(.modelCode[["PYOMOConcreteOutput"]])
+  expect_identical(d$dim[d$symbol == "vTechCap"], c("tech", "region", "year"))
+  expect_identical(d$dim[d$symbol == "vTradeIr"],
+                   c("trade", "comm", "src", "dst", "year", "timeslice"))
+  expect_false("vObjective" %in% d$symbol)   # a scalar: no dimensions
+  expect_true(all(tapply(d$position, d$symbol, function(p) identical(p, seq_along(p)))))
+  expect_error(.template_dim_names(c('f = open("output/vX.csv", "w")', 'g()')),
+               "Unexpected output template")
+  # the JuMP template gives the same dimensions
+  j <- .template_dim_names(.modelCode[["JuMPOutput"]])
+  common <- intersect(unique(d$symbol), unique(j$symbol))
+  expect_gt(length(common), 80)
+  key <- function(x) paste(x$symbol, x$position, x$dim)
+  expect_setequal(key(d[d$symbol %in% common, ]), key(j[j$symbol %in% common, ]))
+})
+
+test_that("each script writer leaves its matrix and index files", {
+  expect_identical(.matrix_writer(list(lang = "JuMP")), "julia")
+  expect_identical(.matrix_writer(list(lang = "PYOMO")), "pyomo")
+  expect_identical(.matrix_writer_files("julia"),
+                   c("model.mps", "model_col_index.arrow", "model_row_index.arrow"))
+  expect_match(solver_options$julia_cuopt_cloud$inc3, 'write_to_file(model, "model.mps")', fixed = TRUE)
+  expect_identical(.mm_solve_args(solver_options$julia_cuopt_cloud, "C:/r")$where, "remote")
+})
+
+test_that("the Pyomo matrix preset writes the index tables beside the matrix", {
+  hook <- solver_options$pyomo_cuopt_cloud$inc4
+  expect_match(hook, "model_col_index.parquet", fixed = TRUE)
+  expect_match(hook, "model_row_index.parquet", fixed = TRUE)
+  expect_match(hook, "'c_e_' + _lab + '_'", fixed = TRUE)
+})
+
+test_that("the definitions substituted at build time come from the preset", {
+  skip_if_not("substitute" %in% names(formals(multimod::write_mps)))
+  m <- list(equations = list(eqTechActSng = 1, eqTechAfUp = 1))
+  expect_identical(.mm_substitute(list(), m), "eqTechActSng")
+  m$equations$eqTechAfFx <- 1
+  expect_identical(.mm_substitute(list(), m), c("eqTechAfFx", "eqTechActSng"))
+  expect_identical(.mm_substitute(list(substitute = character()), m), character())
+  expect_identical(.mm_substitute(list(substitute = "eqTechAfFx"), m), "eqTechAfFx")
+})
+
 test_that("highs_options must be a named list", {
   s <- solver_options$mm_highs
   s$highs_options <- list("ipm")

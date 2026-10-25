@@ -69,7 +69,16 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 * Matrix presets (`backend = "mm"`) are solved by `multimod::solve_mps()`:
   HiGHS in the R session or through Julia, cuOpt on a local GPU through WSL
   (`mm_cuopt_wsl`) or on a rented GPU (`mm_cuopt_cloud`, `pyomo_cuopt_cloud`).
-  A preset's `mm_solver` and `where` choose the solver and the place.
+* On the `lang = "mm"` route the activity and output definitions
+  (`eqTechAfFx`, `eqTechActSng`) are substituted while the matrix is built:
+  their rows and the columns they define are not written, which reduces a
+  full-year model several-fold. The preset field `substitute` names the
+  equations; `character()` builds every row.
+  A preset's `mm_solver` and `where` choose the solver and the place. A
+  Pyomo- or JuMP-written matrix carries index tables (from Pyomo's symbol map,
+  from JuMP's containers) and is decoded by multimod like its own;
+  `julia_mps` writes the JuMP matrix and `julia_cuopt_cloud` solves it on a
+  rented GPU.
 * `interpolate_model()` is about 6x faster on large models;
   `fx_equ = TRUE` writes fixed bounds as single equality rows (about 25% fewer
   rows on hourly VRE models).

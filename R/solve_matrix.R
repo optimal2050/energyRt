@@ -13,11 +13,9 @@
   s <- scen@settings@solver
   .reject_legacy_solver_fields(s)
   writer <- .matrix_writer(s)
-  mps <- if (identical(writer, "mm")) {
-    .mm_matrix_file(arg$solver.dir)
-  } else {
-    .write_matrix_pyomo(arg, scen)
-  }
+  mps <- switch(writer,
+    mm = .mm_matrix_file(arg$solver.dir),
+    .write_matrix_script(arg, scen, writer))
   a <- .mm_solve_args(s, arg$solver.dir, scen@name)
 
   # multimod resolves Julia itself; a path set through energyRt's options is
@@ -36,24 +34,32 @@
     cat("  ", a$solver, " (", a$where, "): ", r$status_message, ", objective ",
         format(r$objective, digits = 10), "\n", sep = "")
   }
-  if (identical(writer, "mm")) {
-    .mm_decode_solution(arg$solver.dir, r$sol_file,
-                        solver = if (identical(a$solver, "cuopt")) "cuopt" else "highs",
-                        echo = isTRUE(arg$echo))
-  } else {
-    .decode_solution_pyomo(arg$solver.dir, r$sol_file, echo = isTRUE(arg$echo))
-  }
+  # every writer leaves index tables beside the matrix: multimod's place the
+  # solution by position, Pyomo's and JuMP's carry each label and place it by name
+  .mm_decode_solution(arg$solver.dir, r$sol_file,
+                      solver = if (identical(a$solver, "cuopt")) "cuopt" else "highs",
+                      echo = isTRUE(arg$echo))
   0L
 }
 
-# Who wrote the matrix decides how it is produced and how the solution is read:
-# multimod's MPS has positional names resolved by its index files, Pyomo's has
-# energyRt's symbolic names.
+# Who wrote the matrix decides how it is produced: multimod writes it in the
+# write phase with positional names; Pyomo and JuMP write it by running the
+# model script, whose hook names it and writes the index tables.
 .matrix_writer <- function(s) {
-  if (identical(toupper(s$lang %||% ""), "PYOMO")) return("pyomo")
-  if (any(grepl("^(mm|multimod)$", s$lang %||% "", ignore.case = TRUE))) return("mm")
-  stop("A matrix solver preset needs a matrix written by multimod (lang = 'mm') ",
-       "or by Pyomo (lang = 'PYOMO'). Got lang = ", s$lang, ".", call. = FALSE)
+  lang <- s$lang %||% ""
+  if (identical(toupper(lang), "PYOMO")) return("pyomo")
+  if (identical(toupper(lang), "JUMP")) return("julia")
+  if (any(grepl("^(mm|multimod)$", lang, ignore.case = TRUE))) return("mm")
+  stop("A matrix solver preset needs a matrix written by multimod (lang = 'mm'), ",
+       "Pyomo (lang = 'PYOMO') or JuMP (lang = 'JuMP'). Got lang = ", lang, ".",
+       call. = FALSE)
+}
+
+# The files each script writer leaves: the index format is what the language
+# writes natively (pyarrow: parquet; Arrow.jl: IPC).
+.matrix_writer_files <- function(writer) {
+  ext <- c(pyomo = "parquet", julia = "arrow")[[writer]]
+  c("model.mps", paste0("model_col_index.", ext), paste0("model_row_index.", ext))
 }
 
 # The preset as `multimod::solve_mps()` arguments. Pure, so the mapping can be
@@ -151,15 +157,20 @@
   mps
 }
 
-# Pyomo writes the matrix: the preset's `inc4` hook serialises the model with
-# energyRt's names and exits before solving (see solver_options$pyomo_mps), so
-# running the written model produces model.mps. A matrix already there is reused
-# when `cloud_reuse_matrix` is set: re-solving with other options should not pay
-# for the build again.
-.write_matrix_pyomo <- function(arg, scen) {
+# Pyomo or JuMP writes the matrix by running the written model script: the
+# preset's hook (Pyomo `inc4`, JuMP `inc3`) serialises the model, writes the
+# index tables (label, symbol, index tuple) and exits before solving (see
+# solver_options$pyomo_mps, $julia_mps). The dimension names come from
+# energyRt's own output template. A matrix already there is reused when
+# `cloud_reuse_matrix` is set: re-solving with other options should not pay for
+# the build again.
+.write_matrix_script <- function(arg, scen, writer) {
   s <- scen@settings@solver
-  mps <- fp(arg$solver.dir, "model.mps")
-  if (isTRUE(s$cloud_reuse_matrix) && file.exists(mps)) {
+  files <- fp(arg$solver.dir, .matrix_writer_files(writer))
+  mps <- files[1]
+  idx <- files[-1]
+  .write_template_dim_names(scen, arg$solver.dir, writer)
+  if (isTRUE(s$cloud_reuse_matrix) && all(file.exists(files))) {
     if (isTRUE(arg$echo)) {
       cat(sprintf("Reusing the matrix already built (%.2f GB, %s)\n",
                   file.size(mps) / 1e9,
@@ -167,64 +178,55 @@
     }
     return(mps)
   }
-  unlink(mps)
-  if (isTRUE(arg$echo)) cat("Writing the matrix with Pyomo ...\n")
+  unlink(files)
+  if (isTRUE(arg$echo)) cat("Writing the matrix with", writer, "...\n")
   home <- getwd()
   on.exit(setwd(home), add = TRUE)
   setwd(arg$solver.dir)
   rs <- system(paste(s$cmdline), wait = TRUE, ignore.stdout = !isTRUE(arg$echo))
   if (!identical(as.integer(rs), 0L)) {
-    stop("Pyomo could not write the matrix (exit ", rs, ").", call. = FALSE)
+    stop(writer, " could not write the matrix (exit ", rs, ").", call. = FALSE)
   }
-  if (!file.exists(mps)) {
-    stop("Pyomo wrote no 'model.mps' in ", arg$solver.dir, ". The preset must ",
-         "carry the inc4 hook that writes it (see solver_options$pyomo_mps).",
-         call. = FALSE)
+  if (!all(file.exists(files))) {
+    stop(writer, " wrote no 'model.mps' with its index tables in ", arg$solver.dir,
+         ". The preset must carry the hook that writes them (see ",
+         "solver_options$pyomo_mps, $julia_mps).", call. = FALSE)
   }
   mps
 }
 
-# A solution with Pyomo's symbolic names, into <solver.dir>/output/.
-#
-# The decoder is python because it rebuilds energyRt's own output contract from
-# the generated `output.py` and `input/*.arrow` the write phase left in the
-# solver directory -- column names, order, the meta files. Doing that again in
-# R would be a second implementation of the same contract, and a reader fault
-# here yields plausible wrong numbers rather than an error.
-.decode_solution_pyomo <- function(solver.dir, sol, python = NULL, echo = FALSE) {
-  script <- system.file("python", "sol_to_energyrt.py", package = "energyRt")
-  if (!nzchar(script)) {
-    stop("sol_to_energyrt.py not found in the installed package.", call. = FALSE)
-  }
-  if (!file.exists(sol)) {
-    stop("no solution file to decode at ", sol, call. = FALSE)
-  }
-  # the decoder reads plain text; a remote solve returns the file compressed
-  if (grepl("\\.gz$", sol, ignore.case = TRUE)) {
-    plain <- fp(solver.dir, "model.sol")
-    con_in <- gzfile(sol, "rb")
-    con_out <- file(plain, "wb")
-    repeat {
-      buf <- readBin(con_in, "raw", n = 64 * 1024 * 1024)
-      if (!length(buf)) break
-      writeBin(buf, con_out)
+# The dimension names of each variable, in index order, from energyRt's output
+# template: each variable's block opens `output/<v>.csv`, writes its header
+# (`tech,region,year,value`) and loops over its index in that order. Pyomo:
+# `f = open(...)` then `f.write("...\n")`; JuMP: `fvX = open(...);` then
+# `println(fvX, "...");`.
+.template_dim_names <- function(src) {
+  s <- unlist(strsplit(paste(src, collapse = "\n"), "\n", fixed = TRUE))
+  open_re <- '^\\s*f[A-Za-z0-9_]* = open\\("output/(v[A-Z][A-Za-z0-9_]*)\\.csv", "w"\\);?\\s*$'
+  hdr_re <- '^\\s*(f\\.write\\(|println\\(f[A-Za-z0-9_]*, )"([A-Za-z0-9_,]+)(\\\\n)?"\\);?\\s*$'
+  at <- grep(open_re, s)
+  out <- lapply(at, function(k) {
+    sym <- sub(open_re, "\\1", s[k])
+    nxt <- s[(k + 1L):min(k + 3L, length(s))]
+    hdr <- nxt[nzchar(trimws(nxt))][1]
+    # a Pyomo scalar writes its header and value in one call: no dimensions
+    if (grepl('^\\s*f\\.write\\("value\\\\n" \\+', hdr)) return(NULL)
+    if (!grepl(hdr_re, hdr)) {
+      stop("Unexpected output template after `", trimws(s[k]), "`: ",
+           trimws(hdr), call. = FALSE)
     }
-    close(con_in)
-    close(con_out)
-    sol <- plain
-  }
-  py <- mmcloud::cloud_python(python)
-  if (isTRUE(echo)) cat("Decoding solution ...\n")
-  out <- suppressWarnings(system2(
-    py, c(shQuote(script), shQuote(solver.dir), shQuote(sol)),
-    stdout = TRUE, stderr = TRUE))
-  st <- attr(out, "status") %||% 0L
-  if (isTRUE(echo)) cat(out, sep = "\n")
-  if (!identical(as.integer(st), 0L)) {
-    stop("Decoding the solution failed:\n",
-         paste(utils::tail(out, 25), collapse = "\n"), call. = FALSE)
-  }
-  invisible(TRUE)
+    cols <- setdiff(strsplit(sub(hdr_re, "\\2", hdr), ",")[[1]], "value")
+    if (!length(cols)) return(NULL)
+    data.frame(symbol = sym, position = seq_along(cols), dim = cols)
+  })
+  do.call(rbind, out)
+}
+
+.write_template_dim_names <- function(scen, solver.dir, writer) {
+  key <- c(pyomo = "PYOMOConcreteOutput", julia = "JuMPOutput")[[writer]]
+  src <- scen@settings@sourceCode[[key]] %||% .modelCode[[key]]
+  utils::write.csv(.template_dim_names(src), fp(solver.dir, "model_dim_names.csv"),
+                   row.names = FALSE)
 }
 
 # Decode a solver's `.sol` against multimod's index files and write the result
