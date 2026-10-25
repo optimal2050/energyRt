@@ -149,7 +149,8 @@ test_that("sealed versions record their dependents; unsealing shows and guards t
   r <- list_dependents(rn, type = "repository", recursive = TRUE)
   expect_setequal(paste(r$level, r$type, r$name),
                   c("1 model svd", "2 scenario svd_scen"))
-  expect_true(all(r$exists & r$references))
+  rd <- list_dependents(rn, type = "repository", recursive = TRUE, details = TRUE)
+  expect_true(nrow(rd) == 2L && all(rd$exists & rd$references))
   expect_identical(nrow(list_dependents("svd", type = "model")), 1L)
 
   # unsealing refuses and names the dependents; forced, the version stays

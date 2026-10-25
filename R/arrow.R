@@ -478,7 +478,7 @@ save_scenario <- function(
 # write_dataset() calls below for what that costs.
 .EN_ROWS_PER_GROUP <- 1000000L
 
-# Compression codec for feather/IPC datasets. `write_dataset(format = "feather")`
+# Compression codec for feather/IPC datasets. `write_dataset(format = "ipc")`
 # takes a Codec object as `codec`, not the `compression` string parquet uses;
 # passing the string errors. Falls back to no compression when the codec is
 # unavailable in this arrow build.
@@ -546,12 +546,14 @@ data2disk <- function(
                            min_rows_per_group = .EN_ROWS_PER_GROUP,
                            max_rows_per_group = 2L * .EN_ROWS_PER_GROUP)
     } else if (format %in% c("feather", "arrow", "ipc") && .cmp) {
-      arrow::write_dataset(obj, path = path, format = "feather",
+      arrow::write_dataset(obj, path = path, format = "ipc",
                            codec = .en_ipc_codec(compression, compression_level),
                            min_rows_per_group = .EN_ROWS_PER_GROUP,
                            max_rows_per_group = 2L * .EN_ROWS_PER_GROUP)
     } else {
-      arrow::write_dataset(obj, path = path, format = format)
+      # arrow names Feather V2 "ipc"; the files are `.arrow` under either name
+      arrow::write_dataset(obj, path = path,
+                           format = if (format %in% c("feather", "arrow")) "ipc" else format)
     }
     # write(format, file = fp(path, "format"), append = FALSE)
     # write(obj_class, file = fp(path, "class"), append = FALSE)
@@ -861,7 +863,7 @@ en_open_dataset <- function(path, format = NULL, engine = "arrow") {
       return(arrow::open_dataset(path))
     }
     if (format %in% c("feather", "arrow", "ipc")) {
-      return(arrow::open_dataset(path, format = "feather"))
+      return(arrow::open_dataset(path, format = "ipc"))
     }
   }
   if (format == "RData") {

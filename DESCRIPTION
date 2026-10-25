@@ -32,7 +32,7 @@ Description: A macro-language for energy system modeling in R. Describe the
     reports, and plotting.
 Depends: R (>= 4.3)
 Imports: methods, grid, stats, generics, data.table, tibble, tidyr, dplyr, rlang,
-        stringr, lubridate, purrr, arrow, progressr, cli,
+        stringr, lubridate, purrr, arrow (>= 10.0.0), progressr, cli,
         options (>= 0.2.0), grDevices, utils, tools, yaml,
         geoscales (>= 0.6.0), timescales (>= 0.6.0)
 Suggests: shiny, DT, pak, knitr, rmarkdown, sf, ggplot2,

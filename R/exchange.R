@@ -110,7 +110,7 @@
               list(compression_level = as.integer(level))
             })
   if (ext == "arrow") {
-    do.call(arrow::write_feather, args)
+    do.call(arrow::write_ipc_file, args)
   } else if (ext == "parquet") {
     do.call(arrow::write_parquet, args)
   } else {
@@ -123,8 +123,8 @@
 .read_exchange_table <- function(path) {
   ext <- tolower(tools::file_ext(path))
   d <- switch(ext,
-    arrow   = arrow::read_feather(path),
-    feather = arrow::read_feather(path),
+    arrow   = arrow::read_ipc_file(path),
+    feather = arrow::read_ipc_file(path),
     parquet = arrow::read_parquet(path),
     csv     = data.table::fread(path, stringsAsFactors = FALSE),
     stop("Unknown exchange file extension: '", path, "'")
