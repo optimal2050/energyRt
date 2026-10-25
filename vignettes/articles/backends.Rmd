@@ -202,9 +202,10 @@ solve_model(model, solver = solver_options$mm_cuopt_cloud_crossover)
 ```
 
 On the multimod writer the activity and output definitions (`eqTechAfFx`,
-`eqTechActSng`) are substituted while the matrix is built, so their rows and
+`eqTechActSng`) and the per-process totals are substituted while the matrix is built, so their rows and
 the columns they define never enter the file; the preset field `substitute`
-names the equations (`character()` writes them all).
+names the equations (`character()` writes them all). The matrix file is removed
+once the solution is decoded; `keep_mps = TRUE` in the preset keeps it.
 
 Being experimental, results are provisional; a smaller variant should be
 cross-checked against a local backend before they are relied on. The cloud

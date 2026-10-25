@@ -59,7 +59,8 @@
   # still solves to Optimal, so it is refused rather than written.
   # `substitute` names the definition equations substituted while the matrix
   # is built (their rows and the defined columns are never written); by
-  # default the activity and output definitions, `character()` for none.
+  # default the activity and output definitions and the per-process totals,
+  # `character()` for none.
   sv <- scen@settings@solver
   op <- options(multimod.engine = sv$engine %||% "native")
   if (!is.null(sv$threads)) op <- c(op, options(multimod.threads = sv$threads))
@@ -103,9 +104,9 @@
 
 #' Definition equations to substitute while multimod builds the matrix
 #'
-#' The preset's `substitute` field, or by default those of
-#' `c("eqTechAfFx", "eqTechActSng")` the model holds; `character()` turns it
-#' off. NULL when the installed multimod's `write_mps()` has no `substitute`
+#' The preset's `substitute` field, or by default those of the activity and
+#' output definitions and the per-process totals the model holds;
+#' `character()` turns it off. NULL when the installed multimod's `write_mps()` has no `substitute`
 #' argument (it then builds every row).
 #' @keywords internal
 #' @noRd
@@ -118,5 +119,9 @@
     return(NULL)
   }
   if (!is.null(sv$substitute)) return(as.character(sv$substitute))
-  intersect(c("eqTechAfFx", "eqTechActSng"), names(m$equations))
+  # each total is used by one other equation, so substituting it moves its
+  # entries there and adds none
+  intersect(c("eqTechAfFx", "eqTechActSng", "eqTechOutTot", "eqTechInpTot",
+              "eqStorageInpTot", "eqStorageOutTot", "eqSupOutTot", "eqImportTot",
+              "eqExportTot", "eqDemInp"), names(m$equations))
 }

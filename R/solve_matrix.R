@@ -39,6 +39,12 @@
   .mm_decode_solution(arg$solver.dir, r$sol_file,
                       solver = if (identical(a$solver, "cuopt")) "cuopt" else "highs",
                       echo = isTRUE(arg$echo))
+  # the matrix is the largest file of a run and is not read again once the
+  # solution is decoded; the solution file and the index tables stay, so the
+  # decode can be repeated. `keep_mps` (or `cloud_reuse_matrix`) keeps it.
+  if (!isTRUE(s$keep_mps) && !isTRUE(s$cloud_reuse_matrix)) {
+    unlink(paste0(mps, c("", ".gz")))
+  }
   0L
 }
 
@@ -240,9 +246,17 @@
     stop("lang = 'mm': no solution file to decode at ", sol, call. = FALSE)
   }
   if (isTRUE(echo)) cat("Decoding solution ...\n")
-  s <- multimod::read_mps_solution(sol, index_dir = solver.dir,
-                                   format = "parquet", solver = solver)
+  # variables substituted at build time are written from their definitions
+  # one at a time, never held together with the solved columns
+  args <- list(sol, index_dir = solver.dir, format = "parquet", solver = solver)
+  if ("substituted" %in% names(formals(multimod::read_mps_solution))) {
+    args$substituted <- "defer"
+  }
+  s <- do.call(multimod::read_mps_solution, args)
   multimod::write_energyrt_output(s, fp(solver.dir, "output"),
                                   format = "arrow")
-  invisible(s)
+  # the decoded columns are released before read_solution() loads output/
+  rm(s)
+  gc(FALSE)
+  invisible(NULL)
 }

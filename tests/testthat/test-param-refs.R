@@ -212,6 +212,23 @@ test_that("tables persisted on disk or in the store are shed from memory and rea
   expect_equal(nrow(shed@modInp@parameters[["pWeather"]]@data), 0L)
   expect_identical(dataset_hash(force_cols_classes(get_data_slot(shed@modInp@parameters[["pWeather"]]))),
                    dataset_hash(force_cols_classes(full)))
+  # a referenced table read back and flagged as in memory: shed, and its
+  # readers resolve the reference again
+  p@misc$inMemory <- TRUE
+  ld@modInp@parameters[["pWeather"]] <- p
+  expect_false(isOnDisk(ld@modInp@parameters[["pWeather"]]))
+  shed <- .shed_persisted_tables(ld)
+  ps <- shed@modInp@parameters[["pWeather"]]
+  expect_equal(nrow(ps@data), 0L)
+  expect_true(isOnDisk(ps))
+  expect_identical(dataset_hash(force_cols_classes(get_data_slot(ps))),
+                   dataset_hash(force_cols_classes(full)))
+  # the scenario shell written over a stored scenario carries no such table
+  suppressMessages(save_scenario(ld, verbose = FALSE))
+  e <- new.env()
+  load(fp(saved@path, "scen.RData"), envir = e)
+  sh <- get(ls(e)[1], envir = e)
+  expect_equal(NROW(sh@modInp@parameters[["pWeather"]]@data), 0L)
   # a table that is nowhere else stays
   mem <- pr_scen(pTechAf = pr_param("pTechAf", pr_af()))
   expect_equal(nrow(.shed_persisted_tables(mem)@modInp@parameters[["pTechAf"]]@data), 8L)

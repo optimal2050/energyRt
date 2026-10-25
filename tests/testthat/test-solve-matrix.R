@@ -104,10 +104,11 @@ test_that("the Pyomo matrix preset writes the index tables beside the matrix", {
 
 test_that("the definitions substituted at build time come from the preset", {
   skip_if_not("substitute" %in% names(formals(multimod::write_mps)))
-  m <- list(equations = list(eqTechActSng = 1, eqTechAfUp = 1))
+  m <- list(equations = list(eqTechActSng = 1, eqTechAfUp = 1, eqBal = 1))
   expect_identical(.mm_substitute(list(), m), "eqTechActSng")
   m$equations$eqTechAfFx <- 1
-  expect_identical(.mm_substitute(list(), m), c("eqTechAfFx", "eqTechActSng"))
+  m$equations$eqDemInp <- 1
+  expect_identical(.mm_substitute(list(), m), c("eqTechAfFx", "eqTechActSng", "eqDemInp"))
   expect_identical(.mm_substitute(list(substitute = character()), m), character())
   expect_identical(.mm_substitute(list(substitute = "eqTechAfFx"), m), "eqTechAfFx")
 })
@@ -138,6 +139,23 @@ test_that("the small model solves to the same objective through HiGHS", {
   scen <- suppressMessages(suppressWarnings(interpolate_model(small_model(), name = "sm")))
   scen <- .fork_solve(scen, solver_options$mm_highs)
   expect_equal(.fork_objective(scen), 200, tolerance = 1e-6)
+})
+
+test_that("the matrix is removed after the decode unless keep_mps is set", {
+  skip_on_cran()
+  skip_if_not_installed("multimod")
+  skip_if_not_installed("highs")
+  scen <- suppressMessages(suppressWarnings(interpolate_model(small_model(), name = "sm")))
+  for (keep in c(FALSE, TRUE)) {
+    d <- withr::local_tempdir()
+    s <- solver_options$mm_highs
+    s$keep_mps <- keep
+    out <- suppressMessages(suppressWarnings(
+      solve_scenario(scen, solver = s, solver.dir = d, transient = FALSE, force = TRUE)))
+    expect_equal(.fork_objective(out), 200, tolerance = 1e-6)
+    expect_identical(file.exists(file.path(d, "model.mps")), keep)
+    expect_true(file.exists(file.path(d, "model_col_index.parquet")))
+  }
 })
 
 skip_if_no_cuopt_wsl <- function() {

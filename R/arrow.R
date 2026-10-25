@@ -333,6 +333,9 @@ save_scenario <- function(
              "the base problem. Interpolate the variant's problem in memory.")
       }
     }
+    # tables read back into memory that are persisted (the scenario's store
+    # or a referenced dataset version) stay out of the shell
+    object <- .shed_persisted_tables(object)
     # interpolate_model(ondisk = TRUE) leaves @modOut NULL (prototype);
     # only a materialized in-memory solution needs parking
     if (!is.null(object@modOut) && !isOnDisk(object@modOut) &&

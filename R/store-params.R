@@ -199,17 +199,22 @@
 #' version) can be read back lazily at any time; once the matrix is
 #' written, keeping its table in memory through a solve only holds RAM.
 #' Tables that exist nowhere else (an unsaved scenario, pending chunks) are
-#' kept.
+#' kept. A referenced table read back into memory is marked on disk again,
+#' so its readers resolve the reference.
 #' @keywords internal
 #' @noRd
 .shed_persisted_tables <- function(scen) {
   mi <- scen@modInp
   for (pname in names(mi@parameters)) {
     p <- mi@parameters[[pname]]
-    if (!isOnDisk(p) || is.null(p@data) || !nrow(p@data)) next
+    if (is.null(p@data) || !nrow(p@data)) next
     if (length(.pending_chunks(p))) next
+    referenced <- !is.null(p@misc$param_ref) && !is.null(getObjPath(p)) &&
+      !is.null(.param_ref_data_dir(p))
+    if (!isOnDisk(p) && !referenced) next
     if (is.null(.en_param_data_dir(p))) next
     p@data <- reset_slot(p@data)
+    if (referenced) p@misc$inMemory <- FALSE
     mi@parameters[[pname]] <- p
   }
   scen@modInp <- mi

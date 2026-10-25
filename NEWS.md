@@ -70,10 +70,14 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   HiGHS in the R session or through Julia, cuOpt on a local GPU through WSL
   (`mm_cuopt_wsl`) or on a rented GPU (`mm_cuopt_cloud`, `pyomo_cuopt_cloud`).
 * On the `lang = "mm"` route the activity and output definitions
-  (`eqTechAfFx`, `eqTechActSng`) are substituted while the matrix is built:
-  their rows and the columns they define are not written, which reduces a
-  full-year model several-fold. The preset field `substitute` names the
+  (`eqTechAfFx`, `eqTechActSng`) and the per-process totals (`eqTechOutTot`,
+  `eqTechInpTot`, the storage, supply, import, export and demand totals) are
+  substituted while the matrix is built: their rows and the columns they
+  define are not written, which reduces a full-year model several-fold. The preset field `substitute` names the
   equations; `character()` builds every row.
+* The matrix route removes `model.mps` (and its compressed copy) once the
+  solution is decoded; the index tables and the solution file stay. The
+  preset field `keep_mps = TRUE` keeps it.
   A preset's `mm_solver` and `where` choose the solver and the place. A
   Pyomo- or JuMP-written matrix carries index tables (from Pyomo's symbol map,
   from JuMP's containers) and is decoded by multimod like its own;
