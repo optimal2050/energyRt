@@ -110,6 +110,15 @@
 #'   Off by default because it is not obviously safe: anything deriving a
 #'   relation from the full declared grid rather than from the calendar would
 #'   see a narrower input. Compare objectives before relying on it.
+#' @param base optional interpolated [scenario] to build on. When every object
+#'   in `...` is a `constraint`, `costs`, `tax` or `subsidy` new to the model,
+#'   the result is the base plus what those objects add: the base's tables are
+#'   reused, nothing is written into its store, and the result equals a full
+#'   interpolation of the model with the base's additions and the new ones. The
+#'   base's `fold`, `sparse` and `prune` settings apply. Otherwise (another
+#'   model, a new process or commodity, a replaced object, settings, calendar,
+#'   horizon or geoscale objects) a message says why and the model is
+#'   interpolated in full. `object` may be the base itself.
 #' @param verbose logical; print per-step progress. This also governs the
 #'   variant-expansion report -- how many process objects were expanded and how
 #'   many constraints were generated for them. The generated constraints
@@ -139,7 +148,7 @@
 #' # shrinks what the backend has to read
 #' model_size(interpolate_model(mod, name = "FOLDED", fold = TRUE))
 #' }
-interpolate_model <- function(object, name = NULL, ...,
+interpolate_model <- function(object, name = NULL, ..., base = NULL,
                        desc = NULL, ondisk = FALSE, overwrite = FALSE,
                        fold = FALSE, sparse = TRUE, prune = TRUE,
                        validate = TRUE, code = NULL, kvl = FALSE,
@@ -150,6 +159,13 @@ interpolate_model <- function(object, name = NULL, ...,
                        on_missing_input = getOption("energyRt.on_missing_input",
                                                     "stop"),
                        verbose = isVerbose()) {
+  # which build arguments the caller set (read before any is reassigned)
+  .given <- c(fold = !missing(fold), sparse = !missing(sparse),
+              prune = !missing(prune), code = !missing(code), kvl = !missing(kvl),
+              boundary_prices = !missing(boundary_prices),
+              .prefilter = !missing(.prefilter),
+              parent_levels = !missing(parent_levels), fx_equ = !missing(fx_equ),
+              on_missing_input = !missing(on_missing_input))
   .log_t0 <- Sys.time()
   .interp_stages_reset()
   # data.table defaults to half the logical cores; interpolation is join-heavy
@@ -171,8 +187,18 @@ interpolate_model <- function(object, name = NULL, ...,
   .mi_prev <- getOption("energyRt.on_missing_input", "stop")
   options(energyRt.on_missing_input = on_missing_input)
   on.exit(options(energyRt.on_missing_input = .mi_prev), add = TRUE)
+  # A derived scenario: the base plus what the new objects add (R/interpolate-base.R).
+  if (!is.null(base)) {
+    .derived <- .interpolate_from_base(object, base, name = name, args = list(...),
+                                       ondisk = ondisk, given = .given, fold = fold,
+                                       sparse = sparse, prune = prune,
+                                       verbose = verbose)
+    if (!is.null(.derived)) return(.derived)
+  }
   # Accept a scenario (re-interpolate its model), matching the legacy interface.
   if (inherits(object, "scenario")) object <- object@model
+  # the model as given, so a later `base = ` call can tell it is the same one
+  .model_id <- list(name = object@name, hash = .model_identity(object))
   # A model loaded from the store keeps its large slots on disk (thinned).
   # The pipeline reads object slots directly, so interpolating a thinned
   # model would silently produce EMPTY parameters (no demand, no weather)
@@ -226,6 +252,7 @@ interpolate_model <- function(object, name = NULL, ...,
     else if (is.null(fold) || isFALSE(fold)) character(0)
     else intersect(as.character(fold), .foldable_dims)
   scen <- new("scenario")
+  scen@misc$model_id <- .model_id
 
   # scenario name -- deriving one from the model is normal on the
   # `solve_model(object)` convenience path, so this is a message, not a warning
@@ -1216,19 +1243,7 @@ interpolate_model <- function(object, name = NULL, ...,
   # Finalise the total user-cost equation. Accumulated per-cost contributions
   # (if any) are wrapped into the `eqTotalUserCosts` definition; with no user
   # cost objects the default zero form is used. Mirrors write.R.
-  if (length(scen@modInp@user_costs) == 0) {
-    scen@modInp@user_costs <- paste0(
-      "eqTotalUserCosts(region, year)$mvTotalUserCosts(region, year).. ",
-      "vTotalUserCosts(region, year) =e= 0;"
-    )
-  } else {
-    scen@modInp@user_costs <- paste0(
-      "eqTotalUserCosts(region, year)$mvTotalUserCosts(region, year)..",
-      "   vTotalUserCosts(region, year) =e= ",
-      gsub("[+][ ]*[-]", "-",
-           paste0(scen@modInp@user_costs, collapse = " + ")), ";"
-    )
-  }
+  scen@modInp@user_costs <- .wrap_user_costs(scen@modInp@user_costs)
 
   # Attach the solver source-code templates and mark the scenario interpolated
   # so it can be written / solved directly (parallel to the tail of
@@ -2540,11 +2555,12 @@ trim_parameters <- function(object, verbose = FALSE) {
 # interpolate_model filtered by default; this restores it. Runs BEFORE fold/prune
 # so both the sparse (fold) and dense paths benefit. Maps are built later and are
 # already calendar-consistent, so only value parameters need this.
-.filter_params_by_declared_timeslices <- function(scen, verbose = FALSE) {
+.filter_params_by_declared_timeslices <- function(scen, verbose = FALSE,
+                                                  params = NULL) {
   sl <- scen@modInp@sets$timeslice
   if (is.null(sl) || length(sl) == 0L) return(scen)
   sl <- as.character(sl)
-  for (pn in names(scen@modInp@parameters)) {
+  for (pn in .param_subset(scen, params)) {
     param <- scen@modInp@parameters[[pn]]
     if (is.null(param) || !(param@type %in% c("numpar", "bounds"))) next
     pdata <- get_data_slot(param)
@@ -3076,6 +3092,8 @@ validate_scenario_parameters <- function(object, fold = TRUE,
 #'
 #' @param scen scenario object whose `modInp@parameters` already hold the raw
 #'   (sparse) values collected by `ob2mi`.
+#' @param params optional character vector: interpolate only these parameters
+#'   (`NULL`, the default, interpolates all).
 #' @param drop_default logical; when `TRUE` rows whose interpolated value equals
 #'   the parameter default are dropped (the solver substitutes the declared
 #'   `default`), yielding a smaller data slot. When `FALSE` (the default, and
@@ -3084,13 +3102,13 @@ validate_scenario_parameters <- function(object, fold = TRUE,
 #'   defaults (GLPK / JuMP / Pyomo do; GAMS support is unverified).
 #' @returns the scenario with interpolated parameter data.
 #' @keywords internal
-interpolate_parameters <- function(scen, drop_default = FALSE) {
+interpolate_parameters <- function(scen, drop_default = FALSE, params = NULL) {
   milestones <- as.integer(scen@modInp@sets$year)
   if (length(milestones) == 0) {
     stop("Milestone years (scen@modInp@sets$year) are not defined.")
   }
 
-  for (pn in names(scen@modInp@parameters)) {
+  for (pn in .param_subset(scen, params)) {
     param <- scen@modInp@parameters[[pn]]
     ptype <- as.character(param@type)
     if (!(ptype %in% c("numpar", "bounds"))) next

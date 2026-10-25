@@ -705,6 +705,11 @@ drop_scenario_run <- function(object, run, force = FALSE) {
   )
   mf$model <- model %||% prev$model
   mf$datasets <- datasets %||% prev$datasets
+  # a derived scenario names the base it was built on (interpolate_model(base =))
+  b <- scen@misc$base
+  mf$base <- if (is.null(b)) prev$base else list(
+    name = b$name,
+    path = if (nzchar(b$path %||% "")) .registry_rel_path(b$path) else "")
   # lifecycle state (seal/mark, R/save-objects.R) survives re-saves
   for (k in c("sealed", "sealed_at", "sealed_hash",
               "marked_delete", "delete_importance", "marked_at")) {

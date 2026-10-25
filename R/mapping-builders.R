@@ -1229,13 +1229,19 @@ map_mvTotalUserCosts <- function(scen, fmp) {
 #
 # Runs after the cost_agg recipe, once `mvTotalCost` knows which coarse cells
 # exist. A no-op when there are none.
-.extend_discount_to_coarse <- function(scen) {
+.extend_discount_to_coarse <- function(scen, skip = NULL) {
   p <- scen@modInp@parameters[["pDiscountFactor"]]
   if (is.null(p)) return(scen)
   df <- as.data.frame(get_data_slot(p))
   if (is.null(df) || NROW(df) == 0L) return(scen)
 
   cells <- .coarse_cost_cells(scen)
+  # `skip`: cells already extended (a derived scenario's base); one pass
+  # reaches one level up, so a second pass over them would go further
+  if (NROW(skip)) {
+    cells <- cells[!paste(cells$region, cells$year) %in%
+                     paste(skip$region, skip$year), , drop = FALSE]
+  }
   if (NROW(cells) == 0L) return(scen)
 
   h <- .scen_geo_hierarchy(scen)

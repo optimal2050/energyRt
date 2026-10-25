@@ -91,6 +91,13 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   `en_install_deps()`, `en_install_julia_pkgs()` to check and set up the
   toolchains.
 
+* `interpolate_model(model, ..., base = REF)` builds a scenario on an
+  interpolated base when the objects added are constraints, cost terms,
+  taxes or subsidies: only what they add is computed, the base's tables are
+  reused and its store is never written to, and the result equals a full
+  interpolation. Anything else is interpolated in full, with a message saying
+  why. The saved scenario names its base in `scenario.yml`.
+
 ### Results and project management
 
 * A project registry keyed on path, with a lifecycle (`seal_*()`,
@@ -221,6 +228,9 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   from both sides, `aeff$cout2ainp` / `cinp2aout` bind, sub-region emissions
   are counted, coarse supply keeps its cost, and `get_process_*(process = )` is
   honoured.
+* Content hashes of models with a geoscale are stable between R sessions
+  (the S7 class object was hashed), so such models match their sealed
+  versions in a new session.
 
 ## Documentation
 

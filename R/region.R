@@ -485,11 +485,12 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
 # the exact spatial twin of `.filter_params_by_declared_timeslices()` (see the
 # rationale there). NA in a spatial column is a wildcard and always kept.
 #' @noRd
-.filter_params_by_declared_regions <- function(scen, verbose = FALSE) {
+.filter_params_by_declared_regions <- function(scen, verbose = FALSE,
+                                               params = NULL) {
   rg <- scen@modInp@sets$region
   if (is.null(rg) || length(rg) == 0L) return(scen)
   rg <- as.character(rg)
-  for (pn in names(scen@modInp@parameters)) {
+  for (pn in .param_subset(scen, params)) {
     param <- scen@modInp@parameters[[pn]]
     if (is.null(param) || !(param@type %in% c("numpar", "bounds"))) next
     pdata <- get_data_slot(param)

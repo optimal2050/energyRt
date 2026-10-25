@@ -17,6 +17,16 @@
 # content always hashes the same, regardless of on-disk state or session
 # history.
 .strip_volatile <- function(x) {
+  if (inherits(x, "S7_object")) {
+    # the class object rides along as an attribute and carries closures and
+    # environments that serialize differently in every session; the class
+    # attribute names it, the properties are the content
+    attr(x, "S7_class") <- NULL
+    for (a in setdiff(names(attributes(x)), "class")) {
+      attr(x, a) <- .strip_volatile(attr(x, a))
+    }
+    return(x)
+  }
   if (isS4(x)) {
     if (.hasSlot(x, "misc")) x@misc <- list()
     if (.hasSlot(x, "inMemory")) x@inMemory <- TRUE

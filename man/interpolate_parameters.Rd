@@ -4,7 +4,7 @@
 \alias{interpolate_parameters}
 \title{Interpolate all year-indexed numeric/bounds parameters of a scenario}
 \usage{
-interpolate_parameters(scen, drop_default = FALSE)
+interpolate_parameters(scen, drop_default = FALSE, params = NULL)
 }
 \arguments{
 \item{scen}{scenario object whose \code{modInp@parameters} already hold the raw
@@ -16,6 +16,9 @@ the parameter default are dropped (the solver substitutes the declared
 the legacy behaviour) default-valued rows are kept and written explicitly.
 Dropping defaults requires the solver/writer to honour declared parameter
 defaults (GLPK / JuMP / Pyomo do; GAMS support is unverified).}
+
+\item{params}{optional character vector: interpolate only these parameters
+(\code{NULL}, the default, interpolates all).}
 }
 \value{
 the scenario with interpolated parameter data.

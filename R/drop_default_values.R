@@ -16,8 +16,8 @@
 # =========================================================================== #
 
 # Drop `value == prune$value` rows from every parameter flagged in modInp.yml.
-drop_default_values <- function(scen, verbose = FALSE) {
-  for (pn in names(scen@modInp@parameters)) {
+drop_default_values <- function(scen, verbose = FALSE, params = NULL) {
+  for (pn in .param_subset(scen, params)) {
     param <- scen@modInp@parameters[[pn]]
     pr <- param@misc$prune
     if (is.null(pr)) next

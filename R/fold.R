@@ -565,9 +565,9 @@ unfold_parameter <- function(param, member_sets = list(), value_col = "value") {
 # Used during interpolation (interp_mod). Returns the updated scenario.
 # -----------------------------------------------------------------------------#
 fold_parameters <- function(scen, dims = c("region", "timeslice"),
-                                     tol = 1e-10, verbose = FALSE) {
+                                     tol = 1e-10, verbose = FALSE, params = NULL) {
   dims <- .rename_slice_compat(dims, "dims")
-  pnames <- names(scen@modInp@parameters)
+  pnames <- .param_subset(scen, params)
   for (pn in pnames) {
     p <- scen@modInp@parameters[[pn]]
     if (!inherits(p, "parameter")) next
@@ -625,9 +625,9 @@ unfold_scenario_parameter <- function(scen, param,
 # -----------------------------------------------------------------------------#
 unfold_parameters <- function(scen, dims = .foldable_dims,
                                        types = c("numpar", "bounds", "map"),
-                                       verbose = FALSE) {
+                                       verbose = FALSE, params = NULL) {
   dims <- .rename_slice_compat(dims, "dims")
-  pnames <- names(scen@modInp@parameters)
+  pnames <- .param_subset(scen, params)
   for (pn in pnames) {
     p <- scen@modInp@parameters[[pn]]
     if (!inherits(p, "parameter")) next

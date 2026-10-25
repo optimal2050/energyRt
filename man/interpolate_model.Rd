@@ -10,6 +10,7 @@ interpolate_model(
   object,
   name = NULL,
   ...,
+  base = NULL,
   desc = NULL,
   ondisk = FALSE,
   overwrite = FALSE,
@@ -40,6 +41,16 @@ pipeline runs: \code{settings}, \code{config}, \code{calendar}, \code{horizon}, 
 \code{repository}, or individual model "bricks" (\code{technology}, \code{commodity},
 \code{storage}, ...). This is how a scenario overrides or extends the model (e.g.
 pass a sampled \code{calendar} to interpolate on a reduced time resolution).}
+
+\item{base}{optional interpolated \link{scenario} to build on. When every object
+in \code{...} is a \code{constraint}, \code{costs}, \code{tax} or \code{subsidy} new to the model,
+the result is the base plus what those objects add: the base's tables are
+reused, nothing is written into its store, and the result equals a full
+interpolation of the model with the base's additions and the new ones. The
+base's \code{fold}, \code{sparse} and \code{prune} settings apply. Otherwise (another
+model, a new process or commodity, a replaced object, settings, calendar,
+horizon or geoscale objects) a message says why and the model is
+interpolated in full. \code{object} may be the base itself.}
 
 \item{desc}{character scenario description.}
 
