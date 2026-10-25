@@ -367,6 +367,7 @@ save_scenario <- function(
   if (!nzchar(.run_variant(object))) {
     object@misc$has_base <- TRUE
     save(object, file = scen_shell_path)
+    .check_shell_size(object, scen_shell_path)
   } else if (!file.exists(scen_shell_path)) {
     e_born <- new.env(parent = emptyenv())
     e_born$scen <- object
@@ -1604,5 +1605,29 @@ obj2mem <- function(object, verbose = isVerbose()) {
   out <- tryCatch(names(x), error = function(e) NULL)
   if (is.null(out)) out <- tryCatch(x$schema$names, error = function(e) NULL)
   out
+}
+
+#' Warn when a scenario shell carries data it should reference
+#'
+#' The shell (`scen.RData`) is meant to hold the scenario's settings and the
+#' bookkeeping of its stores; tables live in the stores. A shell larger than
+#' `getOption("energyRt.shell_max_mb", 256)` megabytes means something was
+#' written into it: the warning names the largest slots.
+#' @keywords internal
+#' @noRd
+.check_shell_size <- function(object, path) {
+  lim <- suppressWarnings(as.numeric(getOption("energyRt.shell_max_mb", 256)))
+  if (is.na(lim) || !is.finite(lim)) return(invisible(NULL))
+  mb <- file.size(path) / 2^20
+  if (is.na(mb) || mb <= lim) return(invisible(NULL))
+  sz <- function(x) as.numeric(utils::object.size(x)) / 2^20
+  parts <- c(model = sz(object@model@data), modInp = sz(object@modInp@parameters),
+             modOut = sz(object@modOut), settings = sz(object@settings))
+  parts <- sort(parts, decreasing = TRUE)
+  warning(sprintf("The scenario shell %s is %.0f MB (limit %.0f MB, option energyRt.shell_max_mb); in memory: %s.",
+                  path, mb, lim,
+                  paste(sprintf("%s %.0f MB", names(parts), parts), collapse = ", ")),
+          call. = FALSE)
+  invisible(NULL)
 }
 

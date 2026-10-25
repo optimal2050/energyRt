@@ -115,6 +115,9 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   references; the lazy readers follow them; a writer that changes a table
   drops its reference. A weather or demand table whose version is gone is
   recomputed from the model.
+* Referenced tables read back into memory are dropped before the scenario
+  shell (`scen.RData`) is written. A shell above
+  `options(energyRt.shell_max_mb = 256)` warns and names its largest slots.
 * The `mm` route no longer copies the scenario's tables into the multimod
   model: multimod reads them from the scenario's store or the dataset store
   as the matrix is built (`multimod_from_energyRt(inMemory = FALSE)`), a

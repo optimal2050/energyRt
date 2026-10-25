@@ -448,6 +448,10 @@ save_model <- function(
       any(startsWith(hs, hash))
     }, logical(1))
     if (length(dd) && !any(keep)) {
+      mf_hash <- vapply(dd, function(d) {
+        tryCatch(as.character(yaml::read_yaml(fp(d, manifest))$hash %||% "")[1],
+                 error = function(e) "")
+      }, character(1))
       stop(reg_type, " '", name, "' version @", substr(hash, 1, 8),
            " is not in the store ('", root, "'): it now holds @",
            paste(substr(mf_hash, 1, 8), collapse = ", @"),

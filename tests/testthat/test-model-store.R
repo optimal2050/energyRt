@@ -303,3 +303,17 @@ test_that("read_solution keeps solver code file NAMES, not their text", {
   expect_null(sol@settings@solver$code1)
   expect_true("energyRt.mod" %in% sol@settings@solver$code_files)
 })
+
+test_that("a scenario shell above the size limit warns and names the largest slots", {
+  skip_if_no_solver()
+  ms_local_store()
+  mod <- sp_tech(c(45, 45, 45), optret = FALSE, name = "msshell")
+  sc <- interpolate_model(mod, name = "msshell", path = ms_root("scen-shell"))
+  sol <- solve_scenario(sc)
+  withr::local_options(energyRt.shell_max_mb = 0)
+  expect_warning(suppressMessages(save_scenario(sol, verbose = FALSE)),
+                 "scenario shell .* MB [(]limit 0 MB")
+  withr::local_options(energyRt.shell_max_mb = Inf)
+  expect_no_warning(suppressMessages(save_scenario(sol, overwrite = TRUE, verbose = FALSE)),
+                    message = "scenario shell")
+})
