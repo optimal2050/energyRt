@@ -330,6 +330,8 @@ reference:
   - save_scenario
   - load_scenario
   - seal_model
+  - list_versions
+  - list_dependents
   - model_hash
   - repository_hash
   - dataset_hash
@@ -352,7 +354,6 @@ reference:
   - drop_scenario_run
   - drop_solver_outputs
   - upgrade_scenario_layout
-  - store_dependents
   - strip_user_info
   - prepare_for_sharing
   - matches("registry")

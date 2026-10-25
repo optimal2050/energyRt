@@ -705,7 +705,7 @@ drop_scenario_run <- function(object, run, force = FALSE) {
   )
   mf$model <- model %||% prev$model
   mf$datasets <- datasets %||% prev$datasets
-  # lifecycle state (seal/mark, R/store-objects.R) survives re-saves
+  # lifecycle state (seal/mark, R/save-objects.R) survives re-saves
   for (k in c("sealed", "sealed_at", "sealed_hash",
               "marked_delete", "delete_importance", "marked_at")) {
     if (!is.null(prev[[k]])) mf[[k]] <- prev[[k]]
@@ -1659,52 +1659,6 @@ upgrade_scenario_layout <- function(path, verbose = TRUE) {
     logical(0)
   }
   out[order(out$type, out$name), , drop = FALSE]
-}
-
-#' What depends on a stored model, repository or dataset
-#'
-#' @description
-#' Lists the store entries that *reference* `x` rather than embedding a copy of
-#' it — the entries that would break if it were deleted. Read-only.
-#'
-#' @details
-#' Referencing is the default: [save_scenario()] stores the model and records
-#' `{name, hash, source}` instead of embedding it, and the same holds one level
-#' down for a model's repositories and for the big tables of the dataset store.
-#' A dependent recorded with `source = "embedded"` holds its own copy and is
-#' never listed here.
-#'
-#' The edges are read from the manifests (`scenario.yml`, `model.yml`,
-#' `repository.yml`), not from the project registry, which is a derived index
-#' that can be stale.
-#'
-#' `current` compares the hash the dependent recorded against the hash the
-#' entry holds now. `FALSE` means the dependent is pinned to a superseded
-#' version — store entries update in place — and will load the current one with
-#' a "results may not reproduce" warning. `NA` means the dependent recorded no
-#' hash to check.
-#'
-#' An entry with no dependents is an orphan as far as this project is
-#' concerned: nothing here points at it.
-#'
-#' @param x an energyRt object, or the name of a store entry.
-#' @param type the entry type when `x` is a bare name: `"model"`,
-#'   `"repository"`, `"dataset"` or `"scenario"`. Inferred from an object.
-#'
-#' @return a tibble: `type` and `name` of the dependent, its `path`, `via` (the
-#'   kind of reference), the `hash` it recorded and whether that is `current`.
-#' @seealso [delete_marked()], [mark_delete()]
-#' @examples
-#' \dontrun{
-#' store_dependents("TOPIA", type = "model")   # which scenarios use it
-#' nrow(store_dependents("TOPIA", type = "model")) == 0   # an orphan?
-#' }
-#' @export
-store_dependents <- function(x, type = NULL) {
-  type <- .entry_type_of(x, type)
-  e <- .entry_resolve(type, x)
-  cur <- as.character(.entry_manifest(type, e$path)$hash %||% "")
-  .dep_of(.store_dep_index(), type, e$name, cur)
 }
 
 # The interactive half of the delete guard. Never reached in a non-interactive

@@ -19,7 +19,7 @@
 #'   `TRUE`: always embed (self-contained folder). `FALSE`: require a sealed
 #'   version, error otherwise. A referenced save stores only
 #'   `{name, hash, path}` and is recorded on the sealed version
-#'   ([store_blast_radius()]); [load_scenario()] resolves it back.
+#'   ([list_dependents()]); [load_scenario()] resolves it back.
 #' @param embed_datasets the same choice for the big data tables and maps —
 #'   the geoscale on `@settings` and, when the model is embedded, its
 #'   geoscale and its repositories' weather/demand tables (see
@@ -113,10 +113,31 @@ save_scenario <- function(
       ""   # no sealed version to compare with: copied in, not hashed
     }
     store_dir <- .sealed_entry("model", object@model@name, model_hash_)
+    # the repositories interpolate_model() added are the scenario's own: the
+    # model without them may be a sealed version
+    model_added <- intersect(as.character(object@misc$added %||% character()),
+                             names(object@model@data))
+    if (is.null(store_dir) && length(model_added) &&
+        .has_sealed("model", object@model@name)) {
+      base <- object@model
+      base@data <- base@data[setdiff(names(base@data), model_added)]
+      bh <- tryCatch(model_hash(.deep_mem(base)), error = function(e) "")
+      bdir <- .sealed_entry("model", object@model@name, bh)
+      if (!is.null(bdir)) {
+        model_hash_ <- bh
+        store_dir <- bdir
+      } else {
+        model_added <- character()
+      }
+      rm(base)
+    } else if (is.null(store_dir)) {
+      model_added <- character()
+    }
     if (!is.null(store_dir)) {
       model_ref <- list(name = object@model@name, hash = model_hash_,
                         source = "ref",
                         path = .registry_rel_path(store_dir))
+      if (length(model_added)) model_ref$added <- model_added
     } else if (isFALSE(embed_model)) {
       stop("embed_model = FALSE, but model '", object@model@name, "' (",
            substr(model_hash_, 1, 8), ") is not a sealed version in the model ",
@@ -130,6 +151,8 @@ save_scenario <- function(
     stub <- new("model")
     stub@name <- object@model@name
     stub@misc$model_ref <- model_ref
+    # the scenario's own repositories travel with it
+    if (length(model_ref$added)) stub@data <- object@model@data[model_ref$added]
     object@model <- stub
     if (verbose) {
       cat("Model '", model_ref$name, "' referenced from the store (",
@@ -1358,6 +1381,10 @@ load_scenario <- function(
       if (!ignore_errors) stop(msg)
       if (verbose) message(msg)
       return(invisible(FALSE))
+    }
+    # the scenario's own repositories, saved with it, are added back
+    for (r in scen_obj@model@data) {
+      if (is(r, "repository")) mod <- add(mod, r, overwrite = TRUE)
     }
     scen_obj@model <- mod
     if (verbose) {

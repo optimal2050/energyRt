@@ -29,7 +29,7 @@ a sealed version holding the model's exact content, embed otherwise.
 \code{TRUE}: always embed (self-contained folder). \code{FALSE}: require a sealed
 version, error otherwise. A referenced save stores only
 \verb{\{name, hash, path\}} and is recorded on the sealed version
-(\code{\link[=store_blast_radius]{store_blast_radius()}}); \code{\link[=load_scenario]{load_scenario()}} resolves it back.}
+(\code{\link[=list_dependents]{list_dependents()}}); \code{\link[=load_scenario]{load_scenario()}} resolves it back.}
 
 \item{embed_datasets}{the same choice for the big data tables and maps —
 the geoscale on \verb{@settings} and, when the model is embedded, its

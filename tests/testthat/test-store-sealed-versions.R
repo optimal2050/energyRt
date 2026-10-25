@@ -146,11 +146,11 @@ test_that("sealed versions record their dependents; unsealing shows and guards t
   sc <- interpolate_model(mod, name = "svd_scen", path = sv_root("scenarios", "svd_scen"))
   saved <- suppressMessages(save_scenario(sc, verbose = FALSE))
 
-  r <- store_blast_radius(rn, type = "repository")
+  r <- list_dependents(rn, type = "repository", recursive = TRUE)
   expect_setequal(paste(r$level, r$type, r$name),
                   c("1 model svd", "2 scenario svd_scen"))
   expect_true(all(r$exists & r$references))
-  expect_identical(nrow(store_blast_radius("svd", type = "model")), 1L)
+  expect_identical(nrow(list_dependents("svd", type = "model")), 1L)
 
   # unsealing refuses and names the dependents; forced, the version stays
   expect_error(unseal_repository(rn), "svd_scen")
@@ -162,11 +162,11 @@ test_that("sealed versions record their dependents; unsealing shows and guards t
 
   # a deleted dependent shows as gone, and prune drops the record
   unlink(saved@path, recursive = TRUE)
-  r <- store_blast_radius("svd", type = "model")
+  r <- list_dependents("svd", type = "model", details = TRUE)
   expect_false(any(r$exists))
-  r <- store_blast_radius("svd", type = "model", prune = TRUE)
+  expect_identical(nrow(list_dependents("svd", type = "model")), 0L)
+  r <- list_dependents("svd", type = "model", prune = TRUE, details = TRUE)
   expect_identical(nrow(r), 0L)
-  expect_identical(nrow(store_blast_radius("svd", type = "model")), 0L)
 })
 
 test_that("a model built from objects of a sealed repository references the selection", {
@@ -201,7 +201,7 @@ test_that("a model built from objects of a sealed repository references the sele
   expect_identical(object_hash(back@data[[1]]@data[[keep[1]]]),
                    object_hash(repo@data[[keep[1]]]))
   # the sealed version records the model as a dependent
-  expect_true("svsel" %in% store_blast_radius(repo@name, type = "repository")$name)
+  expect_true("svsel" %in% list_dependents(repo@name, type = "repository")$name)
 
   # a changed object is not the sealed one: the repository is copied in
   sel2 <- sel
@@ -235,7 +235,7 @@ test_that("unsealed saves record a save id; sealing computes the content hash", 
   expect_message(save_model(m), "already in the store")
 })
 
-test_that("store_versions lists versions with times and dependents; store_gc removes garbage", {
+test_that("list_versions shows a status; marked unused versions are deleted on request", {
   sv_local()
   unlink(sv_root(), recursive = TRUE)
   m1 <- sv_mod("svgc", fixom = 1)
@@ -246,32 +246,83 @@ test_that("store_versions lists versions with times and dependents; store_gc rem
   suppressMessages(unseal_model("svgc", force = TRUE))
   save_model(sv_mod("svgc", fixom = 2), verbose = FALSE)
 
-  v <- store_versions("svgc", type = "model")
-  expect_identical(names(v)[1:9], c("name", "type", "version", "status", "sealed_at",
-                                    "updated", "size_mb", "n_dependents", "dependents"))
-  expect_setequal(v$status, c("current", "sealed"))
+  v <- list_versions("svgc", type = "model")
+  expect_identical(names(v), c("status", "name", "type", "version", "sealed_at",
+                               "refs", "size_mb"))
+  expect_setequal(v$status, c("current", "in use"))
   expect_s3_class(v$sealed_at, "POSIXct")
-  expect_identical(v$dependents[v$status == "sealed"], "scenario svgc_scen")
   expect_identical(v$version[v$status == "current"], "(unsealed)")
-  expect_true(all(c("svgc") %in% store_versions()$name))
+  vd <- list_versions("svgc", type = "model", details = TRUE)
+  expect_identical(vd$dependents[vd$status == "in use"], "scenario svgc_scen")
+  expect_true("svgc" %in% list_versions()$name)
 
-  # referenced: kept, and the entry cannot be deleted whole
-  g <- suppressMessages(store_gc(type = "model"))
-  expect_identical(g$action, "kept_referenced")
+  # a referenced version: marked, it is still kept, and the entry too
+  suppressMessages(mark_delete("svgc", type = "model", version = "unused"))
+  expect_identical(list_versions("svgc", type = "model")$status, c("current", "in use"))
+  h_old <- vd$hash[vd$status == "in use"]
+  suppressMessages(mark_delete("svgc", type = "model", version = substr(h_old, 1, 8)))
+  dm <- suppressMessages(delete_marked(types = "model"))
+  expect_identical(dm$action[!is.na(dm$version)], "skipped_referenced")
   suppressMessages(mark_delete("svgc", type = "model"))
   dm <- suppressMessages(delete_marked(types = "model"))
-  expect_identical(dm$action[dm$name == "svgc"], "skipped_referenced")
+  expect_identical(dm$action[is.na(dm$version) & dm$name == "svgc"], "skipped_referenced")
   suppressMessages(unmark_delete("svgc", type = "model"))
 
-  # the dependent gone: garbage, deleted on request
+  # the dependent gone: unused but still kept until deleted from the marks
   unlink(saved@path, recursive = TRUE)
-  g <- suppressMessages(store_gc(type = "model"))
-  expect_identical(g$action, "would_delete")
-  sealed_dir <- g$path
+  suppressMessages(unmark_delete("svgc", type = "model", version = substr(h_old, 1, 8)))
+  expect_identical(list_versions("svgc", type = "model")$status, c("current", "unused"))
+  expect_identical(nrow(subset(suppressMessages(delete_marked(types = "model")),
+                               !is.na(version))), 0L)
+  suppressMessages(mark_delete("svgc", type = "model", version = "unused"))
+  expect_identical(list_versions("svgc", type = "model")$status, c("current", "marked"))
+  dm <- suppressMessages(delete_marked(types = "model"))
+  expect_identical(dm$action[!is.na(dm$version)], "would_delete")
+  sealed_dir <- fp(sv_root("models"), "svgc", h_old)
   expect_true(dir.exists(sealed_dir))
-  suppressMessages(store_gc(type = "model", dry_run = FALSE))
+  suppressMessages(delete_marked(types = "model", dry_run = FALSE))
   expect_false(dir.exists(sealed_dir))
-  v <- store_versions("svgc", type = "model")
-  expect_identical(v$status, "current")
+  expect_identical(list_versions("svgc", type = "model")$status, "current")
   expect_identical(sv_fixom(load_model("svgc", verbose = FALSE)), 2)
+})
+
+test_that("a scenario on a sealed model keeps only the repositories it adds", {
+  sv_local()
+  unlink(sv_root(), recursive = TRUE)
+  m <- sv_mod("svown", fixom = 1)
+  save_model(m, verbose = FALSE)
+  suppressMessages(seal_model("svown"))
+  h <- yaml::read_yaml(fp(sv_root("models"), "svown", "model.yml"))$hash
+
+  extra <- newCommodity("XTRA", unit = "MWh")
+  sc <- suppressMessages(interpolate_model(m, extra, name = "svown_cap",
+                                           path = sv_root("scenarios", "svown_cap")))
+  expect_true(length(sc@misc$added) == 1L)
+  saved <- suppressMessages(save_scenario(sc, verbose = FALSE))
+  mf <- yaml::read_yaml(fp(saved@path, "scenario.yml"))
+  expect_identical(mf$model$source, "ref")
+  expect_identical(mf$model$hash, h)
+  expect_identical(unlist(mf$model$added), sc@misc$added)
+  # the shell holds the scenario's repository only
+  e <- new.env()
+  load(fp(saved@path, "scen.RData"), envir = e)
+  raw <- get(ls(e)[1], envir = e)
+  expect_identical(names(raw@model@data), sc@misc$added)
+
+  back <- suppressMessages(load_scenario(saved@path, env = NULL, verbose = FALSE))
+  expect_setequal(names(back@model@data), names(sc@model@data))
+  expect_true("XTRA" %in% names(back@model@data[[sc@misc$added]]@data))
+  expect_identical(sv_fixom(back@model), 1)
+  # recorded on the sealed base model
+  expect_true(any(grepl("scenario svown_cap",
+                        list_versions("svown", type = "model", details = TRUE)$dependents,
+                        fixed = TRUE)))
+
+  # a scenario on an unsealed model copies it in
+  save_model(sv_mod("svown2", fixom = 1), verbose = FALSE)
+  sc2 <- suppressMessages(interpolate_model(sv_mod("svown2", fixom = 1), extra,
+                                            name = "svown2_cap",
+                                            path = sv_root("scenarios", "svown2_cap")))
+  s2 <- suppressMessages(save_scenario(sc2, verbose = FALSE))
+  expect_identical(yaml::read_yaml(fp(s2@path, "scenario.yml"))$model$source, "embedded")
 })

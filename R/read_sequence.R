@@ -18,7 +18,7 @@
 # than leaving a NULL to be discovered by whatever dereferences it first.
 # =============================================================================#
 
-#' @include store-scenario.R
+#' @include save-scenario.R
 NULL
 
 # Every variant of a scenario, with its manifest and its first solved run.

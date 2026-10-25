@@ -10,7 +10,7 @@
 #   * the prompt must never run in a non-interactive session: menu() reading
 #     EOF would abort or hang a scripted sweep.
 
-# Covers the R API store_dependents(), delete_marked() and mark_delete().
+# Covers the R API list_dependents(), delete_marked() and mark_delete().
 # Deliberately NOT an `@covers` tag -- see the note in test-report-clear.R:
 # that vocabulary is the model coverage matrix, not exported function names.
 
@@ -55,39 +55,38 @@ test_that("scenarios referencing a model are its dependents; embedded are not", 
   sd_scen(mod, "sd_a")
   sd_scen(mod, "sd_b")
 
-  dep <- store_dependents("sdm", type = "model")
+  dep <- list_dependents("sdm", type = "model")
   expect_setequal(dep$name, c("sd_a", "sd_b"))
   expect_true(all(dep$type == "scenario"))
-  expect_true(all(dep$via == "model"))
   expect_true(all(dep$current))
-  expect_identical(dep$hash, c(h, h))
+  expect_identical(dep$version, substr(c(h, h), 1, 8))
 
   # an embedded copy is not a dependency
   sc <- interpolate_model(mod, name = "sd_emb",
                           path = sd_root("scenarios", "sd_emb"))
   suppressMessages(save_scenario(sc, embed_model = TRUE, verbose = FALSE))
-  expect_false("sd_emb" %in% store_dependents("sdm", type = "model")$name)
+  expect_false("sd_emb" %in% list_dependents("sdm", type = "model")$name)
 })
 
 test_that("an unreferenced entry has no dependents", {
   sd_local_store()
   mod <- sp_tech(c(90, 90, 90), optret = FALSE, name = "sdorphan")
   suppressMessages(save_model(mod, verbose = FALSE))
-  expect_identical(nrow(store_dependents("sdorphan", type = "model")), 0L)
+  expect_identical(nrow(list_dependents("sdorphan", type = "model")), 0L)
 })
 
 test_that("a dependent pinned to a superseded version reports current = FALSE", {
   sd_local_store()
   mod <- sp_tech(c(80, 80, 80), optret = FALSE, name = "sdver")
   sd_scen(mod, "sd_pin")
-  expect_true(store_dependents("sdver", type = "model")$current)
+  expect_true(list_dependents("sdver", type = "model")$current)
 
   # the name released and saved anew: the scenario's version is no longer
   # current, but it stays and still loads
   suppressMessages(unseal_model("sdver", force = TRUE))
   mod2 <- sp_tech(c(80, 80, 70), optret = FALSE, name = "sdver")
   suppressMessages(save_model(mod2, verbose = FALSE))
-  expect_false(store_dependents("sdver", type = "model")$current)
+  expect_false(list_dependents("sdver", type = "model")$current)
 })
 
 test_that("delete_marked refuses a referenced entry and never prompts in batch", {

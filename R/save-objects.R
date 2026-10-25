@@ -598,7 +598,7 @@ save_model <- function(
 # A sealed version records the entries that reference it, in its `versions`
 # record (`dependents`: type, name, path relative to the registry, the
 # dependent's own hash): appended when a referencing model or scenario is
-# saved; checked, followed transitively and pruned by store_blast_radius().
+# saved; checked, followed transitively and pruned by list_dependents().
 
 .abs_store_path <- function(p) {
   p <- as.character(p %||% "")[1]
@@ -655,7 +655,7 @@ save_model <- function(
   tibble(level = integer(0), of_type = character(0), of_name = character(0),
          of_version = character(0), type = character(0), name = character(0),
          path = character(0), hash = character(0), exists = logical(0),
-         references = logical(0))
+         references = logical(0), of_current = logical(0))
 }
 
 # The recorded dependents of an entry's sealed versions, verified, followed
@@ -670,6 +670,7 @@ save_model <- function(
       dp <- .abs_store_path(d$path)
       rows[[length(rows) + 1L]] <- tibble(
         level = level, of_type = type, of_name = name, of_version = h,
+        of_current = identical(h, as.character(mf$hash %||% "")),
         type = as.character(d$type), name = as.character(d$name %||% ""),
         path = dp, hash = as.character(d$hash %||% ""),
         exists = unname(hv["exists"]), references = unname(hv["references"]))
@@ -690,60 +691,11 @@ save_model <- function(
   if (length(rows)) bind_rows(rows) else .radius_cols()
 }
 
-#' What a sealed model or repository version would affect
-#'
-#' @description
-#' Lists the entries that reference the sealed versions of `x`, followed
-#' through models to the scenarios that use them, and checks each one: does
-#' it still exist (`exists`) and does it still reference that version
-#' (`references`). The records are kept in the sealed versions' manifests and
-#' written when a referencing model or scenario is saved; this is the check
-#' [unseal_model()] / [unseal_repository()] make before releasing a name.
-#'
-#' @param x a model or repository, or its stored name.
-#' @param type `"model"` or `"repository"` when `x` is a name.
-#' @param version optional hash (or prefix) of one sealed version; all by
-#'   default.
-#' @param prune logical; remove the records of `x`'s own versions whose
-#'   dependent no longer exists or no longer references them.
-#' @return a tibble: `level` (1 = references `x` directly), the referenced
-#'   entry (`of_type`, `of_name`, `of_version`), the dependent (`type`,
-#'   `name`, `path`, `hash`), `exists` and `references`.
-#' @seealso [store_dependents()], [seal_model()]
-#' @examples
-#' \dontrun{
-#' store_blast_radius("TOPIA", type = "model")
-#' }
-#' @export
-store_blast_radius <- function(x, type = NULL, version = NULL, prune = FALSE) {
-  type <- .entry_type_of(x, type)
-  if (!type %in% c("model", "repository")) {
-    stop("store_blast_radius(): models and repositories only.", call. = FALSE)
-  }
-  e <- .entry_resolve(type, x)
-  mf <- .entry_manifest(type, e$path)
-  vers <- as.character(names(mf$versions %||% list()))
-  if (!is.null(version)) vers <- vers[startsWith(vers, version)]
-  out <- .blast_radius(type, e$path, e$name, vers)
-  stale <- out$level == 1L & !(out$exists & out$references)
-  if (isTRUE(prune) && any(stale)) {
-    for (h in unique(out$of_version[stale])) {
-      drop <- out$path[stale & out$of_version == h]
-      mf$versions[[h]]$dependents <- Filter(function(d) {
-        !(.abs_store_path(d$path) %in% drop)
-      }, mf$versions[[h]]$dependents %||% list())
-    }
-    yaml::write_yaml(mf, fp(e$path, .entry_kinds()[[type]]$manifest))
-    out <- out[!stale, , drop = FALSE]
-  }
-  out
-}
-
-# --- versions and garbage ----------------------------------------------------
+# --- versions: status, listing, deletion marks ---------------------------------
 
 .parse_store_time <- function(x) {
   x <- as.character(x %||% NA_character_)[1]
-  if (is.na(x) || !nzchar(x)) return(as.POSIXct(NA))
+  if (is.na(x) || !nzchar(x)) return(as.POSIXct(NA, tz = "UTC"))
   as.POSIXct(x, format = "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC")
 }
 
@@ -757,17 +709,19 @@ store_blast_radius <- function(x, type = NULL, version = NULL, prune = FALSE) {
 }
 
 .versions_cols <- function() {
-  tibble(name = character(0), type = character(0), version = character(0),
-         status = character(0), sealed_at = as.POSIXct(character(0), tz = "UTC"),
-         updated = as.POSIXct(character(0), tz = "UTC"), size_mb = numeric(0),
-         n_dependents = integer(0), dependents = character(0),
-         hash = character(0), path = character(0))
+  tibble(status = character(0), name = character(0), type = character(0),
+         version = character(0), sealed_at = as.POSIXct(character(0), tz = "UTC"),
+         refs = integer(0), size_mb = numeric(0),
+         updated = as.POSIXct(character(0), tz = "UTC"), importance = numeric(0),
+         dependents = character(0), hash = character(0), path = character(0))
 }
 
-# One row per version of one entry: the current unsealed payload, if any,
-# and every sealed version, with its verified dependents.
+# One row per version of one entry: the current unsealed payload, if any, and
+# every sealed version, with its status and verified dependents. Status:
+# `current` (the name's content), `in use` (superseded, referenced),
+# `marked` (superseded, marked for deletion), `unused` (superseded, no
+# references, not marked).
 .entry_versions <- function(type, path) {
-  kind <- .entry_kinds()[[type]]
   mf <- .entry_manifest(type, path)
   if (is.null(mf)) return(.versions_cols())
   nm <- as.character(mf$name %||% basename(path))
@@ -776,23 +730,24 @@ store_blast_radius <- function(x, type = NULL, version = NULL, prune = FALSE) {
   rows <- list()
   if (file.exists(fp(path, payload))) {
     rows[[1]] <- tibble(
-      name = nm, type = type,
+      status = "current", name = nm, type = type,
       version = if (isFALSE(mf$hashed)) "(unsealed)" else substr(cur, 1, 8),
-      status = "current", sealed_at = as.POSIXct(NA, tz = "UTC"),
-      updated = .parse_store_time(mf$updated),
+      sealed_at = as.POSIXct(NA, tz = "UTC"), refs = 0L,
       size_mb = .dir_size_mb(fp(path, .store_payload_items(path, mf))),
-      n_dependents = 0L, dependents = "", hash = cur, path = path)
+      updated = .parse_store_time(mf$updated), importance = NA_real_,
+      dependents = "", hash = cur, path = path)
   }
   for (h in names(mf$versions %||% list())) {
     v <- mf$versions[[h]]
     deps <- Filter(function(d) all(.dependent_holds(d, nm, h)), v$dependents %||% list())
+    status <- if (identical(h, cur)) "current" else if (length(deps)) "in use" else
+      if (isTRUE(v$marked_delete)) "marked" else "unused"
     rows[[length(rows) + 1L]] <- tibble(
-      name = nm, type = type, version = substr(h, 1, 8),
-      status = if (identical(h, cur)) "current, sealed" else "sealed",
-      sealed_at = .parse_store_time(v$sealed_at),
-      updated = .parse_store_time(v$created),
+      status = status, name = nm, type = type, version = substr(h, 1, 8),
+      sealed_at = .parse_store_time(v$sealed_at), refs = length(deps),
       size_mb = .dir_size_mb(fp(path, h)),
-      n_dependents = length(deps),
+      updated = .parse_store_time(v$created),
+      importance = if (isTRUE(v$marked_delete)) as.numeric(v$delete_importance %||% 0) else NA_real_,
       dependents = paste(vapply(deps, function(d) paste(d$type, d$name), ""),
                          collapse = "; "),
       hash = h, path = fp(path, h))
@@ -803,99 +758,165 @@ store_blast_radius <- function(x, type = NULL, version = NULL, prune = FALSE) {
 #' Versions held in the model and repository stores
 #'
 #' @description
-#' One row per version: the current unsealed payload of an entry, if any,
-#' and each sealed version, with when it was sealed, its size and the
-#' entries that depend on it (verified: they exist and still reference it).
+#' One row per version: the current content of an entry and each sealed
+#' version, with its status, when it was sealed, how many entries reference
+#' it and its size.
+#'
+#' Status: `current` — the name's current content (an unsealed payload or
+#' the current sealed version); `in use` — a superseded sealed version that
+#' models or scenarios still reference; `marked` — a superseded version
+#' marked for deletion ([mark_delete()] with `version =`); `unused` — a
+#' superseded version nothing references and nobody marked. Versions are
+#' deleted only when marked, by [delete_marked()].
 #'
 #' @param x optional: a model or repository, or its stored name. All entries
 #'   of `type` when `NULL`.
-#' @param type `"model"`, `"repository"`, or both (default) when `x` is
-#'   `NULL` or a bare name.
-#' @return a tibble: `name`, `type`, `version` (8 characters of the content
-#'   hash; `(unsealed)` for a payload saved under a save id), `status`
-#'   (`current`, `sealed`, `current, sealed`), `sealed_at`, `updated`,
-#'   `size_mb`, `n_dependents`, `dependents`, and the full `hash` and `path`.
-#' @seealso [store_gc()], [store_blast_radius()], [seal_model()]
-#' @examples
-#' \dontrun{
-#' store_versions()                       # every model and repository
-#' store_versions("TOPIA", type = "model")
-#' }
-#' @export
-store_versions <- function(x = NULL, type = c("model", "repository")) {
-  if (!is.null(x)) {
-    tp <- .entry_type_of(x, if (length(type) == 1L) type else NULL)
-    e <- .entry_resolve(tp, x)
-    return(.entry_versions(tp, e$path))
-  }
-  type <- match.arg(type, c("model", "repository"), several.ok = TRUE)
-  rows <- list()
-  for (tp in type) {
-    root <- .entry_kinds()[[tp]]$root()
-    if (!dir.exists(root)) next
-    for (d in list.dirs(root, recursive = FALSE)) {
-      if (!file.exists(fp(d, .entry_kinds()[[tp]]$manifest))) next
-      rows[[length(rows) + 1L]] <- .entry_versions(tp, gsub("[\\/]+", "/", d))
-    }
-  }
-  if (length(rows)) bind_rows(rows) else .versions_cols()
-}
-
-#' Remove sealed versions nothing depends on
-#'
-#' @description
-#' A sealed version that is no longer the current content of its name and
-#' that no entry references any more is garbage. `store_gc()` lists the
-#' versions with what it would do to each; `dry_run = FALSE` deletes the
-#' garbage versions' folders and their records. A current version and a
-#' version with a verified dependent are never deleted.
-#'
 #' @param type `"model"`, `"repository"`, or both (default).
-#' @param dry_run logical; `TRUE` (default) only lists.
-#' @param verbose logical.
-#' @return the [store_versions()] table of the sealed versions with an
-#'   `action` column: `would_delete` / `deleted`, `kept_current`,
-#'   `kept_referenced`.
-#' @seealso [store_versions()], [delete_marked()]
+#' @param details logical; `TRUE` adds `updated`, `importance`, the
+#'   dependents' names, the full `hash` and the `path`.
+#' @return a tibble: `status`, `name`, `type`, `version` (8 characters of the
+#'   content hash; `(unsealed)` for a payload saved under a save id),
+#'   `sealed_at`, `refs`, `size_mb`, and with `details` the columns above.
+#' @seealso [list_dependents()], [mark_delete()], [delete_marked()]
 #' @examples
 #' \dontrun{
-#' store_gc()                    # what would go
-#' store_gc(dry_run = FALSE)     # delete it
+#' list_versions()                       # every model and repository
+#' list_versions("TOPIA", type = "model", details = TRUE)
 #' }
 #' @export
-store_gc <- function(type = c("model", "repository"), dry_run = TRUE,
-                     verbose = TRUE) {
-  v <- store_versions(type = type)
-  v <- v[v$status != "current", , drop = FALSE]
-  v$action <- ifelse(v$status == "current, sealed", "kept_current",
-                     ifelse(v$n_dependents > 0L, "kept_referenced",
-                            if (dry_run) "would_delete" else "deleted"))
-  if (!dry_run) {
-    for (i in which(v$action == "deleted")) {
-      entry <- dirname(v$path[i])
-      unlink(v$path[i], recursive = TRUE, force = TRUE)
-      mf_path <- fp(entry, .entry_kinds()[[v$type[i]]]$manifest)
-      mf <- yaml::read_yaml(mf_path)
-      mf$versions[[v$hash[i]]] <- NULL
-      yaml::write_yaml(mf, mf_path)
-      .registry_sync_entry(v$type[i], entry, v$name[i])
+list_versions <- function(x = NULL, type = c("model", "repository"), details = FALSE) {
+  out <- if (!is.null(x)) {
+    tp <- .entry_type_of(x, if (length(type) == 1L) type else NULL)
+    .entry_versions(tp, .entry_resolve(tp, x)$path)
+  } else {
+    type <- match.arg(type, c("model", "repository"), several.ok = TRUE)
+    rows <- list()
+    for (tp in type) {
+      root <- .entry_kinds()[[tp]]$root()
+      if (!dir.exists(root)) next
+      for (d in list.dirs(root, recursive = FALSE)) {
+        if (!file.exists(fp(d, .entry_kinds()[[tp]]$manifest))) next
+        rows[[length(rows) + 1L]] <- .entry_versions(tp, gsub("[\\/]+", "/", d))
+      }
     }
+    if (length(rows)) bind_rows(rows) else .versions_cols()
   }
-  if (isTRUE(verbose)) {
-    n <- sum(v$action %in% c("would_delete", "deleted"))
-    mb <- sum(v$size_mb[v$action %in% c("would_delete", "deleted")])
-    message(if (dry_run) "Dry run: " else "", n, " sealed version",
-            if (n == 1L) "" else "s", " without dependents, ", mb, " MB",
-            if (dry_run) " (store_gc(dry_run = FALSE) deletes them)." else " deleted.")
-  }
-  if (dry_run) v else invisible(v)
+  if (isTRUE(details)) out else
+    out[, c("status", "name", "type", "version", "sealed_at", "refs", "size_mb")]
 }
 
 # verified dependents of any sealed version of an entry (delete guard)
 .entry_version_dependents <- function(type, path) {
   if (!type %in% c("model", "repository")) return(0L)
+  sum(.entry_versions(type, path)$refs)
+}
+
+# Set or clear the deletion mark of sealed versions of an entry. `version`:
+# a hash (or prefix), several, or "unused" for every unused version.
+.mark_versions <- function(type, path, name, version, fields, verbose, what) {
+  if (!type %in% c("model", "repository")) {
+    stop("Versions exist for models and repositories only.", call. = FALSE)
+  }
   v <- .entry_versions(type, path)
-  sum(v$n_dependents)
+  v <- v[!is.na(v$sealed_at) & v$status != "current", , drop = FALSE]
+  hs <- if (identical(version, "unused")) {
+    v$hash[v$status %in% c("unused", "marked")]
+  } else {
+    unique(unlist(lapply(version, function(p) v$hash[startsWith(v$hash, p)])))
+  }
+  if (!length(hs) && !identical(version, "unused")) {
+    stop(type, " '", name, "' has no superseded sealed version ",
+         paste(version, collapse = ", "), "; list_versions() lists them.",
+         call. = FALSE)
+  }
+  mf_path <- fp(path, .entry_kinds()[[type]]$manifest)
+  mf <- yaml::read_yaml(mf_path)
+  for (h in hs) mf$versions[[h]][names(fields)] <- fields
+  yaml::write_yaml(mf, mf_path)
+  if (isTRUE(verbose)) {
+    message(type, " '", name, "': ", length(hs), " version", if (length(hs) == 1L) "" else "s",
+            " ", what, if (length(hs)) paste0(" (", paste(substr(hs, 1, 8), collapse = ", "), ")"))
+  }
+  invisible(hs)
+}
+
+#' What depends on a stored model, repository or dataset
+#'
+#' @description
+#' Lists the store entries that *reference* `x` rather than embedding a copy:
+#' those that would break if it were deleted. For models and repositories
+#' the dependents recorded on their sealed versions are verified (does the
+#' dependent still exist, does it still reference that version) and, with
+#' `recursive = TRUE`, followed through models to the scenarios using them;
+#' references found in the manifests are added (the only record for
+#' datasets, and for references saved before versions recorded their
+#' dependents). This is the check [unseal_model()] / [unseal_repository()]
+#' make before releasing a name.
+#'
+#' @param x an energyRt object, or the name of a store entry.
+#' @param type the entry type when `x` is a bare name: `"model"`,
+#'   `"repository"`, `"dataset"` or `"scenario"`.
+#' @param version optional hash (or prefix) of one version.
+#' @param recursive logical; follow dependents that are themselves sealed
+#'   versions (repository -> models -> scenarios).
+#' @param prune logical; remove the records of `x`'s own versions whose
+#'   dependent no longer exists or no longer references them.
+#' @param details logical; `TRUE` returns every column and also the stale
+#'   records (`exists` / `references` FALSE).
+#' @return a tibble: `level` (1 = references `x` directly), the dependent's
+#'   `type`, `name` and `path`, the `version` it references and whether that
+#'   is `x`'s `current` one; with `details` also `of_type`, `of_name`,
+#'   `hash` (the dependent's own), `exists`, `references` and `via`.
+#' @seealso [list_versions()], [delete_marked()], [mark_delete()]
+#' @examples
+#' \dontrun{
+#' list_dependents("TOPIA", type = "model")            # which scenarios use it
+#' list_dependents("my_repo", type = "repository", recursive = TRUE)
+#' }
+#' @export
+list_dependents <- function(x, type = NULL, version = NULL, recursive = FALSE,
+                            prune = FALSE, details = FALSE) {
+  type <- .entry_type_of(x, type)
+  e <- .entry_resolve(type, x)
+  mf <- .entry_manifest(type, e$path)
+  cur <- as.character(mf$hash %||% "")
+  rec <- .radius_cols()
+  if (type %in% c("model", "repository")) {
+    vers <- as.character(names(mf$versions %||% list()))
+    if (!is.null(version)) vers <- vers[startsWith(vers, version)]
+    rec <- .blast_radius(type, e$path, e$name, vers)
+    if (!isTRUE(recursive)) rec <- rec[rec$level == 1L, , drop = FALSE]
+    stale <- rec$level == 1L & !(rec$exists & rec$references)
+    if (isTRUE(prune) && any(stale)) {
+      for (h in unique(rec$of_version[stale])) {
+        drop <- rec$path[stale & rec$of_version == h]
+        mf$versions[[h]]$dependents <- Filter(function(d) {
+          !(.abs_store_path(d$path) %in% drop)
+        }, mf$versions[[h]]$dependents %||% list())
+      }
+      yaml::write_yaml(mf, fp(e$path, .entry_kinds()[[type]]$manifest))
+      rec <- rec[!stale, , drop = FALSE]
+    }
+  }
+  rec$via <- rec$of_type
+  # references found in the manifests, not already recorded
+  scan <- .dep_of(.store_dep_index(), type, e$name, cur)
+  if (!is.null(version)) scan <- scan[startsWith(scan$hash, version), , drop = FALSE]
+  scan <- scan[!scan$path %in% rec$path[rec$level == 1L], , drop = FALSE]
+  if (nrow(scan)) {
+    rec <- bind_rows(rec, tibble(
+      level = 1L, of_type = type, of_name = e$name, of_version = scan$hash,
+      type = scan$type, name = scan$name, path = scan$path, hash = "",
+      exists = TRUE, references = TRUE, via = scan$via,
+      of_current = nzchar(scan$hash) & startsWith(cur, scan$hash)))
+  }
+  rec$version <- substr(rec$of_version, 1, 8)
+  # is the referenced version the current one of the entry it belongs to
+  rec$current <- rec$of_current
+  rec$of_current <- NULL
+  if (isTRUE(details)) return(rec)
+  rec <- rec[rec$exists & rec$references, , drop = FALSE]
+  rec[, c("level", "type", "name", "version", "current", "path")]
 }
 
 # unseal: list what depends on the current sealed version, refuse unless forced
@@ -2346,7 +2367,7 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
 #'   For `mark_delete()`/`unmark_delete()` on a bare name, give `type =`.
 #' @param verbose logical.
 #' @param force logical; `unseal_model()` / `unseal_repository()` refuse while
-#'   the current sealed version has dependents (see [store_blast_radius()]),
+#'   the current sealed version has dependents (see [list_dependents()]),
 #'   listing them; `TRUE` releases the name anyway. The sealed version stays,
 #'   so the dependents keep loading it.
 #' @rdname seal
@@ -2438,13 +2459,28 @@ unseal_scenario <- function(x, verbose = TRUE) {
   invisible(e$path)
 }
 
+#' @param version for `mark_delete()` / `unmark_delete()` on a model or
+#'   repository: mark (or unmark) superseded sealed versions instead of the
+#'   whole entry -- a hash or prefix, several, or `"unused"` for every version
+#'   nothing references (see [list_versions()]). [delete_marked()] deletes
+#'   marked versions that are still unreferenced.
 #' @param importance numeric; HIGHER = more valuable = deleted later.
 #'   [delete_marked()] removes only marks with importance at or below its
 #'   `max_importance`.
 #' @param type character, the entry type when `x` is a bare name.
 #' @rdname seal
 #' @export
-mark_delete <- function(x, importance = 0, type = NULL, verbose = TRUE) {
+mark_delete <- function(x, importance = 0, type = NULL, verbose = TRUE,
+                        version = NULL) {
+  if (!is.null(version)) {
+    tp <- .entry_type_of(x, type)
+    e <- .entry_resolve(tp, x)
+    return(.mark_versions(tp, e$path, e$name, version,
+                          list(marked_delete = TRUE,
+                               delete_importance = as.numeric(importance),
+                               marked_at = .registry_now()),
+                          verbose, paste0("marked for deletion (importance ", importance, ")")))
+  }
   p <- .mark_set(x, type,
                  list(marked_delete = TRUE,
                       delete_importance = as.numeric(importance),
@@ -2455,11 +2491,11 @@ mark_delete <- function(x, importance = 0, type = NULL, verbose = TRUE) {
   # refuse. The refusal belongs to delete_marked(), where references are
   # re-checked against the state at sweep time.
   if (isTRUE(verbose)) {
-    deps <- tryCatch(store_dependents(x, type), error = function(e) NULL)
+    deps <- tryCatch(list_dependents(x, type), error = function(e) NULL)
     if (!is.null(deps) && nrow(deps)) {
       message("  ", nrow(deps), " entr", if (nrow(deps) == 1L) "y" else "ies",
               " reference it; delete_marked() will skip it unless ",
-              "ignore_refs = TRUE. store_dependents() lists them.")
+              "ignore_refs = TRUE. list_dependents() lists them.")
     }
   }
   invisible(p)
@@ -2467,7 +2503,13 @@ mark_delete <- function(x, importance = 0, type = NULL, verbose = TRUE) {
 
 #' @rdname seal
 #' @export
-unmark_delete <- function(x, type = NULL, verbose = TRUE) {
+unmark_delete <- function(x, type = NULL, verbose = TRUE, version = NULL) {
+  if (!is.null(version)) {
+    tp <- .entry_type_of(x, type)
+    e <- .entry_resolve(tp, x)
+    return(.mark_versions(tp, e$path, e$name, version,
+                          list(marked_delete = FALSE), verbose, "unmarked, kept"))
+  }
   .mark_set(x, type, list(marked_delete = FALSE), verbose,
             "unmarked — kept")
 }
@@ -2486,7 +2528,7 @@ unmark_delete <- function(x, type = NULL, verbose = TRUE) {
 #' Since [save_scenario()] references the model store rather than embedding a
 #' copy, deleting an entry can break the entries that point at it — and the
 #' breakage would surface only later, at load time. So a marked entry with
-#' dependents is skipped: [store_dependents()] lists them, and
+#' dependents is skipped: [list_dependents()] lists them, and
 #' `ignore_refs = TRUE` deletes anyway.
 #'
 #' In an **interactive** session a referenced entry is offered rather than
@@ -2542,14 +2584,37 @@ delete_marked <- function(types = NULL, max_importance = 0, dry_run = TRUE,
         path = gsub("[\\/]+", "/", d))
     }
   }
+  # marked sealed versions of models and repositories
+  for (tp in intersect(types, c("model", "repository"))) {
+    v <- list_versions(type = tp, details = TRUE)
+    v <- v[!is.na(v$importance) & v$status %in% c("marked", "in use"), , drop = FALSE]
+    for (i in seq_len(nrow(v))) {
+      action <- if (v$importance[i] > max_importance) "kept_importance" else
+        if (v$refs[i] > 0L && !isTRUE(ignore_refs)) "skipped_referenced" else
+        if (dry_run) "would_delete" else "deleted"
+      rows[[length(rows) + 1L]] <- tibble(
+        type = tp, name = v$name[i], version = v$version[i],
+        importance = v$importance[i], sealed = TRUE, dependents = v$refs[i],
+        action = action, path = v$path[i], hash = v$hash[i])
+    }
+  }
   out <- if (length(rows)) bind_rows(rows) else
-    tibble(type = character(0), name = character(0),
+    tibble(type = character(0), name = character(0), version = character(0),
            importance = numeric(0), sealed = logical(0),
            dependents = integer(0), action = character(0),
-           path = character(0))
+           path = character(0), hash = character(0))
+  if (!"version" %in% names(out)) out$version <- NA_character_
+  if (!"hash" %in% names(out)) out$hash <- NA_character_
   if (!dry_run) {
-    for (p in out$path[out$action == "deleted"]) {
-      unlink(p, recursive = TRUE, force = TRUE)
+    for (i in which(out$action == "deleted")) {
+      unlink(out$path[i], recursive = TRUE, force = TRUE)
+      # a version: its record in the entry's manifest goes too
+      if (!is.na(out$version[i])) {
+        mf_path <- fp(dirname(out$path[i]), .entry_kinds()[[out$type[i]]]$manifest)
+        mf <- yaml::read_yaml(mf_path)
+        mf$versions[[out$hash[i]]] <- NULL
+        yaml::write_yaml(mf, mf_path)
+      }
     }
     if (any(out$action == "deleted")) {
       tryCatch(refresh_registry(), error = function(e) {
@@ -2568,8 +2633,7 @@ delete_marked <- function(types = NULL, max_importance = 0, dry_run = TRUE,
               " marked entr", if (nrow(out) == 1L) "y" else "ies",
               " within max_importance = ", max_importance,
               "; delete_marked(dry_run = FALSE) to delete.")
-      print(out[, c("type", "name", "importance", "sealed", "dependents",
-                    "action")])
+      print(out[, c("action", "type", "name", "version", "importance", "dependents")])
     } else {
       message(sum(out$action == "deleted"), " entr",
               if (sum(out$action == "deleted") == 1L) "y" else "ies",
@@ -2578,7 +2642,7 @@ delete_marked <- function(types = NULL, max_importance = 0, dry_run = TRUE,
     nref <- sum(out$action == "skipped_referenced")
     if (nref > 0L) {
       message("  ", nref, " kept because ", if (nref == 1L) "it is" else
-              "they are", " still referenced; store_dependents() lists what ",
+              "they are", " still referenced; list_dependents() lists what ",
               "points at ", if (nref == 1L) "it" else "them",
               ", ignore_refs = TRUE deletes anyway.")
     }

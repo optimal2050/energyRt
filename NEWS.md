@@ -121,12 +121,20 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   otherwise; `"full"` copies everything in. `save_scenario()` no longer
   stores an unsealed model in the model store to reference it. Changed: a
   scenario whose model is stored but not sealed now carries its own copy.
-* `store_versions()` lists the versions of models and repositories (current
-  payload and sealed versions) with when they were sealed and updated, their
-  size and their verified dependents. `store_gc()` lists, and with
-  `dry_run = FALSE` deletes, sealed versions that are neither current nor
-  referenced. `delete_marked()` keeps an entry while any of its sealed
-  versions has a dependent.
+* A scenario whose model is a sealed version plus repositories added by
+  `interpolate_model()` references the sealed version and keeps only the
+  added repositories (`model: added` in its manifest); `load_scenario()`
+  adds them back.
+* `list_versions()` lists the versions of models and repositories with a
+  status (`current`, `in use`, `marked`, `unused`), when they were sealed,
+  how many entries reference them and their size (`details = TRUE` for
+  more). `mark_delete(version = )` marks superseded sealed versions (a hash,
+  or `"unused"`), and `delete_marked()` deletes them when still unreferenced.
+  `delete_marked()` also keeps an entry while any of its sealed versions has
+  a dependent.
+* `list_dependents()` replaces `store_dependents()`: the verified dependents
+  recorded on sealed versions (with `recursive = TRUE`, transitively) plus
+  the references found in manifests; `prune = TRUE` drops stale records.
 * Unsealed saves of models and repositories record a save id instead of a
   content hash (`hashed: false` in the manifest), so saving a large model no
   longer serializes it for hashing. The content hash is computed when a
@@ -143,9 +151,8 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   (`<entry>/<hash>/`): unsealed saves update the entry in place and leave the
   sealed versions untouched, and references and `load_*(hash = )` reach a
   sealed version exactly. A sealed version records the models and scenarios
-  that reference it; `store_blast_radius()` lists them transitively and checks
-  each, and `unseal_model()` / `unseal_repository()` refuse while they exist
-  unless `force = TRUE`.
+  that reference it, and `unseal_model()` / `unseal_repository()` list them
+  and refuse while they exist unless `force = TRUE`.
 * Referenced tables read back into memory are dropped before the scenario
   shell (`scen.RData`) is written. A shell above
   `options(energyRt.shell_max_mb = 256)` warns and names its largest slots.

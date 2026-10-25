@@ -1,4 +1,4 @@
-# Interpolated tables as references into the dataset store (R/store-params.R):
+# Interpolated tables as references into the dataset store (R/save-params.R):
 # eligibility, thinning a modInp into references, resolving them back, the
 # data directory a reader uses, and clearing a reference before a write.
 

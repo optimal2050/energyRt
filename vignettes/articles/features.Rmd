@@ -212,7 +212,7 @@ model definition does not change between them.
   thousands of solved runs stays addressable.
 - **Lifecycle.** `seal_model()` / `unseal_*()` freeze an entry; `mark_delete()`
   and `delete_marked()` stage removals and refuse to break a reference;
-  `store_dependents()` says what points at an object.
+  `list_dependents()` says what points at an object.
 - **Runs and artefacts.** `scenario_runs()`, `scenario_solutions()`,
   `scenario_artifacts()` report what each solve produced and left on disk;
   `promote_solution()` and `import_solution()` choose which solution counts;
