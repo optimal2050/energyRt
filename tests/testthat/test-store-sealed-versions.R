@@ -99,7 +99,7 @@ test_that("a model referencing a sealed repository version keeps it exactly", {
   suppressMessages(seal_repository(mod@data[[1]]@name))
   suppressMessages(save_model(mod, verbose = FALSE))      # references the sealed repository
 
-  suppressMessages(unseal_repository(mod@data[[1]]@name))
+  suppressMessages(unseal_repository(mod@data[[1]]@name, force = TRUE))
   save_repository(sv_mod("svm", fixom = 9)@data[[1]], verbose = FALSE)
 
   expect_no_warning(back <- load_model("svm", verbose = FALSE))
@@ -120,11 +120,46 @@ test_that("a sealed model version loads by name, by hash and from a scenario", {
   saved <- suppressMessages(save_scenario(sc, verbose = FALSE))
   expect_identical(yaml::read_yaml(fp(saved@path, "scenario.yml"))$model$source, "ref")
 
-  suppressMessages(unseal_model("svs"))
+  suppressMessages(unseal_model("svs", force = TRUE))
   save_model(sv_mod("svs", fixom = 5), verbose = FALSE)
   expect_identical(sv_fixom(load_model("svs", verbose = FALSE)), 5)
   expect_identical(sv_fixom(load_model("svs", hash = h1, verbose = FALSE)), 1)
   back <- expect_no_warning(suppressMessages(
     load_scenario(saved@path, env = NULL, verbose = FALSE)))
   expect_identical(sv_fixom(back@model), 1)
+})
+
+test_that("sealed versions record their dependents; unsealing shows and guards them", {
+  sv_local()
+  unlink(sv_root(), recursive = TRUE)
+  mod <- sv_mod("svd", fixom = 1)
+  rn <- mod@data[[1]]@name
+  save_repository(mod@data[[1]], verbose = FALSE)
+  suppressMessages(seal_repository(rn))
+  m <- suppressMessages(save_model(mod, verbose = FALSE))  # references the sealed repository
+  suppressMessages(seal_model("svd"))
+  sc <- interpolate_model(mod, name = "svd_scen", path = sv_root("scenarios", "svd_scen"))
+  saved <- suppressMessages(save_scenario(sc, verbose = FALSE))
+
+  r <- store_blast_radius(rn, type = "repository")
+  expect_setequal(paste(r$level, r$type, r$name),
+                  c("1 model svd", "2 scenario svd_scen"))
+  expect_true(all(r$exists & r$references))
+  expect_identical(nrow(store_blast_radius("svd", type = "model")), 1L)
+
+  # unsealing refuses and names the dependents; forced, the version stays
+  expect_error(unseal_repository(rn), "svd_scen")
+  expect_error(unseal_model("svd"), "svd_scen")
+  suppressMessages(unseal_model("svd", force = TRUE))
+  save_model(sv_mod("svd", fixom = 4), verbose = FALSE)
+  back <- suppressMessages(load_scenario(saved@path, env = NULL, verbose = FALSE))
+  expect_identical(sv_fixom(back@model), 1)
+
+  # a deleted dependent shows as gone, and prune drops the record
+  unlink(saved@path, recursive = TRUE)
+  r <- store_blast_radius("svd", type = "model")
+  expect_false(any(r$exists))
+  r <- store_blast_radius("svd", type = "model", prune = TRUE)
+  expect_identical(nrow(r), 0L)
+  expect_identical(nrow(store_blast_radius("svd", type = "model")), 0L)
 })

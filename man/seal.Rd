@@ -16,11 +16,11 @@
 \usage{
 seal_model(x, verbose = TRUE)
 
-unseal_model(x, verbose = TRUE)
+unseal_model(x, force = FALSE, verbose = TRUE)
 
 seal_repository(x, verbose = TRUE)
 
-unseal_repository(x, verbose = TRUE)
+unseal_repository(x, force = FALSE, verbose = TRUE)
 
 seal_dataset(x, verbose = TRUE)
 
@@ -47,6 +47,11 @@ delete_marked(
 For \code{mark_delete()}/\code{unmark_delete()} on a bare name, give \verb{type =}.}
 
 \item{verbose}{logical.}
+
+\item{force}{logical; \code{unseal_model()} / \code{unseal_repository()} refuse while
+the current sealed version has dependents (see \code{\link[=store_blast_radius]{store_blast_radius()}}),
+listing them; \code{TRUE} releases the name anyway. The sealed version stays,
+so the dependents keep loading it.}
 
 \item{importance}{numeric; HIGHER = more valuable = deleted later.
 \code{\link[=delete_marked]{delete_marked()}} removes only marks with importance at or below its

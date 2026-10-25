@@ -115,6 +115,13 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   references; the lazy readers follow them; a writer that changes a table
   drops its reference. A weather or demand table whose version is gone is
   recomputed from the model.
+* Sealing a model or repository freezes its content as a version
+  (`<entry>/<hash>/`): unsealed saves update the entry in place and leave the
+  sealed versions untouched, and references and `load_*(hash = )` reach a
+  sealed version exactly. A sealed version records the models and scenarios
+  that reference it; `store_blast_radius()` lists them transitively and checks
+  each, and `unseal_model()` / `unseal_repository()` refuse while they exist
+  unless `force = TRUE`.
 * Referenced tables read back into memory are dropped before the scenario
   shell (`scen.RData`) is written. A shell above
   `options(energyRt.shell_max_mb = 256)` warns and names its largest slots.

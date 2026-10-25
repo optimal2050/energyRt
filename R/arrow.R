@@ -384,6 +384,12 @@ save_scenario <- function(
     hash = model_hash_,
     source = "embedded"
   )
+  # the sealed model version it references records it as a dependent
+  if (!is.null(model_ref)) {
+    .dependents_add("model", .abs_store_path(model_ref$path), model_ref$hash,
+                    list(type = "scenario", name = object@name,
+                         path = .registry_rel_path(object@path), hash = ""))
+  }
   .write_scenario_manifest(object, format, model = mf_model,
                            datasets = ds_entries)
   .registry_record_scenario(object)

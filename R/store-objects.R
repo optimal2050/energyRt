@@ -353,6 +353,13 @@ save_model <- function(
      if (hash_kept) list(hash_kept = TRUE),
      if (length(prev$versions)) list(versions = prev$versions),
      .lifecycle_carry(prev)), mf_path)
+  # the sealed repository versions it references record it as a dependent
+  for (re in repo_entries) {
+    if (!identical(re$source, "ref")) next
+    .dependents_add("repository", .abs_store_path(re$path), re$hash,
+                    list(type = "model", name = object@name,
+                         path = .registry_rel_path(path), hash = h))
+  }
   # the returned in-memory object keeps its full repositories and geoscale
   if (!is.null(full_repos)) object@data <- full_repos
   if (!is.null(full_config)) {
@@ -456,6 +463,178 @@ save_model <- function(
   if (file.exists(fp(path, payload)) && (!pinned || startsWith(cur, hash))) return(path)
   if (!pinned && nzchar(cur) && file.exists(fp(path, cur, payload))) return(fp(path, cur))
   NULL
+}
+
+# --- dependents of sealed versions -----------------------------------------
+# A sealed version records the entries that reference it, in its `versions`
+# record (`dependents`: type, name, path relative to the registry, the
+# dependent's own hash): appended when a referencing model or scenario is
+# saved; checked, followed transitively and pruned by store_blast_radius().
+
+.abs_store_path <- function(p) {
+  p <- as.character(p %||% "")[1]
+  if (!nzchar(p)) return("")
+  if (grepl("^([A-Za-z]:|/)", p)) return(gsub("[\\/]+", "/", p))
+  gsub("[\\/]+", "/", fp(dirname(get_registry_file()), p))
+}
+
+# Record `dep` on the sealed version `hash` of an entry; nothing when `hash`
+# is not a sealed version there.
+.dependents_add <- function(type, entry_path, hash, dep) {
+  mf_path <- fp(entry_path, .entry_kinds()[[type]]$manifest)
+  mf <- tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
+  if (is.null(mf) || !nzchar(hash %||% "")) return(invisible(FALSE))
+  vers <- as.character(names(mf$versions %||% list()))
+  hit <- vers[startsWith(vers, hash)]
+  if (length(hit) != 1L) return(invisible(FALSE))
+  deps <- mf$versions[[hit]]$dependents %||% list()
+  same <- vapply(deps, function(d) {
+    identical(d$type, dep$type) && identical(d$path, dep$path)
+  }, logical(1))
+  mf$versions[[hit]]$dependents <- c(deps[!same], list(c(dep, list(at = .registry_now()))))
+  yaml::write_yaml(mf, mf_path)
+  invisible(TRUE)
+}
+
+# Does a recorded dependent still exist, and still reference `version` of the
+# entry `name`? A sealed version of a model cannot have changed, so a
+# dependent model pinned to one holds by construction.
+.dependent_holds <- function(dep, name, version) {
+  kind <- .entry_kinds()[[dep$type]]
+  if (is.null(kind)) return(c(exists = FALSE, references = FALSE))
+  p <- .abs_store_path(dep$path)
+  mf <- tryCatch(yaml::read_yaml(fp(p, kind$manifest)), error = function(e) NULL)
+  if (is.null(mf)) return(c(exists = FALSE, references = FALSE))
+  dh <- as.character(dep$hash %||% "")
+  if (identical(dep$type, "model") && nzchar(dh) &&
+      !startsWith(as.character(mf$hash %||% ""), dh) &&
+      any(startsWith(as.character(names(mf$versions %||% list())), dh))) {
+    return(c(exists = TRUE, references = TRUE))
+  }
+  refs <- switch(dep$type, scenario = list(mf$model),
+                 model = mf$repositories %||% list(), list())
+  ok <- any(vapply(refs, function(e) {
+    is.list(e) && identical(as.character(e$source %||% ""), "ref") &&
+      identical(as.character(e$name %||% ""), name) &&
+      nzchar(e$hash %||% "") && startsWith(version, as.character(e$hash))
+  }, logical(1)))
+  c(exists = TRUE, references = ok)
+}
+
+.radius_cols <- function() {
+  tibble(level = integer(0), of_type = character(0), of_name = character(0),
+         of_version = character(0), type = character(0), name = character(0),
+         path = character(0), hash = character(0), exists = logical(0),
+         references = logical(0))
+}
+
+# The recorded dependents of an entry's sealed versions, verified, followed
+# through dependents that are themselves sealed versions.
+.blast_radius <- function(type, entry_path, name, hashes, level = 1L,
+                          seen = character()) {
+  mf <- .entry_manifest(type, entry_path)
+  rows <- list()
+  for (h in hashes) {
+    for (d in mf$versions[[h]]$dependents %||% list()) {
+      hv <- .dependent_holds(d, name, h)
+      dp <- .abs_store_path(d$path)
+      rows[[length(rows) + 1L]] <- tibble(
+        level = level, of_type = type, of_name = name, of_version = h,
+        type = as.character(d$type), name = as.character(d$name %||% ""),
+        path = dp, hash = as.character(d$hash %||% ""),
+        exists = unname(hv["exists"]), references = unname(hv["references"]))
+      key <- paste(d$type, dp, d$hash %||% "", sep = "|")
+      if (all(hv) && !key %in% seen && d$type %in% c("model", "repository")) {
+        seen <- c(seen, key)
+        dmf <- .entry_manifest(d$type, dp)
+        dv <- as.character(names(dmf$versions %||% list()))
+        dh <- as.character(d$hash %||% "")
+        dv <- if (nzchar(dh)) dv[startsWith(dv, dh)] else character()
+        if (length(dv)) {
+          rows[[length(rows) + 1L]] <- .blast_radius(d$type, dp, d$name, dv,
+                                                      level + 1L, seen)
+        }
+      }
+    }
+  }
+  if (length(rows)) bind_rows(rows) else .radius_cols()
+}
+
+#' What a sealed model or repository version would affect
+#'
+#' @description
+#' Lists the entries that reference the sealed versions of `x`, followed
+#' through models to the scenarios that use them, and checks each one: does
+#' it still exist (`exists`) and does it still reference that version
+#' (`references`). The records are kept in the sealed versions' manifests and
+#' written when a referencing model or scenario is saved; this is the check
+#' [unseal_model()] / [unseal_repository()] make before releasing a name.
+#'
+#' @param x a model or repository, or its stored name.
+#' @param type `"model"` or `"repository"` when `x` is a name.
+#' @param version optional hash (or prefix) of one sealed version; all by
+#'   default.
+#' @param prune logical; remove the records of `x`'s own versions whose
+#'   dependent no longer exists or no longer references them.
+#' @return a tibble: `level` (1 = references `x` directly), the referenced
+#'   entry (`of_type`, `of_name`, `of_version`), the dependent (`type`,
+#'   `name`, `path`, `hash`), `exists` and `references`.
+#' @seealso [store_dependents()], [seal_model()]
+#' @examples
+#' \dontrun{
+#' store_blast_radius("TOPIA", type = "model")
+#' }
+#' @export
+store_blast_radius <- function(x, type = NULL, version = NULL, prune = FALSE) {
+  type <- .entry_type_of(x, type)
+  if (!type %in% c("model", "repository")) {
+    stop("store_blast_radius(): models and repositories only.", call. = FALSE)
+  }
+  e <- .entry_resolve(type, x)
+  mf <- .entry_manifest(type, e$path)
+  vers <- as.character(names(mf$versions %||% list()))
+  if (!is.null(version)) vers <- vers[startsWith(vers, version)]
+  out <- .blast_radius(type, e$path, e$name, vers)
+  stale <- out$level == 1L & !(out$exists & out$references)
+  if (isTRUE(prune) && any(stale)) {
+    for (h in unique(out$of_version[stale])) {
+      drop <- out$path[stale & out$of_version == h]
+      mf$versions[[h]]$dependents <- Filter(function(d) {
+        !(.abs_store_path(d$path) %in% drop)
+      }, mf$versions[[h]]$dependents %||% list())
+    }
+    yaml::write_yaml(mf, fp(e$path, .entry_kinds()[[type]]$manifest))
+    out <- out[!stale, , drop = FALSE]
+  }
+  out
+}
+
+# unseal: list what depends on the current sealed version, refuse unless forced
+.unseal <- function(type, x, force, verbose) {
+  e <- .entry_resolve(type, x)
+  mf <- .entry_manifest(type, e$path)
+  cur <- as.character(mf$hash %||% "")
+  r <- if (cur %in% names(mf$versions %||% list())) {
+    .blast_radius(type, e$path, e$name, cur)
+  } else {
+    .radius_cols()
+  }
+  r <- r[r$exists & r$references, , drop = FALSE]
+  if (nrow(r)) {
+    lines <- sprintf("  %s%s '%s' (%s)", strrep("  ", r$level - 1L), r$type,
+                     r$name, r$path)
+    msg <- paste0(type, " '", e$name, "' @", substr(cur, 1, 8),
+                  " is referenced by ", nrow(r), " entr",
+                  if (nrow(r) == 1L) "y" else "ies", ":\n",
+                  paste(lines, collapse = "\n"))
+    if (!isTRUE(force)) {
+      stop(msg, "\nunseal_", type, "(force = TRUE) releases the name; the ",
+           "sealed version stays for them.", call. = FALSE)
+    }
+    if (isTRUE(verbose)) message(msg)
+  }
+  .seal_set(type, x, FALSE, verbose)
+  invisible(r)
 }
 
 .store_resolve <- function(name, hash, reg_type, root, manifest) {
@@ -1852,6 +2031,10 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
 #' @param x the object (model/repository/scenario), or its registered name.
 #'   For `mark_delete()`/`unmark_delete()` on a bare name, give `type =`.
 #' @param verbose logical.
+#' @param force logical; `unseal_model()` / `unseal_repository()` refuse while
+#'   the current sealed version has dependents (see [store_blast_radius()]),
+#'   listing them; `TRUE` releases the name anyway. The sealed version stays,
+#'   so the dependents keep loading it.
 #' @rdname seal
 #' @export
 #' @examples
@@ -1875,8 +2058,8 @@ seal_model <- function(x, verbose = TRUE) .seal_set("model", x, TRUE, verbose)
 
 #' @rdname seal
 #' @export
-unseal_model <- function(x, verbose = TRUE) {
-  .seal_set("model", x, FALSE, verbose)
+unseal_model <- function(x, force = FALSE, verbose = TRUE) {
+  .unseal("model", x, force, verbose)
 }
 
 #' @rdname seal
@@ -1887,8 +2070,8 @@ seal_repository <- function(x, verbose = TRUE) {
 
 #' @rdname seal
 #' @export
-unseal_repository <- function(x, verbose = TRUE) {
-  .seal_set("repository", x, FALSE, verbose)
+unseal_repository <- function(x, force = FALSE, verbose = TRUE) {
+  .unseal("repository", x, force, verbose)
 }
 
 #' @rdname seal
