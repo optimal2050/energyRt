@@ -1144,6 +1144,29 @@ recipe_value <- function(scen, names, fmp) {
 # The CONDITIONAL half of a constraint map: the rows where a non-default bound
 # is declared (`domain` intersect `source`). NULL means there was no basis to
 # build from, which leaves the map untouched rather than emptying it.
+# Join (or anti-join) `dom` with `src` where an NA in `src` is a wildcard for
+# that row: rows sharing one NA pattern are joined on their explicit columns.
+# Objects declared at different resolutions (per region, for all regions) mix
+# patterns in one table.
+.wild_join <- function(dom, src, anti = FALSE) {
+  src <- as.data.frame(src)
+  if (nrow(src) == 0) return(if (anti) dom else as.data.frame(dom)[0, , drop = FALSE])
+  pat <- do.call(paste0, lapply(src, function(col) as.integer(is.na(col))))
+  out <- if (anti) as.data.frame(dom) else list()
+  for (g in split(seq_len(nrow(src)), pat)) {
+    s <- src[g, , drop = FALSE]
+    keep <- vapply(s, function(col) !anyNA(col), logical(1))
+    s <- dplyr::distinct(s[, keep, drop = FALSE])
+    if (anti) {
+      by <- intersect(colnames(out), colnames(s))
+      if (length(by) && ncol(s)) out <- dplyr::anti_join(out, s, by = by)
+    } else {
+      out[[length(out) + 1L]] <- as.data.frame(merge0(dom, s))
+    }
+  }
+  if (anti) out else dplyr::distinct(dplyr::bind_rows(out))
+}
+
 .constraint_cond_rows <- function(scen, p, def) {
   # Optional bound parameter / membership source, type- and value-filtered.
   src <- NULL
@@ -1183,13 +1206,10 @@ recipe_value <- function(scen, names, fmp) {
   } else if (is.null(src)) {
     dom
   } else {
-    # The bound source is read while still FOLDED: a fully-NA dimension is a
-    # wildcard ("all members") and must not constrain the join with the
-    # explicit-membered domain (merge0 joins on shared columns and NA never
-    # matches an explicit member, which would wrongly empty the map). Drop
-    # fully-NA source columns; the domain supplies those dimensions.
-    keep <- vapply(src, function(col) !all(is.na(col)), logical(1))
-    as.data.frame(merge0(dom, src[, keep, drop = FALSE]))
+    # The bound source is read before unfolding: NA is a wildcard ("all
+    # members") for its row and must not constrain the join with the
+    # explicit-membered domain; the domain supplies that dimension.
+    .wild_join(dom, src)
   }
   if (is.null(res) || nrow(res) == 0) return(NULL)
 
@@ -1232,14 +1252,8 @@ recipe_value <- function(scen, names, fmp) {
         open <- src[src$type %in% def$types & src$value == open_val,
                     intersect(colnames(src), colnames(df)), drop = FALSE]
         if (nrow(open) > 0) {
-          # the source may still be FOLDED here: a fully-NA dimension is a
-          # wildcard and must not block the match (same pattern as the value
-          # recipe and the ramp maps)
-          keep <- vapply(open, function(col) !all(is.na(col)), logical(1))
-          open <- dplyr::distinct(open[, keep, drop = FALSE])
-          if (ncol(open) > 0 && nrow(open) > 0) {
-            df <- dplyr::anti_join(df, open, by = colnames(open))
-          }
+          # NA in the source is a wildcard for its row
+          df <- .wild_join(df, dplyr::distinct(open), anti = TRUE)
         }
       }
     }

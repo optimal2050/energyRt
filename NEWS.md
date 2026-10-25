@@ -102,6 +102,9 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   A saved scenario references its sealed model instead of copying it, also
   for models with vintages, clusters or a spatial sample. `getObject()` on a
   scenario returns the objects as defined.
+* `base = REF` also takes new processes, commodities and other model objects:
+  the per-object tables of the objects REF holds are reused and every map is
+  rebuilt.
 
 ### Results and project management
 
@@ -237,6 +240,8 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   too, i.e. the roll-up of their sub-regions a second time. A commodity rate
   now applies at the commodity's own regions and a process rate at the regions
   the process is declared in; a region off that level is an error.
+* A bound declared per region on one object and for all regions on another
+  lost the second object's bound equation (e.g. a fixed storage duration).
 * Content hashes of models with a geoscale are stable between R sessions
   (the S7 class object was hashed), so such models match their sealed
   versions in a new session.

@@ -25,7 +25,8 @@ interpolate_model(
   parent_levels = getOption("energyRt.parent_levels", FALSE),
   fx_equ = getOption("energyRt.fx_equ", TRUE),
   on_missing_input = getOption("energyRt.on_missing_input", "stop"),
-  verbose = isVerbose()
+  verbose = isVerbose(),
+  .reuse = NULL
 )
 
 \S4method{interpolate}{model}(object, ...)
@@ -50,7 +51,11 @@ interpolation of the model with the base's additions and the new ones. The
 base's \code{fold}, \code{sparse} and \code{prune} settings apply. Otherwise (another
 model, a new process or commodity, a replaced object, settings, calendar,
 horizon or geoscale objects) a message says why and the model is
-interpolated in full. \code{object} may be the base itself.}
+interpolated in full. \code{object} may be the base itself.
+
+New processes, commodities and other model objects are built on the base
+too: the per-object tables of the objects the base already holds are
+reused, the new objects' tables are computed, and every map is rebuilt.}
 
 \item{desc}{character scenario description.}
 
@@ -165,6 +170,9 @@ many constraints were generated for them. The generated constraints
 themselves are retrievable with \code{getObject(scen, class = "constraint")};
 each carries a readable \code{desc} and, in \code{misc$.variant_source}, the object
 it was derived from.}
+
+\item{.reuse}{internal: an interpolated scenario whose per-object tables
+are reused for the objects it holds (set by \code{base}).}
 }
 \value{
 an interpolated \link{scenario} object.

@@ -119,6 +119,12 @@
 #'   model, a new process or commodity, a replaced object, settings, calendar,
 #'   horizon or geoscale objects) a message says why and the model is
 #'   interpolated in full. `object` may be the base itself.
+#'
+#'   New processes, commodities and other model objects are built on the base
+#'   too: the per-object tables of the objects the base already holds are
+#'   reused, the new objects' tables are computed, and every map is rebuilt.
+#' @param .reuse internal: an interpolated scenario whose per-object tables
+#'   are reused for the objects it holds (set by `base`).
 #' @param verbose logical; print per-step progress. This also governs the
 #'   variant-expansion report -- how many process objects were expanded and how
 #'   many constraints were generated for them. The generated constraints
@@ -158,7 +164,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
                        fx_equ = getOption("energyRt.fx_equ", TRUE),
                        on_missing_input = getOption("energyRt.on_missing_input",
                                                     "stop"),
-                       verbose = isVerbose()) {
+                       verbose = isVerbose(), .reuse = NULL) {
   # which build arguments the caller set (read before any is reassigned)
   .given <- c(fold = !missing(fold), sparse = !missing(sparse),
               prune = !missing(prune), code = !missing(code), kvl = !missing(kvl),
@@ -192,7 +198,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
     .derived <- .interpolate_from_base(object, base, name = name, args = list(...),
                                        ondisk = ondisk, given = .given, fold = fold,
                                        sparse = sparse, prune = prune,
-                                       verbose = verbose)
+                                       verbose = verbose, validate = validate)
     if (!is.null(.derived)) return(.derived)
   }
   # Accept a scenario (re-interpolate its model), matching the legacy interface.
@@ -939,6 +945,11 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
     .interp_step(verbose, paste0("ob2mi: interpolating ", .n_obj,
                                  " model objects"), oneline = FALSE)
   }
+  # Built on a base (`.reuse`): the objects it holds are not re-read; their
+  # interpolated rows join after EAC/stock. Levies are re-read, their rosters
+  # cover every process. Tables already filled here come from the settings.
+  .reuse_names <- if (is.null(.reuse)) character() else .reuse_object_names(.reuse)
+  .pre_ob2mi <- if (is.null(.reuse)) character() else .filled_params(scen)
   for (i in seq(along = scen@model@data)) {
     for (j in seq(along = scen@model@data[[i]]@data)) {
       if (is.null(classes) || inherits(scen@model@data[[i]]@data[[j]], classes)) {
@@ -949,6 +960,8 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
         # (.interp_user_constraints), after the variable domain maps they
         # reference (e.g. mTechNew) are built.
         if (inherits(scen@model@data[[i]]@data[[j]], c("constraint", "costs"))) next
+        # built on a base: its objects' rows are taken from it (below)
+        if (scen@model@data[[i]]@data[[j]]@name %in% .reuse_names) next
         .obj <- scen@model@data[[i]]@data[[j]]
         # PRE-FILTER (opt-in). The parameter filters at the end of this
         # pipeline are cheap in themselves but cannot undo that `ob2mi`
@@ -1017,6 +1030,11 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   scen <- .extend_rate_to_coarse(scen, "pSdr")
   scen <- compute_eac_parameters(scen)
   scen <- compute_stock_parameters(scen)
+  if (!is.null(.reuse)) {
+    scen <- .reuse_rows(scen, .reuse,
+                        exclude = c(.pre_ob2mi, .levy_param_names(),
+                                    "pStorageStartLevel"))
+  }
 
   #============================================================================#
   # Value-derived mapping parameters ####
@@ -1052,6 +1070,8 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   #   cycle at every timeframe, so without that restriction the endowment lands
   #   once per LEVEL (a DAY row and an HOUR row) instead of once per storage.
   scen <- place_start_level(scen)
+  # placed already in the base
+  if (!is.null(.reuse)) scen <- .reuse_rows(scen, .reuse, only = "pStorageStartLevel")
 
   #============================================================================#
   # Constraint / equation-domain mapping parameters ####
@@ -4926,18 +4946,22 @@ setMethod("interpolate", signature(object = "scenario"),
 # The objects passed through `...`, flattened out of their repositories.
 .base_additions <- function(args) {
   objs <- list()
+  build <- list()
   bad <- character()
+  bricks <- newRepository("")@permit
   for (a in args) {
     items <- if (inherits(a, "repository")) a@data else list(a)
     for (o in items) {
       if (inherits(o, .base_delta_classes)) {
         objs[[length(objs) + 1L]] <- o
+      } else if (inherits(o, bricks)) {
+        build[[length(build) + 1L]] <- o
       } else {
         bad <- c(bad, class(o)[1])
       }
     }
   }
-  list(objects = objs, bad = unique(bad))
+  list(objects = c(objs, build), build = build, bad = unique(bad))
 }
 
 # NULL when `object` + `args` can be built on `base`, else the reason it cannot.
@@ -4974,7 +4998,14 @@ setMethod("interpolate", signature(object = "scenario"),
   if (length(add$bad)) {
     return(paste0("an object of class ", add$bad[1], " is added"))
   }
+  if (length(add$build) && is.null(base@misc$model_id)) {
+    return("the base keeps no model as given (interpolated before it did)")
+  }
+  if (length(add$build) && !is.null(base@misc$spatial)) {
+    return("the base samples regions; new processes on it are not supported yet")
+  }
   nm <- vapply(add$objects, function(o) o@name, character(1))
+  if (!length(nm)) nm <- character()
   dup <- unique(nm[duplicated(nm)])
   if (length(dup)) return(paste0("'", dup[1], "' is passed twice"))
   repos <- vapply(Filter(function(a) inherits(a, "repository"), args),
@@ -5073,7 +5104,8 @@ setMethod("interpolate", signature(object = "scenario"),
 #' @keywords internal
 #' @noRd
 .interpolate_from_base <- function(object, base, name, args, ondisk, given,
-                                   fold, sparse, prune, verbose) {
+                                   fold, sparse, prune, verbose,
+                                   validate = TRUE) {
   t0 <- Sys.time()
   if (!inherits(base, "scenario") || !isTRUE(base@status$interpolated)) {
     stop("`base` must be an interpolated scenario.", call. = FALSE)
@@ -5102,6 +5134,9 @@ setMethod("interpolate", signature(object = "scenario"),
   if (isTRUE(ondisk) && verbose) {
     message("Derived scenario '", name, "' is built in memory; ",
             "save it with save_scenario().")
+  }
+  if (length(.base_additions(args)$build)) {
+    return(.interpolate_on_base(base, name, args, validate, verbose))
   }
 
   # -- the copy -------------------------------------------------------------
@@ -5334,4 +5369,77 @@ setMethod("interpolate", signature(object = "scenario"),
   }
   .scen_model_cache$entry <- list(key = key, model = out)
   out
+}
+
+# -- phase B: new processes and commodities on a base -------------------------
+
+# Names of the objects whose interpolated rows a base already holds: the
+# expanded names of its sets, levies excluded (they are re-read).
+.reuse_object_names <- function(base) {
+  sets <- base@modInp@sets
+  keep <- c("comm", "tech", "stg", "trade", "sup", "dem", "imp", "expp",
+            "weather", "group")
+  nm <- unlist(lapply(keep, function(k) as.character(sets[[k]])))
+  unique(nm[!is.na(nm)])
+}
+
+# numpar/bounds parameters holding rows.
+.filled_params <- function(scen) {
+  nm <- names(scen@modInp@parameters)
+  nm[vapply(scen@modInp@parameters, function(p) {
+    as.character(p@type) %in% c("numpar", "bounds") && NROW(get_data_slot(p)) > 0
+  }, logical(1))]
+}
+
+# Append a base's per-object rows to a scenario under interpolation, unfolded
+# where the base was folded (the pipeline folds once, at the end).
+.reuse_rows <- function(scen, base, exclude = character(), only = NULL) {
+  pn_all <- names(base@modInp@parameters)
+  pn_all <- if (is.null(only)) setdiff(pn_all, exclude) else intersect(pn_all, only)
+  folded <- length(base@status$folded %||% character()) > 0
+  for (pn in pn_all) {
+    bp <- base@modInp@parameters[[pn]]
+    p <- scen@modInp@parameters[[pn]]
+    if (is.null(p)) next
+    # maps the per-object step writes itself join as a union
+    if (pn %in% .constraint_maps_built_elsewhere) {
+      d <- dplyr::distinct(dplyr::bind_rows(as.data.frame(get_data_slot(p)),
+                                            as.data.frame(get_data_slot(bp))))
+      p@data <- .empty_param_data(p)
+      scen@modInp@parameters[[pn]] <- d2p(p, d[, colnames(p@data), drop = FALSE], NULL)
+      next
+    }
+    if (!(as.character(bp@type) %in% c("numpar", "bounds"))) next
+    if (grepl("^p(Cns|Costs)", pn)) next
+    d <- if (folded) {
+      unfold_scenario_parameter(base, bp, dims = c(.foldable_dims, "vintage"))
+    } else {
+      get_data_slot(bp)
+    }
+    if (!NROW(d)) next
+    d <- as.data.frame(d)[, colnames(p@data), drop = FALSE]
+    scen@modInp@parameters[[pn]] <- d2p(p, d, NULL)
+  }
+  scen
+}
+
+# The base's model as given plus the new objects, through the whole pipeline
+# with the base's settings; the per-object work is skipped for the objects the
+# base holds.
+.interpolate_on_base <- function(base, name, args, validate, verbose) {
+  st <- base@status
+  .interp_step(verbose, paste0("base '", base@name, "': new objects; ",
+                               "reusing its per-object tables"))
+  scen <- do.call(interpolate_model, c(
+    list(base@model, base@settings), args,
+    list(name = name, fold = as.character(st$folded %||% character()),
+         sparse = TRUE, prune = isTRUE(st$pruned),
+         kvl = isTRUE(base@misc$kvl),
+         parent_levels = st$parent_levels %||% FALSE,
+         validate = validate, verbose = verbose, .reuse = base)))
+  scen@misc$added <- unique(c(base@misc$added, scen@misc$added))
+  scen@misc$model_id <- base@misc$model_id
+  scen@misc$base <- list(name = base@name, path = base@path %||% "",
+                         model = base@misc$model_id)
+  scen
 }

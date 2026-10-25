@@ -88,9 +88,7 @@ test_that("anything beyond the supported additions is interpolated in full", {
   }
   expect_match(msg(mod, newTax("TCO2", comm = "CO2", tax = data.frame(out = 3)),
                    name = "X1"), "replaces an object")
-  expect_match(msg(mod, newTechnology("ENEW", input = list(comm = "GAS"),
-                                      output = list(comm = "ELC")),
-                   name = "X2"), "class technology")
+  expect_match(msg(mod, newHorizon(2030), name = "X2"), "class horizon")
   expect_match(msg(mod, .ib_new()[[3]], name = "X3", fold = TRUE),
                "`fold` differs")
   expect_match(msg(mod, .ib_ref_add(), name = "X6"), "already in the base")
@@ -151,4 +149,56 @@ test_that("the model hash ignores the S7 class object of a geoscale", {
   x <- .strip_volatile(gs)
   expect_null(attr(x, "S7_class"))
   expect_identical(class(x), class(gs))
+})
+
+# -- phase B: new processes and commodities on a base --------------------------
+
+.ib_build_new <- function(repo) {
+  stg <- repo@data$STG_ELC
+  stg@name <- "STG_NEW"
+  list(
+    newTechnology("EGAS2", input = list(comm = "GAS"), output = list(comm = "ELC"),
+                  ceff = data.frame(comm = "GAS", cinp2use = 0.6),
+                  invcost = data.frame(invcost = 900),
+                  vintage = data.frame(olife = 30L), cap2act = 8.76),
+    stg,
+    newCommodity("H2", timeframe = "ANNUAL"),
+    newSupply("SUP_H2", commodity = "H2", supply = data.frame(cost = 50)),
+    newTechnology("EH2", input = list(comm = "H2"), output = list(comm = "ELC"),
+                  invcost = data.frame(invcost = 700),
+                  vintage = data.frame(olife = 25L), cap2act = 8.76))
+}
+
+test_that("new processes and commodities on a base equal the full interpolation", {
+  skip_if_tier_below("fast")
+  for (fold in c(FALSE, TRUE)) {
+    mod <- ut_build("R3", "s4_h24")
+    new <- .ib_build_new(topia$modules$electricity$R3$repo)
+    ref <- .ib_quiet(interpolate_model(mod, .ib_ref_add(), name = "REF",
+                                       fold = fold, verbose = FALSE))
+    full <- .ib_quiet(do.call(interpolate_model,
+      c(list(mod, .ib_ref_add()), new, list(name = "CAP", fold = fold, verbose = FALSE))))
+    der <- .ib_quiet(do.call(interpolate_model,
+      c(list(mod), new, list(name = "CAP", base = ref, verbose = FALSE))))
+    ci <- compare_inputs(der, full)
+    expect_equal(sum(ci$summary$status != "identical"), 0, label = paste("fold", fold))
+    expect_identical(der@misc$base$name, "REF")
+    expect_true("EGAS2" %in% as.character(der@modInp@sets$tech))
+  }
+})
+
+test_that("a bound declared per region and one for all regions both bind", {
+  # one storage's duration names its regions, the other's applies to all: the
+  # NA of the second is a wildcard for its own rows
+  repo <- topia$modules$electricity$R3$repo
+  stg <- repo@data$STG_ELC
+  stg@name <- "STG_REG"
+  stg@duration <- data.frame(vintage = NA_character_, cluster = NA_character_,
+                             region = c("W1", "W2", "C1"), year = NA_integer_,
+                             duration = NA_real_, duration.lo = NA_real_,
+                             duration.up = NA_real_, duration.fx = 0.0144)
+  scen <- .ib_quiet(interpolate_model(add(ut_build("R3", "s4_h24"), stg),
+                                      name = "MIX", verbose = FALSE))
+  fx <- as.data.frame(get_data_slot(scen@modInp@parameters$mStorageDurationFx))
+  expect_setequal(unique(as.character(fx$stg)), c("STG_ELC", "STG_REG"))
 })
