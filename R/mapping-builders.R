@@ -174,14 +174,18 @@ map_mWeatherTimeslice <- function(scen, fmp) {
     })
   df <- dplyr::distinct(dplyr::bind_rows(res))
   if (is.null(df) || nrow(df) == 0) return(scen)
-  scen@modInp@parameters[["mWeatherTimeslice"]] <-
-    d2p(scen@modInp@parameters[["mWeatherTimeslice"]], df, fmp("mWeatherTimeslice"))
-  # the rule: every weather series with every leaf timeslice
+  # the rule: every weather series with every leaf timeslice; the table is
+  # written only when the rules are off or verified
+  direct <- .rules_direct()
+  if (!direct) {
+    scen@modInp@parameters[["mWeatherTimeslice"]] <-
+      d2p(scen@modInp@parameters[["mWeatherTimeslice"]], df, fmp("mWeatherTimeslice"))
+  }
   .set_map_rule(scen, "mWeatherTimeslice", .map_rule(
     of = c("weather", "leaf"),
     tables = list(weather = data.frame(weather = unique(df$weather), stringsAsFactors = FALSE),
                   leaf = data.frame(timeslice = leaves, stringsAsFactors = FALSE)),
-    cols = c("weather", "timeslice")))
+    cols = c("weather", "timeslice")), empty_ok = direct)
 }
 
 # -- registry for the calendar family -------------------------------------- #

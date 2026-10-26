@@ -90,6 +90,28 @@
   scen
 }
 
+# Rules written without their table: on with the map rules, off in verify
+# mode, where the builders write the table too and the strip compares them.
+.rules_direct <- function() {
+  isTRUE(getOption("energyRt.map_rules", TRUE)) &&
+    !isTRUE(getOption("energyRt.map_rules_verify", FALSE))
+}
+
+# a map defined by its rule alone: its table holds no rows
+.rule_only <- function(p) {
+  !is.null(p@misc$rule) && identical(.param_nrow(p), 0L)
+}
+
+# a rule whose tables carry a wildcard (NA or ANY) in any of `dims`
+.rule_has_wild <- function(rule, dims) {
+  any(vapply(rule$tables, function(t) {
+    any(vapply(intersect(dims, names(t)), function(d) {
+      x <- t[[d]]
+      anyNA(x) || any(is_any(unique(x), na = FALSE))
+    }, logical(1)))
+  }, logical(1)))
+}
+
 # names of the map parameters that carry a rule
 .rule_params <- function(scen) {
   pp <- scen@modInp@parameters
