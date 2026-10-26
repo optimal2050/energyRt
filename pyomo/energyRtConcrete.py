@@ -133,6 +133,10 @@ mTechWeatherAfLo_ix = _weather_index(mTechWeatherAfLo)
 mTechWeatherAfUp_ix = _weather_index(mTechWeatherAfUp)
 mTechWeatherAfsLo_ix = _weather_index(mTechWeatherAfsLo)
 mTechWeatherAfsUp_ix = _weather_index(mTechWeatherAfsUp)
+mTradeWeatherAfLo_ix = _weather_index(mTradeWeatherAfLo)
+mTradeWeatherAfUp_ix = _weather_index(mTradeWeatherAfUp)
+mTradeWeatherAfsLo_ix = _weather_index(mTradeWeatherAfsLo)
+mTradeWeatherAfsUp_ix = _weather_index(mTradeWeatherAfsUp)
 mTechWeatherAfcLo_ix = _weather_index(mTechWeatherAfcLo)
 mTechWeatherAfcUp_ix = _weather_index(mTechWeatherAfcUp)
 mSupWeatherLo_ix = _weather_index(mSupWeatherLo)
@@ -3306,7 +3310,11 @@ model.eqTradeIrAfUp = Constraint(
     <= pTradeIrAfUp.get((t1, src, dst, y, s))
     * pTradeCap2Act.get((t1))
     * model.vTradeCap[t1, y]
-    * pTimesliceShare.get((s)),
+    * pTimesliceShare.get((s))
+    * prod(
+        pTradeWeatherAfUp.get((wth1, t1, src, dst)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
+        for wth1 in mTradeWeatherAfUp_ix.get((t1, src, dst), ())
+    ),
 )
 if verbose:
     print(
@@ -3329,7 +3337,11 @@ model.eqTradeIrAfLo = Constraint(
     >= pTradeIrAfLo.get((t1, src, dst, y, s))
     * pTradeCap2Act.get((t1))
     * model.vTradeCap[t1, y]
-    * pTimesliceShare.get((s)),
+    * pTimesliceShare.get((s))
+    * prod(
+        pTradeWeatherAfLo.get((wth1, t1, src, dst)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
+        for wth1 in mTradeWeatherAfLo_ix.get((t1, src, dst), ())
+    ),
 )
 model.eqTradeIrAfFx = Constraint(
     meqTradeIrAfFx,
@@ -3337,7 +3349,11 @@ model.eqTradeIrAfFx = Constraint(
     == pTradeIrAfLo.get((t1, src, dst, y, s))
     * pTradeCap2Act.get((t1))
     * model.vTradeCap[t1, y]
-    * pTimesliceShare.get((s)),
+    * pTimesliceShare.get((s))
+    * prod(
+        pTradeWeatherAfLo.get((wth1, t1, src, dst)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
+        for wth1 in mTradeWeatherAfLo_ix.get((t1, src, dst), ())
+    ),
 )
 model.eqTradeIrAfsUp = Constraint(
     meqTradeIrAfsUp,
@@ -3350,7 +3366,11 @@ model.eqTradeIrAfsUp = Constraint(
     <= pTradeIrAfsUp.get((t1, src, dst, y, s))
     * pTradeCap2Act.get((t1))
     * model.vTradeCap[t1, y]
-    * pTimesliceShare.get((s)),
+    * pTimesliceShare.get((s))
+    * prod(
+        pTradeWeatherAfsUp.get((wth1, t1, src, dst)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
+        for wth1 in mTradeWeatherAfsUp_ix.get((t1, src, dst), ())
+    ),
 )
 model.eqTradeIrAfsLo = Constraint(
     meqTradeIrAfsLo,
@@ -3363,7 +3383,11 @@ model.eqTradeIrAfsLo = Constraint(
     >= pTradeIrAfsLo.get((t1, src, dst, y, s))
     * pTradeCap2Act.get((t1))
     * model.vTradeCap[t1, y]
-    * pTimesliceShare.get((s)),
+    * pTimesliceShare.get((s))
+    * prod(
+        pTradeWeatherAfsLo.get((wth1, t1, src, dst)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
+        for wth1 in mTradeWeatherAfsLo_ix.get((t1, src, dst), ())
+    ),
 )
 model.eqTradeIrAfsFx = Constraint(
     meqTradeIrAfsFx,
@@ -3376,7 +3400,11 @@ model.eqTradeIrAfsFx = Constraint(
     == pTradeIrAfsLo.get((t1, src, dst, y, s))
     * pTradeCap2Act.get((t1))
     * model.vTradeCap[t1, y]
-    * pTimesliceShare.get((s)),
+    * pTimesliceShare.get((s))
+    * prod(
+        pTradeWeatherAfsLo.get((wth1, t1, src, dst)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
+        for wth1 in mTradeWeatherAfsLo_ix.get((t1, src, dst), ())
+    ),
 )
 if verbose:
     print(

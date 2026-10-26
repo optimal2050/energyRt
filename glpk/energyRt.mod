@@ -121,6 +121,10 @@ set mTechWeatherAfLo dimen 2;
 set mTechWeatherAfUp dimen 2;
 set mTechWeatherAfsLo dimen 2;
 set mTechWeatherAfsUp dimen 2;
+set mTradeWeatherAfLo dimen 4;
+set mTradeWeatherAfUp dimen 4;
+set mTradeWeatherAfsLo dimen 4;
+set mTradeWeatherAfsUp dimen 4;
 set mTechWeatherAfcLo dimen 3;
 set mTechWeatherAfcUp dimen 3;
 set mStorageWeatherAfLo dimen 2;
@@ -141,6 +145,10 @@ set mTechWeatherAfLo_ix{t in tech} := setof{(w, k) in mTechWeatherAfLo: k == t} 
 set mTechWeatherAfUp_ix{t in tech} := setof{(w, k) in mTechWeatherAfUp: k == t} w;
 set mTechWeatherAfsLo_ix{t in tech} := setof{(w, k) in mTechWeatherAfsLo: k == t} w;
 set mTechWeatherAfsUp_ix{t in tech} := setof{(w, k) in mTechWeatherAfsUp: k == t} w;
+set mTradeWeatherAfLo_ix{t1 in trade, a in region, b in region} := setof{(w, k, i, j) in mTradeWeatherAfLo: k == t1 and i == a and j == b} w;
+set mTradeWeatherAfUp_ix{t1 in trade, a in region, b in region} := setof{(w, k, i, j) in mTradeWeatherAfUp: k == t1 and i == a and j == b} w;
+set mTradeWeatherAfsLo_ix{t1 in trade, a in region, b in region} := setof{(w, k, i, j) in mTradeWeatherAfsLo: k == t1 and i == a and j == b} w;
+set mTradeWeatherAfsUp_ix{t1 in trade, a in region, b in region} := setof{(w, k, i, j) in mTradeWeatherAfsUp: k == t1 and i == a and j == b} w;
 set mSupWeatherLo_ix{s1 in sup} := setof{(w, k) in mSupWeatherLo: k == s1} w;
 set mSupWeatherUp_ix{s1 in sup} := setof{(w, k) in mSupWeatherUp: k == s1} w;
 set mStorageWeatherAfLo_ix{st1 in stg} := setof{(w, k) in mStorageWeatherAfLo: k == st1} w;
@@ -649,6 +657,10 @@ param pTradeIrAfUp{trade, region, region, year, timeslice};
 param pTradeIrAfLo{trade, region, region, year, timeslice};
 param pTradeIrAfsUp{trade, region, region, year, timeslice};
 param pTradeIrAfsLo{trade, region, region, year, timeslice};
+param pTradeWeatherAfUp{weather, trade, region, region};
+param pTradeWeatherAfLo{weather, trade, region, region};
+param pTradeWeatherAfsUp{weather, trade, region, region};
+param pTradeWeatherAfsLo{weather, trade, region, region};
 param pTradeIrVarom{trade, region, region, year, timeslice};
 param pTradeIrMarkup{trade, region, region, year, timeslice};
 param pTradeIrCsrc2Ainp{trade, comm, region, region, year, timeslice};
@@ -1100,13 +1112,13 @@ s.t.  eqTradeFlowFx{(t1, c, src, dst, y, s) in meqTradeFlowFx}: vTradeIr[t1,c,sr
 # object's own capacity rather than an absolute quantity, so one trade object
 # carrying several routes can rate each of them. Gated, hence empty unless
 # `af` is declared.
-s.t.  eqTradeIrAfUp{(t1, c, src, dst, y, s) in meqTradeIrAfUp}: vTradeIr[t1,c,src,dst,y,s] <=  pTradeIrAfUp[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s];
+s.t.  eqTradeIrAfUp{(t1, c, src, dst, y, s) in meqTradeIrAfUp}: vTradeIr[t1,c,src,dst,y,s] <=  pTradeIrAfUp[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s]*prod{wth1 in mTradeWeatherAfUp_ix[t1,src,dst]}(pTradeWeatherAfUp[wth1,t1,src,dst]*sum{rw in region:((wth1,src,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqTradeIrAfLo{(t1, c, src, dst, y, s) in meqTradeIrAfLo}: vTradeIr[t1,c,src,dst,y,s]  >=  pTradeIrAfLo[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s];
-s.t.  eqTradeIrAfFx{(t1, c, src, dst, y, s) in meqTradeIrAfFx}: vTradeIr[t1,c,src,dst,y,s]  =  pTradeIrAfLo[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s];
-s.t.  eqTradeIrAfsUp{(t1, src, dst, y, s) in meqTradeIrAfsUp}: sum{c in comm, sp in timeslice:(((s,sp) in mTimesliceParentChildE and (t1,c,src,dst,y,sp) in mvTradeIr))}(pTimesliceAgg[y,s,sp]*vTradeIr[t1,c,src,dst,y,sp])  <=  pTradeIrAfsUp[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s];
-s.t.  eqTradeIrAfsLo{(t1, src, dst, y, s) in meqTradeIrAfsLo}: sum{c in comm, sp in timeslice:(((s,sp) in mTimesliceParentChildE and (t1,c,src,dst,y,sp) in mvTradeIr))}(pTimesliceAgg[y,s,sp]*vTradeIr[t1,c,src,dst,y,sp])  >=  pTradeIrAfsLo[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s];
-s.t.  eqTradeIrAfsFx{(t1, src, dst, y, s) in meqTradeIrAfsFx}: sum{c in comm, sp in timeslice:(((s,sp) in mTimesliceParentChildE and (t1,c,src,dst,y,sp) in mvTradeIr))}(pTimesliceAgg[y,s,sp]*vTradeIr[t1,c,src,dst,y,sp])  =  pTradeIrAfsLo[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s];
+s.t.  eqTradeIrAfLo{(t1, c, src, dst, y, s) in meqTradeIrAfLo}: vTradeIr[t1,c,src,dst,y,s]  >=  pTradeIrAfLo[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s]*prod{wth1 in mTradeWeatherAfLo_ix[t1,src,dst]}(pTradeWeatherAfLo[wth1,t1,src,dst]*sum{rw in region:((wth1,src,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
+s.t.  eqTradeIrAfFx{(t1, c, src, dst, y, s) in meqTradeIrAfFx}: vTradeIr[t1,c,src,dst,y,s]  =  pTradeIrAfLo[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s]*prod{wth1 in mTradeWeatherAfLo_ix[t1,src,dst]}(pTradeWeatherAfLo[wth1,t1,src,dst]*sum{rw in region:((wth1,src,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
+s.t.  eqTradeIrAfsUp{(t1, src, dst, y, s) in meqTradeIrAfsUp}: sum{c in comm, sp in timeslice:(((s,sp) in mTimesliceParentChildE and (t1,c,src,dst,y,sp) in mvTradeIr))}(pTimesliceAgg[y,s,sp]*vTradeIr[t1,c,src,dst,y,sp])  <=  pTradeIrAfsUp[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s]*prod{wth1 in mTradeWeatherAfsUp_ix[t1,src,dst]}(pTradeWeatherAfsUp[wth1,t1,src,dst]*sum{rw in region:((wth1,src,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
+s.t.  eqTradeIrAfsLo{(t1, src, dst, y, s) in meqTradeIrAfsLo}: sum{c in comm, sp in timeslice:(((s,sp) in mTimesliceParentChildE and (t1,c,src,dst,y,sp) in mvTradeIr))}(pTimesliceAgg[y,s,sp]*vTradeIr[t1,c,src,dst,y,sp])  >=  pTradeIrAfsLo[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s]*prod{wth1 in mTradeWeatherAfsLo_ix[t1,src,dst]}(pTradeWeatherAfsLo[wth1,t1,src,dst]*sum{rw in region:((wth1,src,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
+s.t.  eqTradeIrAfsFx{(t1, src, dst, y, s) in meqTradeIrAfsFx}: sum{c in comm, sp in timeslice:(((s,sp) in mTimesliceParentChildE and (t1,c,src,dst,y,sp) in mvTradeIr))}(pTimesliceAgg[y,s,sp]*vTradeIr[t1,c,src,dst,y,sp])  =  pTradeIrAfsLo[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s]*prod{wth1 in mTradeWeatherAfsLo_ix[t1,src,dst]}(pTradeWeatherAfsLo[wth1,t1,src,dst]*sum{rw in region:((wth1,src,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
 s.t.  eqImportIrCost{(t1, r, y) in mImportIrCost}: vImportIrCost[t1,r,y]  =  sum{src in region:((t1,src,r) in mTradeRoutes)}(sum{c in comm:((t1,c) in mTradeComm)}(sum{s in timeslice:((t1,s) in mTradeTimeslice)}(sum{FORIF: (t1,c,src,r,y,s) in mvTradeIr} (((pTradeIrMarkup[t1,src,r,y,s])*vTradeIr[t1,c,src,r,y,s]*pTimesliceWeight[y,s])))));
 

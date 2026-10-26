@@ -4394,6 +4394,70 @@ mTechWeatherAfUp:
   join_keys: []
   filter_by: []
   depends_on: []
+mTradeWeatherAfLo:
+  name: mTradeWeatherAfLo
+  dims:
+  - weather
+  - trade
+  - src
+  - dst
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeWeatherAfUp:
+  name: mTradeWeatherAfUp
+  dims:
+  - weather
+  - trade
+  - src
+  - dst
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeWeatherAfsLo:
+  name: mTradeWeatherAfsLo
+  dims:
+  - weather
+  - trade
+  - src
+  - dst
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeWeatherAfsUp:
+  name: mTradeWeatherAfsUp
+  dims:
+  - weather
+  - trade
+  - src
+  - dst
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mTimesliceFamily:
   name: mTimesliceFamily
   dims:

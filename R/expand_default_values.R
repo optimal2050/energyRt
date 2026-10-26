@@ -49,6 +49,8 @@
   # model that does not use a given weather bound densifies to nothing.
   pTechWeatherAf      = "mTechWeatherAfUp",
   pTechWeatherAfs     = "mTechWeatherAfsUp",
+  pTradeWeatherAf     = "mTradeWeatherAfUp",
+  pTradeWeatherAfs    = "mTradeWeatherAfsUp",
   pTechWeatherAfc     = "mTechWeatherAfcUp",
   pSupWeather         = "mSupWeatherUp",
   pStorageWeatherAf   = "mStorageWeatherAfUp",

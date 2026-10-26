@@ -39,8 +39,9 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 * Weather transforms derive many series from one, and a weather object may be
   declared at a coarser region than the processes reading it.
 * Transmission: `newACLine()`, `newDCLink()`, an optional Kirchhoff voltage
-  law, loss tranches (`lossTranches()`), route ratings (`@trade$af`) and
-  route ratings over a parent timeslice (`@trade$afs`).
+  law, loss tranches (`lossTranches()`), route ratings (`@trade$af`), route
+  ratings over a parent timeslice (`@trade$afs`) and weather factors of the
+  ratings (`@weather`, read at the route's source region).
 * Supply, import and export curves: `asSupplyCurve()`, `asImportCurve()`,
   `asExportCurve()`.
 * Taxes and subsidies are indexed by instrument and can be levied on processes.

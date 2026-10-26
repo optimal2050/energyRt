@@ -26,6 +26,8 @@ An S4 class to represent a supply of a commodity
 \item{cluster}{character. Price step this row applies to, NA for every step. See the \code{cluster} slot.}
 \item{weather}{character. Name of the weather factor to apply. Must match the weather factor names in a \code{weather} class in the model.
 }
+\item{transform}{character. Optional name of a function in the weather object's \verb{@misc$transform}: the factor reads the series that function derives from the raw one, materialised at interpolation. NA reads the raw series.
+}
 \item{wava.lo}{numeric. Coefficient that links the weather factor with the lower bound of the availability factor \code{ava.lo}.
 }
 \item{wava.up}{numeric. Coefficient that links the weather factor with the upper bound of the availability factor \code{ava.up}.
@@ -55,7 +57,11 @@ REQUIRED whenever any other slot carries a \code{cluster} label, and AUTHORITATI
 \item{desc}{character. Description of the grade.}
 \item{region}{character. Region(s) the grade exists in, NA for everywhere. Intersected with the object's own \code{region} slot.
 }
-\item{share}{numeric. The grade's fraction of the object's quantity. DESCRIPTIVE, not enforced: supply has no capacity variable to tie, so \code{asSupplyCurve()} writes the split straight into \verb{ava.*} / \verb{res.*} and records here what it did.
+\item{act.share.lo}{numeric. Lower bound on the share of the family's throughput this variant carries.
+}
+\item{act.share.up}{numeric. Upper bound on the share of the family's throughput this variant carries.
+}
+\item{act.share.fx}{numeric. Fixed share of the family's throughput this variant carries.
 }
 \item{order}{integer. Fill order, 1 = the cheapest grade. Without it labels sort alphabetically and "S10" would precede "S2".
 }

@@ -22,6 +22,7 @@ newTrade(
   capacity = data.frame(),
   aux = data.frame(),
   aeff = data.frame(),
+  weather = data.frame(),
   cap2act = 1,
   optimizeRetirement = FALSE,
   misc = list(),
@@ -39,8 +40,10 @@ newTrade(
 
 \item{routes}{data.frame. Source and destination regions. For bivariate trade define both directions in separate rows.
 \describe{
-\item{from}{character. Source region.}
-\item{to}{character. Destination region.}
+\item{src}{character. Source region of the route.
+}
+\item{dst}{character. Destination region of the route.
+}
 }}
 
 \item{trade}{data.frame. Technical parameters of trade per directed route. Two kinds of flow bound live here and they are not interchangeable: \verb{ava.*} is ABSOLUTE, in physical commodity units per timeslice, and does not scale with capacity; \verb{af.*} is RELATIVE, a fraction of the object's own capacity (\code{cap2act} x \code{vTradeCap} x the timeslice share), and is the direct analogue of \code{technology@af}. Use \verb{af.*} to rate individual lines of a multi-route object, where the absolute bound would have to be a number correct for exactly one capacity -- and capacity is the decision.
@@ -78,7 +81,20 @@ newTrade(
 }
 }}
 
-\item{fixom}{data.frame. Fixed operation and maintenance costs, per unit of standing capacity per year. Like the other trade cost slots this is a RATE PER ENDPOINT REGION, named in its \code{region} column -- see the note on \code{invcost}.}
+\item{fixom}{data.frame. Fixed operation and maintenance costs, per unit of standing capacity per year. Like the other trade cost slots this is a RATE PER ENDPOINT REGION, named in its \code{region} column -- see the note on \code{invcost}.
+
+\describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage.
+}
+\item{cluster}{character. Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche.
+}
+\item{region}{character. Endpoint region charged, NA for every endpoint; see \code{invcost}.
+}
+\item{year}{integer. Year to apply the parameter, NA for every year.
+}
+\item{fixom}{numeric. Fixed operation and maintenance cost per unit of capacity per year.
+}
+}}
 
 \item{varom}{data.frame. Costs charged on the traded flow, PER ROUTE. Unlike the capacity costs above -- which are a rate per endpoint region -- these are indexed by \verb{(src, dst, year, timeslice)}, so they can differ by direction. The two columns mean different things:
 
@@ -94,7 +110,26 @@ receives it, so it moves cost between regions and leaves
 the objective unchanged -- the same distinction as a tax
 versus a cap. Becomes \code{pTradeIrMarkup}.
 
-Before 0.85 both columns were summed into a single term that cancelled between \code{eqImportIrCost} and \code{eqExportIrCost}, so \code{varom} could not express an operating cost at all; it now enters the objective once, positively, at \code{src}. (A separate parameter \code{pTradeVarom} was once declared in the GLPK and GAMS templates and read by no equation; it has been removed and was never this slot.)}
+Before 0.85 both columns were summed into a single term that cancelled between \code{eqImportIrCost} and \code{eqExportIrCost}, so \code{varom} could not express an operating cost at all; it now enters the objective once, positively, at \code{src}. (A separate parameter \code{pTradeVarom} was once declared in the GLPK and GAMS templates and read by no equation; it has been removed and was never this slot.)
+
+\describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage.
+}
+\item{cluster}{character. Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche.
+}
+\item{src}{character. Source region of the route, NA for every route.
+}
+\item{dst}{character. Destination region of the route, NA for every route.
+}
+\item{year}{integer. Year to apply the parameter, NA for every year.
+}
+\item{timeslice}{character. Timeslice to apply the parameter, NA for every timeslice.
+}
+\item{varom}{numeric. Variable cost per unit of flow, charged at \code{src} and added to system cost.
+}
+\item{markup}{numeric. Transfer per unit of flow, paid by the importing region to the exporting one; it leaves system cost unchanged.
+}
+}}
 
 \item{cluster}{data.frame. Declaration of the object's parallel sub-lines. For trade a cluster is a LOSS TRANCHE: one segment of a piecewise-linear approximation of the quadratic loss curve, with its own share of the capacity and its own \code{teff}. Real losses go as \code{r * f^2}, so the loss FRACTION rises with loading -- which a single \code{teff} cannot express, since under it a half-loaded and a fully-loaded line lose the same proportion.
 This slot declares WHAT the tranches are; the per-tranche values live in the \code{cluster} column of the variant-varying slots (\code{trade}, \code{capacity}, ...). Build both with \code{lossTranches()} rather than by hand.
@@ -104,7 +139,13 @@ REQUIRED whenever any other slot carries a \code{cluster} label, and AUTHORITATI
 \describe{
 \item{cluster}{character. Tranche label, used in the expanded object name.}
 \item{desc}{character. Description of the tranche.}
-\item{share}{numeric. Fraction of the line's capacity this tranche occupies. The shares must sum to 1: the tranche efficiencies are derived from them (\code{lambda_t = loss_full * (alpha_t-1 + alpha_t)}) and are calibrated only when they do. Declaring shares is also what makes the capacities of an INVESTABLE line be tied to those proportions -- without the tie the solver would build the whole corridor as the lowest-loss tranche and the approximation would collapse.
+\item{cap.share.fx}{numeric. Fixed share of the family's capacity this variant holds, in every year. Ties the variants' capacities to fixed proportions (e.g. loss tranches).
+}
+\item{act.share.lo}{numeric. Lower bound on the share of the family's throughput this variant carries.
+}
+\item{act.share.up}{numeric. Upper bound on the share of the family's throughput this variant carries.
+}
+\item{act.share.fx}{numeric. Fixed share of the family's throughput this variant carries.
 }
 \item{order}{integer. Fill order, 1 = the lowest-loss tranche. Without it labels sort alphabetically, so "T10" would precede "T2".
 }
@@ -134,7 +175,6 @@ REQUIRED whenever any other slot carries a \code{cluster} label, and AUTHORITATI
 \item{vintage}{data.frame. Investment window and operational life of the trade object, one row per vintage. Replaces the former \code{start}, \code{end} and \code{olife} slots. A vintage is a separately investable variant that keeps the characteristics of its build year for its whole life, so several vintages of one corridor mean several capacities on the same \verb{(src, dst)} route, with their flows summed in the commodity balance. \code{region} is present for a uniform shape across process classes but is unused for trade: its scope comes from the route endpoints. \code{cluster} selects a loss tranche declared in the \code{cluster} slot.
 \describe{
 \item{vintage}{character. Vintage label, normally the build year as a string. NA for an un-vintaged trade.}
-\item{region}{character. Unused for trade (no \code{region} slot); present for consistency with the other classes.}
 \item{cluster}{character. Cluster (loss tranche) this row applies to, NA for every tranche. See the \code{cluster} slot.
 }
 \item{start}{integer. The first year the trade object is available for investment. NA means unbounded (up to \code{end}).}
@@ -142,7 +182,36 @@ REQUIRED whenever any other slot carries a \code{cluster} label, and AUTHORITATI
 \item{olife}{integer. Operational life of the trade object in years.}
 }}
 
-\item{capacity}{data.frame. Capacity parameters of the trade object: \code{stock} (the legacy corridor still standing at each milestone), the \verb{cap.*} bounds on total capacity, the \verb{ncap.*} bounds on the build RATE and the \verb{ret.*} bounds on the early retirement rate. Region-free: a route IS a pair of regions, so a per-region capacity would be ambiguous.}
+\item{capacity}{data.frame. Capacity parameters of the trade object: \code{stock} (the legacy corridor still standing at each milestone), the \verb{cap.*} bounds on total capacity, the \verb{ncap.*} bounds on the build RATE and the \verb{ret.*} bounds on the early retirement rate. Region-free: a route IS a pair of regions, so a per-region capacity would be ambiguous.
+
+\describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage.
+}
+\item{cluster}{character. Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche.
+}
+\item{year}{integer. Year to apply the parameter, NA for every year.
+}
+\item{stock}{numeric. Capacity standing at the milestone, built before the horizon.
+}
+\item{cap.lo}{numeric. Lower bound on total capacity.
+}
+\item{cap.up}{numeric. Upper bound on total capacity.
+}
+\item{cap.fx}{numeric. Fixed total capacity.
+}
+\item{ncap.lo}{numeric. Lower bound on new capacity per year.
+}
+\item{ncap.up}{numeric. Upper bound on new capacity per year.
+}
+\item{ncap.fx}{numeric. Fixed new capacity per year.
+}
+\item{ret.lo}{numeric. Lower bound on early retirement per year.
+}
+\item{ret.up}{numeric. Upper bound on early retirement per year.
+}
+\item{ret.fx}{numeric. Fixed early retirement per year.
+}
+}}
 
 \item{aux}{data.frame. Auxiliary commodity of trade.
 \describe{
@@ -155,11 +224,47 @@ REQUIRED whenever any other slot carries a \code{cluster} label, and AUTHORITATI
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the \code{cluster} slot.}
 \item{acomm}{character. Name of the auxiliary commodity (used in sets).}
-\item{region}{character. Region name to apply the parameter, NA for every region.}
+\item{src}{character. Source region of the route the row applies to, NA for every route.
+}
+\item{dst}{character. Destination region of the route the row applies to, NA for every route.
+}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
-\item{trade2ainp}{numeric. Trade-to-auxiliary-input-commodity coefficient (multiplier).}
-\item{trade2aout}{numeric. Trade-to-auxiliary-output-commodity coefficient (multiplier).}
+\item{csrc2ainp}{numeric. Auxiliary input taken in the source region per unit of flow on the route.
+}
+\item{csrc2aout}{numeric. Auxiliary output released in the source region per unit of flow on the route.
+}
+\item{cdst2ainp}{numeric. Auxiliary input taken in the destination region per unit of flow on the route.
+}
+\item{cdst2aout}{numeric. Auxiliary output released in the destination region per unit of flow on the route.
+}
+}}
+
+\item{weather}{data.frame. Weather factors of a route's rating: \verb{waf.*} multiplies \verb{@trade$af.*}, \verb{wafs.*} multiplies \verb{@trade$afs.*} (e.g. a dynamic line rating). The series is read at the route's source region, or at the nearest ancestor region the weather serves. A route with a \code{waf} and no \code{af} of its own takes the bound 1, so the weather binds; \code{wafs} needs an \code{afs} on the same side.
+
+\describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage.
+}
+\item{cluster}{character. Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche.
+}
+\item{weather}{character. Name of the weather object.
+}
+\item{src}{character. Source region of the route, NA for every route.
+}
+\item{dst}{character. Destination region of the route, NA for every route.
+}
+\item{waf.lo}{numeric. Weather factor of the lower route rating \code{af.lo}.
+}
+\item{waf.up}{numeric. Weather factor of the upper route rating \code{af.up}.
+}
+\item{waf.fx}{numeric. Weather factor of the fixed route rating \code{af.fx}.
+}
+\item{wafs.lo}{numeric. Weather factor of the lower rating over a timeframe \code{afs.lo}.
+}
+\item{wafs.up}{numeric. Weather factor of the upper rating over a timeframe \code{afs.up}.
+}
+\item{wafs.fx}{numeric. Weather factor of the fixed rating over a timeframe \code{afs.fx}.
+}
 }}
 
 \item{cap2act}{numeric. Capacity to activity ratio.}

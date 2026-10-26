@@ -657,6 +657,7 @@
     "pStorageOutCap2AInp", "pStorageOutCap2AOut",
     "pStorageOutNCap2AInp",
     "pStorageOutNCap2AOut", "pTradeIrEff", "pTradeIr", "pTradeIr",
+    "pTradeIrAfs", "pTradeWeatherAf", "pTradeWeatherAfs",
     "pTradeIrVarom", "pTradeIrMarkup", "pTradeIrCsrc2Ainp",
     "pTradeIrCsrc2Aout", "pTradeIrCdst2Ainp", "pTradeIrCdst2Aout",
     "pExportRowRes", "pExportRow",

@@ -177,3 +177,32 @@ test_that("family trade-core: afs bounds a route's flow over a parent timeslice"
   fx <- .fork_solve(fx, solver_options$glpk)
   expect_equal(ff_solution_sum(fx, "vTradeIr"), 10, tolerance = 1e-6)
 })
+
+# @covers pTradeWeatherAf mTradeWeatherAfUp depth=S backends=glpk
+test_that("family trade-core: a weather factor rates a route by slice", {
+  skip_if_no_solver()
+  sl <- paste0("s", 1:4)
+  w <- newWeather("WLINE", timeframe = "SL", weather = data.frame(region = "R1", timeslice = sl,
+                                                wval = c(1, 1, 0.5, 0.5)))
+  mod <- add(tr_afs_model(), newRepository("tw_repo", w))
+  trd <- mod@data[["tafs_repo"]]@data[["TRD"]]
+  trd@weather <- data.frame(weather = "WLINE", src = "R1", dst = "R2", waf.up = 1)
+  mod@data[["tafs_repo"]]@data[["TRD"]] <- trd
+  scen <- .fork_solve(suppressMessages(suppressWarnings(interpolate_model(
+    mod, name = "tw1", overwrite = TRUE))), solver_options$glpk)
+  expect_true(verify_solution(scen)$ok)
+  # 10 a slice where the series is 1, 5 where it is 0.5; the rest local at 100
+  expect_equal(ff_solution_sum(scen, "vTradeIr"), 30, tolerance = 1e-6)
+  expect_equal(.fork_objective(scen), 30 + 1000, tolerance = 1e-6)
+})
+
+test_that("family trade-core: wafs needs afs on the same side", {
+  sl <- paste0("s", 1:4)
+  w <- newWeather("WLINE", timeframe = "SL", weather = data.frame(region = "R1", timeslice = sl, wval = 1))
+  mod <- add(tr_afs_model(), newRepository("tw_repo", w))
+  trd <- mod@data[["tafs_repo"]]@data[["TRD"]]
+  trd@weather <- data.frame(weather = "WLINE", src = "R1", dst = "R2", wafs.up = 1)
+  mod@data[["tafs_repo"]]@data[["TRD"]] <- trd
+  expect_error(suppressMessages(suppressWarnings(interpolate_model(
+    mod, name = "tw2", overwrite = TRUE))), "without afs.up")
+})

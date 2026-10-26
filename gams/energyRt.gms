@@ -364,6 +364,10 @@ pTradeIrAfUp(trade, region, region, year, timeslice)    Upper availability facto
 pTradeIrAfLo(trade, region, region, year, timeslice)    Lower availability factor of trade flow
 pTradeIrAfsUp(trade, region, region, year, timeslice)   Upper availability factor of trade flow over a timeframe
 pTradeIrAfsLo(trade, region, region, year, timeslice)   Lower availability factor of trade flow over a timeframe
+pTradeWeatherAfUp(weather, trade, region, region)   Weather factor of a trade route rating
+pTradeWeatherAfLo(weather, trade, region, region)   Weather factor of a trade route rating
+pTradeWeatherAfsUp(weather, trade, region, region)   Weather factor of a trade route rating
+pTradeWeatherAfsLo(weather, trade, region, region)   Weather factor of a trade route rating
 pTradeIrVarom(trade, region, region, year, timeslice)    Costs of trade flow
 pTradeIrMarkup(trade, region, region, year, timeslice)  Markup of trade flow
 * Aux input and output
@@ -951,6 +955,10 @@ meqTradeIrAfFx(trade, comm, region, region, year, timeslice)
 meqTradeIrAfsUp(trade, region, region, year, timeslice)
 meqTradeIrAfsLo(trade, region, region, year, timeslice)
 meqTradeIrAfsFx(trade, region, region, year, timeslice)
+mTradeWeatherAfLo(weather, trade, region, region)
+mTradeWeatherAfUp(weather, trade, region, region)
+mTradeWeatherAfsLo(weather, trade, region, region)
+mTradeWeatherAfsUp(weather, trade, region, region)
 meqExportRowLo(expp, comm, region, year, timeslice)
 meqExportRowFx(expp, comm, region, year, timeslice)
 meqImportRowUp(imp, comm, region, year, timeslice)
@@ -2814,30 +2822,54 @@ eqTradeFlowFx(trade, comm, src, dst, year, timeslice)$meqTradeFlowFx(trade, comm
 * absolute quantity, so one trade object carrying several routes can rate each
 * of them. Gated, hence absent unless af is declared.
 eqTradeIrAfUp(trade, comm, src, dst, year, timeslice)$meqTradeIrAfUp(trade, comm, src, dst, year, timeslice)..
-      vTradeIr(trade, comm, src, dst, year, timeslice) =l= pTradeIrAfUp(trade, src, dst, year, timeslice) * pTradeCap2Act(trade) * vTradeCap(trade, year) * pTimesliceShare(timeslice);
+      vTradeIr(trade, comm, src, dst, year, timeslice) =l= pTradeIrAfUp(trade, src, dst, year, timeslice) * pTradeCap2Act(trade) * vTradeCap(trade, year) * pTimesliceShare(timeslice) *
+         prod(weather$mTradeWeatherAfUp(weather, trade, src, dst),
+              pTradeWeatherAfUp(weather, trade, src, dst) *
+              sum(regionp$mWeatherRegionAt(weather, src, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 eqTradeIrAfLo(trade, comm, src, dst, year, timeslice)$meqTradeIrAfLo(trade, comm, src, dst, year, timeslice)..
-      vTradeIr(trade, comm, src, dst, year, timeslice) =g= pTradeIrAfLo(trade, src, dst, year, timeslice) * pTradeCap2Act(trade) * vTradeCap(trade, year) * pTimesliceShare(timeslice);
+      vTradeIr(trade, comm, src, dst, year, timeslice) =g= pTradeIrAfLo(trade, src, dst, year, timeslice) * pTradeCap2Act(trade) * vTradeCap(trade, year) * pTimesliceShare(timeslice) *
+         prod(weather$mTradeWeatherAfLo(weather, trade, src, dst),
+              pTradeWeatherAfLo(weather, trade, src, dst) *
+              sum(regionp$mWeatherRegionAt(weather, src, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 * TradeIrAf fixed (lo = up)
 eqTradeIrAfFx(trade, comm, src, dst, year, timeslice)$meqTradeIrAfFx(trade, comm, src, dst, year, timeslice)..
-      vTradeIr(trade, comm, src, dst, year, timeslice) =e= pTradeIrAfLo(trade, src, dst, year, timeslice) * pTradeCap2Act(trade) * vTradeCap(trade, year) * pTimesliceShare(timeslice);
+      vTradeIr(trade, comm, src, dst, year, timeslice) =e= pTradeIrAfLo(trade, src, dst, year, timeslice) * pTradeCap2Act(trade) * vTradeCap(trade, year) * pTimesliceShare(timeslice) *
+         prod(weather$mTradeWeatherAfLo(weather, trade, src, dst),
+              pTradeWeatherAfLo(weather, trade, src, dst) *
+              sum(regionp$mWeatherRegionAt(weather, src, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 * TradeIrAfs: a route's flow over a timeframe, relative to capacity
 eqTradeIrAfsUp(trade, src, dst, year, timeslice)$meqTradeIrAfsUp(trade, src, dst, year, timeslice)..
       sum((comm, timeslicep)$(mTimesliceParentChildE(timeslice, timeslicep) and mvTradeIr(trade, comm, src, dst, year, timeslicep)),
          pTimesliceAgg(year, timeslice, timeslicep) * vTradeIr(trade, comm, src, dst, year, timeslicep))
-      =l= pTradeIrAfsUp(trade, src, dst, year, timeslice) * pTradeCap2Act(trade) * vTradeCap(trade, year) * pTimesliceShare(timeslice);
+      =l= pTradeIrAfsUp(trade, src, dst, year, timeslice) * pTradeCap2Act(trade) * vTradeCap(trade, year) * pTimesliceShare(timeslice) *
+         prod(weather$mTradeWeatherAfsUp(weather, trade, src, dst),
+              pTradeWeatherAfsUp(weather, trade, src, dst) *
+              sum(regionp$mWeatherRegionAt(weather, src, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 eqTradeIrAfsLo(trade, src, dst, year, timeslice)$meqTradeIrAfsLo(trade, src, dst, year, timeslice)..
       sum((comm, timeslicep)$(mTimesliceParentChildE(timeslice, timeslicep) and mvTradeIr(trade, comm, src, dst, year, timeslicep)),
          pTimesliceAgg(year, timeslice, timeslicep) * vTradeIr(trade, comm, src, dst, year, timeslicep))
-      =g= pTradeIrAfsLo(trade, src, dst, year, timeslice) * pTradeCap2Act(trade) * vTradeCap(trade, year) * pTimesliceShare(timeslice);
+      =g= pTradeIrAfsLo(trade, src, dst, year, timeslice) * pTradeCap2Act(trade) * vTradeCap(trade, year) * pTimesliceShare(timeslice) *
+         prod(weather$mTradeWeatherAfsLo(weather, trade, src, dst),
+              pTradeWeatherAfsLo(weather, trade, src, dst) *
+              sum(regionp$mWeatherRegionAt(weather, src, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 eqTradeIrAfsFx(trade, src, dst, year, timeslice)$meqTradeIrAfsFx(trade, src, dst, year, timeslice)..
       sum((comm, timeslicep)$(mTimesliceParentChildE(timeslice, timeslicep) and mvTradeIr(trade, comm, src, dst, year, timeslicep)),
          pTimesliceAgg(year, timeslice, timeslicep) * vTradeIr(trade, comm, src, dst, year, timeslicep))
-      =e= pTradeIrAfsLo(trade, src, dst, year, timeslice) * pTradeCap2Act(trade) * vTradeCap(trade, year) * pTimesliceShare(timeslice);
+      =e= pTradeIrAfsLo(trade, src, dst, year, timeslice) * pTradeCap2Act(trade) * vTradeCap(trade, year) * pTimesliceShare(timeslice) *
+         prod(weather$mTradeWeatherAfsLo(weather, trade, src, dst),
+              pTradeWeatherAfsLo(weather, trade, src, dst) *
+              sum(regionp$mWeatherRegionAt(weather, src, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 * [moved] eqCostTrade(region, year)$mvTradeCost(region, year).. -- see drafts/gams-disabled-equations.gms
 

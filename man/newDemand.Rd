@@ -35,6 +35,8 @@ newDemand(
 \item{year}{integer. Year of the demand. NA for every year.}
 \item{timeslice}{character. Name of the timeslice for the demand value. NA for every timeslice.}
 \item{demand}{numeric. Value of the demand.}
+\item{cluster}{character. Cluster label of the row (see \verb{@cluster}), NA for the whole demand.
+}
 }}
 
 \item{cluster}{data.frame. Declaration of the demand's parallel parts. REQUIRED whenever \code{demand} carries a \code{cluster} label, and authoritative: labels are never harvested from the data slot.

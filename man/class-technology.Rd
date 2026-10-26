@@ -100,6 +100,8 @@ shocks (weather factors).
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Name of timeslice to apply the parameter, NA for every timeslice.}
 \item{acomm}{character. Name of auxilary commodity to apply the parameter.}
+\item{comm}{character. Main commodity a \verb{cinp2*} / \verb{cout2*} coefficient refers to (an input or an output of the technology).
+}
 \item{cinp2ainp}{numeric. Main-commodity-input-to-auxilary-commodity-input coefficient, ignored if NA.}
 \item{cinp2aout}{numeric. Main-commodity-input-to-auxilary-commodity-output coefficient, ignored if NA.}
 \item{cout2ainp}{numeric. Main-commodity-output-to-auxilary-commodity-input coefficient, ignored if NA.}
@@ -118,6 +120,18 @@ shocks (weather factors).
 \item{ret2ainp}{numeric. Aux commodity CONSUMED when capacity is retired EARLY. Separate from \code{pho2ainp} because the two differ physically: scrapping an intact plant is not the same job as demolishing a worn-out one. NO \code{pTimesliceShare} is applied and the aux balance is PER TIMESLICE, so a value given with \code{timeslice = NA} applies in EVERY slice and the annual total comes out multiplied by the slice count -- 8760x on an hourly calendar. Give a per-slice value, or name a single slice.
 }
 \item{ret2aout}{numeric. Aux commodity RELEASED when capacity is retired EARLY (scrap). Usually LARGER than \code{pho2aout}: a plant retired before its time is still largely intact, so more material is recoverable. NO \code{pTimesliceShare} is applied and the aux balance is PER TIMESLICE, so a value given with \code{timeslice = NA} applies in EVERY slice and the annual total comes out multiplied by the slice count -- 8760x on an hourly calendar. Give a per-slice value, or name a single slice.
+}
+\item{stg2ainp}{numeric. Storage coupling; not read for a technology.
+}
+\item{sinp2ainp}{numeric. Storage coupling; not read for a technology.
+}
+\item{sout2ainp}{numeric. Storage coupling; not read for a technology.
+}
+\item{stg2aout}{numeric. Storage coupling; not read for a technology.
+}
+\item{sinp2aout}{numeric. Storage coupling; not read for a technology.
+}
+\item{sout2aout}{numeric. Storage coupling; not read for a technology.
 }
 }}
 
@@ -155,6 +169,8 @@ shocks (weather factors).
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{weather}{character. Name of the applied weather factor, required, must match the weather factor names in a \code{weather} class in the model.}
+\item{transform}{character. Optional name of a function in the weather object's \verb{@misc$transform}: the factor reads the series that function derives from the raw one, materialised at interpolation. NA reads the raw series.
+}
 \item{comm}{character. Name of the commodity with specified \verb{afc.*} to be affected by the weather factor, required if \verb{afc.*} parameters are specified.}
 \item{wafc.lo}{numeric. Multiplying coefficient to the lower bound on the commodity availability parameter \code{afc.lo}, ignored if NA.}
 \item{wafc.up}{numeric. Multiplying coefficient to the upper bound on the commodity availability parameter \code{afc.up}, ignored if NA.}
@@ -207,6 +223,14 @@ shocks (weather factors).
 \describe{
 \item{cluster}{character. Cluster label. Must match the \code{cluster} column values used in the other slots.}
 \item{desc}{character. Human-readable description of the cluster, used in reports.}
+\item{cap.share.fx}{numeric. Fixed share of the family's capacity this variant holds, in every year. Ties the variants' capacities to fixed proportions (e.g. loss tranches).
+}
+\item{act.share.lo}{numeric. Lower bound on the share of the family's throughput this variant carries.
+}
+\item{act.share.up}{numeric. Upper bound on the share of the family's throughput this variant carries.
+}
+\item{act.share.fx}{numeric. Fixed share of the family's throughput this variant carries.
+}
 \item{region}{character. Region the cluster exists in, NA for every region. Several rows restrict a cluster to several regions.}
 \item{order}{integer. Optional display/ranking order (e.g. best to worst resource class); controls the order variants are created and reported in.}
 }}

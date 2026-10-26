@@ -217,6 +217,13 @@ class:
           description: >
             Name of the weather factor to apply. Must match the weather factor
             names in a `weather` class in the model.
+        transform:
+          type: character
+          description: >
+            Optional name of a function in the weather object's
+            `@misc$transform`: the factor reads the series that function derives
+            from the raw one, materialised at interpolation. NA reads the raw
+            series.
         wava.lo:
           type: numeric
           description: >
@@ -353,13 +360,20 @@ class:
           description: >
             Region(s) the grade exists in, NA for everywhere. Intersected with
             the object's own `region` slot.
-        share:
+        act.share.lo:
           type: numeric
           description: >
-            The grade's fraction of the object's quantity. DESCRIPTIVE, not
-            enforced: supply has no capacity variable to tie, so
-            `asSupplyCurve()` writes the split straight into `ava.*` / `res.*`
-            and records here what it did.
+            Lower bound on the share of the family's throughput this variant
+            carries.
+        act.share.up:
+          type: numeric
+          description: >
+            Upper bound on the share of the family's throughput this variant
+            carries.
+        act.share.fx:
+          type: numeric
+          description: >
+            Fixed share of the family's throughput this variant carries.
         order:
           type: integer
           description: >
@@ -414,6 +428,10 @@ class:
         demand:
           type: numeric
           description: Value of the demand.
+        cluster:
+          type: character
+          description: >
+            Cluster label of the row (see `@cluster`), NA for the whole demand.
     cluster:
       type: data.frame
       description: >
@@ -672,6 +690,11 @@ class:
         acomm:
           type: character
           description: Name of auxilary commodity to apply the parameter.
+        comm:
+          type: character
+          description: >
+            Main commodity a `cinp2*` / `cout2*` coefficient refers to (an input
+            or an output of the technology).
         cinp2ainp:
           type: numeric
           description: Main-commodity-input-to-auxilary-commodity-input coefficient, ignored if NA.
@@ -749,6 +772,30 @@ class:
             so a value given with `timeslice = NA` applies in EVERY slice and the
             annual total comes out multiplied by the slice count -- 8760x on an
             hourly calendar. Give a per-slice value, or name a single slice.
+        stg2ainp:
+          type: numeric
+          description: >
+            Storage coupling; not read for a technology.
+        sinp2ainp:
+          type: numeric
+          description: >
+            Storage coupling; not read for a technology.
+        sout2ainp:
+          type: numeric
+          description: >
+            Storage coupling; not read for a technology.
+        stg2aout:
+          type: numeric
+          description: >
+            Storage coupling; not read for a technology.
+        sinp2aout:
+          type: numeric
+          description: >
+            Storage coupling; not read for a technology.
+        sout2aout:
+          type: numeric
+          description: >
+            Storage coupling; not read for a technology.
     af:
       type: data.frame
       description: >
@@ -838,6 +885,13 @@ class:
         weather:
           type: character
           description: Name of the applied weather factor, required, must match the weather factor names in a `weather` class in the model.
+        transform:
+          type: character
+          description: >
+            Optional name of a function in the weather object's
+            `@misc$transform`: the factor reads the series that function derives
+            from the raw one, materialised at interpolation. NA reads the raw
+            series.
         comm:
           type: character
           description: Name of the commodity with specified `afc.*` to be affected by the weather factor, required if `afc.*` parameters are specified.
@@ -995,6 +1049,26 @@ class:
         desc:
           type: character
           description: Human-readable description of the cluster, used in reports.
+        cap.share.fx:
+          type: numeric
+          description: >
+            Fixed share of the family's capacity this variant holds, in every
+            year. Ties the variants' capacities to fixed proportions (e.g. loss
+            tranches).
+        act.share.lo:
+          type: numeric
+          description: >
+            Lower bound on the share of the family's throughput this variant
+            carries.
+        act.share.up:
+          type: numeric
+          description: >
+            Upper bound on the share of the family's throughput this variant
+            carries.
+        act.share.fx:
+          type: numeric
+          description: >
+            Fixed share of the family's throughput this variant carries.
         region:
           type: character
           description: Region the cluster exists in, NA for every region. Several rows restrict a cluster to several regions.
@@ -1269,6 +1343,26 @@ class:
         desc:
           type: character
           description: Human-readable description of the cluster, used in reports.
+        cap.share.fx:
+          type: numeric
+          description: >
+            Fixed share of the family's capacity this variant holds, in every
+            year. Ties the variants' capacities to fixed proportions (e.g. loss
+            tranches).
+        act.share.lo:
+          type: numeric
+          description: >
+            Lower bound on the share of the family's throughput this variant
+            carries.
+        act.share.up:
+          type: numeric
+          description: >
+            Upper bound on the share of the family's throughput this variant
+            carries.
+        act.share.fx:
+          type: numeric
+          description: >
+            Fixed share of the family's throughput this variant carries.
         region:
           type: character
           description: Region the cluster exists in, NA for every region.
@@ -1868,6 +1962,13 @@ class:
         weather:
           type: character
           description: Name of the weather factor to apply.
+        transform:
+          type: character
+          description: >
+            Optional name of a function in the weather object's
+            `@misc$transform`: the factor reads the series that function derives
+            from the raw one, materialised at interpolation. NA reads the raw
+            series.
         waf.lo:
           type: numeric
           description: Coefficient that links the weather factor with the lower bound of the availability factor.
@@ -2044,12 +2145,14 @@ class:
       type: data.frame
       description: Source and destination regions. For bivariate trade define both directions in separate rows.
       columns:
-        from:
+        src:
           type: character
-          description: Source region.
-        to:
+          description: >
+            Source region of the route.
+        dst:
           type: character
-          description: Destination region.
+          description: >
+            Destination region of the route.
     trade:
       type: data.frame
       description: >
@@ -2187,21 +2290,97 @@ class:
         acomm:
           type: character
           description: Name of the auxiliary commodity (used in sets).
-        region:
+        src:
           type: character
-          description: Region name to apply the parameter, NA for every region.
+          description: >
+            Source region of the route the row applies to, NA for every route.
+        dst:
+          type: character
+          description: >
+            Destination region of the route the row applies to, NA for every
+            route.
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
         timeslice:
           type: character
           description: Time timeslice to apply the parameter, NA for every timeslice.
-        trade2ainp:
+        csrc2ainp:
           type: numeric
-          description: Trade-to-auxiliary-input-commodity coefficient (multiplier).
-        trade2aout:
+          description: >
+            Auxiliary input taken in the source region per unit of flow on the
+            route.
+        csrc2aout:
           type: numeric
-          description: Trade-to-auxiliary-output-commodity coefficient (multiplier).
+          description: >
+            Auxiliary output released in the source region per unit of flow on
+            the route.
+        cdst2ainp:
+          type: numeric
+          description: >
+            Auxiliary input taken in the destination region per unit of flow on
+            the route.
+        cdst2aout:
+          type: numeric
+          description: >
+            Auxiliary output released in the destination region per unit of flow
+            on the route.
+    weather:
+      type: data.frame
+      description: >
+        Weather factors of a route's rating: `waf.*` multiplies `@trade$af.*`,
+        `wafs.*` multiplies `@trade$afs.*` (e.g. a dynamic line rating). The
+        series is read at the route's source region, or at the nearest
+        ancestor region the weather serves. A route with a `waf` and no `af`
+        of its own takes the bound 1, so the weather binds; `wafs` needs an
+        `afs` on the same side.
+      columns:
+        vintage:
+          type: character
+          description: >
+            Vintage label selecting the variant this row applies to, NA for
+            every vintage.
+        cluster:
+          type: character
+          description: >
+            Cluster (loss tranche) label selecting the tranche this row applies
+            to, NA for every tranche.
+        weather:
+          type: character
+          description: >
+            Name of the weather object.
+        src:
+          type: character
+          description: >
+            Source region of the route, NA for every route.
+        dst:
+          type: character
+          description: >
+            Destination region of the route, NA for every route.
+        waf.lo:
+          type: numeric
+          description: >
+            Weather factor of the lower route rating `af.lo`.
+        waf.up:
+          type: numeric
+          description: >
+            Weather factor of the upper route rating `af.up`.
+        waf.fx:
+          type: numeric
+          description: >
+            Weather factor of the fixed route rating `af.fx`.
+        wafs.lo:
+          type: numeric
+          description: >
+            Weather factor of the lower rating over a timeframe `afs.lo`.
+        wafs.up:
+          type: numeric
+          description: >
+            Weather factor of the upper rating over a timeframe `afs.up`.
+        wafs.fx:
+          type: numeric
+          description: >
+            Weather factor of the fixed rating over a timeframe `afs.fx`.
     invcost:
       type: data.frame
       description: >
@@ -2277,9 +2456,6 @@ class:
         vintage:
           type: character
           description: Vintage label, normally the build year as a string. NA for an un-vintaged trade.
-        region:
-          type: character
-          description: Unused for trade (no `region` slot); present for consistency with the other classes.
         cluster:
           type: character
           description: >
@@ -2334,16 +2510,26 @@ class:
         desc:
           type: character
           description: Description of the tranche.
-        share:
+        cap.share.fx:
           type: numeric
           description: >
-            Fraction of the line's capacity this tranche occupies. The shares
-            must sum to 1: the tranche efficiencies are derived from them
-            (`lambda_t = loss_full * (alpha_t-1 + alpha_t)`) and are calibrated
-            only when they do. Declaring shares is also what makes the capacities
-            of an INVESTABLE line be tied to those proportions -- without the
-            tie the solver would build the whole corridor as the lowest-loss
-            tranche and the approximation would collapse.
+            Fixed share of the family's capacity this variant holds, in every
+            year. Ties the variants' capacities to fixed proportions (e.g. loss
+            tranches).
+        act.share.lo:
+          type: numeric
+          description: >
+            Lower bound on the share of the family's throughput this variant
+            carries.
+        act.share.up:
+          type: numeric
+          description: >
+            Upper bound on the share of the family's throughput this variant
+            carries.
+        act.share.fx:
+          type: numeric
+          description: >
+            Fixed share of the family's throughput this variant carries.
         order:
           type: integer
           description: >
@@ -2361,6 +2547,29 @@ class:
         Fixed operation and maintenance costs, per unit of standing capacity per
         year. Like the other trade cost slots this is a RATE PER ENDPOINT REGION,
         named in its `region` column -- see the note on `invcost`.
+      columns:
+        vintage:
+          type: character
+          description: >
+            Vintage label selecting the variant this row applies to, NA for
+            every vintage.
+        cluster:
+          type: character
+          description: >
+            Cluster (loss tranche) label selecting the tranche this row applies
+            to, NA for every tranche.
+        region:
+          type: character
+          description: >
+            Endpoint region charged, NA for every endpoint; see `invcost`.
+        year:
+          type: integer
+          description: >
+            Year to apply the parameter, NA for every year.
+        fixom:
+          type: numeric
+          description: >
+            Fixed operation and maintenance cost per unit of capacity per year.
     varom:
       type: data.frame
       description: >
@@ -2387,6 +2596,43 @@ class:
         positively, at `src`. (A separate parameter `pTradeVarom` was once
         declared in the GLPK and GAMS templates and read by no equation; it has
         been removed and was never this slot.)
+      columns:
+        vintage:
+          type: character
+          description: >
+            Vintage label selecting the variant this row applies to, NA for
+            every vintage.
+        cluster:
+          type: character
+          description: >
+            Cluster (loss tranche) label selecting the tranche this row applies
+            to, NA for every tranche.
+        src:
+          type: character
+          description: >
+            Source region of the route, NA for every route.
+        dst:
+          type: character
+          description: >
+            Destination region of the route, NA for every route.
+        year:
+          type: integer
+          description: >
+            Year to apply the parameter, NA for every year.
+        timeslice:
+          type: character
+          description: >
+            Timeslice to apply the parameter, NA for every timeslice.
+        varom:
+          type: numeric
+          description: >
+            Variable cost per unit of flow, charged at `src` and added to system
+            cost.
+        markup:
+          type: numeric
+          description: >
+            Transfer per unit of flow, paid by the importing region to the
+            exporting one; it leaves system cost unchanged.
     capacity:
       type: data.frame
       description: >
@@ -2395,6 +2641,61 @@ class:
         the `ncap.*` bounds on the build RATE and the `ret.*` bounds on the early
         retirement rate. Region-free: a route IS a pair of regions, so a
         per-region capacity would be ambiguous.
+      columns:
+        vintage:
+          type: character
+          description: >
+            Vintage label selecting the variant this row applies to, NA for
+            every vintage.
+        cluster:
+          type: character
+          description: >
+            Cluster (loss tranche) label selecting the tranche this row applies
+            to, NA for every tranche.
+        year:
+          type: integer
+          description: >
+            Year to apply the parameter, NA for every year.
+        stock:
+          type: numeric
+          description: >
+            Capacity standing at the milestone, built before the horizon.
+        cap.lo:
+          type: numeric
+          description: >
+            Lower bound on total capacity.
+        cap.up:
+          type: numeric
+          description: >
+            Upper bound on total capacity.
+        cap.fx:
+          type: numeric
+          description: >
+            Fixed total capacity.
+        ncap.lo:
+          type: numeric
+          description: >
+            Lower bound on new capacity per year.
+        ncap.up:
+          type: numeric
+          description: >
+            Upper bound on new capacity per year.
+        ncap.fx:
+          type: numeric
+          description: >
+            Fixed new capacity per year.
+        ret.lo:
+          type: numeric
+          description: >
+            Lower bound on early retirement per year.
+        ret.up:
+          type: numeric
+          description: >
+            Upper bound on early retirement per year.
+        ret.fx:
+          type: numeric
+          description: >
+            Fixed early retirement per year.
     optimizeRetirement:
       type: logical
       description: >
@@ -2509,13 +2810,24 @@ class:
         desc:
           type: character
           description: Description of the step.
-        share:
+        region:
+          type: character
+          description: >
+            Region the row applies to, NA for every region.
+        act.share.lo:
           type: numeric
           description: >
-            The step's fraction of the object's quantity. DESCRIPTIVE, not
-            enforced: unlike `technology` or `trade` this class has no capacity
-            variable to tie, so `asImportCurve()` writes the split straight into the
-            quantity bounds and records here what it did.
+            Lower bound on the share of the family's throughput this variant
+            carries.
+        act.share.up:
+          type: numeric
+          description: >
+            Upper bound on the share of the family's throughput this variant
+            carries.
+        act.share.fx:
+          type: numeric
+          description: >
+            Fixed share of the family's throughput this variant carries.
         order:
           type: integer
           description: >
@@ -2650,13 +2962,24 @@ class:
         desc:
           type: character
           description: Description of the step.
-        share:
+        region:
+          type: character
+          description: >
+            Region the row applies to, NA for every region.
+        act.share.lo:
           type: numeric
           description: >
-            The step's fraction of the object's quantity. DESCRIPTIVE, not
-            enforced: unlike `technology` or `trade` this class has no capacity
-            variable to tie, so `asExportCurve()` writes the split straight into the
-            quantity bounds and records here what it did.
+            Lower bound on the share of the family's throughput this variant
+            carries.
+        act.share.up:
+          type: numeric
+          description: >
+            Upper bound on the share of the family's throughput this variant
+            carries.
+        act.share.fx:
+          type: numeric
+          description: >
+            Fixed share of the family's throughput this variant carries.
         order:
           type: integer
           description: >

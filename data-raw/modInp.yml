@@ -401,6 +401,40 @@ pTechWeatherAfs:
   class: technology
   slot: weather
   colName: wafs
+pTradeWeatherAf:
+  name: pTradeWeatherAf
+  type: bounds
+  dimSets:
+  - weather
+  - trade
+  - src
+  - dst
+  defVal:
+  - 1.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: trade
+  slot: weather
+  colName: waf
+pTradeWeatherAfs:
+  name: pTradeWeatherAfs
+  type: bounds
+  dimSets:
+  - weather
+  - trade
+  - src
+  - dst
+  defVal:
+  - 1.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: trade
+  slot: weather
+  colName: wafs
 pTechWeatherAfc:
   name: pTechWeatherAfc
   type: bounds
@@ -2827,6 +2861,38 @@ mTechWeatherAfsUp:
   dimSets:
   - weather
   - tech
+mTradeWeatherAfLo:
+  name: mTradeWeatherAfLo
+  type: map
+  dimSets:
+  - weather
+  - trade
+  - src
+  - dst
+mTradeWeatherAfUp:
+  name: mTradeWeatherAfUp
+  type: map
+  dimSets:
+  - weather
+  - trade
+  - src
+  - dst
+mTradeWeatherAfsLo:
+  name: mTradeWeatherAfsLo
+  type: map
+  dimSets:
+  - weather
+  - trade
+  - src
+  - dst
+mTradeWeatherAfsUp:
+  name: mTradeWeatherAfsUp
+  type: map
+  dimSets:
+  - weather
+  - trade
+  - src
+  - dst
 mTechWeatherAfcLo:
   name: mTechWeatherAfcLo
   type: map

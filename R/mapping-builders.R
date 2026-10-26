@@ -981,17 +981,41 @@ map_mTradeRetUp    <- function(scen, fmp) .cjoin(scen, "mTradeRetUp", fmp)
 # C7 trade inter-regional flow bounds
 map_meqTradeFlowLo <- function(scen, fmp) .cjoin(scen, "meqTradeFlowLo", fmp)
 map_meqTradeFlowUp <- function(scen, fmp) .cjoin(scen, "meqTradeFlowUp", fmp)
-map_meqTradeIrAfLo <- function(scen, fmp) .cjoin(scen, "meqTradeIrAfLo", fmp)
-map_meqTradeIrAfUp <- function(scen, fmp) .cjoin(scen, "meqTradeIrAfUp", fmp)
+# a route with a weather factor and no `af` of its own takes the bound 1, so
+# the weather binds
+.trade_route <- c("trade", "src", "dst")
+map_meqTradeIrAfLo <- function(scen, fmp) {
+  scen <- .weather_bound_default(scen, "mTradeWeatherAfLo", "pTradeIrAf",
+                                 "mvTradeIr", .trade_route, "lo")
+  .cjoin(scen, "meqTradeIrAfLo", fmp)
+}
+map_meqTradeIrAfUp <- function(scen, fmp) {
+  scen <- .weather_bound_default(scen, "mTradeWeatherAfUp", "pTradeIrAf",
+                                 "mvTradeIr", .trade_route, "up")
+  .cjoin(scen, "meqTradeIrAfUp", fmp)
+}
 # A route's flow over a parent timeslice: the routes that carry flow, at the
 # bound's own timeslices.
 .trade_afs_map <- function(scen, name, type, fmp) {
   src <- .gds(scen, "pTradeIrAfs")
   dom <- .gds(scen, "mvTradeIr")
-  if (is.null(src) || !nrow(src) || is.null(dom) || !nrow(dom)) return(scen)
-  src <- as.data.frame(src)
+  if (is.null(dom) || !nrow(dom)) return(scen)
+  src <- if (is.null(src)) data.frame(trade = character(), src = character(),
+                                      dst = character(), type = character(),
+                                      value = numeric()) else as.data.frame(src)
   src <- src[src$type == type, , drop = FALSE]
   src <- src[if (type == "lo") src$value != 0 else src$value != Inf, , drop = FALSE]
+  # `wafs` multiplies `afs`: a route weathered on a side with no `afs` there
+  w <- .gds(scen, paste0("mTradeWeatherAfs", if (type == "lo") "Lo" else "Up"))
+  if (!is.null(w) && nrow(w)) {
+    id <- function(x) do.call(paste, c(lapply(x[.trade_route], as.character), sep = "/"))
+    miss <- setdiff(id(w), id(src))
+    if (length(miss)) {
+      stop("wafs.", type, " on route(s) ", paste(utils::head(miss, 5), collapse = ", "),
+           " without afs.", type, ": the weather factor multiplies the afs bound. ",
+           "Give the route an afs.", type, ".", call. = FALSE)
+    }
+  }
   if (!nrow(src)) return(scen)
   keys <- c("trade", "src", "dst", "year", "timeslice")
   src <- dplyr::distinct(src[, keys, drop = FALSE])
@@ -1154,8 +1178,12 @@ map_mTechAfcUp     <- function(scen, fmp) scen
                 wlo = "mSupWeatherLo", wup = "mSupWeatherUp", wcoef = "pSupWeather", went = "sup"),
   SupReserve = list(lo = "meqSupReserveLo", up = "mSupReserveUp", fx = "meqSupReserveFx", par = "pSupReserve"),
   TradeFlow = list(lo = "meqTradeFlowLo", up = "meqTradeFlowUp", fx = "meqTradeFlowFx", par = "pTradeIr"),
-  TradeIrAf = list(lo = "meqTradeIrAfLo", up = "meqTradeIrAfUp", fx = "meqTradeIrAfFx", par = "pTradeIrAf"),
-  TradeIrAfs = list(lo = "meqTradeIrAfsLo", up = "meqTradeIrAfsUp", fx = "meqTradeIrAfsFx", par = "pTradeIrAfs"),
+  TradeIrAf = list(lo = "meqTradeIrAfLo", up = "meqTradeIrAfUp", fx = "meqTradeIrAfFx", par = "pTradeIrAf",
+                   wlo = "mTradeWeatherAfLo", wup = "mTradeWeatherAfUp", wcoef = "pTradeWeatherAf",
+                   went = c("trade", "src", "dst")),
+  TradeIrAfs = list(lo = "meqTradeIrAfsLo", up = "meqTradeIrAfsUp", fx = "meqTradeIrAfsFx", par = "pTradeIrAfs",
+                    wlo = "mTradeWeatherAfsLo", wup = "mTradeWeatherAfsUp", wcoef = "pTradeWeatherAfs",
+                    went = c("trade", "src", "dst")),
   TradeCap = list(lo = "mTradeCapLo", up = "mTradeCapUp", fx = "mTradeCapFx", par = "pTradeCap"),
   TradeNewCap = list(lo = "mTradeNewCapLo", up = "mTradeNewCapUp", fx = "mTradeNewCapFx", par = "pTradeNewCap"),
   TradeRet = list(lo = "mTradeRetLo", up = "mTradeRetUp", fx = "mTradeRetFx", par = "pTradeRet"),
@@ -2496,6 +2524,10 @@ Declare the weather at that region, or at a COARSER region of the ",
   mStorageWeatherInpAfLo = list(source = "pStorageWeatherInpAf", types = c("lo", "fx")),
   mStorageWeatherOutAfUp = list(source = "pStorageWeatherOutAf", types = c("up", "fx")),
   mStorageWeatherOutAfLo = list(source = "pStorageWeatherOutAf", types = c("lo", "fx")),
+  mTradeWeatherAfUp     = list(source = "pTradeWeatherAf",     types = c("up", "fx")),
+  mTradeWeatherAfLo     = list(source = "pTradeWeatherAf",     types = c("lo", "fx")),
+  mTradeWeatherAfsUp    = list(source = "pTradeWeatherAfs",    types = c("up", "fx")),
+  mTradeWeatherAfsLo    = list(source = "pTradeWeatherAfs",    types = c("lo", "fx")),
   mSupWeatherUp         = list(source = "pSupWeather",         types = c("up", "fx")),
   mSupWeatherLo         = list(source = "pSupWeather",         types = c("lo", "fx"))
 )
@@ -2699,6 +2731,10 @@ map_mvSupCost     <- function(scen, fmp) .value_std(scen, "mvSupCost", fmp)
 map_mvSupReserve  <- function(scen, fmp) .value_std(scen, "mvSupReserve", fmp)
 
 map_mTechWeatherAfUp      <- function(scen, fmp) .value_weather(scen, "mTechWeatherAfUp", fmp)
+map_mTradeWeatherAfUp     <- function(scen, fmp) .value_weather(scen, "mTradeWeatherAfUp", fmp)
+map_mTradeWeatherAfLo     <- function(scen, fmp) .value_weather(scen, "mTradeWeatherAfLo", fmp)
+map_mTradeWeatherAfsUp    <- function(scen, fmp) .value_weather(scen, "mTradeWeatherAfsUp", fmp)
+map_mTradeWeatherAfsLo    <- function(scen, fmp) .value_weather(scen, "mTradeWeatherAfsLo", fmp)
 map_mTechWeatherAfLo      <- function(scen, fmp) .value_weather(scen, "mTechWeatherAfLo", fmp)
 map_mTechWeatherAfsUp     <- function(scen, fmp) .value_weather(scen, "mTechWeatherAfsUp", fmp)
 map_mTechWeatherAfsLo     <- function(scen, fmp) .value_weather(scen, "mTechWeatherAfsLo", fmp)
@@ -2860,6 +2896,10 @@ map_mSubCost <- function(scen, fmp)
   mvSupCost     = map_mvSupCost,
   mvSupReserve  = map_mvSupReserve,
   mTechWeatherAfUp      = map_mTechWeatherAfUp,
+  mTradeWeatherAfUp     = map_mTradeWeatherAfUp,
+  mTradeWeatherAfLo     = map_mTradeWeatherAfLo,
+  mTradeWeatherAfsUp    = map_mTradeWeatherAfsUp,
+  mTradeWeatherAfsLo    = map_mTradeWeatherAfsLo,
   mTechWeatherAfLo      = map_mTechWeatherAfLo,
   mTechWeatherAfsUp     = map_mTechWeatherAfsUp,
   mTechWeatherAfsLo     = map_mTechWeatherAfsLo,
