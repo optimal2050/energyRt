@@ -154,3 +154,29 @@ test_that("functional dataset: snapshot identity, drift check, call-hash mode", 
   expect_error(save_dataset(name = "bad", fun = "no_namespace_fun"),
                "namespaced")
 })
+
+test_that("a referenced dataset version is not rewritten in place", {
+  ds_local()
+  old_sp <- set_scenarios_path(ds_root("scenarios"))
+  on.exit(set_scenarios_path(old_sp), add = TRUE)
+  info <- save_dataset(ds_table(1), "wref", verbose = FALSE)
+  # a scenario manifest that references this version
+  sdir <- fp(get_scenarios_path(), "S_REF")
+  dir.create(sdir, recursive = TRUE)
+  yaml::write_yaml(list(layout = 3L, class = "scenario", name = "S_REF",
+                        datasets = list(list(object = "pWeather", slot = "data",
+                                             via = "parameter", name = "wref",
+                                             hash = info$hash, kind = "table",
+                                             source = "ref"))),
+                   fp(sdir, "scenario.yml"))
+  expect_error(save_dataset(ds_table(2), "wref", rehash = FALSE, verbose = FALSE),
+               "referenced by 1 entry: scenario 'S_REF'")
+  expect_error(save_dataset(ds_table(1), "wref", overwrite = TRUE, verbose = FALSE),
+               "S_REF")
+  # a new version is always possible
+  info2 <- save_dataset(ds_table(2), "wref", verbose = FALSE)
+  expect_false(identical(info2$hash, info$hash))
+  # with the dependent gone, the version can be rewritten
+  unlink(sdir, recursive = TRUE)
+  expect_silent(save_dataset(ds_table(3), "wref", rehash = FALSE, verbose = FALSE))
+})

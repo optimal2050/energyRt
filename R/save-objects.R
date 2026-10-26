@@ -731,11 +731,14 @@ save_model <- function(
 # `current` (the name's content), `in use` (superseded, referenced),
 # `marked` (superseded, marked for deletion), `unused` (superseded, no
 # references, not marked).
-.entry_versions <- function(type, path) {
+.entry_versions <- function(type, path, idx = NULL) {
   mf <- .entry_manifest(type, path)
   if (is.null(mf)) return(.versions_cols())
   nm <- as.character(mf$name %||% basename(path))
   cur <- as.character(mf$hash %||% "")
+  if (identical(type, "dataset")) {
+    return(.dataset_entry_versions(path, mf, nm, cur, idx %||% .store_dep_index()))
+  }
   payload <- c(model = "mod.RData", repository = "repo.RData")[[type]]
   rows <- list()
   if (file.exists(fp(path, payload))) {
@@ -765,12 +768,34 @@ save_model <- function(
   if (length(rows)) bind_rows(rows) else .versions_cols()
 }
 
-#' Versions held in the model and repository stores
+# The versions of one dataset entry. A dataset version records no dependents
+# of its own: the store's manifests are scanned (`idx`, .store_dep_index()).
+.dataset_entry_versions <- function(path, mf, nm, cur, idx) {
+  deps_all <- .dep_of(idx, "dataset", nm)
+  rows <- list()
+  for (h in names(mf$versions %||% list())) {
+    v <- mf$versions[[h]]
+    d <- deps_all[nzchar(deps_all$hash) & startsWith(h, deps_all$hash), , drop = FALSE]
+    status <- if (identical(h, cur)) "current" else if (nrow(d)) "in use" else
+      if (isTRUE(v$marked_delete)) "marked" else "unused"
+    vdir <- if (isTRUE(v$legacy)) fp(path, "data") else fp(path, h)
+    rows[[length(rows) + 1L]] <- tibble(
+      status = status, name = nm, type = "dataset", version = substr(h, 1, 8),
+      sealed_at = as.POSIXct(NA, tz = "UTC"), refs = nrow(d),
+      size_mb = .dir_size_mb(vdir), updated = .parse_store_time(v$created),
+      importance = if (isTRUE(v$marked_delete)) as.numeric(v$delete_importance %||% 0) else NA_real_,
+      dependents = paste(paste(d$type, d$name), collapse = "; "),
+      hash = h, path = vdir)
+  }
+  if (length(rows)) bind_rows(rows) else .versions_cols()
+}
+
+#' Versions held in the model, repository and dataset stores
 #'
 #' @description
 #' One row per version: the current content of an entry and each sealed
-#' version, with its status, when it was sealed, how many entries reference
-#' it and its size.
+#' version (each version, for a dataset), with its status, when it was
+#' sealed, how many entries reference it and its size.
 #'
 #' Status: `current` — the name's current content (an unsealed payload or
 #' the current sealed version); `in use` — a superseded sealed version that
@@ -779,9 +804,10 @@ save_model <- function(
 #' superseded version nothing references and nobody marked. Versions are
 #' deleted only when marked, by [delete_marked()].
 #'
-#' @param x optional: a model or repository, or its stored name. All entries
-#'   of `type` when `NULL`.
-#' @param type `"model"`, `"repository"`, or both (default).
+#' @param x optional: a model, repository or dataset, or its stored name.
+#'   All entries of `type` when `NULL`.
+#' @param type any of `"model"`, `"repository"`, `"dataset"` (default: all
+#'   three).
 #' @param details logical; `TRUE` adds `updated`, `importance`, the
 #'   dependents' names, the full `hash` and the `path`.
 #' @return a tibble: `status`, `name`, `type`, `version` (8 characters of the
@@ -794,19 +820,21 @@ save_model <- function(
 #' list_versions("TOPIA", type = "model", details = TRUE)
 #' }
 #' @export
-list_versions <- function(x = NULL, type = c("model", "repository"), details = FALSE) {
+list_versions <- function(x = NULL, type = c("model", "repository", "dataset"),
+                          details = FALSE) {
   out <- if (!is.null(x)) {
     tp <- .entry_type_of(x, if (length(type) == 1L) type else NULL)
     .entry_versions(tp, .entry_resolve(tp, x)$path)
   } else {
-    type <- match.arg(type, c("model", "repository"), several.ok = TRUE)
+    type <- match.arg(type, c("model", "repository", "dataset"), several.ok = TRUE)
+    idx <- if ("dataset" %in% type) .store_dep_index() else NULL
     rows <- list()
     for (tp in type) {
       root <- .entry_kinds()[[tp]]$root()
       if (!dir.exists(root)) next
       for (d in list.dirs(root, recursive = FALSE)) {
         if (!file.exists(fp(d, .entry_kinds()[[tp]]$manifest))) next
-        rows[[length(rows) + 1L]] <- .entry_versions(tp, gsub("[\\/]+", "/", d))
+        rows[[length(rows) + 1L]] <- .entry_versions(tp, gsub("[\\/]+", "/", d), idx)
       }
     }
     if (length(rows)) bind_rows(rows) else .versions_cols()
@@ -824,18 +852,21 @@ list_versions <- function(x = NULL, type = c("model", "repository"), details = F
 # Set or clear the deletion mark of sealed versions of an entry. `version`:
 # a hash (or prefix), several, or "unused" for every unused version.
 .mark_versions <- function(type, path, name, version, fields, verbose, what) {
-  if (!type %in% c("model", "repository")) {
-    stop("Versions exist for models and repositories only.", call. = FALSE)
+  if (!type %in% c("model", "repository", "dataset")) {
+    stop("Versions exist for models, repositories and datasets only.", call. = FALSE)
   }
   v <- .entry_versions(type, path)
-  v <- v[!is.na(v$sealed_at) & v$status != "current", , drop = FALSE]
+  # superseded versions: sealed ones for models and repositories, every one
+  # for a dataset
+  v <- v[v$status != "current" & (type == "dataset" | !is.na(v$sealed_at)), ,
+         drop = FALSE]
   hs <- if (identical(version, "unused")) {
     v$hash[v$status %in% c("unused", "marked")]
   } else {
     unique(unlist(lapply(version, function(p) v$hash[startsWith(v$hash, p)])))
   }
   if (!length(hs) && !identical(version, "unused")) {
-    stop(type, " '", name, "' has no superseded sealed version ",
+    stop(type, " '", name, "' has no superseded version ",
          paste(version, collapse = ", "), "; list_versions() lists them.",
          call. = FALSE)
   }
@@ -1762,7 +1793,8 @@ dataset_hash <- function(x) {
 #'   insignificant (a description, a memo). The manifest marks the
 #'   exception (`hash_kept: true`); references then verify against the
 #'   retained hash. With `rehash = FALSE` the hash is a user-managed
-#'   version tag, not a content proof.
+#'   version tag, not a content proof. A version referenced by another store
+#'   entry is never rewritten: the save stops and names the dependents.
 #' @param evaluate logical, for a functional entry: re-evaluate the recorded
 #'   call (verifying `result_hash`) instead of only reading the snapshot.
 #'   Falls back to the snapshot with a message when the package is missing.
@@ -1868,6 +1900,15 @@ save_dataset <- function(
                             path = path)))
     }
     .seal_guard(prev, "dataset", name, "unseal_dataset")
+    # a version is rewritten in place only when nothing references it
+    rewrite <- if (!isTRUE(rehash) && nzchar(prev$hash %||% "")) {
+      prev$hash
+    } else if (isTRUE(overwrite) && !is.null(versions[[h]])) {
+      h
+    } else {
+      NULL
+    }
+    if (!is.null(rewrite)) .dataset_rewrite_guard(name, rewrite)
     if (!overwrite && !is.null(versions[[h]])) {
       vf <- versions[[h]]
       yaml::write_yaml(c(
@@ -1953,6 +1994,22 @@ save_dataset <- function(
     })
   }
   invisible(list(name = name, hash = h, kind = kind, path = path))
+}
+
+# Refuse to rewrite a dataset version that store entries reference: they would
+# read different content under the same hash.
+.dataset_rewrite_guard <- function(name, hash) {
+  deps <- .dep_of(.store_dep_index(), "dataset", name)
+  deps <- deps[!nzchar(deps$hash) | startsWith(hash, deps$hash), , drop = FALSE]
+  if (!nrow(deps)) return(invisible(NULL))
+  who <- paste0(deps$type, " '", deps$name, "'")
+  stop("Dataset '", name, "' version ", substr(hash, 1, 8), " is referenced by ",
+       nrow(deps), " entr", if (nrow(deps) == 1L) "y" else "ies", ": ",
+       paste(utils::head(who, 5), collapse = ", "),
+       if (nrow(deps) > 5L) paste0(" ... (", nrow(deps) - 5L, " more)") else "",
+       ". Rewriting it in place would change their data under the same hash. ",
+       "Delete them first, or save the new content as a new version ",
+       "(rehash = TRUE, overwrite = FALSE).", call. = FALSE)
 }
 
 .dataset_store_resolve <- function(name, hash = NULL) {
@@ -2379,7 +2436,9 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
 #' @param force logical; `unseal_model()` / `unseal_repository()` refuse while
 #'   the current sealed version has dependents (see [list_dependents()]),
 #'   listing them; `TRUE` releases the name anyway. The sealed version stays,
-#'   so the dependents keep loading it.
+#'   so the dependents keep loading it. `unseal_scenario()` refuses while
+#'   scenarios built on it (`interpolate_model(base = )`) reference its
+#'   tables; `TRUE` unseals anyway, and a later change to it changes them.
 #' @rdname seal
 #' @export
 #' @examples
@@ -2439,7 +2498,18 @@ seal_scenario <- function(x, verbose = TRUE) {
 
 #' @rdname seal
 #' @export
-unseal_scenario <- function(x, verbose = TRUE) {
+unseal_scenario <- function(x, force = FALSE, verbose = TRUE) {
+  # scenarios built on this one read its tables in place
+  deps <- tryCatch(list_dependents(x, type = "scenario"), error = function(e) NULL)
+  deps <- if (is.null(deps)) NULL else deps[deps$type == "scenario", , drop = FALSE]
+  if (NROW(deps) && !isTRUE(force)) {
+    stop("Scenario '", if (is.character(x)) x else x@name, "' is the base of ",
+         nrow(deps), " scenario", if (nrow(deps) == 1L) "" else "s", ": ",
+         paste(utils::head(deps$name, 5), collapse = ", "),
+         if (nrow(deps) > 5L) ", ..." else "",
+         ". They reference its tables; changing it would change them. ",
+         "Delete them first, or unseal_scenario(force = TRUE).", call. = FALSE)
+  }
   .seal_set("scenario", x, FALSE, verbose)
 }
 
@@ -2594,8 +2664,8 @@ delete_marked <- function(types = NULL, max_importance = 0, dry_run = TRUE,
         path = gsub("[\\/]+", "/", d))
     }
   }
-  # marked sealed versions of models and repositories
-  for (tp in intersect(types, c("model", "repository"))) {
+  # marked versions of models, repositories and datasets
+  for (tp in intersect(types, c("model", "repository", "dataset"))) {
     v <- list_versions(type = tp, details = TRUE)
     v <- v[!is.na(v$importance) & v$status %in% c("marked", "in use"), , drop = FALSE]
     for (i in seq_len(nrow(v))) {
@@ -2604,7 +2674,7 @@ delete_marked <- function(types = NULL, max_importance = 0, dry_run = TRUE,
         if (dry_run) "would_delete" else "deleted"
       rows[[length(rows) + 1L]] <- tibble(
         type = tp, name = v$name[i], version = v$version[i],
-        importance = v$importance[i], sealed = TRUE, dependents = v$refs[i],
+        importance = v$importance[i], sealed = tp != "dataset", dependents = v$refs[i],
         action = action, path = v$path[i], hash = v$hash[i])
     }
   }

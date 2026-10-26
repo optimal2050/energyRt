@@ -287,11 +287,10 @@ save_scenario <- function(
     file = log_file, append = TRUE
   )
 
-  # The large tables of the modInp become references into the dataset
-  # store: each written once, shared by content across scenarios and
-  # variants; the scenario's own store keeps the small tables and any table
-  # changed after its reference. On every save, so the manifest lists the
-  # references a loaded scenario still holds.
+  # The large tables identical to a sealed base scenario's become references
+  # to that base; every other table stays in the scenario's own store, its
+  # hash recorded for scenarios built on this one. On every save, so the
+  # manifest lists the references a loaded scenario still holds.
   th <- .thin_param_tables(object@modInp, object, format = format,
                            verbose = verbose)
   object@modInp <- th$modInp
@@ -435,7 +434,7 @@ save_scenario <- function(
                          path = .registry_rel_path(object@path), hash = ""))
   }
   .write_scenario_manifest(object, format, model = mf_model,
-                           datasets = ds_entries)
+                           datasets = ds_entries, tables = th$tables)
   .registry_record_scenario(object)
   # the references table: which versions this scenario points at
   tryCatch({

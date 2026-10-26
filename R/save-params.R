@@ -78,24 +78,26 @@
   list(kind = "derived", parameter = pname, pipeline = pipeline)
 }
 
-#' Reference the large tables of a modInp into the dataset store
+#' Hash the large tables of a modInp and reference those of a sealed base
 #'
-#' Hashes every eligible table, finds the version by content or stores it,
-#' and puts the reference on the parameter. The parameter's table itself is
-#' left in place for the caller to drop or keep: `save_scenario()` skips
-#' writing a referenced table into the scenario's own store.
+#' A scenario built on a sealed base (`interpolate_model(base = )`) references
+#' every large table identical to the base's -- by content hash -- instead of
+#' storing a copy. A table the base itself references is referenced where it
+#' lives. Every other table stays in the scenario's own store; its hash is
+#' recorded so a scenario built on this one can match it.
 #'
 #' @param mi The `modInp`.
-#' @param scen The scenario (for the origin).
-#' @param format Storage format for a version written now.
-#' @return `list(modInp =, entries =)`: the modInp with references set, and
-#'   the manifest rows (`object`, `slot`, `via`, `name`, `hash`, `kind`,
-#'   `source`, `path`) of the references.
+#' @param scen The scenario (its `misc$base` and the origin of a table).
+#' @return `list(modInp =, entries =, tables =)`: the modInp with references
+#'   set, the manifest rows of the references, and `tables` -- the hash and
+#'   row count of each large table kept in the scenario's own store.
 #' @keywords internal
 #' @noRd
 .thin_param_tables <- function(mi, scen, format = get_storage_format(),
                                verbose = TRUE) {
   entries <- list()
+  tables <- list()
+  base <- .sealed_base(scen, verbose = verbose)
   for (pname in names(mi@parameters)) {
     p <- mi@parameters[[pname]]
     if (!is.null(p@misc$rule)) {                      # a rule holds no table
@@ -105,9 +107,7 @@
     ref <- p@misc$param_ref
     if (!is.null(ref)) {
       # referenced and unchanged: the manifest lists it again
-      entries[[length(entries) + 1L]] <- list(
-        object = pname, slot = "data", via = "parameter",
-        name = ref$name, hash = ref$hash, kind = "table", source = "ref", path = ref$path)
+      entries[[length(entries) + 1L]] <- .param_ref_entry(pname, ref)
       next
     }
     n <- .param_nrow(p)
@@ -115,33 +115,84 @@
     tbl <- .param_table(p)
     if (is.null(tbl)) next
     h <- dataset_hash(tbl)
-    hit <- .dataset_store_find_hash(h)
-    if (is.null(hit)) {
-      info <- save_dataset(tbl, pname, format = format, verbose = FALSE, hash = h,
-                           memo = paste0("interpolated table of ", scen@name))
-      hit <- list(name = info$name, path = info$path)
+    hit <- if (is.null(base)) NULL else base$tables[[pname]]
+    if (is.null(hit) || !identical(hit$hash, h)) {
+      tables[[pname]] <- list(hash = h, nrow = nrow(tbl))
+      next
     }
-    ref <- list(name = hit$name, hash = h, kind = "table", source = "ref",
-                path = .registry_rel_path(hit$path), nrow = nrow(tbl),
-                filter = NULL, origin = .param_origin(p, scen),
-                resolved = .param_version_dir(hit$path, h))
+    ref <- base$refs[[pname]] %||% list(
+      kind = "table", source = "scenario", scenario = base$name,
+      path = base$rel, parameter = pname, hash = h, nrow = nrow(tbl),
+      filter = NULL)
+    ref$origin <- .param_origin(p, scen)
+    ref$resolved <- .param_ref_data_dir(p, ref)
     p@misc$param_ref <- ref
-    # the store version is now the table's home: a copy in the scenario's
-    # own store would double the disk and win over the reference at load
+    # the base's table is this table's home: a copy in the scenario's own
+    # store would double the disk and win over the reference at load
     local <- p@misc$path
     if (isOnDisk(p) && !is.null(local) && dir.exists(fp(local, "data"))) {
       unlink(fp(local, "data"), recursive = TRUE, force = TRUE)
     }
     mi@parameters[[pname]] <- p
-    entries[[length(entries) + 1L]] <- list(
-      object = pname, slot = "data", via = "parameter",
-      name = ref$name, hash = h, kind = "table", source = "ref", path = ref$path)
+    entries[[length(entries) + 1L]] <- .param_ref_entry(pname, ref)
     if (isTRUE(verbose)) {
-      message("Parameter ref: '", pname, "' -> ", hit$name, "@", substr(h, 1, 8),
-              " (", format(nrow(tbl), big.mark = ","), " rows)")
+      message("Parameter ref: '", pname, "' -> ",
+              if (identical(ref$source, "scenario")) "scenario " else "dataset ",
+              ref$scenario %||% ref$name, " (", format(nrow(tbl), big.mark = ","),
+              " rows)")
     }
   }
-  list(modInp = mi, entries = entries)
+  list(modInp = mi, entries = entries, tables = tables)
+}
+
+# The manifest row of a parameter reference.
+.param_ref_entry <- function(pname, ref) {
+  out <- list(object = pname, slot = "data", via = "parameter",
+              name = ref$name %||% pname, hash = ref$hash, kind = "table",
+              source = ref$source %||% "ref", path = ref$path)
+  if (identical(ref$source, "scenario")) {
+    out$scenario <- ref$scenario
+    out$parameter <- ref$parameter %||% pname
+  }
+  if (length(ref$filter)) out$filter <- ref$filter
+  out
+}
+
+# The sealed base a scenario was built on, as its manifest describes it:
+# `tables` (hash of every large table, kept or referenced) and `refs` (the
+# base's own references, followed so a reference points where a table lives).
+# NULL when the scenario has no base or the base is not saved and sealed.
+.sealed_base <- function(scen, verbose = FALSE) {
+  b <- scen@misc$base
+  if (is.null(b) || !nzchar(b$path %||% "")) return(NULL)
+  path <- .abs_store_path(b$path)
+  mf_path <- fp(path, "scenario.yml")
+  if (!file.exists(mf_path)) return(NULL)
+  mf <- tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
+  if (is.null(mf)) return(NULL)
+  if (!isTRUE(mf$sealed)) {
+    if (isTRUE(verbose)) {
+      message("Base scenario '", b$name, "' is not sealed: its tables are ",
+              "copied, not referenced. seal_scenario() it to share them.")
+    }
+    return(NULL)
+  }
+  tables <- mf$tables %||% list()
+  refs <- list()
+  for (e in mf$datasets %||% list()) {
+    if (!identical(e$via, "parameter")) next
+    tables[[e$object]] <- list(hash = e$hash)
+    refs[[e$object]] <- if (identical(e$source, "scenario")) {
+      list(kind = "table", source = "scenario", scenario = e$scenario,
+           path = e$path, parameter = e$parameter %||% e$object, hash = e$hash,
+           filter = e$filter)
+    } else {
+      list(name = e$name, hash = e$hash, kind = "table", source = "ref",
+           path = e$path, filter = e$filter)
+    }
+  }
+  list(name = as.character(mf$name %||% b$name), path = path,
+       rel = .registry_rel_path(path), tables = tables, refs = refs)
 }
 
 # rows of a parameter's table without reading an on-disk one
@@ -166,9 +217,14 @@
 #' @return The directory, or `NULL` when the reference cannot be resolved.
 #' @keywords internal
 #' @noRd
-.param_ref_data_dir <- function(p) {
-  ref <- p@misc$param_ref
+.param_ref_data_dir <- function(p, ref = p@misc$param_ref) {
   if (is.null(ref)) return(NULL)
+  if (identical(ref$source, "scenario")) {
+    # the table where the base scenario stores it
+    d <- fp(.abs_store_path(ref$path), "modInp", "parameters",
+            ref$parameter %||% p@name, "data")
+    return(if (dir.exists(d)) gsub("[\\/]+", "/", d) else NULL)
+  }
   r <- ref$resolved
   if (!is.null(r) && dir.exists(r)) return(r)
   entry <- tryCatch(.dataset_store_resolve(ref$name, ref$hash), error = function(e) NULL)
@@ -258,7 +314,12 @@
                       error = function(e) NULL)
     }
     if (is.null(dir)) {
-      msg <- paste0("Parameter '", pname, "' of scenario '", scen@name,
+      msg <- if (identical(ref$source, "scenario")) paste0(
+        "Parameter '", pname, "' of scenario '", scen@name,
+        "' references the table of base scenario '", ref$scenario, "' ('",
+        ref$path, "'), which was not found. Restore that scenario, or re-save ",
+        "this one from a session that holds the table.") else
+        paste0("Parameter '", pname, "' of scenario '", scen@name,
                     "' references dataset '", ref$name, "@", substr(ref$hash, 1, 8),
                     "', which was not found in the dataset store ('",
                     get_datasets_path(), "').\n",

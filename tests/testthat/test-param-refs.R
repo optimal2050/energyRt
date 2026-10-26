@@ -1,6 +1,8 @@
-# Interpolated tables as references into the dataset store (R/save-params.R):
-# eligibility, thinning a modInp into references, resolving them back, the
-# data directory a reader uses, and clearing a reference before a write.
+# Interpolated tables and their references (R/save-params.R): eligibility,
+# hashing a modInp's large tables, references to a sealed base scenario's
+# tables, resolving references back (and those into the dataset store that
+# older scenarios hold), the data directory a reader uses, and clearing a
+# reference before a write.
 
 test_that("only large numpar, bounds and map tables are referenced", {
   p <- pr_param("pTechAf", pr_af())
@@ -16,65 +18,32 @@ test_that("only large numpar, bounds and map tables are referenced", {
   expect_true(.param_ref_eligible(w, 8L))
 })
 
-test_that("a modInp's large tables become versions in the store and references on the parameters", {
+test_that("large tables are hashed and kept; without a sealed base none is referenced", {
   pr_local()
   withr::local_options(energyRt.param_ref_min_rows = 1, energyRt.ondisk_min_rows = 1)
   scen <- pr_scen(pWeather = pr_param("pWeather", pr_weather()),
                   pTechAf = pr_param("pTechAf", pr_af()))
   th <- .thin_param_tables(scen@modInp, scen, format = "parquet", verbose = FALSE)
-  expect_length(th$entries, 2L)
-  for (e in th$entries) {
-    expect_identical(e$slot, "data")
-    expect_identical(e$via, "parameter")
-    expect_identical(e$source, "ref")
-    expect_true(dir.exists(file.path(get_datasets_path(), e$name, e$hash)))
-  }
-  w <- th$modInp@parameters[["pWeather"]]
-  ref <- w@misc$param_ref
-  expect_identical(ref$name, "pWeather")
-  expect_identical(ref$hash, dataset_hash(force_cols_classes(w@data)))
-  expect_identical(ref$origin$kind, "source")
-  expect_identical(ref$origin$class, "weather")
-  expect_identical(th$modInp@parameters[["pTechAf"]]@misc$param_ref$origin$kind, "derived")
-  # the table is still on the parameter: the caller decides what to drop
-  expect_equal(nrow(w@data), 8L)
-  # the reference resolves to the version directory holding the rows
-  d <- .param_ref_data_dir(w)
-  expect_true(dir.exists(d))
-  back <- as.data.frame(en_open_dataset(d) |> dplyr::collect())
-  expect_identical(back[order(back$region, back$timeslice), "value"],
-                   pr_weather()[order(pr_weather()$region, pr_weather()$timeslice), "value"])
-  # the same content again is found, not stored twice
-  scen2 <- pr_scen(pWeather = pr_param("pWeather", pr_weather()))
-  th2 <- .thin_param_tables(scen2@modInp, scen2, format = "parquet", verbose = FALSE)
-  expect_identical(th2$modInp@parameters[["pWeather"]]@misc$param_ref$hash, ref$hash)
-  mf <- yaml::read_yaml(file.path(get_datasets_path(), "pWeather", "dataset.yml"))
-  expect_length(mf$versions, 1L)
-  # other content under the same parameter adds a version
-  scen3 <- pr_scen(pWeather = pr_param("pWeather", pr_weather(3)))
-  th3 <- .thin_param_tables(scen3@modInp, scen3, format = "parquet", verbose = FALSE)
-  mf <- yaml::read_yaml(file.path(get_datasets_path(), "pWeather", "dataset.yml"))
-  expect_length(mf$versions, 2L)
-  expect_false(identical(th3$modInp@parameters[["pWeather"]]@misc$param_ref$hash, ref$hash))
-  # a referenced parameter is left alone on a second pass: its entry is
-  # listed again, nothing is hashed or stored
-  th4 <- .thin_param_tables(th$modInp, scen, format = "parquet", verbose = FALSE)
-  expect_length(th4$entries, 2L)
-  expect_setequal(vapply(th4$entries, function(e) e$hash, ""),
-                  vapply(th$entries, function(e) e$hash, ""))
+  expect_length(th$entries, 0L)
+  expect_setequal(names(th$tables), c("pWeather", "pTechAf"))
+  expect_identical(th$tables$pWeather$hash,
+                   dataset_hash(force_cols_classes(pr_param("pWeather", pr_weather())@data)))
+  expect_null(th$modInp@parameters[["pWeather"]]@misc$param_ref)
+  expect_false(dir.exists(get_datasets_path()))
 })
 
-test_that("references resolve at load, a local table wins, a missing derived version errors", {
+test_that("dataset references resolve at load, a local table wins, a missing derived version errors", {
   pr_local()
-  withr::local_options(energyRt.param_ref_min_rows = 1)
   scen <- pr_scen(pTechAf = pr_param("pTechAf", pr_af(2)))
-  th <- .thin_param_tables(scen@modInp, scen, format = "parquet", verbose = FALSE)
-  scen@modInp <- th$modInp
+  # a reference into the dataset store, as scenarios saved before base
+  # references hold
+  info <- save_dataset(force_cols_classes(pr_af(2)), "pTechAf", verbose = FALSE)
   p <- scen@modInp@parameters[["pTechAf"]]
-  ref <- p@misc$param_ref
+  p@misc$param_ref <- list(name = "pTechAf", hash = info$hash, kind = "table",
+                           source = "ref", path = .registry_rel_path(info$path),
+                           origin = list(kind = "derived"))
   # as a loaded scenario: no table, a local path that holds nothing
   p@data <- p@data[0, ]
-  p@misc$param_ref$resolved <- NULL
   p@misc$path <- pr_root("scen", "modInp", "parameters", "pTechAf")
   scen@modInp@parameters[["pTechAf"]] <- p
   out <- .resolve_param_refs(scen, verbose = FALSE)
@@ -98,54 +67,65 @@ test_that("references resolve at load, a local table wins, a missing derived ver
   expect_null(.param_ref_clear(p)@misc$param_ref)
 })
 
-# --- a scenario saved and loaded with its tables referenced -------------------
+# --- a scenario on a sealed base references the base's tables ---------------
 
-test_that("a scenario's large tables are saved once in the store and load back through references", {
+# REF saved and sealed, CAP built on it with a user cost term and saved
+pr_ref_cap <- function(tag) {
+  ref <- suppressMessages(interpolate_model(pr_model(), name = paste0(tag, "_ref"),
+                                            verbose = FALSE))
+  ref <- suppressMessages(save_scenario(ref, verbose = FALSE))
+  suppressMessages(seal_scenario(ref, verbose = FALSE))
+  fee <- newCosts(paste0(tag, "FEE"), variable = "vTechAct", mult = 2,
+                  subset = list(tech = "WIND"))
+  cap <- suppressMessages(interpolate_model(pr_model(), fee, name = paste0(tag, "_cap"),
+                                            base = ref, verbose = FALSE))
+  cap <- suppressMessages(save_scenario(cap, verbose = FALSE))
+  list(ref = ref, cap = cap)
+}
+
+test_that("a scenario on a sealed base references its identical tables and loads them", {
   pr_local_model()
   unlink(pr_root(), recursive = TRUE)
   withr::local_options(energyRt.param_ref_min_rows = 1, energyRt.ondisk_min_rows = 1)
-  scen <- suppressMessages(interpolate_model(pr_model(), name = "prs",
-                                             path = pr_root("scenarios", "prs")))
-  before <- lapply(scen@modInp@parameters, function(p) {
-    d <- get_data_slot(p); if (is.null(d) || !nrow(d)) NULL else dataset_hash(force_cols_classes(d))
-  })
-  before <- before[!vapply(before, is.null, logical(1))]
-  saved <- suppressMessages(save_scenario(scen, verbose = FALSE))
+  rc <- pr_ref_cap("prs")
+  ref <- rc$ref
+  cap <- rc$cap
+  # the base keeps its tables and records their hashes
+  mr <- yaml::read_yaml(fp(ref@path, "scenario.yml"))
+  expect_length(Filter(function(e) identical(e$via, "parameter"), mr$datasets), 0L)
+  expect_true(length(mr$tables) > 0L)
+  for (nm in names(mr$tables)) {
+    expect_true(dir.exists(fp(ref@path, "modInp", "parameters", nm, "data")), info = nm)
+  }
+  expect_false(dir.exists(get_datasets_path()))
 
-  # the manifest references every referenced table; none is in the scenario's own store
-  mf <- yaml::read_yaml(fp(saved@path, "scenario.yml"))
-  pe <- Filter(function(e) identical(e$via, "parameter"), mf$datasets)
+  # CAP references every table identical to the base's and stores none of them
+  mc <- yaml::read_yaml(fp(cap@path, "scenario.yml"))
+  pe <- Filter(function(e) identical(e$source, "scenario"), mc$datasets)
   expect_true(length(pe) > 0L)
   for (e in pe) {
-    expect_identical(e$hash, before[[e$object]], info = e$object)
-    expect_true(dir.exists(fp(get_datasets_path(), e$name, e$hash)), info = e$object)
-    expect_false(dir.exists(fp(saved@path, "modInp", "parameters", e$object, "data")), info = e$object)
+    expect_identical(e$scenario, ref@name)
+    expect_identical(e$hash, mr$tables[[e$object]]$hash, info = e$object)
+    expect_false(dir.exists(fp(cap@path, "modInp", "parameters", e$object, "data")),
+                 info = e$object)
   }
-  # the references table knows them
+  # the references table knows them; the base lists CAP as a dependent and
+  # cannot be unsealed while CAP references it
   refs <- .refs_open()
-  expect_setequal(refs$object, vapply(pe, function(e) e$object, ""))
-  dep <- .refs_dependents(pe[[1]]$name, pe[[1]]$hash)
-  expect_equal(length(unique(dep$scenario)), 1L)
+  expect_true(all(vapply(pe, function(e) e$object, "") %in% refs$object))
+  dep <- list_dependents(ref)
+  expect_identical(dep$name, cap@name)
+  expect_error(unseal_scenario(ref, verbose = FALSE), cap@name)
 
-  # loading resolves the references; every table reads back identical
-  ld <- suppressMessages(load_scenario(saved@path, env = NULL, verbose = FALSE))
+  # loading resolves the references into the base's folder; every table reads back identical
+  ld <- suppressMessages(load_scenario(cap@path, env = NULL, verbose = FALSE))
   for (e in pe) {
     p <- ld@modInp@parameters[[e$object]]
-    expect_true(dir.exists(p@misc$param_ref$resolved), info = e$object)
+    expect_true(startsWith(p@misc$param_ref$resolved, gsub("[\\/]+", "/", ref@path)),
+                info = e$object)
     d <- get_data_slot(p)
     expect_identical(dataset_hash(force_cols_classes(d)), e$hash, info = e$object)
   }
-  # the same content saved again under another scenario shares the versions
-  scen2 <- suppressMessages(interpolate_model(pr_model(), name = "prs2",
-                                              path = pr_root("scenarios", "prs2")))
-  saved2 <- suppressMessages(save_scenario(scen2, verbose = FALSE))
-  mf2 <- yaml::read_yaml(fp(saved2@path, "scenario.yml"))
-  pe2 <- Filter(function(e) identical(e$via, "parameter"), mf2$datasets)
-  for (e in pe2) {
-    mfd <- yaml::read_yaml(fp(get_datasets_path(), e$name, "dataset.yml"))
-    expect_length(mfd$versions, 1L)
-  }
-  expect_equal(length(unique(.refs_dependents(pe[[1]]$name, pe[[1]]$hash)$scenario)), 2L)
 
   # copy-on-write: a changed table drops its reference and is written locally
   w <- get_data_slot(ld@modInp@parameters[["pWeather"]])
@@ -154,11 +134,9 @@ test_that("a scenario's large tables are saved once in the store and load back t
   expect_null(ld2@modInp@parameters[["pWeather"]]@misc$param_ref)
   saved3 <- suppressMessages(save_scenario(ld2, overwrite = TRUE, verbose = FALSE))
   mf3 <- yaml::read_yaml(fp(saved3@path, "scenario.yml"))
-  pe3 <- Filter(function(e) identical(e$via, "parameter") && e$object == "pWeather", mf3$datasets)
-  # the new content became a second version of pWeather, referenced again
-  expect_length(pe3, 1L)
-  expect_false(identical(pe3[[1]]$hash, before[["pWeather"]]))
-  expect_length(yaml::read_yaml(fp(get_datasets_path(), "pWeather", "dataset.yml"))$versions, 2L)
+  expect_length(Filter(function(e) identical(e$object, "pWeather"), mf3$datasets), 0L)
+  expect_false(identical(mf3$tables$pWeather$hash, mr$tables$pWeather$hash))
+  expect_true(dir.exists(fp(saved3@path, "modInp", "parameters", "pWeather", "data")))
 })
 
 test_that("the mm import reads referenced tables in place and builds the same LP", {
@@ -168,9 +146,7 @@ test_that("the mm import reads referenced tables in place and builds the same LP
   unlink(pr_root(), recursive = TRUE)
   withr::local_options(energyRt.param_ref_min_rows = 1, energyRt.ondisk_min_rows = 1,
                        energyRt.mm_keep_wildcards = TRUE)
-  scen <- suppressMessages(interpolate_model(pr_model(), name = "prs_mm",
-                                             path = pr_root("scenarios", "prs_mm")))
-  saved <- suppressMessages(save_scenario(scen, verbose = FALSE))
+  saved <- pr_ref_cap("prs_mm")$cap
   ld <- suppressMessages(load_scenario(saved@path, env = NULL, verbose = FALSE))
   full <- suppressMessages(suppressWarnings(multimod_from_energyRt(ld, inMemory = TRUE, verbose = FALSE)))
   lazy <- suppressMessages(suppressWarnings(multimod_from_energyRt(ld, inMemory = FALSE, verbose = FALSE)))
@@ -194,13 +170,11 @@ test_that("the mm import reads referenced tables in place and builds the same LP
   expect_equal(sl$objective, sf$objective, tolerance = 1e-9)
 })
 
-test_that("tables persisted on disk or in the store are shed from memory and read back lazily", {
+test_that("tables persisted on disk or in a base scenario are shed from memory and read back lazily", {
   pr_local_model()
   unlink(pr_root(), recursive = TRUE)
   withr::local_options(energyRt.param_ref_min_rows = 1, energyRt.ondisk_min_rows = 1)
-  scen <- suppressMessages(interpolate_model(pr_model(), name = "prs_shed",
-                                             path = pr_root("scenarios", "prs_shed")))
-  saved <- suppressMessages(save_scenario(scen, verbose = FALSE))
+  saved <- pr_ref_cap("prs_shed")$cap
   ld <- suppressMessages(load_scenario(saved@path, env = NULL, verbose = FALSE))
   # a table brought into memory while on disk
   p <- ld@modInp@parameters[["pWeather"]]

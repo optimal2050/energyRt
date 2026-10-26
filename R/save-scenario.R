@@ -678,7 +678,7 @@ drop_scenario_run <- function(object, run, force = FALSE) {
 # list(name, hash, source = "embedded"|"ref" [, path]), built by
 # save_scenario().
 .write_scenario_manifest <- function(scen, format, model = NULL,
-                                     datasets = NULL) {
+                                     datasets = NULL, tables = NULL) {
   mf_path <- fp(scen@path, "scenario.yml")
   prev <- if (file.exists(mf_path)) {
     tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
@@ -705,6 +705,9 @@ drop_scenario_run <- function(object, run, force = FALSE) {
   )
   mf$model <- model %||% prev$model
   mf$datasets <- datasets %||% prev$datasets
+  # hash and rows of each large table in the scenario's own store: what a
+  # scenario built on this one is matched against
+  mf$tables <- tables %||% prev$tables
   # a derived scenario names the base it was built on (interpolate_model(base =))
   b <- scen@misc$base
   mf$base <- if (is.null(b)) prev$base else list(
@@ -1618,12 +1621,19 @@ upgrade_scenario_layout <- function(path, verbose = TRUE) {
     invisible(NULL)
   }
   if (identical(type, "scenario")) add("model", mf$model)
+  # tables referenced in a base scenario
+  for (e in mf$datasets %||% list()) {
+    if (identical(as.character(e$source %||% ""), "scenario") && nzchar(e$scenario %||% "")) {
+      out[[length(out) + 1L]] <- list(via = "scenario", target = as.character(e$scenario),
+                                      hash = "")
+    }
+  }
   if (identical(type, "model")) {
     for (e in mf$repositories %||% list()) add("repository", e)
   }
   # datasets hang off scenarios, models and repositories alike
   for (e in mf$datasets %||% list()) add("dataset", e)
-  out
+  out[!duplicated(vapply(out, function(e) paste(e$via, e$target, e$hash), ""))]
 }
 
 # Every reference in the project, one row per edge. One first-level pass over

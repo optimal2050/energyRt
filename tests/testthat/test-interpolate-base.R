@@ -117,8 +117,7 @@ test_that("a saved base is read, never written, and the result saves", {
   }
   before <- snap(ref@path)
   refl <- .ib_quiet(load_scenario(ref@path, env = NULL, verbose = FALSE))
-  expect_true(any(vapply(refl@modInp@parameters,
-                         function(p) !is.null(p@misc$param_ref), logical(1))))
+  expect_true(any(vapply(refl@modInp@parameters, isOnDisk, logical(1))))
   der <- .ib_quiet(do.call(interpolate_model,
     c(list(mod), .ib_new(), list(name = "CAP", base = refl, verbose = FALSE))))
   full <- .ib_quiet(do.call(interpolate_model,

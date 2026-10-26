@@ -2,15 +2,20 @@
 % Please edit documentation in R/save-objects.R
 \name{list_versions}
 \alias{list_versions}
-\title{Versions held in the model and repository stores}
+\title{Versions held in the model, repository and dataset stores}
 \usage{
-list_versions(x = NULL, type = c("model", "repository"), details = FALSE)
+list_versions(
+  x = NULL,
+  type = c("model", "repository", "dataset"),
+  details = FALSE
+)
 }
 \arguments{
-\item{x}{optional: a model or repository, or its stored name. All entries
-of \code{type} when \code{NULL}.}
+\item{x}{optional: a model, repository or dataset, or its stored name.
+All entries of \code{type} when \code{NULL}.}
 
-\item{type}{\code{"model"}, \code{"repository"}, or both (default).}
+\item{type}{any of \code{"model"}, \code{"repository"}, \code{"dataset"} (default: all
+three).}
 
 \item{details}{logical; \code{TRUE} adds \code{updated}, \code{importance}, the
 dependents' names, the full \code{hash} and the \code{path}.}
@@ -22,8 +27,8 @@ content hash; \code{(unsealed)} for a payload saved under a save id),
 }
 \description{
 One row per version: the current content of an entry and each sealed
-version, with its status, when it was sealed, how many entries reference
-it and its size.
+version (each version, for a dataset), with its status, when it was
+sealed, how many entries reference it and its size.
 
 Status: \code{current} — the name's current content (an unsealed payload or
 the current sealed version); \verb{in use} — a superseded sealed version that

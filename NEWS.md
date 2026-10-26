@@ -102,6 +102,9 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   A saved scenario references its sealed model instead of copying it, also
   for models with vintages, clusters or a spatial sample. `getObject()` on a
   scenario returns the objects as defined.
+* `save_dataset(rehash = FALSE)` and `save_dataset(overwrite = TRUE)` stop
+  when another store entry references the version they would rewrite, and
+  name the dependents.
 * `base = REF` also takes new processes, commodities and other model objects:
   the per-object tables of the objects REF holds are reused and every map is
   rebuilt.
@@ -120,16 +123,18 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   version instead of overwriting, `load_dataset(name, hash = )` pins one,
   and the registry lists every version. A references table beside the
   registry records which scenario points at which version.
-* `save_scenario()` stores a scenario's large interpolated tables (numeric
+* `save_scenario()` keeps a scenario's large interpolated tables (numeric
   parameters, bounds and maps from `energyRt.param_ref_min_rows` rows, 1e6
-  by default; weather and demand series from `energyRt.ondisk_min_rows`) as
-  versions in the dataset store and keeps a reference on the parameter:
-  the table is written once and shared by every scenario and variant with
-  the same content; the scenario's own store holds the small tables and
-  any table changed after its reference. `load_scenario()` resolves the
-  references; the lazy readers follow them; a writer that changes a table
-  drops its reference. A weather or demand table whose version is gone is
-  recomputed from the model.
+  by default; weather and demand series from `energyRt.ondisk_min_rows`) in
+  its own store and records their hashes in `scenario.yml`. A scenario built
+  with `interpolate_model(base = )` on a saved and sealed base references
+  every table identical to the base's instead of storing a copy, and keeps
+  the rest. `load_scenario()` resolves the references; the lazy readers
+  follow them; a writer that changes a table drops its reference.
+  `unseal_scenario()` refuses while scenarios reference the base's tables
+  (`force = TRUE` to unseal anyway). References into the dataset store held
+  by scenarios saved earlier still load; a weather or demand table whose
+  version is gone is recomputed from the model.
 * `save_model()` and `save_scenario()` take `mode = "ref"` (default,
   `options(energyRt.save_mode)`) or `"full"`. `"ref"` references a repository
   or model only when its exact content is a SEALED version, and copies it in
@@ -140,11 +145,12 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   `interpolate_model()` references the sealed version and keeps only the
   added repositories (`model: added` in its manifest); `load_scenario()`
   adds them back.
-* `list_versions()` lists the versions of models and repositories with a
+* `list_versions()` lists the versions of models, repositories and datasets with a
   status (`current`, `in use`, `marked`, `unused`), when they were sealed,
   how many entries reference them and their size (`details = TRUE` for
-  more). `mark_delete(version = )` marks superseded sealed versions (a hash,
-  or `"unused"`), and `delete_marked()` deletes them when still unreferenced.
+  more). `mark_delete(version = )` marks superseded versions (sealed ones of
+  models and repositories; a hash, or `"unused"`), and `delete_marked()`
+  deletes them when still unreferenced.
   `delete_marked()` also keeps an entry while any of its sealed versions has
   a dependent.
 * `list_dependents()` replaces `store_dependents()`: the verified dependents

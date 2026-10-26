@@ -126,3 +126,40 @@ test_that("the references table records who points at which version", {
   expect_equal(nrow(.refs_dependents("pWeather", file = f)), 0L)
   expect_equal(nrow(.refs_open(f)), 1L)
 })
+
+test_that("dataset versions are listed, marked and deleted like model versions", {
+  unlink(dv_root(), recursive = TRUE)
+  dv_local()
+  old_sp <- set_scenarios_path(dv_root("scenarios"))
+  on.exit(set_scenarios_path(old_sp), add = TRUE)
+  v1 <- save_dataset(dv_table(1), "wv", verbose = FALSE)
+  v2 <- save_dataset(dv_table(2), "wv", verbose = FALSE)
+  v3 <- save_dataset(dv_table(3), "wv", verbose = FALSE)
+  # a scenario references version 1
+  sdir <- dv_root("scenarios", "S1")
+  dir.create(sdir, recursive = TRUE)
+  yaml::write_yaml(list(layout = 3L, class = "scenario", name = "S1",
+                        datasets = list(list(object = "pWeather", via = "parameter",
+                                             name = "wv", hash = v1$hash,
+                                             source = "ref"))),
+                   file.path(sdir, "scenario.yml"))
+  lv <- list_versions("wv", type = "dataset", details = TRUE)
+  st <- stats::setNames(lv$status, lv$hash)
+  expect_identical(unname(st[c(v1$hash, v2$hash, v3$hash)]),
+                   c("in use", "unused", "current"))
+  expect_identical(lv$dependents[lv$hash == v1$hash], "scenario S1")
+  expect_true("dataset" %in% list_versions()$type)
+  # mark the unused ones: only version 2
+  hs <- mark_delete("wv", type = "dataset", version = "unused", verbose = FALSE)
+  expect_identical(hs, v2$hash)
+  out <- delete_marked(types = "dataset", dry_run = FALSE, verbose = FALSE)
+  expect_true("deleted" %in% out$action)
+  expect_false(dir.exists(dv_root("datasets", "wv", v2$hash)))
+  mf <- yaml::read_yaml(dv_root("datasets", "wv", "dataset.yml"))
+  expect_setequal(names(mf$versions), c(v1$hash, v3$hash))
+  # the referenced one stays even when marked
+  mark_delete("wv", type = "dataset", version = substr(v1$hash, 1, 8), verbose = FALSE)
+  out <- delete_marked(types = "dataset", dry_run = FALSE, verbose = FALSE)
+  expect_true(dir.exists(dv_root("datasets", "wv", v1$hash)))
+  expect_true("skipped_referenced" %in% out$action)
+})

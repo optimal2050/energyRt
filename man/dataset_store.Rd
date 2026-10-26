@@ -61,7 +61,8 @@ hash while writing the changed content — for changes the user declares
 insignificant (a description, a memo). The manifest marks the
 exception (\code{hash_kept: true}); references then verify against the
 retained hash. With \code{rehash = FALSE} the hash is a user-managed
-version tag, not a content proof.}
+version tag, not a content proof. A version referenced by another store
+entry is never rewritten: the save stops and names the dependents.}
 
 \item{memo}{character, optional registry note.}
 

@@ -28,7 +28,7 @@ unseal_dataset(x, verbose = TRUE)
 
 seal_scenario(x, verbose = TRUE)
 
-unseal_scenario(x, verbose = TRUE)
+unseal_scenario(x, force = FALSE, verbose = TRUE)
 
 mark_delete(x, importance = 0, type = NULL, verbose = TRUE, version = NULL)
 
@@ -51,7 +51,9 @@ For \code{mark_delete()}/\code{unmark_delete()} on a bare name, give \verb{type 
 \item{force}{logical; \code{unseal_model()} / \code{unseal_repository()} refuse while
 the current sealed version has dependents (see \code{\link[=list_dependents]{list_dependents()}}),
 listing them; \code{TRUE} releases the name anyway. The sealed version stays,
-so the dependents keep loading it.}
+so the dependents keep loading it. \code{unseal_scenario()} refuses while
+scenarios built on it (\code{interpolate_model(base = )}) reference its
+tables; \code{TRUE} unseals anyway, and a later change to it changes them.}
 
 \item{importance}{numeric; HIGHER = more valuable = deleted later.
 \code{\link[=delete_marked]{delete_marked()}} removes only marks with importance at or below its
