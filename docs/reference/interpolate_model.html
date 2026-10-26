@@ -17,7 +17,7 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9036</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,10 +27,7 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-development"><li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
-  </ul></li>
+<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
@@ -42,13 +39,14 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
-    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
-    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -87,6 +85,7 @@ and validates the result. The returned scenario is ready for <code><a href="solv
 <span>  <span class="va">object</span>,</span>
 <span>  name <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span>,</span>
+<span>  base <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  desc <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ondisk <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  overwrite <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -101,7 +100,8 @@ and validates the result. The returned scenario is ready for <code><a href="solv
 <span>  parent_levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"energyRt.parent_levels"</span>, <span class="cn">FALSE</span><span class="op">)</span>,</span>
 <span>  fx_equ <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"energyRt.fx_equ"</span>, <span class="cn">TRUE</span><span class="op">)</span>,</span>
 <span>  on_missing_input <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"energyRt.on_missing_input"</span>, <span class="st">"stop"</span><span class="op">)</span>,</span>
-<span>  verbose <span class="op">=</span> <span class="fu"><a href="isVerbose.html">isVerbose</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  verbose <span class="op">=</span> <span class="fu"><a href="isVerbose.html">isVerbose</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  .reuse <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S4 method for class 'model'</span></span>
@@ -127,6 +127,21 @@ pipeline runs: <code>settings</code>, <code>config</code>, <code>calendar</code>
 <code>repository</code>, or individual model "bricks" (<code>technology</code>, <code>commodity</code>,
 <code>storage</code>, ...). This is how a scenario overrides or extends the model (e.g.
 pass a sampled <code>calendar</code> to interpolate on a reduced time resolution).</p></dd>
+
+
+<dt id="arg-base">base<a class="anchor" aria-label="anchor" href="#arg-base"></a></dt>
+<dd><p>optional interpolated <a href="class-scenario.html">scenario</a> to build on. The objects in
+<code>...</code> must be new to the model: constraints, costs, taxes and subsidies,
+new processes and commodities, or a <code>calendar</code> / geoscale that samples the
+base's. The result is the base plus what they add: the base's tables are
+reused, nothing is written into its store, and the result equals a full
+interpolation of the model with the base's additions and the new ones. The
+base's <code>fold</code>, <code>sparse</code> and <code>prune</code> settings apply. Otherwise (another
+model, a replaced object, settings or horizon objects) a message says why
+and the model is interpolated in full. <code>object</code> may be the base itself.</p>
+<p>New processes, commodities and other model objects are built on the base
+too: the per-object tables of the objects the base already holds are
+reused, the new objects' tables are computed, and every map is rebuilt.</p></dd>
 
 
 <dt id="arg-desc">desc<a class="anchor" aria-label="anchor" href="#arg-desc"></a></dt>
@@ -267,6 +282,11 @@ themselves are retrievable with <code>getObject(scen, class = "constraint")</cod
 each carries a readable <code>desc</code> and, in <code>misc$.variant_source</code>, the object
 it was derived from.</p></dd>
 
+
+<dt id="arg--reuse">.reuse<a class="anchor" aria-label="anchor" href="#arg--reuse"></a></dt>
+<dd><p>internal: an interpolated scenario whose per-object tables
+are reused for the objects it holds (set by <code>base</code>).</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -310,7 +330,7 @@ it was derived from.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_GAS_WEST_CENTRAL@invcost: CENTRAL, WEST</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> model_size: FOLDED</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   parameters : 189 value, 352 maps, 15 sets</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   parameters : 200 value, 359 maps, 15 sets</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   param rows : 2,111  (fold step: 8,741 -&gt; 2,111, saved 6,630 = 76%)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   folded dims: region=20  timeslice=11  year=19</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   estimate   : ~61,849 variables, ~63,464 constraints (from gating maps)</span>

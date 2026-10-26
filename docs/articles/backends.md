@@ -22,7 +22,7 @@ library(energyRt)
 | **Julia / cuOpt** (GPU) | `JuMP` | NVIDIA cuOpt | open-source | **Linux only.** First-order (PDLP) needs no factorization, so it fits models whose barrier does not; add crossover for duals. |
 | **GAMS** | `GAMS` | CPLEX, CBC | proprietary | Needs a GAMS license; supports GDX I/O and fine solver tuning. |
 | **NEOS** (remote) | `PYOMO` / `GAMS` | CPLEX, CBC, … | free service | Solve on the [NEOS server](https://neos-server.org) — no local commercial solver needed. |
-| **mmcloud_pyomo** (cloud GPU) | `PYOMO` (as MPS) | HiGHS / cuOpt on a cloud GPU | service | **Experimental.** Writes the problem as MPS and solves it remotely, for models too large for local RAM. |
+| **Matrix (MPS)** | `mm` or `PYOMO` (as MPS) | HiGHS in R or Julia; cuOpt on a local GPU (WSL) or a cloud GPU | open-source / service | **Experimental.** The problem is written as an MPS file and solved by [`multimod::solve_mps()`](https://optimal2050.github.io/multimod/r/reference/solve_mps.html); the cloud presets run it on a rented GPU through ‘mmcloud’. |
 
 See the **Installation and Settings** article for how to install each
 runtime and the library layer
@@ -192,84 +192,110 @@ The low-level NEOS interface (submit/poll/fetch a job, list solvers, …)
 is also exported — see [`?neos`](https://energyRt.org/reference/neos.md)
 and the `neos_*` functions.
 
-### mmcloud_pyomo (cloud GPU)
+### Matrix route: local and cloud GPU
 
 **Experimental — in testing.** Where NEOS dispatches the *model text*,
-this route writes the problem as an **MPS file locally** and sends that
-to a GPU solver in the cloud, decoding the solution back into the
-scenario. It exists for models whose build or solve does not fit a
-laptop: the MPS is produced by the Pyomo formulation, so nothing new has
-to be written for the model itself.
+this route writes the problem as an **MPS file locally** and solves that
+file with
+[`multimod::solve_mps()`](https://optimal2050.github.io/multimod/r/reference/solve_mps.html),
+decoding the solution back into the scenario. The matrix is written by
+multimod (`lang = "mm"`, positional names resolved by its index files)
+or by the Pyomo formulation (`pyomo_*` presets). The preset names the
+writer, the solver and the place:
+
+| preset | solver | place |
+|----|----|----|
+| `mm_highs`, `mm_highs_barrier` | HiGHS | in the R session |
+| `mm_julia_highs_barrier` | HiGHS through Julia (HiPO interior point) | local |
+| `mm_cuopt_wsl` | cuOpt PDLP | local GPU through WSL (Windows) |
+| `mm_cuopt_cloud` | cuOpt PDLP | rented GPU, through ‘mmcloud’ |
+| `pyomo_cuopt_cloud` | cuOpt PDLP on a Pyomo-written matrix | rented GPU, through ‘mmcloud’ |
 
 ``` r
 
-solve_model(model, solver = solver_options$mmcloud_pyomo)
-# or, to recover duals from a first-order solve:
-solve_model(model, solver = solver_options$mmcloud_pyomo_crossover)
+solve_model(model, solver = solver_options$mm_cuopt_wsl)
+cloud <- solver_options$mm_cuopt_cloud
+cloud$cloud_namespace <- "my-org"   # the account billed for the job
+cloud$cloud_flavor <- "h200"
+solve_model(model, solver = cloud)
+# a crossover variant of each cuOpt preset recovers a basic solution and duals
+solve_model(model, solver = solver_options$mm_cuopt_cloud_crossover)
 ```
 
-Being experimental, treat results as provisional and cross-check a
-smaller variant against a local backend before relying on them. Access
-is via a token
-([`get_hf_token()`](https://energyRt.org/reference/hf_token.md)), and
-the preset carries the machine flavour and a wall-clock timeout, so a
-run that exceeds it returns nothing rather than partial results.
+On the multimod writer the activity and output definitions
+(`eqTechAfFx`, `eqTechActSng`) and the per-process totals are
+substituted while the matrix is built, so their rows and the columns
+they define never enter the file; the preset field `substitute` names
+the equations ([`character()`](https://rdrr.io/r/base/character.html)
+writes them all). The matrix file is removed once the solution is
+decoded; `keep_mps = TRUE` in the preset keeps it.
+
+Being experimental, results are provisional; a smaller variant should be
+cross-checked against a local backend before they are relied on. The
+cloud presets need a token for the service
+([`mmcloud::set_hf_token()`](https://rdrr.io/pkg/mmcloud/man/hf_token.html)),
+and carry the machine flavour and a wall-clock timeout, so a run that
+exceeds it returns nothing rather than partial results. The former
+preset names `mmcloud`, `mmcloud_crossover`, `mmcloud_pyomo` and
+`mmcloud_pyomo_crossover` stop with a message naming their replacement.
 
 ## All preset `solver_options`
 
 The presets shipped with the package (generated from the installed
 data):
 
-| preset                     | backend       | solver      | remote | data exchange |
-|:---------------------------|:--------------|:------------|:-------|:--------------|
-| glpk                       | GLPK/MathProg | —           |        | default       |
-| pyomo_cbc                  | Python/Pyomo  | cbc         |        | default       |
-| pyomo_cbc_sqlite           | Python/Pyomo  | cbc         |        | SQLite        |
-| pyomo_cplex                | Python/Pyomo  | cplex       |        | default       |
-| pyomo_cplex_barrier        | Python/Pyomo  | cplex       |        | default       |
-| pyomo_glpk                 | Python/Pyomo  | glpk        |        | default       |
-| pyomo_highs                | Python/Pyomo  | appsi_highs |        | default       |
-| pyomo_highs_barrier        | Python/Pyomo  | appsi_highs |        | default       |
-| pyomo_mps                  | Python/Pyomo  | appsi_highs |        | default       |
-| mm_highs                   | NA            | HiGHS       |        | default       |
-| mm_highs_barrier           | NA            | HiGHS       |        | default       |
-| mm_highs_barrier_bs3       | NA            | HiGHS       |        | default       |
-| mm_julia_highs_barrier     | NA            | HiGHS       |        | default       |
-| mm_julia_highs_barrier_bs3 | NA            | HiGHS       |        | default       |
-| mm_cuopt_wsl               | NA            | cuOpt       |        | default       |
-| mm_cuopt_wsl_crossover     | NA            | cuOpt       |        | default       |
-| mmcloud                    | NA            | HiGHS       |        | default       |
-| mmcloud_crossover          | NA            | HiGHS       |        | default       |
-| mmcloud_pyomo              | Python/Pyomo  | appsi_highs |        | default       |
-| mmcloud_pyomo_crossover    | Python/Pyomo  | appsi_highs |        | default       |
-| neos_pyomo_cplex           | Python/Pyomo  | —           | NEOS   | default       |
-| neos_pyomo_cplex_barrier   | Python/Pyomo  | —           | NEOS   | default       |
-| neos_pyomo_cbc             | Python/Pyomo  | —           | NEOS   | default       |
-| julia_cbc                  | Julia/JuMP    | Cbc         |        | default       |
-| julia_cplex                | Julia/JuMP    | CPLEX       |        | default       |
-| julia_cplex_barrier        | Julia/JuMP    | CPLEX       |        | default       |
-| julia_highs                | Julia/JuMP    | HiGHS       |        | default       |
-| julia_highs_rdata          | Julia/JuMP    | HiGHS       |        | RData         |
-| julia_highs_barrier        | Julia/JuMP    | HiGHS       |        | default       |
-| julia_highs_barrier_bs3    | Julia/JuMP    | HiGHS       |        | default       |
-| julia_glpk                 | Julia/JuMP    | GLPK        |        | default       |
-| julia_highs_simplex        | Julia/JuMP    | HiGHS       |        | default       |
-| julia_highs_parallel       | Julia/JuMP    | HiGHS       |        | default       |
-| julia_highs_pdlp           | Julia/JuMP    | HiGHS       |        | default       |
-| julia_highs_hipdlp         | Julia/JuMP    | HiGHS       |        | default       |
-| julia_cuopt                | Julia/JuMP    | cuOpt       |        | default       |
-| julia_cuopt_concurrent     | Julia/JuMP    | cuOpt       |        | default       |
-| julia_cuopt_pdlp           | Julia/JuMP    | cuOpt       |        | default       |
-| julia_cuopt_crossover      | Julia/JuMP    | cuOpt       |        | default       |
-| gams_cplex                 | GAMS          | CPLEX       |        | default       |
-| gams_gdx_cplex             | GAMS          | CPLEX       |        | GDX           |
-| gams_gdx_cplex_barrier     | GAMS          | CPLEX       |        | GDX           |
-| gams_gdx_cplex_parallel    | GAMS          | CPLEX       |        | GDX           |
-| gams_cbc                   | GAMS          | CBC         |        | default       |
-| gams_gdx_cbc               | GAMS          | CBC         |        | GDX           |
-| neos_gams_cplex            | GAMS          | CPLEX       | NEOS   | default       |
-| neos_gams_cplex_barrier    | GAMS          | CPLEX       | NEOS   | default       |
-| neos_gams_cbc              | GAMS          | CBC         | NEOS   | default       |
+| preset | backend | solver | remote | data exchange |
+|:---|:---|:---|:---|:---|
+| glpk | GLPK/MathProg | — |  | default |
+| pyomo_cbc | Python/Pyomo | cbc |  | default |
+| pyomo_cbc_sqlite | Python/Pyomo | cbc |  | SQLite |
+| pyomo_cplex | Python/Pyomo | cplex |  | default |
+| pyomo_cplex_barrier | Python/Pyomo | cplex |  | default |
+| pyomo_glpk | Python/Pyomo | glpk |  | default |
+| pyomo_highs | Python/Pyomo | appsi_highs |  | default |
+| pyomo_highs_barrier | Python/Pyomo | appsi_highs |  | default |
+| pyomo_mps | Python/Pyomo | appsi_highs |  | default |
+| mm_highs | multimod (MPS) | HiGHS |  | default |
+| mm_highs_barrier | multimod (MPS) | HiGHS |  | default |
+| mm_highs_barrier_bs3 | multimod (MPS) | HiGHS |  | default |
+| mm_julia_highs_barrier | multimod (MPS) | HiGHS |  | default |
+| mm_julia_highs_barrier_bs3 | multimod (MPS) | HiGHS |  | default |
+| mm_cuopt_wsl | multimod (MPS) | cuOpt | local GPU (WSL) | default |
+| mm_cuopt_wsl_crossover | multimod (MPS) | cuOpt | local GPU (WSL) | default |
+| mm_cuopt_cloud | multimod (MPS) | cuOpt | cloud GPU | default |
+| mm_cuopt_cloud_crossover | multimod (MPS) | cuOpt | cloud GPU | default |
+| pyomo_cuopt_cloud | Python/Pyomo | appsi_highs | cloud GPU | default |
+| pyomo_cuopt_cloud_crossover | Python/Pyomo | appsi_highs | cloud GPU | default |
+| julia_mps | Julia/JuMP | HiGHS |  | default |
+| julia_cuopt_cloud | Julia/JuMP | HiGHS | cloud GPU | default |
+| neos_pyomo_cplex | Python/Pyomo | — | NEOS | default |
+| neos_pyomo_cplex_barrier | Python/Pyomo | — | NEOS | default |
+| neos_pyomo_cbc | Python/Pyomo | — | NEOS | default |
+| julia_cbc | Julia/JuMP | Cbc |  | default |
+| julia_cplex | Julia/JuMP | CPLEX |  | default |
+| julia_cplex_barrier | Julia/JuMP | CPLEX |  | default |
+| julia_highs | Julia/JuMP | HiGHS |  | default |
+| julia_highs_rdata | Julia/JuMP | HiGHS |  | RData |
+| julia_highs_barrier | Julia/JuMP | HiGHS |  | default |
+| julia_highs_barrier_bs3 | Julia/JuMP | HiGHS |  | default |
+| julia_glpk | Julia/JuMP | GLPK |  | default |
+| julia_highs_simplex | Julia/JuMP | HiGHS |  | default |
+| julia_highs_parallel | Julia/JuMP | HiGHS |  | default |
+| julia_highs_pdlp | Julia/JuMP | HiGHS |  | default |
+| julia_highs_hipdlp | Julia/JuMP | HiGHS |  | default |
+| julia_cuopt | Julia/JuMP | cuOpt |  | default |
+| julia_cuopt_concurrent | Julia/JuMP | cuOpt |  | default |
+| julia_cuopt_pdlp | Julia/JuMP | cuOpt |  | default |
+| julia_cuopt_crossover | Julia/JuMP | cuOpt |  | default |
+| gams_cplex | GAMS | CPLEX |  | default |
+| gams_gdx_cplex | GAMS | CPLEX |  | GDX |
+| gams_gdx_cplex_barrier | GAMS | CPLEX |  | GDX |
+| gams_gdx_cplex_parallel | GAMS | CPLEX |  | GDX |
+| gams_cbc | GAMS | CBC |  | default |
+| gams_gdx_cbc | GAMS | CBC |  | GDX |
+| neos_gams_cplex | GAMS | CPLEX | NEOS | default |
+| neos_gams_cplex_barrier | GAMS | CPLEX | NEOS | default |
+| neos_gams_cbc | GAMS | CBC | NEOS | default |
 
 A `default` in the last column means the preset names no format and
 follows the `exchange_format` option — Arrow IPC unless you change it.

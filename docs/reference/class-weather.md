@@ -77,23 +77,23 @@ or replaced for different scenarios. !!!Additional details...
 
   cluster
 
-  : character. Tier label, used in the expanded object name.
+  :   character. Tier label, used in the expanded object name.
 
   desc
 
-  : character. Description of the tier.
+  :   character. Description of the tier.
 
   region
 
-  : character. Region(s) the tier's series is declared for, NA for
-    everywhere. Intersected with the object's own `region` slot. A
-    process whose region no tier series covers (directly or through the
-    nearest ancestor) is an error, not a silent zero.
+  :   character. Region(s) the tier's series is declared for, NA for
+      everywhere. Intersected with the object's own `region` slot. A
+      process whose region no tier series covers (directly or through
+      the nearest ancestor) is an error, not a silent zero.
 
   order
 
-  : integer. Reporting order, 1 = the best tier. Without it labels sort
-    alphabetically and "T10" would precede "T2".
+  :   integer. Reporting order, 1 = the best tier. Without it labels
+      sort alphabetically and "T10" would precede "T2".
 
 - `weather`:
 
@@ -101,25 +101,26 @@ or replaced for different scenarios. !!!Additional details...
 
   cluster
 
-  : character. Tier this row belongs to, NA for every tier. See the
-    `cluster` slot.
+  :   character. Tier this row belongs to, NA for every tier. See the
+      `cluster` slot.
 
   region
 
-  : character. Region name to apply the parameter, NA for every region.
+  :   character. Region name to apply the parameter, NA for every
+      region.
 
   year
 
-  : integer. Year to apply the parameter, NA for every year.
+  :   integer. Year to apply the parameter, NA for every year.
 
   timeslice
 
-  : character. Time timeslice to apply the parameter, NA for every
-    timeslice.
+  :   character. Time timeslice to apply the parameter, NA for every
+      timeslice.
 
   wval
 
-  : numeric. Weather factor value.
+  :   numeric. Weather factor value.
 
 - `misc`:
 

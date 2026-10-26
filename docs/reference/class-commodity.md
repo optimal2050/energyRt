@@ -74,16 +74,16 @@ commodities. The creation of a commodity object is done with the
 
   cluster
 
-  : character. Tier label, used in the expanded commodity name.
+  :   character. Tier label, used in the expanded commodity name.
 
   desc
 
-  : character. Description of the tier.
+  :   character. Description of the tier.
 
   order
 
-  : integer. Reporting order, 1 = the best tier. Without it labels sort
-    alphabetically and "T10" would precede "T2".
+  :   integer. Reporting order, 1 = the best tier. Without it labels
+      sort alphabetically and "T10" would precede "T2".
 
 - `emis`:
 
@@ -93,23 +93,23 @@ commodities. The creation of a commodity object is done with the
 
   cluster
 
-  : character. Tier this row applies to, NA for every tier. See the
-    `cluster` slot: grades of one commodity differ in exactly this kind
-    of data (carbon content, heat value), so a row may be shared or per
-    tier.
+  :   character. Tier this row applies to, NA for every tier. See the
+      `cluster` slot: grades of one commodity differ in exactly this
+      kind of data (carbon content, heat value), so a row may be shared
+      or per tier.
 
   comm
 
-  : character. Name of the emitted commodity.
+  :   character. Name of the emitted commodity.
 
   unit
 
-  : character. Unit of the emission factor.
+  :   character. Unit of the emission factor.
 
   emis
 
-  : numeric. Emission factor, emissions released per unit of the
-    consumed commodity.
+  :   numeric. Emission factor, emissions released per unit of the
+      consumed commodity.
 
 - `agg`:
 
@@ -118,23 +118,23 @@ commodities. The creation of a commodity object is done with the
 
   cluster
 
-  : character. Tier this row applies to, NA for every tier. See the
-    `cluster` slot: grades of one commodity differ in exactly this kind
-    of data (carbon content, heat value), so a row may be shared or per
-    tier.
+  :   character. Tier this row applies to, NA for every tier. See the
+      `cluster` slot: grades of one commodity differ in exactly this
+      kind of data (carbon content, heat value), so a row may be shared
+      or per tier.
 
   comm
 
-  : character. Name of a commodity being aggregated.
+  :   character. Name of a commodity being aggregated.
 
   unit
 
-  : character. Unit of the commodity being aggregated.
+  :   character. Unit of the commodity being aggregated.
 
   agg
 
-  : numeric. weight of the commodity in the aggregation, must be set for
-    all aggregated commodities.
+  :   numeric. weight of the commodity in the aggregation, must be set
+      for all aggregated commodities.
 
 - `property`:
 
@@ -153,58 +153,58 @@ commodities. The creation of a commodity object is done with the
 
   cluster
 
-  : character. Tier this row applies to, NA for every tier. See the
-    `cluster` slot: grades of one commodity differ in exactly this kind
-    of data (carbon content, heat value), so a row may be shared or per
-    tier.
+  :   character. Tier this row applies to, NA for every tier. See the
+      `cluster` slot: grades of one commodity differ in exactly this
+      kind of data (carbon content, heat value), so a row may be shared
+      or per tier.
 
   property
 
-  : character. Name of the property, e.g. "lhv", "hhv", "density",
-    "molar_mass", or "frac_C" for an element mass fraction. Unrecognised
-    names are kept with a warning.
+  :   character. Name of the property, e.g. "lhv", "hhv", "density",
+      "molar_mass", or "frac_C" for an element mass fraction.
+      Unrecognised names are kept with a warning.
 
   value
 
-  : numeric. The value of the property, in `unit`. Always the
-    deterministic point estimate – the mean, mode or best guess; `min`,
-    `max` and `sd` describe uncertainty around it and are never read by
-    [`convert()`](https://energyRt.org/reference/convert.md).
+  :   numeric. The value of the property, in `unit`. Always the
+      deterministic point estimate – the mean, mode or best guess;
+      `min`, `max` and `sd` describe uncertainty around it and are never
+      read by [`convert()`](https://energyRt.org/reference/convert.md).
 
   min
 
-  : numeric. Lower bound of the value, for sensitivity analysis.
-    Optional.
+  :   numeric. Lower bound of the value, for sensitivity analysis.
+      Optional.
 
   max
 
-  : numeric. Upper bound of the value, for sensitivity analysis.
-    Optional.
+  :   numeric. Upper bound of the value, for sensitivity analysis.
+      Optional.
 
   sd
 
-  : numeric. Standard deviation of the value, for sensitivity analysis.
-    Optional.
+  :   numeric. Standard deviation of the value, for sensitivity
+      analysis. Optional.
 
   dist
 
-  : character. Distribution of the value for sensitivity analysis, one
-    of "point", "uniform", "triangular", "pert", "normal", or
-    "lognormal". Optional; "point" or NA means the value is treated as
-    certain. "uniform" reads `min` and `max`; "triangular" and "pert"
-    read `min`, `value` (the mode) and `max`; "normal" and "lognormal"
-    read `value` and `sd`.
+  :   character. Distribution of the value for sensitivity analysis, one
+      of "point", "uniform", "triangular", "pert", "normal", or
+      "lognormal". Optional; "point" or NA means the value is treated as
+      certain. "uniform" reads `min` and `max`; "triangular" and "pert"
+      read `min`, `value` (the mode) and `max`; "normal" and "lognormal"
+      read `value` and `sd`.
 
   unit
 
-  : character. Unit of the property, e.g. "GJ/t", "t/m3", "g/mol",
-    "kg/kg". Applies to `value`, `min`, `max` and `sd` alike.
+  :   character. Unit of the property, e.g. "GJ/t", "t/m3", "g/mol",
+      "kg/kg". Applies to `value`, `min`, `max` and `sd` alike.
 
   comment
 
-  : character. Optional note on the source of the value or the
-    conditions it refers to, such as "bulk, as stockpiled" or "gas, 0 C,
-    1 atm".
+  :   character. Optional note on the source of the value or the
+      conditions it refers to, such as "bulk, as stockpiled" or "gas, 0
+      C, 1 atm".
 
 - `misc`:
 

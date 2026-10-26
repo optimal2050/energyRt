@@ -23,6 +23,7 @@ newTrade(
   capacity = data.frame(),
   aux = data.frame(),
   aeff = data.frame(),
+  weather = data.frame(),
   cap2act = 1,
   optimizeRetirement = FALSE,
   misc = list(),
@@ -61,13 +62,13 @@ newTrade(
   data.frame. Source and destination regions. For bivariate trade define
   both directions in separate rows.
 
-  from
+  src
 
-  : character. Source region.
+  :   character. Source region of the route.
 
-  to
+  dst
 
-  : character. Destination region.
+  :   character. Destination region of the route.
 
 - trade:
 
@@ -83,98 +84,119 @@ newTrade(
 
   vintage
 
-  : character. Vintage label selecting the variant this row applies to,
-    NA for every vintage. See the `vintage` slot.
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage. See the `vintage` slot.
 
   cluster
 
-  : character. Cluster (loss tranche) label selecting the tranche this
-    row applies to, NA for every tranche. See the `cluster` slot.
+  :   character. Cluster (loss tranche) label selecting the tranche this
+      row applies to, NA for every tranche. See the `cluster` slot.
 
   src
 
-  : character. Source region of the flow, NA for every source region on
-    the route.
+  :   character. Source region of the flow, NA for every source region
+      on the route.
 
   dst
 
-  : character. Destination region of the flow, NA for every destination
-    region on the route.
+  :   character. Destination region of the flow, NA for every
+      destination region on the route.
 
   year
 
-  : integer. Year to apply the parameter, NA for every year.
+  :   integer. Year to apply the parameter, NA for every year.
 
   timeslice
 
-  : character. Time timeslice to apply the parameter, NA for every
-    timeslice.
+  :   character. Time timeslice to apply the parameter, NA for every
+      timeslice.
 
   ava.lo
 
-  : numeric. Lower bound on the traded flow from `src` to `dst`, in
-    physical commodity units per timeslice.
+  :   numeric. Lower bound on the traded flow from `src` to `dst`, in
+      physical commodity units per timeslice.
 
   ava.up
 
-  : numeric. Upper bound on the traded flow from `src` to `dst`, in
-    physical commodity units per timeslice.
+  :   numeric. Upper bound on the traded flow from `src` to `dst`, in
+      physical commodity units per timeslice.
 
   ava.fx
 
-  : numeric. Fixed value of the traded flow from `src` to `dst`, in
-    physical commodity units per timeslice. This parameter overrides
-    `ava.lo` and `ava.up`.
+  :   numeric. Fixed value of the traded flow from `src` to `dst`, in
+      physical commodity units per timeslice. This parameter overrides
+      `ava.lo` and `ava.up`.
 
   af.lo
 
-  : numeric. Lower bound on the flow from `src` to `dst` as a FRACTION
-    of the object's capacity: `af.lo x cap2act x vTradeCap x share`.
-    Forces a minimum loading on that direction.
+  :   numeric. Lower bound on the flow from `src` to `dst` as a FRACTION
+      of the object's capacity: `af.lo x cap2act x vTradeCap x share`.
+      Forces a minimum loading on that direction.
 
   af.up
 
-  : numeric. Upper bound on the flow from `src` to `dst` as a FRACTION
-    of the object's capacity: `af.up x cap2act x vTradeCap x share`.
-    This is how a single trade object carrying several routes gives each
-    line its own rating – `af.up = 0.5` on one leg limits it to half the
-    corridor whatever the corridor turns out to be. Note that `af.up` of
-    1 is already implied by `eqTradeCapFlow` and cannot bind.
+  :   numeric. Upper bound on the flow from `src` to `dst` as a FRACTION
+      of the object's capacity: `af.up x cap2act x vTradeCap x share`.
+      This is how a single trade object carrying several routes gives
+      each line its own rating – `af.up = 0.5` on one leg limits it to
+      half the corridor whatever the corridor turns out to be. Note that
+      `af.up` of 1 is already implied by `eqTradeCapFlow` and cannot
+      bind.
 
   af.fx
 
-  : numeric. Fixed loading of the direction `src` -\> `dst` as a
-    fraction of capacity. Overrides `af.lo` and `af.up`.
+  :   numeric. Fixed loading of the direction `src` -\> `dst` as a
+      fraction of capacity. Overrides `af.lo` and `af.up`.
+
+  afs.lo
+
+  :   numeric. Lower bound on the flow from `src` to `dst` summed over
+      the `timeslice` of the row (a parent timeslice, e.g. a day or the
+      year), as a FRACTION of the object's capacity over that timeslice:
+      `afs.lo x cap2act x vTradeCap x share`. As `technology@afs`.
+
+  afs.up
+
+  :   numeric. Upper bound on the flow from `src` to `dst` summed over
+      the `timeslice` of the row, as a fraction of capacity – e.g. an
+      annual utilisation limit.
+
+  afs.fx
+
+  :   numeric. Fixed flow from `src` to `dst` over the `timeslice` of
+      the row, as a fraction of capacity. Overrides `afs.lo` and
+      `afs.up`.
 
   teff
 
-  : numeric. Trade efficiency: the fraction of the flow sent from `src`
-    that is delivered to `dst` (1 = lossless).
+  :   numeric. Trade efficiency: the fraction of the flow sent from
+      `src` that is delivered to `dst` (1 = lossless).
 
   reactance
 
-  : numeric. Series reactance `x` of the line, in the model's own
-    impedance units. Carried for AC lines and used by nothing unless the
-    model is interpolated with `kvl = TRUE`, when it becomes the
-    coefficient of Kirchhoff's voltage law. Presence of a finite
-    `reactance` is what marks a route as a PASSIVE AC branch: a
-    controllable DC link has none, because its flow is chosen rather
-    than set by impedance. Must be SYMMETRIC across the two directed
-    rows of a line – the voltage law constrains the net flow – and a
-    line under KVL must be declared in both directions. Where several
-    physical circuits have been merged into one route, the value is the
-    EQUIVALENT reactance, `1/x_eq = sum(1/x_i)`, not any one circuit's.
+  :   numeric. Series reactance `x` of the line, in the model's own
+      impedance units. Carried for AC lines and used by nothing unless
+      the model is interpolated with `kvl = TRUE`, when it becomes the
+      coefficient of Kirchhoff's voltage law. Presence of a finite
+      `reactance` is what marks a route as a PASSIVE AC branch: a
+      controllable DC link has none, because its flow is chosen rather
+      than set by impedance. Must be SYMMETRIC across the two directed
+      rows of a line – the voltage law constrains the net flow – and a
+      line under KVL must be declared in both directions. Where several
+      physical circuits have been merged into one route, the value is
+      the EQUIVALENT reactance, `1/x_eq = sum(1/x_i)`, not any one
+      circuit's.
 
   resistance
 
-  : numeric. Series resistance `r` of the line, same units and same
-    symmetry requirement as `reactance`. Recorded so a line keeps both
-    parameters through a round trip. It does not drive losses by itself
-    – losses are the per-route `teff` – but it is the input
-    [`lossTranches()`](https://energyRt.org/reference/lossTranches.md)
-    turns into a piecewise-linear loss curve: pass it with the rating it
-    was measured against, since `loss_full = r * F` and a resistance
-    alone does not determine a loss fraction.
+  :   numeric. Series resistance `r` of the line, same units and same
+      symmetry requirement as `reactance`. Recorded so a line keeps both
+      parameters through a round trip. It does not drive losses by
+      itself – losses are the per-route `teff` – but it is the input
+      [`lossTranches()`](https://energyRt.org/reference/lossTranches.md)
+      turns into a piecewise-linear loss curve: pass it with the rating
+      it was measured against, since `loss_full = r * F` and a
+      resistance alone does not determine a loss fraction.
 
 - fixom:
 
@@ -182,6 +204,30 @@ newTrade(
   standing capacity per year. Like the other trade cost slots this is a
   RATE PER ENDPOINT REGION, named in its `region` column – see the note
   on `invcost`.
+
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage.
+
+  cluster
+
+  :   character. Cluster (loss tranche) label selecting the tranche this
+      row applies to, NA for every tranche.
+
+  region
+
+  :   character. Endpoint region charged, NA for every endpoint; see
+      `invcost`.
+
+  year
+
+  :   integer. Year to apply the parameter, NA for every year.
+
+  fixom
+
+  :   numeric. Fixed operation and maintenance cost per unit of capacity
+      per year.
 
 - varom:
 
@@ -207,6 +253,43 @@ newTrade(
   positively, at `src`. (A separate parameter `pTradeVarom` was once
   declared in the GLPK and GAMS templates and read by no equation; it
   has been removed and was never this slot.)
+
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage.
+
+  cluster
+
+  :   character. Cluster (loss tranche) label selecting the tranche this
+      row applies to, NA for every tranche.
+
+  src
+
+  :   character. Source region of the route, NA for every route.
+
+  dst
+
+  :   character. Destination region of the route, NA for every route.
+
+  year
+
+  :   integer. Year to apply the parameter, NA for every year.
+
+  timeslice
+
+  :   character. Timeslice to apply the parameter, NA for every
+      timeslice.
+
+  varom
+
+  :   numeric. Variable cost per unit of flow, charged at `src` and
+      added to system cost.
+
+  markup
+
+  :   numeric. Transfer per unit of flow, paid by the importing region
+      to the exporting one; it leaves system cost unchanged.
 
 - cluster:
 
@@ -240,26 +323,37 @@ newTrade(
 
   cluster
 
-  : character. Tranche label, used in the expanded object name.
+  :   character. Tranche label, used in the expanded object name.
 
   desc
 
-  : character. Description of the tranche.
+  :   character. Description of the tranche.
 
-  share
+  cap.share.fx
 
-  : numeric. Fraction of the line's capacity this tranche occupies. The
-    shares must sum to 1: the tranche efficiencies are derived from them
-    (`lambda_t = loss_full * (alpha_t-1 + alpha_t)`) and are calibrated
-    only when they do. Declaring shares is also what makes the
-    capacities of an INVESTABLE line be tied to those proportions –
-    without the tie the solver would build the whole corridor as the
-    lowest-loss tranche and the approximation would collapse.
+  :   numeric. Fixed share of the family's capacity this variant holds,
+      in every year. Ties the variants' capacities to fixed proportions
+      (e.g. loss tranches).
+
+  act.share.lo
+
+  :   numeric. Lower bound on the share of the family's throughput this
+      variant carries.
+
+  act.share.up
+
+  :   numeric. Upper bound on the share of the family's throughput this
+      variant carries.
+
+  act.share.fx
+
+  :   numeric. Fixed share of the family's throughput this variant
+      carries.
 
   order
 
-  : integer. Fill order, 1 = the lowest-loss tranche. Without it labels
-    sort alphabetically, so "T10" would precede "T2".
+  :   integer. Fill order, 1 = the lowest-loss tranche. Without it
+      labels sort alphabetically, so "T10" would precede "T2".
 
 - invcost:
 
@@ -277,56 +371,56 @@ newTrade(
 
   vintage
 
-  : character. Vintage label selecting the variant this row applies to,
-    NA for every vintage. See the `vintage` slot.
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage. See the `vintage` slot.
 
   cluster
 
-  : character. Cluster (loss tranche) label selecting the tranche this
-    row applies to, NA for every tranche. See the `cluster` slot.
+  :   character. Cluster (loss tranche) label selecting the tranche this
+      row applies to, NA for every tranche. See the `cluster` slot.
 
   region
 
-  : character. Endpoint region bearing this rate. NA applies the rate at
-    every endpoint of the route; name the regions to vary it between
-    them. A coarser geoscale level is accepted and charged ONCE at that
-    cell, not once per child region.
+  :   character. Endpoint region bearing this rate. NA applies the rate
+      at every endpoint of the route; name the regions to vary it
+      between them. A coarser geoscale level is accepted and charged
+      ONCE at that cell, not once per child region.
 
   year
 
-  : integer. Year to apply the parameter, NA for every year.
+  :   integer. Year to apply the parameter, NA for every year.
 
   invcost
 
-  : numeric. Investment cost.
+  :   numeric. Investment cost.
 
   wacc
 
-  : numeric. Weighted average cost of capital used to annuitise
-    `invcost` for this corridor. Overrides the model-wide `wacc` (see
-    the model `discount` argument). The social discount rate is never
-    used here.
+  :   numeric. Weighted average cost of capital used to annuitise
+      `invcost` for this corridor. Overrides the model-wide `wacc` (see
+      the model `discount` argument). The social discount rate is never
+      used here.
 
   payback
 
-  : numeric. Cost-recovery period in years. Where given it replaces
-    `olife` in the annuity AND in the years over which the annuity is
-    charged, so the investment is repaid over `payback` years while the
-    capacity keeps operating for its full operational life. Must be
-    positive and not exceed `olife`. Unset (or 0) means recover over
-    `olife`. Implemented for the GLPK solver only.
+  :   numeric. Cost-recovery period in years. Where given it replaces
+      `olife` in the annuity AND in the years over which the annuity is
+      charged, so the investment is repaid over `payback` years while
+      the capacity keeps operating for its full operational life. Must
+      be positive and not exceed `olife`. Unset (or 0) means recover
+      over `olife`. Implemented for the GLPK solver only.
 
   eac
 
-  : numeric. Equivalent annual cost, supplied directly instead of being
-    computed from `invcost`, `wacc` and the lifetime. Where given it
-    wins; where absent the annuity is computed. Mutually exclusive with
-    `invcost` per row.
+  :   numeric. Equivalent annual cost, supplied directly instead of
+      being computed from `invcost`, `wacc` and the lifetime. Where
+      given it wins; where absent the annuity is computed. Mutually
+      exclusive with `invcost` per row.
 
   retcost
 
-  : numeric. Costs of early retirement of the trade capacity, default is
-    0.
+  :   numeric. Costs of early retirement of the trade capacity, default
+      is 0.
 
 - olife:
 
@@ -354,32 +448,27 @@ newTrade(
 
   vintage
 
-  : character. Vintage label, normally the build year as a string. NA
-    for an un-vintaged trade.
-
-  region
-
-  : character. Unused for trade (no `region` slot); present for
-    consistency with the other classes.
+  :   character. Vintage label, normally the build year as a string. NA
+      for an un-vintaged trade.
 
   cluster
 
-  : character. Cluster (loss tranche) this row applies to, NA for every
-    tranche. See the `cluster` slot.
+  :   character. Cluster (loss tranche) this row applies to, NA for
+      every tranche. See the `cluster` slot.
 
   start
 
-  : integer. The first year the trade object is available for
-    investment. NA means unbounded (up to `end`).
+  :   integer. The first year the trade object is available for
+      investment. NA means unbounded (up to `end`).
 
   end
 
-  : integer. The last year the trade object is available for investment.
-    NA means unbounded (from `start` on).
+  :   integer. The last year the trade object is available for
+      investment. NA means unbounded (from `start` on).
 
   olife
 
-  : integer. Operational life of the trade object in years.
+  :   integer. Operational life of the trade object in years.
 
 - capacity:
 
@@ -389,17 +478,72 @@ newTrade(
   `ret.*` bounds on the early retirement rate. Region-free: a route IS a
   pair of regions, so a per-region capacity would be ambiguous.
 
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage.
+
+  cluster
+
+  :   character. Cluster (loss tranche) label selecting the tranche this
+      row applies to, NA for every tranche.
+
+  year
+
+  :   integer. Year to apply the parameter, NA for every year.
+
+  stock
+
+  :   numeric. Capacity standing at the milestone, built before the
+      horizon.
+
+  cap.lo
+
+  :   numeric. Lower bound on total capacity.
+
+  cap.up
+
+  :   numeric. Upper bound on total capacity.
+
+  cap.fx
+
+  :   numeric. Fixed total capacity.
+
+  ncap.lo
+
+  :   numeric. Lower bound on new capacity per year.
+
+  ncap.up
+
+  :   numeric. Upper bound on new capacity per year.
+
+  ncap.fx
+
+  :   numeric. Fixed new capacity per year.
+
+  ret.lo
+
+  :   numeric. Lower bound on early retirement per year.
+
+  ret.up
+
+  :   numeric. Upper bound on early retirement per year.
+
+  ret.fx
+
+  :   numeric. Fixed early retirement per year.
+
 - aux:
 
   data.frame. Auxiliary commodity of trade.
 
   acomm
 
-  : character. Name of the auxiliary commodity (used in sets).
+  :   character. Name of the auxiliary commodity (used in sets).
 
   unit
 
-  : character. Unit of the auxiliary commodity.
+  :   character. Unit of the auxiliary commodity.
 
 - aeff:
 
@@ -409,40 +553,114 @@ newTrade(
 
   vintage
 
-  : character. Vintage label selecting the variant this row applies to,
-    NA for every vintage. See the `vintage` slot.
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage. See the `vintage` slot.
 
   cluster
 
-  : character. Cluster (loss tranche) label selecting the tranche this
-    row applies to, NA for every tranche. See the `cluster` slot.
+  :   character. Cluster (loss tranche) label selecting the tranche this
+      row applies to, NA for every tranche. See the `cluster` slot.
 
   acomm
 
-  : character. Name of the auxiliary commodity (used in sets).
+  :   character. Name of the auxiliary commodity (used in sets).
 
-  region
+  src
 
-  : character. Region name to apply the parameter, NA for every region.
+  :   character. Source region of the route the row applies to, NA for
+      every route.
+
+  dst
+
+  :   character. Destination region of the route the row applies to, NA
+      for every route.
 
   year
 
-  : integer. Year to apply the parameter, NA for every year.
+  :   integer. Year to apply the parameter, NA for every year.
 
   timeslice
 
-  : character. Time timeslice to apply the parameter, NA for every
-    timeslice.
+  :   character. Time timeslice to apply the parameter, NA for every
+      timeslice.
 
-  trade2ainp
+  csrc2ainp
 
-  : numeric. Trade-to-auxiliary-input-commodity coefficient
-    (multiplier).
+  :   numeric. Auxiliary input taken in the source region per unit of
+      flow on the route.
 
-  trade2aout
+  csrc2aout
 
-  : numeric. Trade-to-auxiliary-output-commodity coefficient
-    (multiplier).
+  :   numeric. Auxiliary output released in the source region per unit
+      of flow on the route.
+
+  cdst2ainp
+
+  :   numeric. Auxiliary input taken in the destination region per unit
+      of flow on the route.
+
+  cdst2aout
+
+  :   numeric. Auxiliary output released in the destination region per
+      unit of flow on the route.
+
+- weather:
+
+  data.frame. Weather factors of a route's rating: `waf.*` multiplies
+  `@trade$af.*`, `wafs.*` multiplies `@trade$afs.*` (e.g. a dynamic line
+  rating). The series is read at the route's source region, or at the
+  nearest ancestor region the weather serves. A route with a `waf` and
+  no `af` of its own takes the bound 1, so the weather binds; `wafs`
+  needs an `afs` on the same side.
+
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage.
+
+  cluster
+
+  :   character. Cluster (loss tranche) label selecting the tranche this
+      row applies to, NA for every tranche.
+
+  weather
+
+  :   character. Name of the weather object.
+
+  src
+
+  :   character. Source region of the route, NA for every route.
+
+  dst
+
+  :   character. Destination region of the route, NA for every route.
+
+  waf.lo
+
+  :   numeric. Weather factor of the lower route rating `af.lo`.
+
+  waf.up
+
+  :   numeric. Weather factor of the upper route rating `af.up`.
+
+  waf.fx
+
+  :   numeric. Weather factor of the fixed route rating `af.fx`.
+
+  wafs.lo
+
+  :   numeric. Weather factor of the lower rating over a timeframe
+      `afs.lo`.
+
+  wafs.up
+
+  :   numeric. Weather factor of the upper rating over a timeframe
+      `afs.up`.
+
+  wafs.fx
+
+  :   numeric. Weather factor of the fixed rating over a timeframe
+      `afs.fx`.
 
 - cap2act:
 

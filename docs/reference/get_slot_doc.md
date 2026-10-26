@@ -75,6 +75,8 @@ energyRt:::get_slot_doc("demand", "demand") |> cat()
 #>     \item{year}{integer. Year of the demand. NA for every year.}
 #>     \item{timeslice}{character. Name of the timeslice for the demand value. NA for every timeslice.}
 #>     \item{demand}{numeric. Value of the demand.}
+#>     \item{cluster}{character. Cluster label of the row (see `@cluster`), NA for the whole demand.
+#> }
 #>  }
 energyRt:::get_slot_doc("commodity", "agg") |> cat()
 #> data.frame. Used to define an aggregation of several commodities into the `name` commodity.

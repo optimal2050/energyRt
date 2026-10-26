@@ -40,9 +40,12 @@ development:
 navbar:
   # bg: light
   structure:
-    left:  [intro, reference, articles, news]
+    left:  [intro, reference, roadmap, articles, news]
     right: [search, github, lightswitch]
   components:
+    roadmap:
+      text: Roadmap
+      href: articles/roadmap.html
     news:
       text: News
       href: news/index.html
@@ -69,12 +72,6 @@ navbar:
         href: articles/storage.html
       - text: Vintages & clusters
         href: articles/variants.html
-      - text: "TOPIA I: building the model"
-        href: articles/topia-build.html
-      - text: "TOPIA II: running scenarios"
-        href: articles/topia-use.html
-      - text: "TOPIA III: multi-level region"
-        href: articles/region-aggregation.html
       - text: Workflow
         href: articles/workflow.html
       - text: Scenario management
@@ -83,6 +80,13 @@ navbar:
         href: articles/reports.html
       - text: autoplot()
         href: articles/autoplot.html
+      - text: -------
+      - text: "TOPIA I: building the model"
+        href: articles/topia-build.html
+      - text: "TOPIA II: running scenarios"
+        href: articles/topia-use.html
+      - text: "TOPIA III: multi-level region"
+        href: articles/region-aggregation.html
       # menu:
       # - text: near term
       #   href: articles/model.html
@@ -232,7 +236,6 @@ reference:
   contents:
   - starts_with("neos")
   - get_neos_email
-  - get_hf_token
 
 - title: Solve drivers
   desc: >

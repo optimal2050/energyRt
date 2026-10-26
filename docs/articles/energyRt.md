@@ -269,12 +269,12 @@ BASE <- save_scenario(
   object = BASE,
   verbose = FALSE
 )
-#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpCqD0se/energyRt-intro/BASE-HELLO-HELLO_HORIZON'
+#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpkpDSSr/energyRt-intro/BASE-HELLO-HELLO_HORIZON'
 #> Directory size: 0.24 MB
 
 project_registry <- load_registry()
 project_registry[, c("type", "name", "parent")]
-#> # A tibble: 11 × 3
+#> # A tibble: 15 × 3
 #>    type     name  parent
 #>    <chr>    <chr> <chr> 
 #>  1 model    HELLO ""    
@@ -288,6 +288,10 @@ project_registry[, c("type", "name", "parent")]
 #>  9 run      glpk  "BASE"
 #> 10 scenario BASE  ""    
 #> 11 run      glpk  "BASE"
+#> 12 scenario BASE  ""    
+#> 13 run      glpk  "BASE"
+#> 14 scenario BASE  ""    
+#> 15 run      glpk  "BASE"
 
 BASE <- load_scenario(
   path = "BASE",

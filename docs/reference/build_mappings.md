@@ -9,7 +9,8 @@ build_mappings(
   scen,
   fmp = NULL,
   spec = load_mapping_spec(),
-  recipes = .mapping_recipe_order
+  recipes = .mapping_recipe_order,
+  maps = NULL
 )
 ```
 
@@ -33,6 +34,10 @@ build_mappings(
 
   character vector of recipes to run (defaults to all, in
   `.mapping_recipe_order`).
+
+- maps:
+
+  optional character vector: build only these maps of the recipes.
 
 ## Value
 

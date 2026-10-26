@@ -9,7 +9,7 @@ The method replaces slots of the export object with new values."><meta property=
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9036</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -19,10 +19,7 @@ The method replaces slots of the export object with new values."><meta property=
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-development"><li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
-  </ul></li>
+<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
@@ -34,13 +31,14 @@ The method replaces slots of the export object with new values."><meta property=
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
-    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
-    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -137,8 +135,17 @@ REQUIRED whenever any other slot carries a <code>cluster</code> label, and AUTHO
 <dt>desc</dt>
 <dd><p>character. Description of the step.</p></dd>
 
-<dt>share</dt>
-<dd><p>numeric. The step's fraction of the object's quantity. DESCRIPTIVE, not enforced: unlike <code>technology</code> or <code>trade</code> this class has no capacity variable to tie, so <code><a href="supply-curve.html">asExportCurve()</a></code> writes the split straight into the quantity bounds and records here what it did.</p></dd>
+<dt>region</dt>
+<dd><p>character. Region the row applies to, NA for every region.</p></dd>
+
+<dt>act.share.lo</dt>
+<dd><p>numeric. Lower bound on the share of the family's throughput this variant carries.</p></dd>
+
+<dt>act.share.up</dt>
+<dd><p>numeric. Upper bound on the share of the family's throughput this variant carries.</p></dd>
+
+<dt>act.share.fx</dt>
+<dd><p>numeric. Fixed share of the family's throughput this variant carries.</p></dd>
 
 <dt>order</dt>
 <dd><p>integer. Fill order, 1 = the cheapest step (or, for export, the best paid). Without it labels sort alphabetically and "S10" would precede "S2".</p></dd>

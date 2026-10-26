@@ -20,8 +20,6 @@
 
 - [Model bricks](https://energyRt.org/articles/model-bricks.md):
 
-- [energyRt model framework](https://energyRt.org/articles/model.md):
-
 - [Aggregating regions without averaging them
   away](https://energyRt.org/articles/region-aggregation.md):
 
@@ -38,8 +36,6 @@
   geoframes](https://energyRt.org/articles/space-resolution.md):
 
 - [Storage](https://energyRt.org/articles/storage.md):
-
-- [Testing strategy](https://energyRt.org/articles/testing.md):
 
 - [Time resolution: calendars and
   timeslices](https://energyRt.org/articles/time-resolution.md):
