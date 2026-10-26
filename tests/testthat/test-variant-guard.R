@@ -8,7 +8,7 @@
 #
 # The guard must NOT fire on a legitimate redo: same method, same settings.
 
-# Covers the R API: solve_myopic(), solve_by_sample(), solve_by_region(),
+# Covers the R API: solve_recursive(), solve_by_sample(), solve_by_region(),
 # solve_guided().
 # NOT an `@covers` tag -- see the note in test-getdata-run.R.
 
@@ -63,18 +63,18 @@ test_that("different settings are refused, naming what differs", {
 test_that("a different method on the same label is refused", {
   d <- file.path(tempdir(), "vg-type"); unlink(d, recursive = TRUE)
   vg_yml(d, "s01", "calendar_sample", list(seed = 1L))
-  expect_error(.variant_guard(d, "s01", "myopic_step", list(seed = 1L)),
+  expect_error(.variant_guard(d, "s01", "recursive_step", list(seed = 1L)),
                "different method")
 })
 
 test_that("overwrite = TRUE proceeds", {
   d <- file.path(tempdir(), "vg-ow"); unlink(d, recursive = TRUE)
   vg_yml(d, "s01", "calendar_sample", list(seed = 1L))
-  expect_true(.variant_guard(d, "s01", "myopic_step", list(seed = 99L),
+  expect_true(.variant_guard(d, "s01", "recursive_step", list(seed = 99L),
                              overwrite = TRUE))
 })
 
-test_that("solve_myopic refuses a re-run with different settings", {
+test_that("solve_recursive refuses a re-run with different settings", {
   skip_if_no_solver()
   p <- file.path(tempdir(), "vg-myo")
   unlink(p, recursive = TRUE)
@@ -85,14 +85,14 @@ test_that("solve_myopic refuses a re-run with different settings", {
     utils::capture.output(suppressMessages(suppressWarnings(r <- list(...))))
     r[[1]]
   }
-  expect_no_error(run(solve_myopic(m, name = "vg", step = 1L, verbose = FALSE)))
+  expect_no_error(run(solve_recursive(m, name = "vg", step = 1L, verbose = FALSE)))
   # same settings: a redo, allowed
-  expect_no_error(run(solve_myopic(m, name = "vg", step = 1L, verbose = FALSE)))
+  expect_no_error(run(solve_recursive(m, name = "vg", step = 1L, verbose = FALSE)))
   # different window: would overwrite the first sequence
-  expect_error(run(solve_myopic(m, name = "vg", step = 1L, overlap = 1L,
+  expect_error(run(solve_recursive(m, name = "vg", step = 1L, overlap = 1L,
                                 verbose = FALSE)),
                "overlap")
   # explicitly asked for, allowed
-  expect_no_error(run(solve_myopic(m, name = "vg", step = 1L, overlap = 1L,
+  expect_no_error(run(solve_recursive(m, name = "vg", step = 1L, overlap = 1L,
                                    overwrite = TRUE, verbose = FALSE)))
 })

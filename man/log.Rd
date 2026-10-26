@@ -41,7 +41,7 @@ project registry exists; with no sink resolvable nothing is written.
 The operation log is an optional, project-wide record of what ran:
 \code{\link[=set_log_file]{set_log_file()}} names a CSV file, and from then on
 \code{\link[=interpolate_model]{interpolate_model()}}, \code{\link[=solve_scenario]{solve_scenario()}} (and through it
-\code{\link[=solve_model]{solve_model()}}), and \code{\link[=solve_myopic]{solve_myopic()}} append one line each —
+\code{\link[=solve_model]{solve_model()}}), and \code{\link[=solve_recursive]{solve_recursive()}} append one line each —
 \verb{timestamp, op, object, status, duration_sec, details}. \code{read_log()}
 reads it back as a tibble with parsed timestamps.
 

@@ -266,3 +266,173 @@ test_that("equal coverage weights nothing and says nothing", {
   s <- sample_summary(ens, "vSupOut", by = "region")   # no message expected
   expect_equal(s$mean[1], mean(d$value, na.rm = TRUE))
 })
+
+# --- the consensus floor ----------------------------------------------------- #
+
+bs_mod_build <- function(name = "bsb") {
+  leaf <- bs_leaf()
+  newModel(name, region = "R1", discount = 0, calendar = bs_cal(),
+           horizon = newHorizon(2020),
+           repo = newRepository("bsbr",
+             newCommodity("ELC", timeframe = "HOUR"),
+             newTechnology("GEN", output = list(comm = "ELC"), cap2act = 1,
+                           invcost = data.frame(invcost = 100),
+                           olife = list(olife = 30),
+                           af = data.frame(af.up = 1)),
+             newSupply("BACK", commodity = "ELC",
+                       supply = data.frame(region = "R1", cost = 500)),
+             newDemand("DEM", commodity = "ELC",
+                       demand = data.frame(region = "R1", year = 2020L,
+                                           timeslice = leaf,
+                                           demand = seq_along(leaf)))))
+}
+
+test_that("the consensus counts a sample that built nothing as a zero", {
+  # .capacity_targets() drops non-positive rows, so averaging only the rows
+  # present would read "two of four samples built X" as "every sample built X"
+  # and floor the ensemble above anything it agreed on.
+  mk <- function(v) {
+    structure(tibble(family = "tech", proc = "GEN", region = "R1",
+                     year = 2020L, value = v),
+              class = c("capacity_targets", class(tibble())))
+  }
+  with_mocked_bindings(
+    .capacity_targets = function(object, var = "totalcap", ...) object,
+    {
+      cs <- energyRt:::.ensemble_consensus(list(mk(10), mk(30)), stat = "mean")
+      expect_equal(cs$value, 20)                     # (10 + 30) / 2
+      # a third sample that built nothing drags the mean down
+      cs3 <- energyRt:::.ensemble_consensus(
+        list(mk(10), mk(30), mk(numeric(0))[0, ]), stat = "mean")
+      expect_equal(cs3$value, 40 / 3)
+    },
+    .package = "energyRt")
+})
+
+test_that("the consensus does not depend on the order of the samples", {
+  mk <- function(v) {
+    structure(tibble(family = "tech", proc = "GEN", region = "R1",
+                     year = 2020L, value = v),
+              class = c("capacity_targets", class(tibble())))
+  }
+  with_mocked_bindings(
+    .capacity_targets = function(object, var = "totalcap", ...) object,
+    {
+      a <- list(mk(10), mk(30), mk(50))
+      expect_equal(energyRt:::.ensemble_consensus(a, "mean")$value,
+                   energyRt:::.ensemble_consensus(rev(a), "mean")$value)
+      expect_equal(energyRt:::.ensemble_consensus(a, "median")$value, 30)
+    },
+    .package = "energyRt")
+})
+
+test_that("ncap_floor = 0 is a no-op and ncap_floor > 1 is refused", {
+  skip_if_no_solver()
+  bs_local("bs_nf0")
+  mod <- bs_mod_build("bs_nf0")
+  a <- solve_by_sample(mod, name = "bs_nf0", sample_size = 2,
+                       method = "sequential", solver = solver_options$glpk,
+                       verbose = FALSE)
+  skip_if(isTRUE(a$failed))
+  # the default must change nothing: one pass, every row "free"
+  expect_setequal(a$runs$pass, "free")
+  expect_null(a$scenarios_free)
+  expect_identical(a$ncap_floor, 0)
+
+  expect_error(solve_by_sample(mod, ncap_floor = 1.5), "cannot exceed 1")
+  expect_error(solve_by_sample(mod, ncap_floor = -0.1), "must be one number")
+})
+
+test_that("a floor pulls a sample up without pinning one already above it", {
+  skip_if_no_solver()
+  bs_local("bs_nf9")
+  mod <- bs_mod_build("bs_nf9")
+  b <- solve_by_sample(mod, name = "bs_nf9", sample_size = 2,
+                       method = "sequential", ncap_floor = 0.9,
+                       solver = solver_options$glpk, verbose = FALSE)
+  skip_if(isTRUE(b$failed))
+
+  expect_setequal(b$runs$pass, c("free", "floor"))
+  expect_identical(nrow(b$runs), 4L)
+  expect_false(is.null(b$scenarios_free))      # the free pass stays reachable
+
+  free <- b$runs[b$runs$pass == "free", ]
+  flr <- b$runs[b$runs$pass == "floor", ]
+  o_free <- stats::setNames(free$objective, free$sample)
+  o_flr <- stats::setNames(flr$objective, flr$sample)
+  # a floor can only make a sample's own problem harder, never cheaper
+  expect_true(all(o_flr >= o_free - 1e-6))
+  # and it binds on at least one of them, or the floor did nothing
+  expect_true(any(o_flr > o_free + 1e-6))
+
+  # the floored variants are stored beside the free ones, not over them
+  rr <- scenario_runs(b$scenarios[[1]])
+  expect_true(any(grepl("_f$", rr$variant)))
+  expect_true(any(!grepl("_f$", rr$variant)))
+})
+
+# --- building the samples on a sealed base ----------------------------------- #
+
+test_that("`path =` alone no longer refuses a base", {
+  # Model content reaches interpolate_model() positionally; `path` is a control
+  # argument that arrives through `...` and is read only on the full path, so
+  # the base dispatch used to see it as "an object of class character is added"
+  # and refuse. Every solve driver passes `path`, so this blocked all of them.
+  bs_local("bs_pathbase")
+  mod <- bs_mod("bs_pathbase")
+  base <- suppressMessages(save_scenario(
+    interpolate_model(mod, name = "bs_pb_base"), verbose = FALSE))
+  suppressMessages(seal_scenario(base, inputs = TRUE, outputs = FALSE,
+                                 verbose = FALSE))
+  cal2 <- energyRt:::.sample_calendar(
+    bs_cal(), utils::head(bs_leaf(), 48), name = "bs_pb_half")
+
+  d <- suppressMessages(interpolate_model(
+    mod, name = "bs_pb_d", cal2, path = bs_path("bs_pb_d"), overwrite = TRUE,
+    base = base))
+  expect_false(is.null(d@misc$base))
+  expect_true("timeslice" %in% names(d@misc$sample))
+})
+
+test_that("a scenario given as `object` becomes the samples' base", {
+  skip_if_no_solver()
+  bs_local("bs_base")
+  # the threshold is 1e6 rows by default, far above a test model's tables
+  old <- options(energyRt.param_ref_min_rows = 1)
+  on.exit(options(old), add = TRUE)
+
+  mod <- bs_mod("bs_base")
+  base <- suppressMessages(save_scenario(
+    interpolate_model(mod, name = "bs_base_full"), verbose = FALSE))
+  suppressMessages(seal_scenario(base, inputs = TRUE, outputs = FALSE,
+                                 verbose = FALSE))
+
+  b <- solve_by_sample(base, name = "bs_onbase", sample_size = 2,
+                       method = "sequential", solver = solver_options$glpk,
+                       verbose = FALSE)
+  skip_if(isTRUE(b$failed))
+
+  s1 <- b$scenarios[[1]]
+  expect_false(is.null(s1@misc$base))
+  expect_true("timeslice" %in% names(s1@misc$sample))
+
+  # the tables the sample shares with the base are references, so fewer of its
+  # parameter dirs hold a local copy
+  own <- list.dirs(fp(s1@path, "runs", names(b$scenarios)[1], "modInp",
+                      "parameters"), recursive = FALSE)
+  a <- solve_by_sample(mod, name = "bs_nobase", sample_size = 2,
+                       method = "sequential", solver = solver_options$glpk,
+                       verbose = FALSE)
+  skip_if(isTRUE(a$failed))
+  own_a <- list.dirs(fp(a$scenarios[[1]]@path, "runs",
+                        names(a$scenarios)[1], "modInp", "parameters"),
+                     recursive = FALSE)
+  expect_lt(length(own), length(own_a))
+  # and the answer is the same either way, which is the point
+  expect_equal(b$runs$objective, a$runs$objective, tolerance = 1e-6)
+})
+
+test_that("a non-scenario base is refused", {
+  mod <- bs_mod("bs_badbase")
+  expect_error(solve_by_sample(mod, base = mod), "must be a saved scenario")
+})

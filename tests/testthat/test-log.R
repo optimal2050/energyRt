@@ -1,5 +1,5 @@
 # Optional operation log (R/log.R): off by default; set_log_file() makes
-# interpolate_model / solve_scenario / solve_myopic append one CSV line each;
+# interpolate_model / solve_scenario / solve_recursive append one CSV line each;
 # read_log() reads the sequence back. Fixtures from helper-stock-path.R.
 
 lg_root <- function(...) {

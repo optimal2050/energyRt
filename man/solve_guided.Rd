@@ -69,7 +69,7 @@ a \code{guided} object: \code{stages} (a tibble of what ran), \code{scenarios},
 \description{
 Reaches a full-horizon solution by solving cheap endpoint problems first and
 using their capacity as targets for the expensive full solve. Unlike
-\code{\link[=solve_myopic]{solve_myopic()}}, every subproblem sees the horizon's last milestone, so the
+\code{\link[=solve_recursive]{solve_recursive()}}, every subproblem sees the horizon's last milestone, so the
 transition is disciplined by where it must arrive rather than by local
 optimality — and the final stage is one ordinary full-horizon solve, whose
 objective is therefore directly comparable to a true perfect-foresight one.
@@ -117,5 +117,5 @@ sum(getData(res$final, "vObjective", merge = TRUE)$value)
 }
 }
 \seealso{
-\code{\link[=solve_myopic]{solve_myopic()}}, \code{\link[=apply_targets]{apply_targets()}}, \code{\link[=guided_gap]{guided_gap()}}
+\code{\link[=solve_recursive]{solve_recursive()}}, \code{\link[=apply_targets]{apply_targets()}}, \code{\link[=guided_gap]{guided_gap()}}
 }

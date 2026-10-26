@@ -1,6 +1,6 @@
 # =============================================================================#
 # carry.R — sequential-solving primitives: the solution ledger and its
-# application to a model (Part 2: myopic/sequential solving).
+# application to a model (Part 2: recursive/sequential solving).
 #
 # The seam has two halves:
 #   solution_ledger(scen, years)   WHAT was decided — pure extraction of the
@@ -25,7 +25,7 @@
 # CARRIED stock in later steps are attributed to the carried pool
 # oldest-vintage-first (FIFO); the user-stock share follows from the factual
 # terminal stock. Carried capacity enters later steps as `stock`, which pays
-# no EAC — sunk investment, by design (see solve_myopic()).
+# no EAC — sunk investment, by design (see solve_recursive()).
 # =============================================================================#
 
 # family spec: how each process class maps to variables, lifetime, and the
@@ -164,7 +164,7 @@
 #' @param ledger an existing `carry_ledger` to append to (default: empty).
 #'
 #' @return a `carry_ledger` object.
-#' @seealso [apply_ledger()], [solve_myopic()]
+#' @seealso [apply_ledger()], [solve_recursive()]
 #' @export
 #' @examples
 #' \dontrun{
@@ -183,7 +183,7 @@
 #' led <- solution_ledger(scen)
 #' names(led)
 #'
-#' # the accumulated ledger is what `solve_myopic()` writes into the next
+#' # the accumulated ledger is what `solve_recursive()` writes into the next
 #' # step's model
 #' led$steps
 #' }
@@ -416,7 +416,7 @@ print.carry_ledger <- function(x, ...) {
 #' @param verbose logical.
 #'
 #' @return a model object.
-#' @seealso [solution_ledger()], [solve_myopic()]
+#' @seealso [solution_ledger()], [solve_recursive()]
 #' @keywords internal
 apply_ledger <- function(mod, ledger, horizon,
                                carry = c("capacity", "budgets"),
@@ -662,12 +662,23 @@ solution_targets <- function(object, years = NULL, classes = NULL) {
          "this scenario's status is '",
          object@status$solution_status %||% "unsolved", "'.", call. = FALSE)
   }
+  .capacity_targets(object, var = "totalcap", years = years, classes = classes)
+}
+
+# The family walk behind solution_targets(), over any capacity variable named
+# in `.carry_families()`: "totalcap" is the standing fleet a guide steers with,
+# "newcap" the build rate a sampled ensemble agrees on. Same row shape either
+# way -- one per (family, proc, region, year) -- so `apply_targets()` reads
+# both, and the basis it is given decides how the number becomes a bound.
+#' @noRd
+.capacity_targets <- function(object, var = "totalcap", years = NULL,
+                              classes = NULL) {
   fams <- .carry_families()
   if (!is.null(classes)) fams <- fams[intersect(names(fams), classes)]
   out <- list()
   for (fk in names(fams)) {
     fam <- fams[[fk]]
-    d <- .ledger_var(object, fam$totalcap)
+    d <- .ledger_var(object, fam[[var]])
     if (is.null(d) || !"value" %in% names(d)) next
     if (!is.null(years)) d <- d[d$year %in% as.integer(years), , drop = FALSE]
     d <- d[!is.na(d$value) & d$value > 0, , drop = FALSE]

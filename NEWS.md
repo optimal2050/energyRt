@@ -27,6 +27,26 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* `solve_by_sample()` accepts a saved scenario as its first argument, or an
+  explicit `base =`: the scenario's model drives the sequence and the scenario
+  becomes the base, so each sample's interpolated tables are stored as a row
+  filter over it instead of a copy. The base must have its inputs sealed
+  (`seal_scenario()`), which leaves it solvable, and only tables at or above
+  `energyRt.param_ref_min_rows` qualify. A base that cannot be used falls back
+  to copying and says why.
+
+* `solve_by_sample(ncap_floor =)` solves the ensemble twice: freely, then
+  against a floor of `ncap_floor` times the samples' own new capacity, so the
+  spread becomes period variation at one plan rather than variation between
+  plans. `ncap_stat` picks the mean or the median. The consensus is taken
+  across all samples, so it does not depend on the order they were solved, and
+  a sample that built nothing counts as a zero rather than being skipped. It is
+  a floor, not a fix: a sample may still build above it, which marks a period
+  the consensus plan cannot serve. The floored solves are stored as `<sample>_f`
+  variants beside the free ones and the free pass stays in `$scenarios_free`;
+  `$runs` gains a `pass` column. `ncap_floor = 0` is the default and changes
+  nothing.
+
 ### Model building
 
 * Three-part storage: charger, reservoir and discharger with their own
@@ -230,6 +250,18 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Breaking changes
 
+* `solve_myopic()` is renamed **`solve_recursive()`**, with `myopic_objective()`
+  to `recursive_objective()` and the result class from `myopic` to `recursive`.
+  The driver steps through the horizon's milestones carrying capacity forward,
+  which is recursive dynamic; it is only *myopic* in its default special case
+  (`step = 1`, `overlap = 0`), since `overlap` gives a step look-ahead and
+  `step > 1` solves several milestones jointly. There are no aliases.
+
+  Sequences already on disk are unaffected: `variant.yml` now records
+  `type: recursive_step`, and `read_sequence()` reads the older `myopic_step`
+  as the same driver.
+
+
 * `slice` is `timeslice`, and a `calendar` is required; the `tsl2*()` helpers
   moved to timescales.
 * Storage: `vStorageStore` is `vStorageLevel`; `@cap2stg`, `@charge` and
@@ -261,6 +293,15 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   `mmcloud::get_hf_token()` and `mmcloud::set_hf_token()`.
 
 ## Bug fixes
+
+* `interpolate_model(base =)` refused every base when the caller also passed
+  `path =`. The base is dispatched before the control arguments are read out
+  of `...`, so `path` reached the addition check and was reported as "an
+  object of class character is added; interpolating in full." Every solve
+  driver passes `path`, so none of them could build on a base, and because the
+  refusal is a message it was invisible behind their `suppressMessages()`. An
+  argument now counts as a model addition only if it is an energyRt object.
+
 
 * A reloaded `solve_by_region()` sequence served every variant the FIRST
   unit's model. The scenario stored the model it was interpolated from, which

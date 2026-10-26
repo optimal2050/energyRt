@@ -12,20 +12,20 @@ read_sequence(object, sequence = NULL, type = NULL, verbose = TRUE)
 \item{sequence}{character, the sequence name to rebuild (as recorded in
 \code{variant.yml}). Needed only when the scenario holds more than one.}
 
-\item{type}{character, restrict to one driver: \code{"myopic_step"},
+\item{type}{character, restrict to one driver: \code{"recursive_step"},
 \code{"calendar_sample"}, \code{"region_sample"} or \code{"guided_stage"}.}
 
 \item{verbose}{logical.}
 }
 \value{
-an object of the driver's class (\code{myopic}, \code{by_sample},
+an object of the driver's class (\code{recursive}, \code{by_sample},
 \code{by_region} or \code{guided}), with \verb{$reconstructed = TRUE}.
 }
 \description{
-Reassembles the object a driver returned — \code{\link[=solve_myopic]{solve_myopic()}},
+Reassembles the object a driver returned — \code{\link[=solve_recursive]{solve_recursive()}},
 \code{\link[=solve_by_sample]{solve_by_sample()}}, \code{\link[=solve_by_region]{solve_by_region()}} or \code{\link[=solve_guided]{solve_guided()}} — from a
 scenario's variants, so \code{getData()}, \code{\link[=sample_summary]{sample_summary()}},
-\code{\link[=myopic_objective]{myopic_objective()}} and \code{\link[=guided_gap]{guided_gap()}} work on a scenario reloaded from
+\code{\link[=recursive_objective]{recursive_objective()}} and \code{\link[=guided_gap]{guided_gap()}} work on a scenario reloaded from
 disk rather than only on the live result.
 }
 \details{
@@ -40,7 +40,7 @@ one you want with \code{sequence}, or narrow by \code{type}.
 \section{What cannot be rebuilt}{
 
 A driver's working state is never written to disk: the carry ledger
-(myopic, guided), the capacity targets (guided), and the timeslice
+(recursive, guided), the capacity targets (guided), and the timeslice
 membership of a sampling spec (by_sample). Those fields are \code{NULL} in the
 result and named in \verb{$missing}, and \verb{$reconstructed} is \code{TRUE}. The
 functions that read \verb{$scenarios} — \code{getData()} and the summaries — do not
@@ -55,9 +55,9 @@ unit's region set in that unit's cartridge, so a variant rebuilds its own cut.
 
 \examples{
 \dontrun{
-scen <- getScenario("ELC_myopic")
+scen <- getScenario("ELC_recursive")
 seq <- read_sequence(scen)
-myopic_objective(seq)
+recursive_objective(seq)
 }
 }
 \seealso{

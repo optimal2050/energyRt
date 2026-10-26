@@ -13,14 +13,14 @@
 #                             target across the whole path cheaply
 #   pairs     {y_k, LY}       each interior milestone refined against the
 #                             endpoint — the step that distinguishes this from
-#                             myopic solving, because every subproblem still
+#                             recursive solving, because every subproblem still
 #                             sees where it has to arrive
 #   final     full            the deliverable: one full-horizon solve with the
 #                             accumulated targets as bounds
 #
 # Two properties follow from the last stage being a single ordinary solve.
 # Its `vObjective` is directly comparable to a true perfect-foresight
-# objective — unlike solve_myopic(), whose carried stock pays no EAC — and the
+# objective — unlike solve_recursive(), whose carried stock pays no EAC — and the
 # comparison has a known sign: guided >= PF, the gap being the price of the
 # guidance. `guided_gap()` reports it.
 #
@@ -174,7 +174,7 @@ guided_windows <- function(horizon, direction = c("backward", "forward"),
 #' @description
 #' Reaches a full-horizon solution by solving cheap endpoint problems first and
 #' using their capacity as targets for the expensive full solve. Unlike
-#' [solve_myopic()], every subproblem sees the horizon's last milestone, so the
+#' [solve_recursive()], every subproblem sees the horizon's last milestone, so the
 #' transition is disciplined by where it must arrive rather than by local
 #' optimality — and the final stage is one ordinary full-horizon solve, whose
 #' objective is therefore directly comparable to a true perfect-foresight one.
@@ -228,7 +228,7 @@ guided_windows <- function(horizon, direction = c("backward", "forward"),
 #'
 #' @return a `guided` object: `stages` (a tibble of what ran), `scenarios`,
 #'   `targets`, `ledger`, and `final` — the full-horizon solved scenario.
-#' @seealso [solve_myopic()], [apply_targets()], [guided_gap()]
+#' @seealso [solve_recursive()], [apply_targets()], [guided_gap()]
 #' @export
 #' @examples
 #' \dontrun{
@@ -282,7 +282,7 @@ solve_guided <- function(object, name = NULL, ...,
   ly_year <- as.integer(iv$mid[n])
   extra <- list(...)
 
-  .myopic_warn_intertemporal(object)
+  .recursive_warn_intertemporal(object)
 
   seq_path <- fp(get_scenarios_path(), .path_slug(name, object@name))
   ledger <- .ledger_new()

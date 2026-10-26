@@ -239,17 +239,17 @@ reference:
 
 - title: Solve drivers
   desc: >
-    Sequences of solves — myopic foresight, sampled calendars, region-by-region
+    Sequences of solves — recursive milestone-by-milestone, sampled calendars,
     decomposition, and guided target-seeking — with their primitives.
   contents:
-  - solve_myopic
+  - solve_recursive
   - solve_by_sample
   - solve_by_region
   - solve_guided
   - horizon_windows
   - solution_ledger
   - apply_ledger
-  - myopic_objective
+  - recursive_objective
   - calendar_samples
   - sample_summary
   - boundary_window

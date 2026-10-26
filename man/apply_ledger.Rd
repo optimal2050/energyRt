@@ -42,6 +42,6 @@ cumulative reserves debited by past use. Carried capacity stands while
 and enters as \code{stock} — investment-cost-free, i.e. sunk.
 }
 \seealso{
-\code{\link[=solution_ledger]{solution_ledger()}}, \code{\link[=solve_myopic]{solve_myopic()}}
+\code{\link[=solution_ledger]{solution_ledger()}}, \code{\link[=solve_recursive]{solve_recursive()}}
 }
 \keyword{internal}

@@ -292,6 +292,17 @@ calendar_samples <- function(calendar, level = NULL, sample_size = NULL,
 #'   `samples` is `NULL`.
 #' @param calendar the calendar to sample; the model's own when `NULL`.
 #' @param solver a solver option list; the scenario's default when `NULL`.
+#' @param ncap_floor numeric in `[0, 1]`. `0` (default) leaves every sample
+#'   free to choose its own capacity, and the ensemble is a distribution over
+#'   different investment plans. Above `0` the samples are solved a second
+#'   time against a floor of `ncap_floor` times the ensemble's own new
+#'   capacity, so the spread becomes period variation at one plan rather than
+#'   variation between plans. `0.9` lets a sample trim a tenth; `1` holds the
+#'   consensus exactly. It is a floor, not a fix: a sample may still build
+#'   ABOVE it, and that is the signal worth reading -- it marks a period the
+#'   consensus plan cannot serve.
+#' @param ncap_stat `"mean"` (default) or `"median"`, the statistic the
+#'   consensus is taken with. Used only when `ncap_floor > 0`.
 #' @param on_error `"stop"` (default) or `"continue"` — with `"continue"` a
 #'   sample that fails to solve is recorded and the ensemble carries on.
 #' @param keep_scenarios logical, keep each sample's scenario object.
@@ -329,13 +340,37 @@ solve_by_sample <- function(object, name = NULL, ...,
                             sample_size = NULL, n = NULL,
                             method = c("sequential", "random", "bootstrap"),
                             seed = NULL, calendar = NULL,
-                            solver = NULL,
+                            solver = NULL, base = NULL,
+                            ncap_floor = 0, ncap_stat = c("mean", "median"),
                             on_error = c("stop", "continue"),
                             overwrite = FALSE,
                             keep_scenarios = TRUE, verbose = TRUE) {
+  # A SCENARIO names the full problem the samples are drawn from: its model
+  # drives the sequence and the scenario itself becomes the base, so each
+  # sample's tables are stored as a row filter over it rather than as a copy.
+  if (is(object, "scenario")) {
+    base <- base %||% object
+    object <- object@model
+  }
   stopifnot(is(object, "model"))
+  if (!is.null(base) && !is(base, "scenario")) {
+    stop("`base` must be a saved scenario of the same model, or NULL.",
+         call. = FALSE)
+  }
   method <- match.arg(method)
   on_error <- match.arg(on_error)
+  ncap_stat <- match.arg(ncap_stat)
+  if (!is.numeric(ncap_floor) || length(ncap_floor) != 1L ||
+      is.na(ncap_floor) || ncap_floor < 0) {
+    stop("`ncap_floor` must be one number in [0, 1].", call. = FALSE)
+  }
+  if (ncap_floor > 1) {
+    # Above 1 is not a relaxation of the consensus but a demand to build more
+    # than any sample chose -- a different request, and silently clamping it
+    # would answer a question nobody asked.
+    stop("`ncap_floor` is a fraction of the ensemble's own new capacity, so ",
+         "it cannot exceed 1 (got ", ncap_floor, ").", call. = FALSE)
+  }
   if (is.null(name)) name <- paste0(object@name, "_by_sample")
   .assert_object_name(name, "name")
 
@@ -365,33 +400,41 @@ solve_by_sample <- function(object, name = NULL, ...,
 
   extra <- list(...)
   seq_path <- fp(get_scenarios_path(), .path_slug(name, object@name))
+
+  vparams <- .variant_params(
+    method = method, level = level, sample_size = sample_size, n = n,
+    seed = seed, calendar = cal, ncap_floor = ncap_floor,
+    ncap_stat = if (ncap_floor > 0) ncap_stat else NULL)
+
+  # One pass over the samples. Run twice when a floor is asked for: the free
+  # pass decides, the floored pass re-dispatches every sample against the
+  # ensemble's own consensus. `mod` and the variant suffix are all that differ.
+  one_pass <- function(mod, sfx = "", pass = "free", base = NULL) {
   scens <- list()
   failed <- FALSE
   runs <- tibble(sample = character(0), run = character(0),
                  slices = integer(0), year_fraction = numeric(0),
-                 status = character(0), objective = numeric(0))
-
-  vparams <- .variant_params(
-    method = method, level = level, sample_size = sample_size, n = n,
-    seed = seed, calendar = cal)
-
+                 status = character(0), objective = numeric(0),
+                 pass = character(0))
   for (k in seq_along(ids)) {
     sid <- ids[k]
-    .variant_guard(seq_path, sid, "calendar_sample", vparams, overwrite)
+    vlab <- paste0(sid, sfx)
+    .variant_guard(seq_path, vlab, "calendar_sample", vparams, overwrite)
     rows <- spec[spec$sample == sid, , drop = FALSE]
     cnt <- stats::setNames(rows$count, rows$timeslice)
     if (verbose) {
-      message("sample ", k, "/", length(ids), ": ", sid, " (",
-              nrow(rows), " slice(s))")
+      message("sample ", k, "/", length(ids), ": ", vlab, " (",
+              nrow(rows), " slice(s)", if (nzchar(sfx)) ", floored" else "", ")")
     }
     sol <- tryCatch({
       cal_k <- .sample_calendar(cal, rows$timeslice, counts = cnt,
                                name = paste0("cs_", sid))
-      args <- c(list(object, name = name), extra,
-                list(cal_k, path = seq_path, overwrite = TRUE))
+      args <- c(list(mod, name = name), extra,
+                list(cal_k, path = seq_path, overwrite = TRUE),
+                if (is.null(base)) list() else list(base = base))
       scen_k <- suppressMessages(do.call(interpolate_model, args))
       solve_scenario(scen_k, solver = solver, echo = FALSE, force = TRUE,
-                     variant = sid)
+                     variant = vlab)
     }, error = function(e) e)
 
     ok <- !inherits(sol, "error") && isTRUE(sol@status$optimal)
@@ -409,7 +452,7 @@ solve_by_sample <- function(object, name = NULL, ...,
     }
 
     if (!ok) {
-      msg <- paste0("Calendar sample '", sid, "' did not solve",
+      msg <- paste0("Calendar sample '", vlab, "' did not solve",
                     if (inherits(sol, "error"))
                       paste0(": ", conditionMessage(sol)) else " to optimal",
                     ".")
@@ -418,20 +461,53 @@ solve_by_sample <- function(object, name = NULL, ...,
       failed <- TRUE
       runs <- bind_rows(runs, tibble(
         sample = sid, run = NA_character_, slices = nrow(rows),
-        year_fraction = NA_real_, status = "failed", objective = NA_real_))
+        year_fraction = NA_real_, status = "failed", objective = NA_real_,
+        pass = pass))
       next
     }
 
     saved <- suppressMessages(suppressWarnings(
       save_scenario(sol, verbose = FALSE)))
-    .by_sample_tag_variant(saved, sid, sequence = name, method = method,
+    .by_sample_tag_variant(saved, vlab, sequence = name, method = method,
                            params = vparams,
                            slices = nrow(rows), yf = yf)
     if (keep_scenarios) scens[[sid]] <- saved
     runs <- bind_rows(runs, tibble(
-      sample = sid, run = fp(sid, saved@misc$run %||% "?"),
+      sample = sid, run = fp(vlab, saved@misc$run %||% "?"),
       slices = nrow(rows), year_fraction = yf,
-      status = "solved", objective = obj))
+      status = "solved", objective = obj, pass = pass))
+  }
+  list(scens = scens, runs = runs, failed = failed)
+  }
+
+  free <- one_pass(object, sfx = "", pass = "free", base = base)
+  scens <- free$scens
+  runs <- free$runs
+  failed <- free$failed
+  floored <- NULL
+
+  if (ncap_floor > 0 && length(free$scens)) {
+    tg <- .ensemble_consensus(free$scens, stat = ncap_stat)
+    if (is.null(tg) || !nrow(tg)) {
+      warning("No new capacity was built in any sample, so there is no ",
+              "consensus to floor; returning the free pass.", call. = FALSE)
+    } else {
+      if (verbose) {
+        message("consensus floor: ", ncap_floor, " x ", ncap_stat, " of ",
+                nrow(tg), " (process, region, year) build rate(s)")
+      }
+      hz <- tryCatch(object@config@horizon, error = function(e) NULL)
+      mod_f <- apply_targets(object, tg, horizon = hz,
+                             slack = 1 - ncap_floor, mode = "lo",
+                             basis = "ncap", verbose = FALSE)
+      # No base for the floored pass: apply_targets() writes bounds into the
+      # model's @capacity slots, so its tables are not the base's filtered --
+      # interpolate_model() would refuse and say so once per sample.
+      floored <- one_pass(mod_f, sfx = "_f", pass = "floor")
+      scens <- floored$scens
+      runs <- bind_rows(free$runs, floored$runs)
+      failed <- failed || floored$failed
+    }
   }
 
   .en_log("by_sample", name, duration = NA, model = object@name,
@@ -439,10 +515,52 @@ solve_by_sample <- function(object, name = NULL, ...,
 
   structure(list(
     name = name, model = object, runs = runs, scenarios = scens,
+    # the floored solves ARE the answer when a floor was asked for, so they are
+    # `$scenarios`; the free pass stays reachable because it is what the
+    # consensus was taken from
+    scenarios_free = if (is.null(floored)) NULL else free$scens,
+    ncap_floor = ncap_floor,
+    ncap_stat = if (ncap_floor > 0) ncap_stat else NA_character_,
     samples = spec, method = method, calendar = cal,
     path = if (length(scens)) scens[[length(scens)]]@path else NULL,
     failed = failed
   ), class = "by_sample")
+}
+
+# The ensemble's agreed build rate: `stat` of each sample's `vTechNewCap` (and
+# the storage families' equivalents) per process, region and year.
+#
+# Taken across ALL samples rather than from a donor or a chain, so the result
+# does not depend on the order they were solved and the samples stay
+# exchangeable -- which is what keeps sample_summary()'s quantiles quantiles
+# over replicates.
+#
+# A sample that built nothing for a given key contributes a ZERO, not a
+# missing value: `.capacity_targets()` drops non-positive rows, so averaging
+# only the rows present would read "three of five samples built X" as "every
+# sample built X" and floor the ensemble above what it agreed on.
+#' @noRd
+.ensemble_consensus <- function(scens, stat = c("mean", "median")) {
+  stat <- match.arg(stat)
+  n <- length(scens)
+  if (!n) return(NULL)
+  parts <- lapply(scens, function(sc) {
+    tryCatch(.capacity_targets(sc, var = "newcap"), error = function(e) NULL)
+  })
+  parts <- Filter(function(d) !is.null(d) && nrow(d), parts)
+  if (!length(parts)) return(NULL)
+  all <- bind_rows(parts)
+  key <- paste(all$family, all$proc, all$region, all$year, sep = "
+")
+  f <- if (identical(stat, "median")) stats::median else mean
+  agg <- vapply(split(all$value, key), function(v) {
+    f(c(v, rep(0, n - length(v))))        # absent sample = built nothing
+  }, numeric(1))
+  first <- all[!duplicated(key), , drop = FALSE]
+  first <- first[match(names(agg), key[!duplicated(key)]), , drop = FALSE]
+  first$value <- as.numeric(agg)
+  first <- first[!is.na(first$value) & first$value > 0, , drop = FALSE]
+  structure(first, class = unique(c("capacity_targets", class(first))))
 }
 
 # TRUE when any storage declares an out.af.* row
@@ -571,7 +689,13 @@ sample_summary <- function(x, name, probs = c(0.05, 0.5, 0.95), by = NULL,
 #' @export
 print.by_sample <- function(x, ...) {
   cat("by_sample '", x$name, "': ", nrow(x$runs), " sample(s), method = ",
-      x$method, "\n", sep = "")
+      x$method,
+      if (isTRUE((x$ncap_floor %||% 0) > 0)) {
+        paste0(", ncap_floor = ", x$ncap_floor, " of the ", x$ncap_stat)
+      } else {
+        ""
+      },
+      "\n", sep = "")
   df <- as.data.frame(x$runs)
   if (nrow(df)) print(df, row.names = FALSE)
   ok <- x$runs$status == "solved"
@@ -582,6 +706,12 @@ print.by_sample <- function(x, ...) {
   }
   cat("each sample is annualised and estimates the WHOLE year: these are ",
       "replicates, not pieces -- do not sum them.\n", sep = "")
+  if (isTRUE((x$ncap_floor %||% 0) > 0)) {
+    cat("capacity is floored at the ensemble consensus, so the spread is ",
+        "period variation at ONE plan; a sample above the floor marks a ",
+        "period that plan cannot serve. $scenarios_free holds the free ",
+        "pass.\n", sep = "")
+  }
   if (isTRUE(x$failed)) cat("(at least one sample failed)\n")
   invisible(x)
 }
