@@ -440,12 +440,12 @@ update_parameter <- function(object, param, data, path = NULL) {
   if (!any(fx)) {
     return(dat)
   }
-  fx_rows <- dat[fx, , drop = FALSE]
-  lo_rows <- fx_rows
-  lo_rows$type <- "lo"
-  up_rows <- fx_rows
-  up_rows$type <- "up"
-  dplyr::bind_rows(dat[!fx, , drop = FALSE], lo_rows, up_rows)
+  # the other rows, then the fx rows as `lo`, then as `up`
+  k <- sum(fx)
+  out <- dat[c(which(!fx), which(fx), which(fx)), , drop = FALSE]
+  out$type <- c(as.character(dat$type)[!fx], rep.int(c("lo", "up"), c(k, k)))
+  rownames(out) <- NULL
+  out
 }
 
 
@@ -1538,6 +1538,11 @@ force_cols_classes <- function(dtf) {
     dtf[["type"]] <- factor(as.character(col(dtf, "type")), levels = c("lo", "up"))
   }
 
+  # a data frame becomes a table of its own copied columns (as
+  # `as.data.table()` does, at a fraction of the per-call cost)
+  if (is.data.frame(dtf) && !is.data.table(dtf)) {
+    return(data.table::setDT(data.table::copy(as.list(dtf))))
+  }
   as.data.table(dtf)
 }
 

@@ -1690,11 +1690,30 @@ map_mTechOutComm <- function(scen, fmp) .membership_map(scen, "mTechOutComm", sc
 # .build_tech_group_maps). Faithful port of the legacy .obj2modInp(technology)
 # derivation (obj2modInp.R:2013); reads the tech objects directly like the other
 # membership maps read their `*_comm` sets.
+# checkInpOut() of every technology, computed once per interpolation: the
+# one-commodity and the three group maps read it for each technology.
+.tech_inpout <- function(scen) {
+  .interp_memo("tech_inpout", .interp_model_fp(scen), function() {
+    apply_to_scenario_data(
+      scen = scen, classes = "technology", as_list = TRUE,
+      func = function(tech) {
+        out <- list()
+        out[[tech@name]] <- checkInpOut(tech)
+        out
+      })
+  })
+}
+.tech_inpout_of <- function(io, tech) {
+  r <- io[[tech@name]]
+  if (is.null(r)) checkInpOut(tech) else r
+}
+
 map_mTechOneComm <- function(scen, fmp) {
+  io <- .tech_inpout(scen)
   res <- apply_to_scenario_data(
     scen = scen, classes = "technology", as_list = TRUE,
     func = function(tech) {
-      ct  <- checkInpOut(tech)$comm
+      ct  <- .tech_inpout_of(io, tech)$comm
       cmm <- rownames(ct)[is.na(ct$group)]
       if (length(cmm) == 0) return(NULL)
       out <- list()
@@ -1722,10 +1741,11 @@ map_mTechOneComm <- function(scen, fmp) {
 # mTechGroupComm: (tech, group, comm) for each technology's GROUPED commodities —
 # those whose `group` is non-NA in checkInpOut()'s per-commodity table.
 map_mTechGroupComm <- function(scen, fmp) {
+  io <- .tech_inpout(scen)
   res <- apply_to_scenario_data(
     scen = scen, classes = "technology", as_list = TRUE,
     func = function(tech) {
-      ct  <- checkInpOut(tech)$comm
+      ct  <- .tech_inpout_of(io, tech)$comm
       idx <- !is.na(ct$group)
       if (!any(idx)) return(NULL)
       out <- list()
@@ -1745,10 +1765,11 @@ map_mTechGroupComm <- function(scen, fmp) {
 # checkInpOut()'s per-group table (gtype). A tech with no groups yields an empty
 # gtype and is skipped.
 .build_tech_group_dir <- function(scen, fmp, want_type, param_name) {
+  io <- .tech_inpout(scen)
   res <- apply_to_scenario_data(
     scen = scen, classes = "technology", as_list = TRUE,
     func = function(tech) {
-      gt <- checkInpOut(tech)$group
+      gt <- .tech_inpout_of(io, tech)$group
       if (is.null(gt) || nrow(gt) == 0) return(NULL)
       grp <- rownames(gt)[!is.na(gt$type) & gt$type == want_type]
       if (length(grp) == 0) return(NULL)
