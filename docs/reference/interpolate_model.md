@@ -18,6 +18,7 @@ interpolate_model(
   object,
   name = NULL,
   ...,
+  base = NULL,
   desc = NULL,
   ondisk = FALSE,
   overwrite = FALSE,
@@ -32,7 +33,8 @@ interpolate_model(
   parent_levels = getOption("energyRt.parent_levels", FALSE),
   fx_equ = getOption("energyRt.fx_equ", TRUE),
   on_missing_input = getOption("energyRt.on_missing_input", "stop"),
-  verbose = isVerbose()
+  verbose = isVerbose(),
+  .reuse = NULL
 )
 
 # S4 method for class 'model'
@@ -58,6 +60,25 @@ interpolate(object, ...)
   `storage`, ...). This is how a scenario overrides or extends the model
   (e.g. pass a sampled `calendar` to interpolate on a reduced time
   resolution).
+
+- base:
+
+  optional interpolated
+  [scenario](https://energyRt.org/reference/class-scenario.md) to build
+  on. The objects in `...` must be new to the model: constraints, costs,
+  taxes and subsidies, new processes and commodities, or a `calendar` /
+  geoscale that samples the base's. The result is the base plus what
+  they add: the base's tables are reused, nothing is written into its
+  store, and the result equals a full interpolation of the model with
+  the base's additions and the new ones. The base's `fold`, `sparse` and
+  `prune` settings apply. Otherwise (another model, a replaced object,
+  settings or horizon objects) a message says why and the model is
+  interpolated in full. `object` may be the base itself.
+
+  New processes, commodities and other model objects are built on the
+  base too: the per-object tables of the objects the base already holds
+  are reused, the new objects' tables are computed, and every map is
+  rebuilt.
 
 - desc:
 
@@ -208,6 +229,11 @@ interpolate(object, ...)
   `getObject(scen, class = "constraint")`; each carries a readable
   `desc` and, in `misc$.variant_source`, the object it was derived from.
 
+- .reuse:
+
+  internal: an interpolated scenario whose per-object tables are reused
+  for the objects it holds (set by `base`).
+
 ## Value
 
 an interpolated
@@ -254,7 +280,7 @@ model_size(interpolate_model(mod, name = "FOLDED", fold = TRUE))
 #>   TBD_GAS_WEST_CENTRAL@invcost: CENTRAL, WEST
 #> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.
 #> model_size: FOLDED
-#>   parameters : 189 value, 352 maps, 15 sets
+#>   parameters : 200 value, 359 maps, 15 sets
 #>   param rows : 2,111  (fold step: 8,741 -> 2,111, saved 6,630 = 76%)
 #>   folded dims: region=20  timeslice=11  year=19
 #>   estimate   : ~61,849 variables, ~63,464 constraints (from gating maps)

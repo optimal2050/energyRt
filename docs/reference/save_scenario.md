@@ -10,6 +10,7 @@ save_scenario(
   path = object@path,
   embed_model = NULL,
   embed_datasets = NULL,
+  mode = NULL,
   format = get_storage_format(),
   overwrite = TRUE,
   clean_start = FALSE,
@@ -30,18 +31,17 @@ save_scenario(
 
 - embed_model:
 
-  `NULL` (default), `TRUE`, or `FALSE`. Controls whether the model is
-  embedded in the saved scenario or referenced from the model store (see
+  `NULL` (default: by `mode`), `TRUE`, or `FALSE`. Controls whether the
+  model is embedded in the saved scenario or referenced from the model
+  store (see
   [`save_model()`](https://energyRt.org/reference/model_store.md)).
-  `NULL`: reference the store entry, saving the model to the store first
-  when nothing is stored under that name; embed when the name is taken
-  by different content (store entries update in place, so writing would
-  replace the version other scenarios reference). `TRUE`: always embed
-  (self-contained folder). `FALSE`: require an existing store hit, error
-  otherwise, and never write to the store. A referenced save stores only
-  `{name, hash, path}`;
+  `NULL`: reference a sealed version holding the model's exact content,
+  embed otherwise. `TRUE`: always embed (self-contained folder).
+  `FALSE`: require a sealed version, error otherwise. A referenced save
+  stores only `{name, hash, path}` and is recorded on the sealed version
+  ([`list_dependents()`](https://energyRt.org/reference/list_dependents.md));
   [`load_scenario()`](https://energyRt.org/reference/load_scenario.md)
-  resolves it back via the registry / model store.
+  resolves it back.
 
 - embed_datasets:
 
@@ -51,6 +51,16 @@ save_scenario(
   [`save_dataset()`](https://energyRt.org/reference/dataset_store.md)).
   `NULL` (default) references whatever identical content is already in
   the dataset store; `TRUE` always embeds; `FALSE` requires a store hit.
+
+- mode:
+
+  `"ref"` or `"full"`; defaults to
+  `getOption("energyRt.save_mode", "ref")`. `"ref"` references the model
+  when its exact content is a SEALED version in the model store
+  ([`seal_model()`](https://energyRt.org/reference/seal.md)) and copies
+  it in otherwise; `"full"` copies the model and the datasets in (a
+  self-contained folder). An explicit `embed_model` / `embed_datasets`
+  overrides the mode for its level.
 
 - format:
 

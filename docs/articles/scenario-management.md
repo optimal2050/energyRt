@@ -1,0 +1,760 @@
+# Scenario management: how models, scenarios, and solutions are organized
+
+An energy-modeling project quickly accumulates artifacts: models built
+from shared repositories, scenarios interpolated from them at different
+scopes, and solutions produced by different solvers. energyRt organizes
+all of it in one project folder with three principles:
+
+1.  **One folder per thing, one manifest per folder.** Every saved
+    model, repository, scenario, and solver run is a directory with a
+    small YAML manifest describing it. The manifests — not any central
+    database — are the source of truth; the project registry is a
+    rebuildable index over them.
+2.  **Share what cannot change.** Models, repositories and datasets are
+    stored once, under their **name** (`models/SM/`). An entry under
+    development updates in place; **sealing** freezes its content as a
+    version identified by a content hash. Only sealed versions are
+    referenced – by models, by scenarios, and by scenarios built on a
+    sealed scenario – so a reference can never point at content that has
+    since changed. Everything else is copied into the referring folder.
+3.  **Derive paths, don’t trust stored ones.** Where a run’s files live
+    is always computed from the scenario’s location and the run’s
+    identity. Loading a scenario re-bases every stored path onto the
+    folder it is actually loaded from, so moving or renaming folders —
+    or opening a project from a different working directory — just
+    works.
+
+This article walks the whole layout bottom-up. The *Workflow* article
+shows the same machinery in day-to-day use; this one explains how the
+pieces fit.
+
+``` r
+
+library(energyRt)
+```
+
+Everything lands under a throwaway project folder here; in a real
+project these are relative paths at the project root (the defaults are
+`scenarios/`, `models/`, `repositories/`, and `energyRt_registry.csv`).
+
+``` r
+
+proj <- file.path(tempdir(), "sm-demo")
+set_scenarios_path(file.path(proj, "scenarios"))
+set_models_path(file.path(proj, "models"))
+set_repositories_path(file.path(proj, "repositories"))
+set_registry_file(file.path(proj, "energyRt_registry.csv"))
+```
+
+A small model to work with — one region, one technology, three years:
+
+``` r
+
+cal <- newCalendar(
+  timetable = make_timetable(
+    struct = list(ANNUAL = "ANNUAL", HOUR = sprintf("t%02d", 1:4))),
+  name = "smc")
+
+make_mod <- function(stock) {
+  TECH <- newTechnology(
+    "TECH", output = data.frame(comm = "ELC", unit = "GWh"), cap2act = 1,
+    capacity = data.frame(region = "R1", year = 2020:2022, stock = stock),
+    fixom = data.frame(fixom = 1),
+    vintage = data.frame(olife = 50L), optimizeRetirement = FALSE)
+  newModel(
+    name = "SM", region = "R1", discount = 0, calendar = cal,
+    horizon = newHorizon(2020:2022, intervals = c(1, 1, 1)),
+    repo = newRepository(
+      "smr", newCommodity("ELC", timeframe = "HOUR"), TECH,
+      newSupply("BACK", commodity = "ELC", supply = data.frame(cost = 1000)),
+      newDemand("DEM", commodity = "ELC", demand = data.frame(demand = 1))))
+}
+mod <- make_mod(stock = c(100, 100, 100))
+```
+
+## The scenario folder
+
+A **scenario** is one interpolated instance of a model: the model
+compiled onto a concrete calendar, horizon, and region scope. Solving it
+— possibly several times, with several solvers — produces **runs**. On
+disk:
+
+    scenarios/<name-model-calendar-horizon>/
+    ├── scenario.yml        # manifest: model reference, calendar, horizon,
+    │                       #   `default:` — the default run (edit it freely)
+    ├── scen.RData          # the thin S4 shell (all big data lives beside it)
+    ├── class · format · layout · logfile.csv
+    ├── modInp/parameters/<param>/           # the (base) interpolated problem
+    ├── modOut/variables/<var>/              # the scenario's own solution, once
+    │                       #   promoted — with modOut.yml recording which run
+    │                       #   produced it (see "A solution of its own")
+    ├── model/…             # the model's data — only when embedded (see below)
+    └── runs/               # one folder per solver run
+        ├── glpk/                            # a base-problem run
+        │   ├── run.yml     #   provenance: solver, cmdline, started/finished,
+        │   │               #   duration, status, objective, host, user
+        │   ├── input/      #   the exchange tables handed to the solver
+        │   ├── output/     #   the solver's raw dump; read_solution() reads it
+        │   └── modOut/variables/<var>/      #   the parsed solution store
+        └── julia_highs/…                    # another backend, side by side
+
+**`output/` and `modOut/` are two tiers, not a copy.** `output/` is the
+solver’s raw dump, in the backend’s own naming and types; `modOut/` is
+the imported store, and the import is real work — it normalises the
+backend away (GDX, CSV, Arrow and Parquet all land in one place),
+synthesises the set aliases no solver writes, types every dimension
+against its declared members, and computes `vTechEmsFuel` and
+`vUserCosts`, which no solver ever produced. Re-deriving that on demand
+would also need `@modInp`, which a variant swap may have replaced — so
+the store is the answer, not a cache. See
+[`?read_solution`](https://energyRt.org/reference/read.md).
+
+Until a solution has been imported, `output/` is the *only* copy of it,
+which is why
+[`drop_solver_outputs()`](https://energyRt.org/reference/drop_solver_outputs.md)
+refuses to remove it before then.
+
+Three ideas to notice:
+
+- **A run owns its artifacts.** Solving the same scenario with a second
+  backend does not overwrite anything: each run keeps its inputs, raw
+  outputs, provenance, and parsed solution. The in-memory scenario
+  object holds ONE active solution at a time; switching is a read, not a
+  re-solve.
+- **The run’s location is derived.** Nothing stores “where run X lives”
+  — it is always `<scenario>/runs/<run-id>/`, computed on demand. That
+  is why a moved scenario folder cannot strand its runs.
+- **`default:` in scenario.yml is yours.** It names the run a bare
+  `read_solution(scen)` resolves to after loading; a save sets it to the
+  active run, and you may edit the file to point elsewhere.
+
+Let’s produce that tree. `run = "<label>"` names a run explicitly;
+without it, the label defaults to the solver directory name
+(e.g. `"glpk"`):
+
+``` r
+
+scen <- interpolate_model(mod, name = "BASE") |>
+  solve_scenario(solver = solver_options$glpk, echo = FALSE)
+scen <- solve_scenario(scen, solver = solver_options$glpk, echo = FALSE,
+                   force = TRUE, run = "glpk-alt")
+scenario_runs(scen)[, c("run", "status", "solver_name", "objective", "active")]
+#> # A tibble: 2 × 5
+#>   run      status solver_name objective active
+#>   <chr>    <chr>  <chr>           <dbl> <lgl> 
+#> 1 glpk     solved glpk              300 FALSE 
+#> 2 glpk-alt solved glpk              300 TRUE
+```
+
+`scenario_run_info(scen, "glpk")` returns one run’s full `run.yml`;
+`read_solution(scen, run = "glpk")` switches the active solution;
+`drop_scenario_run(scen, "glpk-alt")` deletes a run (the active one only
+with `force = TRUE`). An *external* working directory — outside the
+scenario, no run record — is available via
+`solve_scenario(solver.dir = "...")`, and `transient = TRUE` solves in a
+throwaway folder.
+
+``` r
+
+scen <- save_scenario(scen, verbose = FALSE)
+#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpaO7oWG/sm-demo/scenarios/BASE-SM-smc'
+#> Directory size: 0.39 MB
+sort(list.files(scen@path))
+#> [1] "class"        "format"       "layout"       "logfile.csv"  "runs"        
+#> [6] "scen.RData"   "scenario.yml"
+```
+
+The folder *names* — the `<name-model-calendar-horizon>` slug, store
+entry basenames, the default solve label — are derived by built-in
+functions you can override with
+[`set_path_builder()`](https://energyRt.org/reference/path_builders.md)
+(see the toolbox below). Custom names are safe because nothing is ever
+parsed back out of a folder name: scenarios and store entries are found
+by the name recorded in their manifests and the registry. The run *tree*
+(`runs/<variant>/<solve>/`) is structural and not overridable.
+
+## Models, repositories and datasets: versions and references
+
+The model is part of the scenario, but fifty scenarios built on one
+model do not need fifty copies of it. A model is saved once in the
+**model store**, under its name:
+
+``` r
+
+save_model(mod, verbose = FALSE)
+list_versions("SM", type = "model")
+#> # A tibble: 1 × 7
+#>   status  name  type  version    sealed_at  refs size_mb
+#>   <chr>   <chr> <chr> <chr>      <dttm>    <int>   <dbl>
+#> 1 current SM    model (unsealed) NA            0       0
+```
+
+While a model is being developed, its entry updates in place: saving a
+changed model rewrites `models/SM/`, and the manifest records a save id
+rather than a content hash, so a large model is not serialised for
+hashing on every save. Saving identical content is a no-op.
+
+**Sealing** turns the current content into a version.
+[`seal_model()`](https://energyRt.org/reference/seal.md) computes the
+content hash
+([`model_hash()`](https://energyRt.org/reference/model_hash.md), with
+all volatile bookkeeping stripped) and moves the payload into a version
+folder, `models/SM/<hash>/`, which no later save changes. Changed
+content under a sealed name requires
+[`unseal_model()`](https://energyRt.org/reference/seal.md) first; the
+sealed version stays, and whatever references it keeps loading it.
+
+``` r
+
+seal_model(mod, verbose = FALSE)
+list_versions("SM", type = "model")
+#> # A tibble: 1 × 7
+#>   status  name  type  version  sealed_at            refs size_mb
+#>   <chr>   <chr> <chr> <chr>    <dttm>              <int>   <dbl>
+#> 1 current SM    model ad6914ee 2026-10-26 22:00:05     0       0
+```
+
+**Only sealed versions are referenced.** A scenario records the model it
+was interpolated from. When that model is a sealed version,
+[`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
+stores the reference `{name, hash}` instead of a copy, and the sealed
+version lists the scenario among its dependents:
+
+``` r
+
+scen <- save_scenario(scen, verbose = FALSE)
+#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpaO7oWG/sm-demo/scenarios/BASE-SM-smc'
+#> Directory size: 0.39 MB
+yaml::read_yaml(file.path(scen@path, "scenario.yml"))$model[c("name", "source")]
+#> $name
+#> [1] "SM"
+#> 
+#> $source
+#> [1] "ref"
+list_dependents("SM", type = "model")[, c("type", "name", "version")]
+#> # A tibble: 1 × 3
+#>   type     name  version 
+#>   <chr>    <chr> <chr>   
+#> 1 scenario BASE  ad6914ee
+```
+
+A model that is not sealed is copied into the scenario folder
+(`model/`), so a later change to the store cannot alter a saved
+scenario; `save_scenario(mode = "full")` (or
+`options(energyRt.save_mode = "full")`) copies everything in regardless,
+for a folder that must be self-contained.
+
+A scenario keeps the model **as given** in `@model`, with the
+repositories added at interpolation
+(`interpolate_model(mod, <objects>)`) as the scenario’s own. The
+expanded copy that interpolation works on – vintage and cluster
+variants, resource tiers, materialised weather transforms, a spatial cut
+– is rebuilt when a reader needs it. The reference to a sealed model
+therefore holds for models with variants and for sampled scenarios
+alike, and the scenario’s own repositories travel with it.
+
+The same rules apply one level down to **repositories**
+([`save_repository()`](https://energyRt.org/reference/repo_store.md),
+[`seal_repository()`](https://energyRt.org/reference/seal.md)): a model
+referencing a sealed repository version, or a selection of its objects,
+records `{name, hash}`. The **dataset store** (`datasets/`) holds tables
+saved explicitly with
+[`save_dataset()`](https://energyRt.org/reference/dataset_store.md) – a
+weather series, a geoscale map – and the tables of models and
+repositories that match one of them by content. A dataset keeps every
+version by content, a dataset can also record its *generating call*
+(`save_dataset(name = , fun = "pkg::fun", args = )`), and a version that
+another entry references is never rewritten in place.
+
+The versioning logic in a few lines:
+
+``` r
+
+model_hash(mod)                       # content identity (misc and paths stripped);
+                                      #   repository_hash(), dataset_hash(),
+                                      #   object_hash() for anything else
+save_model(mod)                       # unchanged -> no-op; changed -> updated in place
+seal_model(mod)                       # the current content becomes a version
+load_model("SM", hash = "a1b2c3d4")   # a sealed version by (short) hash
+list_versions()                       # models, repositories, datasets:
+                                      #   status, sealed_at, refs, size
+list_dependents("SM", type = "model") # what references its versions
+```
+
+## Scenarios built on a base
+
+A policy scenario usually differs from a reference scenario by a few
+objects: a cap, a tax, a technology, or a coarser sample of the same
+problem. `interpolate_model(..., base = REF)` builds it on the
+interpolated REF instead of from scratch:
+
+``` r
+
+fee <- newCosts("FEE", variable = "vTechAct", mult = 2,
+                subset = list(tech = "TECH"))
+scen_fee <- interpolate_model(mod, fee, name = "FEE", base = scen)
+```
+
+What is reused depends on what is added:
+
+| added to REF | how the scenario is built |
+|----|----|
+| constraints, cost terms, taxes, subsidies | REF’s tables are copied; only the rows of the additions are computed |
+| new technologies, storages, supplies, trades, commodities | REF’s per-object tables are reused, the new objects’ tables computed, every map rebuilt |
+| a calendar of some of REF’s timeslices, or a filtered geoscale | REF’s tables are taken filtered to the sample; boundary stubs are computed |
+| anything else (another model, a replaced object, another horizon or setting) | interpolated in full, with a message naming the reason |
+
+In every case the result equals a full interpolation of the model with
+REF’s additions and the new ones, which
+[`compare_inputs()`](https://energyRt.org/reference/compare_inputs.md)
+confirms:
+
+``` r
+
+full <- interpolate_model(mod, fee, name = "FEE_FULL")
+sum(compare_inputs(scen_fee, full)$summary$status != "identical")
+#> [1] 0
+```
+
+The scenario’s manifest names its base (`base:`). When REF is saved and
+**sealed**,
+[`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
+stores a reference to each of REF’s tables that the new scenario shares
+– with a row filter for a sample of REF – and keeps only the tables that
+differ. `list_dependents(REF)` then lists the scenarios built on it, and
+`unseal_scenario(REF)` refuses while they exist:
+
+``` r
+
+seal_scenario(scen)                    # REF, saved, becomes a base
+scen_fee <- save_scenario(scen_fee)    # shared tables referenced, the rest kept
+list_dependents(scen)                  # FEE
+unseal_scenario(scen)                  # refused while FEE references it
+```
+
+A base that is not sealed is never referenced: its tables are copied,
+and a message says so.
+
+## The registry
+
+Every save also records its object in the project **registry** — one CSV
+at the project root indexing models, repositories, scenarios, and runs:
+
+``` r
+
+reg <- load_registry()
+reg[, c("type", "name", "parent")]
+#> # A tibble: 4 × 3
+#>   type     name     parent
+#>   <chr>    <chr>    <chr> 
+#> 1 model    SM       ""    
+#> 2 scenario BASE     ""    
+#> 3 run      glpk     "BASE"
+#> 4 run      glpk-alt "BASE"
+```
+
+The registry is an *index, never an authority*:
+[`refresh_registry()`](https://energyRt.org/reference/registry.md)
+rebuilds it at any time by rescanning the stores and reading the
+manifests. `find_in_registry(reg, type = "model", hash = "a1b2")` looks
+entries up by type, name, (short) hash — or, for run rows, by
+`variant =`: a run’s `name` holds the plain solve label, its problem
+sits in the `variant` column, and `parent` names the scenario (the
+worked example below shows a full table).
+
+The registry is also what makes NAME-based access work.
+`getScenario("BASE")` resolves the name, loads the thin on-disk shell,
+and caches it in the session bank `.scen` — re-saved scenarios reload
+automatically, repeat access is free.
+[`getData()`](https://energyRt.org/reference/getData.md) accepts names
+directly, so comparing registered scenarios needs no explicit loading at
+all:
+
+``` r
+
+getData("BASE", name = "vObjective", merge = TRUE)[, c("scenario", "value")]
+#> # A tibble: 1 × 2
+#>   scenario value
+#>   <chr>    <dbl>
+#> 1 BASE       300
+```
+
+[`getModel()`](https://energyRt.org/reference/accessors.md),
+[`getRepository()`](https://energyRt.org/reference/accessors.md) and
+[`getDataset()`](https://energyRt.org/reference/accessors.md) are the
+typed companions;
+[`load_scenarios()`](https://energyRt.org/reference/load_scenario.md)
+returns many scenarios as a
+[`getData()`](https://energyRt.org/reference/getData.md)-ready named
+list; and `open_project("path/")` points a session at another project’s
+registry and stores in one call.
+
+## Variants: several problems in one scenario
+
+A scenario sometimes needs *the same model asked a different question* —
+a sampled calendar, a restricted horizon, a myopic step with
+carried-over capacity. These are **own-problem variants**: named folders
+under `runs/` that carry their *own* interpolated problem, with their
+solves inside.
+
+``` r
+
+scen_low <- interpolate_model(make_mod(c(50, 50, 50)), name = "BASE",
+                              overwrite = TRUE) |>
+  solve_scenario(solver = solver_options$glpk, echo = FALSE, variant = "low")
+scen_low <- save_scenario(scen_low, verbose = FALSE)
+#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpaO7oWG/sm-demo/scenarios/BASE-SM-smc'
+#> Directory size: 0.7 MB
+scenario_runs(scen_low)[, c("run", "variant", "modinp", "objective")]
+#> # A tibble: 3 × 4
+#>   run      variant modinp objective
+#>   <chr>    <chr>   <chr>      <dbl>
+#> 1 glpk     ""      shared       300
+#> 2 glpk-alt ""      shared       300
+#> 3 low/glpk "low"   own          150
+```
+
+    runs/
+    ├── glpk/  glpk-alt/     # base-problem runs (modinp: shared)
+    └── low/                 # an own-problem variant
+        ├── variant.yml      #   what this problem IS (type, horizon, calendar;
+        │                    #   drivers add fields like sequence/step)
+        ├── modInp/          #   ITS parameter store — written once, shared by
+        ├── variant.RData    #   all of the variant's solves
+        └── glpk/…           #   its runs, same shape as any run
+
+The base problem’s store stays untouched at the scenario level.
+`read_solution(scen, run = "glpk")` vs `run = "low/glpk"` switches not
+just the solution but the whole in-memory *problem* — settings and
+parameters swap together, in both directions — so
+[`getData()`](https://energyRt.org/reference/getData.md) is always
+consistent with the run you are looking at. This is the storage
+substrate for the sequential (myopic) solver:
+[`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md) keeps
+a whole year-by-year sequence as one scenario with one variant per step.
+
+#### A solution of its own
+
+A solved scenario’s results live in the run that produced them, and the
+object points there. That makes `runs/` load-bearing: delete it and
+every read fails, because the store the scenario names is gone.
+
+[`promote_solution()`](https://energyRt.org/reference/promote_solution.md)
+copies the chosen run’s solution to `<scenario>/modOut/`, beside
+`modInp/`, and clears the active run so the scenario reads from there:
+
+``` r
+
+scenario_solutions(scen)                  # which attempt to keep?
+scen <- promote_solution(scen, "glpk")    # or import_solution(..., promote = TRUE)
+drop_scenario_run(scen, "glpk", force = TRUE)   # the run is now scratch
+```
+
+After that the run tree is disposable. `modOut.yml` travels with the
+store and records which run produced the solution, its objective, stage,
+solver and timings — provenance that otherwise lives only in `run.yml`
+and would go with the run folder. Its presence is also how a complete
+store is told from a half-written one, and how
+[`upgrade_scenario_layout()`](https://energyRt.org/reference/upgrade_scenario_layout.md)
+knows not to migrate a promoted store back under a run.
+
+Promoting copies rather than moves, so comparing attempts keeps working
+until you drop them. A **variant** cannot be promoted: its `modInp` and
+settings live inside `runs/<variant>/`, so lifting only its solution
+would pair variant results with the base problem’s parameters.
+
+#### Getting data out of a variant
+
+`getData(run = )` reads a run directly, tagging the rows with a `run`
+column:
+
+``` r
+
+getData(scen, "vTechOut", merge = TRUE, run = "low/glpk")
+getData(scen, "vTechOut", merge = TRUE, run = c("glpk", "low/glpk"))
+getData(scen, "vTechOut", merge = TRUE, run = "all")
+```
+
+Each run is read on a *copy*, so the object keeps its active run, and a
+variant brings its whole problem with it — parameters included. Spanning
+runs of different problems warns: a variant has its own `modInp`, so
+those numbers are not like-for-like. Without `run`,
+[`getData()`](https://energyRt.org/reference/getData.md) reads the
+active run and adds no column, exactly as before;
+`read_solution(scen, run = )` still switches the object itself when that
+is what you want.
+
+`compare_scenarios(scen, runs = c("glpk", "low/glpk"))` does the
+switching for you and tabulates the runs side by side — note that it
+compares *runs*, which may be variants, even though an assumption change
+belongs in its own scenario (below).
+
+A variant’s solution lives with its run, at
+`runs/<variant>/<solve>/modOut/`, exactly like a base run’s. Saving
+while a variant is active writes that variant’s problem and leaves the
+others alone; loading re-activates whatever `default:` names.
+
+Each driver records how it produced a variant in
+`runs/<variant>/variant.yml` — `type:` naming the method and `params:`
+its settings. Re-running a driver over an existing sequence with
+*different* settings is refused rather than silently replacing it;
+`overwrite = TRUE` proceeds.
+
+To remove one, `drop_scenario_run(scen, "<variant>")` deletes the
+**whole variant folder** — its `modInp/`, its manifest and every solve
+inside it. Sealing is scenario-wide, not per variant.
+
+#### Two unrelated things called “variant”
+
+This section is about **run variants**: own-problem folders under
+`runs/`. Unrelated to them, a technology can have vintage and cluster
+**variants** —
+[`getVariants()`](https://energyRt.org/reference/getVariants.md),
+[`variantSummary()`](https://energyRt.org/reference/variantSummary.md),
+`getData(variants = TRUE)`, `levcost(by_variant = )`. Those describe
+processes inside one problem and have nothing to do with the run tree.
+The word is overloaded; the two never meet.
+
+### Scenario, variant, or run?
+
+The three axes have crisp definitions — *what changed decides where it
+lives*:
+
+| what changed | it is a… | lives at |
+|----|----|----|
+| solver, tolerances, method, threads | **run** | `runs/[<variant>/]<label>/` |
+| the *scope* of the same declarations — a sampled calendar, a region subset or aggregation, a horizon window, a myopic step | **variant** (own problem) | `runs/<variant>/` with its own `modInp` |
+| *assumptions or declarations* — a fuel price, a policy cap, a technology’s cost | **scenario** (built on a reference with `base =`) | its own folder |
+
+Two runs of one problem agree on every number going in; anything that
+changes the calendar or geoscale changes the compiled LP and is
+therefore a different *problem*, never a different run – a variant
+inside the scenario, or a scenario of its own built on the full one with
+`base =`; and an assumption change deserves its own scenario — that is
+the level
+[`compare_scenarios()`](https://energyRt.org/reference/compare_scenarios.md)
+compares, with its own registry identity. Run and variant names are
+**labels** (dashes allowed: `glpk-alt`); scenario/model/dataset names
+are **object names** and follow the name rule (letters, digits,
+underscore).
+
+## A worked example: a TOPIA project
+
+A project with two policy scenarios (`BASE`, `CO2CAP`) on the
+all-regions model `TOPIA_R11`, solved at full and sampled time
+resolution, for region subsets, and for a one-region continental
+aggregation:
+
+    topia-project/
+    ├── energyRt_registry.csv                 the index (rebuildable)
+    ├── datasets/
+    │   ├── topia_weather/  topia_demand/   big tables — stored ONCE
+    │   └── topia_map/                       the Geoscale (rds)
+    ├── repositories/
+    │   └── topia_r11/                       kit repo; tables as dataset refs
+    ├── models/
+    │   └── TOPIA_R11/                       ONE folder per name
+    │       └── <hash>/                      the sealed version scenarios reference
+    ├── scenarios/
+    │   ├── BASE-TOPIA_R11-d365_h24/         {scenario}-{model}-{calendar}
+    │   │   ├── scenario.yml · scen.RData     manifest · identity + BASE problem
+    │   │   ├── modInp/                       base problem's parameters
+    │   │   └── runs/
+    │   │       ├── julia_highs/              base-problem solve, full year
+    │   │       ├── s4_h24/                   VARIANT: sampled calendar
+    │   │       │   ├── variant.yml · variant.RData · modInp/
+    │   │       │   ├── glpk/  glpk-barrier/  its solves
+    │   │       ├── r3/   r1/                 VARIANTS: region subsets
+    │   │       │   └── … · glpk/
+    │   │       └── c1/                       VARIANT: continental aggregation
+    │   │           └── … · julia_highs/
+    │   ├── CO2CAP-TOPIA_R11-d365_h24/       the policy scenario, built on the
+    │   │   │                                 sealed BASE (base = BASE): it
+    │   │   │                                 references BASE's tables and keeps
+    │   │   │                                 only those the cap changes
+    │   │   └── runs/julia_highs/  s4_h24/…   cuts actually solved
+    │   └── CHEAPGAS-TOPIA_R11-d365_h24/     an ASSUMPTION change = scenario
+    └── reports/  levcosts/                   derived-artifact tiers
+
+Reading the tree with the definitions above: `s4_h24`, `r3`, `r1` and
+`c1` are variants *because* their calendar or geoscale differs; `glpk`
+and `glpk-barrier` are runs *because* only the solver differs;
+`CHEAPGAS` is a scenario *because* an input price changed. The
+continental aggregation is a problem *of `TOPIA_R11`* — aggregation
+happens at interpolation, and `variant.yml` records the coarse geoscale
+as provenance (only an explicitly built and stored aggregate model would
+earn its own `models/` entry). The weather year exists exactly once, in
+`datasets/`, referenced up the chain.
+
+The registry indexes it all — one plain row per thing, run rows carrying
+the solve label in `name` and the problem in `variant`:
+
+| type | name | parent | variant | path |
+|----|----|----|----|----|
+| dataset | `topia_weather` |  |  | `datasets/topia_weather` |
+| repository | `topia_r11` |  |  | `repositories/topia_r11` |
+| model | `TOPIA_R11` |  |  | `models/TOPIA_R11` |
+| scenario | `BASE` |  |  | `scenarios/BASE-TOPIA_R11-d365_h24` |
+| run | `julia_highs` | `BASE` |  | `…/runs/julia_highs` |
+| run | `glpk` | `BASE` | `s4_h24` | `…/runs/s4_h24/glpk` |
+| run | `glpk-barrier` | `BASE` | `s4_h24` | `…/runs/s4_h24/glpk-barrier` |
+| run | `glpk` | `BASE` | `r3` | `…/runs/r3/glpk` |
+| run | `julia_highs` | `BASE` | `c1` | `…/runs/c1/julia_highs` |
+| scenario | `CO2CAP` |  |  | `scenarios/CO2CAP-TOPIA_R11-d365_h24` |
+| run | `julia_highs` | `CO2CAP` |  | `…/runs/julia_highs` |
+
+Typical queries against it:
+
+``` r
+
+reg <- load_registry()
+find_in_registry(reg, type = "run", parent = "BASE", variant = "s4_h24")
+find_in_registry(reg, type = "run", variant = "")     # all base-problem runs
+getData(c("BASE", "CO2CAP", "CHEAPGAS"),           # compare by NAME alone
+        name = "vEmsFuelTot", comm = "CO2", merge = TRUE)
+read_solution(getScenario("BASE"), run = "s4_h24/glpk")  # activate a variant run
+```
+
+## Moving folders, older layouts
+
+Because run and store locations are derived and manifests travel with
+their folders, the whole project directory can be moved, renamed, or
+synced between machines.
+[`load_scenario()`](https://energyRt.org/reference/load_scenario.md)
+re-bases all paths onto wherever the folder actually is — and if data
+genuinely is not where the object expects it, the failure is an *error
+naming the fix*, never silently empty results.
+
+Folders written by older energyRt versions (the pre-`runs/` layout with
+`script/<solver>/` directories) still load, and migrate in place with
+one idempotent call:
+
+``` r
+
+upgrade_scenario_layout("scenarios/OLD")
+```
+
+which moves each solver directory into `runs/`, backfills the provenance
+records from what is on disk, and writes the current manifests.
+
+## Lifecycle: sealing and the deletion queue
+
+Because entries update in place, finished work is locked by sealing:
+`seal_model("SM")` (and
+[`seal_repository()`](https://energyRt.org/reference/seal.md),
+[`seal_dataset()`](https://energyRt.org/reference/seal.md),
+[`seal_scenario()`](https://energyRt.org/reference/seal.md)) freezes the
+entry – identical re-saves stay silent no-ops, changed content errors
+until the matching `unseal_*()`. A sealed scenario is an archive: it
+loads, [`getData()`](https://energyRt.org/reference/getData.md)s and
+reports freely, but refuses re-saves, new recorded solves, and
+[`drop_scenario_run()`](https://energyRt.org/reference/scenario_runs.md).
+Sealing the inputs of published work keeps a model from drifting out
+from under the scenarios that reference it.
+
+Unsealing checks what depends on the entry:
+[`unseal_model()`](https://energyRt.org/reference/seal.md) and
+[`unseal_repository()`](https://energyRt.org/reference/seal.md) list the
+dependents of the current sealed version and refuse unless
+`force = TRUE` (the version itself stays, so the dependents keep loading
+it); [`unseal_scenario()`](https://energyRt.org/reference/seal.md)
+refuses while scenarios built on it reference its tables.
+`list_dependents(x)` shows the same list at any time, `recursive = TRUE`
+following it from a repository through models to scenarios.
+
+The other end of the lifecycle is a soft-delete queue:
+`mark_delete(x, importance = )` tags an entry (higher importance = more
+valuable = deleted later),
+[`unmark_delete()`](https://energyRt.org/reference/seal.md) clears the
+tag, and [`delete_marked()`](https://energyRt.org/reference/seal.md) –
+**dry-run by default** – removes marked entries up to an importance
+threshold. Sealed entries are never deleted, even when marked, and
+neither is anything another entry references.
+
+Superseded versions are listed by
+[`list_versions()`](https://energyRt.org/reference/list_versions.md)
+with a status – `current`, `in use` (referenced), `marked`, `unused` –
+and are removed only when marked: `mark_delete(x, version = "unused")`
+marks every version nothing references,
+`mark_delete(x, version = "<hash>")` one of them, and
+[`delete_marked()`](https://energyRt.org/reference/seal.md) deletes
+those still unreferenced. A dataset version that another entry
+references is likewise never rewritten in place by
+`save_dataset(rehash = FALSE)` or `overwrite = TRUE`.
+
+## The toolbox
+
+The storage API by task — every verb resolves registered NAMES, never
+paths:
+
+``` r
+
+## anchor a session on a project (registry + all store roots + tiers)
+open_project("path/to/project")
+get_scenarios_path(); get_models_path(); get_repositories_path()
+get_datasets_path(); get_reports_path(); get_levcost_cache_path()
+
+## save — identical content is a no-op; changed content updates in place
+save_model(mod);  save_repository(repo);  save_dataset(x, "wsol")
+save_scenario(scen)                    # embed_model / embed_repos /
+                                       #   embed_datasets = NULL|TRUE|FALSE
+save_dataset(name = "kit", fun = "energyRt::topia_profiles",
+             args = list(regions = "R1"))   # store the CALL + a snapshot
+
+## load (explicit IO) and get* (name-first, scenario shells cached in .scen)
+load_model("TOPIA_R11");  load_scenario("BASE");  load_scenarios()
+getScenario("BASE");  getModel("TOPIA_R11");  getDataset("wsol")
+getData(c("BASE", "CO2CAP"), name = "vTechOut", merge = TRUE)
+
+## runs and problems
+scenario_runs(scen)                    # incl. variant, peak_mb, updated
+scenario_run_info(scen, "glpk")        # one run's full run.yml
+read_solution(scen, run = "s4_h24/glpk")   # activate problem + solution
+drop_scenario_run(scen, "glpk-alt")
+solve_scenario(scen, variant = "low")  # solve as an own-problem variant
+
+## the registry
+reg <- load_registry()
+find_in_registry(reg, type = "run", parent = "BASE", variant = "s4_h24")
+refresh_registry()                     # rebuild the index from manifests
+
+## scenarios built on a base
+interpolate_model(mod, cap, name = "CO2CAP", base = scen_base)
+interpolate_model(mod, cal_sample, name = "BASE_S", base = scen_base)
+
+## lifecycle
+seal_model("TOPIA_R11");  seal_scenario("BASE")     # freeze as versions
+unseal_scenario("BASE")                # refused while scenarios build on it
+list_versions()                        # versions with status, refs, size
+list_dependents("TOPIA_R11", type = "model", recursive = TRUE)
+mark_delete("OLD", type = "scenario", importance = 1)
+mark_delete("TOPIA_R11", type = "model", version = "unused")
+delete_marked()                        # DRY RUN by default
+delete_marked(max_importance = 1, dry_run = FALSE)
+
+## bookkeeping
+set_log_file("energyRt_log.csv");  read_log()       # operation log
+upgrade_scenario_layout("scenarios/OLD")            # migrate old folders
+
+## custom folder names (session-local hooks; see ?path_builders)
+set_path_builder(
+  scenario_dir = \(name, model, calendar, horizon)  # scenario folder slug
+    paste(name, calendar, sep = "."),
+  store_entry  = \(type, name) paste0(type, "_", name),  # store basenames
+  run_label    = \(solver)                          # default solve label
+    if (is.null(solver$name)) "run" else solver$name
+)
+set_path_builder(scenario_dir = FALSE)              # FALSE removes one hook
+```
+
+## Summary of the vocabulary
+
+| thing | where | identity | manifest |
+|----|----|----|----|
+| repository | `repositories/<name>/`, sealed versions in `<name>/<hash>/` | name (hash verifies) | `repository.yml` |
+| model | `models/<name>/`, sealed versions in `<name>/<hash>/` | name (hash verifies) | `model.yml` |
+| dataset | `datasets/<name>/<hash>/`, one folder per version | name (hash verifies) | `dataset.yml` |
+| scenario | `scenarios/<slug>/` | name | `scenario.yml` |
+| variant (own problem) | `<scenario>/runs/<variant>/` | name within scenario | `variant.yml` |
+| run (solve) | `<scenario>/runs/[<variant>/]<solve>/` | run id `"<solve>"` / `"<variant>/<solve>"` | `run.yml` |
+| registry | `energyRt_registry.csv` | — (rebuildable index) | — |

@@ -1,7 +1,7 @@
 # Install Python/Pyomo dependencies (deprecated)
 
 Superseded by
-[`multimod::mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.html),
+[`multimod::mm_setup_python()`](https://optimal2050.github.io/multimod/r/reference/mm_setup_python.html),
 which owns the one conda environment shared by energyRt and multimod.
 This forwards to it and will be removed.
 

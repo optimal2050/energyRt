@@ -9,6 +9,24 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 ### License
 
+- The per-object timeslice maps (`mTechTimeslice` and its siblings,
+  `mCommTimeslice`, `mWeatherTimeslice`), the technology activity and
+  output domains (`mvTechAct`, `mvTechOut`), `meqTechActSng` and the
+  availability-factor maps (`meqTechAfLo`, `meqTechAfUp`, `meqTechAfFx`,
+  where the bound is one number per technology, region and year) are
+  defined by a rule, the join of the small tables they are made of, and
+  their tables are dropped at the end of
+  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md).
+  Readers see the same tuples; the multimod route enumerates the rule
+  itself and the saved scenario no longer carries the tables. The output
+  and single-output domains keep their tables in a model with coarse
+  processes. `options(energyRt.map_rules = FALSE)` keeps every table;
+  `options(energyRt.map_rules_verify = TRUE)` checks each rule against
+  the table it replaces. The availability-factor maps are decided per
+  technology, region and year and recorded as rules without building
+  their tables, in a sparse, unfolded interpolation; a full-year
+  one-country model builds them about 3.5 times faster, with a quarter
+  less peak memory.
 - Relicensed from AGPL-3 to Apache-2.0. Releases up to v0.89 remain
   AGPL-3.
 
@@ -31,14 +49,19 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   [`newACLine()`](https://energyRt.org/reference/newACLine.md),
   [`newDCLink()`](https://energyRt.org/reference/newDCLink.md), an
   optional Kirchhoff voltage law, loss tranches
-  ([`lossTranches()`](https://energyRt.org/reference/lossTranches.md))
-  and route ratings (`@trade$af`).
+  ([`lossTranches()`](https://energyRt.org/reference/lossTranches.md)),
+  route ratings (`@trade$af`), route ratings over a parent timeslice
+  (`@trade$afs`) and weather factors of the ratings (`@weather`, read at
+  the route’s source region).
 - Supply, import and export curves:
   [`asSupplyCurve()`](https://energyRt.org/reference/supply-curve.md),
   [`asImportCurve()`](https://energyRt.org/reference/supply-curve.md),
   [`asExportCurve()`](https://energyRt.org/reference/supply-curve.md).
 - Taxes and subsidies are indexed by instrument and can be levied on
-  processes.
+  processes. `cap` and `ncap` charge technologies and trades (a trade in
+  each region the levy is placed in); a storage’s capacity is levied by
+  part with `stg.cap`/`stg.ncap` (reservoir), `inp.cap`/`inp.ncap`
+  (charger) and `out.cap`/`out.ncap` (discharger).
 - `commodity@property` for physical properties; discount rates at any
   geoscale level; a WACC per technology with `payback` as its
   cost-recovery life.
@@ -78,13 +101,42 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   [`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md)
   and
   [`solve_guided()`](https://energyRt.org/reference/solve_guided.md).
+
 - First-order LP solvers (cuOpt, HiGHS PDLP), and `lang = "mm"`, which
   builds the problem matrix with **multimod**. Remote solving on the
   NEOS server and on cloud GPUs.
+
+- Matrix presets (`backend = "mm"`) are solved by
+  [`multimod::solve_mps()`](https://optimal2050.github.io/multimod/r/reference/solve_mps.html):
+  HiGHS in the R session or through Julia, cuOpt on a local GPU through
+  WSL (`mm_cuopt_wsl`) or on a rented GPU (`mm_cuopt_cloud`,
+  `pyomo_cuopt_cloud`).
+
+- On the `lang = "mm"` route the activity and output definitions
+  (`eqTechAfFx`, `eqTechActSng`) and the per-process totals
+  (`eqTechOutTot`, `eqTechInpTot`, the storage, supply, import, export
+  and demand totals) are substituted while the matrix is built: their
+  rows and the columns they define are not written, which reduces a
+  full-year model several-fold. The preset field `substitute` names the
+  equations; [`character()`](https://rdrr.io/r/base/character.html)
+  builds every row. With a multimod that composes roll-ups, the
+  commodity output and input totals (`eqOutTot`, `eqInpTot`) are
+  substituted too.
+
+- The matrix route removes `model.mps` (and its compressed copy) once
+  the solution is decoded; the index tables and the solution file stay.
+  The preset field `keep_mps = TRUE` keeps it. A preset’s `mm_solver`
+  and `where` choose the solver and the place. A Pyomo- or JuMP-written
+  matrix carries index tables (from Pyomo’s symbol map, from JuMP’s
+  containers) and is decoded by multimod like its own; `julia_mps`
+  writes the JuMP matrix and `julia_cuopt_cloud` solves it on a rented
+  GPU.
+
 - [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
   is about 6x faster on large models; `fx_equ = TRUE` writes fixed
   bounds as single equality rows (about 25% fewer rows on hourly VRE
   models).
+
 - MPS output (`solver_options$pyomo_mps`),
   [`read_solution()`](https://energyRt.org/reference/read.md) for
   solutions produced elsewhere, and
@@ -93,6 +145,35 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   [`en_install_deps()`](https://energyRt.org/reference/en_install_deps.md),
   [`en_install_julia_pkgs()`](https://energyRt.org/reference/en_install_julia_pkgs.md)
   to check and set up the toolchains.
+
+- `interpolate_model(model, ..., base = REF)` builds a scenario on an
+  interpolated base when the objects added are constraints, cost terms,
+  taxes or subsidies: only what they add is computed, the base’s tables
+  are reused and its store is never written to, and the result equals a
+  full interpolation. Anything else is interpolated in full, with a
+  message saying why. The saved scenario names its base in
+  `scenario.yml`.
+
+- A scenario keeps the model as given in `@model`: the variants, tiers
+  and transform clones interpolation builds are rebuilt when a reader
+  needs them. A saved scenario references its sealed model instead of
+  copying it, also for models with vintages, clusters or a spatial
+  sample. [`getObject()`](https://energyRt.org/reference/getObject.md)
+  on a scenario returns the objects as defined.
+
+- `save_dataset(rehash = FALSE)` and `save_dataset(overwrite = TRUE)`
+  stop when another store entry references the version they would
+  rewrite, and name the dependents.
+
+- `base = REF` also takes new processes, commodities and other model
+  objects: the per-object tables of the objects REF holds are reused and
+  every map is rebuilt.
+
+- `base = REF` takes a sample of REF’s calendar or regions (a calendar
+  of some of its timeslices, a filtered geoscale with
+  `boundary_prices`): REF’s tables are reused filtered to the sample.
+  Saved, such a scenario references the sealed REF’s tables through a
+  row filter.
 
 #### Results and project management
 
@@ -110,6 +191,101 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 - [`prepare_for_sharing()`](https://energyRt.org/reference/prepare_for_sharing.md)
   and
   [`strip_user_info()`](https://energyRt.org/reference/strip_user_info.md).
+- The dataset store keeps versions by content under one name
+  (`datasets/<name>/<hash>/`): saving other content under a name adds a
+  version instead of overwriting, `load_dataset(name, hash = )` pins
+  one, and the registry lists every version. A references table beside
+  the registry records which scenario points at which version.
+- [`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
+  keeps a scenario’s large interpolated tables (numeric parameters,
+  bounds and maps from `energyRt.param_ref_min_rows` rows, 1e6 by
+  default; weather and demand series from `energyRt.ondisk_min_rows`) in
+  its own store and records their hashes in `scenario.yml`. A scenario
+  built with `interpolate_model(base = )` on a saved and sealed base
+  references every table identical to the base’s instead of storing a
+  copy, and keeps the rest.
+  [`load_scenario()`](https://energyRt.org/reference/load_scenario.md)
+  resolves the references; the lazy readers follow them; a writer that
+  changes a table drops its reference.
+  [`unseal_scenario()`](https://energyRt.org/reference/seal.md) refuses
+  while scenarios reference the base’s tables (`force = TRUE` to unseal
+  anyway). References into the dataset store held by scenarios saved
+  earlier still load; a weather or demand table whose version is gone is
+  recomputed from the model.
+- A scenario seals its inputs and its outputs separately:
+  `seal_scenario(x, inputs = TRUE, outputs = FALSE)`. With sealed inputs
+  and open outputs it can still be solved under a new run label;
+  [`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
+  then writes that run only, so scenarios built on it keep reading the
+  same tables. `unseal_scenario(x, inputs = FALSE, outputs = TRUE)`
+  reopens the runs alone. A scenario sealed before reads as both parts
+  sealed.
+- [`save_model()`](https://energyRt.org/reference/model_store.md) and
+  [`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
+  take `mode = "ref"` (default, `options(energyRt.save_mode)`) or
+  `"full"`. `"ref"` references a repository or model only when its exact
+  content is a SEALED version, and copies it in otherwise; `"full"`
+  copies everything in.
+  [`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
+  no longer stores an unsealed model in the model store to reference it.
+  Changed: a scenario whose model is stored but not sealed now carries
+  its own copy.
+- A scenario whose model is a sealed version plus repositories added by
+  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+  references the sealed version and keeps only the added repositories
+  (`model: added` in its manifest);
+  [`load_scenario()`](https://energyRt.org/reference/load_scenario.md)
+  adds them back.
+- [`list_versions()`](https://energyRt.org/reference/list_versions.md)
+  lists the versions of models, repositories and datasets with a status
+  (`current`, `in use`, `marked`, `unused`), when they were sealed, how
+  many entries reference them and their size (`details = TRUE` for
+  more). `mark_delete(version = )` marks superseded versions (sealed
+  ones of models and repositories; a hash, or `"unused"`), and
+  [`delete_marked()`](https://energyRt.org/reference/seal.md) deletes
+  them when still unreferenced.
+  [`delete_marked()`](https://energyRt.org/reference/seal.md) also keeps
+  an entry while any of its sealed versions has a dependent.
+- [`list_dependents()`](https://energyRt.org/reference/list_dependents.md)
+  replaces `store_dependents()`: the verified dependents recorded on
+  sealed versions (with `recursive = TRUE`, transitively) plus the
+  references found in manifests; `prune = TRUE` drops stale records.
+- Unsealed saves of models and repositories record a save id instead of
+  a content hash (`hashed: false` in the manifest), so saving a large
+  model no longer serializes it for hashing. The content hash is
+  computed when a decision needs it: saving onto a sealed entry,
+  comparing with the sealed versions of a name, and sealing (which now
+  loads and hashes the payload). An identical re-save of an unsealed
+  entry is written again. `options(energyRt.lazy_hash = FALSE)` hashes
+  every save.
+- A model whose repository holds unchanged objects of one sealed
+  repository version (taken with
+  [`getObject()`](https://energyRt.org/reference/getObject.md) from a
+  loaded sealed repository) references that version with the object
+  names and the hash of the selected objects, verified by
+  [`load_model()`](https://energyRt.org/reference/model_store.md).
+  Sealing a repository records each object’s hash for this.
+- Sealing a model or repository freezes its content as a version
+  (`<entry>/<hash>/`): unsealed saves update the entry in place and
+  leave the sealed versions untouched, and references and
+  `load_*(hash = )` reach a sealed version exactly. A sealed version
+  records the models and scenarios that reference it, and
+  [`unseal_model()`](https://energyRt.org/reference/seal.md) /
+  [`unseal_repository()`](https://energyRt.org/reference/seal.md) list
+  them and refuse while they exist unless `force = TRUE`.
+- Referenced tables read back into memory are dropped before the
+  scenario shell (`scen.RData`) is written. A shell above
+  `options(energyRt.shell_max_mb = 256)` warns and names its largest
+  slots.
+- The `mm` route no longer copies the scenario’s tables into the
+  multimod model: multimod reads them from the scenario’s store or the
+  dataset store as the matrix is built
+  (`multimod_from_energyRt(inMemory = FALSE)`), a table held in memory
+  is attached rather than dropped, and the memo size is the preset’s
+  `data_cache_gb` (32 by default). Once the matrix is written, the
+  model, the memo and the scenario’s tables that are persisted on disk
+  or in the store are released, so a solve, local or in the cloud, waits
+  with the memory free.
 
 #### Validation and comparison
 
@@ -147,6 +323,9 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   `@inflow` are refused (use `@duration`, `@startLevel` or a `supply`);
   flows are bounded by converter capacity (`inp.af.up` / `out.af.up`
   default to 1).
+- `technology@aeff` no longer takes `stg2ainp`, `stg2aout`, `sinp2ainp`,
+  `sinp2aout`, `sout2ainp` or `sout2aout`; they were never read for a
+  technology. A storage’s own `@aeff` keeps its couplings.
 - `@start`, `@end` and `@olife` are merged into `@vintage`; vintage and
   cluster labels must be declared.
 - `@geolevel` is `@geoframe`, and a model carries a `Geoscale`.
@@ -164,14 +343,98 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   `exchange_format`.
 - UTOPIA is TOPIA (regions `W1`/`W2`, `C1`-`C6`, `E1`-`E3`); the test
   tier `nightly` is `full`.
+- The cloud presets are renamed: `mmcloud` is `mm_cuopt_cloud`,
+  `mmcloud_crossover` is `mm_cuopt_cloud_crossover`, `mmcloud_pyomo` is
+  `pyomo_cuopt_cloud`, `mmcloud_pyomo_crossover` is
+  `pyomo_cuopt_cloud_crossover`; a solve with a former name stops and
+  names its replacement. `mm_engine` is replaced by `mm_solver` and
+  `where`; settings stored by earlier versions are still read.
+- `get_hf_token()` and `set_hf_token()` are removed: use
+  [`mmcloud::get_hf_token()`](https://rdrr.io/pkg/mmcloud/man/hf_token.html)
+  and
+  [`mmcloud::set_hf_token()`](https://rdrr.io/pkg/mmcloud/man/hf_token.html).
 
 ### Bug fixes
+
+- A reloaded
+  [`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md)
+  sequence served every variant the FIRST unit’s model. The scenario
+  stored the model it was interpolated from, which the driver had
+  already cut, while `@model` lives on the shell and is written only on
+  the first save – so region R2’s results came back beside a model
+  declaring R1, whose own R2 rows were empty.
+  [`verify_solution()`](https://energyRt.org/reference/verify_solution.md)
+  re-derives identities from that model, and
+  [`levcost()`](https://energyRt.org/reference/levcost.md) and
+  [`report()`](https://energyRt.org/reference/report.md) read its
+  declarations. The driver now stores the full model with each unit’s
+  region set, and the cut is rebuilt per variant.
+
+- [`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md)
+  accepted overlapping `group =` entries, or a repeated region in
+  `regions =`, and solved and counted that region twice – including in
+  the “sum of objectives” its print method presents as the whole-system
+  cost. Overlaps are refused, naming the regions.
+
+- [`sample_summary()`](https://energyRt.org/reference/sample_summary.md)’s
+  `mean` is weighted by each sample’s `year_fraction`. Samples need not
+  cover equal shares of the year – `method = "sequential"` folds a
+  trailing singleton block into its predecessor – and the mean
+  previously gave a larger block the same single vote. The quantiles
+  remain unweighted, and a message says so when coverage varies.
+
+- [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
+  clears the parent’s recorded content hash. The subset keeps the
+  model’s name on purpose and
+  [`save_model()`](https://energyRt.org/reference/model_store.md)
+  updates an entry in place by name, so saving one could overwrite the
+  full model’s store entry.
+
+- [`read_sequence()`](https://energyRt.org/reference/read_sequence.md)
+  no longer reports a `by_region` sequence as complete while returning
+  its `boundary` stub counts as `NA`; they are declared missing.
+
+- A spatial sample survives a variant switch: the problem cartridge
+  records it, where before only the shell held it and a reload restored
+  another unit’s regions.
+
+- A filtered geoscale announces the sub-territory solve unconditionally.
+  The mode is accepted silently, so a geoscale covering only some
+  declared regions used to yield a smaller solve – a different answer
+  from the full model’s – with nothing said unless `verbose`.
 
 - About 130 fixes, most of which change results: unwired parameters now
   reach the solver, equations are no longer instantiated without data,
   `waf.fx` binds from both sides, `aeff$cout2ainp` / `cinp2aout` bind,
   sub-region emissions are counted, coarse supply keeps its cost, and
   `get_process_*(process = )` is honoured.
+
+- A tax or subsidy without `@region` charged the coarse regions of a
+  geoscale too, i.e. the roll-up of their sub-regions a second time. A
+  commodity rate now applies at the commodity’s own regions and a
+  process rate at the regions the process is declared in; a region off
+  that level is an error.
+
+- [`levcost()`](https://energyRt.org/reference/levcost.md) of a storage
+  sized a charger with no `inp2out` or `inp2stg` like the discharger,
+  and a discharger with no `duration` at one hour of storage. Each is
+  now sized by its own flow, as in the solved model.
+
+- Auxiliary flows (`aeff`) of a process were lost when it gave the
+  coefficient for all timeslices and another process gave the same
+  coefficient for named timeslices.
+
+- Capacity taxes and subsidies on a storage charged nothing unless it
+  had discharger data. They are now levied by part (see above); a levy
+  that selects storages and sets only `cap`/`ncap` is an error.
+
+- A bound declared per region on one object and for all regions on
+  another lost the second object’s bound equation (e.g. a fixed storage
+  duration).
+
+- Content hashes of models with a geoscale are stable between R sessions
+  (the S7 class object was hashed), so such models match their sealed
+  versions in a new session.
 
 ### Documentation
 

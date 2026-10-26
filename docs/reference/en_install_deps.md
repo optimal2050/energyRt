@@ -4,7 +4,7 @@ Orchestrator that auto-installs the *safe* library layer: optional R
 packages, Julia solver packages (via
 [`en_install_julia_pkgs()`](https://energyRt.org/reference/en_install_julia_pkgs.md))
 when Julia is present, and Python/Pyomo packages (via
-[`multimod::mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.html))
+[`multimod::mm_setup_python()`](https://optimal2050.github.io/multimod/r/reference/mm_setup_python.html))
 when Python or conda is present. System software that is missing (Julia,
 Python, conda, GAMS) is *not* auto-installed — the function reports it
 and points to the platform-specific instructions printed by

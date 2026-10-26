@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9036</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -17,10 +17,7 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-development"><li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
-  </ul></li>
+<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
@@ -32,13 +29,14 @@
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
-    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
-    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -73,6 +71,7 @@
 <span>  path <span class="op">=</span> <span class="va">object</span><span class="op">@</span><span class="va">path</span>,</span>
 <span>  embed_model <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  embed_datasets <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  mode <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  format <span class="op">=</span> <span class="fu"><a href="storage_format.html">get_storage_format</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  overwrite <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  clean_start <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -94,16 +93,14 @@
 
 
 <dt id="arg-embed-model">embed_model<a class="anchor" aria-label="anchor" href="#arg-embed-model"></a></dt>
-<dd><p><code>NULL</code> (default), <code>TRUE</code>, or <code>FALSE</code>. Controls whether
-the model is embedded in the saved scenario or referenced from the model
-store (see <code><a href="model_store.html">save_model()</a></code>). <code>NULL</code>: reference the store entry, saving the
-model to the store first when nothing is stored under that name; embed
-when the name is taken by different content (store entries update in
-place, so writing would replace the version other scenarios reference).
-<code>TRUE</code>: always embed (self-contained folder). <code>FALSE</code>: require an
-existing store hit, error otherwise, and never write to the store.
-A referenced save stores only <code>{name, hash, path}</code>; <code><a href="load_scenario.html">load_scenario()</a></code>
-resolves it back via the registry / model store.</p></dd>
+<dd><p><code>NULL</code> (default: by <code>mode</code>), <code>TRUE</code>, or <code>FALSE</code>.
+Controls whether the model is embedded in the saved scenario or
+referenced from the model store (see <code><a href="model_store.html">save_model()</a></code>). <code>NULL</code>: reference
+a sealed version holding the model's exact content, embed otherwise.
+<code>TRUE</code>: always embed (self-contained folder). <code>FALSE</code>: require a sealed
+version, error otherwise. A referenced save stores only
+<code>{name, hash, path}</code> and is recorded on the sealed version
+(<code><a href="list_dependents.html">list_dependents()</a></code>); <code><a href="load_scenario.html">load_scenario()</a></code> resolves it back.</p></dd>
 
 
 <dt id="arg-embed-datasets">embed_datasets<a class="anchor" aria-label="anchor" href="#arg-embed-datasets"></a></dt>
@@ -113,6 +110,15 @@ geoscale and its repositories' weather/demand tables (see
 <code><a href="dataset_store.html">save_dataset()</a></code>). <code>NULL</code> (default) references whatever identical
 content is already in the dataset store; <code>TRUE</code> always embeds; <code>FALSE</code>
 requires a store hit.</p></dd>
+
+
+<dt id="arg-mode">mode<a class="anchor" aria-label="anchor" href="#arg-mode"></a></dt>
+<dd><p><code>"ref"</code> or <code>"full"</code>; defaults to
+<code>getOption("energyRt.save_mode", "ref")</code>. <code>"ref"</code> references the model
+when its exact content is a SEALED version in the model store
+(<code><a href="seal.html">seal_model()</a></code>) and copies it in otherwise; <code>"full"</code> copies the model
+and the datasets in (a self-contained folder). An explicit
+<code>embed_model</code> / <code>embed_datasets</code> overrides the mode for its level.</p></dd>
 
 
 <dt id="arg-format">format<a class="anchor" aria-label="anchor" href="#arg-format"></a></dt>

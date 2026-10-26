@@ -5,7 +5,7 @@ Interpolate all year-indexed numeric/bounds parameters of a scenario
 ## Usage
 
 ``` r
-interpolate_parameters(scen, drop_default = FALSE)
+interpolate_parameters(scen, drop_default = FALSE, params = NULL)
 ```
 
 ## Arguments
@@ -24,6 +24,11 @@ interpolate_parameters(scen, drop_default = FALSE)
   explicitly. Dropping defaults requires the solver/writer to honour
   declared parameter defaults (GLPK / JuMP / Pyomo do; GAMS support is
   unverified).
+
+- params:
+
+  optional character vector: interpolate only these parameters (`NULL`,
+  the default, interpolates all).
 
 ## Value
 

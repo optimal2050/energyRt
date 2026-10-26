@@ -630,9 +630,6 @@ laptop.
 - [`get_neos_email()`](https://energyRt.org/reference/neos_email.md)
   [`set_neos_email()`](https://energyRt.org/reference/neos_email.md) :
   NEOS submission email
-- [`get_hf_token()`](https://energyRt.org/reference/hf_token.md)
-  [`set_hf_token()`](https://energyRt.org/reference/hf_token.md) :
-  Hugging Face access token
 
 ## Solve drivers
 
@@ -880,6 +877,12 @@ larger than memory stay readable.
   [`delete_marked()`](https://energyRt.org/reference/seal.md) : Seal and
   unseal store entries; mark them for deletion
 
+- [`list_versions()`](https://energyRt.org/reference/list_versions.md) :
+  Versions held in the model, repository and dataset stores
+
+- [`list_dependents()`](https://energyRt.org/reference/list_dependents.md)
+  : What depends on a stored model, repository or dataset
+
 - [`model_hash()`](https://energyRt.org/reference/model_hash.md)
   [`object_hash()`](https://energyRt.org/reference/model_hash.md) :
   Content hash of a model
@@ -926,8 +929,6 @@ to hand a folder to somebody else.
   : Delete the regenerable part of a solve
 - [`upgrade_scenario_layout()`](https://energyRt.org/reference/upgrade_scenario_layout.md)
   : Upgrade a scenario folder to the current on-disk layout
-- [`store_dependents()`](https://energyRt.org/reference/store_dependents.md)
-  : What depends on a stored model, repository or dataset
 - [`strip_user_info()`](https://energyRt.org/reference/strip_user_info.md)
   : Remove machine and user information from a stored scenario
 - [`prepare_for_sharing()`](https://energyRt.org/reference/prepare_for_sharing.md)
@@ -1198,8 +1199,6 @@ Small helpers, conversions and accessors.
 
 - [Model bricks](https://energyRt.org/articles/model-bricks.md):
 
-- [energyRt model framework](https://energyRt.org/articles/model.md):
-
 - [Aggregating regions without averaging them
   away](https://energyRt.org/articles/region-aggregation.md):
 
@@ -1216,8 +1215,6 @@ Small helpers, conversions and accessors.
   geoframes](https://energyRt.org/articles/space-resolution.md):
 
 - [Storage](https://energyRt.org/articles/storage.md):
-
-- [Testing strategy](https://energyRt.org/articles/testing.md):
 
 - [Time resolution: calendars and
   timeslices](https://energyRt.org/articles/time-resolution.md):

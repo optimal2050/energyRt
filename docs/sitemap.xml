@@ -8,14 +8,12 @@
 <url><loc>https://energyRt.org/articles/index.html</loc></url>
 <url><loc>https://energyRt.org/articles/install.html</loc></url>
 <url><loc>https://energyRt.org/articles/model-bricks.html</loc></url>
-<url><loc>https://energyRt.org/articles/model.html</loc></url>
 <url><loc>https://energyRt.org/articles/region-aggregation.html</loc></url>
 <url><loc>https://energyRt.org/articles/reports.html</loc></url>
 <url><loc>https://energyRt.org/articles/roadmap.html</loc></url>
 <url><loc>https://energyRt.org/articles/scenario-management.html</loc></url>
 <url><loc>https://energyRt.org/articles/space-resolution.html</loc></url>
 <url><loc>https://energyRt.org/articles/storage.html</loc></url>
-<url><loc>https://energyRt.org/articles/testing.html</loc></url>
 <url><loc>https://energyRt.org/articles/time-resolution.html</loc></url>
 <url><loc>https://energyRt.org/articles/topia-build.html</loc></url>
 <url><loc>https://energyRt.org/articles/topia-use.html</loc></url>
@@ -148,7 +146,6 @@
 <url><loc>https://energyRt.org/reference/ghost_options.html</loc></url>
 <url><loc>https://energyRt.org/reference/guided_gap.html</loc></url>
 <url><loc>https://energyRt.org/reference/guided_windows.html</loc></url>
-<url><loc>https://energyRt.org/reference/hf_token.html</loc></url>
 <url><loc>https://energyRt.org/reference/horizons.html</loc></url>
 <url><loc>https://energyRt.org/reference/horizon_windows.html</loc></url>
 <url><loc>https://energyRt.org/reference/import_solution.html</loc></url>
@@ -160,12 +157,13 @@
 <url><loc>https://energyRt.org/reference/isInMemory.html</loc></url>
 <url><loc>https://energyRt.org/reference/isOnDisk.html</loc></url>
 <url><loc>https://energyRt.org/reference/isVerbose.html</loc></url>
-<url><loc>https://energyRt.org/reference/is_any.html</loc></url>
 <url><loc>https://energyRt.org/reference/is_geoscale.html</loc></url>
 <url><loc>https://energyRt.org/reference/levcost.html</loc></url>
 <url><loc>https://energyRt.org/reference/levcost_storage_.html</loc></url>
 <url><loc>https://energyRt.org/reference/levcost_trade_.html</loc></url>
 <url><loc>https://energyRt.org/reference/link_scenario_data_with_log.html</loc></url>
+<url><loc>https://energyRt.org/reference/list_dependents.html</loc></url>
+<url><loc>https://energyRt.org/reference/list_versions.html</loc></url>
 <url><loc>https://energyRt.org/reference/load_mapping_spec.html</loc></url>
 <url><loc>https://energyRt.org/reference/load_scenario.html</loc></url>
 <url><loc>https://energyRt.org/reference/log.html</loc></url>
@@ -204,7 +202,6 @@
 <url><loc>https://energyRt.org/reference/newModel.html</loc></url>
 <url><loc>https://energyRt.org/reference/newRepository.html</loc></url>
 <url><loc>https://energyRt.org/reference/newScenario.html</loc></url>
-<url><loc>https://energyRt.org/reference/newSub.html</loc></url>
 <url><loc>https://energyRt.org/reference/newSubsidy.html</loc></url>
 <url><loc>https://energyRt.org/reference/newSupply.html</loc></url>
 <url><loc>https://energyRt.org/reference/newTax.html</loc></url>
@@ -285,7 +282,6 @@
 <url><loc>https://energyRt.org/reference/storage.html</loc></url>
 <url><loc>https://energyRt.org/reference/storage_duration.html</loc></url>
 <url><loc>https://energyRt.org/reference/storage_format.html</loc></url>
-<url><loc>https://energyRt.org/reference/store_dependents.html</loc></url>
 <url><loc>https://energyRt.org/reference/strip_user_info.html</loc></url>
 <url><loc>https://energyRt.org/reference/subset_model_regions.html</loc></url>
 <url><loc>https://energyRt.org/reference/summary.html</loc></url>

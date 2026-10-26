@@ -42,7 +42,7 @@ scen <- interpolate_model(mod, name = "EX")
 
 model_size(scen, top_n = 5)
 #> model_size: EX
-#>   parameters : 189 value, 352 maps, 15 sets
+#>   parameters : 200 value, 359 maps, 15 sets
 #>   param rows : 18,411
 #>   estimate   : ~61,849 variables, ~63,464 constraints (from gating maps)
 #>   top parameters by rows:

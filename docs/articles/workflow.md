@@ -15,10 +15,9 @@ library(ggplot2)
 
 We use the packaged single-region TOPIA kit as a running example, and
 keep every store — scenarios, models, repositories and the registry —
-under a temporary folder. All four matter:
-[`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
-saves the model to the model store and references it, so redirecting
-only the scenario path leaves a `models/` folder beside the article.
+under a temporary folder. All four matter: the stores and the registry
+are written beside whatever path is redirected, so redirecting only the
+scenario path leaves `models/` and a registry beside the article.
 
 ``` r
 
@@ -175,7 +174,7 @@ scenario and model sharing a name appear once):
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpMhq3ll/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpgFGodd/wf"
 basename(scen@path)
 #> [1] "BASE-TOPIA-s4_h24-base"
 ```
@@ -217,9 +216,11 @@ Solving the same scenario with several backends (or option sets — pass
 keeps every run side by side; `scenario_runs(scen)` lists them with
 status and objective, and `read_solution(scen, run = "<label>")`
 switches the active solution. A saved scenario references its model in
-the model store rather than embedding a copy of it (see
+the model store when the model is a sealed version
+([`seal_model()`](https://energyRt.org/reference/seal.md)), and carries
+a copy of it otherwise (see
 [`?save_scenario`](https://energyRt.org/reference/save_scenario.md),
-`embed_model`).
+`mode`, and the *Scenario management* article).
 
 A scenario knows whether its data is in RAM or on disk via
 [`isInMemory()`](https://energyRt.org/reference/isInMemory.md); when on
@@ -332,6 +333,23 @@ sapply(list(BASE = scen, CO2CAP = scen_cap),
 #>  18352  32669
 ```
 
+A scenario that adds a lever to an interpolated one can be **built on
+it**: `base = scen` reuses BASE’s interpolated tables and computes only
+what the cap adds, and the result equals interpolating from scratch:
+
+``` r
+
+scen_cap2 <- interpolate_model(mod, "CO2CAP", um$CO2_CAP, base = scen)
+sum(compare_inputs(scen_cap2, scen_cap)$summary$status != "identical")
+#> [1] 0
+```
+
+The same holds for new technologies or commodities and for a sample of
+the base’s calendar or regions; anything else is interpolated in full,
+with a message saying why. Saved on a sealed base, such a scenario
+references the base’s tables instead of copying them (see *Scenario
+management*, “Scenarios built on a base”).
+
 To reason about **model size** rather than results,
 [`model_size()`](https://energyRt.org/reference/model_size.md) estimates
 the parameter/variable/constraint counts of an interpolated scenario,
@@ -342,7 +360,7 @@ in-memory footprint:
 
 model_size(scen)
 #> model_size: BASE
-#>   parameters : 189 value, 352 maps, 15 sets
+#>   parameters : 200 value, 359 maps, 15 sets
 #>   param rows : 5,972
 #>   estimate   : ~20,012 variables, ~20,704 constraints (from gating maps)
 #>   top parameters by rows:
@@ -362,7 +380,7 @@ model_size(scen)
 #>     pTechStock         14
 #>     pWacc              12
 size(scen)
-#> [1] "10.9 Mb"
+#> [1] "10.8 Mb"
 ```
 
 For a systematic check that a build is correct *and* efficient,
@@ -420,6 +438,11 @@ against the *model’s* calendar, so objects naming out-of-sample
 timeslices interpolate cleanly — their out-of-sample rows are simply
 filtered.
 
+A sample of an already interpolated full-calendar scenario can be built
+on it, `interpolate_model(mod, "S2", cal2, base = scen)`: the full
+scenario’s tables are taken filtered to the sampled timeslices instead
+of being recomputed.
+
 ### Spatial sampling
 
 The spatial mirror: pass a **filtered geoscale** — a
@@ -472,6 +495,7 @@ Filtering the geoscale to `R1 + R2` and interpolating drops the
 gs12 <- filter_geoscale(gs, "region", c("R1", "R2"),
                         drop_empty_geoframes = TRUE)
 scen12 <- interpolate_model(m3, "S12", gs12)
+#> spatial sample: sub-territory solve on 2 of 3 regions
 #> spatial sample: kept 2 region(s); dropped 1 object(s) and 1 trade route(s) outside the sample (verbose = TRUE lists them)
 as.character(scen12@settings@region)
 #> [1] "R1" "R2"
@@ -486,6 +510,7 @@ via `boundary_prices`; routes without a price row are just dropped:
 
 bp <- data.frame(src = "R2", dst = "R3", price = 50, cap.up = 4)
 scen12p <- interpolate_model(m3, "S12P", gs12, boundary_prices = bp)
+#> spatial sample: sub-territory solve on 2 of 3 regions
 #> spatial sample: kept 2 region(s); dropped 1 object(s) and 1 trade route(s) outside the sample (verbose = TRUE lists them)
 grep("^EXP", as.character(scen12p@modInp@sets$expp), value = TRUE)
 #> [1] "EXP_TR23_R22R3"

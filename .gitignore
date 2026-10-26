@@ -38,8 +38,6 @@ drafts/
 dev/
 dev-scripts/
 .positai
-#temporary:
-docs/
 inst/templates/*.pdf
 tests/testthat/*.pdf
 
@@ -68,13 +66,11 @@ tools/test/.backend-probe.json
 # render: per-machine measurements
 vignettes/logs/
 
-# roadmap and testing articles withheld pending reconsideration (kept locally)
-vignettes/articles/roadmap.Rmd
-docs/articles/roadmap.html
-docs/articles/articles/roadmap.html
-vignettes/articles/testing.Rmd
-docs/articles/testing.html
-docs/articles/articles/testing.html
+# pages pkgdown renders from agent instruction files: not site content
+docs/AGENTS.html
+docs/AGENTS.md
+docs/copilot-instructions.html
+docs/copilot-instructions.md
 
 # testthat writes this after a run with failures
 tests/testthat/testthat-problems.rds
