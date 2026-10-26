@@ -111,6 +111,17 @@ test_that("the definitions substituted at build time come from the preset", {
   expect_identical(.mm_substitute(list(), m), c("eqTechAfFx", "eqTechActSng", "eqDemInp"))
   expect_identical(.mm_substitute(list(substitute = character()), m), character())
   expect_identical(.mm_substitute(list(substitute = "eqTechAfFx"), m), "eqTechAfFx")
+  # the commodity totals come last, after the totals they sum, and only with
+  # a multimod that composes roll-ups
+  m$equations$eqOutTot <- 1
+  m$equations$eqInpTot <- 1
+  m$equations$eqTechOutTot <- 1
+  d <- .mm_substitute(list(), m)
+  if (.mm_substitutes_rollups()) {
+    expect_identical(d, c("eqTechAfFx", "eqTechActSng", "eqTechOutTot", "eqDemInp", "eqOutTot", "eqInpTot"))
+  } else {
+    expect_false(any(c("eqOutTot", "eqInpTot") %in% d))
+  }
 })
 
 test_that("highs_options must be a named list", {

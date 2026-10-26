@@ -105,8 +105,10 @@
 #' Definition equations to substitute while multimod builds the matrix
 #'
 #' The preset's `substitute` field, or by default those of the activity and
-#' output definitions and the per-process totals the model holds;
-#' `character()` turns it off. NULL when the installed multimod's `write_mps()` has no `substitute`
+#' output definitions, the per-process totals and, when the installed
+#' multimod composes definitions that roll up their own variable, the
+#' commodity output and input totals the model holds; `character()` turns it
+#' off. NULL when the installed multimod's `write_mps()` has no `substitute`
 #' argument (it then builds every row).
 #' @keywords internal
 #' @noRd
@@ -120,8 +122,18 @@
   }
   if (!is.null(sv$substitute)) return(as.character(sv$substitute))
   # each total is used by one other equation, so substituting it moves its
-  # entries there and adds none
-  intersect(c("eqTechAfFx", "eqTechActSng", "eqTechOutTot", "eqTechInpTot",
-              "eqStorageInpTot", "eqStorageOutTot", "eqSupOutTot", "eqImportTot",
-              "eqExportTot", "eqDemInp"), names(m$equations))
+  # entries there and adds none; the commodity totals roll up finer
+  # timeslices and regions and move their entries into the balances. Order
+  # matters: the totals they sum are substituted first.
+  defs <- c("eqTechAfFx", "eqTechActSng", "eqTechOutTot", "eqTechInpTot",
+            "eqStorageInpTot", "eqStorageOutTot", "eqSupOutTot", "eqImportTot",
+            "eqExportTot", "eqDemInp")
+  if (.mm_substitutes_rollups()) defs <- c(defs, "eqOutTot", "eqInpTot")
+  intersect(defs, names(m$equations))
+}
+
+# multimod composes a definition that refers to its own variable at finer
+# tuples (the commodity totals' roll-ups)?
+.mm_substitutes_rollups <- function() {
+  exists(".mx_subst_materialise", envir = asNamespace("multimod"), inherits = FALSE)
 }
