@@ -16,6 +16,8 @@ solve_by_sample(
   seed = NULL,
   calendar = NULL,
   solver = NULL,
+  ncap_floor = 0,
+  ncap_stat = c("mean", "median"),
   on_error = c("stop", "continue"),
   overwrite = FALSE,
   keep_scenarios = TRUE,
@@ -39,6 +41,19 @@ or a calendar carrying a \code{sample} column. When \code{NULL}, built by
 \item{calendar}{the calendar to sample; the model's own when \code{NULL}.}
 
 \item{solver}{a solver option list; the scenario's default when \code{NULL}.}
+
+\item{ncap_floor}{numeric in \verb{[0, 1]}. \code{0} (default) leaves every sample
+free to choose its own capacity, and the ensemble is a distribution over
+different investment plans. Above \code{0} the samples are solved a second
+time against a floor of \code{ncap_floor} times the ensemble's own new
+capacity, so the spread becomes period variation at one plan rather than
+variation between plans. \code{0.9} lets a sample trim a tenth; \code{1} holds the
+consensus exactly. It is a floor, not a fix: a sample may still build
+ABOVE it, and that is the signal worth reading -- it marks a period the
+consensus plan cannot serve.}
+
+\item{ncap_stat}{\code{"mean"} (default) or \code{"median"}, the statistic the
+consensus is taken with. Used only when \code{ncap_floor > 0}.}
 
 \item{on_error}{\code{"stop"} (default) or \code{"continue"} — with \code{"continue"} a
 sample that fails to solve is recorded and the ensemble carries on.}

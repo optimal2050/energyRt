@@ -27,6 +27,18 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* `solve_by_sample(ncap_floor =)` solves the ensemble twice: freely, then
+  against a floor of `ncap_floor` times the samples' own new capacity, so the
+  spread becomes period variation at one plan rather than variation between
+  plans. `ncap_stat` picks the mean or the median. The consensus is taken
+  across all samples, so it does not depend on the order they were solved, and
+  a sample that built nothing counts as a zero rather than being skipped. It is
+  a floor, not a fix: a sample may still build above it, which marks a period
+  the consensus plan cannot serve. The floored solves are stored as `<sample>_f`
+  variants beside the free ones and the free pass stays in `$scenarios_free`;
+  `$runs` gains a `pass` column. `ncap_floor = 0` is the default and changes
+  nothing.
+
 ### Model building
 
 * Three-part storage: charger, reservoir and discharger with their own
