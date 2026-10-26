@@ -88,7 +88,7 @@ test_that("a sealed owner refuses", {
   rc_local()
   s <- rc_scen("rc_seal")
   rc_fake_report(file.path(s@path, "reports"), "a")
-  suppressMessages(seal_scenario(s))
+  suppressMessages(seal_scenario(s, outputs = TRUE))
   expect_error(suppressMessages(clear_report_cache(s, dry_run = FALSE)),
                "sealed")
   expect_true(file.exists(file.path(s@path, "reports", "report_a.html")))

@@ -1432,12 +1432,21 @@ recipe_value <- function(scen, names, fmp) {
              lapply(.tech_group_inputs, function(nm) scen@modInp@parameters[[nm]]))
   hit <- .interp_clock$memo[[key]]
   if (is.null(hit) || !identical(hit$fp, fp) || !all(names %in% hit$left)) {
-    tabs <- .tech_group_tables(scen)
+    # meqTechActSng recorded as its rule alone where the rule is exact: its
+    # table (the output domain of the single-commodity technologies) is not
+    # built
+    sng_rule <- if (.rules_direct()) .meqTechActSng_rule(scen) else NULL
+    tabs <- .tech_group_tables(scen, sng_rule = !is.null(sng_rule))
     if (is.null(.interp_clock$memo)) .interp_clock$memo <- new.env(parent = emptyenv())
-    .interp_clock$memo[[key]] <- list(fp = fp, value = tabs, left = names(tabs))
+    .interp_clock$memo[[key]] <- list(fp = fp, value = tabs, left = names(tabs),
+                                      sng_rule = sng_rule)
     hit <- .interp_clock$memo[[key]]
   }
   for (nm in names) {
+    if (nm == "meqTechActSng" && !is.null(hit$sng_rule)) {
+      scen <- .set_map_rule(scen, nm, hit$sng_rule, empty_ok = TRUE)
+      next
+    }
     df <- hit$value[[nm]]
     if (!is.null(df) && nrow(df) > 0) scen <- .set_map(scen, nm, df, fmp)
     if (nm == "meqTechActSng") scen <- .set_map_rule(scen, nm, .meqTechActSng_rule(scen))
@@ -1458,7 +1467,9 @@ recipe_value <- function(scen, names, fmp) {
                         "pTechShare", "pTechCinp2use", "pTechCact2cout")
 
 # All ten tech-group / share maps as a named list (NULL where empty).
-.tech_group_tables <- function(scen) {
+# `sng_rule`: meqTechActSng is recorded as its rule, so the single-output
+# domain is joined only for the technologies the coupling maps read it for.
+.tech_group_tables <- function(scen, sng_rule = FALSE) {
   gdf <- function(nm) {
     p <- scen@modInp@parameters[[nm]]
     if (is.null(p)) return(NULL)
@@ -1513,7 +1524,12 @@ recipe_value <- function(scen, names, fmp) {
     nz(lift(refine(as.data.frame(merge0(mvTechInp, mTechOneComm)), pTechCinp2use)))
   } else NULL
   techSingOut <- if (!is.null(mvTechOut) && !is.null(mTechOneComm)) {
-    nz(refine(as.data.frame(merge0(mvTechOut, mTechOneComm)), pTechCact2cout))
+    dom <- mvTechOut
+    if (isTRUE(sng_rule)) {
+      need <- unique(c(mTechInpGroup$tech, techSingInp$tech))
+      dom <- dom[dom$tech %in% need, , drop = FALSE]
+    }
+    nz(refine(as.data.frame(merge0(dom, mTechOneComm)), pTechCact2cout))
   } else NULL
 
   # Grouped input / output domains (domain x group-membership x group-commodity).
@@ -1562,7 +1578,7 @@ recipe_value <- function(scen, names, fmp) {
   # the output domain lifted once (ActSng and Sng2Sng both use it); the input
   # domain `techSingInp` is lifted above already, and lifting is idempotent
   techSingOutL <- lift(techSingOut)
-  out <- put(out, "meqTechActSng", techSingOutL)
+  if (!isTRUE(sng_rule)) out <- put(out, "meqTechActSng", techSingOutL)
   if (!is.null(mTechOutGroup) && !is.null(mvTechAct)) {
     out <- put(out, "meqTechActGrp",
                    as.data.frame(merge0(mvTechAct, mTechOutGroup)))

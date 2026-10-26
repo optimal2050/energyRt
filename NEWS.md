@@ -151,6 +151,12 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   (`force = TRUE` to unseal anyway). References into the dataset store held
   by scenarios saved earlier still load; a weather or demand table whose
   version is gone is recomputed from the model.
+* A scenario seals its inputs and its outputs separately:
+  `seal_scenario(x, inputs = TRUE, outputs = FALSE)`. With sealed inputs and
+  open outputs it can still be solved under a new run label; `save_scenario()`
+  then writes that run only, so scenarios built on it keep reading the same
+  tables. `unseal_scenario(x, inputs = FALSE, outputs = TRUE)` reopens the
+  runs alone. A scenario sealed before reads as both parts sealed.
 * `save_model()` and `save_scenario()` take `mode = "ref"` (default,
   `options(energyRt.save_mode)`) or `"full"`. `"ref"` references a repository
   or model only when its exact content is a SEALED version, and copies it in

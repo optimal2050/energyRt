@@ -2731,6 +2731,20 @@ validate_scenario_parameters <- function(object, fold = TRUE,
     param <- object@modInp@parameters[[pn]]
     ptype <- as.character(param@type)
     if (!(ptype %in% c("numpar", "bounds", "map"))) next
+    # A map held as its rule alone: its columns are the dims (checked when the
+    # rule was recorded) and its tuples are distinct; an NA can only come from
+    # a rule table. Its rows are enumerated here in verify mode only.
+    if (.rule_only(param) && .rules_direct()) {
+      rule <- param@misc$rule
+      ids <- rule$cols[!sub("\\.[0-9]+$", "", rule$cols) %in% trim_dims]
+      for (cc in ids) {
+        if (any(vapply(rule$tables, function(t) cc %in% names(t) && anyNA(t[[cc]]),
+                       logical(1)))) {
+          add(pn, "na_index", paste0("NA in id column '", cc, "' of a rule table"))
+        }
+      }
+      next
+    }
     d <- get_data_slot(param)
     if (is.null(d) || nrow(d) == 0) next
     d <- as.data.frame(d)
@@ -2805,6 +2819,9 @@ validate_scenario_parameters <- function(object, fold = TRUE,
     if (!is.null(.prg)) .prg(message = mp)
     mpar <- object@modInp@parameters[[mp]]
     if (is.null(mpar)) next
+    # a map held as its rule alone was decided from its sources (enumerated
+    # and checked in verify mode)
+    if (.rule_only(mpar) && .rules_direct()) next
     md <- get_data_slot(mpar)
     if (is.null(md) || nrow(md) == 0) next
     md <- as.data.frame(md)
@@ -2875,6 +2892,9 @@ validate_scenario_parameters <- function(object, fold = TRUE,
     if (isTRUE(spec$structural) || !is.null(spec$structural_in)) next
     mpar <- object@modInp@parameters[[mp]]
     if (is.null(mpar)) next
+    # a map held as its rule alone covers only cells its source defines whole
+    # (`.tech_af_cells()`); enumerated and checked in verify mode
+    if (.rule_only(mpar) && .rules_direct()) next
     md <- get_data_slot(mpar)
     if (is.null(md) || nrow(md) == 0) next
     md <- as.data.frame(md)

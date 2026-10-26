@@ -189,7 +189,10 @@ clear_report_cache <- function(x = NULL, dry_run = TRUE, verbose = TRUE) {
     tp <- if (is(x, "scenario")) "scenario" else
       if (is(x, "model")) "model" else
       if (is(x, "repository")) "repository" else NULL
-    if (!is.null(tp)) {
+    # a scenario's reports come from its runs: its outputs seal applies
+    if (identical(tp, "scenario")) {
+      .scenario_seal_guard(x, "outputs")
+    } else if (!is.null(tp)) {
       .seal_guard(.entry_manifest(tp, .object_store_dir(x)), tp, x@name,
                   .entry_kinds()[[tp]]$unseal)
     }

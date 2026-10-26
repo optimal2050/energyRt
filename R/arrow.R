@@ -75,8 +75,14 @@ save_scenario <- function(
     object@path <- path
   }
 
-  # a sealed scenario is an archive: no rewrites (see ?seal_scenario)
-  .scenario_seal_guard(object)
+  # sealed inputs are not rewritten: with open outputs only the active run is
+  # written (see ?seal_scenario)
+  .seal_st <- .scenario_seal_state_of(object)
+  if (.seal_st$inputs) {
+    .scenario_seal_guard(object, "outputs")
+    return(invisible(.save_scenario_outputs(object, format = format,
+                                            verbose = verbose)))
+  }
 
   # An on-disk scenario (interpolate_model(ondisk = TRUE)) already has its
   # parameter stores in place, in whatever codec `storage_format` was when they
@@ -1448,9 +1454,15 @@ load_scenario <- function(
   # what should be ACTIVE. When that is a variant run, activate it — the
   # loaded object then matches what was last saved, exactly as before the
   # problem.RData retirement.
+  # A run added to a scenario with sealed inputs is recorded in the manifest
+  # only (the shell is not rewritten): activated the same way.
   def <- tryCatch(.scenario_default_run(scen_obj), error = function(e) NULL)
-  if (!is.null(def) && nzchar(def$variant %||% "") &&
-      !identical(def$variant, .run_variant(scen_obj))) {
+  other_run <- !is.null(def) && (
+    (nzchar(def$variant %||% "") &&
+       !identical(def$variant, .run_variant(scen_obj))) ||
+    (!nzchar(def$variant %||% "") && !nzchar(.run_variant(scen_obj)) &&
+       !identical(def$solve, scen_obj@misc$run %||% "")))
+  if (other_run) {
     scen_act <- tryCatch(
       read_solution(scen_obj, run = .run_id(def$variant, def$solve),
                     echo = FALSE),

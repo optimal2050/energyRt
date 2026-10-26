@@ -162,7 +162,7 @@ test_that("a sealed scenario is skipped", {
   skip_if_no_solver()
   af_local("sealed")
   s <- af_save(af_solved("af_sealed"))
-  suppressMessages(seal_scenario(s, verbose = FALSE))
+  suppressMessages(seal_scenario(s, outputs = TRUE, verbose = FALSE))
   on.exit(suppressMessages(unseal_scenario(s, verbose = FALSE)), add = TRUE)
 
   a <- scenario_artifacts(s)

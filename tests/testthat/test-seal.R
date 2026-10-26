@@ -106,7 +106,7 @@ test_that("a sealed scenario is an archive: loads, but refuses changes", {
   sc <- interpolate_model(sp_tech(c(50, 50, 50), optret = FALSE,
                                   name = "sls"), name = "sls")
   sc <- suppressMessages(save_scenario(sc, verbose = FALSE))
-  seal_scenario("sls", verbose = FALSE)
+  seal_scenario("sls", outputs = TRUE, verbose = FALSE)
 
   expect_error(suppressMessages(save_scenario(sc, verbose = FALSE)),
                "unseal_scenario")
@@ -179,4 +179,49 @@ test_that("pinned-version load in plain layout errors when superseded", {
   save_model(sl_mod("pin", fixom = 2), verbose = FALSE)
   expect_error(load_model(paste0("pin@", h8_old), verbose = FALSE),
                "updated in place")
+})
+
+test_that("sealed inputs take new runs; scenarios built on them read the same tables", {
+  skip_if_no_solver()
+  sl_local()
+  unlink(sl_root("scenarios"), recursive = TRUE)
+  sc <- interpolate_model(sp_tech(c(50, 50, 50), optret = FALSE,
+                                  name = "slo"), name = "slo")
+  sc <- suppressMessages(save_scenario(sc, verbose = FALSE))
+  seal_scenario("slo", verbose = FALSE)
+  # a scenario built on it, referencing its tables
+  dep <- suppressMessages(suppressWarnings(interpolate_model(
+    sc, newTax("TSLO", comm = "ELC", tax = data.frame(out = 1)),
+    name = "slo_dep", verbose = FALSE)))
+  dep <- suppressMessages(save_scenario(dep, verbose = FALSE))
+  mf0 <- yaml::read_yaml(fp(sc@path, "scenario.yml"))
+  shell0 <- unname(tools::md5sum(fp(sc@path, "scen.RData")))
+
+  # an unsolved re-save would rewrite the inputs
+  expect_error(suppressMessages(save_scenario(sc, verbose = FALSE)), "only a run")
+  s1 <- suppressMessages(solve_scenario(sc, solver = solver_options$glpk))
+  s1 <- suppressMessages(save_scenario(s1, verbose = FALSE))
+  mf1 <- yaml::read_yaml(fp(sc@path, "scenario.yml"))
+  expect_identical(unname(tools::md5sum(fp(sc@path, "scen.RData"))), shell0)
+  expect_identical(mf1$tables, mf0$tables)
+  expect_identical(mf1$sealed_hash, mf0$sealed_hash)
+  expect_identical(mf1$default, s1@misc$run)
+  ld <- suppressWarnings(load_scenario("slo", env = NULL, verbose = FALSE))
+  expect_equal(getData(ld, "vObjective", merge = TRUE)$value[1],
+               getData(s1, "vObjective", merge = TRUE)$value[1])
+  # the dependent reads the same inputs
+  ld_dep <- suppressWarnings(suppressMessages(load_scenario(
+    "slo_dep", env = NULL, verbose = FALSE)))
+  ci <- compare_inputs(ld_dep, dep)
+  expect_equal(sum(ci$summary$status != "identical"), 0)
+
+  # sealed outputs: no new run; reopening them keeps the inputs sealed
+  seal_scenario("slo", outputs = TRUE, verbose = FALSE)
+  expect_error(suppressMessages(solve_scenario(sc, solver = solver_options$glpk)),
+               "outputs sealed")
+  unseal_scenario("slo", inputs = FALSE, outputs = TRUE, verbose = FALSE)
+  mf2 <- yaml::read_yaml(fp(sc@path, "scenario.yml"))
+  expect_true(isTRUE(mf2$sealed))
+  expect_false(isTRUE(mf2$outputs_sealed))
+  expect_error(seal_scenario("nope_x", inputs = FALSE, outputs = TRUE, verbose = FALSE))
 })
