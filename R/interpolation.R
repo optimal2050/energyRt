@@ -4551,40 +4551,48 @@ get_process_stock_window <- function(scen, process = NULL, classes = NULL) {
 
   mod_years <- scen@settings@horizon@intervals$mid
 
+  # the stock rows of every object in one table (`.k` numbers the objects),
+  # then the window per (object, region): the earliest and latest of its
+  # stock years and the model years
+  k <- 0L
   ll <- apply_to_scenario_data(
     scen = scen,
     classes = classes,
     func = function(x) {
-      ll <- list()
-      # cat("Process: ", x@name, "\n")
       if (!.hasSlot(x, "capacity")) return(NULL)
+      k <<- k + 1L
       cap <- .capacity_stock(x@capacity)
       # `trade` capacity is region-free (`vTradeCap{trade, year}`), so its rows
       # carry no `region`. Without one the guard below drops the WHOLE table --
       # in a trade-only model that silently emptied the stock window. An
       # explicit NA routes it through the existing "expand NA to the process's
       # regions" path instead.
-      if (!("region" %in% names(cap))) cap$region <- rep(NA_character_, NROW(cap))
-      dd <- cap |>
-        select(any_of("region"), year, stock) |>
-        filter(!is.na(stock)) |>
-        unique() |>
-        mutate(process = x@name, .before = 1) |>
-        group_by(across(any_of(c("process", "region")))) |>
-        mutate(
-          start = min(c(year, mod_years), na.rm = TRUE),
-          end = max(c(year, mod_years), na.rm = TRUE)
-        ) |>
-        ungroup() |>
-        select(process, any_of("region"), start, end) |>
-        unique() |>
-        as.data.table()
-
-      ll[[x@name]] <- dd
+      region <- if ("region" %in% names(cap)) cap[["region"]] else
+        rep(NA_character_, NROW(cap))
+      keep <- !is.na(cap[["stock"]])
+      ll <- list()
+      ll[[x@name]] <- data.table(.k = rep.int(k, sum(keep)),
+                                 process = rep.int(x@name, sum(keep)),
+                                 region = region[keep],
+                                 year = cap[["year"]][keep])
       ll
     },
     as_list = FALSE
   )
+  if (!is.null(ll) && NROW(ll) > 0L) {
+    key <- paste(ll$.k, ifelse(is.na(ll$region), "", paste0("=", ll$region)),
+                 sep = "\r")
+    first <- !duplicated(key)
+    yrs <- split(ll$year, factor(key, levels = unique(key)))
+    ll <- data.table(
+      process = ll$process[first],
+      region = ll$region[first],
+      start = unlist(lapply(yrs, function(y) min(c(y, mod_years), na.rm = TRUE)),
+                     use.names = FALSE),
+      end = unlist(lapply(yrs, function(y) max(c(y, mod_years), na.rm = TRUE)),
+                   use.names = FALSE)
+    )
+  }
 
   # No technology/storage/trade in the model (e.g. a demand met by an import):
   # `apply_to_scenario_data()` returns an empty, column-less result and the
