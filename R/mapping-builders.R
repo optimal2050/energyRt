@@ -643,7 +643,165 @@ map_meqTechAfFx     <- function(scen, fmp) scen
 # pair  x <= v  and  x >= v.  It goes to meqTechAfFx (one equality row) and
 # leaves the Lo and Up maps. The three maps are written once each, since
 # `d2p()` appends.
+#
+# The three maps are decided per (tech, region, year) cell of the activity
+# domain wherever that is exact (`.tech_af_cells()`): a map holding whole
+# cells only is recorded as the activity rule gated by its cells and never
+# built tuple by tuple. Elsewhere, and with `energyRt.map_rules_verify`
+# (which then checks the cell decision against the hourly build), the maps
+# are built per timeslice.
 .tech_af_fx_maps <- function(scen, fmp) {
+  if (isTRUE(scen@misc$cells_maps) && isTRUE(getOption("energyRt.map_rules", TRUE))) {
+    cm <- .tech_af_cells(scen)
+    if (!is.null(cm)) {
+      if (isTRUE(getOption("energyRt.map_rules_verify", FALSE))) {
+        out <- .tech_af_fx_maps_hourly(scen, fmp)
+        .tech_af_cells_verify(out, cm)
+        return(out)
+      }
+      return(.tech_af_cells_set(scen, cm, fmp))
+    }
+  }
+  .tech_af_fx_maps_hourly(scen, fmp)
+}
+
+# The availability-factor maps per cell of the activity domain.
+#   The activity domain is the span's (tech, region, year) cells, less the
+#   minus tables of its rule, times the technology's timeslices; the maps are
+#   counts per cell of the timeslices where
+#     Lo: pTechAf lo is set and not 0;
+#     Up: pTechAf up is not Inf (the map is structural);
+#     Fx: both, with af.lo == af.up (af.up's default where no row) and the
+#         same weather factors;
+#   Lo and Up then lose the Fx timeslices. A cell whose count is all of its
+#   timeslices or none is whole; any other is partial.
+#   NULL (the hourly build decides) when pTechAf has wildcard (NA) rows or
+#   repeated keys, or a minus table of the activity rule is not per cell.
+# Returns list(cells, ts, base, counts, L, UO, F).
+.tech_af_cells <- function(scen) {
+  base <- .mvTechAct_rule(scen)
+  pp <- scen@modInp@parameters[["pTechAf"]]
+  if (is.null(base) || is.null(pp)) return(NULL)
+  dt <- function(x) data.table::as.data.table(as.data.frame(x))
+  cell <- c("tech", "region", "year")
+  key <- c(cell, "timeslice")
+  tb <- base$tables
+  cells <- unique(dt(tb$span)[, cell, with = FALSE])
+  for (nm in base$minus) {
+    m <- unique(dt(tb[[nm]]))
+    sh <- intersect(names(cells), names(m))
+    if (!length(sh) || !all(names(m) %in% cell)) return(NULL)
+    cells <- cells[!m, on = sh]
+  }
+  ts <- unique(dt(tb$proc_frame)[dt(tb$frame_slice), on = "timeframe", nomatch = NULL,
+                                 allow.cartesian = TRUE][, c("tech", "timeslice"), with = FALSE])
+  nts <- ts[, list(n = .N), by = "tech"]
+  cells <- nts[cells, on = "tech", nomatch = NULL]
+  P <- get_data_slot(pp)
+  if (is.null(P) || !nrow(P)) return(NULL)
+  P <- dt(P)
+  if (!all(c(key, "type", "value") %in% names(P))) return(NULL)
+  for (cl in c(key, "type")) data.table::set(P, j = cl, value = as.character(P[[cl]]))
+  if (anyNA(P[, key, with = FALSE])) return(NULL)
+  # the rows inside the activity domain
+  P <- P[cells[, cell, with = FALSE], on = cell, nomatch = NULL]
+  P <- P[ts, on = c("tech", "timeslice"), nomatch = NULL]
+  if (anyDuplicated(P, by = c(key, "type"))) return(NULL)
+  dv <- pp@defVal
+  L <- P[type == "lo" & value != 0, c(key, "value"), with = FALSE]
+  data.table::setnames(L, "value", "vlo")
+  UO <- P[type == "up" & value == Inf, key, with = FALSE]
+  PU <- P[type == "up", c(key, "value"), with = FALSE]
+  data.table::setnames(PU, "value", "vup")
+  LU <- L[!UO, on = key]
+  LU <- PU[LU, on = key]
+  LU[is.na(vup), vup := dv[2]]
+  same <- is.finite(LU$vlo) & is.finite(LU$vup) & abs(LU$vlo - LU$vup) <= 1e-12 * pmax(1, abs(LU$vlo))
+  same <- same & LU$tech %in% .tech_af_weather_same(scen, unique(LU$tech))
+  F <- LU[same, key, with = FALSE]
+  cnt <- function(x) if (nrow(x)) x[, list(k = .N), by = cell] else data.table::data.table(tech = character(), region = character(), year = character(), k = integer())
+  counts <- cells[, c(cell, "n"), with = FALSE]
+  add <- function(d, x, nm) {
+    d <- cnt(x)[d, on = cell]
+    d[is.na(k), k := 0L]
+    data.table::setnames(d, "k", nm)
+    d
+  }
+  counts <- add(counts, L, "nL")
+  counts <- add(counts, UO, "nUO")
+  counts <- add(counts, F, "nF")
+  counts[, `:=`(lo = nL - nF, up = n - nUO - nF, fx = nF)]
+  list(cells = cells, ts = ts, base = base, counts = counts, L = L[, key, with = FALSE], UO = UO, F = F)
+}
+
+# The tuples of one map from the cell decision: its whole cells times their
+# timeslices, and the timeslices of its partial cells
+.tech_af_cells_tuples <- function(cm, map) {
+  cell <- c("tech", "region", "year")
+  key <- c(cell, "timeslice")
+  cn <- cm$counts
+  whole <- cn[get(map) == n & n > 0, cell, with = FALSE]
+  part <- cn[get(map) > 0 & get(map) < n, cell, with = FALSE]
+  out <- list(cm$ts[whole, on = "tech", allow.cartesian = TRUE][, key, with = FALSE])
+  if (nrow(part)) {
+    in_part <- function(x) x[part, on = cell, nomatch = NULL][, key, with = FALSE]
+    pt <- switch(map,
+      lo = in_part(cm$L)[!cm$F, on = key],
+      up = cm$ts[part, on = "tech", allow.cartesian = TRUE][, key, with = FALSE][!cm$UO, on = key][!cm$F, on = key],
+      fx = in_part(cm$F))
+    out[[2L]] <- pt
+  }
+  unique(data.table::rbindlist(out))
+}
+
+# Record the three maps from the cell decision: a map of whole cells only is
+# the activity rule gated by its cells, with no table; any other is a table
+.tech_af_cells_set <- function(scen, cm, fmp) {
+  cell <- c("tech", "region", "year")
+  maps <- c(lo = "meqTechAfLo", up = "meqTechAfUp", fx = "meqTechAfFx")
+  for (m in names(maps)) {
+    cn <- cm$counts
+    k <- cn[[m]]
+    if (!any(k > 0)) next
+    if (any(k > 0 & k < cn$n)) {
+      scen <- .set_map(scen, maps[[m]], as.data.frame(.tech_af_cells_tuples(cm, m)), fmp)
+      next
+    }
+    whole <- cn[k == cn$n & cn$n > 0, cell, with = FALSE]
+    data.table::setorderv(whole, cell)
+    tables <- cm$base$tables
+    tables$cells <- as.data.frame(whole)
+    rule <- .map_rule(of = cm$base$of, gate = "cells", minus = cm$base$minus, tables = tables,
+                      cols = c("tech", "region", "year", "timeslice"))
+    scen <- .set_map_rule(scen, maps[[m]], rule, empty_ok = TRUE)
+  }
+  scen
+}
+
+# `energyRt.map_rules_verify`: the cell decision must give the tuples the
+# hourly build wrote, map by map
+.tech_af_cells_verify <- function(scen, cm) {
+  key <- c("tech", "region", "year", "timeslice")
+  maps <- c(lo = "meqTechAfLo", up = "meqTechAfUp", fx = "meqTechAfFx")
+  for (m in names(maps)) {
+    p <- scen@modInp@parameters[[maps[[m]]]]
+    a <- if (is.null(p)) NULL else get_data_slot(p)
+    a <- if (is.null(a) || !nrow(a)) data.table::data.table(tech = character(), region = character(),
+                                                            year = character(), timeslice = character())
+         else data.table::as.data.table(lapply(as.data.frame(a)[, key, drop = FALSE], as.character))
+    b <- .tech_af_cells_tuples(cm, m)
+    same <- nrow(a) == nrow(b) && nrow(data.table::fsetdiff(a, b)) == 0L && nrow(data.table::fsetdiff(b, a)) == 0L
+    if (!same) {
+      stop("availability-factor map '", maps[[m]], "': the cell decision gives ", nrow(b),
+           " tuples where the hourly build gives ", nrow(a), ".", call. = FALSE)
+    }
+  }
+  invisible(TRUE)
+}
+
+utils::globalVariables(c("vup", "vlo", "nL", "nUO", "nF", "k", "n", "type", "lo", "up", "fx", "tech"))
+
+.tech_af_fx_maps_hourly <- function(scen, fmp) {
   mem <- function(x) NULL
   lo <- .gds(.cjoin(scen, "meqTechAfLo", mem), "meqTechAfLo")
   up <- .gds(.cjoin(scen, "meqTechAfUp", mem), "meqTechAfUp")

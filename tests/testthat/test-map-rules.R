@@ -100,6 +100,43 @@ test_that("an availability-factor map with per-timeslice bounds keeps its table"
   expect_true("mvTechAct" %in% .rule_params(scen))
 })
 
+test_that("the availability-factor maps decided per cell equal the hourly build", {
+  pr_local_model()
+  unlink(pr_root(), recursive = TRUE)
+  af <- c("meqTechAfLo", "meqTechAfUp", "meqTechAfFx")
+  tuples <- function(scen, nm) {
+    p <- scen@modInp@parameters[[nm]]
+    d <- if (is.null(p)) NULL else get_data_slot(p)
+    if (is.null(d) || !nrow(d)) return(NULL)
+    as_tuples(as.data.frame(d)[, c("tech", "region", "year", "timeslice")])
+  }
+  # whole cells (TOPIA), and a technology open on some timeslices (partial cells)
+  repo <- newRepository(
+    "mrc",
+    newCommodity("ELC", timeframe = "SL"),
+    newTechnology("GAS", output = list(comm = "ELC"),
+                  af = data.frame(timeslice = pr_slices, af.up = c(0.9, Inf, 0.7, Inf)),
+                  invcost = list(invcost = 1000), olife = list(olife = 30), cap2act = 1),
+    newTechnology("NUC", output = list(comm = "ELC"), af = data.frame(af.lo = 0.8, af.up = 0.8),
+                  invcost = list(invcost = 3000), olife = list(olife = 40), cap2act = 1),
+    newDemand("DEM", commodity = "ELC", demand = data.frame(timeslice = pr_slices, demand = 10)))
+  cal <- newCalendar(timetable = make_timetable(struct = list(ANNUAL = "ANNUAL", SL = pr_slices)), name = "prc")
+  models <- list(topia = ut_build("R1", "s4_h24"),
+                 part = newModel("mrc", region = "R1", discount = 0, calendar = cal, horizon = newHorizon(2025), repo = repo))
+  for (nm in names(models)) {
+    cells <- withr::with_options(list(energyRt.map_rules = TRUE, energyRt.map_rules_verify = FALSE),
+      suppressMessages(suppressWarnings(interpolate_model(models[[nm]], name = paste0("mrc_", nm, "_c"),
+                                                          path = pr_root("scenarios", paste0("mrc_", nm, "_c"))))))
+    hourly <- withr::with_options(list(energyRt.map_rules = FALSE),
+      suppressMessages(suppressWarnings(interpolate_model(models[[nm]], name = paste0("mrc_", nm, "_h"),
+                                                          path = pr_root("scenarios", paste0("mrc_", nm, "_h"))))))
+    for (m in af) expect_identical(tuples(cells, m), tuples(hourly, m), info = paste(nm, m))
+  }
+  # the partial-cell model: the Up map keeps a table, the Fx map of NUC is a rule
+  expect_false("meqTechAfUp" %in% .rule_params(cells))
+  expect_true("meqTechAfFx" %in% .rule_params(cells))
+})
+
 test_that("the timeslice maps equal their rules and keep only the rule after interpolation", {
   pr_local_model()
   unlink(pr_root(), recursive = TRUE)

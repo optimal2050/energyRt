@@ -72,12 +72,14 @@
 
 # record a rule on a map parameter; its columns must be the parameter's dims.
 # A map that got no rows takes no rule: the table, empty, stays the definition.
-.set_map_rule <- function(scen, name, rule) {
+# `empty_ok`: the builder decided the map without building its table; the rule
+# is its only definition.
+.set_map_rule <- function(scen, name, rule, empty_ok = FALSE) {
   if (is.null(rule)) return(scen)
   p <- scen@modInp@parameters[[name]]
   if (is.null(p)) return(scen)
   n <- .param_nrow(p)
-  if (is.na(n) || n == 0L) return(scen)
+  if (!isTRUE(empty_ok) && (is.na(n) || n == 0L)) return(scen)
   if (!identical(as.character(rule$cols), as.character(p@dimSets))) {
     stop("map rule for '", name, "': cols (", paste(rule$cols, collapse = ", "),
          ") must equal the parameter's dims (", paste(p@dimSets, collapse = ", "), ").",

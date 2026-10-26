@@ -1081,7 +1081,12 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   #   share a derivation with a filter map are built during the filter recipe;
   #   the rest are reported pending until implemented.
   .interp_step(verbose, "building maps: constraint")
+  # a builder may decide a map per cell and record only its rule where no later
+  # step reads the table directly: the dense path and the fold read the maps
+  # (R/mapping-builders.R, .tech_af_fx_maps)
+  scen@misc$cells_maps <- isTRUE(sparse) && length(fold_dims) == 0
   scen <- build_mappings(scen, fmp = fmp, recipes = "constraint")
+  scen@misc$cells_maps <- NULL
   .check_storage_parts(scen)
 
   #============================================================================#
