@@ -640,6 +640,8 @@ unfold_parameters <- function(scen, dims = .foldable_dims,
     p <- scen@modInp@parameters[[pn]]
     if (!inherits(p, "parameter")) next
     if (!(as.character(p@type) %in% types)) next
+    # a map held as its rule alone has a wildcard only if a rule table has one
+    if (.rule_only(p) && !.rule_has_wild(p@misc$rule, dims)) next
     data <- get_data_slot(p)
     if (is.null(data) || nrow(data) == 0) next
     # Only act when a trimmable dimension actually carries a wildcard (NA / ANY),
@@ -692,6 +694,7 @@ unfold_trade_routes <- function(scen, verbose = FALSE) {
     p <- scen@modInp@parameters[[pn]]
     if (!inherits(p, "parameter")) next
     if (!(as.character(p@type) %in% c("numpar", "bounds", "map"))) next
+    if (.rule_only(p) && !all(c("trade", "src", "dst") %in% p@misc$rule$cols)) next
     data <- get_data_slot(p)
     if (is.null(data) || nrow(data) == 0) next
     data <- as.data.frame(data)
