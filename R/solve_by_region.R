@@ -137,6 +137,18 @@ solve_by_region <- function(object, name = NULL, ...,
     stop("region(s) not declared in the model: ",
          paste(unknown, collapse = ", "), call. = FALSE)
   }
+  # The units must PARTITION. A region appearing twice is solved twice and
+  # counted twice -- in the stacked getData() output and in the "sum of
+  # objectives" that print.by_region presents as the whole-system cost. Refused
+  # rather than warned: there is no reading of an overlap under which that sum
+  # is the system's.
+  dup <- unique(unlist(groups)[duplicated(unlist(groups))])
+  if (length(dup)) {
+    stop("region(s) appear in more than one unit of work: ",
+         paste(dup, collapse = ", "), ".\n",
+         "  Regions are solved as disjoint pieces, so a repeat is counted ",
+         "twice. Split them so each region appears once.", call. = FALSE)
+  }
   if (trade == "user" && is.null(boundary_prices)) {
     stop("trade = \"user\" needs `boundary_prices`; use trade = \"auto\" to ",
          "generate a generic window, or trade = \"none\" for autarky.",
@@ -155,9 +167,13 @@ solve_by_region <- function(object, name = NULL, ...,
                  regions = list(), status = character(0),
                  objective = numeric(0), boundary = integer(0))
 
+  # The grouping is part of the configuration, not just of the label: labels
+  # are slugs, so two different groupings can normalise to the same one and
+  # would otherwise overwrite each other's variants silently.
   vparams <- .variant_params(
     trade = trade, share = share, nsteps = nsteps, price = price,
-    spread = spread)
+    spread = spread,
+    groups = vapply(groups, paste, "", collapse = "+"))
 
   for (k in seq_along(groups)) {
     rg <- groups[[k]]
@@ -218,6 +234,25 @@ solve_by_region <- function(object, name = NULL, ...,
       next
     }
 
+    # Hand the scenario the FULL model plus this unit's region set, rather than
+    # the cut model it was interpolated from.
+    #
+    # A scenario stores the model as given, and what was given here was already
+    # cut -- while `@model` lives on the shell, which save_scenario() writes
+    # only on the first save. So the folder kept the FIRST unit's subset, and a
+    # reloaded variant was served another unit's declarations: region R2's
+    # results beside a model declaring R1, whose DEM_R2 rows are empty.
+    # `verify_solution()` re-derives identities from `@model@data` and would
+    # check R2 against a model with no R2 demand; `levcost()` and `report()`
+    # would price and describe R1.
+    #
+    # `.scen_build_model()` re-cuts from `misc$spatial$regions`, which is
+    # region-based and needs no geoscale, so each variant rebuilds its own cut
+    # on reload. `misc$model_id` must be left alone: a NULL one is that
+    # function's marker for "@model is already built and cut", and clearing it
+    # makes the rebuild return the full model uncut.
+    sol@model <- object
+    sol@misc$spatial <- list(regions = rg, boundary_prices = bp)
     saved <- suppressMessages(suppressWarnings(
       save_scenario(sol, verbose = FALSE)))
     .by_region_tag_variant(saved, vlab, sequence = name, regions = rg,

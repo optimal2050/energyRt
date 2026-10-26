@@ -24,6 +24,8 @@ levcost/
 levcosts/
 reports/
 energyRt_registry.csv
+energyRt_refs.csv
+logs/
 .archive/
 drafts/
 .formatted/

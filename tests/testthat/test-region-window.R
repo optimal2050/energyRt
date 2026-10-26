@@ -246,3 +246,113 @@ test_that("the driver validates its arguments", {
                                                  price = 1), verbose = FALSE),
     "ignored")
 })
+
+# --- the units must partition ------------------------------------------------ #
+
+test_that("a region in two units of work is refused", {
+  # Overlap is counted twice: in the stacked getData() output and in the "sum
+  # of objectives" print.by_region presents as the whole-system cost. There is
+  # no reading of an overlap under which that sum is the system's.
+  mod <- rw_mod()
+  expect_error(
+    solve_by_region(mod, group = list(c("R1", "R2"), c("R2", "R3")),
+                    solver = solver_options$glpk, verbose = FALSE),
+    "more than one unit of work")
+  expect_error(
+    solve_by_region(mod, group = list(c("R1", "R2"), c("R2", "R3")),
+                    solver = solver_options$glpk, verbose = FALSE),
+    "R2")
+  # a duplicate in a flat region list is the same fault
+  expect_error(
+    solve_by_region(mod, regions = c("R1", "R2", "R1"),
+                    solver = solver_options$glpk, verbose = FALSE),
+    "more than one unit of work")
+})
+
+test_that("a region subset is not the stored model any more", {
+  # subset_model_regions() leaves @name alone on purpose, and save_model()
+  # updates an entry in place BY NAME -- so a subset carrying the parent's
+  # recorded hash could overwrite the full model's store entry while claiming
+  # to be it.
+  mod <- rw_mod()
+  mod@misc$hash <- "deadbeefdeadbeef"
+  sub <- subset_model_regions(mod, c("R1", "R2"), verbose = FALSE)
+  expect_null(sub@misc$hash)
+  expect_identical(sub@name, mod@name)          # the name is deliberately kept
+  expect_setequal(as.character(sub@config@region), c("R1", "R2"))
+})
+
+# --- a reloaded sequence must cut the model with ITS OWN regions ------------- #
+
+test_that("each variant keeps its own spatial sample across a reload", {
+  skip_if_no_solver()
+  rw_local("spatial")
+  br <- solve_by_region(rw_mod(), name = "rw_sp", regions = c("R1", "R2"),
+                        solver = solver_options$glpk, verbose = FALSE)
+  skip_if(isTRUE(br$failed))
+  skip_if(nrow(br$runs) < 2L)
+
+  # The shell owns `@model` and `@misc`, and save_scenario() writes the shell
+  # only on the FIRST save -- so the folder used to keep the first unit's cut
+  # model, and a reloaded variant was served another unit's declarations: R2's
+  # results beside a model declaring R1 whose DEM_R2 rows are empty. The driver
+  # now stores the full model plus this unit's regions, and the cut is rebuilt.
+  back <- suppressMessages(load_scenario(br$path, env = NULL, verbose = FALSE))
+  rr <- scenario_runs(back)
+  first <- br$runs$region[1]
+  row <- rr[rr$variant == first, ][1, ]
+  skip_if(is.na(row$run))
+
+  sw <- suppressMessages(read_solution(back, run = row$run, echo = FALSE))
+  expect_setequal(as.character(sw@settings@region), br$runs$regions[[1]])
+  expect_setequal(as.character(sw@misc$spatial$regions), br$runs$regions[[1]])
+  second <- br$runs$region[2]
+  row2 <- rr[rr$variant == second, ][1, ]
+  skip_if(is.na(row2$run))
+  sw2 <- suppressMessages(read_solution(back, run = row2$run, echo = FALSE))
+
+  # The cut shows in each object's DATA, not in get_region():
+  # `.scen_build_model()` goes through the internal `.subset_model_regions()`,
+  # which narrows rows and scopes but leaves `@config@region` alone -- only the
+  # exported verb rewrites that.
+  dem_rows <- function(m, obj) {
+    for (r in m@data) {
+      if (obj %in% names(r@data)) {
+        return(nrow(as.data.frame(methods::slot(r@data[[obj]], "demand"))))
+      }
+    }
+    NA_integer_
+  }
+  m <- energyRt:::.scen_build_model(sw)
+  m2 <- energyRt:::.scen_build_model(sw2)
+
+  # the decisive pair: each unit rebuilds ITS OWN cut. Before the driver stored
+  # the full model, both of these were the first unit's -- R2's results beside a
+  # model whose DEM_R2 was empty.
+  expect_gt(dem_rows(m, "DEM_R1"), 0)
+  expect_equal(dem_rows(m, "DEM_R2"), 0)
+  expect_gt(dem_rows(m2, "DEM_R2"), 0)
+  expect_equal(dem_rows(m2, "DEM_R1"), 0)
+  # and the shell itself keeps the FULL model, which is what makes that possible
+  expect_setequal(as.character(get_region(back@model)), c("R1", "R2", "R3"))
+})
+
+test_that("read_sequence declares what a region sequence cannot rebuild", {
+  skip_if_no_solver()
+  rw_local("rseq")
+  br <- solve_by_region(rw_mod(), name = "rw_rs", regions = c("R1", "R2"),
+                        solver = solver_options$glpk, verbose = FALSE)
+  skip_if(isTRUE(br$failed))
+
+  back <- suppressMessages(load_scenario(br$path, env = NULL, verbose = FALSE))
+  rs <- suppressMessages(read_sequence(back, verbose = FALSE))
+  expect_s3_class(rs, "by_region")
+  # the stub count is derived after variant expansion and never written to
+  # disk, so it is declared rather than returned as a silent NA
+  expect_true("boundary" %in% rs$missing)
+  # the model IS recoverable now, so it must not be declared missing
+  expect_false("model" %in% rs$missing)
+  expect_s4_class(rs$model, "model")
+  # what IS recoverable still is
+  expect_setequal(rs$runs$region, br$runs$region)
+})

@@ -588,6 +588,33 @@ drop_scenario_run <- function(object, run, force = FALSE) {
 # lives in scen.RData itself (its one home — problem.RData is retired; a
 # legacy problem.RData is still honored as fallback). Errors when the
 # target problem was never saved.
+# The spatial sample belonging to the problem being switched to.
+#
+# Cartridges written before `spatial` was stored carry none, and the shell's
+# copy is the LAST unit of work's -- so falling back to it would restore one
+# variant's regions onto another. `settings@region` is per-problem and was
+# always correct, so a strict subset of the model's regions is reconstructed
+# from it instead. `boundary_prices` cannot be recovered that way: the stubs it
+# mints are part of the solved problem, so say so rather than rebuild a model
+# that is quietly missing them.
+.swap_spatial <- function(scen, vdata, variant) {
+  if (!is.null(vdata$spatial)) return(vdata$spatial)
+  r_p <- as.character(scen@settings@region %||% character(0))
+  r_m <- tryCatch(as.character(get_region(scen@model)),
+                  error = function(e) character(0))
+  if (!length(r_p) || !length(r_m) ||
+      !(all(r_p %in% r_m) && length(r_p) < length(r_m))) {
+    return(NULL)
+  }
+  if (nzchar(variant)) {
+    warning("Variant '", variant, "' of scenario '", scen@name, "' predates ",
+            "the stored spatial sample; its regions were recovered from the ",
+            "problem's own settings, but any boundary_prices stubs were not. ",
+            "Re-save the variant to record them.", call. = FALSE)
+  }
+  list(regions = r_p, boundary_prices = NULL)
+}
+
 .variant_swap <- function(scen, variant) {
   if (identical(variant, .run_variant(scen))) return(scen)
   vdata <- NULL
@@ -614,7 +641,8 @@ drop_scenario_run <- function(object, run, force = FALSE) {
         vdata <- list(settings = sh@settings,
                       sourceCode_default =
                         sh@misc$sourceCode_default %||% character(0),
-                      modInp = sh@modInp)
+                      modInp = sh@modInp,
+                      spatial = sh@misc$spatial)
       }
     }
     if (is.null(vdata)) {
@@ -642,6 +670,9 @@ drop_scenario_run <- function(object, run, force = FALSE) {
                       vdata$sourceCode_default %||% character(0)),
     verbose = FALSE)
   scen@misc$variant <- if (nzchar(variant)) variant else NULL
+  # NULL clears the key, which is correct switching from a spatial sample back
+  # to the full-territory base.
+  scen@misc$spatial <- .swap_spatial(scen, vdata, variant)
   scen@modInp <- .upgrade_modInp(
     .modinp_rebase(vdata$modInp, .problem_modinp_root(scen)))
   r <- .resolve_param_refs(scen, ignore_errors = TRUE, verbose = FALSE)
@@ -660,9 +691,14 @@ drop_scenario_run <- function(object, run, force = FALSE) {
   # the swap must remember EVERY dropped block to restore on switch
   dropped <- union(thin$dropped,
                    scen@misc$sourceCode_default %||% character(0))
+  # `spatial` describes the PROBLEM but lives in `@misc`, which the shell owns,
+  # and a driver saves the shell once per unit of work -- so without it here the
+  # folder keeps only the last variant's region set and a switch back re-cuts
+  # the model with the wrong regions.
   vdata <- list(settings = thin$settings,
                 sourceCode_default = dropped,
-                modInp = mi)
+                modInp = mi,
+                spatial = scen@misc$spatial)
   vdir <- fp(scen@path, "runs", v)
   dir.create(vdir, recursive = TRUE, showWarnings = FALSE)
   save(vdata, file = fp(vdir, "variant.RData"))
