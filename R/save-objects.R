@@ -2312,7 +2312,7 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
 # keeps an entry's deletion mark; seal state never reaches here because a
 # sealed entry refuses the update).
 .lifecycle_carry <- function(prev) {
-  keep <- c("sealed", "sealed_at", "sealed_hash",
+  keep <- c("sealed", "sealed_at", "sealed_hash", "outputs_sealed",
             "marked_delete", "delete_importance", "marked_at")
   if (is.null(prev)) return(list())
   prev[intersect(keep, names(prev))]
@@ -2329,12 +2329,38 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
   invisible(TRUE)
 }
 
-# The scenario-side guard: no manifest yet = nothing to protect.
-.scenario_seal_guard <- function(scen) {
+# A scenario seals its inputs (model, settings, modInp) and, with them, its
+# outputs (runs). A manifest from before the split has `sealed` alone: both.
+.scenario_seal_state <- function(mf) {
+  inputs <- isTRUE(mf$sealed)
+  outputs <- if (is.null(mf$outputs_sealed)) inputs else isTRUE(mf$outputs_sealed)
+  list(inputs = inputs, outputs = inputs && outputs, at = mf$sealed_at %||% "?")
+}
+
+.scenario_seal_state_of <- function(scen) {
   mfp <- fp(scen@path, "scenario.yml")
-  if (length(mfp) != 1L || !file.exists(mfp)) return(invisible(TRUE))
-  .seal_guard(tryCatch(yaml::read_yaml(mfp), error = function(e) NULL),
-              "scenario", scen@name, "unseal_scenario")
+  if (length(mfp) != 1L || !file.exists(mfp)) {
+    return(list(inputs = FALSE, outputs = FALSE, at = ""))
+  }
+  .scenario_seal_state(tryCatch(yaml::read_yaml(mfp), error = function(e) list()))
+}
+
+# The scenario-side guard: no manifest yet = nothing to protect. `part`: the
+# outputs (a run is added, overwritten or dropped) or the inputs (a re-save).
+.scenario_seal_guard <- function(scen, part = c("outputs", "inputs")) {
+  part <- match.arg(part)
+  st <- .scenario_seal_state_of(scen)
+  if (isTRUE(st[[part]])) {
+    how <- if (identical(part, "outputs")) {
+      paste0("unseal_scenario(\"", scen@name, "\", inputs = FALSE, ",
+             "outputs = TRUE) to add or drop runs")
+    } else {
+      paste0("unseal_scenario(\"", scen@name, "\") to edit")
+    }
+    stop("scenario '", scen@name, "' has its ", part, " sealed (since ", st$at,
+         "); ", how, ", or save under a new name.", call. = FALSE)
+  }
+  invisible(TRUE)
 }
 
 # A loaded entry that is queued for deletion says so.
@@ -2416,9 +2442,14 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
 #' Store entries update IN PLACE, so finished work can be locked:
 #' `seal_model("TOPIA")` freezes the store entry — re-saving identical
 #' content stays a silent no-op, but CHANGED content errors until
-#' `unseal_model()`. A sealed scenario is an archive: it loads, `getData()`s
-#' and reports freely, but refuses `save_scenario()`, new recorded solves,
-#' and `drop_scenario_run()`. A sealed entry also can never trigger the
+#' `unseal_model()`. A scenario has two parts, sealed separately: its
+#' INPUTS (model, settings, interpolated parameters) and its OUTPUTS (runs).
+#' `seal_scenario(x)` seals the inputs and leaves the outputs open: the
+#' scenario is never re-saved -- scenarios built on it (`interpolate_model(base
+#' = )`) may reference its tables -- but it can still be solved under a new
+#' run label, and `save_scenario()` then writes that run alone; runs can be
+#' dropped. `seal_scenario(x, outputs = TRUE)` makes it an archive: no new
+#' run, no dropped run. A sealed entry also can never trigger the
 #' reference-mismatch warning — its content cannot drift.
 #'
 #' The other end of the lifecycle: `mark_delete(x, importance = )` queues an
@@ -2491,26 +2522,62 @@ unseal_dataset <- function(x, verbose = TRUE) {
 }
 
 #' @rdname seal
+#' @param inputs,outputs logical; the parts of a scenario to seal (or, for
+#'   `unseal_scenario()`, to unseal). `TRUE` acts on the part, `FALSE` leaves
+#'   it as it is. The inputs are the model, settings and interpolated
+#'   parameters; the outputs are its runs. Outputs are sealed only with the
+#'   inputs, and unsealing the inputs opens the outputs too.
 #' @export
-seal_scenario <- function(x, verbose = TRUE) {
-  .seal_set("scenario", x, TRUE, verbose)
+seal_scenario <- function(x, inputs = TRUE, outputs = FALSE, verbose = TRUE) {
+  e <- .entry_resolve("scenario", x)
+  st <- .scenario_seal_state(.entry_manifest("scenario", e$path))
+  if (isTRUE(outputs) && !isTRUE(inputs) && !st$inputs) {
+    stop("scenario '", e$name, "': outputs are sealed together with the ",
+         "inputs; seal_scenario(x, inputs = TRUE, outputs = TRUE).", call. = FALSE)
+  }
+  if (isTRUE(inputs) && !st$inputs) .seal_set("scenario", x, TRUE, verbose = FALSE)
+  # outputs keep their state unless asked: open on a first seal
+  out <- if (isTRUE(outputs)) TRUE else if (st$inputs) st$outputs else FALSE
+  .entry_manifest_update("scenario", e$path, list(outputs_sealed = out))
+  .registry_sync_entry("scenario", e$path, e$name)
+  if (isTRUE(verbose)) {
+    message("scenario '", e$name, "': inputs sealed, outputs ",
+            if (out) "sealed" else "open (runs can be added and dropped)")
+  }
+  invisible(e$path)
 }
 
 #' @rdname seal
 #' @export
-unseal_scenario <- function(x, force = FALSE, verbose = TRUE) {
-  # scenarios built on this one read its tables in place
-  deps <- tryCatch(list_dependents(x, type = "scenario"), error = function(e) NULL)
-  deps <- if (is.null(deps)) NULL else deps[deps$type == "scenario", , drop = FALSE]
-  if (NROW(deps) && !isTRUE(force)) {
-    stop("Scenario '", if (is.character(x)) x else x@name, "' is the base of ",
-         nrow(deps), " scenario", if (nrow(deps) == 1L) "" else "s", ": ",
-         paste(utils::head(deps$name, 5), collapse = ", "),
-         if (nrow(deps) > 5L) ", ..." else "",
-         ". They reference its tables; changing it would change them. ",
-         "Delete them first, or unseal_scenario(force = TRUE).", call. = FALSE)
+unseal_scenario <- function(x, inputs = TRUE, outputs = TRUE, force = FALSE,
+                            verbose = TRUE) {
+  e <- .entry_resolve("scenario", x)
+  if (isTRUE(inputs)) {
+    # scenarios built on this one read its tables in place
+    deps <- tryCatch(list_dependents(x, type = "scenario"), error = function(e) NULL)
+    deps <- if (is.null(deps)) NULL else deps[deps$type == "scenario", , drop = FALSE]
+    if (NROW(deps) && !isTRUE(force)) {
+      stop("Scenario '", e$name, "' is the base of ",
+           nrow(deps), " scenario", if (nrow(deps) == 1L) "" else "s", ": ",
+           paste(utils::head(deps$name, 5), collapse = ", "),
+           if (nrow(deps) > 5L) ", ..." else "",
+           ". They reference its tables; changing it would change them. ",
+           "Delete them first, or unseal_scenario(force = TRUE). To add or ",
+           "drop runs only: unseal_scenario(x, inputs = FALSE, outputs = TRUE).",
+           call. = FALSE)
+    }
+    .seal_set("scenario", x, FALSE, verbose = FALSE)
+    .entry_manifest_update("scenario", e$path, list(outputs_sealed = FALSE))
+    if (isTRUE(verbose)) message("scenario '", e$name, "' unsealed: inputs and outputs")
+  } else if (isTRUE(outputs)) {
+    .entry_manifest_update("scenario", e$path, list(outputs_sealed = FALSE))
+    if (isTRUE(verbose)) {
+      message("scenario '", e$name, "': outputs open (runs can be added and ",
+              "dropped); inputs stay as they were")
+    }
   }
-  .seal_set("scenario", x, FALSE, verbose)
+  .registry_sync_entry("scenario", e$path, e$name)
+  invisible(e$path)
 }
 
 # ── mark for deletion ──────────────────────────────────────────────────────

@@ -26,9 +26,15 @@ seal_dataset(x, verbose = TRUE)
 
 unseal_dataset(x, verbose = TRUE)
 
-seal_scenario(x, verbose = TRUE)
+seal_scenario(x, inputs = TRUE, outputs = FALSE, verbose = TRUE)
 
-unseal_scenario(x, force = FALSE, verbose = TRUE)
+unseal_scenario(
+  x,
+  inputs = TRUE,
+  outputs = TRUE,
+  force = FALSE,
+  verbose = TRUE
+)
 
 mark_delete(x, importance = 0, type = NULL, verbose = TRUE, version = NULL)
 
@@ -54,6 +60,12 @@ listing them; \code{TRUE} releases the name anyway. The sealed version stays,
 so the dependents keep loading it. \code{unseal_scenario()} refuses while
 scenarios built on it (\code{interpolate_model(base = )}) reference its
 tables; \code{TRUE} unseals anyway, and a later change to it changes them.}
+
+\item{inputs, outputs}{logical; the parts of a scenario to seal (or, for
+\code{unseal_scenario()}, to unseal). \code{TRUE} acts on the part, \code{FALSE} leaves
+it as it is. The inputs are the model, settings and interpolated
+parameters; the outputs are its runs. Outputs are sealed only with the
+inputs, and unsealing the inputs opens the outputs too.}
 
 \item{importance}{numeric; HIGHER = more valuable = deleted later.
 \code{\link[=delete_marked]{delete_marked()}} removes only marks with importance at or below its
@@ -86,9 +98,13 @@ dependents, action, path), invisibly when deleting.
 Store entries update IN PLACE, so finished work can be locked:
 \code{seal_model("TOPIA")} freezes the store entry — re-saving identical
 content stays a silent no-op, but CHANGED content errors until
-\code{unseal_model()}. A sealed scenario is an archive: it loads, \code{getData()}s
-and reports freely, but refuses \code{save_scenario()}, new recorded solves,
-and \code{drop_scenario_run()}. A sealed entry also can never trigger the
+\code{unseal_model()}. A scenario has two parts, sealed separately: its
+INPUTS (model, settings, interpolated parameters) and its OUTPUTS (runs).
+\code{seal_scenario(x)} seals the inputs and leaves the outputs open: the
+scenario is never re-saved -- scenarios built on it (\code{interpolate_model(base = )}) may reference its tables -- but it can still be solved under a new
+run label, and \code{save_scenario()} then writes that run alone; runs can be
+dropped. \code{seal_scenario(x, outputs = TRUE)} makes it an archive: no new
+run, no dropped run. A sealed entry also can never trigger the
 reference-mismatch warning — its content cannot drift.
 
 The other end of the lifecycle: \code{mark_delete(x, importance = )} queues an

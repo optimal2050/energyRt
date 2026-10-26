@@ -60,14 +60,9 @@ NULL
 
 # -- what a solve left behind, and dropping what regenerates --------------- #
 
-# Is this scenario sealed? Read from the manifest, like the seal guard does --
-# a scenario with no manifest yet has nothing to protect.
-.art_sealed <- function(scen) {
-  mfp <- fp(scen@path, "scenario.yml")
-  if (length(mfp) != 1L || !file.exists(mfp)) return(FALSE)
-  mf <- tryCatch(yaml::read_yaml(mfp), error = function(e) NULL)
-  isTRUE(mf$sealed)
-}
+# Are this scenario's outputs (its runs) sealed? A scenario with no manifest
+# yet has nothing to protect.
+.art_sealed <- function(scen) isTRUE(.scenario_seal_state_of(scen)$outputs)
 
 # Bytes held by a set of files and/or directories.
 #

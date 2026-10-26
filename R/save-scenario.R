@@ -117,8 +117,8 @@
 .run_record_start <- function(scen, arg) {
   run_dir <- arg$run.dir
   if (is_empty(run_dir)) return(invisible(NULL))
-  # a sealed scenario accepts no new recorded runs (see ?seal_scenario)
-  .scenario_seal_guard(scen)
+  # sealed outputs accept no new recorded runs (see ?seal_scenario)
+  .scenario_seal_guard(scen, "outputs")
   ry <- fp(run_dir, "run.yml")
   prev <- NULL
   if (file.exists(ry)) {
@@ -375,8 +375,8 @@ scenario_run_info <- function(object, run) {
 #' @export
 drop_scenario_run <- function(object, run, force = FALSE) {
   stopifnot(is(object, "scenario"))
-  # a sealed scenario keeps its runs (see ?seal_scenario)
-  .scenario_seal_guard(object)
+  # sealed outputs keep their runs (see ?seal_scenario)
+  .scenario_seal_guard(object, "outputs")
   id <- .parse_run_id(run, object)
   run_dir <- .run_dir(object, id$variant, id$solve)
   if (!dir.exists(run_dir)) {
@@ -714,12 +714,50 @@ drop_scenario_run <- function(object, run, force = FALSE) {
     name = b$name,
     path = if (nzchar(b$path %||% "")) .registry_rel_path(b$path) else "")
   # lifecycle state (seal/mark, R/save-objects.R) survives re-saves
-  for (k in c("sealed", "sealed_at", "sealed_hash",
+  for (k in c("sealed", "sealed_at", "sealed_hash", "outputs_sealed",
               "marked_delete", "delete_importance", "marked_at")) {
     if (!is.null(prev[[k]])) mf[[k]] <- prev[[k]]
   }
   yaml::write_yaml(mf, mf_path)
   invisible(mf_path)
+}
+
+# A scenario with sealed inputs and open outputs: only the active run is
+# written -- its solution store and, for an own-problem variant not stored
+# yet, its problem -- and the manifest's default run. The shell, the
+# parameter store and the table hashes stay as they are.
+.save_scenario_outputs <- function(object, format, verbose = TRUE) {
+  run <- object@misc$run %||% ""
+  if (!nzchar(run)) {
+    stop("scenario '", object@name, "' has its inputs sealed: only a run can ",
+         "be saved, and the object carries none. Solve it with solve_scenario().",
+         call. = FALSE)
+  }
+  variant <- .run_variant(object)
+  if (nzchar(variant) && !dir.exists(fp(object@path, "runs", variant, "modInp"))) {
+    object@modInp <- obj2disk(object@modInp,
+                              path = fp(object@path, "runs", variant, "modInp"),
+                              format = format, verbose = verbose)
+    .write_problem_swap(object, object@modInp)
+  }
+  mo <- object@modOut
+  mo_path <- fp(.run_dir(object, variant, run), "modOut")
+  norm <- function(x) gsub("[\\\\/]+", "/", x %||% "")
+  stored <- !is.null(mo) && isOnDisk(mo) &&
+    identical(norm(getObjPath(mo)), norm(mo_path))
+  if (!is.null(mo) && !stored && length(mo@variables)) {
+    object@modOut <- obj2disk(mo, path = mo_path, format = format, verbose = verbose)
+  }
+  .entry_manifest_update("scenario", object@path,
+                         list(default = .run_id(variant, run),
+                              updated = .registry_now()))
+  if (isTRUE(verbose)) {
+    cat("Scenario '", object@name, "': inputs sealed; run '",
+        .run_id(variant, run), "' saved in '", .run_dir(object, variant, run),
+        "'
+", sep = "")
+  }
+  object
 }
 
 # The manifest's default run id, parsed; NULL when absent/empty.
