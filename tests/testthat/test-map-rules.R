@@ -48,6 +48,32 @@ test_that("a rule enumerates the join of its tables", {
   expect_equal(as_tuples(got), as_tuples(data.frame(tech = "A", region = "R1", year = 2025L, timeslice = "y")))
 })
 
+test_that("a rule's tuples are counted without enumerating it", {
+  pf <- data.frame(tech = c("A", "B"), timeframe = c("ANNUAL", "SL"))
+  fs <- data.frame(timeframe = c("ANNUAL", "SL", "SL"), timeslice = c("y", "s1", "s2"))
+  span <- data.frame(tech = c("A", "A", "B"), region = c("R1", "R2", "R1"),
+                     year = c(2025L, 2025L, 2030L))
+  cr <- data.frame(tech = c("A", "B"), region = "R1")
+  gaps <- data.frame(tech = "B", region = "R1")
+  rules <- list(
+    .map_rule(of = c("pf", "fs"), cols = c("tech", "timeslice"),
+              tables = list(pf = pf, fs = fs)),
+    .map_rule(of = c("span", "pf", "fs"), gate = "cr", cols = c("tech", "region", "year", "timeslice"),
+              tables = list(span = span, pf = pf, fs = fs, cr = cr)),
+    .map_rule(of = c("span", "pf", "fs"), minus = "gaps", cols = c("tech", "region", "year", "timeslice"),
+              tables = list(span = span, pf = pf, fs = fs, gaps = gaps)),
+    # nothing shared: a cross product, enumerated
+    .map_rule(of = c("w", "l"), cols = c("weather", "timeslice"),
+              tables = list(w = data.frame(weather = c("W1", "W2")),
+                            l = data.frame(timeslice = c("s1", "s2", "s3")))),
+    # a technology on two timeframes whose slices overlap: enumerated
+    .map_rule(of = c("pf", "fs"), cols = c("tech", "timeslice"),
+              tables = list(pf = data.frame(tech = "A", timeframe = c("F1", "F2")),
+                            fs = data.frame(timeframe = c("F1", "F1", "F2"),
+                                            timeslice = c("s1", "s2", "s2")))))
+  for (r in rules) expect_identical(.rule_count(r), nrow(.rule_tuples(r)))
+})
+
 test_that("the activity, output and single-output domains carry exact rules on the tier fixtures", {
   skip_if_no_fixtures()
   pr_local_model()

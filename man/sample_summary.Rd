@@ -19,8 +19,8 @@ variable carries apart from \code{sample} and \code{value}.}
 \item{...}{passed to \code{\link[=getData]{getData()}}.}
 }
 \value{
-a data.frame with the grouping columns, \code{n}, \code{mean} and one column
-per requested quantile.
+a data.frame with the grouping columns, \code{n}, \code{mean}
+(coverage-weighted) and one column per requested quantile (unweighted).
 }
 \description{
 Median and quantiles of a variable across the samples of a
@@ -28,6 +28,12 @@ Median and quantiles of a variable across the samples of a
 
 Each sample estimates the whole year, so these are quantiles of repeated
 estimates, not of a partitioned total.
+
+\code{mean} is weighted by each sample's \code{year_fraction}, because samples need
+not cover equal shares of the year — \code{method = "sequential"} folds a
+trailing singleton block into its predecessor, so one sample can be larger
+than the rest. The quantiles are \strong{unweighted} order statistics of the
+replicates; a message says so whenever the coverage varies.
 }
 \examples{
 \dontrun{

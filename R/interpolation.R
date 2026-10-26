@@ -1129,6 +1129,9 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   }
   scen@misc$cells_maps <- NULL
   .check_storage_parts(scen)
+  # the hourly technology domains are read as tables by the map builders only:
+  # from here on their rules answer
+  scen <- .strip_rule_tables(scen, maps = .rule_maps_early)
 
   #============================================================================#
   # User-defined constraints and cost terms ####
@@ -2955,9 +2958,7 @@ validate_scenario_parameters <- function(object, fold = TRUE,
   .members <- function(nm, col) {
     p <- object@modInp@parameters[[nm]]
     if (is.null(p)) return(NULL)
-    d <- get_data_slot(p)
-    if (is.null(d) || nrow(d) == 0 || !col %in% colnames(d)) return(character(0))
-    unique(as.character(as.data.frame(d)[[col]]))
+    .map_members(p, col)
   }
   for (g in guards) {
     have <- .members(g$domain, g$by)
@@ -4968,7 +4969,7 @@ setMethod("interpolate", signature(object = "scenario"),
     if (is.null(d) || nrow(d) == 0) next
     d <- as.data.frame(d)
     d[[s$key]] <- as.character(d[[s$key]])
-    allowed <- .timeslice_allowed(scen, s$key)
+    allowed <- .timeslice_allowed(scen, s$key, unique(d[[s$key]][!is.na(d[[s$key]])]))
     # the finest share an object can run at: min over its allowed timeslices
     d$share <- min_all
     if (!is.null(allowed)) {

@@ -46,6 +46,11 @@ result and named in \verb{$missing}, and \verb{$reconstructed} is \code{TRUE}. T
 functions that read \verb{$scenarios} — \code{getData()} and the summaries — do not
 use them; \code{apply_ledger()} and anything else that continues a sequence
 does, so a rebuilt sequence is for reading, not for resuming.
+
+A \code{by_region} sequence also loses its \code{boundary} stub counts, which are
+derived after variant expansion and never written to disk. Its model is
+recovered: \code{\link[=solve_by_region]{solve_by_region()}} stores the full model on the scenario and each
+unit's region set in that unit's cartridge, so a variant rebuilds its own cut.
 }
 
 \examples{

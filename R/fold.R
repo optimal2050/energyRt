@@ -43,10 +43,29 @@
 # .read_map: read a mapping/set parameter's data as a plain data.frame.
 # Returns NULL when the map is absent or empty.
 # -----------------------------------------------------------------------------#
-.read_map <- function(scen, nm) {
+.read_map <- function(scen, nm, col = NULL, values = NULL) {
   p <- scen@modInp@parameters[[nm]]
   if (is.null(p)) {
     return(NULL)
+  }
+  # only the rows of `values` in `col`: a rule-only map is enumerated for them
+  # alone, from its own tables cut to them
+  if (!is.null(col) && !is.null(values)) {
+    values <- as.character(values)
+    if (.rule_only(p)) {
+      r <- p@misc$rule
+      r$tables <- lapply(r$tables, function(t) {
+        if (col %in% names(t)) t[t[[col]] %in% values, , drop = FALSE] else t
+      })
+      d <- .rule_tuples(r)
+    } else {
+      d <- get_data_slot(p)
+      if (!is.null(d) && col %in% names(d)) {
+        d <- d[as.character(d[[col]]) %in% values, , drop = FALSE]
+      }
+    }
+    if (is.null(d) || nrow(d) == 0) return(NULL)
+    return(as.data.frame(d))
   }
   d <- get_data_slot(p)
   if (is.null(d) || nrow(d) == 0) {
@@ -59,7 +78,8 @@
 # .timeslice_allowed: per-entity timeslice membership for the given identity key.
 # Returns a data.frame(<key>, timeslice) or NULL when unavailable.
 # -----------------------------------------------------------------------------#
-.timeslice_allowed <- function(scen, key) {
+# `values`: only these members of `key` (NULL = all).
+.timeslice_allowed <- function(scen, key, values = NULL) {
   pick <- function(df, cols) {
     if (is.null(df)) {
       return(NULL)
@@ -70,7 +90,7 @@
     dplyr::distinct(df[, cols, drop = FALSE])
   }
   switch(key,
-    tech  = pick(.read_map(scen, "mTechTimeslice"), c("tech", "timeslice")),
+    tech  = pick(.read_map(scen, "mTechTimeslice", "tech", values), c("tech", "timeslice")),
     sup   = pick(.read_map(scen, "mSupTimeslice"), c("sup", "timeslice")),
     trade = pick(.read_map(scen, "mTradeTimeslice"), c("trade", "timeslice")),
     imp   = pick(.read_map(scen, "mImpTimeslice"), c("imp", "timeslice")),
@@ -196,7 +216,10 @@
     }
     for (k in keys) {
       if (!k %in% cols) next
-      a <- .timeslice_allowed(scen, k)
+      # the members the rows name; a wildcard among them needs every member
+      v <- data[[k]]
+      v <- if (anyNA(v) || any(is_any(unique(v), na = FALSE))) NULL else unique(v)
+      a <- .timeslice_allowed(scen, k, v)
       if (!is.null(a)) {
         ms$timeslice <- a
         break
