@@ -438,7 +438,8 @@ convert_parameter <- function(en_param, orig_param = NULL, inMemory = FALSE,
     # memory is attached, as there is nothing on disk to point at.
     ref <- param_misc$param_ref
     data_dir <- .en_param_data_dir(en_param)
-    if (!is.null(data_dir) && !isTRUE(.has_wildcard_param(en_param))) {
+    if (!is.null(data_dir) && !isTRUE(.has_wildcard_param(en_param)) &&
+        !length(ref$filter)) {
       # on disk, in the scenario's store or the dataset store: read there
       result$misc$path <- data_dir
       result$misc$inMemory <- FALSE

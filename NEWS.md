@@ -108,6 +108,10 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 * `base = REF` also takes new processes, commodities and other model objects:
   the per-object tables of the objects REF holds are reused and every map is
   rebuilt.
+* `base = REF` takes a sample of REF's calendar or regions (a calendar of
+  some of its timeslices, a filtered geoscale with `boundary_prices`): REF's
+  tables are reused filtered to the sample. Saved, such a scenario references
+  the sealed REF's tables through a row filter.
 
 ### Results and project management
 

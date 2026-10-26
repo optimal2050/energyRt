@@ -210,9 +210,16 @@ model definition does not change between them.
   `add_to_registry()`, and `summary()` for counts and staleness. Objects are
   reachable by name — `getScenario("base")`, `getObject()` — so a study with
   thousands of solved runs stays addressable.
-- **Lifecycle.** `seal_model()` / `unseal_*()` freeze an entry; `mark_delete()`
-  and `delete_marked()` stage removals and refuse to break a reference;
+- **Lifecycle.** `seal_model()` / `unseal_*()` freeze an entry as a version;
+  only sealed versions are referenced. `list_versions()` lists the versions of
+  models, repositories and datasets with their status; `mark_delete()` and
+  `delete_marked()` stage removals and refuse to break a reference;
   `list_dependents()` says what points at an object.
+- **Scenarios built on a base.** `interpolate_model(..., base = REF)` reuses
+  an interpolated scenario's tables for a scenario that adds constraints,
+  costs, levies, processes or commodities, or samples REF's calendar or
+  regions; the result equals a full interpolation. On a sealed REF, the saved
+  scenario references REF's tables instead of copying them.
 - **Runs and artefacts.** `scenario_runs()`, `scenario_solutions()`,
   `scenario_artifacts()` report what each solve produced and left on disk;
   `promote_solution()` and `import_solution()` choose which solution counts;

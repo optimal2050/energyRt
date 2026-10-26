@@ -198,7 +198,8 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
     .derived <- .interpolate_from_base(object, base, name = name, args = list(...),
                                        ondisk = ondisk, given = .given, fold = fold,
                                        sparse = sparse, prune = prune,
-                                       verbose = verbose, validate = validate)
+                                       verbose = verbose, validate = validate,
+                                       boundary_prices = boundary_prices)
     if (!is.null(.derived)) return(.derived)
   }
   # Accept a scenario (re-interpolate its model), matching the legacy interface.
@@ -4947,9 +4948,13 @@ setMethod("interpolate", signature(object = "scenario"),
 .base_additions <- function(args) {
   objs <- list()
   build <- list()
+  sample <- list()
   bad <- character()
   bricks <- newRepository("")@permit
   for (a in args) {
+    # a calendar or a geoscale names a sample of the base's calendar or regions
+    if (inherits(a, "calendar")) { sample$calendar <- a; next }
+    if (inherits(a, "geoscales::GeoScale")) { sample$geoscale <- a; next }
     items <- if (inherits(a, "repository")) a@data else list(a)
     for (o in items) {
       if (inherits(o, .base_delta_classes)) {
@@ -4961,7 +4966,8 @@ setMethod("interpolate", signature(object = "scenario"),
       }
     }
   }
-  list(objects = c(objs, build), build = build, bad = unique(bad))
+  list(objects = c(objs, build), build = build, sample = sample,
+       bad = unique(bad))
 }
 
 # NULL when `object` + `args` can be built on `base`, else the reason it cannot.
@@ -4989,20 +4995,30 @@ setMethod("interpolate", signature(object = "scenario"),
   if (isTRUE(given[["prune"]]) && !identical(isTRUE(prune), isTRUE(st$pruned))) {
     return("`prune` differs from the base")
   }
-  full <- .base_full_args[vapply(.base_full_args,
-                                 function(a) isTRUE(given[[a]]), logical(1))]
+  add <- .base_additions(args)
+  # `boundary_prices` belongs to a region sample
+  full <- setdiff(.base_full_args, if (!is.null(add$sample$geoscale)) "boundary_prices")
+  full <- full[vapply(full, function(a) isTRUE(given[[a]]), logical(1))]
   if (length(full)) {
     return(paste0("`", full[1], "` is given"))
   }
-  add <- .base_additions(args)
   if (length(add$bad)) {
     return(paste0("an object of class ", add$bad[1], " is added"))
   }
-  if (length(add$build) && is.null(base@misc$model_id)) {
+  rebuild <- length(add$build) || length(add$sample)
+  if (rebuild && is.null(base@misc$model_id)) {
     return("the base keeps no model as given (interpolated before it did)")
   }
-  if (length(add$build) && !is.null(base@misc$spatial)) {
-    return("the base samples regions; new processes on it are not supported yet")
+  if (rebuild && !is.null(base@misc$spatial)) {
+    return("the base samples regions itself; building on it is not supported yet")
+  }
+  cal <- add$sample$calendar
+  if (!is.null(cal)) {
+    have_ts <- as.character(base@modInp@sets$timeslice)
+    want_ts <- as.character(cal@timeslice_share$timeslice)
+    if (!all(want_ts %in% have_ts)) {
+      return("the calendar is not a sample of the base's timeslices")
+    }
   }
   nm <- vapply(add$objects, function(o) o@name, character(1))
   if (!length(nm)) nm <- character()
@@ -5010,7 +5026,9 @@ setMethod("interpolate", signature(object = "scenario"),
   if (length(dup)) return(paste0("'", dup[1], "' is passed twice"))
   repos <- vapply(Filter(function(a) inherits(a, "repository"), args),
                   function(r) r@name, character(1))
-  if (any(!vapply(args, inherits, logical(1), "repository")) && !is.null(name)) {
+  if (length(add$objects) > length(unlist(lapply(
+        Filter(function(a) inherits(a, "repository"), args), function(r) r@data))) &&
+      !is.null(name)) {
     repos <- c(repos, paste0(name, "_repo"))
   }
   rclash <- intersect(repos, names(base@model@data))
@@ -5105,7 +5123,7 @@ setMethod("interpolate", signature(object = "scenario"),
 #' @noRd
 .interpolate_from_base <- function(object, base, name, args, ondisk, given,
                                    fold, sparse, prune, verbose,
-                                   validate = TRUE) {
+                                   validate = TRUE, boundary_prices = NULL) {
   t0 <- Sys.time()
   if (!inherits(base, "scenario") || !isTRUE(base@status$interpolated)) {
     stop("`base` must be an interpolated scenario.", call. = FALSE)
@@ -5135,8 +5153,10 @@ setMethod("interpolate", signature(object = "scenario"),
     message("Derived scenario '", name, "' is built in memory; ",
             "save it with save_scenario().")
   }
-  if (length(.base_additions(args)$build)) {
-    return(.interpolate_on_base(base, name, args, validate, verbose))
+  add <- .base_additions(args)
+  if (length(add$build) || length(add$sample)) {
+    return(.interpolate_on_base(base, name, args, validate, verbose,
+                                boundary_prices = boundary_prices))
   }
 
   # -- the copy -------------------------------------------------------------
@@ -5394,6 +5414,26 @@ setMethod("interpolate", signature(object = "scenario"),
 # Append a base's per-object rows to a scenario under interpolation, unfolded
 # where the base was folded (the pipeline folds once, at the end).
 .reuse_rows <- function(scen, base, exclude = character(), only = NULL) {
+  # a sampled calendar or region set takes the base's rows of its members;
+  # anything outside the base's sets cannot be taken from it
+  ts <- as.character(scen@modInp@sets$timeslice)
+  rg <- as.character(.known_regions(scen))
+  miss <- c(setdiff(ts, as.character(base@modInp@sets$timeslice)),
+            setdiff(rg, as.character(.known_regions(base))))
+  if (length(miss)) {
+    stop(errorCondition(paste0("'", miss[1], "' is not in the base"),
+                        class = "energyRt_reuse_mismatch"))
+  }
+  keep <- list(timeslice = ts, timeslicep = ts, region = rg, regionp = rg,
+               src = rg, dst = rg)
+  # and the rows of objects the scenario still holds (a region sample cuts
+  # the routes that leave it)
+  for (k in c("tech", "stg", "trade", "sup", "dem", "imp", "expp", "comm",
+              "weather", "group")) {
+    m <- as.character(scen@modInp@sets[[k]])
+    # an empty set keeps no row (an empty filter would keep them all)
+    keep[[k]] <- if (length(m)) m else ""
+  }
   pn_all <- names(base@modInp@parameters)
   pn_all <- if (is.null(only)) setdiff(pn_all, exclude) else intersect(pn_all, only)
   folded <- length(base@status$folded %||% character()) > 0
@@ -5403,8 +5443,9 @@ setMethod("interpolate", signature(object = "scenario"),
     if (is.null(p)) next
     # maps the per-object step writes itself join as a union
     if (pn %in% .constraint_maps_built_elsewhere) {
-      d <- dplyr::distinct(dplyr::bind_rows(as.data.frame(get_data_slot(p)),
-                                            as.data.frame(get_data_slot(bp))))
+      d <- dplyr::distinct(dplyr::bind_rows(
+        as.data.frame(get_data_slot(p)),
+        .en_apply_filter(as.data.frame(get_data_slot(bp)), keep, keep_na = TRUE)))
       p@data <- .empty_param_data(p)
       scen@modInp@parameters[[pn]] <- d2p(p, d[, colnames(p@data), drop = FALSE], NULL)
       next
@@ -5417,7 +5458,9 @@ setMethod("interpolate", signature(object = "scenario"),
       get_data_slot(bp)
     }
     if (!NROW(d)) next
-    d <- as.data.frame(d)[, colnames(p@data), drop = FALSE]
+    d <- .en_apply_filter(as.data.frame(d), keep, keep_na = TRUE)
+    if (!NROW(d)) next
+    d <- d[, colnames(p@data), drop = FALSE]
     scen@modInp@parameters[[pn]] <- d2p(p, d, NULL)
   }
   scen
@@ -5426,17 +5469,32 @@ setMethod("interpolate", signature(object = "scenario"),
 # The base's model as given plus the new objects, through the whole pipeline
 # with the base's settings; the per-object work is skipped for the objects the
 # base holds.
-.interpolate_on_base <- function(base, name, args, validate, verbose) {
+.interpolate_on_base <- function(base, name, args, validate, verbose,
+                                 boundary_prices = NULL) {
   st <- base@status
-  .interp_step(verbose, paste0("base '", base@name, "': new objects; ",
-                               "reusing its per-object tables"))
-  scen <- do.call(interpolate_model, c(
+  .interp_step(verbose, paste0("base '", base@name, "': new objects or a ",
+                               "sample; reusing its per-object tables"))
+  scen <- tryCatch(do.call(interpolate_model, c(
     list(base@model, base@settings), args,
     list(name = name, fold = as.character(st$folded %||% character()),
          sparse = TRUE, prune = isTRUE(st$pruned),
          kvl = isTRUE(base@misc$kvl),
          parent_levels = st$parent_levels %||% FALSE,
-         validate = validate, verbose = verbose, .reuse = base)))
+         boundary_prices = boundary_prices,
+         validate = validate, verbose = verbose, .reuse = base))),
+    energyRt_reuse_mismatch = function(e) {
+      message("base = '", base@name, "': ", conditionMessage(e),
+              "; interpolating in full.")
+      NULL
+    })
+  if (is.null(scen)) return(NULL)
+  # the sample a saved scenario's references filter the base's tables to
+  smp <- list()
+  ts <- as.character(scen@modInp@sets$timeslice)
+  if (!setequal(ts, as.character(base@modInp@sets$timeslice))) smp$timeslice <- ts
+  rg <- as.character(.known_regions(scen))
+  if (!setequal(rg, as.character(.known_regions(base)))) smp$region <- rg
+  scen@misc$sample <- if (length(smp)) smp else NULL
   scen@misc$added <- unique(c(base@misc$added, scen@misc$added))
   scen@misc$model_id <- base@misc$model_id
   scen@misc$base <- list(name = base@name, path = base@path %||% "",

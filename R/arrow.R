@@ -995,9 +995,14 @@ get_lazy_data <- function(obj,
   qu <- try(en_open_dataset(path), silent = TRUE)
   if (inherits(qu, "try-error") && identical(slot, "data") && .hasSlot(obj, "misc") &&
       !is.null(obj@misc$param_ref)) {
-    # a referenced table: its rows are in the dataset store
+    # a referenced table: its rows are in the dataset store or a base scenario
     alt <- .param_ref_data_dir(obj)
     if (!is.null(alt)) qu <- try(en_open_dataset(alt), silent = TRUE)
+    # a reference to a sample of the table: its rows, wildcards kept
+    rf <- obj@misc$param_ref$filter
+    if (length(rf) && !inherits(qu, "try-error")) {
+      qu <- .en_apply_filter(qu, rf, keep_na = TRUE)
+    }
   }
   if (inherits(qu, "try-error")) {
     ff <- list.files(path)
@@ -1632,7 +1637,7 @@ obj2mem <- function(object, verbose = isVerbose()) {
 # every dataset to carry every dimension would make it unusable as a default.
 
 # Apply a named-list filter to an Arrow query or a data frame.
-.en_apply_filter <- function(x, filter) {
+.en_apply_filter <- function(x, filter, keep_na = FALSE) {
   if (is.null(x) || is.null(filter) || !length(filter)) return(x)
   if (!is.list(filter) || is.null(names(filter)) || any(!nzchar(names(filter)))) {
     stop("`filter` must be a named list of column = allowed values",
@@ -1644,11 +1649,17 @@ obj2mem <- function(object, verbose = isVerbose()) {
     vals <- filter[[nm]]
     if (!nm %in% cols || is.null(vals) || !length(vals)) next
     x <- if (inherits(x, "data.frame")) {
-      x[as.character(x[[nm]]) %in% as.character(vals), , drop = FALSE]
+      keep <- as.character(x[[nm]]) %in% as.character(vals)
+      if (keep_na) keep <- keep | is.na(x[[nm]])
+      x[keep, , drop = FALSE]
     } else {
       # `filter()` on an arrow_dplyr_query is lazy; the restriction reaches the
       # scanner and limits what is read.
-      dplyr::filter(x, !!rlang::sym(nm) %in% !!as.character(vals))
+      if (keep_na) {
+        dplyr::filter(x, is.na(!!rlang::sym(nm)) | !!rlang::sym(nm) %in% !!as.character(vals))
+      } else {
+        dplyr::filter(x, !!rlang::sym(nm) %in% !!as.character(vals))
+      }
     }
   }
   x

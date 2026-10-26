@@ -116,14 +116,25 @@
     if (is.null(tbl)) next
     h <- dataset_hash(tbl)
     hit <- if (is.null(base)) NULL else base$tables[[pname]]
-    if (is.null(hit) || !identical(hit$hash, h)) {
-      tables[[pname]] <- list(hash = h, nrow = nrow(tbl))
-      next
+    if (!is.null(hit) && identical(hit$hash, h)) {
+      ref <- base$refs[[pname]] %||% list(
+        kind = "table", source = "scenario", scenario = base$name,
+        path = base$rel, parameter = pname, hash = h, nrow = nrow(tbl),
+        filter = NULL)
+    } else {
+      # a sample of the base (calendar or regions): the base's table filtered
+      # to the sample, when that is this table
+      ref <- if (!is.null(hit) && is.null(base$refs[[pname]]) &&
+                 length(scen@misc$sample)) {
+        .filtered_base_ref(p, tbl, base, pname, scen@misc$sample)
+      } else {
+        NULL
+      }
+      if (is.null(ref)) {
+        tables[[pname]] <- list(hash = h, nrow = nrow(tbl))
+        next
+      }
     }
-    ref <- base$refs[[pname]] %||% list(
-      kind = "table", source = "scenario", scenario = base$name,
-      path = base$rel, parameter = pname, hash = h, nrow = nrow(tbl),
-      filter = NULL)
     ref$origin <- .param_origin(p, scen)
     ref$resolved <- .param_ref_data_dir(p, ref)
     p@misc$param_ref <- ref
@@ -143,6 +154,39 @@
     }
   }
   list(modInp = mi, entries = entries, tables = tables)
+}
+
+# A reference to a base scenario's table filtered to a sample, when the
+# filtered rows are exactly `tbl` (in any order); NULL otherwise. A table
+# with no sampled column is matched whole.
+.filtered_base_ref <- function(p, tbl, base, pname, sample) {
+  ts <- sample$timeslice
+  rg <- sample$region
+  filter <- c(if (length(ts)) list(timeslice = ts, timeslicep = ts),
+              if (length(rg)) list(region = rg, regionp = rg, src = rg, dst = rg))
+  # no sampled column: the whole table, in another row order
+  filter <- filter[intersect(names(filter), colnames(tbl))]
+  if (!length(filter)) filter <- NULL
+  ref <- list(kind = "table", source = "scenario", scenario = base$name,
+              path = base$rel, parameter = pname, nrow = nrow(tbl),
+              filter = filter)
+  dir <- .param_ref_data_dir(p, ref)
+  if (is.null(dir)) return(NULL)
+  b <- tryCatch(en_open_dataset(dir) |> .en_apply_filter(filter, keep_na = TRUE) |>
+                  dplyr::collect(), error = function(e) NULL)
+  if (is.null(b) || nrow(b) != nrow(tbl)) return(NULL)
+  b <- as.data.frame(force_cols_classes(as.data.frame(b)))[, colnames(tbl), drop = FALSE]
+  if (!identical(.hash_unordered(b), .hash_unordered(tbl))) return(NULL)
+  ref$hash <- dataset_hash(b)
+  ref
+}
+
+# Content hash of a table regardless of its row order.
+.hash_unordered <- function(d) {
+  d <- as.data.frame(d)
+  d <- d[do.call(order, unname(lapply(d, as.character))), , drop = FALSE]
+  rownames(d) <- NULL
+  dataset_hash(d)
 }
 
 # The manifest row of a parameter reference.

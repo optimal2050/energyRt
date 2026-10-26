@@ -26,9 +26,9 @@ library(ggplot2)
 
 We use the packaged single-region TOPIA kit as a running example, and keep
 every store — scenarios, models, repositories and the registry — under a
-temporary folder. All four matter: `save_scenario()` saves the model to the
-model store and references it, so redirecting only the scenario path leaves a
-`models/` folder beside the article.
+temporary folder. All four matter: the stores and the registry are written
+beside whatever path is redirected, so redirecting only the scenario path
+leaves `models/` and a registry beside the article.
 
 ```{r model}
 wf <- file.path(tempdir(), "wf")
@@ -166,8 +166,9 @@ Solving the same scenario with several backends (or option sets — pass
 `run = "<label>"` to `solve_scenario()`) keeps every run side by side;
 `scenario_runs(scen)` lists them with status and objective, and
 `read_solution(scen, run = "<label>")` switches the active solution.
-A saved scenario references its model in the model store rather than
-embedding a copy of it (see `?save_scenario`, `embed_model`).
+A saved scenario references its model in the model store when the model is a
+sealed version (`seal_model()`), and carries a copy of it otherwise (see
+`?save_scenario`, `mode`, and the *Scenario management* article).
 
 A scenario knows whether its data is in RAM or on disk via `isInMemory()`; when
 on disk, the slots are empty and read lazily from the folder on demand. Folders
@@ -248,6 +249,21 @@ sapply(list(BASE = scen, CO2CAP = scen_cap),
        function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
 ```
 
+A scenario that adds a lever to an interpolated one can be **built on it**:
+`base = scen` reuses BASE's interpolated tables and computes only what the
+cap adds, and the result equals interpolating from scratch:
+
+```{r compare-base}
+scen_cap2 <- interpolate_model(mod, "CO2CAP", um$CO2_CAP, base = scen)
+sum(compare_inputs(scen_cap2, scen_cap)$summary$status != "identical")
+```
+
+The same holds for new technologies or commodities and for a sample of the
+base's calendar or regions; anything else is interpolated in full, with a
+message saying why. Saved on a sealed base, such a scenario references the
+base's tables instead of copying them (see *Scenario management*,
+"Scenarios built on a base").
+
 To reason about **model size** rather than results, `model_size()` estimates the
 parameter/variable/constraint counts of an interpolated scenario, and `size()`
 reports its in-memory footprint:
@@ -304,6 +320,11 @@ one with `make_timetable()` (which would renormalise the shares to a full
 year). Declarations are validated against the *model's* calendar, so
 objects naming out-of-sample timeslices interpolate cleanly — their
 out-of-sample rows are simply filtered.
+
+A sample of an already interpolated full-calendar scenario can be built on
+it, `interpolate_model(mod, "S2", cal2, base = scen)`: the full scenario's
+tables are taken filtered to the sampled timeslices instead of being
+recomputed.
 
 ## Spatial sampling
 

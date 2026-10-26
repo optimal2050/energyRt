@@ -21,12 +21,13 @@ in one project folder with three principles:
    manifest describing it. The manifests — not any central database — are
    the source of truth; the project registry is a rebuildable index over
    them.
-2. **Share by content, not by copy.** Models, repositories and datasets
-   are stored once, under their **name** (`models/SM/`); a content hash in
-   the manifest detects unchanged saves and *verifies* references (other
-   objects reference by name + hash). Embedding a private copy remains
-   available where portability matters — "interlinking to avoid
-   duplication is an option, not a rule".
+2. **Share what cannot change.** Models, repositories and datasets are
+   stored once, under their **name** (`models/SM/`). An entry under
+   development updates in place; **sealing** freezes its content as a
+   version identified by a content hash. Only sealed versions are
+   referenced -- by models, by scenarios, and by scenarios built on a sealed
+   scenario -- so a reference can never point at content that has since
+   changed. Everything else is copied into the referring folder.
 3. **Derive paths, don't trust stored ones.** Where a run's files live is
    always computed from the scenario's location and the run's identity.
    Loading a scenario re-bases every stored path onto the folder it is
@@ -161,83 +162,127 @@ scenarios and store entries are found by the name recorded in their
 manifests and the registry. The run *tree* (`runs/<variant>/<solve>/`) is
 structural and not overridable.
 
-# Models and repositories: stored once, verified by hash
+# Models, repositories and datasets: versions and references
 
-The model is part of the scenario, but fifty scenarios sharing one model do
-not need fifty copies of it. The **model store** removes the duplication,
-and `save_scenario()` uses it by default: the save above already put the
-model in `models/` and recorded a reference to it.
+The model is part of the scenario, but fifty scenarios built on one model do
+not need fifty copies of it. A model is saved once in the **model store**,
+under its name:
 
 ```{r model-store}
-yaml::read_yaml(file.path(scen@path, "scenario.yml"))$model
-list.files(get_models_path())
+save_model(mod, verbose = FALSE)
+list_versions("SM", type = "model")
 ```
 
-`save_model(mod)` does the same thing explicitly, and is how a model gets
-into the store without saving a scenario at all.
+While a model is being developed, its entry updates in place: saving a
+changed model rewrites `models/SM/`, and the manifest records a save id
+rather than a content hash, so a large model is not serialised for hashing
+on every save. Saving identical content is a no-op.
 
-The store folder is simply the model's **name** — `models/SM/` — and it
-updates *in place*: edit a parameter, re-save, same folder. The content
-hash (`model_hash()`, computed with all volatile bookkeeping stripped)
-lives in the manifest and does the two jobs a hash is for: saving
-*identical* content twice is a no-op, and references *verify* — a scenario
-records the `{name, hash}` it was built against, and if the stored model
-has changed since, loading warns loudly that results may not reproduce
-(sealing, below, prevents exactly that; and
-`save_model(rehash = FALSE)` keeps the recorded hash through a change you
-declare insignificant — a version tag rather than a content proof, marked
-`hash_kept:` in the manifest).
-`load_scenario()` resolves the reference back through the registry and
-errors — naming the fix — if the store is gone.
-`save_scenario(embed_model = TRUE)` keeps a folder self-contained instead,
-and a name already holding a *different* model is never overwritten
-implicitly: that scenario embeds its model and says so.
+**Sealing** turns the current content into a version. `seal_model()`
+computes the content hash (`model_hash()`, with all volatile bookkeeping
+stripped) and moves the payload into a version folder,
+`models/SM/<hash>/`, which no later save changes. Changed content under a
+sealed name requires `unseal_model()` first; the sealed version stays, and
+whatever references it keeps loading it.
 
-The hash logic in five lines:
+```{r model-seal}
+seal_model(mod, verbose = FALSE)
+list_versions("SM", type = "model")
+```
+
+**Only sealed versions are referenced.** A scenario records the model it was
+interpolated from. When that model is a sealed version, `save_scenario()`
+stores the reference `{name, hash}` instead of a copy, and the sealed version
+lists the scenario among its dependents:
+
+```{r model-ref}
+scen <- save_scenario(scen, verbose = FALSE)
+yaml::read_yaml(file.path(scen@path, "scenario.yml"))$model[c("name", "source")]
+list_dependents("SM", type = "model")[, c("type", "name", "version")]
+```
+
+A model that is not sealed is copied into the scenario folder (`model/`), so
+a later change to the store cannot alter a saved scenario;
+`save_scenario(mode = "full")` (or `options(energyRt.save_mode = "full")`)
+copies everything in regardless, for a folder that must be self-contained.
+
+A scenario keeps the model **as given** in `@model`, with the repositories
+added at interpolation (`interpolate_model(mod, <objects>)`) as the
+scenario's own. The expanded copy that interpolation works on -- vintage and
+cluster variants, resource tiers, materialised weather transforms, a
+spatial cut -- is rebuilt when a reader needs it. The reference to a sealed
+model therefore holds for models with variants and for sampled scenarios
+alike, and the scenario's own repositories travel with it.
+
+The same rules apply one level down to **repositories**
+(`save_repository()`, `seal_repository()`): a model referencing a sealed
+repository version, or a selection of its objects, records `{name, hash}`.
+The **dataset store** (`datasets/`) holds tables saved explicitly with
+`save_dataset()` -- a weather series, a geoscale map -- and the tables of
+models and repositories that match one of them by content. A dataset keeps
+every version by content, a dataset can also record its *generating call*
+(`save_dataset(name = , fun = "pkg::fun", args = )`), and a version that
+another entry references is never rewritten in place.
+
+The versioning logic in a few lines:
 
 ```{r hash-logic, eval = FALSE}
-model_hash(mod)                    # content identity (misc/paths stripped);
-                                   #   repository_hash(), dataset_hash(),
-                                   #   object_hash() for anything else
-save_model(mod)                    # same hash as stored -> silent no-op
-save_model(mod2)                   # changed -> SAME folder, new hash
-save_model(mod2, rehash = FALSE)   # changed, but KEEP the old hash
-load_model("TOPIA_R11@a1b2c3d4")  # pin a version: verified against the
-                                   #   manifest, errors if superseded
+model_hash(mod)                       # content identity (misc and paths stripped);
+                                      #   repository_hash(), dataset_hash(),
+                                      #   object_hash() for anything else
+save_model(mod)                       # unchanged -> no-op; changed -> updated in place
+seal_model(mod)                       # the current content becomes a version
+load_model("SM", hash = "a1b2c3d4")   # a sealed version by (short) hash
+list_versions()                       # models, repositories, datasets:
+                                      #   status, sealed_at, refs, size
+list_dependents("SM", type = "model") # what references its versions
 ```
 
-A reference whose recorded hash no longer matches the store loads the
-*current* version with a loud warning ("results may not reproduce");
-sealing (below) makes that warning impossible for finished work, because
-sealed content cannot drift.
+# Scenarios built on a base
 
-One level down, the same pattern applies to **repositories** — the shared
-building-block collections that many models have in common:
+A policy scenario usually differs from a reference scenario by a few
+objects: a cap, a tax, a technology, or a coarser sample of the same
+problem. `interpolate_model(..., base = REF)` builds it on the interpolated
+REF instead of from scratch:
 
-```{r repo-store}
-repo <- mod@data[[1]]
-save_repository(repo, verbose = FALSE)        # repositories/smr/
-mod2 <- save_model(make_mod(c(100, 100, 100)), overwrite = TRUE,
-                   verbose = FALSE)           # repo now saved as a reference
+```{r base}
+fee <- newCosts("FEE", variable = "vTechAct", mult = 2,
+                subset = list(tech = "TECH"))
+scen_fee <- interpolate_model(mod, fee, name = "FEE", base = scen)
 ```
 
-`save_model(embed_repos = )` mirrors `embed_model`: with the repository in
-its store, the model's entry records a `{name, hash}` reference instead of
-a data copy, and `load_model()` re-assembles the chain — a scenario
-referencing a model whose repositories are themselves references loads
-back fully resolved.
+What is reused depends on what is added:
 
-One level further down sits the **dataset store** (`datasets/`), for the
-data that dominates size and rarely changes: a weather or demand time
-series, a geoscale map. `save_dataset(x, "name")` stores it once,
-content-addressed like models and repositories; `save_repository()`,
-`save_model()` and `save_scenario()` then reference it (`embed_datasets =`,
-same `NULL`/`TRUE`/`FALSE` contract as `embed_repos`) instead of re-saving
-the table with every model or scenario version. A dataset can also record a
-*generating call* (`save_dataset(name = , fun = "pkg::fun", args = )`) with
-a materialized snapshot, so "the data" and "the code that made it" are the
-same store entry. Loading any owner resolves its dataset references back
-automatically — see `?save_dataset`.
+| added to REF | how the scenario is built |
+|---|---|
+| constraints, cost terms, taxes, subsidies | REF's tables are copied; only the rows of the additions are computed |
+| new technologies, storages, supplies, trades, commodities | REF's per-object tables are reused, the new objects' tables computed, every map rebuilt |
+| a calendar of some of REF's timeslices, or a filtered geoscale | REF's tables are taken filtered to the sample; boundary stubs are computed |
+| anything else (another model, a replaced object, another horizon or setting) | interpolated in full, with a message naming the reason |
+
+In every case the result equals a full interpolation of the model with REF's
+additions and the new ones, which `compare_inputs()` confirms:
+
+```{r base-check}
+full <- interpolate_model(mod, fee, name = "FEE_FULL")
+sum(compare_inputs(scen_fee, full)$summary$status != "identical")
+```
+
+The scenario's manifest names its base (`base:`). When REF is saved and
+**sealed**, `save_scenario()` stores a reference to each of REF's tables that
+the new scenario shares -- with a row filter for a sample of REF -- and keeps
+only the tables that differ. `list_dependents(REF)` then lists the scenarios
+built on it, and `unseal_scenario(REF)` refuses while they exist:
+
+```{r base-seal, eval = FALSE}
+seal_scenario(scen)                    # REF, saved, becomes a base
+scen_fee <- save_scenario(scen_fee)    # shared tables referenced, the rest kept
+list_dependents(scen)                  # FEE
+unseal_scenario(scen)                  # refused while FEE references it
+```
+
+A base that is not sealed is never referenced: its tables are copied, and a
+message says so.
 
 # The registry
 
@@ -385,12 +430,13 @@ lives*:
 |---|---|---|
 | solver, tolerances, method, threads | **run** | `runs/[<variant>/]<label>/` |
 | the *scope* of the same declarations — a sampled calendar, a region subset or aggregation, a horizon window, a myopic step | **variant** (own problem) | `runs/<variant>/` with its own `modInp` |
-| *assumptions or declarations* — a fuel price, a policy cap, a technology's cost | **scenario** | its own folder |
+| *assumptions or declarations* — a fuel price, a policy cap, a technology's cost | **scenario** (built on a reference with `base =`) | its own folder |
 
 Two runs of one problem agree on every number going in; anything that
 changes the calendar or geoscale changes the compiled LP and is therefore
-a different *problem*, never a different run; and an assumption change
-deserves its own scenario — that is the level `compare_scenarios()`
+a different *problem*, never a different run -- a variant inside the
+scenario, or a scenario of its own built on the full one with `base =`;
+and an assumption change deserves its own scenario — that is the level `compare_scenarios()`
 compares, with its own registry identity. Run and variant names are
 **labels** (dashes allowed: `glpk-alt`); scenario/model/dataset names are
 **object names** and follow the name rule (letters, digits, underscore).
@@ -410,7 +456,8 @@ topia-project/
 ├── repositories/
 │   └── topia_r11/                       kit repo; tables as dataset refs
 ├── models/
-│   └── TOPIA_R11/                       ONE folder, updated in place
+│   └── TOPIA_R11/                       ONE folder per name
+│       └── <hash>/                      the sealed version scenarios reference
 ├── scenarios/
 │   ├── BASE-TOPIA_R11-d365_h24/         {scenario}-{model}-{calendar}
 │   │   ├── scenario.yml · scen.RData     manifest · identity + BASE problem
@@ -424,7 +471,10 @@ topia-project/
 │   │       │   └── … · glpk/
 │   │       └── c1/                       VARIANT: continental aggregation
 │   │           └── … · julia_highs/
-│   ├── CO2CAP-TOPIA_R11-d365_h24/       the policy scenario — only the
+│   ├── CO2CAP-TOPIA_R11-d365_h24/       the policy scenario, built on the
+│   │   │                                 sealed BASE (base = BASE): it
+│   │   │                                 references BASE's tables and keeps
+│   │   │                                 only those the cap changes
 │   │   └── runs/julia_highs/  s4_h24/…   cuts actually solved
 │   └── CHEAPGAS-TOPIA_R11-d365_h24/     an ASSUMPTION change = scenario
 └── reports/  levcosts/                   derived-artifact tiers
@@ -489,21 +539,37 @@ records from what is on disk, and writes the current manifests.
 
 # Lifecycle: sealing and the deletion queue
 
-Because entries update in place, finished work can be locked:
+Because entries update in place, finished work is locked by sealing:
 `seal_model("SM")` (and `seal_repository()`, `seal_dataset()`,
-`seal_scenario()`) freezes the entry — identical re-saves stay silent
+`seal_scenario()`) freezes the entry -- identical re-saves stay silent
 no-ops, changed content errors until the matching `unseal_*()`. A sealed
 scenario is an archive: it loads, `getData()`s and reports freely, but
-refuses re-saves, new recorded solves, and `drop_scenario_run()`. Seal the
-inputs of anything you publish — a sealed model can never drift out from
-under the scenarios that reference it.
+refuses re-saves, new recorded solves, and `drop_scenario_run()`. Sealing
+the inputs of published work keeps a model from drifting out from under the
+scenarios that reference it.
+
+Unsealing checks what depends on the entry: `unseal_model()` and
+`unseal_repository()` list the dependents of the current sealed version and
+refuse unless `force = TRUE` (the version itself stays, so the dependents
+keep loading it); `unseal_scenario()` refuses while scenarios built on it
+reference its tables. `list_dependents(x)` shows the same list at any time,
+`recursive = TRUE` following it from a repository through models to
+scenarios.
 
 The other end of the lifecycle is a soft-delete queue:
 `mark_delete(x, importance = )` tags an entry (higher importance = more
 valuable = deleted later), `unmark_delete()` clears the tag, and
-`delete_marked()` — **dry-run by default** — removes marked entries up to
+`delete_marked()` -- **dry-run by default** -- removes marked entries up to
 an importance threshold. Sealed entries are never deleted, even when
-marked.
+marked, and neither is anything another entry references.
+
+Superseded versions are listed by `list_versions()` with a status --
+`current`, `in use` (referenced), `marked`, `unused` -- and are removed only
+when marked: `mark_delete(x, version = "unused")` marks every version
+nothing references, `mark_delete(x, version = "<hash>")` one of them, and
+`delete_marked()` deletes those still unreferenced. A dataset version that
+another entry references is likewise never rewritten in place by
+`save_dataset(rehash = FALSE)` or `overwrite = TRUE`.
 
 # The toolbox
 
@@ -540,9 +606,17 @@ reg <- load_registry()
 find_in_registry(reg, type = "run", parent = "BASE", variant = "s4_h24")
 refresh_registry()                     # rebuild the index from manifests
 
+## scenarios built on a base
+interpolate_model(mod, cap, name = "CO2CAP", base = scen_base)
+interpolate_model(mod, cal_sample, name = "BASE_S", base = scen_base)
+
 ## lifecycle
-seal_scenario("BASE");  unseal_scenario("BASE")     # freeze / reopen
+seal_model("TOPIA_R11");  seal_scenario("BASE")     # freeze as versions
+unseal_scenario("BASE")                # refused while scenarios build on it
+list_versions()                        # versions with status, refs, size
+list_dependents("TOPIA_R11", type = "model", recursive = TRUE)
 mark_delete("OLD", type = "scenario", importance = 1)
+mark_delete("TOPIA_R11", type = "model", version = "unused")
 delete_marked()                        # DRY RUN by default
 delete_marked(max_importance = 1, dry_run = FALSE)
 
@@ -565,9 +639,9 @@ set_path_builder(scenario_dir = FALSE)              # FALSE removes one hook
 
 | thing | where | identity | manifest |
 |---|---|---|---|
-| repository | `repositories/<name>/` | name (hash verifies) | `repository.yml` |
-| model | `models/<name>/` | name (hash verifies) | `model.yml` |
-| dataset | `datasets/<name>/` | name (hash verifies) | `dataset.yml` |
+| repository | `repositories/<name>/`, sealed versions in `<name>/<hash>/` | name (hash verifies) | `repository.yml` |
+| model | `models/<name>/`, sealed versions in `<name>/<hash>/` | name (hash verifies) | `model.yml` |
+| dataset | `datasets/<name>/<hash>/`, one folder per version | name (hash verifies) | `dataset.yml` |
 | scenario | `scenarios/<slug>/` | name | `scenario.yml` |
 | variant (own problem) | `<scenario>/runs/<variant>/` | name within scenario | `variant.yml` |
 | run (solve) | `<scenario>/runs/[<variant>/]<solve>/` | run id `"<solve>"` / `"<variant>/<solve>"` | `run.yml` |

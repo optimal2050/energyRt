@@ -24,6 +24,7 @@
 }
 
 .ib_quiet <- function(expr) suppressMessages(suppressWarnings(expr))
+.ib_quiet_w <- function(expr) suppressWarnings(expr)
 
 # full interpolation and the derived one, from the same model
 .ib_pair <- function(mod, fold = FALSE) {
@@ -200,4 +201,102 @@ test_that("a bound declared per region and one for all regions both bind", {
                                       name = "MIX", verbose = FALSE))
   fx <- as.data.frame(get_data_slot(scen@modInp@parameters$mStorageDurationFx))
   expect_setequal(unique(as.character(fx$stg)), c("STG_ELC", "STG_REG"))
+})
+
+# -- phase C: a sample of the base's calendar or regions -------------------------
+
+.ib_three_regions <- function() {
+  regions <- c("R1", "R2", "R3")
+  gs <- geoscales::geoscale_from_leaftable(
+    data.frame(zone = c("Z12", "Z12", "Z3"), region = regions, km2 = 1),
+    geoframes = c("zone", "region"), name = "g3")
+  mod <- newModel("rs", region = regions, discount = 0.05,
+    horizon = newHorizon(2020:2030, intervals = 5), calendar = calendars$s4_h24,
+    repo = newRepository("r",
+      newCommodity("COA", timeframe = "ANNUAL"),
+      newCommodity("ELC", timeframe = "HOUR"),
+      newSupply("SUP_COA", commodity = "COA",
+                supply = data.frame(region = regions, cost = 5)),
+      newTechnology("ECOA", input = list(comm = "COA"), output = list(comm = "ELC"),
+                    af = data.frame(af.up = 0.9), invcost = data.frame(invcost = 1000),
+                    olife = list(olife = 30), cap2act = 1),
+      newDemand("DEM_ELC", commodity = "ELC",
+                demand = data.frame(region = regions, demand = c(10, 20, 30))),
+      newTrade("TR23", commodity = "ELC", cap2act = 1,
+               routes = data.frame(src = "R2", dst = "R3"),
+               trade = data.frame(src = "R2", dst = "R3", ava.up = 4),
+               invcost = data.frame(invcost = 10),
+               capacity = data.frame(year = 2020, cap.up = 100))))
+  list(mod = setGeoscale(mod, gs), gs = gs)
+}
+
+test_that("a sampled calendar on a base equals the full interpolation of the sample", {
+  skip_if_tier_below("fast")
+  cal <- calendars$s4_h24_subset_2seasons
+  for (fold in c(FALSE, TRUE)) {
+    mod <- ut_build("R3", "s4_h24")
+    ref <- .ib_quiet(interpolate_model(mod, name = "REF", fold = fold, verbose = FALSE))
+    full <- .ib_quiet(interpolate_model(mod, cal, name = "SMP", fold = fold, verbose = FALSE))
+    der <- .ib_quiet(interpolate_model(mod, cal, name = "SMP", base = ref, verbose = FALSE))
+    ci <- compare_inputs(der, full)
+    expect_equal(sum(ci$summary$status != "identical"), 0, label = paste("fold", fold))
+    expect_identical(names(der@misc$sample), "timeslice")
+  }
+})
+
+test_that("a region sample on a base equals the full interpolation, stubs and all", {
+  skip_if_not_installed("geoscales")
+  m <- .ib_three_regions()
+  gs2 <- geoscales::filter_geoscale(m$gs, "region", c("R1", "R2"),
+                                    drop_empty_geoframes = TRUE)
+  bp <- data.frame(src = "R2", dst = "R3", price = 50, cap.up = 4)
+  ref <- .ib_quiet(interpolate_model(m$mod, name = "REF", verbose = FALSE))
+  for (cal in list(NULL, calendars$s4_h24_subset_2seasons)) {
+    full <- .ib_quiet(do.call(interpolate_model, c(list(m$mod, gs2), cal,
+      list(name = "S12", boundary_prices = bp, verbose = FALSE))))
+    der <- .ib_quiet(do.call(interpolate_model, c(list(m$mod, gs2), cal,
+      list(name = "S12", boundary_prices = bp, base = ref, verbose = FALSE))))
+    ci <- compare_inputs(der, full)
+    expect_equal(sum(ci$summary$status != "identical"), 0)
+    expect_true("region" %in% names(der@misc$sample))
+  }
+  # a calendar that is not a sample of the base's falls back to a full run
+  cal_other <- newCalendar(timetable = make_timetable(
+    struct = list(ANNUAL = "ANNUAL", SL = c("x1", "x2"))), name = "other")
+  m2 <- character()
+  # the full run then fails on its own (the calendar does not fit the model)
+  tryCatch(withCallingHandlers(
+    .ib_quiet_w(interpolate_model(m$mod, cal_other, name = "X", base = ref, verbose = FALSE)),
+    message = function(e) { m2 <<- c(m2, conditionMessage(e)); invokeRestart("muffleMessage") }),
+    error = function(e) NULL)
+  expect_true(any(grepl("not a sample of the base", m2)))
+})
+
+test_that("a saved sample references the sealed base's tables through filters", {
+  skip_if_tier_below("fast")
+  withr::local_options(energyRt.save_mode = "ref", energyRt.param_ref_min_rows = 50,
+                       energyRt.ondisk_min_rows = 50)
+  tmp <- withr::local_tempdir()
+  .ib_quiet(open_project(tmp))
+  mod <- ut_build("R3", "s4_h24")
+  cal <- calendars$s4_h24_subset_2seasons
+  ref <- .ib_quiet(interpolate_model(mod, name = "REF", verbose = FALSE))
+  ref <- .ib_quiet(save_scenario(ref, verbose = FALSE))
+  .ib_quiet(seal_scenario(ref, verbose = FALSE))
+  cap <- .ib_quiet(interpolate_model(mod, cal, name = "SMP", base = ref, verbose = FALSE))
+  cap <- .ib_quiet(save_scenario(cap, verbose = FALSE))
+  mc <- yaml::read_yaml(file.path(cap@path, "scenario.yml"))
+  pe <- Filter(function(e) identical(e$source, "scenario"), mc$datasets)
+  filtered <- Filter(function(e) length(e$filter) > 0, pe)
+  expect_true(length(filtered) > 0)
+  expect_true("pWeather" %in% vapply(filtered, function(e) e$object, ""))
+  # only the calendar's own tables are kept
+  expect_true(all(names(mc$tables) %in% c("pTimesliceShare", "pTimesliceWeight",
+    "pTimesliceAgg", "mTimesliceNext", "mTimesliceFYearNext", "meqStorageLevel",
+    "mSameTimeslice", "mTimesliceFamily", "mTimesliceParentChild",
+    "mTimesliceParentChildE")))
+  ld <- .ib_quiet(load_scenario(cap@path, env = NULL, verbose = FALSE))
+  full <- .ib_quiet(interpolate_model(mod, cal, name = "SMP", verbose = FALSE))
+  ci <- suppressWarnings(compare_inputs(ld, full))
+  expect_equal(sum(ci$summary$status != "identical"), 0)
 })
