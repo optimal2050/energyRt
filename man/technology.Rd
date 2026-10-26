@@ -147,18 +147,6 @@ newTechnology(
 }
 \item{ret2aout}{numeric. Aux commodity RELEASED when capacity is retired EARLY (scrap). Usually LARGER than \code{pho2aout}: a plant retired before its time is still largely intact, so more material is recoverable. NO \code{pTimesliceShare} is applied and the aux balance is PER TIMESLICE, so a value given with \code{timeslice = NA} applies in EVERY slice and the annual total comes out multiplied by the slice count -- 8760x on an hourly calendar. Give a per-slice value, or name a single slice.
 }
-\item{stg2ainp}{numeric. Storage coupling; not read for a technology.
-}
-\item{sinp2ainp}{numeric. Storage coupling; not read for a technology.
-}
-\item{sout2ainp}{numeric. Storage coupling; not read for a technology.
-}
-\item{stg2aout}{numeric. Storage coupling; not read for a technology.
-}
-\item{sinp2aout}{numeric. Storage coupling; not read for a technology.
-}
-\item{sout2aout}{numeric. Storage coupling; not read for a technology.
-}
 }}
 
 \item{af}{data.frame. Timeslice-level availability factor parameters, bounding activity in each timeslice relative to installed capacity. \code{af.up} is the maximum capacity factor per timeslice; \code{af.lo} is a must-run floor. See \code{afs} for timeframe-level (e.g. annual) bounds and \verb{ceff$afc.*} for per-commodity bounds.

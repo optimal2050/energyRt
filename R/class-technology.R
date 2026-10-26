@@ -183,12 +183,6 @@ setClass("technology",
       ret2ainp = numeric(),
       ret2aout = numeric(),
       # storage part
-      stg2ainp = numeric(),
-      sinp2ainp = numeric(),
-      sout2ainp = numeric(),
-      stg2aout = numeric(),
-      sinp2aout = numeric(),
-      sout2aout = numeric(),
       stringsAsFactors = FALSE
     ),
     af = data.frame(

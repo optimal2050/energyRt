@@ -229,6 +229,9 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 * Storage: `vStorageStore` is `vStorageLevel`; `@cap2stg`, `@charge` and
   `@inflow` are refused (use `@duration`, `@startLevel` or a `supply`); flows
   are bounded by converter capacity (`inp.af.up` / `out.af.up` default to 1).
+* `technology@aeff` no longer takes `stg2ainp`, `stg2aout`, `sinp2ainp`,
+  `sinp2aout`, `sout2ainp` or `sout2aout`; they were never read for a
+  technology. A storage's own `@aeff` keeps its couplings.
 * `@start`, `@end` and `@olife` are merged into `@vintage`; vintage and cluster
   labels must be declared.
 * `@geolevel` is `@geoframe`, and a model carries a `Geoscale`.

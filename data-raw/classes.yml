@@ -772,30 +772,6 @@ class:
             so a value given with `timeslice = NA` applies in EVERY slice and the
             annual total comes out multiplied by the slice count -- 8760x on an
             hourly calendar. Give a per-slice value, or name a single slice.
-        stg2ainp:
-          type: numeric
-          description: >
-            Storage coupling; not read for a technology.
-        sinp2ainp:
-          type: numeric
-          description: >
-            Storage coupling; not read for a technology.
-        sout2ainp:
-          type: numeric
-          description: >
-            Storage coupling; not read for a technology.
-        stg2aout:
-          type: numeric
-          description: >
-            Storage coupling; not read for a technology.
-        sinp2aout:
-          type: numeric
-          description: >
-            Storage coupling; not read for a technology.
-        sout2aout:
-          type: numeric
-          description: >
-            Storage coupling; not read for a technology.
     af:
       type: data.frame
       description: >

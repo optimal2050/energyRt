@@ -58,18 +58,14 @@
       cols = c("vintage", "cluster", "region", "year", "timeslice", "group",
                "ginp2use"),
       dims = c("vintage", "cluster", "region", "year", "timeslice")),
-    # `pho2*` / `ret2*` (phase-out and retirement driven auxiliary flows) and
-    # the `stg2*` / `sinp2*` / `sout2*` family arrived with the storage
-    # refactor; without them a technology using one wrote a spec that would
-    # not read back.
+    # `pho2*` / `ret2*`: phase-out and retirement driven auxiliary flows.
     aux_efficiency = list(
       arg = "aeff",
       cols = c("vintage", "cluster", "acomm", "comm", "region", "year",
                "timeslice", "cinp2ainp", "cinp2aout", "cout2ainp", "cout2aout",
                "act2ainp", "act2aout", "cap2ainp", "cap2aout",
                "ncap2ainp", "ncap2aout", "pho2ainp", "pho2aout",
-               "ret2ainp", "ret2aout", "stg2ainp", "stg2aout",
-               "sinp2ainp", "sinp2aout", "sout2ainp", "sout2aout"),
+               "ret2ainp", "ret2aout"),
       dims = c("vintage", "cluster", "region", "year", "timeslice")),
     availability = list(
       arg = "af",
