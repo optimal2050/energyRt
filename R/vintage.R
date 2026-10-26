@@ -276,9 +276,9 @@
   for (k in .lifespan_keys) {
     if (!k %in% names(src)) src[[k]] <- NA_character_
   }
-  src |>
-    filter(!is.na(.data[[col]])) |>
-    select(all_of(c(.lifespan_keys, col)))
+  out <- src[!is.na(src[[col]]), c(.lifespan_keys, col), drop = FALSE]
+  rownames(out) <- NULL
+  out
 }
 
 # Resolved lifespan column: at most ONE row per (vintage, region, cluster)

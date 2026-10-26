@@ -100,8 +100,7 @@ setMethod(
     # data <- .force_year_class_df(data)
     # data <- .force_value_class_df(data)
     if (!isTRUE(attr(data, "en_cols_forced"))) data <- force_cols_classes(data)
-    data <- select(data, all_of(colnames(obj@data)))
-    data <- as.data.table(data)
+    data <- as.data.table(data)[, colnames(obj@data), with = FALSE]
 
     # convert factors to characters (??? replace with a function ???)
     # for (i in colnames(data)[sapply(data, class) == "factor"]) {
@@ -1496,15 +1495,16 @@ setMethod(
 # functions ####
 # =============================================================================#
 force_cols_classes <- function(dtf) {
-  # if (!is.data.frame(dtf) & !is.list(dtf)) browser()
-  # return(dtf)
-  # temporary solution to avoid merging conflicts
+  # Runs once per parameter chunk (hundreds of thousands of small tables per
+  # interpolation): columns are looked up by name once, read with `.subset2()`
+  # for lists and data frames, and only the present ones are tested.
+  col <- if (is.list(dtf)) .subset2 else function(x, i) x[[i]]
+  nm <- names(dtf)
   year_vars <- c("year", "yearp", "start", "end", "olife")
   force_class <- "integer"
-  # force_class <- "numeric"
-  for (y in year_vars) {
-    if (!is.null(dtf[[y]]) && !inherits(dtf[[y]], force_class)) {
-      dtf[[y]] <- as(dtf[[y]], force_class)
+  for (y in year_vars[year_vars %in% nm]) {
+    if (!inherits(col(dtf, y), force_class)) {
+      dtf[[y]] <- as(col(dtf, y), force_class)
     }
   }
   string_vars <- c(
@@ -1518,24 +1518,24 @@ force_cols_classes <- function(dtf) {
     "dem", "comm", "sup", "trade", "weather"
   )
 
-  for (s in string_vars) {
-    if (!is.null(dtf[[s]]) && !inherits(dtf[[s]], "character")) {
-      dtf[[s]] <- as.character(dtf[[s]])
+  for (s in unique(string_vars[string_vars %in% nm])) {
+    if (!inherits(col(dtf, s), "character")) {
+      dtf[[s]] <- as.character(col(dtf, s))
     }
   }
 
   # The `value` column is always numeric (double): source slots may declare it
   # as integer (e.g. trade `olife = integer()`), which would otherwise clash
   # with the numeric `value` column of the target parameter in `d2p`.
-  if (!is.null(dtf[["value"]]) && !inherits(dtf[["value"]], "numeric")) {
-    dtf[["value"]] <- as.numeric(dtf[["value"]])
+  if ("value" %in% nm && !inherits(col(dtf, "value"), "numeric")) {
+    dtf[["value"]] <- as.numeric(col(dtf, "value"))
   }
 
   # The bounds `type` column is a factor (levels lo, up) in memory but round-trips
   # through CSV as plain character; restore the factor so an on-disk parameter is
   # byte-identical to an in-memory one.
-  if (!is.null(dtf[["type"]]) && !is.factor(dtf[["type"]])) {
-    dtf[["type"]] <- factor(as.character(dtf[["type"]]), levels = c("lo", "up"))
+  if ("type" %in% nm && !is.factor(col(dtf, "type"))) {
+    dtf[["type"]] <- factor(as.character(col(dtf, "type")), levels = c("lo", "up"))
   }
 
   as.data.table(dtf)
@@ -1698,6 +1698,17 @@ force_cols_classes <- function(dtf) {
 }
 
 # =============================================================================#
+# Set operations of base R without the generic checks of `intersect()` /
+# `setdiff()`: same result (unique, in the order of `x`) for character
+# vectors, a fraction of the cost on the per-object path below.
+.isect <- function(x, y) x[!duplicated(x) & match(x, y, 0L) > 0L]
+.sdiff <- function(x, y) x[!duplicated(x) & match(x, y, 0L) == 0L]
+
+# Rows with a non-missing `value`; the table itself when none is missing.
+.drop_na_value <- function(dat) {
+  if (anyNA(dat$value)) dat[!is.na(dat$value), , drop = FALSE] else dat
+}
+
 make_data_param <- function(
     scen,
     obj_name,
@@ -1765,21 +1776,21 @@ make_data_param <- function(
   if (par_meta$type == "bounds") {
     bound_names <- paste0(par_meta$colName, c(".lo", ".up", ".fx"))
 
-    keep <- intersect(c(dim_sets, bound_names), names(slot_data))
+    keep <- .isect(c(dim_sets, bound_names), names(slot_data))
     dat <- slot_data[, keep, drop = FALSE]
 
     dat <- .prepend_class_col(dat)
 
     # dimension columns absent from the slot data (e.g. objects saved under an
     # older class version without a `timeslice` column) are unset -> NA wildcard
-    for (m in setdiff(dim_sets, names(dat))) {
+    for (m in .sdiff(dim_sets, names(dat))) {
       dat[[m]] <- rep(NA, nrow(dat))
     }
 
     # Pack RAW (sparse) bounds in long format with `type` in {lo, up, fx}:
     # row-major melt, one long row per (source row x present bound column).
-    present <- intersect(bound_names, names(dat))
-    id_cols <- setdiff(names(dat), present)
+    present <- .isect(bound_names, names(dat))
+    id_cols <- .sdiff(names(dat), present)
     n <- nrow(dat)
     k <- length(present)
     long <- dat[rep(seq_len(n), each = k), id_cols, drop = FALSE]
@@ -1799,16 +1810,16 @@ make_data_param <- function(
   } else {
     # Pack RAW (sparse) numeric values. Interpolation is deferred to
     # `interpolate_parameters`.
-    keep <- intersect(c(dim_sets, short_name), names(slot_data))
+    keep <- .isect(c(dim_sets, short_name), names(slot_data))
     dat <- slot_data[, keep, drop = FALSE]
     names(dat)[names(dat) == short_name] <- "value"
-    dat <- .dedup(dat[!is.na(dat$value), , drop = FALSE])
+    dat <- .dedup(.drop_na_value(dat))
 
     dat <- .prepend_class_col(dat)
 
     # dimension columns absent from the slot data (e.g. objects saved under an
     # older class version without a `timeslice` column) are unset -> NA wildcard
-    for (m in setdiff(dim_sets, names(dat))) {
+    for (m in .sdiff(dim_sets, names(dat))) {
       dat[[m]] <- rep(NA, nrow(dat))
     }
 
@@ -1817,7 +1828,7 @@ make_data_param <- function(
   }
 
   # !!! add optional or essential info to metadata and filter NAs for optional
-  dat <- .dedup(dat[!is.na(dat$value), , drop = FALSE])
+  dat <- .dedup(.drop_na_value(dat))
   rownames(dat) <- NULL
   # classes are already the canonical ones; d2p() need not coerce again
   attr(dat, "en_cols_forced") <- TRUE
