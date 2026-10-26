@@ -262,6 +262,43 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* A reloaded `solve_by_region()` sequence served every variant the FIRST
+  unit's model. The scenario stored the model it was interpolated from, which
+  the driver had already cut, while `@model` lives on the shell and is written
+  only on the first save -- so region R2's results came back beside a model
+  declaring R1, whose own R2 rows were empty. `verify_solution()` re-derives
+  identities from that model, and `levcost()` and `report()` read its
+  declarations. The driver now stores the full model with each unit's region
+  set, and the cut is rebuilt per variant.
+
+* `solve_by_region()` accepted overlapping `group =` entries, or a repeated
+  region in `regions =`, and solved and counted that region twice -- including
+  in the "sum of objectives" its print method presents as the whole-system
+  cost. Overlaps are refused, naming the regions.
+
+* `sample_summary()`'s `mean` is weighted by each sample's `year_fraction`.
+  Samples need not cover equal shares of the year -- `method = "sequential"`
+  folds a trailing singleton block into its predecessor -- and the mean
+  previously gave a larger block the same single vote. The quantiles remain
+  unweighted, and a message says so when coverage varies.
+
+* `subset_model_regions()` clears the parent's recorded content hash. The
+  subset keeps the model's name on purpose and `save_model()` updates an entry
+  in place by name, so saving one could overwrite the full model's store entry.
+
+* `read_sequence()` no longer reports a `by_region` sequence as complete while
+  returning its `boundary` stub counts as `NA`; they are declared missing.
+
+* A spatial sample survives a variant switch: the problem cartridge records it,
+  where before only the shell held it and a reload restored another unit's
+  regions.
+
+* A filtered geoscale announces the sub-territory solve unconditionally. The
+  mode is accepted silently, so a geoscale covering only some declared regions
+  used to yield a smaller solve -- a different answer from the full model's --
+  with nothing said unless `verbose`.
+
+
 * About 130 fixes, most of which change results: unwired parameters now reach
   the solver, equations are no longer instantiated without data, `waf.fx` binds
   from both sides, `aeff$cout2ainp` / `cinp2aout` bind, sub-region emissions

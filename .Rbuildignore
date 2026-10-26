@@ -18,6 +18,8 @@ drafts/
 depreciated/
 scenarios/
 ^scenarios$
+^energyRt_refs\.csv$
+^logs$
 dev-scripts/
 
 ^gams$

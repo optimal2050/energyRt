@@ -471,6 +471,12 @@ solve_by_sample <- function(object, name = NULL, ...,
 #' Each sample estimates the whole year, so these are quantiles of repeated
 #' estimates, not of a partitioned total.
 #'
+#' `mean` is weighted by each sample's `year_fraction`, because samples need
+#' not cover equal shares of the year — `method = "sequential"` folds a
+#' trailing singleton block into its predecessor, so one sample can be larger
+#' than the rest. The quantiles are **unweighted** order statistics of the
+#' replicates; a message says so whenever the coverage varies.
+#'
 #' @param x a `by_sample` result.
 #' @param name character, the variable to summarise (e.g. `"vTechCap"`).
 #' @param probs numeric, quantiles to report.
@@ -478,8 +484,8 @@ solve_by_sample <- function(object, name = NULL, ...,
 #'   variable carries apart from `sample` and `value`.
 #' @param ... passed to [getData()].
 #'
-#' @return a data.frame with the grouping columns, `n`, `mean` and one column
-#'   per requested quantile.
+#' @return a data.frame with the grouping columns, `n`, `mean`
+#'   (coverage-weighted) and one column per requested quantile (unweighted).
 #' @seealso [solve_by_sample()]
 #' @export
 #' @examples
@@ -513,14 +519,45 @@ sample_summary <- function(x, name, probs = c(0.05, 0.5, 0.95), by = NULL,
   keys <- intersect(keys, names(d))
   grp <- if (length(keys)) d[, keys, drop = FALSE] else
     data.frame(.all = "all", stringsAsFactors = FALSE)
-  sp <- split(d$value, lapply(grp, as.character), drop = TRUE)
+  # Samples are not equal-sized: `method = "sequential"` folds a trailing
+  # singleton into the previous block, so one block can cover five weeks where
+  # the others cover four. Each sample's `year_fraction` is its share of the
+  # year, so it is the weight the mean owes them; an unweighted mean gives the
+  # five-week block the same single vote.
+  wv <- NULL
+  yf <- NULL
+  if ("sample" %in% names(d) && !is.null(x$runs) &&
+      !is.null(x$runs[["year_fraction"]])) {
+    yf <- stats::setNames(as.numeric(x$runs$year_fraction),
+                          as.character(x$runs$sample))
+    cand <- yf[as.character(d$sample)]
+    if (!anyNA(cand) && any(cand > 0, na.rm = TRUE)) wv <- cand
+  }
+  if (!is.null(wv) && length(unique(signif(yf, 12))) > 1L) {
+    message("Samples cover unequal shares of the year (year_fraction ",
+            paste(format(range(yf), digits = 4), collapse = " to "),
+            "); `mean` is weighted by coverage, the quantiles are not.")
+  }
+
+  byg <- lapply(grp, as.character)
+  sp <- split(d$value, byg, drop = TRUE)
+  spw <- if (is.null(wv)) NULL else split(wv, byg, drop = TRUE)
   out <- lapply(names(sp), function(g) {
     v <- sp[[g]]
+    # Unweighted on purpose: a weighted quantile needs an interpolation rule,
+    # and reporting one invented here would be worse than reporting the plain
+    # order statistics of the replicates.
     q <- stats::quantile(v, probs = probs, names = FALSE, na.rm = TRUE)
     row <- as.data.frame(as.list(stats::setNames(
       q, paste0("q", format(100 * probs, trim = TRUE)))))
     row$n <- length(v)
-    row$mean <- mean(v, na.rm = TRUE)
+    row$mean <- if (is.null(spw)) {
+      mean(v, na.rm = TRUE)
+    } else {
+      w <- spw[[g]]
+      ok <- !is.na(v) & !is.na(w) & w > 0
+      if (any(ok)) sum(v[ok] * w[ok]) / sum(w[ok]) else NA_real_
+    }
     row
   })
   res <- do.call(rbind, out)

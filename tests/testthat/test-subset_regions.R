@@ -168,3 +168,16 @@ test_that("region-NA wildcards survive; declarations are judged vs the model", {
                                drop_empty_geoframes = TRUE),
     ondisk = FALSE)))
 })
+
+test_that("a sub-territory solve announces itself even when quiet", {
+  # `.spatial_sample_mode()` accepts a filtered geoscale silently, so a
+  # geoscale covering only some of the declared regions yields a smaller solve
+  # -- a different answer from the full model's. The one line saying so must
+  # not sit behind `verbose`.
+  gs12 <- geoscales::filter_geoscale(gs3(), "region", c("R1", "R2"),
+                                     drop_empty_geoframes = TRUE)
+  expect_message(
+    interpolate_model(mk3(), "smp_quiet", gs12, ondisk = FALSE,
+                      verbose = FALSE),
+    "sub-territory solve on 2 of 3 regions")
+})

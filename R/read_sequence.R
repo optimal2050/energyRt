@@ -111,6 +111,11 @@ NULL
 #' use them; `apply_ledger()` and anything else that continues a sequence
 #' does, so a rebuilt sequence is for reading, not for resuming.
 #'
+#' A `by_region` sequence also loses its `boundary` stub counts, which are
+#' derived after variant expansion and never written to disk. Its model is
+#' recovered: [solve_by_region()] stores the full model on the scenario and each
+#' unit's region set in that unit's cartridge, so a variant rebuilds its own cut.
+#'
 #' @param object a scenario object, or the name of a stored scenario.
 #' @param sequence character, the sequence name to rebuild (as recorded in
 #'   `variant.yml`). Needed only when the scenario holds more than one.
@@ -201,9 +206,15 @@ read_sequence <- function(object, sequence = NULL, type = NULL, verbose = TRUE) 
           as.numeric(v$mf$year_fraction %||% NA_real_), numeric(1)),
         status = vapply(vs, `[[`, "", "status"),
         objective = vapply(vs, function(v) as.numeric(v$objective), numeric(1)))
+      # The driver's `calendar` is the model's FULL one -- the thing the samples
+      # were drawn from. `object@settings@calendar` is the shell's, and a
+      # variant-born scenario's shell was written at the first variant's save,
+      # so it holds that sample's calendar instead. Read the model's own.
+      # `object@model` is sound here: solve_by_sample() never copies the model.
       list(name = sq, model = object@model, runs = runs, scenarios = scens,
            samples = NULL, method = params$method %||% vs[[1]]$mf$method,
-           calendar = tryCatch(object@settings@calendar, error = function(e) NULL),
+           calendar = tryCatch(object@model@config@calendar,
+                               error = function(e) NULL),
            missing = c("samples"))
     },
     region_sample = {
@@ -216,10 +227,14 @@ read_sequence <- function(object, sequence = NULL, type = NULL, verbose = TRUE) 
         objective = vapply(vs, function(v) as.numeric(v$objective), numeric(1)),
         boundary = NA_integer_)
       trade <- as.character(params$trade %||% vs[[1]]$mf$trade %||% "none")
+      # `boundary` counts the stubs each unit faced after variant expansion,
+      # and nothing writes that count to disk -- so it is declared rather than
+      # left as a silent NA. The model IS recoverable: the driver stores the
+      # full model on the scenario and each unit's regions in its cartridge.
       list(name = sq, model = object@model, runs = runs, scenarios = scens,
            trade = trade, share = params$share,
            additive = identical(trade, "none"),
-           missing = character(0))
+           missing = c("boundary"))
     },
     guided_stage = {
       nms <- vapply(vs, `[[`, "", "variant")

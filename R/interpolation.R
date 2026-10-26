@@ -412,14 +412,22 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
         geoscales::geoscale_geoframes(scen@settings@geoscale, finest = TRUE))
       .r <- as.character(scen@settings@region)
       scen@settings@region <- .r[.r %in% as.character(.atoms)]
-      if (isTRUE(verbose)) {
-        message("spatial sample: sub-territory solve on ",
-                length(scen@settings@region), " of ", length(.r),
-                " regions (", scen@settings@geoscale |>
-                  geoscales::geoscale_coverage() |>
-                  (\(cv) paste(names(cv), sprintf("%.1f%%", 100 * cv),
-                               collapse = ", "))(), " of the parent)")
-      }
+      # One line, always. `.spatial_sample_mode()` accepts a filtered geoscale
+      # silently, so without this a geoscale covering only some of the declared
+      # regions yields a smaller solve -- a different answer from the full
+      # model's -- with nothing said. The coverage breakdown is detail and
+      # stays behind `verbose`.
+      message("spatial sample: sub-territory solve on ",
+              length(scen@settings@region), " of ", length(.r), " regions",
+              if (isTRUE(verbose)) {
+                paste0(" (", scen@settings@geoscale |>
+                         geoscales::geoscale_coverage() |>
+                         (\(cv) paste(names(cv), sprintf("%.1f%%", 100 * cv),
+                                      collapse = ", "))(),
+                       " of the parent)")
+              } else {
+                ""
+              })
       object <- .subset_model_regions(object, keep = scen@settings@region,
                                    boundary_prices = boundary_prices,
                                    verbose = verbose)

@@ -160,6 +160,11 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
         gs, finest, keep_atoms, drop_empty_geoframes = TRUE)
     }
   }
+  # The subset is no longer the stored version it was cut from, and
+  # `save_model()` updates an entry in place BY NAME -- `@name` is deliberately
+  # unchanged here -- so leaving the parent's hash on it would let a saved
+  # subset overwrite the full model's entry while claiming to be it.
+  object@misc$hash <- NULL
   object
 }
 

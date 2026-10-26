@@ -213,3 +213,56 @@ test_that("sample_summary returns quantiles across samples", {
   expect_true(all(c("n", "mean", "q10", "q50", "q90") %in% names(s)))
   expect_true(all(s$q10 <= s$q50 & s$q50 <= s$q90))
 })
+
+# --- coverage weighting ------------------------------------------------------ #
+
+test_that("sample_summary weights the mean by each sample's coverage", {
+  skip_if_no_solver()
+  bs_local("bs_cov")
+  # Demand must VARY across slices, or every sample returns the same number and
+  # no weighting could change the mean -- the test would pass on a no-op.
+  mod <- bs_mod("bs_cov", demand = seq_along(bs_leaf()))
+  ens <- solve_by_sample(mod, name = "bs_cov", sample_size = 2,
+                         method = "sequential",
+                         solver = solver_options$glpk, verbose = FALSE)
+  skip_if(isTRUE(ens$failed))
+  skip_if(nrow(ens$runs) < 2L)
+
+  # Samples need not cover equal shares of the year -- `sequential` folds a
+  # trailing singleton block into its predecessor -- so the weights are set
+  # here directly rather than hunting for a calendar that happens to be ragged.
+  ens$runs$year_fraction <- c(0.75, 0.25)
+
+  d <- as.data.frame(getData(ens, "vSupOut", merge = TRUE))
+  skip_if(!("sample" %in% names(d)) || length(unique(d$sample)) < 2L)
+  plain <- mean(d$value, na.rm = TRUE)
+  wts <- stats::setNames(ens$runs$year_fraction, ens$runs$sample)
+  want <- sum(d$value * wts[d$sample]) / sum(wts[d$sample])
+
+  # the samples must differ, or the assertion below cannot discriminate
+  expect_false(isTRUE(all.equal(plain, want)))
+
+  s <- suppressMessages(sample_summary(ens, "vSupOut", by = "region"))
+  expect_equal(s$mean[1], want)
+  # and it is genuinely a different number from the unweighted mean, which is
+  # what the code did before
+  expect_false(isTRUE(all.equal(s$mean[1], plain)))
+
+  # unequal coverage is announced, because the quantiles stay unweighted
+  expect_message(sample_summary(ens, "vSupOut", by = "region"),
+                 "unequal shares of the year")
+})
+
+test_that("equal coverage weights nothing and says nothing", {
+  skip_if_no_solver()
+  bs_local("bs_cov2")
+  mod <- bs_mod("bs_cov2", demand = seq_along(bs_leaf()))
+  ens <- solve_by_sample(mod, name = "bs_cov2", sample_size = 2,
+                         method = "sequential",
+                         solver = solver_options$glpk, verbose = FALSE)
+  skip_if(isTRUE(ens$failed))
+  ens$runs$year_fraction <- rep(0.5, nrow(ens$runs))
+  d <- as.data.frame(getData(ens, "vSupOut", merge = TRUE))
+  s <- sample_summary(ens, "vSupOut", by = "region")   # no message expected
+  expect_equal(s$mean[1], mean(d$value, na.rm = TRUE))
+})
