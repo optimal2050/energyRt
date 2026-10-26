@@ -6587,13 +6587,33 @@ print("eqTaxCost(levy, region, year)...")
     )
     + sum(
         (if haskey(pTaxProcCap, (lv, st1, r, y)) pTaxProcCap[(lv, st1, r, y)] else pTaxProcCapDef end) *
-        vStorageOutCap[(st1, r, y)] for
-        st1 in stg if ((st1, r, y) in mStorageOutCap && (if haskey(pTaxProcCap, (lv, st1, r, y)) pTaxProcCap[(lv, st1, r, y)] else pTaxProcCapDef end) != 0)
+        vStorageStgCap[(st1, r, y)] for
+        st1 in stg if ((st1, r, y) in mStorageStgCap && (if haskey(pTaxProcCap, (lv, st1, r, y)) pTaxProcCap[(lv, st1, r, y)] else pTaxProcCapDef end) != 0)
     )
     + sum(
         (if haskey(pTaxProcNcap, (lv, st1, r, y)) pTaxProcNcap[(lv, st1, r, y)] else pTaxProcNcapDef end) *
+        vStorageStgNewCap[(st1, r, y)] for
+        st1 in stg if ((st1, r, y) in mStorageStgNew && (if haskey(pTaxProcNcap, (lv, st1, r, y)) pTaxProcNcap[(lv, st1, r, y)] else pTaxProcNcapDef end) != 0)
+    )
+    + sum(
+        (if haskey(pTaxProcInpCap, (lv, st1, r, y)) pTaxProcInpCap[(lv, st1, r, y)] else pTaxProcInpCapDef end) *
+        vStorageInpCap[(st1, r, y)] for
+        st1 in stg if ((st1, r, y) in mStorageInpCap && (if haskey(pTaxProcInpCap, (lv, st1, r, y)) pTaxProcInpCap[(lv, st1, r, y)] else pTaxProcInpCapDef end) != 0)
+    )
+    + sum(
+        (if haskey(pTaxProcInpNcap, (lv, st1, r, y)) pTaxProcInpNcap[(lv, st1, r, y)] else pTaxProcInpNcapDef end) *
+        vStorageInpNewCap[(st1, r, y)] for
+        st1 in stg if ((st1, r, y) in mStorageInpNew && (if haskey(pTaxProcInpNcap, (lv, st1, r, y)) pTaxProcInpNcap[(lv, st1, r, y)] else pTaxProcInpNcapDef end) != 0)
+    )
+    + sum(
+        (if haskey(pTaxProcOutCap, (lv, st1, r, y)) pTaxProcOutCap[(lv, st1, r, y)] else pTaxProcOutCapDef end) *
+        vStorageOutCap[(st1, r, y)] for
+        st1 in stg if ((st1, r, y) in mStorageOutCap && (if haskey(pTaxProcOutCap, (lv, st1, r, y)) pTaxProcOutCap[(lv, st1, r, y)] else pTaxProcOutCapDef end) != 0)
+    )
+    + sum(
+        (if haskey(pTaxProcOutNcap, (lv, st1, r, y)) pTaxProcOutNcap[(lv, st1, r, y)] else pTaxProcOutNcapDef end) *
         vStorageOutNewCap[(st1, r, y)] for
-        st1 in stg if ((st1, r, y) in mStorageOutNew && (if haskey(pTaxProcNcap, (lv, st1, r, y)) pTaxProcNcap[(lv, st1, r, y)] else pTaxProcNcapDef end) != 0)
+        st1 in stg if ((st1, r, y) in mStorageOutNew && (if haskey(pTaxProcOutNcap, (lv, st1, r, y)) pTaxProcOutNcap[(lv, st1, r, y)] else pTaxProcOutNcapDef end) != 0)
     )
 );
 print(
@@ -6702,13 +6722,33 @@ print("eqSubsCost(levy, region, year)...")
     )
     - sum(
         (if haskey(pSubProcCap, (lv, st1, r, y)) pSubProcCap[(lv, st1, r, y)] else pSubProcCapDef end) *
-        vStorageOutCap[(st1, r, y)] for
-        st1 in stg if ((st1, r, y) in mStorageOutCap && (if haskey(pSubProcCap, (lv, st1, r, y)) pSubProcCap[(lv, st1, r, y)] else pSubProcCapDef end) != 0)
+        vStorageStgCap[(st1, r, y)] for
+        st1 in stg if ((st1, r, y) in mStorageStgCap && (if haskey(pSubProcCap, (lv, st1, r, y)) pSubProcCap[(lv, st1, r, y)] else pSubProcCapDef end) != 0)
     )
     - sum(
         (if haskey(pSubProcNcap, (lv, st1, r, y)) pSubProcNcap[(lv, st1, r, y)] else pSubProcNcapDef end) *
+        vStorageStgNewCap[(st1, r, y)] for
+        st1 in stg if ((st1, r, y) in mStorageStgNew && (if haskey(pSubProcNcap, (lv, st1, r, y)) pSubProcNcap[(lv, st1, r, y)] else pSubProcNcapDef end) != 0)
+    )
+    - sum(
+        (if haskey(pSubProcInpCap, (lv, st1, r, y)) pSubProcInpCap[(lv, st1, r, y)] else pSubProcInpCapDef end) *
+        vStorageInpCap[(st1, r, y)] for
+        st1 in stg if ((st1, r, y) in mStorageInpCap && (if haskey(pSubProcInpCap, (lv, st1, r, y)) pSubProcInpCap[(lv, st1, r, y)] else pSubProcInpCapDef end) != 0)
+    )
+    - sum(
+        (if haskey(pSubProcInpNcap, (lv, st1, r, y)) pSubProcInpNcap[(lv, st1, r, y)] else pSubProcInpNcapDef end) *
+        vStorageInpNewCap[(st1, r, y)] for
+        st1 in stg if ((st1, r, y) in mStorageInpNew && (if haskey(pSubProcInpNcap, (lv, st1, r, y)) pSubProcInpNcap[(lv, st1, r, y)] else pSubProcInpNcapDef end) != 0)
+    )
+    - sum(
+        (if haskey(pSubProcOutCap, (lv, st1, r, y)) pSubProcOutCap[(lv, st1, r, y)] else pSubProcOutCapDef end) *
+        vStorageOutCap[(st1, r, y)] for
+        st1 in stg if ((st1, r, y) in mStorageOutCap && (if haskey(pSubProcOutCap, (lv, st1, r, y)) pSubProcOutCap[(lv, st1, r, y)] else pSubProcOutCapDef end) != 0)
+    )
+    - sum(
+        (if haskey(pSubProcOutNcap, (lv, st1, r, y)) pSubProcOutNcap[(lv, st1, r, y)] else pSubProcOutNcapDef end) *
         vStorageOutNewCap[(st1, r, y)] for
-        st1 in stg if ((st1, r, y) in mStorageOutNew && (if haskey(pSubProcNcap, (lv, st1, r, y)) pSubProcNcap[(lv, st1, r, y)] else pSubProcNcapDef end) != 0)
+        st1 in stg if ((st1, r, y) in mStorageOutNew && (if haskey(pSubProcOutNcap, (lv, st1, r, y)) pSubProcOutNcap[(lv, st1, r, y)] else pSubProcOutNcapDef end) != 0)
     )
 );
 print(

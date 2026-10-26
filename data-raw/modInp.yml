@@ -2611,6 +2611,46 @@ pTaxProcNcap:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
+pTaxProcInpCap:
+  name: pTaxProcInpCap
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pTaxProcInpNcap:
+  name: pTaxProcInpNcap
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pTaxProcOutCap:
+  name: pTaxProcOutCap
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pTaxProcOutNcap:
+  name: pTaxProcOutNcap
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
 pSubProcAct:
   name: pSubProcAct
   dimSets:
@@ -2658,6 +2698,46 @@ pSubProcCap:
   interpolation: back.inter.forth
 pSubProcNcap:
   name: pSubProcNcap
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pSubProcInpCap:
+  name: pSubProcInpCap
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pSubProcInpNcap:
+  name: pSubProcInpNcap
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pSubProcOutCap:
+  name: pSubProcOutCap
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pSubProcOutNcap:
+  name: pSubProcOutNcap
   dimSets:
   - levy
   - process

@@ -239,11 +239,19 @@ pTaxProcInp(levy, process, comm, region, year, timeslice)  Process tax per unit 
 pTaxProcOut(levy, process, comm, region, year, timeslice)  Process tax per unit produced
 pTaxProcCap(levy, process, region, year)                   Process tax per unit of capacity
 pTaxProcNcap(levy, process, region, year)                  Process tax per unit of new capacity
+pTaxProcInpCap(levy, process, region, year)                Process tax per unit of storage charger capacity
+pTaxProcInpNcap(levy, process, region, year)               Process tax per unit of new storage charger capacity
+pTaxProcOutCap(levy, process, region, year)                Process tax per unit of storage discharger capacity
+pTaxProcOutNcap(levy, process, region, year)               Process tax per unit of new storage discharger capacity
 pSubProcAct(levy, process, region, year, timeslice)        Process subsidy per unit of activity
 pSubProcInp(levy, process, comm, region, year, timeslice)  Process subsidy per unit consumed
 pSubProcOut(levy, process, comm, region, year, timeslice)  Process subsidy per unit produced
 pSubProcCap(levy, process, region, year)                   Process subsidy per unit of capacity
 pSubProcNcap(levy, process, region, year)                  Process subsidy per unit of new capacity
+pSubProcInpCap(levy, process, region, year)                Process subsidy per unit of storage charger capacity
+pSubProcInpNcap(levy, process, region, year)               Process subsidy per unit of new storage charger capacity
+pSubProcOutCap(levy, process, region, year)                Process subsidy per unit of storage discharger capacity
+pSubProcOutNcap(levy, process, region, year)               Process subsidy per unit of new storage discharger capacity
 * Aggregation
 pAggregateFactor(comm, comm)                        Aggregation factor of commodities
 * System parameters
@@ -3366,12 +3374,28 @@ eqTaxCost(levy, region, year)$mTaxCost(levy, region, year)..
              * pTimesliceWeight(year, timeslice)
              * vStorageOut(stg, comm, region, year, timeslice)
              )
-       + sum((stg)$(mStorageOutCap(stg, region, year) and pTaxProcCap(levy, stg, region, year) <> 0),
+       + sum((stg)$(mStorageStgCap(stg, region, year) and pTaxProcCap(levy, stg, region, year) <> 0),
              pTaxProcCap(levy, stg, region, year)
+             * vStorageStgCap(stg, region, year)
+             )
+       + sum((stg)$(mStorageStgNew(stg, region, year) and pTaxProcNcap(levy, stg, region, year) <> 0),
+             pTaxProcNcap(levy, stg, region, year)
+             * vStorageStgNewCap(stg, region, year)
+             )
+       + sum((stg)$(mStorageInpCap(stg, region, year) and pTaxProcInpCap(levy, stg, region, year) <> 0),
+             pTaxProcInpCap(levy, stg, region, year)
+             * vStorageInpCap(stg, region, year)
+             )
+       + sum((stg)$(mStorageInpNew(stg, region, year) and pTaxProcInpNcap(levy, stg, region, year) <> 0),
+             pTaxProcInpNcap(levy, stg, region, year)
+             * vStorageInpNewCap(stg, region, year)
+             )
+       + sum((stg)$(mStorageOutCap(stg, region, year) and pTaxProcOutCap(levy, stg, region, year) <> 0),
+             pTaxProcOutCap(levy, stg, region, year)
              * vStorageOutCap(stg, region, year)
              )
-       + sum((stg)$(mStorageOutNew(stg, region, year) and pTaxProcNcap(levy, stg, region, year) <> 0),
-             pTaxProcNcap(levy, stg, region, year)
+       + sum((stg)$(mStorageOutNew(stg, region, year) and pTaxProcOutNcap(levy, stg, region, year) <> 0),
+             pTaxProcOutNcap(levy, stg, region, year)
              * vStorageOutNewCap(stg, region, year)
              );
 
@@ -3426,12 +3450,28 @@ eqSubsCost(levy, region, year)$mSubCost(levy, region, year)..
              * pTimesliceWeight(year, timeslice)
              * vStorageOut(stg, comm, region, year, timeslice)
              )
-       - sum((stg)$(mStorageOutCap(stg, region, year) and pSubProcCap(levy, stg, region, year) <> 0),
+       - sum((stg)$(mStorageStgCap(stg, region, year) and pSubProcCap(levy, stg, region, year) <> 0),
              pSubProcCap(levy, stg, region, year)
+             * vStorageStgCap(stg, region, year)
+             )
+       - sum((stg)$(mStorageStgNew(stg, region, year) and pSubProcNcap(levy, stg, region, year) <> 0),
+             pSubProcNcap(levy, stg, region, year)
+             * vStorageStgNewCap(stg, region, year)
+             )
+       - sum((stg)$(mStorageInpCap(stg, region, year) and pSubProcInpCap(levy, stg, region, year) <> 0),
+             pSubProcInpCap(levy, stg, region, year)
+             * vStorageInpCap(stg, region, year)
+             )
+       - sum((stg)$(mStorageInpNew(stg, region, year) and pSubProcInpNcap(levy, stg, region, year) <> 0),
+             pSubProcInpNcap(levy, stg, region, year)
+             * vStorageInpNewCap(stg, region, year)
+             )
+       - sum((stg)$(mStorageOutCap(stg, region, year) and pSubProcOutCap(levy, stg, region, year) <> 0),
+             pSubProcOutCap(levy, stg, region, year)
              * vStorageOutCap(stg, region, year)
              )
-       - sum((stg)$(mStorageOutNew(stg, region, year) and pSubProcNcap(levy, stg, region, year) <> 0),
-             pSubProcNcap(levy, stg, region, year)
+       - sum((stg)$(mStorageOutNew(stg, region, year) and pSubProcOutNcap(levy, stg, region, year) <> 0),
+             pSubProcOutNcap(levy, stg, region, year)
              * vStorageOutNewCap(stg, region, year)
              );
 *==============================================================================*

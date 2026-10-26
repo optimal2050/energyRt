@@ -54,9 +54,21 @@ consumption, or balance of a commodity.
 \item{bal}{numeric. Per unit of commodity balance (production - consumption). Commodity level only: the balance belongs to no single process, so \code{bal} cannot be combined with a process filter.
 }
 \item{act}{numeric. Per unit of process activity.}
-\item{cap}{numeric. Per unit of installed capacity, charged in every year the capacity stands.
+\item{cap}{numeric. Technologies only: per unit of installed capacity, charged in every year the capacity stands. A storage's capacity is levied by part, with \code{stg.cap}, \code{inp.cap} or \code{out.cap}.
 }
-\item{ncap}{numeric. Per unit of capacity added in a period, charged once at commissioning rather than annualised.
+\item{ncap}{numeric. Per unit of capacity added in a period, charged once at commissioning rather than annualised. Technologies only; for a storage use \code{stg.ncap}, \code{inp.ncap} or \code{out.ncap}.
+}
+\item{stg.cap}{numeric. Storages only: per unit of reservoir capacity, in every year it stands.
+}
+\item{stg.ncap}{numeric. Storages only: per unit of new reservoir capacity.
+}
+\item{inp.cap}{numeric. Storages only: per unit of charger capacity, in every year it stands. A storage without a charger is not charged.
+}
+\item{inp.ncap}{numeric. Storages only: per unit of new charger capacity.
+}
+\item{out.cap}{numeric. Storages only: per unit of discharger capacity, in every year it stands. A storage without a discharger is not charged.
+}
+\item{out.ncap}{numeric. Storages only: per unit of new discharger capacity.
 }
 \item{rate}{numeric. Per unit of the variable named in \code{variable}. Used only with the escape hatch.
 }

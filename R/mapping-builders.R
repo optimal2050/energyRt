@@ -2801,12 +2801,14 @@ map_mTaxCost <- function(scen, fmp)
   .policy_cost_map(scen, "mTaxCost",
                    c("pTaxCostInp", "pTaxCostOut", "pTaxCostBal",
                      "pTaxProcAct", "pTaxProcInp", "pTaxProcOut",
-                     "pTaxProcCap", "pTaxProcNcap"), fmp)
+                     "pTaxProcCap", "pTaxProcNcap", "pTaxProcInpCap",
+                     "pTaxProcInpNcap", "pTaxProcOutCap", "pTaxProcOutNcap"), fmp)
 map_mSubCost <- function(scen, fmp)
   .policy_cost_map(scen, "mSubCost",
                    c("pSubCostInp", "pSubCostOut", "pSubCostBal",
                      "pSubProcAct", "pSubProcInp", "pSubProcOut",
-                     "pSubProcCap", "pSubProcNcap"), fmp)
+                     "pSubProcCap", "pSubProcNcap", "pSubProcInpCap",
+                     "pSubProcInpNcap", "pSubProcOutCap", "pSubProcOutNcap"), fmp)
 
 # -- registry for the value family ----------------------------------------- #
 .value_builders <- list(

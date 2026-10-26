@@ -28,10 +28,14 @@
 # production minus consumption across every process, so no single process owns
 # it and it cannot be combined with process targeting.
 .levy_comm_cols <- c("inp", "out", "bal")
-.levy_proc_cols <- c("act", "inp", "out", "cap", "ncap")
+# Capacity of a storage part: the reservoir (`stg.`), the charger (`inp.`) and
+# the discharger (`out.`). Plain `cap` / `ncap` charge technologies only.
+.levy_part_cols <- c("stg.cap", "stg.ncap", "inp.cap", "inp.ncap",
+                     "out.cap", "out.ncap")
+.levy_proc_cols <- c("act", "inp", "out", "cap", "ncap", .levy_part_cols)
 # Columns that force the process route regardless of targeting: no commodity
 # equivalent exists for them.
-.levy_proc_only_cols <- c("act", "cap", "ncap")
+.levy_proc_only_cols <- c("act", "cap", "ncap", .levy_part_cols)
 
 # The targeting slots, in the order errors report them.
 .levy_filter_slots <- c("process", "process_", "classes",
@@ -45,9 +49,15 @@
 # parameter per (base, route), keyed by the object's class
 .levy_proc_params <- list(
   tax     = c(act = "pTaxProcAct", inp = "pTaxProcInp", out = "pTaxProcOut",
-              cap = "pTaxProcCap", ncap = "pTaxProcNcap"),
+              cap = "pTaxProcCap", ncap = "pTaxProcNcap",
+              stg.cap = "pTaxProcCap", stg.ncap = "pTaxProcNcap",
+              inp.cap = "pTaxProcInpCap", inp.ncap = "pTaxProcInpNcap",
+              out.cap = "pTaxProcOutCap", out.ncap = "pTaxProcOutNcap"),
   subsidy = c(act = "pSubProcAct", inp = "pSubProcInp", out = "pSubProcOut",
-              cap = "pSubProcCap", ncap = "pSubProcNcap")
+              cap = "pSubProcCap", ncap = "pSubProcNcap",
+              stg.cap = "pSubProcCap", stg.ncap = "pSubProcNcap",
+              inp.cap = "pSubProcInpCap", inp.ncap = "pSubProcInpNcap",
+              out.cap = "pSubProcOutCap", out.ncap = "pSubProcOutNcap")
 )
 .levy_comm_params <- list(
   tax     = c(inp = "pTaxCostInp", out = "pTaxCostOut", bal = "pTaxCostBal"),
@@ -264,7 +274,8 @@
 .levy_validate <- function(obj, slot_name) {
   rt <- as.data.frame(slot(obj, slot_name))
   cols <- names(rt)
-  rate_cols <- intersect(cols, c(.levy_comm_cols, "act", "cap", "ncap", "rate"))
+  rate_cols <- intersect(cols, c(.levy_comm_cols, "act", "cap", "ncap",
+                                 .levy_part_cols, "rate"))
   # a column present but all-NA was never set by the user
   set_cols <- rate_cols[vapply(rate_cols,
                                function(c) any(!is.na(rt[[c]])), logical(1))]
@@ -292,6 +303,7 @@
     stop("levy '", obj@name, "': `act` is not defined for storage, which has ",
          "no activity variable. Levy `inp`/`out` instead.", call. = FALSE)
   }
+  if ("storage" %in% .levy_slot(obj, "classes")) .levy_check_stg_cap(obj, set_cols)
   if (length(set_cols) == 0) {
     stop("levy '", obj@name, "': `", slot_name, "` sets no rate. Supply one of ",
          paste0("`", c(.levy_comm_cols, "act", "cap", "ncap"), "`",
@@ -306,6 +318,18 @@
 # `get_slot_meta()` cannot feed the shared `inp`/`out` columns to both routes.
 .levy_par_meta <- function(par_name, col) {
   list(name = par_name, colName = col, type = "numpar")
+}
+
+# A levy that selects storages by class or by name and sets `cap` / `ncap`
+# without a storage capacity column charges no storage.
+.levy_check_stg_cap <- function(obj, cols) {
+  if (any(c("cap", "ncap") %in% cols) && !any(.levy_part_cols %in% cols)) {
+    stop("levy '", obj@name, "': selects storages and sets `cap`/`ncap`, which ",
+         "charge technologies only. Levy a storage's capacity with `stg.cap`/",
+         "`stg.ncap` (reservoir), `inp.cap`/`inp.ncap` (charger) or ",
+         "`out.cap`/`out.ncap` (discharger).", call. = FALSE)
+  }
+  invisible(TRUE)
 }
 
 #' Emit a levy's parameters, routing each rate column to exactly one parameter
@@ -363,10 +387,29 @@
     }
     rt_proc <- .levy_place(rt_proc, .levy_proc_regions(scen, unique(rt_proc$process)),
                            "process", obj)
+    stgs <- as.character(scen@modInp@sets$stg)
+    named <- c(.levy_slot(obj, "process"),
+               if ("process" %in% names(rt)) stats::na.omit(rt$process))
+    if (any(named %in% stgs)) .levy_check_stg_cap(obj, proc_cols)
     for (col in proc_cols) {
       par_name <- .levy_proc_params[[cls]][[col]]
+      rows <- rt_proc
+      # `cap` / `ncap` charge technologies; a storage's capacity is levied by part
+      if (col %in% c("cap", "ncap")) {
+        rows <- rt_proc[!(as.character(rt_proc$process) %in% stgs), , drop = FALSE]
+        if (!nrow(rows)) next
+      }
+      # a storage part exists only on storages
+      if (col %in% .levy_part_cols) {
+        rows <- rt_proc[as.character(rt_proc$process) %in% stgs, , drop = FALSE]
+        if (!nrow(rows)) {
+          stop("levy '", obj@name, "': `", col, "` applies to storages, and the ",
+               "levy selects none. Name a storage in `process`, or set ",
+               "`classes = \"storage\"`.", call. = FALSE)
+        }
+      }
       dat <- make_data_param(
-        scen = scen, obj_name = obj@name, slot_data = rt_proc,
+        scen = scen, obj_name = obj@name, slot_data = rows,
         par_meta = .levy_par_meta(par_name, col), class_col = "levy")
       scen <- update_parameter(scen, par_name, dat)
     }

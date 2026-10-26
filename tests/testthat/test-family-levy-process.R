@@ -325,34 +325,34 @@ test_that("family levy-process: out tax charges what a storage gives back", {
   expect_equal(.fork_objective(scen), LG_STG_BASE + 5, tolerance = 1e-6)
 })
 
-# @covers pTaxProcCap vStorageOutCap depth=S backends=glpk
-test_that("family levy-process: cap tax on a storage reads its OUTPUT capacity", {
+# @covers pTaxProcCap vStorageStgCap depth=S backends=glpk
+test_that("family levy-process: stg.cap tax on a storage reads its reservoir capacity", {
   skip_if_no_solver()
   scen <- lp_solve(lg_stg(newTax("SC", process = "STG",
-                                 tax = data.frame(cap = 2))), "lg_sc")
+                                 tax = data.frame(stg.cap = 2))), "lg_sc")
   expect_true(verify_solution(scen)$ok)
-  # the shorthand resolves to vStorageOutCap, which is 10 here
+  # the reservoir: vStorageStgCap, 10 here
   expect_equal(ff_solution_sum(scen, "vTaxCost"), 20, tolerance = 1e-6)
   expect_equal(.fork_objective(scen), LG_STG_BASE + 20, tolerance = 1e-6)
 })
 
-# @covers pTaxProcNcap vStorageOutNewCap depth=S backends=glpk
-test_that("family levy-process: ncap tax on a storage reads new OUTPUT capacity", {
+# @covers pTaxProcNcap vStorageStgNewCap depth=S backends=glpk
+test_that("family levy-process: stg.ncap tax on a storage reads new reservoir capacity", {
   skip_if_no_solver()
   scen <- lp_solve(lg_stg(newTax("SN", process = "STG",
-                                 tax = data.frame(ncap = 2))), "lg_sn")
+                                 tax = data.frame(stg.ncap = 2))), "lg_sn")
   expect_true(verify_solution(scen)$ok)
   expect_equal(ff_solution_sum(scen, "vTaxCost"), 20, tolerance = 1e-6)
   expect_equal(.fork_objective(scen), LG_STG_BASE + 20, tolerance = 1e-6)
 })
 
-# @covers pSubProcNcap vStorageOutNewCap depth=S backends=glpk
-test_that("family levy-process: ncap subsidy credits a priced storage's capacity", {
+# @covers pSubProcNcap vStorageStgNewCap depth=S backends=glpk
+test_that("family levy-process: stg.ncap subsidy credits a priced storage's capacity", {
   skip_if_no_solver()
   b <- lp_solve(lg_stg(inv = 300), "lg_sb")
   expect_equal(.fork_objective(b), LG_STG_PRICED, tolerance = 1e-6)
   s <- lp_solve(lg_stg(newSubsidy("SS", process = "STG",
-                              subsidy = data.frame(ncap = 1)), inv = 300),
+                              subsidy = data.frame(stg.ncap = 1)), inv = 300),
                 "lg_ss")
   expect_true(verify_solution(s)$ok)
   expect_equal(ff_solution_sum(s, "vSubsCost"), -10, tolerance = 1e-6)
@@ -371,7 +371,7 @@ test_that("family levy-process: a capacity subsidy on free capacity is unbounded
   # rather than returning a scenario with an NA objective.
   expect_error(
     lp_solve(lg_stg(newSubsidy("SU", process = "STG",
-                           subsidy = data.frame(ncap = 1)), inv = 0), "lg_su"),
+                           subsidy = data.frame(stg.ncap = 1)), inv = 0), "lg_su"),
     "Solution files not found")
 })
 
@@ -382,4 +382,63 @@ test_that("family levy-process: classes = storage selects the storage alone", {
                                  tax = data.frame(out = 0.5))), "lg_sk")
   expect_true(verify_solution(scen)$ok)
   expect_equal(.fork_objective(scen), LG_STG_BASE + 5, tolerance = 1e-6)
+})
+
+# --- storage parts: the charger and the discharger ------------------------------
+
+# a storage with a charger and a discharger: a price on each part makes it exist;
+# the charger's annualised cost (30 / 30 years) stays above the 0.5 subsidy
+lg_stg_parts <- function(...) {
+  objs <- list(
+    newCommodity("ELC", timeframe = "SL"),
+    newSupply("SUP", commodity = "ELC",
+              supply = data.frame(timeslice = lg_slices, cost = 1,
+                                  ava.up = c(1000, 0, 0, 0))),
+    newStorage("STG", commodity = "ELC", olife = data.frame(olife = 30),
+               invcost = data.frame(stg.invcost = 0, inp.invcost = 30,
+                                    out.invcost = 1)),
+    newDemand("DEM", commodity = "ELC",
+              demand = data.frame(timeslice = "s3", demand = 10)), ...)
+  newModel("lgp",
+    repo = do.call(newRepository, c(list("lgp_repo"), objs)),
+    calendar = newCalendar(timetable = make_timetable(
+      struct = list(ANNUAL = "ANNUAL", SL = lg_slices)), name = "lgp_cal"),
+    region = "R1", horizon = newHorizon(2025), discount = 0)
+}
+
+# @covers pTaxProcOutCap pTaxProcInpNcap vStorageOutCap vStorageInpNewCap depth=S backends=glpk
+test_that("family levy-process: out.cap and inp.ncap charge the discharger and the charger", {
+  skip_if_no_solver()
+  scen <- lp_solve(lg_stg_parts(
+    newTax("PO", process = "STG", tax = data.frame(out.cap = 2)),
+    newSubsidy("PI", process = "STG", subsidy = data.frame(inp.ncap = 0.5))),
+    "lg_parts")
+  expect_true(verify_solution(scen)$ok)
+  oc <- ff_solution_sum(scen, "vStorageOutCap")
+  inc <- ff_solution_sum(scen, "vStorageInpNewCap")
+  expect_gt(oc, 0)
+  expect_gt(inc, 0)
+  expect_equal(ff_solution_sum(scen, "vTaxCost"), 2 * oc, tolerance = 1e-6)
+  expect_equal(ff_solution_sum(scen, "vSubsCost"), -0.5 * inc, tolerance = 1e-6)
+})
+
+test_that("family levy-process: part columns need a storage; cap and ncap charge technologies", {
+  expect_error(lp_interp(lp_build(newTax("PT", process = "TA",
+                                         tax = data.frame(out.cap = 1))), "lg_pt"),
+               "applies to storages")
+  # storages selected by class or by name with cap/ncap alone: an error
+  expect_error(lp_interp(lp_build(newTax("PK", classes = c("technology", "storage"),
+                                         tax = data.frame(ncap = 1))), "lg_pk"),
+               "charge technologies only")
+  expect_error(lp_interp(lg_stg(newTax("PN", process = "STG",
+                                       tax = data.frame(cap = 1))), "lg_pn"),
+               "charge technologies only")
+})
+
+# @covers pTaxProcCap depth=S backends=glpk
+test_that("family levy-process: cap without a filter does not charge a storage", {
+  skip_if_no_solver()
+  scen <- lp_solve(lg_stg(newTax("PD", tax = data.frame(cap = 2))), "lg_pd")
+  expect_true(verify_solution(scen)$ok)
+  expect_equal(.fork_objective(scen), LG_STG_BASE, tolerance = 1e-6)
 })

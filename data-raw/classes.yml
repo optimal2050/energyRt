@@ -3024,13 +3024,42 @@ class:
         cap:
           type: numeric
           description: >
-            Per unit of installed capacity, charged in every year the capacity
-            stands.
+            Technologies only: per unit of installed capacity, charged in every
+            year the capacity stands. A storage's capacity is levied by part,
+            with `stg.cap`, `inp.cap` or `out.cap`.
         ncap:
           type: numeric
           description: >
             Per unit of capacity added in a period, charged once at
-            commissioning rather than annualised.
+            commissioning rather than annualised. Technologies only; for a
+            storage use `stg.ncap`, `inp.ncap` or `out.ncap`.
+        stg.cap:
+          type: numeric
+          description: >
+            Storages only: per unit of reservoir capacity, in every year it
+            stands.
+        stg.ncap:
+          type: numeric
+          description: >
+            Storages only: per unit of new reservoir capacity.
+        inp.cap:
+          type: numeric
+          description: >
+            Storages only: per unit of charger capacity, in every year it
+            stands. A storage without a charger is not charged.
+        inp.ncap:
+          type: numeric
+          description: >
+            Storages only: per unit of new charger capacity.
+        out.cap:
+          type: numeric
+          description: >
+            Storages only: per unit of discharger capacity, in every year it
+            stands. A storage without a discharger is not charged.
+        out.ncap:
+          type: numeric
+          description: >
+            Storages only: per unit of new discharger capacity.
         rate:
           type: numeric
           description: >
@@ -3156,13 +3185,42 @@ class:
         cap:
           type: numeric
           description: >
-            Per unit of installed capacity, charged in every year the capacity
-            stands.
+            Technologies only: per unit of installed capacity, charged in every
+            year the capacity stands. A storage's capacity is levied by part,
+            with `stg.cap`, `inp.cap` or `out.cap`.
         ncap:
           type: numeric
           description: >
             Per unit of capacity added in a period, charged once at
-            commissioning rather than annualised.
+            commissioning rather than annualised. Technologies only; for a
+            storage use `stg.ncap`, `inp.ncap` or `out.ncap`.
+        stg.cap:
+          type: numeric
+          description: >
+            Storages only: per unit of reservoir capacity, in every year it
+            stands.
+        stg.ncap:
+          type: numeric
+          description: >
+            Storages only: per unit of new reservoir capacity.
+        inp.cap:
+          type: numeric
+          description: >
+            Storages only: per unit of charger capacity, in every year it
+            stands. A storage without a charger is not charged.
+        inp.ncap:
+          type: numeric
+          description: >
+            Storages only: per unit of new charger capacity.
+        out.cap:
+          type: numeric
+          description: >
+            Storages only: per unit of discharger capacity, in every year it
+            stands. A storage without a discharger is not charged.
+        out.ncap:
+          type: numeric
+          description: >
+            Storages only: per unit of new discharger capacity.
         rate:
           type: numeric
           description: >

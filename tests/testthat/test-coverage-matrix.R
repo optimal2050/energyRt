@@ -64,9 +64,11 @@ test_that("matrix rows assemble from package metadata with expected arithmetic",
   # the variables in the finer cells beneath it while the equation stays on
   # its own cell, so the two domains part company. No equation is added --
   # the four aux equations gained a summed term, 2026-10-18)
+  # (159 numpars = + pTaxProc{Inp,Out}{Cap,Ncap} and pSubProc{Inp,Out}{Cap,Ncap},
+  # levies on a storage's charger and discharger, 2026-10-26)
   expect_equal(unname(counts[["set"]]), 15)
   expect_equal(unname(counts[["map"]]), 352)
-  expect_equal(unname(counts[["numpar"]]), 151)
+  expect_equal(unname(counts[["numpar"]]), 159)
   expect_equal(unname(counts[["bounds"]]), 38)
   expect_equal(unname(counts[["equation"]]), 182)
   expect_gte(unname(counts[["variable"]]), 93)

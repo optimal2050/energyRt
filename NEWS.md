@@ -43,6 +43,9 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 * Supply, import and export curves: `asSupplyCurve()`, `asImportCurve()`,
   `asExportCurve()`.
 * Taxes and subsidies are indexed by instrument and can be levied on processes.
+  `cap` and `ncap` charge technologies; a storage's capacity is levied by part
+  with `stg.cap`/`stg.ncap` (reservoir), `inp.cap`/`inp.ncap` (charger) and
+  `out.cap`/`out.ncap` (discharger).
 * `commodity@property` for physical properties; discount rates at any geoscale
   level; a WACC per technology with `payback` as its cost-recovery life.
 * Portable process definitions: `process_to_spec()` / `process_from_spec()`
@@ -256,6 +259,9 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   too, i.e. the roll-up of their sub-regions a second time. A commodity rate
   now applies at the commodity's own regions and a process rate at the regions
   the process is declared in; a region off that level is an error.
+* Capacity taxes and subsidies on a storage charged nothing unless it had
+  discharger data. They are now levied by part (see above); a levy that
+  selects storages and sets only `cap`/`ncap` is an error.
 * A bound declared per region on one object and for all regions on another
   lost the second object's bound equation (e.g. a fixed storage duration).
 * Content hashes of models with a geoscale are stable between R sessions

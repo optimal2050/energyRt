@@ -4405,15 +4405,39 @@ model.eqTaxCost = Constraint(
     )
     + sum(
         pTaxProcCap.get((lv, st1, r, y))
-        * model.vStorageOutCap[st1, r, y]
+        * model.vStorageStgCap[st1, r, y]
         for st1 in stg
-        if ((st1, r, y) in mStorageOutCap and pTaxProcCap.get((lv, st1, r, y)) != 0)
+        if ((st1, r, y) in mStorageStgCap and pTaxProcCap.get((lv, st1, r, y)) != 0)
     )
     + sum(
         pTaxProcNcap.get((lv, st1, r, y))
+        * model.vStorageStgNewCap[st1, r, y]
+        for st1 in stg
+        if ((st1, r, y) in mStorageStgNew and pTaxProcNcap.get((lv, st1, r, y)) != 0)
+    )
+    + sum(
+        pTaxProcInpCap.get((lv, st1, r, y))
+        * model.vStorageInpCap[st1, r, y]
+        for st1 in stg
+        if ((st1, r, y) in mStorageInpCap and pTaxProcInpCap.get((lv, st1, r, y)) != 0)
+    )
+    + sum(
+        pTaxProcInpNcap.get((lv, st1, r, y))
+        * model.vStorageInpNewCap[st1, r, y]
+        for st1 in stg
+        if ((st1, r, y) in mStorageInpNew and pTaxProcInpNcap.get((lv, st1, r, y)) != 0)
+    )
+    + sum(
+        pTaxProcOutCap.get((lv, st1, r, y))
+        * model.vStorageOutCap[st1, r, y]
+        for st1 in stg
+        if ((st1, r, y) in mStorageOutCap and pTaxProcOutCap.get((lv, st1, r, y)) != 0)
+    )
+    + sum(
+        pTaxProcOutNcap.get((lv, st1, r, y))
         * model.vStorageOutNewCap[st1, r, y]
         for st1 in stg
-        if ((st1, r, y) in mStorageOutNew and pTaxProcNcap.get((lv, st1, r, y)) != 0)
+        if ((st1, r, y) in mStorageOutNew and pTaxProcOutNcap.get((lv, st1, r, y)) != 0)
     ),
 )
 if verbose:
@@ -4513,15 +4537,39 @@ model.eqSubsCost = Constraint(
     )
     - sum(
         pSubProcCap.get((lv, st1, r, y))
-        * model.vStorageOutCap[st1, r, y]
+        * model.vStorageStgCap[st1, r, y]
         for st1 in stg
-        if ((st1, r, y) in mStorageOutCap and pSubProcCap.get((lv, st1, r, y)) != 0)
+        if ((st1, r, y) in mStorageStgCap and pSubProcCap.get((lv, st1, r, y)) != 0)
     )
     - sum(
         pSubProcNcap.get((lv, st1, r, y))
+        * model.vStorageStgNewCap[st1, r, y]
+        for st1 in stg
+        if ((st1, r, y) in mStorageStgNew and pSubProcNcap.get((lv, st1, r, y)) != 0)
+    )
+    - sum(
+        pSubProcInpCap.get((lv, st1, r, y))
+        * model.vStorageInpCap[st1, r, y]
+        for st1 in stg
+        if ((st1, r, y) in mStorageInpCap and pSubProcInpCap.get((lv, st1, r, y)) != 0)
+    )
+    - sum(
+        pSubProcInpNcap.get((lv, st1, r, y))
+        * model.vStorageInpNewCap[st1, r, y]
+        for st1 in stg
+        if ((st1, r, y) in mStorageInpNew and pSubProcInpNcap.get((lv, st1, r, y)) != 0)
+    )
+    - sum(
+        pSubProcOutCap.get((lv, st1, r, y))
+        * model.vStorageOutCap[st1, r, y]
+        for st1 in stg
+        if ((st1, r, y) in mStorageOutCap and pSubProcOutCap.get((lv, st1, r, y)) != 0)
+    )
+    - sum(
+        pSubProcOutNcap.get((lv, st1, r, y))
         * model.vStorageOutNewCap[st1, r, y]
         for st1 in stg
-        if ((st1, r, y) in mStorageOutNew and pSubProcNcap.get((lv, st1, r, y)) != 0)
+        if ((st1, r, y) in mStorageOutNew and pSubProcOutNcap.get((lv, st1, r, y)) != 0)
     ),
 )
 if verbose:
