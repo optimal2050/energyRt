@@ -1,6 +1,6 @@
 # Rebuilding a driver's sequence from the variants on disk (R/read_sequence.R).
 #
-# getData.myopic(), sample_summary(), myopic_objective() and guided_gap() all
+# getData.recursive(), sample_summary(), recursive_objective() and guided_gap() all
 # read the live result's `$scenarios`. Nothing reconstructed it, so once a
 # session ended the variants sat on disk and the sequence did not -- the
 # results were present and unreachable through the methods written for them.
@@ -8,7 +8,7 @@
 # The test of a faithful rebuild is that those very methods give the same
 # answers as they did on the live object.
 
-# Covers the R API: read_sequence(), getData(), myopic_objective(),
+# Covers the R API: read_sequence(), getData(), recursive_objective(),
 # sample_summary(), solved on glpk.
 # NOT an `@covers` tag -- see the note in test-getdata-run.R.
 
@@ -45,36 +45,36 @@ rq_mod <- function(name = "rqs", demand = 2) {
                                            demand = demand))))
 }
 
-test_that("a myopic sequence rebuilds and answers the same as the live one", {
+test_that("a recursive sequence rebuilds and answers the same as the live one", {
   skip_if_no_solver()
   rq_local()
-  live <- suppressMessages(solve_myopic(my_mod(years = 2020:2022, name = "rq"),
+  live <- suppressMessages(solve_recursive(my_mod(years = 2020:2022, name = "rq"),
                                         name = "rq", step = 1L, verbose = FALSE))
-  obj <- myopic_objective(live)
+  obj <- recursive_objective(live)
   dl <- as.data.frame(getData(live, "vTechCap", merge = TRUE))
   p <- live$path
 
   back <- suppressMessages(load_scenario(p, env = NULL, verbose = FALSE))
   s <- suppressMessages(read_sequence(back))
 
-  expect_s3_class(s, "myopic")
+  expect_s3_class(s, "recursive")
   expect_true(isTRUE(s$reconstructed))
   expect_identical(nrow(s$steps), nrow(live$steps))
   expect_identical(s$steps$step, live$steps$step)
   # the rebuilt object must answer the methods identically -- that is what
   # "faithful" means here, not field-by-field equality
-  expect_equal(myopic_objective(s), obj)
+  expect_equal(recursive_objective(s), obj)
   db <- as.data.frame(getData(s, "vTechCap", merge = TRUE))
   expect_identical(nrow(db), nrow(dl))
   expect_equal(sum(db$value), sum(dl$value))
-  # `$scenarios` is indexed BY STEP by getData.myopic(), not by position
+  # `$scenarios` is indexed BY STEP by getData.recursive(), not by position
   expect_identical(length(s$scenarios), max(live$steps$step))
 })
 
 test_that("working state is declared missing, not silently NULL", {
   skip_if_no_solver()
   rq_local()
-  live <- suppressMessages(solve_myopic(my_mod(years = 2020:2021, name = "rq2"),
+  live <- suppressMessages(solve_recursive(my_mod(years = 2020:2021, name = "rq2"),
                                         name = "rq2", step = 1L, verbose = FALSE))
   back <- suppressMessages(load_scenario(live$path, env = NULL, verbose = FALSE))
   s <- suppressMessages(read_sequence(back))
@@ -116,8 +116,35 @@ test_that("a scenario with no variants, or an unknown sequence, says so", {
     sc, solver = solver_options$glpk, echo = FALSE)), verbose = FALSE))
   expect_error(read_sequence(s), "no own-problem variants")
 
-  live <- suppressMessages(solve_myopic(my_mod(years = 2020:2021, name = "rq3"),
+  live <- suppressMessages(solve_recursive(my_mod(years = 2020:2021, name = "rq3"),
                                         name = "rq3", step = 1L, verbose = FALSE))
   back <- suppressMessages(load_scenario(live$path, env = NULL, verbose = FALSE))
   expect_error(read_sequence(back, sequence = "not_a_sequence"), "No driver")
+})
+
+test_that("a sequence recorded before the rename is still read", {
+  skip_if_no_solver()
+  rq_local()
+  # Folders solved by the driver when it was called `solve_myopic()` carry
+  # `type: myopic_step` in variant.yml. It is the same driver, so those
+  # sequences must keep loading rather than being refused as an unknown type.
+  res <- suppressMessages(solve_recursive(
+    my_mod(years = 2020:2022, name = "rqo"), name = "rqo", step = 1L,
+    verbose = FALSE))
+  skip_if(isTRUE(res$failed))
+  scen <- res$scenarios[[1]]
+
+  vy <- Sys.glob(fp(scen@path, "runs", "*", "variant.yml"))
+  expect_gt(length(vy), 0L)
+  for (f in vy) {
+    mf <- yaml::read_yaml(f)
+    expect_identical(mf$type, "recursive_step")   # what it writes now
+    mf$type <- "myopic_step"                      # what older folders hold
+    yaml::write_yaml(mf, f)
+  }
+
+  back <- suppressMessages(load_scenario(scen@path, env = NULL, verbose = FALSE))
+  old <- suppressMessages(read_sequence(back, verbose = FALSE))
+  expect_s3_class(old, "recursive")
+  expect_identical(nrow(old$steps), nrow(res$steps))
 })

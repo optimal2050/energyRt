@@ -2,11 +2,11 @@
 # R/carry.R): cheap endpoint problems produce capacity TARGETS that steer an
 # expensive full-horizon solve.
 #
-# The property that makes this testable in a way solve_myopic() is not: the
+# The property that makes this testable in a way solve_recursive() is not: the
 # final stage is one ordinary full-horizon solve, so its objective is directly
 # comparable to true perfect foresight and the comparison has a known sign --
 # guided >= PF, because bounds can only raise an optimum. Fixtures from
-# helper-myopic.R (zero discount, one-year intervals, no intertemporal
+# helper-recursive.R (zero discount, one-year intervals, no intertemporal
 # coupling), so a non-binding guide must reproduce PF exactly.
 
 gd_path <- function(name) {

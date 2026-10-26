@@ -340,12 +340,23 @@ solve_by_sample <- function(object, name = NULL, ...,
                             sample_size = NULL, n = NULL,
                             method = c("sequential", "random", "bootstrap"),
                             seed = NULL, calendar = NULL,
-                            solver = NULL,
+                            solver = NULL, base = NULL,
                             ncap_floor = 0, ncap_stat = c("mean", "median"),
                             on_error = c("stop", "continue"),
                             overwrite = FALSE,
                             keep_scenarios = TRUE, verbose = TRUE) {
+  # A SCENARIO names the full problem the samples are drawn from: its model
+  # drives the sequence and the scenario itself becomes the base, so each
+  # sample's tables are stored as a row filter over it rather than as a copy.
+  if (is(object, "scenario")) {
+    base <- base %||% object
+    object <- object@model
+  }
   stopifnot(is(object, "model"))
+  if (!is.null(base) && !is(base, "scenario")) {
+    stop("`base` must be a saved scenario of the same model, or NULL.",
+         call. = FALSE)
+  }
   method <- match.arg(method)
   on_error <- match.arg(on_error)
   ncap_stat <- match.arg(ncap_stat)
@@ -398,7 +409,7 @@ solve_by_sample <- function(object, name = NULL, ...,
   # One pass over the samples. Run twice when a floor is asked for: the free
   # pass decides, the floored pass re-dispatches every sample against the
   # ensemble's own consensus. `mod` and the variant suffix are all that differ.
-  one_pass <- function(mod, sfx = "", pass = "free") {
+  one_pass <- function(mod, sfx = "", pass = "free", base = NULL) {
   scens <- list()
   failed <- FALSE
   runs <- tibble(sample = character(0), run = character(0),
@@ -419,7 +430,8 @@ solve_by_sample <- function(object, name = NULL, ...,
       cal_k <- .sample_calendar(cal, rows$timeslice, counts = cnt,
                                name = paste0("cs_", sid))
       args <- c(list(mod, name = name), extra,
-                list(cal_k, path = seq_path, overwrite = TRUE))
+                list(cal_k, path = seq_path, overwrite = TRUE),
+                if (is.null(base)) list() else list(base = base))
       scen_k <- suppressMessages(do.call(interpolate_model, args))
       solve_scenario(scen_k, solver = solver, echo = FALSE, force = TRUE,
                      variant = vlab)
@@ -468,7 +480,7 @@ solve_by_sample <- function(object, name = NULL, ...,
   list(scens = scens, runs = runs, failed = failed)
   }
 
-  free <- one_pass(object, sfx = "", pass = "free")
+  free <- one_pass(object, sfx = "", pass = "free", base = base)
   scens <- free$scens
   runs <- free$runs
   failed <- free$failed
@@ -488,6 +500,9 @@ solve_by_sample <- function(object, name = NULL, ...,
       mod_f <- apply_targets(object, tg, horizon = hz,
                              slack = 1 - ncap_floor, mode = "lo",
                              basis = "ncap", verbose = FALSE)
+      # No base for the floored pass: apply_targets() writes bounds into the
+      # model's @capacity slots, so its tables are not the base's filtered --
+      # interpolate_model() would refuse and say so once per sample.
       floored <- one_pass(mod_f, sfx = "_f", pass = "floor")
       scens <- floored$scens
       runs <- bind_rows(free$runs, floored$runs)

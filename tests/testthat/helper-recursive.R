@@ -1,6 +1,6 @@
 # =========================================================================== #
-# Fixtures for the sequential/myopic solving suite (R/carry.R,
-# R/solve_myopic.R).
+# Fixtures for the recursive solving suite (R/carry.R,
+# R/solve_recursive.R).
 #
 # Unlike the stock-path fixtures (exogenous fleets), these models BUILD
 # capacity: TECH has an investment cost and satisfies a demand that a costly
@@ -58,7 +58,7 @@ my_mod <- function(years = 2020:2022, olife = 50L, demand = 1,
 }
 
 my_scen_path <- function(name) {
-  p <- file.path(tempdir(), "myopic-suite", name)
+  p <- file.path(tempdir(), "recursive-suite", name)
   gsub("[\\/]+", "/", p)
 }
 
@@ -125,7 +125,7 @@ my_trd_mod <- function(years = 2020:2022, olife = 50L, name = "myt") {
 }
 
 # A vintaged technology: the "early" variant can only be built in the first
-# year, the "late" one afterwards — so a myopic carry must route the first
+# year, the "late" one afterwards — so a recursive carry must route the first
 # step's build back onto the RIGHT vintage selector.
 my_vin_mod <- function(years = 2020:2022, name = "myv") {
   TECH <- newTechnology(
@@ -153,7 +153,7 @@ my_vin_mod <- function(years = 2020:2022, name = "myv") {
 
 # value of a variable by year, 0-filled over the given years
 my_by_year <- function(res_or_scen, name, years) {
-  d <- if (inherits(res_or_scen, "myopic")) {
+  d <- if (inherits(res_or_scen, "recursive")) {
     getData(res_or_scen, name, merge = TRUE)
   } else {
     suppressMessages(getData(res_or_scen, name, merge = TRUE))

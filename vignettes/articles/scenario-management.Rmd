@@ -319,7 +319,7 @@ project's registry and stores in one call.
 # Variants: several problems in one scenario
 
 A scenario sometimes needs *the same model asked a different question* —
-a sampled calendar, a restricted horizon, a myopic step with carried-over
+a sampled calendar, a restricted horizon, a recursive step with carried-over
 capacity. These are **own-problem variants**: named folders under `runs/`
 that carry their *own* interpolated problem, with their solves inside.
 
@@ -347,7 +347,7 @@ The base problem's store stays untouched at the scenario level.
 the solution but the whole in-memory *problem* — settings and parameters
 swap together, in both directions — so `getData()` is always consistent
 with the run you are looking at. This is the storage substrate for the
-sequential (myopic) solver: `solve_myopic()` keeps a whole year-by-year
+recursive solver: `solve_recursive()` keeps a whole year-by-year
 sequence as one scenario with one variant per step.
 
 ### A solution of its own
@@ -429,7 +429,7 @@ lives*:
 | what changed | it is a… | lives at |
 |---|---|---|
 | solver, tolerances, method, threads | **run** | `runs/[<variant>/]<label>/` |
-| the *scope* of the same declarations — a sampled calendar, a region subset or aggregation, a horizon window, a myopic step | **variant** (own problem) | `runs/<variant>/` with its own `modInp` |
+| the *scope* of the same declarations — a sampled calendar, a region subset or aggregation, a horizon window, a recursive step | **variant** (own problem) | `runs/<variant>/` with its own `modInp` |
 | *assumptions or declarations* — a fuel price, a policy cap, a technology's cost | **scenario** (built on a reference with `base =`) | its own folder |
 
 Two runs of one problem agree on every number going in; anything that

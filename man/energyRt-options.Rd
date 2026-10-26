@@ -99,7 +99,7 @@ Root directory for the dataset store. save_dataset() writes one folder per datas
 }}
 
 \item{log_file}{\describe{
-Optional operation-log CSV. Empty (default) = logging off; a path makes interpolate_model()/solve_scenario()/solve_myopic() append one line per operation. Read it back with read_log().\item{default: }{\preformatted{""}}
+Optional operation-log CSV. Empty (default) = logging off; a path makes interpolate_model()/solve_scenario()/solve_recursive() append one line per operation. Read it back with read_log().\item{default: }{\preformatted{""}}
 \item{option: }{en.log_file}
 \item{envvar: }{ENERGYRT_LOG_FILE (evaluated if possible, raw string otherwise)}
 }}

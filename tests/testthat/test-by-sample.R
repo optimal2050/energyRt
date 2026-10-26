@@ -370,3 +370,69 @@ test_that("a floor pulls a sample up without pinning one already above it", {
   expect_true(any(grepl("_f$", rr$variant)))
   expect_true(any(!grepl("_f$", rr$variant)))
 })
+
+# --- building the samples on a sealed base ----------------------------------- #
+
+test_that("`path =` alone no longer refuses a base", {
+  # Model content reaches interpolate_model() positionally; `path` is a control
+  # argument that arrives through `...` and is read only on the full path, so
+  # the base dispatch used to see it as "an object of class character is added"
+  # and refuse. Every solve driver passes `path`, so this blocked all of them.
+  bs_local("bs_pathbase")
+  mod <- bs_mod("bs_pathbase")
+  base <- suppressMessages(save_scenario(
+    interpolate_model(mod, name = "bs_pb_base"), verbose = FALSE))
+  suppressMessages(seal_scenario(base, inputs = TRUE, outputs = FALSE,
+                                 verbose = FALSE))
+  cal2 <- energyRt:::.sample_calendar(
+    bs_cal(), utils::head(bs_leaf(), 48), name = "bs_pb_half")
+
+  d <- suppressMessages(interpolate_model(
+    mod, name = "bs_pb_d", cal2, path = bs_path("bs_pb_d"), overwrite = TRUE,
+    base = base))
+  expect_false(is.null(d@misc$base))
+  expect_true("timeslice" %in% names(d@misc$sample))
+})
+
+test_that("a scenario given as `object` becomes the samples' base", {
+  skip_if_no_solver()
+  bs_local("bs_base")
+  # the threshold is 1e6 rows by default, far above a test model's tables
+  old <- options(energyRt.param_ref_min_rows = 1)
+  on.exit(options(old), add = TRUE)
+
+  mod <- bs_mod("bs_base")
+  base <- suppressMessages(save_scenario(
+    interpolate_model(mod, name = "bs_base_full"), verbose = FALSE))
+  suppressMessages(seal_scenario(base, inputs = TRUE, outputs = FALSE,
+                                 verbose = FALSE))
+
+  b <- solve_by_sample(base, name = "bs_onbase", sample_size = 2,
+                       method = "sequential", solver = solver_options$glpk,
+                       verbose = FALSE)
+  skip_if(isTRUE(b$failed))
+
+  s1 <- b$scenarios[[1]]
+  expect_false(is.null(s1@misc$base))
+  expect_true("timeslice" %in% names(s1@misc$sample))
+
+  # the tables the sample shares with the base are references, so fewer of its
+  # parameter dirs hold a local copy
+  own <- list.dirs(fp(s1@path, "runs", names(b$scenarios)[1], "modInp",
+                      "parameters"), recursive = FALSE)
+  a <- solve_by_sample(mod, name = "bs_nobase", sample_size = 2,
+                       method = "sequential", solver = solver_options$glpk,
+                       verbose = FALSE)
+  skip_if(isTRUE(a$failed))
+  own_a <- list.dirs(fp(a$scenarios[[1]]@path, "runs",
+                        names(a$scenarios)[1], "modInp", "parameters"),
+                     recursive = FALSE)
+  expect_lt(length(own), length(own_a))
+  # and the answer is the same either way, which is the point
+  expect_equal(b$runs$objective, a$runs$objective, tolerance = 1e-6)
+})
+
+test_that("a non-scenario base is refused", {
+  mod <- bs_mod("bs_badbase")
+  expect_error(solve_by_sample(mod, base = mod), "must be a saved scenario")
+})

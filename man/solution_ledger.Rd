@@ -45,11 +45,11 @@ scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
 led <- solution_ledger(scen)
 names(led)
 
-# the accumulated ledger is what `solve_myopic()` writes into the next
+# the accumulated ledger is what `solve_recursive()` writes into the next
 # step's model
 led$steps
 }
 }
 \seealso{
-\code{\link[=apply_ledger]{apply_ledger()}}, \code{\link[=solve_myopic]{solve_myopic()}}
+\code{\link[=apply_ledger]{apply_ledger()}}, \code{\link[=solve_recursive]{solve_recursive()}}
 }

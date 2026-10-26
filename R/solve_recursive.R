@@ -1,5 +1,5 @@
 # =============================================================================#
-# solve_myopic.R — sequential (myopic) solving driver on the carry primitives
+# solve_recursive.R — recursive-dynamic solving driver on the carry primitives
 # (R/carry.R) and the layout-3 storage substrate (own-problem variants).
 #
 # Each step solves a WINDOW of the horizon's milestone intervals, the decided
@@ -26,7 +26,7 @@
 #' @return a list of window specs: `horizon` (the window's horizon),
 #'   `decided` (its decided milestone years), `lookahead` (the look-ahead
 #'   milestone years, possibly empty).
-#' @seealso [solve_myopic()]
+#' @seealso [solve_recursive()]
 #' @export
 #' @examples
 #' h <- topia$modules$horizons$base
@@ -76,7 +76,7 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 
 # one loud warning when the model carries user constraints that a windowed
 # solve applies within each window only (cumulative budgets, cross-year links)
-.myopic_warn_intertemporal <- function(mod) {
+.recursive_warn_intertemporal <- function(mod) {
   bad <- character(0)
   for (rp in names(mod@data)) {
     repo <- mod@data[[rp]]
@@ -103,13 +103,13 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 }
 
 # add/refresh driver metadata in a variant.yml written by save_scenario()
-.myopic_tag_variant <- function(scen, vlab, sequence, k, decided,
+.recursive_tag_variant <- function(scen, vlab, sequence, k, decided,
                                params = NULL) {
   vy <- fp(scen@path, "runs", vlab, "variant.yml")
   if (!file.exists(vy)) return(invisible(NULL))
   mf <- tryCatch(yaml::read_yaml(vy), error = function(e) NULL)
   if (is.null(mf)) return(invisible(NULL))
-  mf$type <- "myopic_step"
+  mf$type <- "recursive_step"
   mf$sequence <- sequence
   mf$step <- k
   mf$decided <- as.integer(decided)
@@ -118,7 +118,7 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
   invisible(vy)
 }
 
-#' Solve a model sequentially (myopic foresight)
+#' Solve a model recursively, milestone by milestone
 #'
 #' @description
 #' Solves the model's horizon window by window instead of all at once.
@@ -136,11 +136,11 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #'
 #' Because carried capacity pays no EAC, per-step objective values are not
 #' comparable to a perfect-foresight objective; the capacity and activity
-#' PATHS are the meaningful comparison, and [myopic_objective()] recomputes
+#' PATHS are the meaningful comparison, and [recursive_objective()] recomputes
 #' a globally discounted total cost over the decided years.
 #'
 #' @param object a model.
-#' @param name character, sequence name (default `"<model>_myopic"`); names
+#' @param name character, sequence name (default `"<model>_recursive"`); names
 #'   the scenario (or the per-step scenario prefix).
 #' @param ... forwarded to [interpolate_model()] for every step (settings /
 #'   calendar / config overrides).
@@ -160,14 +160,14 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #'   variant of the same label already exists on disk with a different type
 #'   or different parameters. `TRUE` skips that guard and writes into it.
 #'
-#' @return an object of class `myopic`: `steps` (one row per step: step,
+#' @return an object of class `recursive`: `steps` (one row per step: step,
 #'   run id, decided years, status, objective), `scenarios` (the solved
 #'   step objects when kept), `ledger` (the accumulated [solution_ledger()]),
 #'   plus the call parameters. `getData()` on it stitches per-step results
 #'   (each year contributed by the step that decided it).
 #'
 #' @seealso [horizon_windows()], [solution_ledger()], [apply_ledger()],
-#'   [myopic_objective()]
+#'   [recursive_objective()]
 #' @export
 #' @examples
 #' \dontrun{
@@ -183,11 +183,11 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #'
 #' # one solve per milestone year, each blind to the next, with capacity
 #' # carried forward
-#' res <- solve_myopic(mod, name = "MYOPIC", step = 1L,
+#' res <- solve_recursive(mod, name = "MYOPIC", step = 1L,
 #'                     solver = solver_options$glpk)
-#' myopic_objective(res, sdr = 0.05)
+#' recursive_objective(res, sdr = 0.05)
 #' }
-solve_myopic <- function(object, name = NULL, ...,
+solve_recursive <- function(object, name = NULL, ...,
                          horizon = NULL, step = 1L, overlap = 0L,
                          carry = c("capacity", "budgets"),
                          solver = NULL, tolerance = 1e-6,
@@ -200,14 +200,14 @@ solve_myopic <- function(object, name = NULL, ...,
   stopifnot(is(object, "model"))
   store <- match.arg(store)
   on_error <- match.arg(on_error)
-  name <- name %||% paste0(object@name, "_myopic")
+  name <- name %||% paste0(object@name, "_recursive")
   .assert_object_name(name, "name")
   horizon <- horizon %||% tryCatch(object@config@horizon, error = function(e) NULL)
   if (is.null(horizon) || nrow(horizon@intervals) == 0) {
     stop("No horizon: pass `horizon =` or give the model one.")
   }
   windows <- horizon_windows(horizon, step = step, overlap = overlap)
-  .myopic_warn_intertemporal(object)
+  .recursive_warn_intertemporal(object)
   # one folder for the whole sequence: the default path derivation includes
   # the (per-window) horizon name, so pin the path explicitly
   seq_path <- fp(get_scenarios_path(), .path_slug(name, object@name))
@@ -229,7 +229,7 @@ solve_myopic <- function(object, name = NULL, ...,
     w <- windows[[k]]
     vlab <- sprintf("s%02d-%d", k, min(w$decided))
     if (store == "variants") {
-      .variant_guard(seq_path, vlab, "myopic_step", vparams, overwrite)
+      .variant_guard(seq_path, vlab, "recursive_step", vparams, overwrite)
     }
     scen_name <- if (store == "variants") {
       name
@@ -240,7 +240,7 @@ solve_myopic <- function(object, name = NULL, ...,
       sprintf("%s_s%02d_%d", name, k, min(w$decided))
     }
     if (verbose) {
-      message("myopic step ", k, "/", length(windows), ": ",
+      message("recursive step ", k, "/", length(windows), ": ",
               paste(w$decided, collapse = ", "),
               if (length(w$lookahead)) paste0(" (+ look-ahead ",
                                               paste(w$lookahead,
@@ -290,7 +290,7 @@ solve_myopic <- function(object, name = NULL, ...,
         "  Hints: a declining capacity bound below the carried stock, or a ",
         "cumulative constraint applied within the window (see the warning ",
         "at start), can make a step infeasible. Inspect the step with ",
-        "solve_myopic(..., on_error = \"return\")$scenarios.")
+        "solve_recursive(..., on_error = \"return\")$scenarios.")
       if (on_error == "stop") stop(msg, call. = FALSE)
       warning(msg, call. = FALSE)
       failed <- TRUE
@@ -303,7 +303,7 @@ solve_myopic <- function(object, name = NULL, ...,
     saved <- suppressMessages(suppressWarnings(
       save_scenario(sol, verbose = FALSE)))
     if (store == "variants") {
-      .myopic_tag_variant(saved, vlab, sequence = name, k = k,
+      .recursive_tag_variant(saved, vlab, sequence = name, k = k,
                           params = vparams,
                           decided = w$decided)
     }
@@ -311,7 +311,7 @@ solve_myopic <- function(object, name = NULL, ...,
     if (keep_scenarios) scens[[vlab]] <- sol
   }
 
-  .en_log("myopic", name,
+  .en_log("recursive", name,
           status = if (failed) "failed" else "ok",
           duration = difftime(Sys.time(), .log_t0, units = "secs"),
           model = object@name, steps = nrow(steps),
@@ -323,13 +323,13 @@ solve_myopic <- function(object, name = NULL, ...,
     store = store, horizon = horizon,
     path = if (length(scens)) scens[[length(scens)]]@path else NULL,
     failed = failed
-  ), class = "myopic")
+  ), class = "recursive")
 }
 
-#' @method print myopic
+#' @method print recursive
 #' @export
-print.myopic <- function(x, ...) {
-  cat("myopic sequence '", x$name, "': ", nrow(x$steps), " step(s), store = ",
+print.recursive <- function(x, ...) {
+  cat("recursive sequence '", x$name, "': ", nrow(x$steps), " step(s), store = ",
       x$store, "\n", sep = "")
   df <- as.data.frame(x$steps)
   df$decided <- vapply(df$decided, function(y) paste(y, collapse = ","), "")
@@ -339,15 +339,15 @@ print.myopic <- function(x, ...) {
 }
 
 #' @export
-getData.myopic <- function(object, name = NULL, ..., merge = TRUE) {
+getData.recursive <- function(object, name = NULL, ..., merge = TRUE) {
   x <- object
   if (length(x$scenarios) == 0) {
-    stop("The myopic result kept no scenario objects ",
+    stop("The recursive result kept no scenario objects ",
          "(keep_scenarios = FALSE); re-run with keep_scenarios = TRUE.")
   }
   if (!is.null(name) && "vObjective" %in% name) {
     message("vObjective is per-step and discounted to each step's own base ",
-            "year; it is not merged. Use myopic_objective().")
+            "year; it is not merged. Use recursive_objective().")
     name <- setdiff(name, "vObjective")
     if (length(name) == 0) return(invisible(NULL))
   }
@@ -371,7 +371,7 @@ getData.myopic <- function(object, name = NULL, ..., merge = TRUE) {
   bind_rows(out)
 }
 
-#' Globally discounted total cost of a myopic sequence
+#' Globally discounted total cost of a recursive sequence
 #'
 #' @description
 #' Per-step objectives are discounted to each step's own base year and
@@ -382,7 +382,7 @@ getData.myopic <- function(object, name = NULL, ..., merge = TRUE) {
 #' carried between steps enters as investment-cost-free stock, so its
 #' annuities after its building step are not in `vTotalCost`.
 #'
-#' @param x a `myopic` result.
+#' @param x a `recursive` result.
 #' @param sdr numeric social discount rate (default 0).
 #' @return numeric scalar.
 #' @export
@@ -397,15 +397,15 @@ getData.myopic <- function(object, name = NULL, ..., merge = TRUE) {
 #'                 horizon = topia$modules$horizons$base,
 #'                 discount = 0.05)
 #' mod <- setGeoscale(mod, ek$geoscale)
-#' res <- solve_myopic(mod, name = "MYOPIC", solver = solver_options$glpk)
+#' res <- solve_recursive(mod, name = "MYOPIC", solver = solver_options$glpk)
 #'
 #' # per-step objectives are discounted to their own base years, so they do
 #' # not add up; this is the comparable number
-#' myopic_objective(res)              # undiscounted
-#' myopic_objective(res, sdr = 0.05)  # discounted to the first milestone
+#' recursive_objective(res)              # undiscounted
+#' recursive_objective(res, sdr = 0.05)  # discounted to the first milestone
 #' }
-myopic_objective <- function(x, sdr = 0) {
-  stopifnot(inherits(x, "myopic"))
+recursive_objective <- function(x, sdr = 0) {
+  stopifnot(inherits(x, "recursive"))
   tc <- getData(x, "vTotalCost", merge = TRUE)
   if (is.null(tc) || nrow(tc) == 0) return(NA_real_)
   iv <- as.data.frame(x$horizon@intervals)

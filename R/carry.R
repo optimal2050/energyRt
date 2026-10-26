@@ -1,6 +1,6 @@
 # =============================================================================#
 # carry.R — sequential-solving primitives: the solution ledger and its
-# application to a model (Part 2: myopic/sequential solving).
+# application to a model (Part 2: recursive/sequential solving).
 #
 # The seam has two halves:
 #   solution_ledger(scen, years)   WHAT was decided — pure extraction of the
@@ -25,7 +25,7 @@
 # CARRIED stock in later steps are attributed to the carried pool
 # oldest-vintage-first (FIFO); the user-stock share follows from the factual
 # terminal stock. Carried capacity enters later steps as `stock`, which pays
-# no EAC — sunk investment, by design (see solve_myopic()).
+# no EAC — sunk investment, by design (see solve_recursive()).
 # =============================================================================#
 
 # family spec: how each process class maps to variables, lifetime, and the
@@ -164,7 +164,7 @@
 #' @param ledger an existing `carry_ledger` to append to (default: empty).
 #'
 #' @return a `carry_ledger` object.
-#' @seealso [apply_ledger()], [solve_myopic()]
+#' @seealso [apply_ledger()], [solve_recursive()]
 #' @export
 #' @examples
 #' \dontrun{
@@ -183,7 +183,7 @@
 #' led <- solution_ledger(scen)
 #' names(led)
 #'
-#' # the accumulated ledger is what `solve_myopic()` writes into the next
+#' # the accumulated ledger is what `solve_recursive()` writes into the next
 #' # step's model
 #' led$steps
 #' }
@@ -416,7 +416,7 @@ print.carry_ledger <- function(x, ...) {
 #' @param verbose logical.
 #'
 #' @return a model object.
-#' @seealso [solution_ledger()], [solve_myopic()]
+#' @seealso [solution_ledger()], [solve_recursive()]
 #' @keywords internal
 apply_ledger <- function(mod, ledger, horizon,
                                carry = c("capacity", "budgets"),

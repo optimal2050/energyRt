@@ -2,7 +2,7 @@
 # log.R — optional operation log.
 #
 # One CSV file, off by default: `set_log_file(path)` turns it on, and the
-# instrumented operations (interpolate_model, solve_scenario, solve_myopic)
+# instrumented operations (interpolate_model, solve_scenario, solve_recursive)
 # append one line each — what ran, on what, how it ended, how long it took.
 # The log documents a SEQUENCE of operations across a session or a script;
 # per-run solver provenance stays in run.yml, per-scenario save history in
@@ -124,7 +124,7 @@
 #' The operation log is an optional, project-wide record of what ran:
 #' [set_log_file()] names a CSV file, and from then on
 #' [interpolate_model()], [solve_scenario()] (and through it
-#' [solve_model()]), and [solve_myopic()] append one line each —
+#' [solve_model()]), and [solve_recursive()] append one line each —
 #' `timestamp, op, object, status, duration_sec, details`. `read_log()`
 #' reads it back as a tibble with parsed timestamps.
 #'

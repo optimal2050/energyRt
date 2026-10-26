@@ -1,8 +1,8 @@
 # =============================================================================#
 # read_sequence.R -- rebuilding a driver's sequence from the variants on disk.
 #
-# `solve_myopic()` and friends return an object whose `$scenarios` are live
-# objects; `getData()`, `sample_summary()`, `myopic_objective()` and
+# `solve_recursive()` and friends return an object whose `$scenarios` are live
+# objects; `getData()`, `sample_summary()`, `recursive_objective()` and
 # `guided_gap()` all read that list. Nothing reconstructs it, so once the
 # session ends the variants are on disk and the sequence is not: the results
 # are there and unreachable through the methods written for them.
@@ -20,6 +20,15 @@
 
 #' @include save-scenario.R
 NULL
+
+# Sequences solved before the recursive driver was renamed recorded
+# `myopic_step` in variant.yml. It is the same driver, and those folders are
+# still on disk, so the old string is read as the new name here -- one place --
+# rather than branched on everywhere downstream.
+.seq_type_canon <- function(x) {
+  x <- as.character(x %||% "custom")[1]
+  if (identical(x, "myopic_step")) "recursive_step" else x
+}
 
 # Every variant of a scenario, with its manifest and its first solved run.
 .seq_variants <- function(scen) {
@@ -47,7 +56,7 @@ NULL
     rows[[length(rows) + 1L]] <- list(
       variant = v, solve = sub$solve[pick],
       run = .run_id(v, sub$solve[pick]),
-      type = as.character(mf$type %||% "custom"),
+      type = .seq_type_canon(mf$type),
       sequence = as.character(mf$sequence %||% ""),
       status = st[pick], objective = ob[pick], mf = mf)
   }
@@ -62,9 +71,9 @@ NULL
                                  ondisk = FALSE))
 }
 
-# The full horizon of a myopic sequence: the union of its steps' windows.
-# `solve_myopic()` keeps the horizon it was given; on disk only the per-window
-# horizons survive, and `myopic_objective()` needs interval lengths and the
+# The full horizon of a recursive sequence: the union of its steps' windows.
+# `solve_recursive()` keeps the horizon it was given; on disk only the per-window
+# horizons survive, and `recursive_objective()` needs interval lengths and the
 # first milestone, both of which the union reproduces.
 .seq_horizon <- function(scens) {
   iv <- NULL
@@ -87,10 +96,10 @@ NULL
 #' Rebuild a solve sequence from the variants on disk
 #'
 #' @description
-#' Reassembles the object a driver returned — [solve_myopic()],
+#' Reassembles the object a driver returned — [solve_recursive()],
 #' [solve_by_sample()], [solve_by_region()] or [solve_guided()] — from a
 #' scenario's variants, so `getData()`, [sample_summary()],
-#' [myopic_objective()] and [guided_gap()] work on a scenario reloaded from
+#' [recursive_objective()] and [guided_gap()] work on a scenario reloaded from
 #' disk rather than only on the live result.
 #'
 #' @details
@@ -104,7 +113,7 @@ NULL
 #'
 #' @section What cannot be rebuilt:
 #' A driver's working state is never written to disk: the carry ledger
-#' (myopic, guided), the capacity targets (guided), and the timeslice
+#' (recursive, guided), the capacity targets (guided), and the timeslice
 #' membership of a sampling spec (by_sample). Those fields are `NULL` in the
 #' result and named in `$missing`, and `$reconstructed` is `TRUE`. The
 #' functions that read `$scenarios` — `getData()` and the summaries — do not
@@ -119,18 +128,18 @@ NULL
 #' @param object a scenario object, or the name of a stored scenario.
 #' @param sequence character, the sequence name to rebuild (as recorded in
 #'   `variant.yml`). Needed only when the scenario holds more than one.
-#' @param type character, restrict to one driver: `"myopic_step"`,
+#' @param type character, restrict to one driver: `"recursive_step"`,
 #'   `"calendar_sample"`, `"region_sample"` or `"guided_stage"`.
 #' @param verbose logical.
 #'
-#' @return an object of the driver's class (`myopic`, `by_sample`,
+#' @return an object of the driver's class (`recursive`, `by_sample`,
 #'   `by_region` or `guided`), with `$reconstructed = TRUE`.
 #' @seealso [scenario_runs()], [scenario_solutions()]
 #' @examples
 #' \dontrun{
-#' scen <- getScenario("ELC_myopic")
+#' scen <- getScenario("ELC_recursive")
 #' seq <- read_sequence(scen)
-#' myopic_objective(seq)
+#' recursive_objective(seq)
 #' }
 #' @export
 read_sequence <- function(object, sequence = NULL, type = NULL, verbose = TRUE) {
@@ -142,7 +151,8 @@ read_sequence <- function(object, sequence = NULL, type = NULL, verbose = TRUE) 
          "no driver sequence. scenario_runs() lists what it does have.",
          call. = FALSE)
   }
-  known <- c("myopic_step", "calendar_sample", "region_sample", "guided_stage")
+  known <- c("recursive_step", "calendar_sample", "region_sample",
+             "guided_stage")
   vs <- Filter(function(v) v$type %in% known, vs)
   if (!is.null(type)) vs <- Filter(function(v) identical(v$type, type), vs)
   if (!is.null(sequence)) {
@@ -175,7 +185,7 @@ read_sequence <- function(object, sequence = NULL, type = NULL, verbose = TRUE) 
 
   out <- switch(
     tp,
-    myopic_step = {
+    recursive_step = {
       k <- vapply(vs, function(v) as.integer(v$mf$step %||% NA_integer_),
                   integer(1))
       o <- order(k)
@@ -186,7 +196,7 @@ read_sequence <- function(object, sequence = NULL, type = NULL, verbose = TRUE) 
         decided = lapply(vs, function(v) as.integer(v$mf$decided)),
         status = vapply(vs, `[[`, "", "status"),
         objective = vapply(vs, function(v) as.numeric(v$objective), numeric(1)))
-      # `$scenarios[[k]]` is indexed by STEP by getData.myopic(), so the list
+      # `$scenarios[[k]]` is indexed by STEP by getData.recursive(), so the list
       # has to be positional, not named by variant.
       sl <- vector("list", max(k, na.rm = TRUE))
       for (i in seq_along(k)) sl[[k[i]]] <- scens[[i]]
@@ -261,7 +271,7 @@ read_sequence <- function(object, sequence = NULL, type = NULL, verbose = TRUE) 
                             logical(1)))
   out$params <- params
   out$reconstructed <- TRUE
-  cls <- c(myopic_step = "myopic", calendar_sample = "by_sample",
+  cls <- c(recursive_step = "recursive", calendar_sample = "by_sample",
            region_sample = "by_region", guided_stage = "guided")[[tp]]
   if (verbose && length(out$missing)) {
     message("  Not on disk, so not rebuilt: ", paste(out$missing, collapse = ", "),

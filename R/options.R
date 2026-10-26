@@ -181,7 +181,7 @@ options::define_option(
   "log_file",
   desc = paste(
     "Optional operation-log CSV. Empty (default) = logging off; a path",
-    "makes interpolate_model()/solve_scenario()/solve_myopic() append one",
+    "makes interpolate_model()/solve_scenario()/solve_recursive() append one",
     "line per operation. Read it back with read_log()."
   ),
   default = ""

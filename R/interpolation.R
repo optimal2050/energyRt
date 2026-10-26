@@ -5048,7 +5048,21 @@ setMethod("interpolate", signature(object = "scenario"),
   sample <- list()
   bad <- character()
   bricks <- newRepository("")@permit
-  for (a in args) {
+  nms <- names(args)
+  if (length(nms) != length(args)) nms <- rep("", length(args))
+  nms[is.na(nms)] <- ""
+  # Model content arrives POSITIONALLY. `interpolate_model()` also takes
+  # control arguments through `...` and consumes them by name on the full path
+  # (`path` at least), and those reach here unstripped because the base is
+  # dispatched before they are read. They say nothing about the base, so a
+  # NAMED non-object is skipped rather than counted as an addition -- otherwise
+  # `path =` on its own refuses every base, which is what every solve driver
+  # passes.
+  objish <- c("calendar", "geoscales::GeoScale", "repository",
+              .base_delta_classes, bricks)
+  for (i in seq_along(args)) {
+    a <- args[[i]]
+    if (nzchar(nms[i]) && !inherits(a, objish)) next
     # a calendar or a geoscale names a sample of the base's calendar or regions
     if (inherits(a, "calendar")) { sample$calendar <- a; next }
     if (inherits(a, "geoscales::GeoScale")) { sample$geoscale <- a; next }

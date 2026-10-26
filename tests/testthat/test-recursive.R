@@ -1,5 +1,5 @@
-# Sequential (myopic) solving: windows, the carry ledger, and the driver
-# (R/carry.R + R/solve_myopic.R). Fixtures from helper-myopic.R.
+# Recursive-dynamic solving: windows, the carry ledger, and the driver
+# (R/carry.R + R/solve_recursive.R). Fixtures from helper-recursive.R.
 
 test_that("horizon_windows slices intervals exactly, with look-ahead", {
   h <- newHorizon(2020:2025, intervals = rep(1L, 6))
@@ -24,7 +24,7 @@ test_that("horizon_windows slices intervals exactly, with look-ahead", {
   expect_identical(w3[[2]]$horizon@intervals$end, h2@intervals$end[2])
 })
 
-test_that("myopic reproduces the foresight capacity path (no intertemporal coupling)", {
+test_that("recursive reproduces the foresight capacity path (no intertemporal coupling)", {
   skip_if_no_solver()
   yrs <- 2020:2022
   old_sp <- set_scenarios_path(my_scen_path("fe"))
@@ -34,8 +34,8 @@ test_that("myopic reproduces the foresight capacity path (no intertemporal coupl
   fore <- solve_scenario(interpolate_model(mod, name = "fe_fs"), echo = FALSE)
   cap_fore <- my_by_year(fore, "vTechCap", yrs)
 
-  res <- solve_myopic(mod, name = "fe", verbose = FALSE)
-  expect_s3_class(res, "myopic")
+  res <- solve_recursive(mod, name = "fe", verbose = FALSE)
+  expect_s3_class(res, "recursive")
   expect_identical(nrow(res$steps), 3L)
   expect_true(all(res$steps$status == "solved"))
   cap_myo <- my_by_year(res, "vTechCap", yrs)
@@ -55,7 +55,7 @@ test_that("carried capacity ages out at olife and is replaced", {
   old_sp <- set_scenarios_path(my_scen_path("ol"))
   on.exit(set_scenarios_path(old_sp), add = TRUE)
 
-  res <- solve_myopic(my_mod(years = yrs, olife = 2L, name = "ol"),
+  res <- solve_recursive(my_mod(years = yrs, olife = 2L, name = "ol"),
                       name = "ol", verbose = FALSE)
   expect_true(all(res$steps$status == "solved"))
   stock <- my_by_year(res, "vTechStockCap", yrs)
@@ -77,11 +77,11 @@ test_that("a cumulative supply reserve is debited across steps", {
   on.exit(set_scenarios_path(old_sp), add = TRUE)
 
   # CHEAP supply covers demand 4/yr but holds only 8 in total: without the
-  # debit each myopic step would take 4 forever; with it the reserve runs
+  # debit each recursive step would take 4 forever; with it the reserve runs
   # out after two step-years and TECH (or BACK) must take over
   mod <- my_mod(years = yrs, olife = 50L, demand = 1, name = "bd",
                 sup_res = 8)
-  res <- solve_myopic(mod, name = "bd", verbose = FALSE)
+  res <- solve_recursive(mod, name = "bd", verbose = FALSE)
   expect_true(all(res$steps$status == "solved"))
   sup <- my_by_year(res, "vSupOut", yrs) # CHEAP + BACK, but BACK is costly
   d <- getData(res, "vSupOut", merge = TRUE)
@@ -101,7 +101,7 @@ test_that("store = 'variants': one scenario, one variant per step", {
   old_sp <- set_scenarios_path(my_scen_path("vs"))
   on.exit(set_scenarios_path(old_sp), add = TRUE)
 
-  res <- solve_myopic(my_mod(years = yrs, name = "vs"),
+  res <- solve_recursive(my_mod(years = yrs, name = "vs"),
                       name = "vs", verbose = FALSE)
   p <- res$path
   expect_true(dir.exists(p))
@@ -111,7 +111,7 @@ test_that("store = 'variants': one scenario, one variant per step", {
   expect_true(all(runs$modinp == "own"))
   # variant.yml carries the driver metadata
   vy <- yaml::read_yaml(file.path(p, "runs", "s02-2021", "variant.yml"))
-  expect_identical(vy$type, "myopic_step")
+  expect_identical(vy$type, "recursive_step")
   expect_identical(vy$sequence, "vs")
   expect_identical(vy$step, 2L)
   expect_identical(vy$decided, 2021L)
@@ -138,7 +138,7 @@ test_that("store = 'scenarios': one scenario per step, names stay valid", {
   # legal in `vlab` but rejected by .assert_object_name(), so composing the
   # two with "-" made this whole store mode unusable -- and the failure
   # surfaced wrapped in the driver's infeasibility hint.
-  res <- solve_myopic(my_mod(years = 2020:2022, name = "ss"),
+  res <- solve_recursive(my_mod(years = 2020:2022, name = "ss"),
                       name = "ss", store = "scenarios", verbose = FALSE)
   expect_identical(res$steps$status, rep("solved", 3L))
   expect_identical(res$steps$run,
@@ -157,17 +157,17 @@ test_that("stitching: each year exactly once, incl. with overlap", {
   old_sp <- set_scenarios_path(my_scen_path("st"))
   on.exit(set_scenarios_path(old_sp), add = TRUE)
 
-  res <- solve_myopic(my_mod(years = yrs, name = "st"),
+  res <- solve_recursive(my_mod(years = yrs, name = "st"),
                       name = "st", overlap = 1L, verbose = FALSE)
   d <- getData(res, "vTechCap", merge = TRUE)
   expect_identical(sort(unique(d$year)), yrs)
   expect_false(any(duplicated(d[, c("tech", "region", "year")])))
   # a decided year comes from the step that decided it, not from look-ahead
   expect_identical(unique(d$step[d$year == 2021]), 2L)
-  # vObjective is excluded from stitching with a pointer to myopic_objective
-  expect_message(getData(res, "vObjective", merge = TRUE), "myopic_objective")
+  # vObjective is excluded from stitching with a pointer to recursive_objective
+  expect_message(getData(res, "vObjective", merge = TRUE), "recursive_objective")
   # the recomputed global objective is a finite scalar
-  expect_true(is.finite(myopic_objective(res)))
+  expect_true(is.finite(recursive_objective(res)))
 })
 
 test_that("an infeasible step surfaces cleanly; on_error='return' keeps the partial", {
@@ -188,11 +188,11 @@ test_that("an infeasible step surfaces cleanly; on_error='return' keeps the part
   # step 1 builds ~1 unit; step 2's model then has carried stock ~1 but a
   # cap.up of 0.001 -> eqTechCapUp is violated by the exogenous stock
   expect_error(
-    suppressWarnings(solve_myopic(mod, name = "inf", verbose = FALSE)),
+    suppressWarnings(solve_recursive(mod, name = "inf", verbose = FALSE)),
     "did not solve")
   res <- suppressWarnings(
-    solve_myopic(mod, name = "inf2", verbose = FALSE, on_error = "return"))
-  expect_s3_class(res, "myopic")
+    solve_recursive(mod, name = "inf2", verbose = FALSE, on_error = "return"))
+  expect_s3_class(res, "recursive")
   expect_true(res$failed)
   expect_identical(res$steps$status, c("solved", "failed"))
 })
@@ -210,7 +210,7 @@ test_that("intertemporal user constraints trigger the one loud warning", {
   expect_warning(horizon_windows(mod@config@horizon) |> invisible(),
                  NA) # windows alone don't warn
   expect_warning(
-    energyRt:::.myopic_warn_intertemporal(mod),
+    energyRt:::.recursive_warn_intertemporal(mod),
     "WITHIN its own")
 })
 
@@ -225,7 +225,7 @@ test_that("storage capacity carries across steps (three parts, no re-build)", {
   out_fore <- my_by_year(fore, "vStorageOutCap", yrs)
   expect_gt(out_fore[["2020"]], 0) # the fixture really builds storage
 
-  res <- solve_myopic(mod, name = "sg", verbose = FALSE)
+  res <- solve_recursive(mod, name = "sg", verbose = FALSE)
   expect_true(all(res$steps$status == "solved"))
   expect_equal(my_by_year(res, "vStorageOutCap", yrs), out_fore)
   expect_equal(my_by_year(res, "vStorageStgCap", yrs),
@@ -248,7 +248,7 @@ test_that("trade capacity carries across steps (region-free family)", {
   cap_fore <- my_by_year(fore, "vTradeCap", yrs)
   expect_gt(cap_fore[["2020"]], 0) # the fixture really builds the link
 
-  res <- solve_myopic(mod, name = "tr", verbose = FALSE)
+  res <- solve_recursive(mod, name = "tr", verbose = FALSE)
   expect_true(all(res$steps$status == "solved"))
   expect_equal(my_by_year(res, "vTradeCap", yrs), cap_fore)
   stock2 <- my_by_year(res, "vTradeStockCap", yrs)
@@ -263,7 +263,7 @@ test_that("a vintaged build is carried onto the RIGHT variant (provenance)", {
   on.exit(set_scenarios_path(old_sp), add = TRUE)
 
   mod <- my_vin_mod(years = yrs, name = "vn")
-  res <- solve_myopic(mod, name = "vn", verbose = FALSE)
+  res <- solve_recursive(mod, name = "vn", verbose = FALSE)
   expect_true(all(res$steps$status == "solved"))
   # capacity path continuous: the early build persists as stock
   cap <- my_by_year(res, "vTechCap", yrs)

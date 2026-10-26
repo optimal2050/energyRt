@@ -148,7 +148,7 @@ Collate:
     'solve_by_sample.R'
     'solve_guided.R'
     'solve_matrix.R'
-    'solve_myopic.R'
+    'solve_recursive.R'
     'solver_log.R'
     'start_msg.R'
     'storage_duration.R'

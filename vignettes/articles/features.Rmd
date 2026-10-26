@@ -192,9 +192,9 @@ model definition does not change between them.
 
 - `solve_model()` — the whole pipeline, or the verbs separately
   (`interpolate_model()`, `write_script()`, `read_solution()`).
-- `solve_myopic()` — window by window with limited foresight, built on an
+- `solve_recursive()` — milestone by milestone with limited foresight, on an
   exported solution ledger (`solution_ledger()`, `apply_ledger()`,
-  `horizon_windows()`, `myopic_objective()`).
+  `horizon_windows()`, `recursive_objective()`).
 - `solve_by_sample()` — one solve per sampled calendar (`calendar_samples()`,
   `sample_summary()`).
 - `solve_by_region()` — regional decomposition with boundary windows.

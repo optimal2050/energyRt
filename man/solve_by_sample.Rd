@@ -16,6 +16,7 @@ solve_by_sample(
   seed = NULL,
   calendar = NULL,
   solver = NULL,
+  base = NULL,
   ncap_floor = 0,
   ncap_stat = c("mean", "median"),
   on_error = c("stop", "continue"),
