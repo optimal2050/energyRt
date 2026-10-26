@@ -66,10 +66,14 @@ test_that("matrix rows assemble from package metadata with expected arithmetic",
   # the four aux equations gained a summed term, 2026-10-18)
   # (159 numpars = + pTaxProc{Inp,Out}{Cap,Ncap} and pSubProc{Inp,Out}{Cap,Ncap},
   # levies on a storage's charger and discharger, 2026-10-26)
+  # (355 maps, 39 bounds = + meqTradeIrAfsLo/Up/Fx and pTradeIrAfs, a route's
+  # flow over a parent timeslice, 2026-10-26)
+  # (359 maps, 41 bounds = + mTradeWeatherAf*/Afs* Lo/Up and pTradeWeatherAf/Afs,
+  # weather factors of the route ratings, 2026-10-26)
   expect_equal(unname(counts[["set"]]), 15)
-  expect_equal(unname(counts[["map"]]), 352)
+  expect_equal(unname(counts[["map"]]), 359)
   expect_equal(unname(counts[["numpar"]]), 159)
-  expect_equal(unname(counts[["bounds"]]), 38)
+  expect_equal(unname(counts[["bounds"]]), 41)
   expect_equal(unname(counts[["equation"]]), 182)
   expect_gte(unname(counts[["variable"]]), 93)
   expect_false(any(duplicated(rows$name[rows$kind != "variable"])))

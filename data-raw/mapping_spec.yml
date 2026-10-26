@@ -1073,6 +1073,54 @@ meqTradeFlowUp:
   join_keys: []
   filter_by: []
   depends_on: []
+meqTradeIrAfsLo:
+  name: meqTradeIrAfsLo
+  dims:
+  - trade
+  - src
+  - dst
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqTradeIrAfsLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTradeIrAfsFx:
+  name: meqTradeIrAfsFx
+  dims:
+  - trade
+  - src
+  - dst
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqTradeIrAfsFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTradeIrAfsUp:
+  name: meqTradeIrAfsUp
+  dims:
+  - trade
+  - src
+  - dst
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqTradeIrAfsUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 meqTradeIrAfLo:
   name: meqTradeIrAfLo
   dims:
@@ -4337,6 +4385,70 @@ mTechWeatherAfUp:
   dims:
   - weather
   - tech
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeWeatherAfLo:
+  name: mTradeWeatherAfLo
+  dims:
+  - weather
+  - trade
+  - src
+  - dst
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeWeatherAfUp:
+  name: mTradeWeatherAfUp
+  dims:
+  - weather
+  - trade
+  - src
+  - dst
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeWeatherAfsLo:
+  name: mTradeWeatherAfsLo
+  dims:
+  - weather
+  - trade
+  - src
+  - dst
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeWeatherAfsUp:
+  name: mTradeWeatherAfsUp
+  dims:
+  - weather
+  - trade
+  - src
+  - dst
   gates_var: []
   gates_eq: []
   unreferenced: yes

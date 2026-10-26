@@ -56,7 +56,13 @@ REQUIRED whenever any other slot carries a \code{cluster} label, and AUTHORITATI
 \describe{
 \item{cluster}{character. Step label, used in the expanded object name.}
 \item{desc}{character. Description of the step.}
-\item{share}{numeric. The step's fraction of the object's quantity. DESCRIPTIVE, not enforced: unlike \code{technology} or \code{trade} this class has no capacity variable to tie, so \code{asImportCurve()} writes the split straight into the quantity bounds and records here what it did.
+\item{region}{character. Region the row applies to, NA for every region.
+}
+\item{act.share.lo}{numeric. Lower bound on the share of the family's throughput this variant carries.
+}
+\item{act.share.up}{numeric. Upper bound on the share of the family's throughput this variant carries.
+}
+\item{act.share.fx}{numeric. Fixed share of the family's throughput this variant carries.
 }
 \item{order}{integer. Fill order, 1 = the cheapest step (or, for export, the best paid). Without it labels sort alphabetically and "S10" would precede "S2".
 }

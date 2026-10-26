@@ -14,6 +14,7 @@
 #' @slot trade `r get_slot_doc("trade", "trade")`
 #' @slot aux `r get_slot_doc("trade", "aux")`
 #' @slot aeff `r get_slot_doc("trade", "aeff")`
+#' @slot weather `r get_slot_doc("trade", "weather")`
 #' @slot invcost `r get_slot_doc("trade", "invcost")`
 #' @slot fixom `r get_slot_doc("trade", "fixom")`
 #' @slot varom `r get_slot_doc("trade", "varom")`
@@ -40,6 +41,7 @@ setClass("trade",
     trade = "data.frame",
     aux = "data.frame", #
     aeff = "data.frame", #  Commodity efficiency
+    weather = "data.frame", # weather factors of the route ratings
     invcost = "data.frame",
     fixom = "data.frame",
     varom = "data.frame", # -> pTradeIrVarom / pTradeIrMarkup
@@ -79,6 +81,10 @@ setClass("trade",
       af.up = numeric(),
       af.fx = numeric(),
       af.lo = numeric(),
+      # the same fractions summed over a parent timeslice (cf. technology@afs)
+      afs.lo = numeric(),
+      afs.up = numeric(),
+      afs.fx = numeric(),
       teff = numeric(),
       # Electrical characteristics of the line. Inert unless the model is
       # interpolated with `kvl = TRUE`; a finite `reactance` is what marks a
@@ -205,6 +211,23 @@ setClass("trade",
       cdst2ainp = numeric(),
       stringsAsFactors = FALSE
     ),
+    # Weather factors of a route's rating: `waf.*` multiplies `@trade$af.*`,
+    # `wafs.*` multiplies `@trade$afs.*`. The series is read at the route's
+    # `src` region (or the nearest ancestor the weather serves).
+    weather = data.frame(
+      vintage = character(),
+      cluster = character(),
+      weather = character(),
+      src = character(),
+      dst = character(),
+      waf.lo = numeric(),
+      waf.up = numeric(),
+      waf.fx = numeric(),
+      wafs.lo = numeric(),
+      wafs.up = numeric(),
+      wafs.fx = numeric(),
+      stringsAsFactors = FALSE
+    ),
     cap2act = 1, #
     optimizeRetirement = FALSE,
     misc = list()
@@ -248,6 +271,7 @@ setMethod("initialize", "trade", function(.Object, ...) {
 #' @param capacity `r get_slot_doc("trade", "capacity")`
 #' @param aux `r get_slot_doc("trade", "aux")`
 #' @param aeff `r get_slot_doc("trade", "aeff")`
+#' @param weather `r get_slot_doc("trade", "weather")`
 #' @param cap2act `r get_slot_doc("trade", "cap2act")`
 #' @param optimizeRetirement `r get_slot_doc("trade", "optimizeRetirement")`
 #' @param misc `r get_slot_doc("trade", "misc")`
@@ -325,6 +349,7 @@ newTrade <- function(
     capacity = data.frame(),
     aux = data.frame(),
     aeff = data.frame(),
+    weather = data.frame(),
     cap2act = 1,
     optimizeRetirement = FALSE,
     misc = list(),
@@ -347,6 +372,7 @@ newTrade <- function(
     capacity = capacity,
     aux = aux,
     aeff = aeff,
+    weather = weather,
     cap2act = cap2act,
     optimizeRetirement = optimizeRetirement,
     misc = misc,

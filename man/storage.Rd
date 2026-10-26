@@ -270,6 +270,14 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 \describe{
 \item{cluster}{character. Cluster label. Must match the \code{cluster} column values used in the other slots.}
 \item{desc}{character. Human-readable description of the cluster, used in reports.}
+\item{cap.share.fx}{numeric. Fixed share of the family's capacity this variant holds, in every year. Ties the variants' capacities to fixed proportions (e.g. loss tranches).
+}
+\item{act.share.lo}{numeric. Lower bound on the share of the family's throughput this variant carries.
+}
+\item{act.share.up}{numeric. Upper bound on the share of the family's throughput this variant carries.
+}
+\item{act.share.fx}{numeric. Fixed share of the family's throughput this variant carries.
+}
 \item{region}{character. Region the cluster exists in, NA for every region.}
 \item{order}{integer. Optional display/ranking order; controls the order variants are created and reported in.}
 }}
@@ -331,6 +339,8 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{weather}{character. Name of the weather factor to apply.}
+\item{transform}{character. Optional name of a function in the weather object's \verb{@misc$transform}: the factor reads the series that function derives from the raw one, materialised at interpolation. NA reads the raw series.
+}
 \item{waf.lo}{numeric. Coefficient that links the weather factor with the lower bound of the availability factor.}
 \item{waf.up}{numeric. Coefficient that links the weather factor with the upper bound of the availability factor.}
 \item{waf.fx}{numeric. Coefficient that links the weather factor with the fixed value of the availability factor. This parameter overrides \code{waf.lo} and \code{waf.up}.

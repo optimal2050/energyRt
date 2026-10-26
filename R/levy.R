@@ -22,14 +22,14 @@
 
 # Process classes a levy can charge. Slice 1: technology and storage, the two
 # classes whose activity/flow/capacity variables all exist on every backend.
-.levy_classes <- c("technology", "storage")
+.levy_classes <- c("technology", "storage", "trade")
 
 # Rate columns, by route. `bal` belongs to the commodity alone: a balance is
 # production minus consumption across every process, so no single process owns
 # it and it cannot be combined with process targeting.
 .levy_comm_cols <- c("inp", "out", "bal")
 # Capacity of a storage part: the reservoir (`stg.`), the charger (`inp.`) and
-# the discharger (`out.`). Plain `cap` / `ncap` charge technologies only.
+# the discharger (`out.`). Plain `cap` / `ncap` charge technologies and trades.
 .levy_part_cols <- c("stg.cap", "stg.ncap", "inp.cap", "inp.ncap",
                      "out.cap", "out.ncap")
 .levy_proc_cols <- c("act", "inp", "out", "cap", "ncap", .levy_part_cols)
@@ -251,7 +251,7 @@
          paste0('"', bad, '"', collapse = ", "),
          " is not supported yet. A levy can charge ",
          paste0('"', .levy_classes, '"', collapse = " or "),
-         "; supply, demand, trade, import and export bases are not implemented.",
+         "; supply, demand, import and export bases are not implemented.",
          call. = FALSE)
   }
 
@@ -325,7 +325,7 @@
 .levy_check_stg_cap <- function(obj, cols) {
   if (any(c("cap", "ncap") %in% cols) && !any(.levy_part_cols %in% cols)) {
     stop("levy '", obj@name, "': selects storages and sets `cap`/`ncap`, which ",
-         "charge technologies only. Levy a storage's capacity with `stg.cap`/",
+         "charge technologies and trades. Levy a storage's capacity with `stg.cap`/",
          "`stg.ncap` (reservoir), `inp.cap`/`inp.ncap` (charger) or ",
          "`out.cap`/`out.ncap` (discharger).", call. = FALSE)
   }
@@ -388,15 +388,26 @@
     rt_proc <- .levy_place(rt_proc, .levy_proc_regions(scen, unique(rt_proc$process)),
                            "process", obj)
     stgs <- as.character(scen@modInp@sets$stg)
+    trs <- as.character(scen@modInp@sets$trade)
     named <- c(.levy_slot(obj, "process"),
                if ("process" %in% names(rt)) stats::na.omit(rt$process))
     if (any(named %in% stgs)) .levy_check_stg_cap(obj, proc_cols)
+    # a trade has a capacity and no flow a process levy reaches
+    if ((any(named %in% trs) || "trade" %in% .levy_slot(obj, "classes")) &&
+        !any(c("cap", "ncap") %in% proc_cols)) {
+      stop("levy '", obj@name, "': selects trades and sets no `cap`/`ncap`; ",
+           "a trade is levied on its capacity only.", call. = FALSE)
+    }
     for (col in proc_cols) {
       par_name <- .levy_proc_params[[cls]][[col]]
       rows <- rt_proc
       # `cap` / `ncap` charge technologies; a storage's capacity is levied by part
       if (col %in% c("cap", "ncap")) {
         rows <- rt_proc[!(as.character(rt_proc$process) %in% stgs), , drop = FALSE]
+        if (!nrow(rows)) next
+      } else if (!(col %in% .levy_part_cols)) {
+        # flows and activity: technologies and storages
+        rows <- rt_proc[!(as.character(rt_proc$process) %in% trs), , drop = FALSE]
         if (!nrow(rows)) next
       }
       # a storage part exists only on storages

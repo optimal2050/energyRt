@@ -333,7 +333,7 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
       df[is.na(df$region) | df$region %in% keep, , drop = FALSE]
     }
     el@routes <- rt[in_keep, , drop = FALSE]
-    for (sl in c("trade", "aeff", "varom", "aux")) {
+    for (sl in c("trade", "aeff", "varom", "aux", "weather")) {
       if (.hasSlot(el, sl)) methods::slot(el, sl) <-
           keep_route_rows(methods::slot(el, sl))
     }
@@ -1035,6 +1035,12 @@ NULL
 #' @noRd
 .agg_trade_merge <- function(objs, gs, level, pair) {
   base <- objs[[1L]]
+  # a merged route would need one weather series for several
+  wx <- Filter(function(o) .hasSlot(o, "weather") && nrow(o@weather) > 0, objs)
+  if (length(wx)) {
+    stop("trade '", wx[[1L]]@name, "' carries weather factors on its routes; ",
+         "aggregating such routes is not supported.", call. = FALSE)
+  }
   bind <- function(slot) {
     parts <- lapply(objs, function(o) {
       v <- methods::slot(o, slot)

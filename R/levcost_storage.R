@@ -12,7 +12,10 @@
 #   stgCap                = 1 / outeff        (the peak level)
 #   charged per cycle     = 1 / (outeff * inpeff)
 #   outCap                = stgCap / duration (energy-to-power ratio)
-#   inpCap                = outCap * inp2out
+#   inpCap                = outCap * inp2out, or stgCap * inp2stg
+# A part with no ratio linking it is sized by its own flow: the representative
+# cycle charges in one half and discharges in the other (`.lcs_half`), so
+#   inpCap = charged * cycles / (cap2act * .lcs_half)   (outCap likewise).
 #
 #   LCOS = ( sum_part eac_part * cap_part
 #          + sum_part fixom_part * cap_part
@@ -97,6 +100,15 @@
   FALSE
 }
 
+# Share of the year the representative cycle charges (and discharges) in.
+.lcs_half <- 0.5
+
+# A part's cap2act (capacity -> annual flow), 8760 when not given.
+.lcs_cap2act <- function(d) {
+  v <- if (nrow(d) && "cap2act" %in% names(d)) suppressWarnings(as.numeric(d$cap2act[1])) else NA
+  if (is.na(v)) 8760 else v
+}
+
 #' Closed-form levelized cost of a storage
 #' @noRd
 .levcost_storage_analytic <- function(ctx) {
@@ -114,23 +126,27 @@
   inpeff <- eff("inpeff")
   outeff <- eff("outeff")
 
-  duration <- .lcs_ratio(object@duration, "duration", years, region, 1)
+  duration <- .lcs_ratio(object@duration, "duration", years, region, NA_real_)
   inp2out  <- .lcs_ratio(object@inp2out,  "inp2out",  years, region, 1)
   # legacy objects predate the slot; treat an absent slot as undeclared
   i2s_df <- tryCatch(object@inp2stg, error = function(e) data.frame())
   inp2stg <- .lcs_ratio(i2s_df, "inp2stg", years, region, NA_real_)
-  if (any(duration <= 0)) .la_unsupported("duration must be positive")
+  if (any(duration <= 0, na.rm = TRUE)) .la_unsupported("duration must be positive")
 
   # unit basis: one unit delivered per cycle
   delivered <- rep(1, ny)
   stgCap    <- delivered / outeff
   charged   <- delivered / (outeff * inpeff)
-  outCap    <- stgCap / duration
+  # a part no ratio links is sized by its own flow over its half of the cycle
+  flow_cap <- function(e, d) e * ctx$cycles / (.lcs_cap2act(d) * .lcs_half)
+  outCap    <- if (all(!is.na(duration))) stgCap / duration
+               else flow_cap(delivered, object@output)
   # the ratio triangle: prefer the declared inp2out route; a storage sized by
   # its C-rate alone (inp2stg declared, inp2out not) uses inp = stg * inp2stg
   has_i2o <- nrow(object@inp2out) > 0
-  inpCap  <- if (!has_i2o && !all(is.na(inp2stg))) stgCap * inp2stg
-             else outCap * inp2out
+  inpCap  <- if (has_i2o) outCap * inp2out
+             else if (!all(is.na(inp2stg))) stgCap * inp2stg
+             else flow_cap(charged, object@input)
   if (has_i2o && !all(is.na(inp2stg)) &&
       any(abs(stgCap * inp2stg - outCap * inp2out) >
             1e-6 * pmax(abs(outCap * inp2out), 1e-12))) {
@@ -218,7 +234,7 @@
   inp_comm <- if (nrow(object@input) > 0 && !is.na(object@input$comm[1]))
     as.character(object@input$comm)[1] else out_comm
 
-  tt  <- make_timetable(struct = list(CYCLE = c(CHG = 0.5, DIS = 0.5)),
+  tt  <- make_timetable(struct = list(CYCLE = c(CHG = .lcs_half, DIS = 1 - .lcs_half)),
                         year_fraction = 1 / cycles)
   cal <- newCalendar(timetable = tt, year_fraction = 1 / cycles,
                      name = "levcost_cycle")

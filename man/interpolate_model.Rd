@@ -43,15 +43,15 @@ pipeline runs: \code{settings}, \code{config}, \code{calendar}, \code{horizon}, 
 \code{storage}, ...). This is how a scenario overrides or extends the model (e.g.
 pass a sampled \code{calendar} to interpolate on a reduced time resolution).}
 
-\item{base}{optional interpolated \link{scenario} to build on. When every object
-in \code{...} is a \code{constraint}, \code{costs}, \code{tax} or \code{subsidy} new to the model,
-the result is the base plus what those objects add: the base's tables are
+\item{base}{optional interpolated \link{scenario} to build on. The objects in
+\code{...} must be new to the model: constraints, costs, taxes and subsidies,
+new processes and commodities, or a \code{calendar} / geoscale that samples the
+base's. The result is the base plus what they add: the base's tables are
 reused, nothing is written into its store, and the result equals a full
 interpolation of the model with the base's additions and the new ones. The
 base's \code{fold}, \code{sparse} and \code{prune} settings apply. Otherwise (another
-model, a new process or commodity, a replaced object, settings, calendar,
-horizon or geoscale objects) a message says why and the model is
-interpolated in full. \code{object} may be the base itself.
+model, a replaced object, settings or horizon objects) a message says why
+and the model is interpolated in full. \code{object} may be the base itself.
 
 New processes, commodities and other model objects are built on the base
 too: the per-object tables of the objects the base already holds are

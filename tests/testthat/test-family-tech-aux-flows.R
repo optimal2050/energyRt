@@ -212,3 +212,23 @@ for (bk in names(.axc_backends)) {
     })
   })
 }
+
+# @covers mTechAct2AInp depth=S backends=none
+test_that("family tech-aux-flows: per-slice and all-slice aux rows share one map", {
+  # one process declares act2ainp per slice, another for all slices: the NA
+  # timeslice of the second is a wildcard, not a slice that matches nothing
+  mod <- add(ax_build(data.frame(acomm = "WAT", timeslice = c("s1", "s2"),
+                                 act2ainp = 0.02)),
+             newRepository("ax_add",
+               newTechnology("ECOA2", input = list(comm = "COA"),
+                             output = list(comm = "ELC"),
+                             aux = data.frame(acomm = "WAT"),
+                             aeff = data.frame(acomm = "WAT", act2ainp = 0.03),
+                             invcost = list(invcost = 1000),
+                             olife = list(olife = 30), cap2act = 1)))
+  scen <- suppressMessages(suppressWarnings(interpolate_model(
+    mod, name = "ax_mix", overwrite = TRUE)))
+  m <- as.data.frame(get_data_slot(scen@modInp@parameters$mTechAct2AInp))
+  expect_setequal(as.character(m$timeslice[m$tech == "ECOA"]), c("s1", "s2"))
+  expect_setequal(as.character(m$timeslice[m$tech == "ECOA2"]), ax_slices)
+})

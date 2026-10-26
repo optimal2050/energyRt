@@ -36,6 +36,15 @@ NULL
     if (identical(sn, "misc")) next
     v <- methods::slot(obj, sn)
     if (is.data.frame(v) && "timeslice" %in% colnames(v)) {
+      # a row giving only a bound over a parent timeslice (`afs.*`) is
+      # declared at that coarser slice on purpose
+      agg <- intersect(c("afs.lo", "afs.up", "afs.fx"), colnames(v))
+      if (length(agg) && nrow(v)) {
+        num <- setdiff(colnames(v)[vapply(v, is.numeric, logical(1))], c(agg, "year"))
+        only_agg <- rowSums(!is.na(v[, agg, drop = FALSE])) > 0 &
+          (if (length(num)) rowSums(!is.na(v[, num, drop = FALSE])) == 0 else TRUE)
+        v <- v[!only_agg, , drop = FALSE]
+      }
       out <- c(out, as.character(v[["timeslice"]]))
     } else if (is.atomic(v) && identical(sn, "timeslice")) {
       out <- c(out, as.character(v))

@@ -53,6 +53,17 @@ test_that("analytic equals solve on a lossy battery, per year and NPV", {
   expect_equal(m$value.x, m$value.y, tolerance = .lcs_tol)
 })
 
+test_that("analytic equals solve when no ratio links the parts", {
+  skip_if_no_solver()
+  # no duration: the discharger, like the charger, is sized by its own flow
+  p <- .lcs_pair(.lcs_battery(duration = NULL), cycles = 300, price = 10,
+                 discount = 0.05, horizon = newHorizon(period = 2020:2024))
+  expect_equal(unname(p$a$levcost_npv), unname(p$s$levcost_npv),
+               tolerance = .lcs_tol)
+  m <- merge(p$a$cost_breakdown_npv, p$s$cost_breakdown_npv, by = "component")
+  expect_equal(m$value.x, m$value.y, tolerance = .lcs_tol)
+})
+
 test_that("a lossless store's LCOS is annualised capex over cycles", {
   # No efficiency loss, no varom, no charging price, one hour of duration and
   # only the reservoir priced. Then the whole answer is capex / cycles, which
@@ -70,7 +81,9 @@ test_that("a lossless store's LCOS is annualised capex over cycles", {
 })
 
 test_that("cycles divide the capex share and leave the charging term alone", {
-  base <- .lcs_battery()
+  # every part sized by a ratio: a charger sized by its own flow would grow
+  # with the cycles
+  base <- .lcs_battery(inp2out = data.frame(inp2out = 1))
   h <- newHorizon(period = 2020L)
   a1 <- levcost(base, cycles = 200, price = 10, discount = 0.05, horizon = h,
                 method = "analytic", verbose = FALSE)

@@ -100,7 +100,7 @@
     # the KVL "declared in one direction only" check.
     dims = c("vintage", "cluster"),
     slots = c("vintage", "capacity", "invcost", "fixom", "varom", "aeff",
-              "trade"),
+              "trade", "weather"),
     bound_var = list(cap = "vTradeCap", ncap = "vTradeNewCap",
                      act = "vTradeIr"),
     # `vTradeCap{trade, year}` has no region index, so a group bound spans years

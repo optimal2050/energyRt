@@ -401,6 +401,40 @@ pTechWeatherAfs:
   class: technology
   slot: weather
   colName: wafs
+pTradeWeatherAf:
+  name: pTradeWeatherAf
+  type: bounds
+  dimSets:
+  - weather
+  - trade
+  - src
+  - dst
+  defVal:
+  - 1.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: trade
+  slot: weather
+  colName: waf
+pTradeWeatherAfs:
+  name: pTradeWeatherAfs
+  type: bounds
+  dimSets:
+  - weather
+  - trade
+  - src
+  - dst
+  defVal:
+  - 1.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: trade
+  slot: weather
+  colName: wafs
 pTechWeatherAfc:
   name: pTechWeatherAfc
   type: bounds
@@ -2301,6 +2335,26 @@ pTradeIrAf:
   colName: af
   class: trade
   slot: trade
+# The route flow summed over a parent timeslice, as a fraction of the object's
+# capacity over it (cf. pTechAfs). Gated by meqTradeIrAfsLo / Up / Fx.
+pTradeIrAfs:
+  name: pTradeIrAfs
+  dimSets:
+  - trade
+  - src
+  - dst
+  - year
+  - timeslice
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  colName: afs
+  class: trade
+  slot: trade
 pTradeStock:
   name: pTradeStock
   dimSets:
@@ -2807,6 +2861,38 @@ mTechWeatherAfsUp:
   dimSets:
   - weather
   - tech
+mTradeWeatherAfLo:
+  name: mTradeWeatherAfLo
+  type: map
+  dimSets:
+  - weather
+  - trade
+  - src
+  - dst
+mTradeWeatherAfUp:
+  name: mTradeWeatherAfUp
+  type: map
+  dimSets:
+  - weather
+  - trade
+  - src
+  - dst
+mTradeWeatherAfsLo:
+  name: mTradeWeatherAfsLo
+  type: map
+  dimSets:
+  - weather
+  - trade
+  - src
+  - dst
+mTradeWeatherAfsUp:
+  name: mTradeWeatherAfsUp
+  type: map
+  dimSets:
+  - weather
+  - trade
+  - src
+  - dst
 mTechWeatherAfcLo:
   name: mTechWeatherAfcLo
   type: map
@@ -5082,6 +5168,33 @@ meqTradeIrAfFx:
   dimSets:
   - trade
   - comm
+  - src
+  - dst
+  - year
+  - timeslice
+meqTradeIrAfsUp:
+  name: meqTradeIrAfsUp
+  type: map
+  dimSets:
+  - trade
+  - src
+  - dst
+  - year
+  - timeslice
+meqTradeIrAfsLo:
+  name: meqTradeIrAfsLo
+  type: map
+  dimSets:
+  - trade
+  - src
+  - dst
+  - year
+  - timeslice
+meqTradeIrAfsFx:
+  name: meqTradeIrAfsFx
+  type: map
+  dimSets:
+  - trade
   - src
   - dst
   - year

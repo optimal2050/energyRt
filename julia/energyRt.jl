@@ -162,6 +162,10 @@ mTechWeatherAfLo_ix = _weather_index(mTechWeatherAfLo);
 mTechWeatherAfUp_ix = _weather_index(mTechWeatherAfUp);
 mTechWeatherAfsLo_ix = _weather_index(mTechWeatherAfsLo);
 mTechWeatherAfsUp_ix = _weather_index(mTechWeatherAfsUp);
+mTradeWeatherAfLo_ix = _weather_index(mTradeWeatherAfLo);
+mTradeWeatherAfUp_ix = _weather_index(mTradeWeatherAfUp);
+mTradeWeatherAfsLo_ix = _weather_index(mTradeWeatherAfsLo);
+mTradeWeatherAfsUp_ix = _weather_index(mTradeWeatherAfsUp);
 mTechWeatherAfcLo_ix = _weather_index(mTechWeatherAfcLo);
 mTechWeatherAfcUp_ix = _weather_index(mTechWeatherAfcUp);
 mSupWeatherLo_ix = _weather_index(mSupWeatherLo);
@@ -5072,7 +5076,24 @@ print("eqTradeIrAfUp(trade, comm, src, dst, year, timeslice)...")
         else
             pTimesliceShareDef
         end
-    )
+    ) *
+    prod(
+        (
+            if haskey(pTradeWeatherAfUp, (wth1, t1, src, dst))
+                pTradeWeatherAfUp[(wth1, t1, src, dst)]
+            else
+                pTradeWeatherAfUpDef
+            end
+        ) * (
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, src), ())
+            ; init = 0)
+        ) for wth1 in get(mTradeWeatherAfUp_ix, (t1, src, dst), ())
+    ; init = 1)
 );
 print(
     " ",
@@ -5109,7 +5130,24 @@ print("eqTradeIrAfLo(trade, comm, src, dst, year, timeslice)...")
         else
             pTimesliceShareDef
         end
-    )
+    ) *
+    prod(
+        (
+            if haskey(pTradeWeatherAfLo, (wth1, t1, src, dst))
+                pTradeWeatherAfLo[(wth1, t1, src, dst)]
+            else
+                pTradeWeatherAfLoDef
+            end
+        ) * (
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, src), ())
+            ; init = 0)
+        ) for wth1 in get(mTradeWeatherAfLo_ix, (t1, src, dst), ())
+    ; init = 1)
 );
 print("eqTradeIrAfFx(trade, comm, src, dst, year, timeslice)...")
 @constraint(
@@ -5136,7 +5174,186 @@ print("eqTradeIrAfFx(trade, comm, src, dst, year, timeslice)...")
         else
             pTimesliceShareDef
         end
-    )
+    ) *
+    prod(
+        (
+            if haskey(pTradeWeatherAfLo, (wth1, t1, src, dst))
+                pTradeWeatherAfLo[(wth1, t1, src, dst)]
+            else
+                pTradeWeatherAfLoDef
+            end
+        ) * (
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, src), ())
+            ; init = 0)
+        ) for wth1 in get(mTradeWeatherAfLo_ix, (t1, src, dst), ())
+    ; init = 1)
+);
+print("eqTradeIrAfsUp(trade, src, dst, year, timeslice)...")
+@constraint(
+    model,
+    [(t1, src, dst, y, s) in meqTradeIrAfsUp],
+    sum(
+        (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
+            else
+                pTimesliceAggDef
+            end
+        ) * vTradeIr[(t1, c, src, dst, y, sp)]
+        for c in comm for sp in get(mTimesliceParentChildE_ix, s, ()) if (t1, c, src, dst, y, sp) in mvTradeIr
+    ) <=
+    (
+        if haskey(pTradeIrAfsUp, (t1, src, dst, y, s))
+            pTradeIrAfsUp[(t1, src, dst, y, s)]
+        else
+            pTradeIrAfsUpDef
+        end
+    ) *
+    (
+        if haskey(pTradeCap2Act, (t1))
+            pTradeCap2Act[(t1)]
+        else
+            pTradeCap2ActDef
+        end
+    ) *
+    vTradeCap[(t1, y)] *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    ) *
+    prod(
+        (
+            if haskey(pTradeWeatherAfsUp, (wth1, t1, src, dst))
+                pTradeWeatherAfsUp[(wth1, t1, src, dst)]
+            else
+                pTradeWeatherAfsUpDef
+            end
+        ) * (
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, src), ())
+            ; init = 0)
+        ) for wth1 in get(mTradeWeatherAfsUp_ix, (t1, src, dst), ())
+    ; init = 1)
+);
+print("eqTradeIrAfsLo(trade, src, dst, year, timeslice)...")
+@constraint(
+    model,
+    [(t1, src, dst, y, s) in meqTradeIrAfsLo],
+    sum(
+        (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
+            else
+                pTimesliceAggDef
+            end
+        ) * vTradeIr[(t1, c, src, dst, y, sp)]
+        for c in comm for sp in get(mTimesliceParentChildE_ix, s, ()) if (t1, c, src, dst, y, sp) in mvTradeIr
+    ) >=
+    (
+        if haskey(pTradeIrAfsLo, (t1, src, dst, y, s))
+            pTradeIrAfsLo[(t1, src, dst, y, s)]
+        else
+            pTradeIrAfsLoDef
+        end
+    ) *
+    (
+        if haskey(pTradeCap2Act, (t1))
+            pTradeCap2Act[(t1)]
+        else
+            pTradeCap2ActDef
+        end
+    ) *
+    vTradeCap[(t1, y)] *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    ) *
+    prod(
+        (
+            if haskey(pTradeWeatherAfsLo, (wth1, t1, src, dst))
+                pTradeWeatherAfsLo[(wth1, t1, src, dst)]
+            else
+                pTradeWeatherAfsLoDef
+            end
+        ) * (
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, src), ())
+            ; init = 0)
+        ) for wth1 in get(mTradeWeatherAfsLo_ix, (t1, src, dst), ())
+    ; init = 1)
+);
+print("eqTradeIrAfsFx(trade, src, dst, year, timeslice)...")
+@constraint(
+    model,
+    [(t1, src, dst, y, s) in meqTradeIrAfsFx],
+    sum(
+        (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
+            else
+                pTimesliceAggDef
+            end
+        ) * vTradeIr[(t1, c, src, dst, y, sp)]
+        for c in comm for sp in get(mTimesliceParentChildE_ix, s, ()) if (t1, c, src, dst, y, sp) in mvTradeIr
+    ) ==
+    (
+        if haskey(pTradeIrAfsLo, (t1, src, dst, y, s))
+            pTradeIrAfsLo[(t1, src, dst, y, s)]
+        else
+            pTradeIrAfsLoDef
+        end
+    ) *
+    (
+        if haskey(pTradeCap2Act, (t1))
+            pTradeCap2Act[(t1)]
+        else
+            pTradeCap2ActDef
+        end
+    ) *
+    vTradeCap[(t1, y)] *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    ) *
+    prod(
+        (
+            if haskey(pTradeWeatherAfsLo, (wth1, t1, src, dst))
+                pTradeWeatherAfsLo[(wth1, t1, src, dst)]
+            else
+                pTradeWeatherAfsLoDef
+            end
+        ) * (
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, src), ())
+            ; init = 0)
+        ) for wth1 in get(mTradeWeatherAfsLo_ix, (t1, src, dst), ())
+    ; init = 1)
 );
 print(
     " ",
@@ -6574,6 +6791,16 @@ print("eqTaxCost(levy, region, year)...")
         t in tech if ((t, r, y) in mTechNew && (if haskey(pTaxProcNcap, (lv, t, r, y)) pTaxProcNcap[(lv, t, r, y)] else pTaxProcNcapDef end) != 0)
     )
     + sum(
+        (if haskey(pTaxProcCap, (lv, t1, r, y)) pTaxProcCap[(lv, t1, r, y)] else pTaxProcCapDef end) *
+        vTradeCap[(t1, y)] for
+        t1 in trade if ((t1, y) in mTradeSpan && (if haskey(pTaxProcCap, (lv, t1, r, y)) pTaxProcCap[(lv, t1, r, y)] else pTaxProcCapDef end) != 0)
+    )
+    + sum(
+        (if haskey(pTaxProcNcap, (lv, t1, r, y)) pTaxProcNcap[(lv, t1, r, y)] else pTaxProcNcapDef end) *
+        vTradeNewCap[(t1, y)] for
+        t1 in trade if ((t1, y) in mTradeNew && (if haskey(pTaxProcNcap, (lv, t1, r, y)) pTaxProcNcap[(lv, t1, r, y)] else pTaxProcNcapDef end) != 0)
+    )
+    + sum(
         (if haskey(pTaxProcInp, (lv, st1, c, r, y, s)) pTaxProcInp[(lv, st1, c, r, y, s)] else pTaxProcInpDef end) *
         (if haskey(pTimesliceWeight, (y, s)) pTimesliceWeight[(y, s)] else pTimesliceWeightDef end) *
         vStorageInp[(st1, c, r, y, s)] for
@@ -6707,6 +6934,16 @@ print("eqSubsCost(levy, region, year)...")
         (if haskey(pSubProcNcap, (lv, t, r, y)) pSubProcNcap[(lv, t, r, y)] else pSubProcNcapDef end) *
         vTechNewCap[(t, r, y)] for
         t in tech if ((t, r, y) in mTechNew && (if haskey(pSubProcNcap, (lv, t, r, y)) pSubProcNcap[(lv, t, r, y)] else pSubProcNcapDef end) != 0)
+    )
+    - sum(
+        (if haskey(pSubProcCap, (lv, t1, r, y)) pSubProcCap[(lv, t1, r, y)] else pSubProcCapDef end) *
+        vTradeCap[(t1, y)] for
+        t1 in trade if ((t1, y) in mTradeSpan && (if haskey(pSubProcCap, (lv, t1, r, y)) pSubProcCap[(lv, t1, r, y)] else pSubProcCapDef end) != 0)
+    )
+    - sum(
+        (if haskey(pSubProcNcap, (lv, t1, r, y)) pSubProcNcap[(lv, t1, r, y)] else pSubProcNcapDef end) *
+        vTradeNewCap[(t1, y)] for
+        t1 in trade if ((t1, y) in mTradeNew && (if haskey(pSubProcNcap, (lv, t1, r, y)) pSubProcNcap[(lv, t1, r, y)] else pSubProcNcapDef end) != 0)
     )
     - sum(
         (if haskey(pSubProcInp, (lv, st1, c, r, y, s)) pSubProcInp[(lv, st1, c, r, y, s)] else pSubProcInpDef end) *

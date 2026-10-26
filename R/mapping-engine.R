@@ -801,23 +801,23 @@ recipe_calendar <- function(scen, names, fmp) scen
   pdat <- pdat[!is.na(pdat$value) & pdat$value != 0, , drop = FALSE]
   if (nrow(pdat) == 0) return(NULL)
   pdat$value <- NULL
-  # drop folded placeholder dimension columns (all-NA / unspecified wildcards)
-  drop <- vapply(pdat, function(col) {
-    inherits(col, "vctrs_unspecified") || all(is.na(col))
-  }, logical(1))
-  pdat <- pdat[, !drop, drop = FALSE]
+  # an NA dimension is a wildcard for its row: rows declared per slice and rows
+  # declared for all slices can share the table
+  pdat[] <- lapply(pdat, function(col) {
+    if (inherits(col, "vctrs_unspecified")) as.character(col) else col
+  })
   if (second_comm) {
     # `comm` here is the driving flow commodity: join the flow domain on it to
     # materialise region / year / timeslice, THEN relabel acomm -> comm and the
     # original flow commodity -> comm.1.
-    out <- as.data.frame(merge0(.reduce_dup(pdat), as.data.frame(flow_dom)))
+    out <- .wild_join(as.data.frame(flow_dom), .reduce_dup(pdat))
     if (nrow(out) == 0) return(NULL)
     out$comm.1 <- out$comm
     out$comm <- out$acomm
   } else {
     # the auxiliary commodity is the only commodity dimension.
     names(pdat)[names(pdat) == "acomm"] <- "comm"
-    out <- as.data.frame(merge0(.reduce_dup(pdat), as.data.frame(flow_dom)))
+    out <- .wild_join(as.data.frame(flow_dom), .reduce_dup(pdat))
     if (nrow(out) == 0) return(NULL)
   }
   out$acomm <- NULL
@@ -1776,17 +1776,20 @@ recipe_constraint <- function(scen, names, fmp) {
 #' @param spec mapping specification (defaults to `load_mapping_spec()`).
 #' @param recipes character vector of recipes to run (defaults to all, in
 #'   `.mapping_recipe_order`).
+#' @param maps optional character vector: build only these maps of the recipes.
 #' @returns updated scenario object.
 #' @keywords internal
 build_mappings <- function(scen, fmp = NULL,
                            spec = load_mapping_spec(),
-                           recipes = .mapping_recipe_order) {
+                           recipes = .mapping_recipe_order,
+                           maps = NULL) {
   if (is.null(fmp)) fmp <- function(x) NULL
   by_recipe <- mappings_by_recipe(spec)
   builders <- .get_mapping_builders()
 
   for (rc in recipes) {
     nms <- by_recipe[[rc]]
+    if (!is.null(maps)) nms <- intersect(nms, maps)
     if (length(nms) == 0) next
     # Per-mapping registry takes precedence; registered names are built by their
     # map_<Name>() function, the rest fall back to this family's recipe_*().
