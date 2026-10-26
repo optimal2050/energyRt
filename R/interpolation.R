@@ -4112,7 +4112,30 @@ named_list_to_df <- function(named_list, col_names = c("name", "value")) {
     for (cn in col_names) out[[cn]] <- character(0)
     return(out)
   }
-  lapply(nms, function(x) {
+  # Vectorised path: plain atomic elements of one type under non-missing,
+  # non-empty names, at least one of them non-empty. One row per value (an
+  # empty element adds none), a repeated name reads its first element (as
+  # `[[` does), unique rows in first-occurrence order.
+  plain <- vapply(named_list, function(v) {
+    is.atomic(v) && !is.object(v)
+  }, logical(1), USE.NAMES = FALSE)
+  if (all(plain) && any(lengths(named_list) > 0L) &&
+      !anyNA(nms) && all(nzchar(nms)) &&
+      length(unique(vapply(named_list, typeof, character(1),
+                           USE.NAMES = FALSE))) == 1L) {
+    first <- named_list[match(nms, nms)]
+    out <- data.table(rep.int(nms, lengths(first)),
+                      unlist(first, use.names = FALSE))
+    data.table::setnames(out, col_names)
+    return(unique(out))
+  }
+  .named_list_to_df_loop(named_list, col_names)
+}
+
+# Element-by-element conversion: mixed types (coerced by rbindlist), factors,
+# NULL and empty elements, missing or empty names.
+.named_list_to_df_loop <- function(named_list, col_names) {
+  lapply(names(named_list), function(x) {
     if (length(named_list[x]) == 1) {
       data.table(name = x, value = named_list[[x]]) |> setNames(col_names)
     } else if (length(named_list[x]) > 1) {
@@ -4126,7 +4149,6 @@ named_list_to_df <- function(named_list, col_names = c("name", "value")) {
   }) |>
     rbindlist(use.names = TRUE, fill = TRUE) |>
     unique() |>
-    # arrange(col_names[1]) |>
     as.data.table()
 }
 # alias
