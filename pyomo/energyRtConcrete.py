@@ -3339,6 +3339,45 @@ model.eqTradeIrAfFx = Constraint(
     * model.vTradeCap[t1, y]
     * pTimesliceShare.get((s)),
 )
+model.eqTradeIrAfsUp = Constraint(
+    meqTradeIrAfsUp,
+    rule=lambda model, t1, src, dst, y, s: sum(
+        pTimesliceAgg.get((y, s, sp)) * model.vTradeIr[t1, c, src, dst, y, sp]
+        for c in comm
+        for sp in mTimesliceParentChildE_ix.get(s, ())
+        if (t1, c, src, dst, y, sp) in mvTradeIr
+    )
+    <= pTradeIrAfsUp.get((t1, src, dst, y, s))
+    * pTradeCap2Act.get((t1))
+    * model.vTradeCap[t1, y]
+    * pTimesliceShare.get((s)),
+)
+model.eqTradeIrAfsLo = Constraint(
+    meqTradeIrAfsLo,
+    rule=lambda model, t1, src, dst, y, s: sum(
+        pTimesliceAgg.get((y, s, sp)) * model.vTradeIr[t1, c, src, dst, y, sp]
+        for c in comm
+        for sp in mTimesliceParentChildE_ix.get(s, ())
+        if (t1, c, src, dst, y, sp) in mvTradeIr
+    )
+    >= pTradeIrAfsLo.get((t1, src, dst, y, s))
+    * pTradeCap2Act.get((t1))
+    * model.vTradeCap[t1, y]
+    * pTimesliceShare.get((s)),
+)
+model.eqTradeIrAfsFx = Constraint(
+    meqTradeIrAfsFx,
+    rule=lambda model, t1, src, dst, y, s: sum(
+        pTimesliceAgg.get((y, s, sp)) * model.vTradeIr[t1, c, src, dst, y, sp]
+        for c in comm
+        for sp in mTimesliceParentChildE_ix.get(s, ())
+        if (t1, c, src, dst, y, sp) in mvTradeIr
+    )
+    == pTradeIrAfsLo.get((t1, src, dst, y, s))
+    * pTradeCap2Act.get((t1))
+    * model.vTradeCap[t1, y]
+    * pTimesliceShare.get((s)),
+)
 if verbose:
     print(
         datetime.datetime.now().strftime("%H:%M:%S"),
@@ -4386,6 +4425,18 @@ model.eqTaxCost = Constraint(
         if ((t, r, y) in mTechNew and pTaxProcNcap.get((lv, t, r, y)) != 0)
     )
     + sum(
+        pTaxProcCap.get((lv, t1, r, y))
+        * model.vTradeCap[t1, y]
+        for t1 in trade
+        if ((t1, y) in mTradeSpan and pTaxProcCap.get((lv, t1, r, y)) != 0)
+    )
+    + sum(
+        pTaxProcNcap.get((lv, t1, r, y))
+        * model.vTradeNewCap[t1, y]
+        for t1 in trade
+        if ((t1, y) in mTradeNew and pTaxProcNcap.get((lv, t1, r, y)) != 0)
+    )
+    + sum(
         pTaxProcInp.get((lv, st1, c, r, y, s))
         * pTimesliceWeight.get((y, s))
         * model.vStorageInp[st1, c, r, y, s]
@@ -4516,6 +4567,18 @@ model.eqSubsCost = Constraint(
         * model.vTechNewCap[t, r, y]
         for t in tech
         if ((t, r, y) in mTechNew and pSubProcNcap.get((lv, t, r, y)) != 0)
+    )
+    - sum(
+        pSubProcCap.get((lv, t1, r, y))
+        * model.vTradeCap[t1, y]
+        for t1 in trade
+        if ((t1, y) in mTradeSpan and pSubProcCap.get((lv, t1, r, y)) != 0)
+    )
+    - sum(
+        pSubProcNcap.get((lv, t1, r, y))
+        * model.vTradeNewCap[t1, y]
+        for t1 in trade
+        if ((t1, y) in mTradeNew and pSubProcNcap.get((lv, t1, r, y)) != 0)
     )
     - sum(
         pSubProcInp.get((lv, st1, c, r, y, s))

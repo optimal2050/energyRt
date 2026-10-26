@@ -39,11 +39,13 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 * Weather transforms derive many series from one, and a weather object may be
   declared at a coarser region than the processes reading it.
 * Transmission: `newACLine()`, `newDCLink()`, an optional Kirchhoff voltage
-  law, loss tranches (`lossTranches()`) and route ratings (`@trade$af`).
+  law, loss tranches (`lossTranches()`), route ratings (`@trade$af`) and
+  route ratings over a parent timeslice (`@trade$afs`).
 * Supply, import and export curves: `asSupplyCurve()`, `asImportCurve()`,
   `asExportCurve()`.
 * Taxes and subsidies are indexed by instrument and can be levied on processes.
-  `cap` and `ncap` charge technologies; a storage's capacity is levied by part
+  `cap` and `ncap` charge technologies and trades (a trade in each region the
+  levy is placed in); a storage's capacity is levied by part
   with `stg.cap`/`stg.ncap` (reservoir), `inp.cap`/`inp.ncap` (charger) and
   `out.cap`/`out.ncap` (discharger).
 * `commodity@property` for physical properties; discount rates at any geoscale
@@ -259,6 +261,9 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   too, i.e. the roll-up of their sub-regions a second time. A commodity rate
   now applies at the commodity's own regions and a process rate at the regions
   the process is declared in; a region off that level is an error.
+* `levcost()` of a storage sized a charger with no `inp2out` or `inp2stg` like
+  the discharger, and a discharger with no `duration` at one hour of storage.
+  Each is now sized by its own flow, as in the solved model.
 * Auxiliary flows (`aeff`) of a process were lost when it gave the coefficient
   for all timeslices and another process gave the same coefficient for named
   timeslices.

@@ -64,6 +64,12 @@ newTrade(
 }
 \item{af.fx}{numeric. Fixed loading of the direction \code{src} -> \code{dst} as a fraction of capacity. Overrides \code{af.lo} and \code{af.up}.
 }
+\item{afs.lo}{numeric. Lower bound on the flow from \code{src} to \code{dst} summed over the \code{timeslice} of the row (a parent timeslice, e.g. a day or the year), as a FRACTION of the object's capacity over that timeslice: \verb{afs.lo x cap2act x vTradeCap x share}. As \code{technology@afs}.
+}
+\item{afs.up}{numeric. Upper bound on the flow from \code{src} to \code{dst} summed over the \code{timeslice} of the row, as a fraction of capacity -- e.g. an annual utilisation limit.
+}
+\item{afs.fx}{numeric. Fixed flow from \code{src} to \code{dst} over the \code{timeslice} of the row, as a fraction of capacity. Overrides \code{afs.lo} and \code{afs.up}.
+}
 \item{teff}{numeric. Trade efficiency: the fraction of the flow sent from \code{src} that is delivered to \code{dst} (1 = lossless).
 }
 \item{reactance}{numeric. Series reactance \code{x} of the line, in the model's own impedance units. Carried for AC lines and used by nothing unless the model is interpolated with \code{kvl = TRUE}, when it becomes the coefficient of Kirchhoff's voltage law. Presence of a finite \code{reactance} is what marks a route as a PASSIVE AC branch: a controllable DC link has none, because its flow is chosen rather than set by impedance. Must be SYMMETRIC across the two directed rows of a line -- the voltage law constrains the net flow -- and a line under KVL must be declared in both directions. Where several physical circuits have been merged into one route, the value is the EQUIVALENT reactance, \code{1/x_eq = sum(1/x_i)}, not any one circuit's.

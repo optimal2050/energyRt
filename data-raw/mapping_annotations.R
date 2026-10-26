@@ -136,11 +136,11 @@
     "meqSupAvaLo", "meqSupReserveLo", "meqTechActGrp", "meqTechActSng",
     "meqTechAfcInpLo", "meqTechAfcInpUp", "meqTechAfcOutLo", "meqTechAfcOutUp",
     "meqTechAfLo", "meqTechAfsLo", "meqTechAfsUp", "meqTechAfUp", "meqTechAfFx",
-    "meqTechAfsFx", "meqTechAfcInpFx", "meqTechAfcOutFx", "meqTechShareInpFx", "meqTechShareOutFx", "mTechCapFx", "mTechNewCapFx", "mTechRetFx", "meqStorageAfFx", "meqStorageInpFx", "meqStorageOutFx", "mStorageDurationFx", "mStorageInp2outFx", "mStorageInp2stgFx", "mStorageInpCapFx", "mStorageInpNewCapFx", "mStorageInpRetFx", "mStorageOutCapFx", "mStorageOutNewCapFx", "mStorageOutRetFx", "mStorageStgCapFx", "mStorageStgNewCapFx", "mStorageStgRetFx", "meqSupAvaFx", "meqSupReserveFx", "meqTradeFlowFx", "meqTradeIrAfFx", "mTradeCapFx", "mTradeNewCapFx", "mTradeRetFx", "meqImportRowFx", "meqExportRowFx",
+    "meqTechAfsFx", "meqTechAfcInpFx", "meqTechAfcOutFx", "meqTechShareInpFx", "meqTechShareOutFx", "mTechCapFx", "mTechNewCapFx", "mTechRetFx", "meqStorageAfFx", "meqStorageInpFx", "meqStorageOutFx", "mStorageDurationFx", "mStorageInp2outFx", "mStorageInp2stgFx", "mStorageInpCapFx", "mStorageInpNewCapFx", "mStorageInpRetFx", "mStorageOutCapFx", "mStorageOutNewCapFx", "mStorageOutRetFx", "mStorageStgCapFx", "mStorageStgNewCapFx", "mStorageStgRetFx", "meqSupAvaFx", "meqSupReserveFx", "meqTradeFlowFx", "meqTradeIrAfFx", "meqTradeIrAfsFx", "mTradeCapFx", "mTradeNewCapFx", "mTradeRetFx", "meqImportRowFx", "meqExportRowFx",
     "meqTechGrp2Grp", "meqTechGrp2Sng", "meqTechShareInpLo", "meqTechShareInpUp",
     "meqTechShareOutLo", "meqTechShareOutUp", "meqTechSng2Grp", "meqTechSng2Sng",
     "meqTradeCapFlow", "meqTradeFlowLo", "meqTradeFlowUp",
-    "meqTradeIrAfLo", "meqTradeIrAfUp",
+    "meqTradeIrAfLo", "meqTradeIrAfUp", "meqTradeIrAfsLo", "meqTradeIrAfsUp",
     # bound m* sourced from constraint slots
     "mTechCapLo", "mTechCapUp", "mTechNewCapLo", "mTechNewCapUp",
     "mTechRetLo", "mTechRetUp", "mTechAfUp", "mTechAfcUp",

@@ -5138,6 +5138,117 @@ print("eqTradeIrAfFx(trade, comm, src, dst, year, timeslice)...")
         end
     )
 );
+print("eqTradeIrAfsUp(trade, src, dst, year, timeslice)...")
+@constraint(
+    model,
+    [(t1, src, dst, y, s) in meqTradeIrAfsUp],
+    sum(
+        (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
+            else
+                pTimesliceAggDef
+            end
+        ) * vTradeIr[(t1, c, src, dst, y, sp)]
+        for c in comm for sp in get(mTimesliceParentChildE_ix, s, ()) if (t1, c, src, dst, y, sp) in mvTradeIr
+    ) <=
+    (
+        if haskey(pTradeIrAfsUp, (t1, src, dst, y, s))
+            pTradeIrAfsUp[(t1, src, dst, y, s)]
+        else
+            pTradeIrAfsUpDef
+        end
+    ) *
+    (
+        if haskey(pTradeCap2Act, (t1))
+            pTradeCap2Act[(t1)]
+        else
+            pTradeCap2ActDef
+        end
+    ) *
+    vTradeCap[(t1, y)] *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    )
+);
+print("eqTradeIrAfsLo(trade, src, dst, year, timeslice)...")
+@constraint(
+    model,
+    [(t1, src, dst, y, s) in meqTradeIrAfsLo],
+    sum(
+        (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
+            else
+                pTimesliceAggDef
+            end
+        ) * vTradeIr[(t1, c, src, dst, y, sp)]
+        for c in comm for sp in get(mTimesliceParentChildE_ix, s, ()) if (t1, c, src, dst, y, sp) in mvTradeIr
+    ) >=
+    (
+        if haskey(pTradeIrAfsLo, (t1, src, dst, y, s))
+            pTradeIrAfsLo[(t1, src, dst, y, s)]
+        else
+            pTradeIrAfsLoDef
+        end
+    ) *
+    (
+        if haskey(pTradeCap2Act, (t1))
+            pTradeCap2Act[(t1)]
+        else
+            pTradeCap2ActDef
+        end
+    ) *
+    vTradeCap[(t1, y)] *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    )
+);
+print("eqTradeIrAfsFx(trade, src, dst, year, timeslice)...")
+@constraint(
+    model,
+    [(t1, src, dst, y, s) in meqTradeIrAfsFx],
+    sum(
+        (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
+            else
+                pTimesliceAggDef
+            end
+        ) * vTradeIr[(t1, c, src, dst, y, sp)]
+        for c in comm for sp in get(mTimesliceParentChildE_ix, s, ()) if (t1, c, src, dst, y, sp) in mvTradeIr
+    ) ==
+    (
+        if haskey(pTradeIrAfsLo, (t1, src, dst, y, s))
+            pTradeIrAfsLo[(t1, src, dst, y, s)]
+        else
+            pTradeIrAfsLoDef
+        end
+    ) *
+    (
+        if haskey(pTradeCap2Act, (t1))
+            pTradeCap2Act[(t1)]
+        else
+            pTradeCap2ActDef
+        end
+    ) *
+    vTradeCap[(t1, y)] *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    )
+);
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -6574,6 +6685,16 @@ print("eqTaxCost(levy, region, year)...")
         t in tech if ((t, r, y) in mTechNew && (if haskey(pTaxProcNcap, (lv, t, r, y)) pTaxProcNcap[(lv, t, r, y)] else pTaxProcNcapDef end) != 0)
     )
     + sum(
+        (if haskey(pTaxProcCap, (lv, t1, r, y)) pTaxProcCap[(lv, t1, r, y)] else pTaxProcCapDef end) *
+        vTradeCap[(t1, y)] for
+        t1 in trade if ((t1, y) in mTradeSpan && (if haskey(pTaxProcCap, (lv, t1, r, y)) pTaxProcCap[(lv, t1, r, y)] else pTaxProcCapDef end) != 0)
+    )
+    + sum(
+        (if haskey(pTaxProcNcap, (lv, t1, r, y)) pTaxProcNcap[(lv, t1, r, y)] else pTaxProcNcapDef end) *
+        vTradeNewCap[(t1, y)] for
+        t1 in trade if ((t1, y) in mTradeNew && (if haskey(pTaxProcNcap, (lv, t1, r, y)) pTaxProcNcap[(lv, t1, r, y)] else pTaxProcNcapDef end) != 0)
+    )
+    + sum(
         (if haskey(pTaxProcInp, (lv, st1, c, r, y, s)) pTaxProcInp[(lv, st1, c, r, y, s)] else pTaxProcInpDef end) *
         (if haskey(pTimesliceWeight, (y, s)) pTimesliceWeight[(y, s)] else pTimesliceWeightDef end) *
         vStorageInp[(st1, c, r, y, s)] for
@@ -6707,6 +6828,16 @@ print("eqSubsCost(levy, region, year)...")
         (if haskey(pSubProcNcap, (lv, t, r, y)) pSubProcNcap[(lv, t, r, y)] else pSubProcNcapDef end) *
         vTechNewCap[(t, r, y)] for
         t in tech if ((t, r, y) in mTechNew && (if haskey(pSubProcNcap, (lv, t, r, y)) pSubProcNcap[(lv, t, r, y)] else pSubProcNcapDef end) != 0)
+    )
+    - sum(
+        (if haskey(pSubProcCap, (lv, t1, r, y)) pSubProcCap[(lv, t1, r, y)] else pSubProcCapDef end) *
+        vTradeCap[(t1, y)] for
+        t1 in trade if ((t1, y) in mTradeSpan && (if haskey(pSubProcCap, (lv, t1, r, y)) pSubProcCap[(lv, t1, r, y)] else pSubProcCapDef end) != 0)
+    )
+    - sum(
+        (if haskey(pSubProcNcap, (lv, t1, r, y)) pSubProcNcap[(lv, t1, r, y)] else pSubProcNcapDef end) *
+        vTradeNewCap[(t1, y)] for
+        t1 in trade if ((t1, y) in mTradeNew && (if haskey(pSubProcNcap, (lv, t1, r, y)) pSubProcNcap[(lv, t1, r, y)] else pSubProcNcapDef end) != 0)
     )
     - sum(
         (if haskey(pSubProcInp, (lv, st1, c, r, y, s)) pSubProcInp[(lv, st1, c, r, y, s)] else pSubProcInpDef end) *

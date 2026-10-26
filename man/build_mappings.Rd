@@ -8,7 +8,8 @@ build_mappings(
   scen,
   fmp = NULL,
   spec = load_mapping_spec(),
-  recipes = .mapping_recipe_order
+  recipes = .mapping_recipe_order,
+  maps = NULL
 )
 }
 \arguments{
@@ -21,6 +22,8 @@ build_mappings(
 
 \item{recipes}{character vector of recipes to run (defaults to all, in
 \code{.mapping_recipe_order}).}
+
+\item{maps}{optional character vector: build only these maps of the recipes.}
 }
 \value{
 updated scenario object.

@@ -2116,6 +2116,24 @@ class:
           description: >
             Fixed loading of the direction `src` -> `dst` as a fraction of
             capacity. Overrides `af.lo` and `af.up`.
+        afs.lo:
+          type: numeric
+          description: >
+            Lower bound on the flow from `src` to `dst` summed over the
+            `timeslice` of the row (a parent timeslice, e.g. a day or the
+            year), as a FRACTION of the object's capacity over that timeslice:
+            `afs.lo x cap2act x vTradeCap x share`. As `technology@afs`.
+        afs.up:
+          type: numeric
+          description: >
+            Upper bound on the flow from `src` to `dst` summed over the
+            `timeslice` of the row, as a fraction of capacity -- e.g. an annual
+            utilisation limit.
+        afs.fx:
+          type: numeric
+          description: >
+            Fixed flow from `src` to `dst` over the `timeslice` of the row, as a
+            fraction of capacity. Overrides `afs.lo` and `afs.up`.
         teff:
           type: numeric
           description: >
@@ -2950,8 +2968,9 @@ class:
     classes:
       type: character
       description: >
-        Process class filter, e.g. "technology" or "storage". Restricts the
-        levy to processes of these classes. Spelled `classes` to match the
+        Process class filter: "technology", "storage" or "trade". Restricts
+        the levy to processes of these classes; a trade is levied on its
+        capacity only (`cap`, `ncap`). Spelled `classes` to match the
         `get_process_*()` family; `class` is a reserved S4 slot name.
     vintage:
       type: character
@@ -3024,15 +3043,16 @@ class:
         cap:
           type: numeric
           description: >
-            Technologies only: per unit of installed capacity, charged in every
-            year the capacity stands. A storage's capacity is levied by part,
-            with `stg.cap`, `inp.cap` or `out.cap`.
+            Technologies and trades: per unit of installed capacity, charged in
+            every year the capacity stands; a trade in each region the levy is
+            placed in. A storage's capacity is levied by part, with `stg.cap`,
+            `inp.cap` or `out.cap`.
         ncap:
           type: numeric
           description: >
             Per unit of capacity added in a period, charged once at
-            commissioning rather than annualised. Technologies only; for a
-            storage use `stg.ncap`, `inp.ncap` or `out.ncap`.
+            commissioning rather than annualised. Technologies and trades; for
+            a storage use `stg.ncap`, `inp.ncap` or `out.ncap`.
         stg.cap:
           type: numeric
           description: >
@@ -3111,8 +3131,9 @@ class:
     classes:
       type: character
       description: >
-        Process class filter, e.g. "technology" or "storage". Restricts the
-        levy to processes of these classes. Spelled `classes` to match the
+        Process class filter: "technology", "storage" or "trade". Restricts
+        the levy to processes of these classes; a trade is levied on its
+        capacity only (`cap`, `ncap`). Spelled `classes` to match the
         `get_process_*()` family; `class` is a reserved S4 slot name.
     vintage:
       type: character
@@ -3185,15 +3206,16 @@ class:
         cap:
           type: numeric
           description: >
-            Technologies only: per unit of installed capacity, charged in every
-            year the capacity stands. A storage's capacity is levied by part,
-            with `stg.cap`, `inp.cap` or `out.cap`.
+            Technologies and trades: per unit of installed capacity, charged in
+            every year the capacity stands; a trade in each region the levy is
+            placed in. A storage's capacity is levied by part, with `stg.cap`,
+            `inp.cap` or `out.cap`.
         ncap:
           type: numeric
           description: >
             Per unit of capacity added in a period, charged once at
-            commissioning rather than annualised. Technologies only; for a
-            storage use `stg.ncap`, `inp.ncap` or `out.ncap`.
+            commissioning rather than annualised. Technologies and trades; for
+            a storage use `stg.ncap`, `inp.ncap` or `out.ncap`.
         stg.cap:
           type: numeric
           description: >

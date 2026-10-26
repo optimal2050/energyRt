@@ -429,10 +429,10 @@ test_that("family levy-process: part columns need a storage; cap and ncap charge
   # storages selected by class or by name with cap/ncap alone: an error
   expect_error(lp_interp(lp_build(newTax("PK", classes = c("technology", "storage"),
                                          tax = data.frame(ncap = 1))), "lg_pk"),
-               "charge technologies only")
+               "charge technologies and trades")
   expect_error(lp_interp(lg_stg(newTax("PN", process = "STG",
                                        tax = data.frame(cap = 1))), "lg_pn"),
-               "charge technologies only")
+               "charge technologies and trades")
 })
 
 # @covers pTaxProcCap depth=S backends=glpk
@@ -441,4 +441,38 @@ test_that("family levy-process: cap without a filter does not charge a storage",
   scen <- lp_solve(lg_stg(newTax("PD", tax = data.frame(cap = 2))), "lg_pd")
   expect_true(verify_solution(scen)$ok)
   expect_equal(.fork_objective(scen), LG_STG_BASE, tolerance = 1e-6)
+})
+
+# --- trade: capacity only ---------------------------------------------------------
+
+# @covers pTaxProcCap vTradeCap depth=S backends=glpk
+test_that("family levy-process: cap on a trade charges its capacity in each region levied", {
+  skip_if_no_solver()
+  routes <- data.frame(src = "R1", dst = "R2")
+  # base: capacity 10 fixed, 10 imported at 1
+  one <- lp_solve(add(tr_model(routes, cap = 10), newRepository("trl1",
+    newTax("TT1", classes = "trade", region = "R1", tax = data.frame(cap = 2)))), "trl1")
+  expect_equal(ff_solution_sum(one, "vTaxCost"), 2 * 10, tolerance = 1e-6)
+  expect_equal(.fork_objective(one), 10 + 20, tolerance = 1e-6)
+  # no region: each region of the trade, as its own costs are booked
+  both <- lp_solve(add(tr_model(routes, cap = 10), newRepository("trl2",
+    newTax("TT2", classes = "trade", tax = data.frame(cap = 2)))), "trl2")
+  expect_equal(ff_solution_sum(both, "vTaxCost"), 2 * 2 * 10, tolerance = 1e-6)
+})
+
+# @covers pSubProcNcap vTradeNewCap depth=S backends=glpk
+test_that("family levy-process: ncap subsidy on a named trade credits its new capacity", {
+  skip_if_no_solver()
+  routes <- data.frame(src = "R1", dst = "R2")
+  scen <- lp_solve(add(tr_model(routes, cap = 10), newRepository("trl3",
+    newSubsidy("TS", process = "TRD", region = "R1",
+               subsidy = data.frame(ncap = 0.5)))), "trl3")
+  expect_equal(ff_solution_sum(scen, "vSubsCost"), -0.5 * 10, tolerance = 1e-6)
+})
+
+test_that("family levy-process: a trade is levied on its capacity only", {
+  routes <- data.frame(src = "R1", dst = "R2")
+  expect_error(lp_interp(add(tr_model(routes), newRepository("trl4",
+    newTax("TF", classes = "trade", comm = "ELC", tax = data.frame(out = 1)))), "trl4"),
+    "capacity only")
 })

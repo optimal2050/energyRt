@@ -134,3 +134,46 @@ test_that("family trade-core: endpoint aux-output ratios land in modInp", {
   expect_equal(unique(ff_param(scen, "pTradeIrCsrc2Aout")$value), 0.03)
   expect_equal(unique(ff_param(scen, "pTradeIrCdst2Aout")$value), 0.04)
 })
+
+# A route bound over a parent timeslice: four slices, demand 10 each in R2,
+# capacity 40 a year (10 a slice) -- unbounded, all 40 come from R1 at 1.
+tr_afs_model <- function(trade = data.frame()) {
+  sl <- paste0("s", 1:4)
+  newModel("tafs", region = c("R1", "R2"), horizon = tr_hor(), discount = 0,
+    calendar = newCalendar(timetable = make_timetable(
+      struct = list(ANNUAL = "ANNUAL", SL = sl)), name = "tafs_cal"),
+    repo = newRepository("tafs_repo",
+      newCommodity("ELC", timeframe = "SL"),
+      newSupply("SUP", commodity = "ELC",
+                supply = data.frame(region = c("R1", "R2"), cost = c(1, 100))),
+      newTrade("TRD", commodity = "ELC", cap2act = 1,
+               routes = data.frame(src = "R1", dst = "R2"),
+               capacity = data.frame(cap.fx = 40),
+               vintage = data.frame(olife = 50L), trade = trade),
+      newDemand("DEM", commodity = "ELC",
+                demand = data.frame(region = "R2", timeslice = sl, demand = 10))))
+}
+
+# @covers pTradeIrAfs meqTradeIrAfsUp meqTradeIrAfsFx depth=S backends=glpk
+test_that("family trade-core: afs bounds a route's flow over a parent timeslice", {
+  skip_if_no_solver()
+  free <- .fork_solve(suppressMessages(suppressWarnings(interpolate_model(
+    tr_afs_model(), name = "tafs0", overwrite = TRUE))), solver_options$glpk)
+  expect_equal(.fork_objective(free), 40, tolerance = 1e-6)
+  # half the year's capacity: 20 imported, 20 local at 100
+  up <- suppressMessages(suppressWarnings(interpolate_model(
+    tr_afs_model(data.frame(src = "R1", dst = "R2", timeslice = "ANNUAL",
+                            afs.up = 0.5)), name = "tafs1", overwrite = TRUE)))
+  expect_gt(NROW(get_data_slot(up@modInp@parameters$meqTradeIrAfsUp)), 0)
+  up <- .fork_solve(up, solver_options$glpk)
+  expect_true(verify_solution(up)$ok)
+  expect_equal(ff_solution_sum(up, "vTradeIr"), 20, tolerance = 1e-6)
+  expect_equal(.fork_objective(up), 20 + 2000, tolerance = 1e-6)
+  # fixed: the equality map, the same flow
+  fx <- suppressMessages(suppressWarnings(interpolate_model(
+    tr_afs_model(data.frame(src = "R1", dst = "R2", timeslice = "ANNUAL",
+                            afs.fx = 0.25)), name = "tafs2", overwrite = TRUE)))
+  expect_gt(NROW(get_data_slot(fx@modInp@parameters$meqTradeIrAfsFx)), 0)
+  fx <- .fork_solve(fx, solver_options$glpk)
+  expect_equal(ff_solution_sum(fx, "vTradeIr"), 10, tolerance = 1e-6)
+})

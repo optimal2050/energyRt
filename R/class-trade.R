@@ -79,6 +79,10 @@ setClass("trade",
       af.up = numeric(),
       af.fx = numeric(),
       af.lo = numeric(),
+      # the same fractions summed over a parent timeslice (cf. technology@afs)
+      afs.lo = numeric(),
+      afs.up = numeric(),
+      afs.fx = numeric(),
       teff = numeric(),
       # Electrical characteristics of the line. Inert unless the model is
       # interpolated with `kvl = TRUE`; a finite `reactance` is what marks a

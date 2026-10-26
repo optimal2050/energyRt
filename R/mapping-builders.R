@@ -983,6 +983,24 @@ map_meqTradeFlowLo <- function(scen, fmp) .cjoin(scen, "meqTradeFlowLo", fmp)
 map_meqTradeFlowUp <- function(scen, fmp) .cjoin(scen, "meqTradeFlowUp", fmp)
 map_meqTradeIrAfLo <- function(scen, fmp) .cjoin(scen, "meqTradeIrAfLo", fmp)
 map_meqTradeIrAfUp <- function(scen, fmp) .cjoin(scen, "meqTradeIrAfUp", fmp)
+# A route's flow over a parent timeslice: the routes that carry flow, at the
+# bound's own timeslices.
+.trade_afs_map <- function(scen, name, type, fmp) {
+  src <- .gds(scen, "pTradeIrAfs")
+  dom <- .gds(scen, "mvTradeIr")
+  if (is.null(src) || !nrow(src) || is.null(dom) || !nrow(dom)) return(scen)
+  src <- as.data.frame(src)
+  src <- src[src$type == type, , drop = FALSE]
+  src <- src[if (type == "lo") src$value != 0 else src$value != Inf, , drop = FALSE]
+  if (!nrow(src)) return(scen)
+  keys <- c("trade", "src", "dst", "year", "timeslice")
+  src <- dplyr::distinct(src[, keys, drop = FALSE])
+  dom <- dplyr::distinct(as.data.frame(dom)[, c("trade", "src", "dst", "year"),
+                                            drop = FALSE])
+  .set_map(scen, name, .wild_join(dom, src), fmp)
+}
+map_meqTradeIrAfsLo <- function(scen, fmp) .trade_afs_map(scen, "meqTradeIrAfsLo", "lo", fmp)
+map_meqTradeIrAfsUp <- function(scen, fmp) .trade_afs_map(scen, "meqTradeIrAfsUp", "up", fmp)
 # C8 supply reserve margins
 map_meqSupReserveLo <- function(scen, fmp) .cjoin(scen, "meqSupReserveLo", fmp)
 map_mSupReserveUp   <- function(scen, fmp) .cjoin(scen, "mSupReserveUp", fmp)
@@ -1053,6 +1071,7 @@ map_mTechAfcUp     <- function(scen, fmp) scen
   mTradeRetLo = map_mTradeRetLo, mTradeRetUp = map_mTradeRetUp,
   meqTradeFlowLo = map_meqTradeFlowLo, meqTradeFlowUp = map_meqTradeFlowUp,
   meqTradeIrAfLo = map_meqTradeIrAfLo, meqTradeIrAfUp = map_meqTradeIrAfUp,
+  meqTradeIrAfsLo = map_meqTradeIrAfsLo, meqTradeIrAfsUp = map_meqTradeIrAfsUp,
   meqSupReserveLo = map_meqSupReserveLo, mSupReserveUp = map_mSupReserveUp,
   # bespoke
   meqStorageStore = map_meqStorageStore, meqTradeCapFlow = map_meqTradeCapFlow,
@@ -1136,6 +1155,7 @@ map_mTechAfcUp     <- function(scen, fmp) scen
   SupReserve = list(lo = "meqSupReserveLo", up = "mSupReserveUp", fx = "meqSupReserveFx", par = "pSupReserve"),
   TradeFlow = list(lo = "meqTradeFlowLo", up = "meqTradeFlowUp", fx = "meqTradeFlowFx", par = "pTradeIr"),
   TradeIrAf = list(lo = "meqTradeIrAfLo", up = "meqTradeIrAfUp", fx = "meqTradeIrAfFx", par = "pTradeIrAf"),
+  TradeIrAfs = list(lo = "meqTradeIrAfsLo", up = "meqTradeIrAfsUp", fx = "meqTradeIrAfsFx", par = "pTradeIrAfs"),
   TradeCap = list(lo = "mTradeCapLo", up = "mTradeCapUp", fx = "mTradeCapFx", par = "pTradeCap"),
   TradeNewCap = list(lo = "mTradeNewCapLo", up = "mTradeNewCapUp", fx = "mTradeNewCapFx", par = "pTradeNewCap"),
   TradeRet = list(lo = "mTradeRetLo", up = "mTradeRetUp", fx = "mTradeRetFx", par = "pTradeRet"),

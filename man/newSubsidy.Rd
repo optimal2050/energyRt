@@ -39,7 +39,7 @@ newSubsidy(
 
 \item{process_}{character. Process filter, as a regular expression over process names (the \verb{_} suffix convention of \code{getData()}). Matched against the base name as well as the realized one. A pattern that matches nothing is an error.}
 
-\item{classes}{character. Process class filter, e.g. "technology" or "storage". Restricts the levy to processes of these classes. Spelled \code{classes} to match the \verb{get_process_*()} family; \code{class} is a reserved S4 slot name.}
+\item{classes}{character. Process class filter: "technology", "storage" or "trade". Restricts the levy to processes of these classes; a trade is levied on its capacity only (\code{cap}, \code{ncap}). Spelled \code{classes} to match the \verb{get_process_*()} family; \code{class} is a reserved S4 slot name.}
 
 \item{vintage}{character. Vintage filter for vintaged processes. Resolved by joining the variant provenance table, NOT by parsing the mangled variant name -- the name separator is configurable, so a pattern over names is not stable.}
 
@@ -68,9 +68,9 @@ newSubsidy(
 \item{bal}{numeric. Per unit of commodity balance (production - consumption). Commodity level only: the balance belongs to no single process, so \code{bal} cannot be combined with a process filter.
 }
 \item{act}{numeric. Per unit of process activity.}
-\item{cap}{numeric. Technologies only: per unit of installed capacity, charged in every year the capacity stands. A storage's capacity is levied by part, with \code{stg.cap}, \code{inp.cap} or \code{out.cap}.
+\item{cap}{numeric. Technologies and trades: per unit of installed capacity, charged in every year the capacity stands; a trade in each region the levy is placed in. A storage's capacity is levied by part, with \code{stg.cap}, \code{inp.cap} or \code{out.cap}.
 }
-\item{ncap}{numeric. Per unit of capacity added in a period, charged once at commissioning rather than annualised. Technologies only; for a storage use \code{stg.ncap}, \code{inp.ncap} or \code{out.ncap}.
+\item{ncap}{numeric. Per unit of capacity added in a period, charged once at commissioning rather than annualised. Technologies and trades; for a storage use \code{stg.ncap}, \code{inp.ncap} or \code{out.ncap}.
 }
 \item{stg.cap}{numeric. Storages only: per unit of reservoir capacity, in every year it stands.
 }
