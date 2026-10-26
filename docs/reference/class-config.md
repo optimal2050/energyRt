@@ -60,26 +60,23 @@ settings.
 
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  : character. Region name to apply the parameter, NA for every region.
 
   year
 
-  :   integer. Year to apply the parameter, NA for every year.
+  : integer. Year to apply the parameter, NA for every year.
 
   wacc
 
-  :   numeric. Weighted average cost of capital, used to annuitise
-      investment costs into `pTechEac` / `pStorageOutEac` / `pTradeEac`.
-      A process may override it with its own `@invcost$wacc`. Default is
-      0.
+  : numeric. Weighted average cost of capital, used to annuitise
+    investment costs into `pTechEac` / `pStorageOutEac` / `pTradeEac`. A
+    process may override it with its own `@invcost$wacc`. Default is 0.
 
   sdr
 
-  :   numeric. Social discount rate, used to build the cumulative
-      discount factor applied to total system costs in the objective. A
-      property of the model, never of an individual process. Default is
-      0.
+  : numeric. Social discount rate, used to build the cumulative discount
+    factor applied to total system costs in the objective. A property of
+    the model, never of an individual process. Default is 0.
 
 - `discountFirstYear`:
 

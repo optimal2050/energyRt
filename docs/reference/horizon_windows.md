@@ -35,7 +35,7 @@ possibly empty).
 
 ## See also
 
-[`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md)
+[`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md)
 
 ## Examples
 

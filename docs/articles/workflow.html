@@ -248,7 +248,7 @@ valid names cannot contain; duplicate parts are dropped, so a scenario
 and model sharing a name appear once):</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/scenarios_path.html">get_scenarios_path</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpgFGodd/wf"</span></span>
+<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpsPX55A/wf"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">scen</span><span class="op">@</span><span class="va">path</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "BASE-TOPIA-s4_h24-base"</span></span></code></pre></div>
 <p>Saving a scenario writes an <strong>Arrow-backed</strong> folder that
@@ -274,7 +274,7 @@ and one folder per solver run:</p>
 log</em> records the sequence of a working session:
 <code>set_log_file("energyRt_log.csv")</code> makes
 <code><a href="../reference/interpolate_model.html">interpolate_model()</a></code>, <code><a href="../reference/solve_model.html">solve_scenario()</a></code> and
-<code><a href="../reference/solve_myopic.html">solve_myopic()</a></code> append one line each (operation, object,
+<code><a href="../reference/solve_recursive.html">solve_recursive()</a></code> append one line each (operation, object,
 status, objective, duration), and <code><a href="../reference/log.html">read_log()</a></code> returns the
 sequence as a tibble. It is off by default.</p>
 <p>Solving the same scenario with several backends (or option sets —
@@ -627,6 +627,76 @@ matching them. And every sample is <strong>annualised</strong> —
 the <em>whole year</em>. The ensemble is therefore a set of replicates
 whose spread is the sampling uncertainty; summing them is meaningless,
 unlike the region sweep above, whose disjoint pieces do add up.</p>
+</div>
+<div class="section level3">
+<h3 id="combining-a-sequences-results">Combining a sequence’s results<a class="anchor" aria-label="anchor" href="#combining-a-sequences-results"></a>
+</h3>
+<p>Each driver stores one variant per unit of work and nothing merged is
+written to disk. Combination happens in memory, on read, and the rule
+differs by driver because the units mean different things.</p>
+<p><code><a href="../reference/getData.html">getData()</a></code> on a sequence <strong>stacks and does not
+aggregate</strong>. It binds every unit’s rows and adds a provenance
+column — <code>region</code> for <code><a href="../reference/solve_by_region.html">solve_by_region()</a></code>,
+<code>sample</code> for <code><a href="../reference/solve_by_sample.html">solve_by_sample()</a></code> — so the caller
+decides what to do with them. Two methods are exceptions:
+<code><a href="../reference/getData.html">getData()</a></code> on a recursive sequence stitches, taking each
+year from the step that decided it, and on a guided sequence it
+delegates to the final full-horizon solve.</p>
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">br</span>, <span class="st">"vTechCap"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># stacked, with a `region` column</span></span>
+<span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">bs</span>, <span class="st">"vTechCap"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># stacked, with a `sample` column</span></span>
+<span><span class="fu"><a href="../reference/sample_summary.html">sample_summary</a></span><span class="op">(</span><span class="va">bs</span>, <span class="st">"vTechCap"</span>, by <span class="op">=</span> <span class="st">"tech"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/recursive_objective.html">recursive_objective</a></span><span class="op">(</span><span class="va">rc</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th>driver</th>
+<th>what a unit is</th>
+<th>how results combine</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code><a href="../reference/solve_by_region.html">solve_by_region()</a></code></td>
+<td>a disjoint piece of the territory</td>
+<td>quantities add; objectives sum <strong>only</strong> under
+<code>trade = "none"</code>, which the result reports as
+<code>additive</code>
+</td>
+</tr>
+<tr class="even">
+<td><code><a href="../reference/solve_by_sample.html">solve_by_sample()</a></code></td>
+<td>a replicate estimate of the whole year</td>
+<td>a distribution — mean and quantiles via
+<code><a href="../reference/sample_summary.html">sample_summary()</a></code>. <strong>Summing is wrong</strong>,
+because every sample is already annualised</td>
+</tr>
+<tr class="odd">
+<td><code><a href="../reference/solve_recursive.html">solve_recursive()</a></code></td>
+<td>a milestone window</td>
+<td>stitched, each year contributed once. Per-step objectives are not
+comparable, so <code><a href="../reference/recursive_objective.html">recursive_objective()</a></code> recomputes a
+discounted total</td>
+</tr>
+<tr class="even">
+<td><code><a href="../reference/solve_guided.html">solve_guided()</a></code></td>
+<td>a stage of a ladder</td>
+<td>the answer is <code>$final</code>; <code><a href="../reference/guided_gap.html">guided_gap()</a></code> prices
+the guidance against perfect foresight</td>
+</tr>
+</tbody>
+</table>
+<p>Two things the combination does not do. Regional objectives sum to
+the whole system only in autarky: with transmission the per-region sum
+<strong>exceeds</strong> the full model, and the difference is the
+network’s value, so <code>additive = TRUE</code> means “may be summed”,
+not “equals the full model”. And under <code>trade = "auto"</code> each
+region faces an exterior the others cannot see — one region’s export and
+another’s import are independent decisions at independently set prices,
+and nothing reconciles them.</p>
 </div>
 </div>
 <div class="section level2">

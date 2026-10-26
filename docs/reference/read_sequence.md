@@ -1,14 +1,14 @@
 # Rebuild a solve sequence from the variants on disk
 
 Reassembles the object a driver returned —
-[`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md),
+[`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md),
 [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md),
 [`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md)
 or [`solve_guided()`](https://energyRt.org/reference/solve_guided.md) —
 from a scenario's variants, so
 [`getData()`](https://energyRt.org/reference/getData.md),
 [`sample_summary()`](https://energyRt.org/reference/sample_summary.md),
-[`myopic_objective()`](https://energyRt.org/reference/myopic_objective.md)
+[`recursive_objective()`](https://energyRt.org/reference/recursive_objective.md)
 and [`guided_gap()`](https://energyRt.org/reference/guided_gap.md) work
 on a scenario reloaded from disk rather than only on the live result.
 
@@ -31,7 +31,7 @@ read_sequence(object, sequence = NULL, type = NULL, verbose = TRUE)
 
 - type:
 
-  character, restrict to one driver: `"myopic_step"`,
+  character, restrict to one driver: `"recursive_step"`,
   `"calendar_sample"`, `"region_sample"` or `"guided_stage"`.
 
 - verbose:
@@ -40,8 +40,8 @@ read_sequence(object, sequence = NULL, type = NULL, verbose = TRUE)
 
 ## Value
 
-an object of the driver's class (`myopic`, `by_sample`, `by_region` or
-`guided`), with `$reconstructed = TRUE`.
+an object of the driver's class (`recursive`, `by_sample`, `by_region`
+or `guided`), with `$reconstructed = TRUE`.
 
 ## Details
 
@@ -56,7 +56,7 @@ the one you want with `sequence`, or narrow by `type`.
 ## What cannot be rebuilt
 
 A driver's working state is never written to disk: the carry ledger
-(myopic, guided), the capacity targets (guided), and the timeslice
+(recursive, guided), the capacity targets (guided), and the timeslice
 membership of a sampling spec (by_sample). Those fields are `NULL` in
 the result and named in `$missing`, and `$reconstructed` is `TRUE`. The
 functions that read `$scenarios` —
@@ -82,8 +82,8 @@ unit's cartridge, so a variant rebuilds its own cut.
 
 ``` r
 if (FALSE) { # \dontrun{
-scen <- getScenario("ELC_myopic")
+scen <- getScenario("ELC_recursive")
 seq <- read_sequence(scen)
-myopic_objective(seq)
+recursive_objective(seq)
 } # }
 ```

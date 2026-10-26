@@ -243,7 +243,7 @@ via <code>solve_scenario(solver.dir = "...")</code>, and
 <code>transient = TRUE</code> solves in a throwaway folder.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/save_scenario.html">save_scenario</a></span><span class="op">(</span><span class="va">scen</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpaO7oWG/sm-demo/scenarios/BASE-SM-smc'</span></span>
+<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpUXA5Ko/sm-demo/scenarios/BASE-SM-smc'</span></span>
 <span><span class="co">#&gt; Directory size: 0.39 MB</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">scen</span><span class="op">@</span><span class="va">path</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "class"        "format"       "layout"       "logfile.csv"  "runs"        </span></span>
@@ -290,7 +290,7 @@ loading it.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 7</span></span></span>
 <span><span class="co">#&gt;   status  name  type  version  sealed_at            refs size_mb</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dttm&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> current SM    model ad6914ee 2026-10-26 <span style="color: #949494;">22:00:05</span>     0       0</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> current SM    model ad6914ee 2026-10-26 <span style="color: #949494;">22:16:24</span>     0       0</span></span></code></pre></div>
 <p><strong>Only sealed versions are referenced.</strong> A scenario
 records the model it was interpolated from. When that model is a sealed
 version, <code><a href="../reference/save_scenario.html">save_scenario()</a></code> stores the reference
@@ -298,7 +298,7 @@ version, <code><a href="../reference/save_scenario.html">save_scenario()</a></co
 lists the scenario among its dependents:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/save_scenario.html">save_scenario</a></span><span class="op">(</span><span class="va">scen</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpaO7oWG/sm-demo/scenarios/BASE-SM-smc'</span></span>
+<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpUXA5Ko/sm-demo/scenarios/BASE-SM-smc'</span></span>
 <span><span class="co">#&gt; Directory size: 0.39 MB</span></span>
 <span><span class="fu">yaml</span><span class="fu">::</span><span class="fu"><a href="https://yaml.r-lib.org/reference/read_yaml.html" class="external-link">read_yaml</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">scen</span><span class="op">@</span><span class="va">path</span>, <span class="st">"scenario.yml"</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">model</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"source"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; $name</span></span>
@@ -461,8 +461,8 @@ registry and stores in one call.</p>
 <h2 id="variants-several-problems-in-one-scenario">Variants: several problems in one scenario<a class="anchor" aria-label="anchor" href="#variants-several-problems-in-one-scenario"></a>
 </h2>
 <p>A scenario sometimes needs <em>the same model asked a different
-question</em> — a sampled calendar, a restricted horizon, a myopic step
-with carried-over capacity. These are <strong>own-problem
+question</em> — a sampled calendar, a restricted horizon, a recursive
+step with carried-over capacity. These are <strong>own-problem
 variants</strong>: named folders under <code>runs/</code> that carry
 their <em>own</em> interpolated problem, with their solves inside.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
@@ -470,7 +470,7 @@ their <em>own</em> interpolated problem, with their solves inside.</p>
 <span>                              overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span>, echo <span class="op">=</span> <span class="cn">FALSE</span>, variant <span class="op">=</span> <span class="st">"low"</span><span class="op">)</span></span>
 <span><span class="va">scen_low</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/save_scenario.html">save_scenario</a></span><span class="op">(</span><span class="va">scen_low</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpaO7oWG/sm-demo/scenarios/BASE-SM-smc'</span></span>
+<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpUXA5Ko/sm-demo/scenarios/BASE-SM-smc'</span></span>
 <span><span class="co">#&gt; Directory size: 0.7 MB</span></span>
 <span><span class="fu"><a href="../reference/scenario_runs.html">scenario_runs</a></span><span class="op">(</span><span class="va">scen_low</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"run"</span>, <span class="st">"variant"</span>, <span class="st">"modinp"</span>, <span class="st">"objective"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 4</span></span></span>
@@ -493,9 +493,9 @@ their <em>own</em> interpolated problem, with their solves inside.</p>
 whole in-memory <em>problem</em> — settings and parameters swap
 together, in both directions — so <code><a href="../reference/getData.html">getData()</a></code> is always
 consistent with the run you are looking at. This is the storage
-substrate for the sequential (myopic) solver:
-<code><a href="../reference/solve_myopic.html">solve_myopic()</a></code> keeps a whole year-by-year sequence as one
-scenario with one variant per step.</p>
+substrate for the recursive solver: <code><a href="../reference/solve_recursive.html">solve_recursive()</a></code> keeps
+a whole year-by-year sequence as one scenario with one variant per
+step.</p>
 <div class="section level4">
 <h4 id="a-solution-of-its-own">A solution of its own<a class="anchor" aria-label="anchor" href="#a-solution-of-its-own"></a>
 </h4>
@@ -596,7 +596,7 @@ where it lives</em>:</p>
 </tr>
 <tr class="even">
 <td>the <em>scope</em> of the same declarations — a sampled calendar, a
-region subset or aggregation, a horizon window, a myopic step</td>
+region subset or aggregation, a horizon window, a recursive step</td>
 <td>
 <strong>variant</strong> (own problem)</td>
 <td>

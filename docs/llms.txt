@@ -633,12 +633,12 @@ laptop.
 
 ## Solve drivers
 
-Sequences of solves — myopic foresight, sampled calendars,
-region-by-region decomposition, and guided target-seeking — with their
+Sequences of solves — recursive milestone-by-milestone, sampled
+calendars, decomposition, and guided target-seeking — with their
 primitives.
 
-- [`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md) :
-  Solve a model sequentially (myopic foresight)
+- [`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md)
+  : Solve a model recursively, milestone by milestone
 - [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md)
   : Solve a model on samples of its calendar
 - [`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md)
@@ -651,8 +651,8 @@ primitives.
   : Extract the carry-forward ledger from a solved scenario
 - [`apply_ledger()`](https://energyRt.org/reference/apply_ledger.md) :
   Apply a carry ledger to a model
-- [`myopic_objective()`](https://energyRt.org/reference/myopic_objective.md)
-  : Globally discounted total cost of a myopic sequence
+- [`recursive_objective()`](https://energyRt.org/reference/recursive_objective.md)
+  : Globally discounted total cost of a recursive sequence
 - [`calendar_samples()`](https://energyRt.org/reference/calendar_samples.md)
   : Build a calendar-sample specification
 - [`sample_summary()`](https://energyRt.org/reference/sample_summary.md)

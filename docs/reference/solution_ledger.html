@@ -114,7 +114,7 @@ restrict to the decided years so look-ahead decisions are discarded.</p></dd>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="apply_ledger.html">apply_ledger()</a></code>, <code><a href="solve_myopic.html">solve_myopic()</a></code></p></div>
+    <div class="dont-index"><p><code><a href="apply_ledger.html">apply_ledger()</a></code>, <code><a href="solve_recursive.html">solve_recursive()</a></code></p></div>
     </div>
 
     <div class="section level2">
@@ -135,7 +135,7 @@ restrict to the decided years so look-ahead decisions are discarded.</p></dd>
 <span class="r-in"><span><span class="va">led</span> <span class="op">&lt;-</span> <span class="fu">solution_ledger</span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">led</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># the accumulated ledger is what `solve_myopic()` writes into the next</span></span></span>
+<span class="r-in"><span><span class="co"># the accumulated ledger is what `solve_recursive()` writes into the next</span></span></span>
 <span class="r-in"><span><span class="co"># step's model</span></span></span>
 <span class="r-in"><span><span class="va">led</span><span class="op">$</span><span class="va">steps</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>

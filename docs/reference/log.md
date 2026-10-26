@@ -16,7 +16,7 @@ The operation log is an optional, project-wide record of what ran:
 [`solve_scenario()`](https://energyRt.org/reference/solve_model.md) (and
 through it
 [`solve_model()`](https://energyRt.org/reference/solve_model.md)), and
-[`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md)
+[`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md)
 append one line each —
 `timestamp, op, object, status, duration_sec, details`. `read_log()`
 reads it back as a tibble with parsed timestamps.

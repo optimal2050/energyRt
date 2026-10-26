@@ -157,7 +157,7 @@ throwaway folder.
 ``` r
 
 scen <- save_scenario(scen, verbose = FALSE)
-#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpaO7oWG/sm-demo/scenarios/BASE-SM-smc'
+#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpUXA5Ko/sm-demo/scenarios/BASE-SM-smc'
 #> Directory size: 0.39 MB
 sort(list.files(scen@path))
 #> [1] "class"        "format"       "layout"       "logfile.csv"  "runs"        
@@ -211,7 +211,7 @@ list_versions("SM", type = "model")
 #> # A tibble: 1 × 7
 #>   status  name  type  version  sealed_at            refs size_mb
 #>   <chr>   <chr> <chr> <chr>    <dttm>              <int>   <dbl>
-#> 1 current SM    model ad6914ee 2026-10-26 22:00:05     0       0
+#> 1 current SM    model ad6914ee 2026-10-26 22:16:24     0       0
 ```
 
 **Only sealed versions are referenced.** A scenario records the model it
@@ -223,7 +223,7 @@ version lists the scenario among its dependents:
 ``` r
 
 scen <- save_scenario(scen, verbose = FALSE)
-#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpaO7oWG/sm-demo/scenarios/BASE-SM-smc'
+#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpUXA5Ko/sm-demo/scenarios/BASE-SM-smc'
 #> Directory size: 0.39 MB
 yaml::read_yaml(file.path(scen@path, "scenario.yml"))$model[c("name", "source")]
 #> $name
@@ -392,7 +392,7 @@ registry and stores in one call.
 ## Variants: several problems in one scenario
 
 A scenario sometimes needs *the same model asked a different question* —
-a sampled calendar, a restricted horizon, a myopic step with
+a sampled calendar, a restricted horizon, a recursive step with
 carried-over capacity. These are **own-problem variants**: named folders
 under `runs/` that carry their *own* interpolated problem, with their
 solves inside.
@@ -403,7 +403,7 @@ scen_low <- interpolate_model(make_mod(c(50, 50, 50)), name = "BASE",
                               overwrite = TRUE) |>
   solve_scenario(solver = solver_options$glpk, echo = FALSE, variant = "low")
 scen_low <- save_scenario(scen_low, verbose = FALSE)
-#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpaO7oWG/sm-demo/scenarios/BASE-SM-smc'
+#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpUXA5Ko/sm-demo/scenarios/BASE-SM-smc'
 #> Directory size: 0.7 MB
 scenario_runs(scen_low)[, c("run", "variant", "modinp", "objective")]
 #> # A tibble: 3 × 4
@@ -429,9 +429,10 @@ just the solution but the whole in-memory *problem* — settings and
 parameters swap together, in both directions — so
 [`getData()`](https://energyRt.org/reference/getData.md) is always
 consistent with the run you are looking at. This is the storage
-substrate for the sequential (myopic) solver:
-[`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md) keeps
-a whole year-by-year sequence as one scenario with one variant per step.
+substrate for the recursive solver:
+[`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md)
+keeps a whole year-by-year sequence as one scenario with one variant per
+step.
 
 #### A solution of its own
 
@@ -523,7 +524,7 @@ lives*:
 | what changed | it is a… | lives at |
 |----|----|----|
 | solver, tolerances, method, threads | **run** | `runs/[<variant>/]<label>/` |
-| the *scope* of the same declarations — a sampled calendar, a region subset or aggregation, a horizon window, a myopic step | **variant** (own problem) | `runs/<variant>/` with its own `modInp` |
+| the *scope* of the same declarations — a sampled calendar, a region subset or aggregation, a horizon window, a recursive step | **variant** (own problem) | `runs/<variant>/` with its own `modInp` |
 | *assumptions or declarations* — a fuel price, a policy cap, a technology’s cost | **scenario** (built on a reference with `base =`) | its own folder |
 
 Two runs of one problem agree on every number going in; anything that

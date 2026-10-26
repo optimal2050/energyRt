@@ -10,7 +10,7 @@ project registry exists; with no sink resolvable nothing is written.
 The operation log is an optional, project-wide record of what ran:
 set_log_file() names a CSV file, and from then on
 interpolate_model(), solve_scenario() (and through it
-solve_model()), and solve_myopic() append one line each —
+solve_model()), and solve_recursive() append one line each —
 timestamp, op, object, status, duration_sec, details. read_log()
 reads it back as a tibble with parsed timestamps.
 Levcost's internal mini-model solves are not logged (their scratch
@@ -26,7 +26,7 @@ project registry exists; with no sink resolvable nothing is written.
 The operation log is an optional, project-wide record of what ran:
 set_log_file() names a CSV file, and from then on
 interpolate_model(), solve_scenario() (and through it
-solve_model()), and solve_myopic() append one line each —
+solve_model()), and solve_recursive() append one line each —
 timestamp, op, object, status, duration_sec, details. read_log()
 reads it back as a tibble with parsed timestamps.
 Levcost's internal mini-model solves are not logged (their scratch
@@ -104,7 +104,7 @@ project registry exists; with no sink resolvable nothing is written.</p>
 <p>The operation log is an optional, project-wide record of what ran:
 <code>set_log_file()</code> names a CSV file, and from then on
 <code><a href="interpolate_model.html">interpolate_model()</a></code>, <code><a href="solve_model.html">solve_scenario()</a></code> (and through it
-<code><a href="solve_model.html">solve_model()</a></code>), and <code><a href="solve_myopic.html">solve_myopic()</a></code> append one line each —
+<code><a href="solve_model.html">solve_model()</a></code>), and <code><a href="solve_recursive.html">solve_recursive()</a></code> append one line each —
 <code>timestamp, op, object, status, duration_sec, details</code>. <code>read_log()</code>
 reads it back as a tibble with parsed timestamps.</p>
 <p>Levcost's internal mini-model solves are not logged (their scratch

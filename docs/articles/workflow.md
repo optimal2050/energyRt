@@ -174,7 +174,7 @@ scenario and model sharing a name appear once):
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpgFGodd/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpsPX55A/wf"
 basename(scen@path)
 #> [1] "BASE-TOPIA-s4_h24-base"
 ```
@@ -205,7 +205,7 @@ records the sequence of a working session:
 `set_log_file("energyRt_log.csv")` makes
 [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md),
 [`solve_scenario()`](https://energyRt.org/reference/solve_model.md) and
-[`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md)
+[`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md)
 append one line each (operation, object, status, objective, duration),
 and [`read_log()`](https://energyRt.org/reference/log.md) returns the
 sequence as a tibble. It is off by default.
@@ -639,6 +639,47 @@ And every sample is **annualised** —
 year*. The ensemble is therefore a set of replicates whose spread is the
 sampling uncertainty; summing them is meaningless, unlike the region
 sweep above, whose disjoint pieces do add up.
+
+### Combining a sequence’s results
+
+Each driver stores one variant per unit of work and nothing merged is
+written to disk. Combination happens in memory, on read, and the rule
+differs by driver because the units mean different things.
+
+[`getData()`](https://energyRt.org/reference/getData.md) on a sequence
+**stacks and does not aggregate**. It binds every unit’s rows and adds a
+provenance column — `region` for
+[`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md),
+`sample` for
+[`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md)
+— so the caller decides what to do with them. Two methods are
+exceptions: [`getData()`](https://energyRt.org/reference/getData.md) on
+a recursive sequence stitches, taking each year from the step that
+decided it, and on a guided sequence it delegates to the final
+full-horizon solve.
+
+``` r
+
+getData(br, "vTechCap", merge = TRUE)   # stacked, with a `region` column
+getData(bs, "vTechCap", merge = TRUE)   # stacked, with a `sample` column
+sample_summary(bs, "vTechCap", by = "tech")
+recursive_objective(rc)
+```
+
+| driver | what a unit is | how results combine |
+|----|----|----|
+| [`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md) | a disjoint piece of the territory | quantities add; objectives sum **only** under `trade = "none"`, which the result reports as `additive` |
+| [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md) | a replicate estimate of the whole year | a distribution — mean and quantiles via [`sample_summary()`](https://energyRt.org/reference/sample_summary.md). **Summing is wrong**, because every sample is already annualised |
+| [`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md) | a milestone window | stitched, each year contributed once. Per-step objectives are not comparable, so [`recursive_objective()`](https://energyRt.org/reference/recursive_objective.md) recomputes a discounted total |
+| [`solve_guided()`](https://energyRt.org/reference/solve_guided.md) | a stage of a ladder | the answer is `$final`; [`guided_gap()`](https://energyRt.org/reference/guided_gap.md) prices the guidance against perfect foresight |
+
+Two things the combination does not do. Regional objectives sum to the
+whole system only in autarky: with transmission the per-region sum
+**exceeds** the full model, and the difference is the network’s value,
+so `additive = TRUE` means “may be summed”, not “equals the full model”.
+And under `trade = "auto"` each region faces an exterior the others
+cannot see — one region’s export and another’s import are independent
+decisions at independently set prices, and nothing reconciles them.
 
 ## See also
 

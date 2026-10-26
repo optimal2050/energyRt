@@ -32,6 +32,29 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 ### New features
 
+- [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md)
+  accepts a saved scenario as its first argument, or an explicit
+  `base =`: the scenario’s model drives the sequence and the scenario
+  becomes the base, so each sample’s interpolated tables are stored as a
+  row filter over it instead of a copy. The base must have its inputs
+  sealed ([`seal_scenario()`](https://energyRt.org/reference/seal.md)),
+  which leaves it solvable, and only tables at or above
+  `energyRt.param_ref_min_rows` qualify. A base that cannot be used
+  falls back to copying and says why.
+
+- `solve_by_sample(ncap_floor =)` solves the ensemble twice: freely,
+  then against a floor of `ncap_floor` times the samples’ own new
+  capacity, so the spread becomes period variation at one plan rather
+  than variation between plans. `ncap_stat` picks the mean or the
+  median. The consensus is taken across all samples, so it does not
+  depend on the order they were solved, and a sample that built nothing
+  counts as a zero rather than being skipped. It is a floor, not a fix:
+  a sample may still build above it, which marks a period the consensus
+  plan cannot serve. The floored solves are stored as `<sample>_f`
+  variants beside the free ones and the free pass stays in
+  `$scenarios_free`; `$runs` gains a `pass` column. `ncap_floor = 0` is
+  the default and changes nothing.
+
 #### Model building
 
 - Three-part storage: charger, reservoir and discharger with their own
@@ -96,7 +119,7 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 #### Solving
 
 - Solve drivers:
-  [`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md),
+  [`solve_myopic()`](https://energyRt.org/reference/solve_myopic.html),
   [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md),
   [`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md)
   and
@@ -317,44 +340,85 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 ### Breaking changes
 
+- [`solve_myopic()`](https://energyRt.org/reference/solve_myopic.html)
+  is renamed
+  **[`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md)**,
+  with
+  [`myopic_objective()`](https://energyRt.org/reference/myopic_objective.html)
+  to
+  [`recursive_objective()`](https://energyRt.org/reference/recursive_objective.md)
+  and the result class from `myopic` to `recursive`. The driver steps
+  through the horizon’s milestones carrying capacity forward, which is
+  recursive dynamic; it is only *myopic* in its default special case
+  (`step = 1`, `overlap = 0`), since `overlap` gives a step look-ahead
+  and `step > 1` solves several milestones jointly. There are no
+  aliases.
+
+  Sequences already on disk are unaffected: `variant.yml` now records
+  `type: recursive_step`, and
+  [`read_sequence()`](https://energyRt.org/reference/read_sequence.md)
+  reads the older `myopic_step` as the same driver.
+
 - `slice` is `timeslice`, and a `calendar` is required; the `tsl2*()`
   helpers moved to timescales.
+
 - Storage: `vStorageStore` is `vStorageLevel`; `@cap2stg`, `@charge` and
   `@inflow` are refused (use `@duration`, `@startLevel` or a `supply`);
   flows are bounded by converter capacity (`inp.af.up` / `out.af.up`
   default to 1).
+
 - `technology@aeff` no longer takes `stg2ainp`, `stg2aout`, `sinp2ainp`,
   `sinp2aout`, `sout2ainp` or `sout2aout`; they were never read for a
   technology. A storage’s own `@aeff` keeps its couplings.
+
 - `@start`, `@end` and `@olife` are merged into `@vintage`; vintage and
   cluster labels must be declared.
+
 - `@geolevel` is `@geoframe`, and a model carries a `Geoscale`.
+
 - Taxes and subsidies are indexed by instrument; `newConstraintS()` and
   `newSub()` are removed.
+
 - Storage auxiliary couplings are part-prefixed (`inp.cap2ainp`, …).
+
 - The first argument is `object` in 66 functions; the scenario API is
   verb-first
   ([`save_scenario()`](https://energyRt.org/reference/save_scenario.md),
   [`load_scenario()`](https://energyRt.org/reference/load_scenario.md),
   …) with `en_registry`; 46 helpers are no longer exported; the 0.5-era
   deprecations are removed.
+
 - The Julia and Python backends exchange Arrow files (`Arrow.jl`,
   `pyarrow`); `arrow_format` is split into `storage_format` and
   `exchange_format`.
+
 - UTOPIA is TOPIA (regions `W1`/`W2`, `C1`-`C6`, `E1`-`E3`); the test
   tier `nightly` is `full`.
+
 - The cloud presets are renamed: `mmcloud` is `mm_cuopt_cloud`,
   `mmcloud_crossover` is `mm_cuopt_cloud_crossover`, `mmcloud_pyomo` is
   `pyomo_cuopt_cloud`, `mmcloud_pyomo_crossover` is
   `pyomo_cuopt_cloud_crossover`; a solve with a former name stops and
   names its replacement. `mm_engine` is replaced by `mm_solver` and
   `where`; settings stored by earlier versions are still read.
+
 - `get_hf_token()` and `set_hf_token()` are removed: use
   [`mmcloud::get_hf_token()`](https://rdrr.io/pkg/mmcloud/man/hf_token.html)
   and
   [`mmcloud::set_hf_token()`](https://rdrr.io/pkg/mmcloud/man/hf_token.html).
 
 ### Bug fixes
+
+- `interpolate_model(base =)` refused every base when the caller also
+  passed `path =`. The base is dispatched before the control arguments
+  are read out of `...`, so `path` reached the addition check and was
+  reported as “an object of class character is added; interpolating in
+  full.” Every solve driver passes `path`, so none of them could build
+  on a base, and because the refusal is a message it was invisible
+  behind their
+  [`suppressMessages()`](https://rdrr.io/r/base/message.html). An
+  argument now counts as a model addition only if it is an energyRt
+  object.
 
 - A reloaded
   [`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md)

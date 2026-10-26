@@ -55,29 +55,29 @@ report_templates()
 #> 22      trade      trade               Trade
 #> 23    vehicle    process                <NA>
 #> 24    weather    weather             Weather
-#>                                                                                                                    path
-#> 1          C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_calendar.Rmd
-#> 2         C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_commodity.Rmd
-#> 3            C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_config.Rmd
-#> 4        C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_constraint.Rmd
-#> 5             C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_costs.Rmd
-#> 6            C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_demand.Rmd
-#> 7            C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_export.Rmd
-#> 8           C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_generic.Rmd
-#> 9           C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_horizon.Rmd
-#> 10           C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_import.Rmd
-#> 11            C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_model.Rmd
-#> 12       C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_model_full.Rmd
-#> 13    C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_model_summary.Rmd
-#> 14         C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_scenario.Rmd
-#> 15    C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_scenario_full.Rmd
-#> 16 C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_scenario_summary.Rmd
-#> 17        C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_scenarios.Rmd
-#> 18          C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_subsidy.Rmd
-#> 19          C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_summary.Rmd
-#> 20           C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_supply.Rmd
-#> 21              C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_tax.Rmd
-#> 22            C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_trade.Rmd
-#> 23          C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_vehicle.Rmd
-#> 24          C:/Users/admin/AppData/Local/Temp/RtmpushJ02/temp_libpathca342b697fdb/energyRt/templates/report_weather.Rmd
+#>                                                                                             path
+#> 1          C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_calendar.Rmd
+#> 2         C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_commodity.Rmd
+#> 3            C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_config.Rmd
+#> 4        C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_constraint.Rmd
+#> 5             C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_costs.Rmd
+#> 6            C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_demand.Rmd
+#> 7            C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_export.Rmd
+#> 8           C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_generic.Rmd
+#> 9           C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_horizon.Rmd
+#> 10           C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_import.Rmd
+#> 11            C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_model.Rmd
+#> 12       C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_model_full.Rmd
+#> 13    C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_model_summary.Rmd
+#> 14         C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_scenario.Rmd
+#> 15    C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_scenario_full.Rmd
+#> 16 C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_scenario_summary.Rmd
+#> 17        C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_scenarios.Rmd
+#> 18          C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_subsidy.Rmd
+#> 19          C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_summary.Rmd
+#> 20           C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_supply.Rmd
+#> 21              C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_tax.Rmd
+#> 22            C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_trade.Rmd
+#> 23          C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_vehicle.Rmd
+#> 24          C:/Users/admin/AppData/Local/R/win-library/4.6/energyRt/templates/report_weather.Rmd
 ```

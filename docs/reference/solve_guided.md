@@ -2,7 +2,7 @@
 
 Reaches a full-horizon solution by solving cheap endpoint problems first
 and using their capacity as targets for the expensive full solve. Unlike
-[`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md),
+[`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md),
 every subproblem sees the horizon's last milestone, so the transition is
 disciplined by where it must arrive rather than by local optimality —
 and the final stage is one ordinary full-horizon solve, whose objective
@@ -137,7 +137,7 @@ the solved variable is already an annual rate.
 
 ## See also
 
-[`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md),
+[`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md),
 [`apply_targets()`](https://energyRt.org/reference/apply_targets.md),
 [`guided_gap()`](https://energyRt.org/reference/guided_gap.md)
 

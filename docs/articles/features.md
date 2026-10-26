@@ -255,13 +255,13 @@ The model definition does not change between them.
   ([`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md),
   [`write_script()`](https://energyRt.org/reference/write.md),
   [`read_solution()`](https://energyRt.org/reference/read.md)).
-- [`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md) —
-  window by window with limited foresight, built on an exported solution
-  ledger
+- [`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md)
+  — milestone by milestone with limited foresight, on an exported
+  solution ledger
   ([`solution_ledger()`](https://energyRt.org/reference/solution_ledger.md),
   [`apply_ledger()`](https://energyRt.org/reference/apply_ledger.md),
   [`horizon_windows()`](https://energyRt.org/reference/horizon_windows.md),
-  [`myopic_objective()`](https://energyRt.org/reference/myopic_objective.md)).
+  [`recursive_objective()`](https://energyRt.org/reference/recursive_objective.md)).
 - [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md)
   — one solve per sampled calendar
   ([`calendar_samples()`](https://energyRt.org/reference/calendar_samples.md),

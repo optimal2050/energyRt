@@ -58,4 +58,4 @@ a model object.
 ## See also
 
 [`solution_ledger()`](https://energyRt.org/reference/solution_ledger.md),
-[`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md)
+[`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md)

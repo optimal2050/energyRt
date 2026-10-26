@@ -117,94 +117,93 @@ newSubsidy(
 
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  : character. Region name to apply the parameter, NA for every region.
 
   year
 
-  :   integer. Year to apply the parameter, NA for every year.
+  : integer. Year to apply the parameter, NA for every year.
 
   timeslice
 
-  :   character. Time timeslice to apply the parameter, NA for every
-      timeslice.
+  : character. Time timeslice to apply the parameter, NA for every
+    timeslice.
 
   process
 
-  :   character. Process name to apply the parameter to, NA for every
-      selected process.
+  : character. Process name to apply the parameter to, NA for every
+    selected process.
 
   comm
 
-  :   character. Commodity to apply the parameter to, NA for every
-      selected commodity.
+  : character. Commodity to apply the parameter to, NA for every
+    selected commodity.
 
   inp
 
-  :   numeric. Per unit of commodity consumed. Without a process filter
-      this is the commodity total over every process; with one it is
-      that process's own input.
+  : numeric. Per unit of commodity consumed. Without a process filter
+    this is the commodity total over every process; with one it is that
+    process's own input.
 
   out
 
-  :   numeric. Per unit of commodity produced. Without a process filter
-      this is the commodity total over every process; with one it is
-      that process's own output.
+  : numeric. Per unit of commodity produced. Without a process filter
+    this is the commodity total over every process; with one it is that
+    process's own output.
 
   bal
 
-  :   numeric. Per unit of commodity balance (production - consumption).
-      Commodity level only: the balance belongs to no single process, so
-      `bal` cannot be combined with a process filter.
+  : numeric. Per unit of commodity balance (production - consumption).
+    Commodity level only: the balance belongs to no single process, so
+    `bal` cannot be combined with a process filter.
 
   act
 
-  :   numeric. Per unit of process activity.
+  : numeric. Per unit of process activity.
 
   cap
 
-  :   numeric. Technologies and trades: per unit of installed capacity,
-      charged in every year the capacity stands; a trade in each region
-      the levy is placed in. A storage's capacity is levied by part,
-      with `stg.cap`, `inp.cap` or `out.cap`.
+  : numeric. Technologies and trades: per unit of installed capacity,
+    charged in every year the capacity stands; a trade in each region
+    the levy is placed in. A storage's capacity is levied by part, with
+    `stg.cap`, `inp.cap` or `out.cap`.
 
   ncap
 
-  :   numeric. Per unit of capacity added in a period, charged once at
-      commissioning rather than annualised. Technologies and trades; for
-      a storage use `stg.ncap`, `inp.ncap` or `out.ncap`.
+  : numeric. Per unit of capacity added in a period, charged once at
+    commissioning rather than annualised. Technologies and trades; for a
+    storage use `stg.ncap`, `inp.ncap` or `out.ncap`.
 
   stg.cap
 
-  :   numeric. Storages only: per unit of reservoir capacity, in every
-      year it stands.
+  : numeric. Storages only: per unit of reservoir capacity, in every
+    year it stands.
 
   stg.ncap
 
-  :   numeric. Storages only: per unit of new reservoir capacity.
+  : numeric. Storages only: per unit of new reservoir capacity.
 
   inp.cap
 
-  :   numeric. Storages only: per unit of charger capacity, in every
-      year it stands. A storage without a charger is not charged.
+  : numeric. Storages only: per unit of charger capacity, in every year
+    it stands. A storage without a charger is not charged.
 
   inp.ncap
 
-  :   numeric. Storages only: per unit of new charger capacity.
+  : numeric. Storages only: per unit of new charger capacity.
 
   out.cap
 
-  :   numeric. Storages only: per unit of discharger capacity, in every
-      year it stands. A storage without a discharger is not charged.
+  : numeric. Storages only: per unit of discharger capacity, in every
+    year it stands. A storage without a discharger is not charged.
 
   out.ncap
 
-  :   numeric. Storages only: per unit of new discharger capacity.
+  : numeric. Storages only: per unit of new discharger capacity.
 
   rate
 
-  :   numeric. Per unit of the variable named in `variable`. Used only
-      with the escape hatch.
+  : numeric. Per unit of the variable named in `variable`. Used only
+    with the escape hatch.
 
 - misc:
 

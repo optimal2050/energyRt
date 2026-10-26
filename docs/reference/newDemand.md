@@ -49,26 +49,25 @@ update(object, ...)
 
   region
 
-  :   character. Name of region for the demand value. NA for every
-      region.
+  : character. Name of region for the demand value. NA for every region.
 
   year
 
-  :   integer. Year of the demand. NA for every year.
+  : integer. Year of the demand. NA for every year.
 
   timeslice
 
-  :   character. Name of the timeslice for the demand value. NA for
-      every timeslice.
+  : character. Name of the timeslice for the demand value. NA for every
+    timeslice.
 
   demand
 
-  :   numeric. Value of the demand.
+  : numeric. Value of the demand.
 
   cluster
 
-  :   character. Cluster label of the row (see `@cluster`), NA for the
-      whole demand.
+  : character. Cluster label of the row (see `@cluster`), NA for the
+    whole demand.
 
 - cluster:
 
@@ -96,28 +95,27 @@ update(object, ...)
 
   cluster
 
-  :   character. Cluster label, referenced by the `cluster` column of
-      `@demand`.
+  : character. Cluster label, referenced by the `cluster` column of
+    `@demand`.
 
   desc
 
-  :   character. Optional description of the share.
+  : character. Optional description of the share.
 
   region
 
-  :   character. The finer region this share lands in. Required – it is
-      where the share of the demand goes.
+  : character. The finer region this share lands in. Required – it is
+    where the share of the demand goes.
 
   dem.share.fx
 
-  :   numeric. This cluster's fixed fraction of the object's total
-      demand. Must be positive, and the shares of one object must sum to
-      1.
+  : numeric. This cluster's fixed fraction of the object's total demand.
+    Must be positive, and the shares of one object must sum to 1.
 
   order
 
-  :   integer. Optional ordering for reporting. Without it labels sort
-      alphabetically and "R10" would precede "R2".
+  : integer. Optional ordering for reporting. Without it labels sort
+    alphabetically and "R10" would precede "R2".
 
 - geoframe:
 

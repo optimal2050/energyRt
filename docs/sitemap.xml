@@ -244,6 +244,7 @@
 <url><loc>https://energyRt.org/reference/read_technology_xlsx.html</loc></url>
 <url><loc>https://energyRt.org/reference/recipe_closure.html</loc></url>
 <url><loc>https://energyRt.org/reference/recipe_constraint.html</loc></url>
+<url><loc>https://energyRt.org/reference/recursive_objective.html</loc></url>
 <url><loc>https://energyRt.org/reference/register_weather_transform.html</loc></url>
 <url><loc>https://energyRt.org/reference/registry.html</loc></url>
 <url><loc>https://energyRt.org/reference/registry_file.html</loc></url>
@@ -278,6 +279,7 @@
 <url><loc>https://energyRt.org/reference/solve_guided.html</loc></url>
 <url><loc>https://energyRt.org/reference/solve_model.html</loc></url>
 <url><loc>https://energyRt.org/reference/solve_myopic.html</loc></url>
+<url><loc>https://energyRt.org/reference/solve_recursive.html</loc></url>
 <url><loc>https://energyRt.org/reference/split_bounds_parameter_data.html</loc></url>
 <url><loc>https://energyRt.org/reference/storage.html</loc></url>
 <url><loc>https://energyRt.org/reference/storage_duration.html</loc></url>

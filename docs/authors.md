@@ -5,7 +5,7 @@
 - **Oleg Lugovoy**. Author, maintainer.
   [](https://orcid.org/0000-0001-5546-9875)
 
-- **Vladimir Potashnikov**. Author.  
+- **Vladimir Potashnikov**. Author.\
   contributed 2016-2022
 
 - **Tarun Sharma**. Contributor.

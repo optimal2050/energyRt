@@ -39,7 +39,7 @@ a `carry_ledger` object.
 ## See also
 
 [`apply_ledger()`](https://energyRt.org/reference/apply_ledger.md),
-[`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md)
+[`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md)
 
 ## Examples
 
@@ -60,7 +60,7 @@ scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
 led <- solution_ledger(scen)
 names(led)
 
-# the accumulated ledger is what `solve_myopic()` writes into the next
+# the accumulated ledger is what `solve_recursive()` writes into the next
 # step's model
 led$steps
 } # }
