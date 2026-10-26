@@ -504,7 +504,9 @@ unfold_parameter <- function(param, member_sets = list(), value_col = "value") {
       data[[dim]] <- as.character(data[[dim]])
     }
 
-    is_wild <- is.na(data[[dim]]) | is_any(data[[dim]])
+    # tested on the unique values: a column has few of them
+    u <- unique(data[[dim]])
+    is_wild <- is_any(u)[match(data[[dim]], u)]
     if (!any(is_wild)) next
 
     expl <- data[!is_wild, , drop = FALSE]
@@ -516,7 +518,7 @@ unfold_parameter <- function(param, member_sets = list(), value_col = "value") {
     # pass) cannot join: project the membership over the remaining keys, the
     # union across the wild key.
     wild_keys <- shared[vapply(shared, function(k) {
-      all(is.na(data[[k]]) | is_any(data[[k]]))
+      all(is_any(unique(data[[k]])))
     }, logical(1))]
     if (length(wild_keys)) {
       shared <- setdiff(shared, wild_keys)
@@ -550,11 +552,17 @@ unfold_parameter <- function(param, member_sets = list(), value_col = "value") {
     # Explicit rows win: drop expanded rows already specified explicitly.
     if (nrow(expl) > 0) {
       key_cols <- setdiff(names(data), value_col)
-      exp <- dplyr::anti_join(exp, expl, by = key_cols)
+      # only explicit rows sharing the expansion's key values can match it
+      cand <- expl
+      for (k in key_cols) {
+        if (nrow(cand) <= 1e4) break
+        cand <- cand[cand[[k]] %in% unique(exp[[k]]), , drop = FALSE]
+      }
+      if (nrow(cand) > 0) exp <- dplyr::anti_join(exp, cand, by = key_cols)
     }
 
-    data <- dplyr::bind_rows(expl, exp)
-    data <- as.data.frame(data)[, names(expl), drop = FALSE]
+    data <- as.data.frame(data.table::rbindlist(
+      list(expl, exp[, names(expl), drop = FALSE]), use.names = TRUE))
   }
 
   data
@@ -634,14 +642,15 @@ unfold_parameters <- function(scen, dims = .foldable_dims,
     if (!(as.character(p@type) %in% types)) next
     data <- get_data_slot(p)
     if (is.null(data) || nrow(data) == 0) next
-    data <- as.data.frame(data)
-    # Only act when a trimmable dimension actually carries a wildcard (NA / ANY).
+    # Only act when a trimmable dimension actually carries a wildcard (NA / ANY),
+    # checked on the columns in place: most tables carry none
     wild_dims <- intersect(dims, names(data))
     has_wild <- any(vapply(wild_dims, function(d) {
-      x <- unique(data[[d]])
-      any(is.na(x) | is_any(x))
+      x <- data[[d]]
+      anyNA(x) || any(is_any(unique(x), na = FALSE))
     }, logical(1)))
     if (!has_wild) next
+    data <- as.data.frame(data)
     ms <- .fold_member_sets(scen, data, dims = dims, pname = pn)
     if (length(ms) == 0) next
     before <- nrow(data)

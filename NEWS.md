@@ -259,6 +259,9 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   too, i.e. the roll-up of their sub-regions a second time. A commodity rate
   now applies at the commodity's own regions and a process rate at the regions
   the process is declared in; a region off that level is an error.
+* Auxiliary flows (`aeff`) of a process were lost when it gave the coefficient
+  for all timeslices and another process gave the same coefficient for named
+  timeslices.
 * Capacity taxes and subsidies on a storage charged nothing unless it had
   discharger data. They are now levied by part (see above); a levy that
   selects storages and sets only `cap`/`ncap` is an error.

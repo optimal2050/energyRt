@@ -8,7 +8,9 @@
 #' and validates the result. The returned scenario is ready for [solve_model()] /
 #' [solve_scenario()].
 #'
-#' @param object a [model] object, or a [scenario] (its `@model` is re-interpolated).
+#' @param object a [model] object, or an interpolated [scenario], which is then
+#'   the `base` (see below). A scenario that cannot serve as a base is
+#'   re-interpolated from its `@model` and `@settings`.
 #' @param object as `mod`, for the method dispatched on a scenario.
 #' @param kvl logical or `NULL`; build the Kirchhoff voltage-law cycle
 #'   constraints for meshed trade networks. `NULL` (default) engages them when
@@ -110,15 +112,15 @@
 #'   Off by default because it is not obviously safe: anything deriving a
 #'   relation from the full declared grid rather than from the calendar would
 #'   see a narrower input. Compare objectives before relying on it.
-#' @param base optional interpolated [scenario] to build on. When every object
-#'   in `...` is a `constraint`, `costs`, `tax` or `subsidy` new to the model,
-#'   the result is the base plus what those objects add: the base's tables are
+#' @param base optional interpolated [scenario] to build on. The objects in
+#'   `...` must be new to the model: constraints, costs, taxes and subsidies,
+#'   new processes and commodities, or a `calendar` / geoscale that samples the
+#'   base's. The result is the base plus what they add: the base's tables are
 #'   reused, nothing is written into its store, and the result equals a full
 #'   interpolation of the model with the base's additions and the new ones. The
 #'   base's `fold`, `sparse` and `prune` settings apply. Otherwise (another
-#'   model, a new process or commodity, a replaced object, settings, calendar,
-#'   horizon or geoscale objects) a message says why and the model is
-#'   interpolated in full. `object` may be the base itself.
+#'   model, a replaced object, settings or horizon objects) a message says why
+#'   and the model is interpolated in full. `object` may be the base itself.
 #'
 #'   New processes, commodities and other model objects are built on the base
 #'   too: the per-object tables of the objects the base already holds are
@@ -193,6 +195,12 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   .mi_prev <- getOption("energyRt.on_missing_input", "stop")
   options(energyRt.on_missing_input = on_missing_input)
   on.exit(options(energyRt.on_missing_input = .mi_prev), add = TRUE)
+  # An interpolated scenario is its own base: its tables are reused and what
+  # `...` adds is built on them.
+  if (is.null(base) && inherits(object, "scenario") &&
+      isTRUE(object@status$interpolated)) {
+    base <- object
+  }
   # A derived scenario: the base plus what the new objects add (below).
   if (!is.null(base)) {
     .derived <- .interpolate_from_base(object, base, name = name, args = list(...),
@@ -202,8 +210,12 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
                                        boundary_prices = boundary_prices)
     if (!is.null(.derived)) return(.derived)
   }
-  # Accept a scenario (re-interpolate its model), matching the legacy interface.
-  if (inherits(object, "scenario")) object <- object@model
+  # A scenario re-interpolates its model with its settings (calendar, horizon)
+  .scen_settings <- NULL
+  if (inherits(object, "scenario")) {
+    .scen_settings <- object@settings
+    object <- object@model
+  }
   # the model as given, so a later `base = ` call can tell it is the same one
   .model_id <- list(name = object@name, hash = .model_identity(object))
   # A model loaded from the store keeps its large slots on disk (thinned).
@@ -280,6 +292,10 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
 
   # !!! ... process arguments, add settings, ...
   args <- list(...)
+  if (!is.null(.scen_settings) &&
+      !any(vapply(args, function(x) inherits(x, "settings"), logical(1)))) {
+    args <- c(list(.scen_settings), args)
+  }
 
   # Scenario folder: an explicit `path` wins; otherwise a "smart" folder name
   # {scenario}_{model}_{calendar}_{horizon} (from the model's own
@@ -847,6 +863,9 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # reachability. Formerly built inline here (archived: drafts/legacy-mapping/).
   .interp_step(verbose, "building maps: membership + closure")
   scen <- build_mappings(scen, fmp = fmp, recipes = c("membership", "closure"))
+  # on a base with the same closure, its maps keyed by a process are reused
+  .b2 <- if (!is.null(.reuse)) .b2_start(scen, .reuse)
+  if (!is.null(.b2)) scen@misc$base_maps <- "reused"
 
   ## mWeatherRegion ####
   # map weather to regions !!! ToDo: finish
@@ -1042,7 +1061,11 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   #   Built after interpolation because they project the (interpolated) cost /
   #   value parameters onto their lifespan windows.
   .interp_step(verbose, "building maps: value")
-  scen <- build_mappings(scen, fmp = fmp, recipes = "value")
+  scen <- if (is.null(.b2)) {
+    build_mappings(scen, fmp = fmp, recipes = "value")
+  } else {
+    .b2_build(scen, .reuse, .b2, "value", fmp)
+  }
 
   # A process declared in a region where a commodity it requires is unavailable
   # must not keep its activity domain: the per-commodity domains below would
@@ -1058,7 +1081,11 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   #   membership commodity maps, the per-object timeslice maps and the commodity-
   #   region closure (and reuse mSupSpan from the value recipe).
   .interp_step(verbose, "building maps: filter")
-  scen <- build_mappings(scen, fmp = fmp, recipes = "filter")
+  scen <- if (is.null(.b2)) {
+    build_mappings(scen, fmp = fmp, recipes = "filter")
+  } else {
+    .b2_build(scen, .reuse, .b2, "filter", fmp)
+  }
 
   #============================================================================#
   # storage@startLevel ####
@@ -1072,7 +1099,9 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   #   once per LEVEL (a DAY row and an HOUR row) instead of once per storage.
   scen <- place_start_level(scen)
   # placed already in the base
-  if (!is.null(.reuse)) scen <- .reuse_rows(scen, .reuse, only = "pStorageStartLevel")
+  if (!is.null(.reuse)) {
+    scen <- .reuse_rows(scen, .reuse, only = "pStorageStartLevel")
+  }
 
   #============================================================================#
   # Constraint / equation-domain mapping parameters ####
@@ -1085,7 +1114,11 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # step reads the table directly: the dense path and the fold read the maps
   # (R/mapping-builders.R, .tech_af_fx_maps)
   scen@misc$cells_maps <- isTRUE(sparse) && length(fold_dims) == 0
-  scen <- build_mappings(scen, fmp = fmp, recipes = "constraint")
+  scen <- if (is.null(.b2)) {
+    build_mappings(scen, fmp = fmp, recipes = "constraint")
+  } else {
+    .b2_build(scen, .reuse, .b2, "constraint", fmp)
+  }
   scen@misc$cells_maps <- NULL
   .check_storage_parts(scen)
 
@@ -5439,6 +5472,17 @@ setMethod("interpolate", signature(object = "scenario"),
     # an empty set keeps no row (an empty filter would keep them all)
     keep[[k]] <- if (length(m)) m else ""
   }
+  # a key that keeps every member of the base filters nothing
+  have <- list(timeslice = as.character(base@modInp@sets$timeslice),
+               region = as.character(.known_regions(base)))
+  have$timeslicep <- have$timeslice
+  have$regionp <- have$src <- have$dst <- have$region
+  for (k in setdiff(names(keep), names(have))) {
+    have[[k]] <- as.character(base@modInp@sets[[k]])
+  }
+  for (k in names(keep)) {
+    if (all(stats::na.omit(have[[k]]) %in% keep[[k]])) keep[[k]] <- NULL
+  }
   pn_all <- names(base@modInp@parameters)
   pn_all <- if (is.null(only)) setdiff(pn_all, exclude) else intersect(pn_all, only)
   folded <- length(base@status$folded %||% character()) > 0
@@ -5448,9 +5492,9 @@ setMethod("interpolate", signature(object = "scenario"),
     if (is.null(p)) next
     # maps the per-object step writes itself join as a union
     if (pn %in% .constraint_maps_built_elsewhere) {
-      d <- dplyr::distinct(dplyr::bind_rows(
-        as.data.frame(get_data_slot(p)),
-        .en_apply_filter(as.data.frame(get_data_slot(bp)), keep, keep_na = TRUE)))
+      bd <- as.data.frame(get_data_slot(bp))
+      if (length(keep)) bd <- .en_apply_filter(bd, keep, keep_na = TRUE)
+      d <- dplyr::distinct(dplyr::bind_rows(as.data.frame(get_data_slot(p)), bd))
       p@data <- .empty_param_data(p)
       scen@modInp@parameters[[pn]] <- d2p(p, d[, colnames(p@data), drop = FALSE], NULL)
       next
@@ -5463,12 +5507,160 @@ setMethod("interpolate", signature(object = "scenario"),
       get_data_slot(bp)
     }
     if (!NROW(d)) next
-    d <- .en_apply_filter(as.data.frame(d), keep, keep_na = TRUE)
-    if (!NROW(d)) next
+    d <- as.data.frame(d)
+    if (length(keep)) {
+      d <- .en_apply_filter(d, keep, keep_na = TRUE)
+      if (!NROW(d)) next
+    }
     d <- d[, colnames(p@data), drop = FALSE]
     scen@modInp@parameters[[pn]] <- d2p(p, d, NULL)
   }
   scen
+}
+
+# -- the maps of new processes on a base ----------------------------------------
+# A map keyed by a process holds one block of rows per process, built from that
+# process's own tables and the commodity-region closure. When the closure is
+# the base's, the base's blocks stand and only the new processes' are built.
+# Off by default (`options(energyRt.base_maps = TRUE)`): the maps the base
+# keeps as rules are rebuilt in full anyway, and on a one-country full-year
+# model the reuse does not pay for the cut of the tables.
+
+.b2_proc_dims <- c("tech", "stg", "sup", "trade", "imp", "expp", "dem")
+
+# The new processes by class, or NULL when the base's maps cannot be reused:
+# a folded base, a sample, or another closure.
+.b2_start <- function(scen, base) {
+  if (!isTRUE(getOption("energyRt.base_maps", FALSE))) return(NULL)
+  if (length(base@status$folded %||% character())) return(NULL)
+  if (!setequal(as.character(scen@modInp@sets$timeslice),
+                as.character(base@modInp@sets$timeslice)) ||
+      !setequal(as.character(.known_regions(scen)),
+                as.character(.known_regions(base)))) {
+    return(NULL)
+  }
+  cr <- function(x) {
+    d <- data.table::as.data.table(get_data_slot(x@modInp@parameters$mCommReg))
+    unique(d[, c("comm", "region"), with = FALSE])
+  }
+  if (!isTRUE(data.table::fsetequal(cr(scen), cr(base)))) return(NULL)
+  new <- lapply(.b2_proc_dims, function(k) {
+    setdiff(as.character(scen@modInp@sets[[k]]), as.character(base@modInp@sets[[k]]))
+  })
+  names(new) <- .b2_proc_dims
+  gone <- unlist(lapply(.b2_proc_dims, function(k) {
+    setdiff(as.character(base@modInp@sets[[k]]), as.character(scen@modInp@sets[[k]]))
+  }))
+  if (length(gone)) return(NULL)
+  list(new = new)
+}
+
+# The maps a recipe's builders write: the filter builders also write the value
+# and constraint maps that share their derivation.
+.b2_recipe_maps <- function(recipe) {
+  nms <- mappings_by_recipe(load_mapping_spec())[[recipe]]
+  switch(recipe,
+    value = setdiff(nms, .value_maps_built_in_filter),
+    filter = union(nms, c(.value_maps_built_in_filter,
+                          .constraint_maps_built_in_filter)),
+    constraint = setdiff(nms, .constraint_maps_built_in_filter),
+    nms)
+}
+
+# Maps one builder writes together: reused together or built together.
+.b2_groups <- list(c("meqTechAfLo", "meqTechAfUp", "meqTechAfFx"))
+
+# The maps of a recipe keyed by a process whose base table can be reused.
+.b2_proc_maps <- function(base, recipe) {
+  spec <- load_mapping_spec()
+  nms <- .b2_recipe_maps(recipe)
+  ok <- function(m) {
+    bp <- base@modInp@parameters[[m]]
+    !is.null(bp) && is.null(bp@misc$rule) &&
+      any(spec[[m]]$dims %in% .b2_proc_dims) &&
+      !(m %in% .constraint_maps_built_elsewhere)
+  }
+  pm <- nms[vapply(nms, ok, logical(1))]
+  for (g in .b2_groups) {
+    if (any(g %in% pm) && !all(vapply(g, ok, logical(1)))) pm <- setdiff(pm, g)
+  }
+  pm
+}
+
+# The scenario cut to the new processes: every table keyed by a process keeps
+# their rows only.
+.b2_sandbox <- function(scen, new) {
+  keep <- lapply(new, function(v) if (length(v)) v else "")
+  for (k in names(keep)) scen@modInp@sets[[k]] <- new[[k]]
+  for (pn in names(scen@modInp@parameters)) {
+    p <- scen@modInp@parameters[[pn]]
+    by <- intersect(names(keep), colnames(p@data))
+    if (!length(by)) next
+    d <- get_data_slot(p)
+    if (!NROW(d)) next
+    d <- .en_apply_filter(as.data.frame(d), keep[by], keep_na = TRUE)
+    p@data <- .empty_param_data(p)
+    scen@modInp@parameters[[pn]] <- if (NROW(d)) {
+      d2p(p, d[, colnames(p@data), drop = FALSE], NULL)
+    } else {
+      p
+    }
+  }
+  scen
+}
+
+# One recipe on a base: the base's blocks plus the new processes', and the maps
+# not keyed by a process in full. `options(energyRt.base_maps_verify = TRUE)`
+# also builds the recipe in full and stops on a difference.
+.b2_build <- function(scen, base, b2, recipe, fmp) {
+  pm <- .b2_proc_maps(base, recipe)
+  full <- if (isTRUE(getOption("energyRt.base_maps_verify", FALSE))) {
+    build_mappings(scen, fmp = fmp, recipes = recipe)
+  }
+  if (length(pm)) {
+    # the sandbox builds every map of the recipe keyed by a process, the ones
+    # the base keeps as rules too: the others are built from them
+    spec <- load_mapping_spec()
+    sm <- Filter(function(m) any(spec[[m]]$dims %in% .b2_proc_dims),
+                 .b2_recipe_maps(recipe))
+    sb <- build_mappings(.b2_sandbox(scen, b2$new), fmp = fmp, recipes = recipe,
+                         maps = sm)
+    for (m in pm) {
+      p <- scen@modInp@parameters[[m]]
+      cols <- colnames(p@data)
+      d <- data.table::rbindlist(list(
+        data.table::as.data.table(get_data_slot(base@modInp@parameters[[m]]))[, cols, with = FALSE],
+        data.table::as.data.table(get_data_slot(sb@modInp@parameters[[m]]))[, cols, with = FALSE]),
+        use.names = TRUE)
+      d <- unique(d)
+      p@data <- .empty_param_data(p)
+      scen@modInp@parameters[[m]] <- if (nrow(d)) d2p(p, as.data.frame(d), NULL) else p
+    }
+  }
+  rest <- setdiff(.b2_recipe_maps(recipe), pm)
+  if (length(rest)) scen <- build_mappings(scen, fmp = fmp, recipes = recipe, maps = rest)
+  if (!is.null(full)) .b2_verify(scen, full, .b2_recipe_maps(recipe))
+  scen
+}
+
+.b2_verify <- function(scen, full, maps) {
+  bad <- character()
+  for (m in maps) {
+    a <- scen@modInp@parameters[[m]]
+    b <- full@modInp@parameters[[m]]
+    if (is.null(a) || is.null(b)) next
+    da <- unique(data.table::as.data.table(get_data_slot(a)))
+    db <- unique(data.table::as.data.table(get_data_slot(b)))
+    if (nrow(da) != nrow(db) ||
+        (nrow(da) && !isTRUE(data.table::fsetequal(da, db[, colnames(da), with = FALSE])))) {
+      bad <- c(bad, sprintf("%s (%d vs %d rows)", m, nrow(da), nrow(db)))
+    }
+  }
+  if (length(bad)) {
+    stop("base maps differ from a full build: ", paste(bad, collapse = ", "),
+         call. = FALSE)
+  }
+  invisible(TRUE)
 }
 
 # The base's model as given plus the new objects, through the whole pipeline

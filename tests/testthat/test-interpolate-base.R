@@ -73,6 +73,19 @@ test_that("the base passed as `object` is its own model", {
   expect_equal(sum(ci$summary$status != "identical"), 0)
 })
 
+test_that("an interpolated scenario passed as `object` is the base", {
+  mod <- ut_build("R1", "s4_h24")
+  ref <- .ib_quiet(interpolate_model(mod, .ib_ref_add(), name = "REF",
+                                     verbose = FALSE))
+  der <- .ib_quiet(do.call(interpolate_model,
+    c(list(ref), .ib_new(), list(name = "CAP", verbose = FALSE))))
+  expect_identical(der@misc$base$name, "REF")
+  full <- .ib_quiet(do.call(interpolate_model,
+    c(list(mod, .ib_ref_add()), .ib_new(), list(name = "CAP", verbose = FALSE))))
+  ci <- compare_inputs(der, full)
+  expect_equal(sum(ci$summary$status != "identical"), 0)
+})
+
 test_that("anything beyond the supported additions is interpolated in full", {
   mod <- ut_build("R1", "s4_h24")
   ref <- .ib_quiet(interpolate_model(mod, .ib_ref_add(), name = "REF",
@@ -185,6 +198,23 @@ test_that("new processes and commodities on a base equal the full interpolation"
     expect_identical(der@misc$base$name, "REF")
     expect_true("EGAS2" %in% as.character(der@modInp@sets$tech))
   }
+})
+
+test_that("new processes on existing commodities reuse the base's maps", {
+  skip_if_tier_below("fast")
+  mod <- ut_build("R3", "s4_h24")
+  new <- .ib_build_new(topia$modules$electricity$R3$repo)[1:2]
+  ref <- .ib_quiet(interpolate_model(mod, .ib_ref_add(), name = "REF",
+                                     verbose = FALSE))
+  full <- .ib_quiet(do.call(interpolate_model,
+    c(list(mod, .ib_ref_add()), new, list(name = "CAP", verbose = FALSE))))
+  der <- withr::with_options(list(energyRt.base_maps = TRUE,
+                                  energyRt.base_maps_verify = TRUE),
+    .ib_quiet(do.call(interpolate_model,
+      c(list(mod), new, list(name = "CAP", base = ref, verbose = FALSE)))))
+  expect_identical(der@misc$base_maps, "reused")
+  ci <- compare_inputs(der, full)
+  expect_equal(sum(ci$summary$status != "identical"), 0)
 })
 
 test_that("a bound declared per region and one for all regions both bind", {
