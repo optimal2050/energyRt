@@ -70,6 +70,39 @@
   data.table::as.data.table(force_cols_classes(out))
 }
 
+# The number of tuples of a rule, without enumerating it where its largest
+# table only multiplies: that table's columns found in no other table (the
+# timeslices of a timeframe) are counted per its join key, the rule is
+# enumerated with the table cut to its key, and the counts are summed. Exact
+# when each remaining row has one key and no gate reads those columns;
+# otherwise the rule is enumerated.
+.rule_count <- function(rule) {
+  full <- function() nrow(.rule_tuples(rule))
+  of <- rule$of
+  if (length(of) < 2L) return(full())
+  sizes <- vapply(rule$tables[of], nrow, integer(1))
+  big <- of[which.max(sizes)]
+  bt <- data.table::as.data.table(rule$tables[[big]])
+  others <- unique(unlist(lapply(rule$tables[setdiff(names(rule$tables), big)], names)))
+  own <- setdiff(names(bt), others)
+  key <- setdiff(names(bt), own)
+  filters <- c(rule$gate, rule$minus)
+  if (!length(own) || !length(key) || !all(own %in% rule$cols) ||
+      any(vapply(rule$tables[filters], function(t) any(own %in% names(t)), logical(1)))) {
+    return(full())
+  }
+  rest <- setdiff(rule$cols, own)
+  if (!length(rest)) return(full())
+  cnt <- unique(bt)[, list(.n = .N), by = key]
+  r2 <- rule
+  r2$tables[[big]] <- as.data.frame(unique(bt[, key, with = FALSE]))
+  r2$cols <- unique(c(rest, key))
+  small <- .rule_tuples(r2)
+  if (anyDuplicated(small[, rest, with = FALSE])) return(full())
+  for (k in key) data.table::set(small, j = k, value = as.character(small[[k]]))
+  as.integer(sum(cnt[small, on = key, nomatch = NULL]$.n))
+}
+
 # record a rule on a map parameter; its columns must be the parameter's dims.
 # A map that got no rows takes no rule: the table, empty, stays the definition.
 # `empty_ok`: the builder decided the map without building its table; the rule
@@ -86,6 +119,8 @@
          call. = FALSE)
   }
   p@misc$rule <- rule
+  p@misc$rule_rows <- NULL
+  p@misc$rule_members <- NULL
   scen@modInp@parameters[[name]] <- p
   scen
 }
@@ -112,6 +147,23 @@
   }, logical(1)))
 }
 
+# object columns whose members a stripped rule map keeps
+.rule_member_cols <- c("tech", "stg", "sup", "trade", "imp", "expp", "dem",
+                       "comm", "weather")
+
+# the members of `col` in a map; a stripped rule map answers from what it kept
+.map_members <- function(p, col) {
+  if (.rule_only(p) && !is.null(p@misc$rule_members[[col]])) {
+    return(p@misc$rule_members[[col]])
+  }
+  d <- get_data_slot(p)
+  if (is.null(d) || nrow(d) == 0 || !col %in% colnames(d)) return(character(0))
+  unique(as.character(as.data.frame(d)[[col]]))
+}
+
+# rule maps whose tables go right after the map recipes
+.rule_maps_early <- c("mvTechAct", "mvTechOut", "mTechTimeslice")
+
 # names of the map parameters that carry a rule
 .rule_params <- function(scen) {
   pp <- scen@modInp@parameters
@@ -121,10 +173,12 @@
 # Empty the tables of rule-carrying maps: the rule is their definition from
 # here on. An on-disk table is removed and the parameter marked in memory,
 # so no reader looks for rows on disk; `options(energyRt.map_rules = FALSE)`
-# keeps the tables.
-.strip_rule_tables <- function(scen, verbose = FALSE) {
+# keeps the tables. `maps`: only these (the largest go once their last
+# table reader is done).
+.strip_rule_tables <- function(scen, verbose = FALSE, maps = NULL) {
   if (!isTRUE(getOption("energyRt.map_rules", TRUE))) return(scen)
   nms <- .rule_params(scen)
+  if (!is.null(maps)) nms <- intersect(nms, maps)
   verify <- isTRUE(getOption("energyRt.map_rules_verify", FALSE))
   for (nm in nms) {
     p <- scen@modInp@parameters[[nm]]
@@ -138,6 +192,17 @@
       p <- mark_inMemory(p)
     }
     p@misc$param_ref <- NULL
+    # the tuple count and the members of its object columns, so a size
+    # summary or a membership check need not enumerate the rule
+    n <- .param_nrow(p)
+    if (!is.na(n) && n > 0L) {
+      p@misc$rule_rows <- n
+      d <- get_data_slot(p)
+      oc <- intersect(colnames(d), .rule_member_cols)
+      p@misc$rule_members <- stats::setNames(
+        lapply(oc, function(k) unique(as.character(d[[k]]))), oc)
+      rm(d)
+    }
     p@data <- p@data[0, , drop = FALSE]
     scen@modInp@parameters[[nm]] <- p
   }

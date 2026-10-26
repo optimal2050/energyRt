@@ -19,6 +19,9 @@
 # Row count of a parameter. For an on-disk parameter the count is taken from the
 # dimensions recorded at save time, so the data itself is never read.
 .ms_rows <- function(p) {
+  if (.rule_only(p)) {
+    return(as.integer(p@misc$rule_rows %||% .rule_count(p@misc$rule)))
+  }
   nv <- tryCatch(p@misc$onDisk$data$dim[1], error = function(e) NULL)
   if (!is.null(nv) && length(nv) == 1L && !is.na(nv) && nv >= 0) return(as.integer(nv))
   d <- get_data_slot(p)
