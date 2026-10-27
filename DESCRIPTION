@@ -2,7 +2,7 @@ Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
 Version: 0.90.0.9037
-Date: 2026-10-26
+Date: 2026-10-27
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -152,6 +152,7 @@ Collate:
     'solve_recursive.R'
     'solver_log.R'
     'start_msg.R'
+    'status.R'
     'storage_duration.R'
     'techspec.R'
     'timeslices.R'

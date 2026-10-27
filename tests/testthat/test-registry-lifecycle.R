@@ -224,14 +224,18 @@ test_that("mark_delete reaches the registry with no refresh in between", {
   expect_identical(reg$delete_importance[reg$name == "MOD"], 3)
   expect_true(nzchar(reg$marked_at[reg$name == "MOD"]))
 
-  # unmarking clears the flag but leaves the record of the previous mark --
-  # mark_delete() writes marked_delete = FALSE, it does not strip the fields
+  # unmarking strips the mark entirely, manifest included: an entry with no
+  # mark and an importance beside it reads as marked-at-some-tier to any
+  # reader that does not also test `marked_delete`
   suppressMessages(unmark_delete("MOD", type = "model"))
   reg <- load_registry()
   expect_false(reg$marked_delete[reg$name == "MOD"])
-  expect_true(nzchar(reg$marked_at[reg$name == "MOD"]))
+  expect_true(is.na(reg$delete_importance[reg$name == "MOD"]))
+  expect_false(nzchar(reg$marked_at[reg$name == "MOD"]))
   mf <- yaml::read_yaml(file.path(root, "models", "MOD@abc12345", "model.yml"))
-  expect_identical(as.numeric(mf$delete_importance), 3)
+  expect_false(isTRUE(mf$marked_delete))
+  expect_null(mf$delete_importance)
+  expect_null(mf$marked_at)
 
   # sealing lands the same way
   suppressMessages(seal_model("MOD"))

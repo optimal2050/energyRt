@@ -253,6 +253,14 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 * `autoplot(<by_sample>, "histogram")` draws a result's spread across the
   samples, weighted by each sample's coverage, with the free pass overlaid on
   the floored one when `ncap_floor > 0`.
+* `get_status()` reports the state of a saved object -- sealed (for a scenario,
+  inputs and outputs separately), marked for deletion, runs held, size on disk
+  -- for one model, repository, dataset or scenario, or for every saved object
+  in the project. It reads the manifests, so it does not depend on the registry
+  being current. For a derived scenario it separates `base`, which is
+  provenance, from the tables it actually borrows, which are what block
+  unsealing or deleting that base.
+
 * The solve drivers report progress through **progressr**: `set_progress_bar()`
   for a bar, `verbose = TRUE` for a line per unit, either or both.
 * TOPIA, the teaching model (was UTOPIA), rebuilt around concentrated resources
@@ -303,6 +311,13 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   `mmcloud::get_hf_token()` and `mmcloud::set_hf_token()`.
 
 ## Bug fixes
+
+* `unmark_delete()` left `delete_importance` and `marked_at` behind in the
+  manifest, so an entry with no mark still carried an importance beside it and
+  read as marked-at-some-tier to any reader that did not also test
+  `marked_delete`. The registry masked this, since it NAs the importance of an
+  unmarked entry; the manifest did not. Both fields are now cleared, for an
+  entry and for a version.
 
 * `interpolate_model(base =)` refused every base when the caller also passed
   `path =`. The base is dispatched before the control arguments are read out

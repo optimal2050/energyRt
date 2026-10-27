@@ -2651,14 +2651,21 @@ mark_delete <- function(x, importance = 0, type = NULL, verbose = TRUE,
 #' @rdname seal
 #' @export
 unmark_delete <- function(x, type = NULL, verbose = TRUE, version = NULL) {
+  # Clearing `delete_importance` and `marked_at` rather than leaving them is
+  # what keeps a manifest readable on its own: an entry with no mark and an
+  # importance beside it reads as marked-at-some-tier to anything that does
+  # not also test `marked_delete`. `.registry_lifecycle()` already masks the
+  # importance of an unmarked entry, so the registry was right and only the
+  # YAML was stale. Assigning NULL through `[<-` removes the key.
+  fields <- list(marked_delete = FALSE, delete_importance = NULL,
+                 marked_at = NULL)
   if (!is.null(version)) {
     tp <- .entry_type_of(x, type)
     e <- .entry_resolve(tp, x)
-    return(.mark_versions(tp, e$path, e$name, version,
-                          list(marked_delete = FALSE), verbose, "unmarked, kept"))
+    return(.mark_versions(tp, e$path, e$name, version, fields, verbose,
+                          "no longer marked for deletion"))
   }
-  .mark_set(x, type, list(marked_delete = FALSE), verbose,
-            "unmarked — kept")
+  .mark_set(x, type, fields, verbose, "no longer marked for deletion")
 }
 
 #' Delete entries marked for deletion

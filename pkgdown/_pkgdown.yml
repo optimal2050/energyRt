@@ -334,6 +334,7 @@ reference:
   - save_scenario
   - load_scenario
   - seal_model
+  - get_status
   - list_versions
   - list_dependents
   - model_hash
