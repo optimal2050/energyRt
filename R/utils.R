@@ -641,7 +641,8 @@ get_slot_doc <- function(class_name = "technology",
 
 # A progressor for an INNER operation: NULL while a driver holds the bar.
 #' @noRd
-.progressor <- function(...) {
+.progressor <- function(..., envir = parent.frame()) {
   if (isTRUE(.prg_state$outer)) return(NULL)
-  progressr::progressor(...)
+  # the caller owns the progressor: progressr finishes it when `envir` exits
+  progressr::progressor(..., envir = envir)
 }
