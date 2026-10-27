@@ -314,65 +314,61 @@
   # parent key). The fold then fires per group only when the group covers the
   # ENTIRE set uniformly.
   global <- length(setdiff(names(allowed), dim)) == 0
-  if ((!global && length(shared) == 0) || length(group_cols) == 0) {
+  if ((!global && length(shared) == 0) || length(group_cols) == 0 ||
+      nrow(d) == 0) {
     return(list(data = d, folded = FALSE))
   }
 
   is_wild <- is.na(d[[dim]]) | is_any(d[[dim]])
 
+  # Groups of `group_cols` numbered 1..ng in order of first appearance (an NA
+  # key is a group of its own); every per-group quantity below is a vector
+  # indexed by that number, computed by grouped aggregates without per-group
+  # R evaluation.
+  gt <- data.table::as.data.table(d[, group_cols, drop = FALSE])
+  gt[, .fg := .GRP, by = group_cols]
+  fg <- gt[[".fg"]]
+  ng <- max(fg)
+
+  # Value uniformity per group over all its rows: a single row, or a range
+  # within `tol`; a missing value makes a group of two or more non-uniform.
+  st <- data.table::data.table(.fg = fg, .fv = d[[value_col]])[
+    , list(.n = .N, .mx = max(.fv), .mn = min(.fv)), by = ".fg"]
+  uni <- logical(ng)
+  uni[st$.fg] <- st$.n <= 1L | (st$.mx - st$.mn) <= tol
+  uni[is.na(uni)] <- FALSE
+
   # Groups that already contain a wildcard member are ambiguous -> skip.
-  na_groups <- dplyr::distinct(d[is_wild, group_cols, drop = FALSE])
+  has_wild <- logical(ng)
+  has_wild[unique(fg[is_wild])] <- TRUE
 
-  # Value uniformity per group (only explicit rows matter for folding).
-  uni <- d |>
-    dplyr::group_by(dplyr::across(dplyr::all_of(group_cols))) |>
-    dplyr::summarise(
-      .rng = if (dplyr::n() <= 1) 0 else diff(range(.data[[value_col]])),
-      .groups = "drop"
-    ) |>
-    dplyr::filter(.data$.rng <= tol)
-
-  # Present (explicit) members per group.
-  pres <- dplyr::distinct(
-    d[!is_wild, c(group_cols, dim), drop = FALSE]
-  )
+  # Present (explicit) members per group, and how many of them are allowed.
+  ex <- !is_wild
+  pres <- unique(data.table::data.table(
+    .fg = fg[ex], data.table::as.data.table(d[ex, unique(c(shared, dim)), drop = FALSE])))
   if (nrow(pres) == 0) {
     return(list(data = d, folded = FALSE))
   }
-  pres_cnt <- pres |>
-    dplyr::count(dplyr::across(dplyr::all_of(group_cols)), name = ".npres")
-
-  allw <- dplyr::distinct(allowed[, unique(c(shared, dim)), drop = FALSE])
-
-  nmatch <- pres |>
-    dplyr::inner_join(allw, by = c(shared, dim)) |>
-    dplyr::count(dplyr::across(dplyr::all_of(group_cols)), name = ".nmatch")
+  npres <- tabulate(pres$.fg, nbins = ng)
+  allw <- unique(data.table::as.data.table(
+    allowed[, unique(c(shared, dim)), drop = FALSE]))
+  hit <- !is.na(allw[pres, on = unique(c(shared, dim)), which = TRUE, mult = "first"])
+  nmatch <- tabulate(pres$.fg[hit], nbins = ng)
 
   if (global) {
-    nall_g <- nrow(allw)
-    fold_groups <- pres_cnt |>
-      dplyr::left_join(nmatch, by = group_cols) |>
-      dplyr::mutate(.nmatch = dplyr::coalesce(.data$.nmatch, 0L)) |>
-      dplyr::filter(.data$.npres == nall_g, .data$.nmatch == nall_g)
+    nall <- rep(nrow(allw), ng)
   } else {
-    allw_cnt <- allw |>
-      dplyr::count(dplyr::across(dplyr::all_of(shared)), name = ".nall")
-    fold_groups <- pres_cnt |>
-      dplyr::left_join(allw_cnt, by = shared) |>
-      dplyr::left_join(nmatch, by = group_cols) |>
-      dplyr::mutate(.nmatch = dplyr::coalesce(.data$.nmatch, 0L)) |>
-      dplyr::filter(
-        !is.na(.data$.nall),
-        .data$.npres == .data$.nall,
-        .data$.nmatch == .data$.nall
-      )
+    # the allowed member count of each group's shared key; NA when the key has
+    # no membership row
+    allw_cnt <- allw[, list(.nall = .N), by = shared]
+    keys <- unique(gt[, c(".fg", shared), with = FALSE], by = ".fg")
+    nall <- rep(NA_integer_, ng)
+    nall[keys$.fg] <- allw_cnt[keys, on = shared, .nall]
   }
-  fold_groups <- fold_groups |>
-    dplyr::semi_join(uni, by = group_cols) |>
-    dplyr::anti_join(na_groups, by = group_cols) |>
-    dplyr::select(dplyr::all_of(group_cols))
+  fold_g <- npres > 0L & !is.na(nall) & npres == nall & nmatch == nall &
+    uni & !has_wild
 
-  if (nrow(fold_groups) == 0) {
+  if (!any(fold_g)) {
     return(list(data = d, folded = FALSE))
   }
 
@@ -381,27 +377,27 @@
   # NA / explicit column cannot be represented by the single artificial set member
   # (`ANYREGION` / `ANYTIMESLICE`) the writers substitute, so if any explicit group is
   # left un-folded, fold nothing for this dimension.
-  explicit_groups <- dplyr::distinct(d[!is_wild, group_cols, drop = FALSE])
-  if (nrow(fold_groups) < nrow(explicit_groups)) {
+  if (sum(fold_g) < sum(npres > 0L)) {
     return(list(data = d, folded = FALSE))
   }
 
-  na_val <- as(NA, class(d[[dim]])[1])
-  folded <- d |>
-    dplyr::semi_join(fold_groups, by = group_cols) |>
-    dplyr::group_by(dplyr::across(dplyr::all_of(group_cols))) |>
-    dplyr::summarise(
-      !!value_col := dplyr::first(.data[[value_col]]),
-      .groups = "drop"
-    ) |>
-    dplyr::mutate(!!dim := na_val)
-
-  kept <- dplyr::anti_join(d, fold_groups, by = group_cols)
-  out <- dplyr::bind_rows(kept, folded)
-  out <- as.data.frame(out)[, names(d), drop = FALSE]
+  # Kept rows in their order, then one row per folded group (its first row,
+  # the dimension set to the wildcard), the groups ordered by their key columns
+  # as a grouped summary orders them.
+  in_fold <- fold_g[fg]
+  first_idx <- which(in_fold)[!duplicated(fg[in_fold])]
+  ord <- do.call(order, c(unname(as.list(d[first_idx, group_cols, drop = FALSE])),
+                          list(na.last = TRUE, method = "radix")))
+  kept_idx <- which(!in_fold)
+  out <- d[c(kept_idx, first_idx[ord]), , drop = FALSE]
+  is.na(out[[dim]]) <- length(kept_idx) + seq_along(first_idx)
+  rownames(out) <- NULL
 
   list(data = out, folded = TRUE)
 }
+
+# column names used inside data.table calls in .fold_one_dim()
+utils::globalVariables(c(".fg", ".fv", ".n", ".mx", ".mn", ".nall"))
 
 # -----------------------------------------------------------------------------#
 # .fold_write_back: persist new parameter data, mirroring interpolate_parameters.
