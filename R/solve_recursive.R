@@ -104,7 +104,7 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 
 # add/refresh driver metadata in a variant.yml written by save_scenario()
 .recursive_tag_variant <- function(scen, vlab, sequence, k, decided,
-                               params = NULL) {
+                               lookahead = integer(0), params = NULL) {
   vy <- fp(scen@path, "runs", vlab, "variant.yml")
   if (!file.exists(vy)) return(invisible(NULL))
   mf <- tryCatch(yaml::read_yaml(vy), error = function(e) NULL)
@@ -113,6 +113,9 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
   mf$sequence <- sequence
   mf$step <- k
   mf$decided <- as.integer(decided)
+  # What the step SAW but did not decide. Without it the look-ahead -- the
+  # thing that makes a step non-myopic -- is unrecoverable from the folder.
+  mf$lookahead <- as.integer(lookahead)
   if (length(params)) mf$params <- params
   yaml::write_yaml(mf, vy)
   invisible(vy)
@@ -215,8 +218,8 @@ solve_recursive <- function(object, name = NULL, ...,
   ledger <- .ledger_new()
   scens <- list()
   steps <- tibble(step = integer(0), run = character(0),
-                  decided = list(), status = character(0),
-                  objective = numeric(0))
+                  decided = list(), lookahead = list(),
+                  status = character(0), objective = numeric(0))
   failed <- FALSE
 
   vparams <- .variant_params(
@@ -225,7 +228,16 @@ solve_recursive <- function(object, name = NULL, ...,
     step_size = step, overlap = overlap, carry = carry,
     tolerance = tolerance, store = store)
 
+  # Silent unless the caller registered a handler (see
+  # `set_progress_bar()`); a sequence solve is the longest-running
+  # operation in the package, so it reports like obj2disk() does.
+  .prg <- if (length(windows) > 1L) progressr::progressor(along = windows) else NULL
+  if (!is.null(.prg)) {
+    .prg_old <- .prg_claim()
+    on.exit(.prg_release(.prg_old), add = TRUE)
+  }
   for (k in seq_along(windows)) {
+    if (!is.null(.prg)) .prg(sprintf("step %d", k))
     w <- windows[[k]]
     vlab <- sprintf("s%02d-%d", k, min(w$decided))
     if (store == "variants") {
@@ -280,6 +292,7 @@ solve_recursive <- function(object, name = NULL, ...,
     }
     steps <- bind_rows(steps, tibble(
       step = k, run = run_id, decided = list(w$decided),
+      lookahead = list(w$lookahead),
       status = if (ok) "solved" else "failed", objective = obj_k))
 
     if (!ok) {
@@ -305,7 +318,7 @@ solve_recursive <- function(object, name = NULL, ...,
     if (store == "variants") {
       .recursive_tag_variant(saved, vlab, sequence = name, k = k,
                           params = vparams,
-                          decided = w$decided)
+                          decided = w$decided, lookahead = w$lookahead)
     }
     ledger <- solution_ledger(sol, years = w$decided, ledger = ledger)
     if (keep_scenarios) scens[[vlab]] <- sol

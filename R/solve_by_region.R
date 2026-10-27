@@ -175,7 +175,16 @@ solve_by_region <- function(object, name = NULL, ...,
     spread = spread,
     groups = vapply(groups, paste, "", collapse = "+"))
 
+  # Silent unless the caller registered a handler (see
+  # `set_progress_bar()`); a sequence solve is the longest-running
+  # operation in the package, so it reports like obj2disk() does.
+  .prg <- if (length(groups) > 1L) progressr::progressor(along = groups) else NULL
+  if (!is.null(.prg)) {
+    .prg_old <- .prg_claim()
+    on.exit(.prg_release(.prg_old), add = TRUE)
+  }
   for (k in seq_along(groups)) {
+    if (!is.null(.prg)) .prg(sprintf("region %s", .path_slug(groups[[k]])))
     rg <- groups[[k]]
     vlab <- .path_slug(rg)
     .variant_guard(seq_path, vlab, "region_sample", vparams, overwrite)

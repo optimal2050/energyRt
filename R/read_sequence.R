@@ -194,6 +194,10 @@ read_sequence <- function(object, sequence = NULL, type = NULL, verbose = TRUE) 
         step = k,
         run = vapply(vs, `[[`, "", "run"),
         decided = lapply(vs, function(v) as.integer(v$mf$decided)),
+        # absent in folders written before the look-ahead was recorded
+        lookahead = lapply(vs, function(v) {
+          as.integer(v$mf$lookahead %||% integer(0))
+        }),
         status = vapply(vs, `[[`, "", "status"),
         objective = vapply(vs, function(v) as.numeric(v$objective), numeric(1)))
       # `$scenarios[[k]]` is indexed by STEP by getData.recursive(), so the list

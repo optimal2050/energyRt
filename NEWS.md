@@ -91,7 +91,7 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ### Solving
 
-* Solve drivers: `solve_myopic()`, `solve_by_sample()`, `solve_by_region()`
+* Solve drivers: `solve_recursive()`, `solve_by_sample()`, `solve_by_region()`
   and `solve_guided()`.
 * First-order LP solvers (cuOpt, HiGHS PDLP), and `lang = "mm"`, which builds
   the problem matrix with **multimod**. Remote solving on the NEOS server and
@@ -245,6 +245,16 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 * `draw()` process diagrams; `autoplot()` for objects, calendars, horizons,
   scenarios and comparisons; `plot_map()`, `plot_trade_map()`,
   `plot_trade_network()`.
+* `sequence_coverage()` reports what a solve sequence covered, one row per unit
+  and element, and `autoplot()` draws it: a sampled calendar as a tile grid or
+  a wall calendar, a region sample on its geoscale, a recursive walk as a
+  horizon Gantt with the look-ahead years marked apart from the decided ones.
+  Elements no unit covered stay visible as gaps.
+* `autoplot(<by_sample>, "histogram")` draws a result's spread across the
+  samples, weighted by each sample's coverage, with the free pass overlaid on
+  the floored one when `ncap_floor > 0`.
+* The solve drivers report progress through **progressr**: `set_progress_bar()`
+  for a bar, `verbose = TRUE` for a line per unit, either or both.
 * TOPIA, the teaching model (was UTOPIA), rebuilt around concentrated resources
   traded between zones.
 

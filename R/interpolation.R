@@ -956,7 +956,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   .n_obj <- sum(vapply(scen@model@data, function(r) length(r@data), integer(1)))
   .interp_step(verbose, paste0("ob2mi: interpolating ", .n_obj, " model objects"),
                oneline = FALSE)
-  .prg <- if (.n_obj > 0) progressr::progressor(steps = .n_obj) else NULL
+  .prg <- if (.n_obj > 0) .progressor(steps = .n_obj) else NULL
   # The grid the SCENARIO declares -- which a sampled calendar or a subset
   # geoscale narrows relative to the model.
   .pf_slices <- if (isTRUE(.prefilter)) {
@@ -2725,7 +2725,7 @@ validate_scenario_parameters <- function(object, fold = TRUE,
   # Silent when no handler is set. Steps: all parameters + all value maps.
   pnames <- names(object@modInp@parameters)
   .n_val <- length(pnames) + length(.value_map_def)
-  .prg <- if (.n_val > 0) progressr::progressor(steps = .n_val) else NULL
+  .prg <- if (.n_val > 0) .progressor(steps = .n_val) else NULL
 
   for (pn in pnames) {
     # Advance for EVERY parameter (incl. skipped types/empties) so the bar

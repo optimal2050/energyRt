@@ -129,6 +129,7 @@ Collate:
     'parent-levels.R'
     'plot_scenario.R'
     'plot_map.R'
+    'plot_sequence.R'
     'plot_trade_network.R'
     'read.R'
     'save-scenario.R'

@@ -610,3 +610,38 @@ get_slot_doc <- function(class_name = "technology",
   paste(slot_desc, collapse = "")
 }
 
+
+# ---- one live progress bar at a time ---------------------------------------#
+#
+# progressr's `with_progress()` (1.1.0) listens to ONE progressor at a time:
+# creating a second terminates the first, and every later update on the dead
+# one warns ("no longer listening to this progressor"). A sequence driver loops
+# over units and each unit interpolates, which creates an inner progressor --
+# so the driver's own bar would die on its first unit.
+#
+# The outer bar is the useful one (48 units, minutes each); a bar per
+# interpolation inside it is noise. So a driver CLAIMS the single live
+# progressor for its loop and the inner operations report nothing while it
+# holds it.
+.prg_state <- new.env(parent = emptyenv())
+.prg_state$outer <- FALSE
+
+#' @noRd
+.prg_claim <- function() {
+  old <- isTRUE(.prg_state$outer)
+  .prg_state$outer <- TRUE
+  invisible(old)
+}
+
+#' @noRd
+.prg_release <- function(old) {
+  .prg_state$outer <- isTRUE(old)
+  invisible(NULL)
+}
+
+# A progressor for an INNER operation: NULL while a driver holds the bar.
+#' @noRd
+.progressor <- function(...) {
+  if (isTRUE(.prg_state$outer)) return(NULL)
+  progressr::progressor(...)
+}

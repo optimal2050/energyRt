@@ -416,7 +416,16 @@ solve_by_sample <- function(object, name = NULL, ...,
                  slices = integer(0), year_fraction = numeric(0),
                  status = character(0), objective = numeric(0),
                  pass = character(0))
+  # Silent unless the caller registered a handler (see
+  # `set_progress_bar()`); a sequence solve is the longest-running
+  # operation in the package, so it reports like obj2disk() does.
+  .prg <- if (length(ids) > 1L) progressr::progressor(along = ids) else NULL
+  if (!is.null(.prg)) {
+    .prg_old <- .prg_claim()
+    on.exit(.prg_release(.prg_old), add = TRUE)
+  }
   for (k in seq_along(ids)) {
+    if (!is.null(.prg)) .prg(sprintf("sample %s", ids[k]))
     sid <- ids[k]
     vlab <- paste0(sid, sfx)
     .variant_guard(seq_path, vlab, "calendar_sample", vparams, overwrite)
