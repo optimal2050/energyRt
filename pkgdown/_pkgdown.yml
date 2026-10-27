@@ -250,6 +250,7 @@ reference:
   - solution_ledger
   - apply_ledger
   - recursive_objective
+  - sequence_coverage
   - calendar_samples
   - sample_summary
   - boundary_window

@@ -174,7 +174,7 @@ scenario and model sharing a name appear once):
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpsPX55A/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpKs1y8G/wf"
 basename(scen@path)
 #> [1] "BASE-TOPIA-s4_h24-base"
 ```
@@ -660,9 +660,11 @@ full-horizon solve.
 
 ``` r
 
-getData(br, "vTechCap", merge = TRUE)   # stacked, with a `region` column
-getData(bs, "vTechCap", merge = TRUE)   # stacked, with a `sample` column
-sample_summary(bs, "vTechCap", by = "tech")
+rc <- solve_recursive(m3, name = "rec")  # milestone by milestone
+
+getData(br, "vTechCap", merge = TRUE)    # stacked, with a `region` column
+getData(ens, "vTechCap", merge = TRUE)   # stacked, with a `sample` column
+sample_summary(ens, "vTechCap", by = "tech")
 recursive_objective(rc)
 ```
 
@@ -680,6 +682,82 @@ so `additive = TRUE` means “may be summed”, not “equals the full model”.
 And under `trade = "auto"` each region faces an exterior the others
 cannot see — one region’s export and another’s import are independent
 decisions at independently set prices, and nothing reconciles them.
+
+### Seeing what a sequence covered
+
+A sequence records its design per unit, and in a different shape for
+each driver.
+[`sequence_coverage()`](https://energyRt.org/reference/sequence_coverage.md)
+puts all four on one frame — one row per unit and element covered, with
+`dim` naming the scale the units were drawn on — and
+[`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+draws that frame on the scale itself.
+
+``` r
+
+sequence_coverage(ens)             # unit, dim, key, role, count
+autoplot(ens)                      # the calendar, tiled by sample
+autoplot(ens, "wall", year = 2020) # the same, as a wall calendar
+autoplot(br)                      # the geoscale, filled by unit
+autoplot(rc)                      # the horizon, decided against look-ahead
+```
+
+Three properties show in the drawing that a table of runs leaves
+implicit. Elements no unit covered keep a grey fill, so a gap in an
+ensemble is a hole in the picture rather than an absent row. An element
+two units claimed is filled as `(shared)` instead of being given to the
+first of them, and the subtitle counts both that and the within-unit
+multiplicity a bootstrap draw carries. And a recursive step’s look-ahead
+milestones are filled apart from the years it decided, which is the
+overlap between steps seen for what it is.
+
+The wall calendar needs a day-resolution timeframe (`YDAY` or `MDAY`)
+and rolls each unit up to whole days; the tile grid, over the calendar’s
+two finest timeframes, works for any calendar. A region sample is mapped
+on the finest geoframe that contains every solved region — a model’s
+regions need not sit at the finest frame of its geoscale — and falls
+back to a plain list of regions where the geoscale carries no geometry.
+
+The spread of a *result* across an ensemble is a histogram rather than a
+map:
+
+``` r
+
+autoplot(ens, "histogram")                                  # the objective
+autoplot(ens, "histogram", var = "vTechCap", by = "tech")
+```
+
+Bars are weighted by each sample’s `year_fraction`, since `sequential`
+sampling can leave one block covering more of the year than its
+siblings, and the dashed rule is the weighted mean
+[`sample_summary()`](https://energyRt.org/reference/sample_summary.md)
+reports — one weighting rule, so the plot and the table agree about the
+same ensemble. Where `ncap_floor > 0` the free pass is overlaid on the
+floored one. A variable must reduce to one value per sample within each
+group; a dimension left inside a bar is named rather than summed away,
+since totalling capacity over years would answer a different question.
+There is no histogram for
+[`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md),
+whose units are shards of one system: their values are addends, and
+their spread would report only that regions differ in size.
+
+### Watching a sequence run
+
+A sequence solve is the longest-running operation in the package and
+reports as one.
+[`set_progress_bar()`](https://energyRt.org/reference/progress.md)
+registers a **progressr** handler, after which each driver advances a
+bar one unit at a time; `verbose = TRUE` prints a line per unit, as an
+alternative or in addition. Only the outermost sequence claims the bar,
+so the interpolation inside a driver’s loop does not open a second one
+over the first.
+
+``` r
+
+set_progress_bar()
+ens2 <- solve_by_sample(m3, name = "ens_bar", sample_size = 2,
+                        verbose = FALSE)
+```
 
 ## See also
 

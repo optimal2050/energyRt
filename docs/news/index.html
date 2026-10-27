@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9036</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -94,7 +94,7 @@
 </ul></div>
 <div class="section level4">
 <h4 id="solving-0-90-0">Solving<a class="anchor" aria-label="anchor" href="#solving-0-90-0"></a></h4>
-<ul><li><p>Solve drivers: <code><a href="https://energyRt.org/reference/solve_myopic.html">solve_myopic()</a></code>, <code><a href="../reference/solve_by_sample.html">solve_by_sample()</a></code>, <code><a href="../reference/solve_by_region.html">solve_by_region()</a></code> and <code><a href="../reference/solve_guided.html">solve_guided()</a></code>.</p></li>
+<ul><li><p>Solve drivers: <code><a href="../reference/solve_recursive.html">solve_recursive()</a></code>, <code><a href="../reference/solve_by_sample.html">solve_by_sample()</a></code>, <code><a href="../reference/solve_by_region.html">solve_by_region()</a></code> and <code><a href="../reference/solve_guided.html">solve_guided()</a></code>.</p></li>
 <li><p>First-order LP solvers (cuOpt, HiGHS PDLP), and <code>lang = "mm"</code>, which builds the problem matrix with <strong>multimod</strong>. Remote solving on the NEOS server and on cloud GPUs.</p></li>
 <li><p>Matrix presets (<code>backend = "mm"</code>) are solved by <code><a href="https://optimal2050.github.io/multimod/r/reference/solve_mps.html" class="external-link">multimod::solve_mps()</a></code>: HiGHS in the R session or through Julia, cuOpt on a local GPU through WSL (<code>mm_cuopt_wsl</code>) or on a rented GPU (<code>mm_cuopt_cloud</code>, <code>pyomo_cuopt_cloud</code>).</p></li>
 <li><p>On the <code>lang = "mm"</code> route the activity and output definitions (<code>eqTechAfFx</code>, <code>eqTechActSng</code>) and the per-process totals (<code>eqTechOutTot</code>, <code>eqTechInpTot</code>, the storage, supply, import, export and demand totals) are substituted while the matrix is built: their rows and the columns they define are not written, which reduces a full-year model several-fold. The preset field <code>substitute</code> names the equations; <code><a href="https://rdrr.io/r/base/character.html" class="external-link">character()</a></code> builds every row. With a multimod that composes roll-ups, the commodity output and input totals (<code>eqOutTot</code>, <code>eqInpTot</code>) are substituted too.</p></li>
@@ -146,13 +146,18 @@
 <code><a href="../reference/levcost.html">levcost()</a></code>: analytic levelized cost of technologies, storage (LCOS) and trade (LCOT) per vintage, cluster and region; ex-post per variant on a solved scenario.</li>
 <li>
 <code><a href="../reference/draw.html">draw()</a></code> process diagrams; <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> for objects, calendars, horizons, scenarios and comparisons; <code><a href="../reference/plot_map.html">plot_map()</a></code>, <code><a href="../reference/plot_trade_map.html">plot_trade_map()</a></code>, <code><a href="../reference/plot_trade_network.html">plot_trade_network()</a></code>.</li>
+<li>
+<code><a href="../reference/sequence_coverage.html">sequence_coverage()</a></code> reports what a solve sequence covered, one row per unit and element, and <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> draws it: a sampled calendar as a tile grid or a wall calendar, a region sample on its geoscale, a recursive walk as a horizon Gantt with the look-ahead years marked apart from the decided ones. Elements no unit covered stay visible as gaps.</li>
+<li>
+<code>autoplot(&lt;by_sample&gt;, "histogram")</code> draws a result’s spread across the samples, weighted by each sample’s coverage, with the free pass overlaid on the floored one when <code>ncap_floor &gt; 0</code>.</li>
+<li>The solve drivers report progress through <strong>progressr</strong>: <code><a href="../reference/progress.html">set_progress_bar()</a></code> for a bar, <code>verbose = TRUE</code> for a line per unit, either or both.</li>
 <li>TOPIA, the teaching model (was UTOPIA), rebuilt around concentrated resources traded between zones.</li>
 </ul></div>
 </div>
 <div class="section level3">
 <h3 id="breaking-changes-0-90-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-90-0"></a></h3>
 <ul><li>
-<p><code><a href="https://energyRt.org/reference/solve_myopic.html">solve_myopic()</a></code> is renamed <strong><code><a href="../reference/solve_recursive.html">solve_recursive()</a></code></strong>, with <code><a href="https://energyRt.org/reference/myopic_objective.html">myopic_objective()</a></code> to <code><a href="../reference/recursive_objective.html">recursive_objective()</a></code> and the result class from <code>myopic</code> to <code>recursive</code>. The driver steps through the horizon’s milestones carrying capacity forward, which is recursive dynamic; it is only <em>myopic</em> in its default special case (<code>step = 1</code>, <code>overlap = 0</code>), since <code>overlap</code> gives a step look-ahead and <code>step &gt; 1</code> solves several milestones jointly. There are no aliases.</p>
+<p><code>solve_myopic()</code> is renamed <strong><code><a href="../reference/solve_recursive.html">solve_recursive()</a></code></strong>, with <code>myopic_objective()</code> to <code><a href="../reference/recursive_objective.html">recursive_objective()</a></code> and the result class from <code>myopic</code> to <code>recursive</code>. The driver steps through the horizon’s milestones carrying capacity forward, which is recursive dynamic; it is only <em>myopic</em> in its default special case (<code>step = 1</code>, <code>overlap = 0</code>), since <code>overlap</code> gives a step look-ahead and <code>step &gt; 1</code> solves several milestones jointly. There are no aliases.</p>
 <p>Sequences already on disk are unaffected: <code>variant.yml</code> now records <code>type: recursive_step</code>, and <code><a href="../reference/read_sequence.html">read_sequence()</a></code> reads the older <code>myopic_step</code> as the same driver.</p>
 </li>
 <li><p><code>slice</code> is <code>timeslice</code>, and a <code>calendar</code> is required; the <code>tsl2*()</code> helpers moved to timescales.</p></li>

@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9036</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -248,7 +248,7 @@ valid names cannot contain; duplicate parts are dropped, so a scenario
 and model sharing a name appear once):</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/scenarios_path.html">get_scenarios_path</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpsPX55A/wf"</span></span>
+<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpKs1y8G/wf"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">scen</span><span class="op">@</span><span class="va">path</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "BASE-TOPIA-s4_h24-base"</span></span></code></pre></div>
 <p>Saving a scenario writes an <strong>Arrow-backed</strong> folder that
@@ -643,9 +643,11 @@ decides what to do with them. Two methods are exceptions:
 year from the step that decided it, and on a guided sequence it
 delegates to the final full-horizon solve.</p>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">br</span>, <span class="st">"vTechCap"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># stacked, with a `region` column</span></span>
-<span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">bs</span>, <span class="st">"vTechCap"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># stacked, with a `sample` column</span></span>
-<span><span class="fu"><a href="../reference/sample_summary.html">sample_summary</a></span><span class="op">(</span><span class="va">bs</span>, <span class="st">"vTechCap"</span>, by <span class="op">=</span> <span class="st">"tech"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">rc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_recursive.html">solve_recursive</a></span><span class="op">(</span><span class="va">m3</span>, name <span class="op">=</span> <span class="st">"rec"</span><span class="op">)</span>  <span class="co"># milestone by milestone</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">br</span>, <span class="st">"vTechCap"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>    <span class="co"># stacked, with a `region` column</span></span>
+<span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">ens</span>, <span class="st">"vTechCap"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># stacked, with a `sample` column</span></span>
+<span><span class="fu"><a href="../reference/sample_summary.html">sample_summary</a></span><span class="op">(</span><span class="va">ens</span>, <span class="st">"vTechCap"</span>, by <span class="op">=</span> <span class="st">"tech"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/recursive_objective.html">recursive_objective</a></span><span class="op">(</span><span class="va">rc</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -697,6 +699,68 @@ not “equals the full model”. And under <code>trade = "auto"</code> each
 region faces an exterior the others cannot see — one region’s export and
 another’s import are independent decisions at independently set prices,
 and nothing reconciles them.</p>
+</div>
+<div class="section level3">
+<h3 id="seeing-what-a-sequence-covered">Seeing what a sequence covered<a class="anchor" aria-label="anchor" href="#seeing-what-a-sequence-covered"></a>
+</h3>
+<p>A sequence records its design per unit, and in a different shape for
+each driver. <code><a href="../reference/sequence_coverage.html">sequence_coverage()</a></code> puts all four on one frame
+— one row per unit and element covered, with <code>dim</code> naming the
+scale the units were drawn on — and <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> draws that
+frame on the scale itself.</p>
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/sequence_coverage.html">sequence_coverage</a></span><span class="op">(</span><span class="va">ens</span><span class="op">)</span>             <span class="co"># unit, dim, key, role, count</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">ens</span><span class="op">)</span>                      <span class="co"># the calendar, tiled by sample</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">ens</span>, <span class="st">"wall"</span>, year <span class="op">=</span> <span class="fl">2020</span><span class="op">)</span> <span class="co"># the same, as a wall calendar</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">br</span><span class="op">)</span>                      <span class="co"># the geoscale, filled by unit</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">rc</span><span class="op">)</span>                      <span class="co"># the horizon, decided against look-ahead</span></span></code></pre></div>
+<p>Three properties show in the drawing that a table of runs leaves
+implicit. Elements no unit covered keep a grey fill, so a gap in an
+ensemble is a hole in the picture rather than an absent row. An element
+two units claimed is filled as <code>(shared)</code> instead of being
+given to the first of them, and the subtitle counts both that and the
+within-unit multiplicity a bootstrap draw carries. And a recursive
+step’s look-ahead milestones are filled apart from the years it decided,
+which is the overlap between steps seen for what it is.</p>
+<p>The wall calendar needs a day-resolution timeframe (<code>YDAY</code>
+or <code>MDAY</code>) and rolls each unit up to whole days; the tile
+grid, over the calendar’s two finest timeframes, works for any calendar.
+A region sample is mapped on the finest geoframe that contains every
+solved region — a model’s regions need not sit at the finest frame of
+its geoscale — and falls back to a plain list of regions where the
+geoscale carries no geometry.</p>
+<p>The spread of a <em>result</em> across an ensemble is a histogram
+rather than a map:</p>
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">ens</span>, <span class="st">"histogram"</span><span class="op">)</span>                                  <span class="co"># the objective</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">ens</span>, <span class="st">"histogram"</span>, var <span class="op">=</span> <span class="st">"vTechCap"</span>, by <span class="op">=</span> <span class="st">"tech"</span><span class="op">)</span></span></code></pre></div>
+<p>Bars are weighted by each sample’s <code>year_fraction</code>, since
+<code>sequential</code> sampling can leave one block covering more of
+the year than its siblings, and the dashed rule is the weighted mean
+<code><a href="../reference/sample_summary.html">sample_summary()</a></code> reports — one weighting rule, so the plot
+and the table agree about the same ensemble. Where
+<code>ncap_floor &gt; 0</code> the free pass is overlaid on the floored
+one. A variable must reduce to one value per sample within each group; a
+dimension left inside a bar is named rather than summed away, since
+totalling capacity over years would answer a different question. There
+is no histogram for <code><a href="../reference/solve_by_region.html">solve_by_region()</a></code>, whose units are
+shards of one system: their values are addends, and their spread would
+report only that regions differ in size.</p>
+</div>
+<div class="section level3">
+<h3 id="watching-a-sequence-run">Watching a sequence run<a class="anchor" aria-label="anchor" href="#watching-a-sequence-run"></a>
+</h3>
+<p>A sequence solve is the longest-running operation in the package and
+reports as one. <code><a href="../reference/progress.html">set_progress_bar()</a></code> registers a
+<strong>progressr</strong> handler, after which each driver advances a
+bar one unit at a time; <code>verbose = TRUE</code> prints a line per
+unit, as an alternative or in addition. Only the outermost sequence
+claims the bar, so the interpolation inside a driver’s loop does not
+open a second one over the first.</p>
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/progress.html">set_progress_bar</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">ens2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_by_sample.html">solve_by_sample</a></span><span class="op">(</span><span class="va">m3</span>, name <span class="op">=</span> <span class="st">"ens_bar"</span>, sample_size <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>                        verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">

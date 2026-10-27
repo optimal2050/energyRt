@@ -119,7 +119,7 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 #### Solving
 
 - Solve drivers:
-  [`solve_myopic()`](https://energyRt.org/reference/solve_myopic.html),
+  [`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md),
   [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md),
   [`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md)
   and
@@ -335,17 +335,28 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   [`plot_map()`](https://energyRt.org/reference/plot_map.md),
   [`plot_trade_map()`](https://energyRt.org/reference/plot_trade_map.md),
   [`plot_trade_network()`](https://energyRt.org/reference/plot_trade_network.md).
+- [`sequence_coverage()`](https://energyRt.org/reference/sequence_coverage.md)
+  reports what a solve sequence covered, one row per unit and element,
+  and
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  draws it: a sampled calendar as a tile grid or a wall calendar, a
+  region sample on its geoscale, a recursive walk as a horizon Gantt
+  with the look-ahead years marked apart from the decided ones. Elements
+  no unit covered stay visible as gaps.
+- `autoplot(<by_sample>, "histogram")` draws a result’s spread across
+  the samples, weighted by each sample’s coverage, with the free pass
+  overlaid on the floored one when `ncap_floor > 0`.
+- The solve drivers report progress through **progressr**:
+  [`set_progress_bar()`](https://energyRt.org/reference/progress.md) for
+  a bar, `verbose = TRUE` for a line per unit, either or both.
 - TOPIA, the teaching model (was UTOPIA), rebuilt around concentrated
   resources traded between zones.
 
 ### Breaking changes
 
-- [`solve_myopic()`](https://energyRt.org/reference/solve_myopic.html)
-  is renamed
+- `solve_myopic()` is renamed
   **[`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md)**,
-  with
-  [`myopic_objective()`](https://energyRt.org/reference/myopic_objective.html)
-  to
+  with `myopic_objective()` to
   [`recursive_objective()`](https://energyRt.org/reference/recursive_objective.md)
   and the result class from `myopic` to `recursive`. The driver steps
   through the horizon’s milestones carrying capacity forward, which is

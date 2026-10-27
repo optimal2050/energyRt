@@ -23,7 +23,7 @@ the registry, the object stores, and the two derived-artifact folders
 proj <- file.path(tempdir(), "rep-demo")
 dir.create(proj, showWarnings = FALSE)
 open_project(proj)
-#> energyRt project: C:/Users/admin/AppData/Local/Temp/RtmpI7Pjb1/rep-demo (0 registered scenarios)
+#> energyRt project: C:/Users/admin/AppData/Local/Temp/Rtmp4k5uTS/rep-demo (0 registered scenarios)
 ```
 
 A technology to price and report on:
@@ -64,7 +64,7 @@ identical question returns instantly from disk:
 
 lc2 <- levcost(PP, fuel_costs = c(GAS = 25), discount = 0.06,
                base_year = 2025)
-#> levcost: cached result is current: C:/Users/admin/AppData/Local/Temp/RtmpI7Pjb1/rep-demo/levcosts/PP@a3f67aa4.rds (force = TRUE to recompute)
+#> levcost: cached result is current: C:/Users/admin/AppData/Local/Temp/Rtmp4k5uTS/rep-demo/levcosts/PP@a3f67aa4.rds (force = TRUE to recompute)
 list.files(get_levcost_cache_path())
 #> [1] "PP@a3f67aa4.rds" "PP@a3f67aa4.yml"
 ```
@@ -89,7 +89,7 @@ in-memory objects into the project-level `reports/` tier:
 ``` r
 
 f <- report(PP, levcost = lc, format = "html", open = FALSE)
-#> Report written to: C:\Users\admin\AppData\Local\Temp\RtmpI7Pjb1\rep-demo\reports\report_PP.html
+#> Report written to: C:\Users\admin\AppData\Local\Temp\Rtmp4k5uTS\rep-demo\reports\report_PP.html
 basename(f)
 #> [1] "report_PP.html"
 ```
@@ -102,7 +102,7 @@ nothing:
 ``` r
 
 f <- report(PP, levcost = lc, format = "html", open = FALSE)
-#> Report up to date: C:\Users\admin\AppData\Local\Temp\RtmpI7Pjb1\rep-demo\reports\report_PP.html (force = TRUE to re-render)
+#> Report up to date: C:\Users\admin\AppData\Local\Temp\Rtmp4k5uTS\rep-demo\reports\report_PP.html (force = TRUE to re-render)
 ```
 
 Editing the technology, the template, or any argument invalidates the

@@ -653,6 +653,8 @@ primitives.
   Apply a carry ledger to a model
 - [`recursive_objective()`](https://energyRt.org/reference/recursive_objective.md)
   : Globally discounted total cost of a recursive sequence
+- [`sequence_coverage()`](https://energyRt.org/reference/sequence_coverage.md)
+  : What a solve sequence covered
 - [`calendar_samples()`](https://energyRt.org/reference/calendar_samples.md)
   : Build a calendar-sample specification
 - [`sample_summary()`](https://energyRt.org/reference/sample_summary.md)
@@ -813,6 +815,11 @@ Plots and diagrams.
   : Visualize a process object over years
 - [`autoplot(`*`<scenario>`*`)`](https://energyRt.org/reference/autoplot.scenario.md)
   : Plot mixes from a solved scenario
+- [`autoplot(`*`<by_sample>`*`)`](https://energyRt.org/reference/autoplot.sequence.md)
+  [`autoplot(`*`<by_region>`*`)`](https://energyRt.org/reference/autoplot.sequence.md)
+  [`autoplot(`*`<recursive>`*`)`](https://energyRt.org/reference/autoplot.sequence.md)
+  [`autoplot(`*`<guided>`*`)`](https://energyRt.org/reference/autoplot.sequence.md)
+  : Draw what a solve sequence covered
 - [`compare_scenarios()`](https://energyRt.org/reference/compare_scenarios.md)
   [`print(`*`<scenarios_cmp>`*`)`](https://energyRt.org/reference/compare_scenarios.md)
   [`autoplot(`*`<scenarios_cmp>`*`)`](https://energyRt.org/reference/compare_scenarios.md)
