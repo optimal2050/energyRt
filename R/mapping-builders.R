@@ -706,6 +706,33 @@ map_meqTechAfFx     <- function(scen, fmp) scen
   P <- dt(P)
   if (!all(c(key, "type", "value") %in% names(P))) return(NULL)
   for (cl in c(key, "type")) data.table::set(P, j = cl, value = as.character(P[[cl]]))
+  # rows with no timeslice hold for every timeslice of the technology (and a
+  # missing region or year for every cell of it); the more specific row takes
+  # precedence. A cell they cover alone (W) is decided at the cell level, never
+  # expanded; in a cell they share with per-timeslice rows they are expanded to
+  # its timeslices
+  W <- NULL
+  wild <- is.na(P$timeslice)
+  if (any(wild)) {
+    W <- P[wild]
+    data.table::set(W, j = "timeslice", value = NULL)
+    P <- P[!wild]
+    W[, spec := !is.na(region) + !is.na(year)]
+    W[, pat := paste(is.na(region), is.na(year))]
+    W <- data.table::rbindlist(lapply(split(W, by = "pat", keep.by = FALSE), function(x) {
+      on <- c("tech", c("region", "year")[!is.na(c(x$region[1], x$year[1]))])
+      x <- x[, setdiff(names(x), setdiff(cell, on)), with = FALSE]
+      x[cells[, cell, with = FALSE], on = on, nomatch = NULL, allow.cartesian = TRUE]
+    }), use.names = TRUE)
+    data.table::setorderv(W, c(cell, "type", "spec"), order = c(1L, 1L, 1L, 1L, -1L))
+    W <- unique(W, by = c(cell, "type"))[, spec := NULL]
+    mixed <- unique(W[, cell, with = FALSE])[unique(P[, cell, with = FALSE]), on = cell, nomatch = NULL]
+    if (nrow(mixed)) {
+      Wm <- W[mixed, on = cell, nomatch = NULL][ts, on = "tech", nomatch = NULL, allow.cartesian = TRUE]
+      P <- data.table::rbindlist(list(P, Wm[!P, on = c(key, "type")]), use.names = TRUE)
+      W <- W[!mixed, on = cell]
+    }
+  }
   if (anyNA(P[, key, with = FALSE])) return(NULL)
   # the rows inside the activity domain
   P <- P[cells[, cell, with = FALSE], on = cell, nomatch = NULL]
@@ -734,6 +761,25 @@ map_meqTechAfFx     <- function(scen, fmp) scen
   counts <- add(counts, L, "nL")
   counts <- add(counts, UO, "nUO")
   counts <- add(counts, F, "nF")
+  # the cells covered by rows with no timeslice: every timeslice alike, so a
+  # condition holds in all n of them or in none
+  if (!is.null(W) && nrow(W)) {
+    wc <- unique(W[, cell, with = FALSE])
+    wl <- W[type == "lo", c(cell, "value"), with = FALSE]
+    wu <- W[type == "up", c(cell, "value"), with = FALSE]
+    data.table::setnames(wl, "value", "vlo"); data.table::setnames(wu, "value", "vup")
+    wc <- wu[wl[wc, on = cell], on = cell]
+    isL <- !is.na(wc$vlo) & wc$vlo != 0
+    isUO <- !is.na(wc$vup) & wc$vup == Inf
+    vup <- ifelse(is.na(wc$vup), dv[2], wc$vup)
+    isF <- isL & !isUO & is.finite(wc$vlo) & is.finite(vup) &
+      abs(wc$vlo - vup) <= 1e-12 * pmax(1, abs(wc$vlo)) &
+      wc$tech %in% .tech_af_weather_same(scen, unique(wc$tech))
+    wc <- wc[, cell, with = FALSE][, `:=`(wL = isL, wUO = isUO, wF = isF)]
+    counts <- wc[counts, on = cell]
+    counts[!is.na(wL), `:=`(nL = nL + n * wL, nUO = nUO + n * wUO, nF = nF + n * wF)]
+    counts[, c("wL", "wUO", "wF") := NULL]
+  }
   counts[, `:=`(lo = nL - nF, up = n - nUO - nF, fx = nF)]
   list(cells = cells, ts = ts, base = base, counts = counts, L = L[, key, with = FALSE], UO = UO, F = F)
 }
@@ -803,7 +849,8 @@ map_meqTechAfFx     <- function(scen, fmp) scen
   invisible(TRUE)
 }
 
-utils::globalVariables(c("vup", "vlo", "nL", "nUO", "nF", "k", "n", "type", "lo", "up", "fx", "tech"))
+utils::globalVariables(c("vup", "vlo", "nL", "nUO", "nF", "k", "n", "type", "lo", "up", "fx", "tech",
+                         "wL", "wUO", "wF", "spec", "pat", "region", "year"))
 
 .tech_af_fx_maps_hourly <- function(scen, fmp) {
   mem <- function(x) NULL
