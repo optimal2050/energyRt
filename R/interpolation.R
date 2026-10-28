@@ -4361,6 +4361,76 @@ get_process_region <- function(object, process = NULL, classes = NULL,
 # }
 
 
+# One lifespan column (`start`, `end`, `olife`) per (process, region), each
+# with its own region granularity and its own NA-region broadcast (the
+# universal rule: region-specific rows override the broadcast). Collecting
+# them one column at a time through `.lifespan_resolve()` keeps the keying
+# honest -- post-expansion each process is a single (vintage, cluster) cell,
+# asserted in `.assert_variants_expanded()`. `inf_as_na`: an infinite value
+# is an unbounded side (`start`/`end`); `olife` keeps it.
+.lifespan_col_table <- function(object, col, classes, inf_as_na = TRUE) {
+  collect_col <- function(col) {
+    rows <- apply_to_scenario_data(
+      scen = object,
+      classes = classes,
+      func = function(x) {
+        ll <- list()
+        dd <- data.table(process = character(), region = character(),
+                         value = numeric())
+        if (.hasSlot(x, "vintage") || .hasSlot(x, col)) {
+          d <- .lifespan_resolve(x, col)
+          dd <- data.table(process = x@name,
+                           region = as.character(d$region),
+                           value = suppressWarnings(as.numeric(d[[col]])))
+          if (nrow(dd) == 0L) {
+            # slot present but no data: available in all regions across
+            # the whole horizon -- emit an NA broadcast row
+            dd <- data.table(process = x@name, region = NA_character_,
+                             value = NA_real_)
+          }
+        }
+        ll[[x@name]] <- dd
+        ll
+      },
+      as_list = FALSE
+    )
+    # empty/column-less result when the model holds none of the classes
+    if (is.null(rows) || NROW(rows) == 0L ||
+        !all(c("process", "region", "value") %in% names(rows))) {
+      rows <- data.table(process = character(), region = character(),
+                         value = numeric())
+    }
+    # Inf -> NA (unbounded side), then integer typing
+    if (inf_as_na) {
+      rows <- rows |>
+        mutate(value = if_else(is.infinite(value), NA_real_, value),
+               value = as.integer(value))
+    }
+    rows |>
+      unique() |>
+      as.data.table()
+  }
+
+  reg_map <- named_list_to_df(object@modInp@sets$process_region,
+                              col_names = c("process", "region"))
+  expand_na <- function(d) {
+    # broadcast NA-region rows fill ONLY the regions without a specific
+    # row: specific overrides broadcast, never a union of both
+    spec <- d |> filter(!is.na(region))
+    na_rows <- d |>
+      filter(is.na(region)) |>
+      select(-region) |>
+      unique() |>
+      left_join(reg_map, by = "process") |>
+      anti_join(spec, by = c("process", "region"))
+    bind_rows(spec, na_rows) |>
+      unique() |>
+      arrange(process, region)
+  }
+
+  expand_na(collect_col(col))
+}
+
 #' Start and end years for process by region
 #'
 #' @param object scenario object
@@ -4394,70 +4464,8 @@ get_process_invest_window <- function(object, process = NULL, classes = NULL) {
     )
   }
 
-  # `start` and `end` are separate parameters, each with its own region
-  # granularity and its own NA-region broadcast (the universal rule:
-  # region-specific rows override the broadcast). Collecting them one
-  # column at a time through `.lifespan_resolve()` keeps the keying
-  # honest -- post-expansion each process is a single (vintage, cluster)
-  # cell, asserted in `.assert_variants_expanded()`.
-  collect_col <- function(col) {
-    rows <- apply_to_scenario_data(
-      scen = object,
-      classes = classes,
-      func = function(x) {
-        ll <- list()
-        dd <- data.table(process = character(), region = character(),
-                         value = numeric())
-        if (.hasSlot(x, "vintage") || .hasSlot(x, col)) {
-          d <- .lifespan_resolve(x, col)
-          dd <- data.table(process = x@name,
-                           region = as.character(d$region),
-                           value = suppressWarnings(as.numeric(d[[col]])))
-          if (nrow(dd) == 0L) {
-            # slot present but no data: available in all regions across
-            # the whole horizon -- emit an NA broadcast row
-            dd <- data.table(process = x@name, region = NA_character_,
-                             value = NA_real_)
-          }
-        }
-        ll[[x@name]] <- dd
-        ll
-      },
-      as_list = FALSE
-    )
-    # empty/column-less result when the model holds none of the classes
-    if (is.null(rows) || NROW(rows) == 0L ||
-        !all(c("process", "region", "value") %in% names(rows))) {
-      rows <- data.table(process = character(), region = character(),
-                         value = numeric())
-    }
-    # Inf -> NA (unbounded side), then integer typing
-    rows |>
-      mutate(value = if_else(is.infinite(value), NA_real_, value),
-             value = as.integer(value)) |>
-      unique() |>
-      as.data.table()
-  }
-
-  reg_map <- named_list_to_df(object@modInp@sets$process_region,
-                              col_names = c("process", "region"))
-  expand_na <- function(d) {
-    # broadcast NA-region rows fill ONLY the regions without a specific
-    # row: specific overrides broadcast, never a union of both
-    spec <- d |> filter(!is.na(region))
-    na_rows <- d |>
-      filter(is.na(region)) |>
-      select(-region) |>
-      unique() |>
-      left_join(reg_map, by = "process") |>
-      anti_join(spec, by = c("process", "region"))
-    bind_rows(spec, na_rows) |>
-      unique() |>
-      arrange(process, region)
-  }
-
-  ll_s <- expand_na(collect_col("start")) |> rename(start = value)
-  ll_e <- expand_na(collect_col("end")) |> rename(end = value)
+  ll_s <- .lifespan_col_table(object, "start", classes) |> rename(start = value)
+  ll_e <- .lifespan_col_table(object, "end", classes) |> rename(end = value)
 
   win <- full_join(ll_s, ll_e, by = c("process", "region")) |>
     mutate(start = as.integer(start), end = as.integer(end)) |>
@@ -4684,6 +4692,35 @@ get_process_stock_years <- function(scen, process = NULL, classes = NULL) {
 
 }
 
+# The milestones capacity built in an investment year stands in: from the
+# build year while year < build year + olife (no olife given: the default; an
+# infinite one: to the horizon's end). With an investment window open to the
+# horizon's end these are investment years already; a window closed by `end`
+# ends the building, not the capacity built.
+.process_life_years <- function(scen, invest_years) {
+  empty <- data.table(process = character(), region = character(), year = integer())
+  if (is.null(invest_years) || NROW(invest_years) == 0L) return(empty)
+  ol <- .lifespan_col_table(scen, "olife", c("process", "technology", "storage", "trade"),
+                            inf_as_na = FALSE)
+  ol <- as.data.table(ol)[, list(olife = value[1]), by = c("process", "region")]
+  inv <- as.data.table(invest_years)[, c("process", "region", "year")]
+  data.table::setnames(inv, "year", "built")
+  inv <- merge(inv, ol, by = c("process", "region"), all.x = TRUE)
+  inv[is.na(olife), olife := .default_olife()]
+  mids <- as.integer(scen@settings@horizon@intervals$mid)
+  j <- inv[, list(year = mids), by = c("process", "region", "built", "olife")]
+  j <- j[j$year >= j$built & (is.infinite(j$olife) | j$year < j$built + j$olife), ]
+  unique(j[, list(process, region, year)])
+}
+
+utils::globalVariables(c("olife", "built"))
+
+# the default operational life of a process with none given
+.default_olife <- function() {
+  d <- tryCatch(.defVal$olife, error = function(e) NULL)
+  if (is.numeric(d) && length(d) == 1L && is.finite(d)) d else 1
+}
+
 get_process_years <- function(scen, process = NULL, classes = NULL) {
   # check if scen@modInp@sets$process_years exists and/or rerun
 
@@ -4710,6 +4747,7 @@ get_process_years <- function(scen, process = NULL, classes = NULL) {
     # ### process availability over years by region
     process_years <- rbind(
       scen@modInp@sets$process_invest_year,
+      .process_life_years(scen, scen@modInp@sets$process_invest_year),
       scen@modInp@sets$process_stock_year
     )
 

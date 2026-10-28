@@ -312,6 +312,11 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* A vintage's `end` ended the capacity built in it as well as its investment
+  window: capacity of a vintage whose window closed before a later milestone
+  was gone in that milestone. Capacity now stands from its build year for its
+  operational life (`olife`), whatever the window.
+
 * A weather series at a coarser timeframe than the availability bound it
   multiplies (`waf`) read as zero and silently switched the technology off. It
   is now an error naming the series and the timeslices.
