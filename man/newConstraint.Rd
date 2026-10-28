@@ -38,6 +38,8 @@ as linear terms of mulipliers and variables.
 \item{for.each}{list or data.frame with sets that define the dimension of the constraint.}
 
 \item{rhs}{a numeric value, list or data frame with sets and numeric values for each constraint.
+A single value (a number, a one-element list or a one-cell data frame) is
+the right-hand side of every row: it replaces \code{defVal}.
 Note: zero values will be replaced with \code{replace_zerros} to avoid dropping them by the interpolation algorithms.}
 
 \item{defVal}{numeric. The default value for the rhs. It is recommended to set the default value for the rhs of every constraint to avoid unexpected behavior. If not specified, the default value is 0, and the warning is issued.}

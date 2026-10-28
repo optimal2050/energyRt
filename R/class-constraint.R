@@ -313,6 +313,8 @@ setClass("summand",
 #' @param eq Type of the relation ('==' default, '<=', '>=')
 #' @param for.each list or data.frame with sets that define the dimension of the constraint.
 #' @param rhs a numeric value, list or data frame with sets and numeric values for each constraint.
+#' A single value (a number, a one-element list or a one-cell data frame) is
+#' the right-hand side of every row: it replaces `defVal`.
 #' Note: zero values will be replaced with `replace_zerros` to avoid dropping them by the interpolation algorithms.
 #' @param defVal `r get_slot_doc("constraint", "defVal")`
 #' @param interpolation `r get_slot_doc("constraint", "interpolation")`
@@ -356,6 +358,30 @@ newConstraint <- function(
     )
   }
   obj@eq[] <- eq
+  # a single value as `rhs` is the right-hand side of every row, i.e. the
+  # constraint's default: it replaces `defVal` (a differing `defVal` is
+  # reported) and leaves no rhs table. Given as a number, a one-element list
+  # or a one-cell data frame.
+  rhs_one <- NULL
+  if (is.numeric(rhs)) {
+    if (length(rhs) != 1) {
+      stop("rhs must be a single numeric value or a data.frame with sets and numeric values for each constraint.")
+    }
+    rhs_one <- rhs
+  } else if (!is.data.frame(rhs) && is.list(rhs) && length(rhs) == 1 && length(rhs[[1]]) == 1) {
+    rhs_one <- rhs[[1]]
+  } else if (is.data.frame(rhs) && ncol(rhs) == 1 && nrow(rhs) == 1) {
+    rhs_one <- rhs[1, 1]
+  }
+  if (!is.null(rhs_one)) {
+    rhs_one <- as.numeric(rhs_one)
+    if (!is.null(defVal) && !is.na(defVal) && !isTRUE(all.equal(as.numeric(defVal), rhs_one))) {
+      warning("Constraint '", name, "': `rhs` is a single value (", rhs_one,
+              ") and is the constraint's value everywhere; `defVal` (", defVal, ") is replaced.")
+    }
+    defVal <- rhs_one
+    rhs <- data.frame()
+  }
   if (is.null(defVal)) {
     warning("It is advisable to define 'defVal' parameter.")
     if (eq == "==") {
@@ -367,29 +393,12 @@ newConstraint <- function(
     }
   }
 
-  if (is.numeric(rhs)) {
-    if (length(rhs) != 1) {
-      stop("rhs must be a single numeric value or a data.frame with sets and numeric values for each constraint.")
-    }
-    if (is.na(defVal)) defVal <- rhs
-    rhs <- data.frame()
-    # rhs <- data.frame(rhs = rhs, stringsAsFactors = FALSE)
-  }
   if (!is.data.frame(rhs) && is.list(rhs)) {
     tmp <- sapply(rhs, length)
     if (any(tmp[1] != tmp) || is.null(names(rhs))) {
       stop("Length of the list elements in 'rhs' must be identical.")
     }
     rhs <- as.data.frame(rhs, stringsAsFactors = FALSE)
-  }
-  if (!is.data.frame(rhs) && is.list(rhs) && length(rhs) == 1 && length(rhs[[1]]) == 1) {
-    if (is.na(defVal)) defVal <- rhs[[1]]
-    rhs <- data.frame()
-    # rhs <- data.frame(rhs = rhs[[1]], stringsAsFactors = FALSE)
-  }
-  if (is.data.frame(rhs) && ncol(rhs) == 1 && nrow(rhs) == 1) {
-    if (is.na(defVal)) defVal <- rhs[1, 1]
-    rhs <- data.frame()
   }
   if (!is.null(replace_zerros) && any(rhs$rhs == 0)) {
     # warning("Zero values in 'rhs' will be replaced with '", replace_zerros, "' to avoid ignoring them by the current interpolation algorithms. Use non-zero value to avoid auto-replacement and the warning. Use 'replace_zerros = NULL' to avoid replacement.")

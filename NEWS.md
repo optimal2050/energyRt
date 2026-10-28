@@ -317,6 +317,12 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   was gone in that milestone. Capacity now stands from its build year for its
   operational life (`olife`), whatever the window.
 
+* `newConstraint()` discarded a single-value `rhs` whenever `defVal` was set,
+  and `defVal` is always set (given, or 0 / `Inf` by default), so
+  `rhs = 100` built a constraint at 0, or with no limit for `<=`. A single
+  value is now the right-hand side of every row and replaces `defVal`, with a
+  warning when they differ.
+
 * A weather series at a coarser timeframe than the availability bound it
   multiplies (`waf`) read as zero and silently switched the technology off. It
   is now an error naming the series and the timeslices.

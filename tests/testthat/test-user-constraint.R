@@ -125,3 +125,24 @@ test_that("a summand `timeframe` restricts the variable to that timeslice level 
     "unknown timeframe"
   )
 })
+
+test_that("a single-value rhs is the constraint's value, not dropped", {
+  term <- list(variable = "vTechNewCap", for.sum = list(tech = "T1"))
+  # with a differing defVal: the rhs wins, with a warning
+  expect_warning(c1 <- newConstraint("C1", eq = "<=", term1 = term, rhs = 100, defVal = 0),
+                 "single value")
+  expect_equal(c1@defVal, 100)
+  expect_equal(nrow(c1@rhs), 0L)
+  # without defVal: no advice warning, the rhs is the default
+  expect_no_warning(c2 <- newConstraint("C2", eq = "<=", term1 = term, rhs = 5))
+  expect_equal(c2@defVal, 5)
+  # a one-element list and a one-cell data frame alike
+  expect_equal(newConstraint("C3", eq = "<=", term1 = term, rhs = list(rhs = 7))@defVal, 7)
+  expect_equal(newConstraint("C4", eq = "<=", term1 = term, rhs = data.frame(rhs = 8))@defVal, 8)
+  # equal defVal: silent; a zero still becomes the zero placeholder
+  expect_no_warning(c5 <- newConstraint("C5", eq = "<=", term1 = term, rhs = 0, defVal = 0))
+  expect_equal(c5@defVal, 1e-20)
+  # a table rhs is untouched
+  c6 <- newConstraint("C6", eq = "<=", term1 = term, rhs = data.frame(year = 2030L, rhs = 9), defVal = 0)
+  expect_equal(c6@rhs$rhs, 9)
+})
