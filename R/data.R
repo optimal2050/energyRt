@@ -35,8 +35,10 @@
 #' for the multimod matrix route, and a `_barrier` suffix for the interior-point
 #' method rather than simplex. The matrix presets name the matrix writer, the
 #' solver and the place: `mm_cuopt_wsl` (cuOpt on a local GPU through WSL),
-#' `mm_cuopt_cloud` (cuOpt on a rented GPU), `pyomo_cuopt_cloud` (a Pyomo-written
-#' matrix on a rented GPU).
+#' `mm_cuopt_wsl_py` (the same through cuOpt's Python interface: a solution at
+#' any status, PDLP warm starts through `gpu_save_warm_start` and
+#' `gpu_warm_start`), `mm_cuopt_cloud` (cuOpt on a rented GPU),
+#' `pyomo_cuopt_cloud` (a Pyomo-written matrix on a rented GPU).
 #'
 #' These entries are data only -- selecting one does not check that the solver
 #' is installed. The former names `mmcloud`, `mmcloud_crossover`,

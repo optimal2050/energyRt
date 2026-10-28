@@ -65,7 +65,7 @@ test_that("a list of equal-length vectors is accepted", {
 test_that("an unknown column is an error", {
   expect_error(
     newCommodity("COA", property = data.frame(property = "lhv", vallue = 1)),
-    "Unknown column"
+    "unknown column"
   )
 })
 

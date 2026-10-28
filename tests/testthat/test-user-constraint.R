@@ -146,3 +146,37 @@ test_that("a single-value rhs is the constraint's value, not dropped", {
   c6 <- newConstraint("C6", eq = "<=", term1 = term, rhs = data.frame(year = 2030L, rhs = 9), defVal = 0)
   expect_equal(c6@rhs$rhs, 9)
 })
+
+test_that("a constraint row no term reaches is dropped when it cannot bind, else refused", {
+  # T1 can be built from 2030 only: vTechNewCap has no T1 tuple in 2025
+  ELC <- newCommodity("ELC", unit = "MWh"); GAS <- newCommodity("GAS", unit = "MWh")
+  SG <- newSupply("SG", commodity = "GAS", supply = data.frame(cost = 10))
+  D <- newDemand("D", commodity = "ELC", demand = data.frame(year = c(2025, 2030, 2040), demand = 100))
+  T0 <- newTechnology("T0", input = data.frame(comm = "GAS"), output = data.frame(comm = "ELC"),
+                      ceff = data.frame(comm = "GAS", cinp2use = 0.5),
+                      invcost = data.frame(invcost = 1000, wacc = 0.07), cap2act = 8760)
+  T1 <- newTechnology("T1", input = data.frame(comm = "GAS"), output = data.frame(comm = "ELC"),
+                      ceff = data.frame(comm = "GAS", cinp2use = 0.5),
+                      vintage = data.frame(start = 2030L, olife = 30L),
+                      invcost = data.frame(invcost = 900, wacc = 0.07), cap2act = 8760)
+  mk <- function(cns) newModel("cns_empty", data = newRepository("r", ELC, GAS, SG, D, T0, T1, cns),
+    region = "R1", calendar = calendars$annual,
+    horizon = newHorizon(intervals = data.frame(start = c(2025, 2026, 2036), mid = c(2025, 2030, 2040),
+                                                end = c(2025, 2035, 2045))))
+  term <- list(variable = "vTechNewCap", for.sum = list(tech = "T1"))
+  yrs <- data.frame(year = c(2025L, 2030L, 2040L))
+  # <= 0: the 2025 row is dropped with a message, the others stay
+  expect_message(s <- interpolate_model(mk(newConstraint("COFF", eq = "<=", for.each = yrs, term1 = term,
+                                                         rhs = 0, defVal = 0)), name = "c1"),
+                 "1 row\\(s\\) dropped.*year 2025")
+  fe <- as.data.frame(get_data_slot(s@modInp@parameters$mCnsForEachCOFF))
+  expect_equal(sort(fe$year), c(2030L, 2040L))
+  # >= 5 cannot be met by an empty row: refused
+  expect_error(interpolate_model(mk(newConstraint("CMIN", eq = ">=", for.each = yrs, term1 = term,
+                                                  rhs = 5, defVal = 5)), name = "c2"),
+               "cannot be met by zero")
+  # a constraint empty in every row: refused
+  expect_error(interpolate_model(mk(newConstraint("CNONE", eq = "<=", for.each = data.frame(year = 2025L),
+                                                  term1 = term, rhs = 0, defVal = 0)), name = "c3"),
+               "constrains nothing")
+})

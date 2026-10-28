@@ -615,6 +615,59 @@ addSummand <- function(
 }
 
 # Calculate do equation need additional set, and add it
+# Which rows of a constraint's `for.each` have at least one term with a member
+# of its variable's domain (the gate map, as built). Rows are matched on the
+# `for.each` columns the variable carries, except region and timeslice, where
+# a row may sum the levels beneath it. NULL when it cannot be decided: a gate
+# map kept as a rule (no table), a variable indexing one set twice, or a term
+# with a year lag or lead.
+.cns_covered_rows <- function(prec, stm) {
+  fe <- as.data.frame(stm@for.each)
+  covered <- rep(FALSE, nrow(fe))
+  for (sm in stm@lhs) {
+    v <- sm@variable
+    sets <- .variable_set[[v]]
+    dims <- .variable_dim[[v]]
+    if (is.null(dims) || length(dims) != length(sets)) dims <- sets
+    if (is.null(sets) || anyDuplicated(sets)) return(NULL)
+    if (!is.null(sm@for.sum$lag.year) || !is.null(sm@for.sum$lead.year)) return(NULL)
+    d <- .variable_domain_rows(prec, v)
+    if (is.null(d) || !all(sets %in% names(d))) return(NULL)
+    for (k in intersect(names(sm@for.sum), dims)) {
+      vals <- sm@for.sum[[k]]
+      if (.for_sum_unrestricted(vals)) next
+      s <- sets[match(k, dims)]
+      d <- d[as.character(d[[s]]) %in% as.character(vals), , drop = FALSE]
+    }
+    if (!nrow(d)) next
+    on <- setdiff(intersect(names(fe), sets), c("region", "timeslice"))
+    if (!length(on)) return(rep(TRUE, nrow(fe)))
+    key <- function(x) do.call(paste, c(lapply(x[on], as.character), sep = "\r"))
+    covered <- covered | key(fe) %in% key(d)
+  }
+  covered
+}
+
+# The right-hand side of each `for.each` row where it is known without
+# interpolation: an exact row of the rhs table, or `defVal` when there is no
+# table. NA otherwise.
+.cns_row_rhs <- function(stm) {
+  fe <- as.data.frame(stm@for.each)
+  if (nrow(stm@rhs) == 0 || !("rhs" %in% names(stm@rhs))) return(rep(as.numeric(stm@defVal), nrow(fe)))
+  r <- as.data.frame(stm@rhs)
+  on <- setdiff(names(r), "rhs")
+  if (!length(on) || !all(on %in% names(fe))) return(rep(NA_real_, nrow(fe)))
+  key <- function(x) do.call(paste, c(lapply(x[on], as.character), sep = "\r"))
+  as.numeric(r$rhs[match(key(fe), key(r))])
+}
+
+# A short description of some `for.each` rows, for messages.
+.cns_rows_label <- function(fe) {
+  fe <- as.data.frame(fe)
+  lab <- do.call(paste, c(lapply(names(fe), function(n) paste0(n, " ", fe[[n]])), sep = ", "))
+  paste(utils::head(lab, 6), collapse = "; ")
+}
+
 .getSetEquation <- function(prec, stm, approxim) {
 
   # temporary fix for constraints interpolation: expanding year set
@@ -1117,6 +1170,37 @@ addSummand <- function(
     }
     if (any(all.set$lead.year)) {
       stm@for.each <- stm@for.each[stm@for.each$year %in% prec@parameters[["mMilestoneHasNext"]]@data$year, , drop = FALSE]
+    }
+  }
+  # Rows in which no term has a member of its variable's domain carry no
+  # coefficient: a technology that cannot be built yet in that year, say. Such
+  # a row is dropped (with a message) when it could not bind anyway (`<=` a
+  # non-negative value, `>=` a non-positive one, `==` zero); an empty row that
+  # would make the model infeasible is an error, and so is a constraint empty
+  # in every row (a misspelt name or a filter that selects nothing). Rows the
+  # check cannot decide are kept.
+  if (nrow(stm@for.each) > 0 && length(old_for_each) > 0) {
+    cov <- .cns_covered_rows(prec, stm)
+    if (!is.null(cov) && !all(cov)) {
+      if (!any(cov)) {
+        stop.constr("no term has any member of its variable's domain in any row: the constraint constrains nothing. Check the names and filters of its terms.")
+      }
+      rhs <- .cns_row_rhs(stm)
+      eq <- as.character(stm@eq)
+      harmless <- switch(eq, "<=" = rhs >= 0, ">=" = rhs <= 0, "==" = abs(rhs) <= 1e-12)
+      empty <- !cov & !is.na(rhs)
+      bad <- empty & !harmless
+      if (any(bad)) {
+        stop.constr(paste0(
+          "no term exists in ", sum(bad), " row(s) whose right-hand side cannot be met by zero (",
+          .cns_rows_label(stm@for.each[bad, , drop = FALSE]), ")."))
+      }
+      if (any(empty)) {
+        message("Constraint '", stm@name, "': ", sum(empty),
+                " row(s) dropped, no term exists there (",
+                .cns_rows_label(stm@for.each[empty, , drop = FALSE]), ").")
+        stm@for.each <- stm@for.each[!empty, , drop = FALSE]
+      }
     }
   }
   # An indexed equation whose `for.each` domain was emptied by the horizon

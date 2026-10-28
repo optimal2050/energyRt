@@ -20,8 +20,10 @@ algorithm: a bare backend (\code{glpk}), \verb{pyomo_*} for the Python route, \v
 for the multimod matrix route, and a \verb{_barrier} suffix for the interior-point
 method rather than simplex. The matrix presets name the matrix writer, the
 solver and the place: \code{mm_cuopt_wsl} (cuOpt on a local GPU through WSL),
-\code{mm_cuopt_cloud} (cuOpt on a rented GPU), \code{pyomo_cuopt_cloud} (a Pyomo-written
-matrix on a rented GPU).
+\code{mm_cuopt_wsl_py} (the same through cuOpt's Python interface: a solution at
+any status, PDLP warm starts through \code{gpu_save_warm_start} and
+\code{gpu_warm_start}), \code{mm_cuopt_cloud} (cuOpt on a rented GPU),
+\code{pyomo_cuopt_cloud} (a Pyomo-written matrix on a rented GPU).
 }
 \details{
 These entries are data only -- selecting one does not check that the solver

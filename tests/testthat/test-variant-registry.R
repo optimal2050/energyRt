@@ -304,3 +304,39 @@ test_that("a variant missing from `process` is structural", {
   expect_match(msg, "not members of", fixed = TRUE)
   expect_match(msg, "EWIN_VIN2025_CL01", fixed = TRUE)
 })
+
+test_that("stock without a vintage lands on the earliest vintage only, in every class that has stock", {
+  # Each class names its stock differently (`stock`, and a storage's
+  # `inp.stock`/`out.stock`/`stg.stock`); a rule written against one name left
+  # the others copied to every vintage, multiplying the stock.
+  vin <- data.frame(vintage = c("2020", "2030"), start = c(2000L, 2026L),
+                    end = c(2024L, NA), olife = 20L)
+  objs <- list(
+    technology = newTechnology("T", output = data.frame(comm = "ELC"), vintage = vin,
+                               capacity = data.frame(region = "R1", stock = 3)),
+    storage = newStorage("S", commodity = "ELC", vintage = vin,
+                         capacity = data.frame(region = "R1", inp.stock = 1, out.stock = 2,
+                                               stg.stock = 4)),
+    trade = newTrade("D", commodity = "ELC", routes = data.frame(src = "R1", dst = "R2"),
+                     vintage = vin, capacity = data.frame(stock = 5))
+  )
+  # every class whose capacity carries a stock is covered here
+  with_stock <- Filter(function(k) .hasSlot(methods::new(k), "capacity") &&
+                         length(.stock_cols(methods::new(k)@capacity)) > 0L,
+                       names(.variant_classes))
+  expect_setequal(names(objs), with_stock)
+  for (k in names(objs)) {
+    o <- objs[[k]]
+    ex <- suppressMessages(.expand_one_process(o))
+    cols <- .stock_cols(o@capacity)
+    per_vintage <- vapply(ex$objects, function(v) {
+      cp <- as.data.frame(v@capacity)
+      sum(unlist(cp[, cols, drop = FALSE]), na.rm = TRUE)
+    }, numeric(1))
+    names(per_vintage) <- ex$provenance$vintage
+    declared <- sum(unlist(as.data.frame(o@capacity)[, cols, drop = FALSE]), na.rm = TRUE)
+    expect_equal(unname(per_vintage["2020"]), declared, info = k)
+    expect_equal(unname(per_vintage["2030"]), 0, info = k)
+    expect_false(any(grepl("stock_orphan", names(as.data.frame(ex$objects[[1]]@capacity)))), info = k)
+  }
+})

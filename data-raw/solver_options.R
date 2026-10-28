@@ -191,6 +191,17 @@ mm_cuopt_wsl_crossover$name <- "mm_cuopt_wsl_crossover"
 # against 2.3e-4 without, for a small extra solve.
 mm_cuopt_wsl_crossover$gpu_solver_options <- "--crossover 1"
 
+# The same solve through cuOpt's Python interface instead of `cuopt_cli`: the
+# solution is written at any status (at a time limit the current iterate,
+# where `cuopt_cli` writes none), and PDLP's warm-start data can be saved
+# (`gpu_save_warm_start = TRUE`, to warm_start.pkl beside the solution) and
+# continued from (`gpu_warm_start` = such a file; same matrix shape, PDLP in
+# its Stable2 mode). The Python is `python3` beside `cuopt_cli`, else
+# MULTIMOD_CUOPT_PYTHON.
+mm_cuopt_wsl_py <- mm_cuopt_wsl
+mm_cuopt_wsl_py$name <- "mm_cuopt_wsl_py"
+mm_cuopt_wsl_py$gpu_api <- "python"
+
 ## multimod matrix, solved by cuOpt on a rented GPU ###########################
 # The matrix written here is uploaded through the 'mmcloud' package, solved by
 # cuOpt on a cloud GPU and returned compressed. `cloud_flavor`, `cloud_timeout`,
@@ -732,6 +743,7 @@ solver_options <- list(
   mm_julia_highs_barrier_bs3 = mm_julia_highs_barrier_bs3,
   mm_cuopt_wsl = mm_cuopt_wsl,
   mm_cuopt_wsl_crossover = mm_cuopt_wsl_crossover,
+  mm_cuopt_wsl_py = mm_cuopt_wsl_py,
   mm_cuopt_cloud = mm_cuopt_cloud,
   mm_cuopt_cloud_crossover = mm_cuopt_cloud_crossover,
   # Pyomo-written matrix on a rented GPU

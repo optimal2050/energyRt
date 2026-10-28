@@ -27,6 +27,11 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* Solver preset `mm_cuopt_wsl_py`: cuOpt on a local GPU through WSL, run
+  through cuOpt's Python interface. The solution is kept at a time limit, and
+  `gpu_save_warm_start = TRUE` / `gpu_warm_start = <file>` save and continue
+  from PDLP's warm-start data.
+
 * `solve_by_sample()` accepts a saved scenario as its first argument, or an
   explicit `base =`: the scenario's model drives the sequence and the scenario
   becomes the base, so each sample's interpolated tables are stored as a row
@@ -311,6 +316,26 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   `mmcloud::get_hf_token()` and `mmcloud::set_hf_token()`.
 
 ## Bug fixes
+
+* A column a slot does not have is reported with the object, the slot, the
+  columns that look meant (`stock` -> `inp.stock`, `out.stock`, `stg.stock`;
+  a near spelling) and every column the slot accepts. An object whose slot was
+  assigned directly (`@<-`) is checked when it enters a repository or a model,
+  instead of failing later in interpolation with an unrelated message.
+
+* A storage's stock without a vintage (`inp.stock`, `out.stock`, `stg.stock`)
+  was given to every vintage, so a storage with several vintages carried its
+  stock once per vintage. It now goes to the earliest vintage only, as a
+  technology's and a trade's `stock` already did.
+
+* A user constraint row in which no term has a member of its variable's
+  domain (a technology that cannot be built yet in that year) is dropped at
+  interpolation, with a message, when it could not bind anyway (`<=` a
+  non-negative value, `>=` a non-positive one, `==` zero). Before, it reached
+  the matrix as an empty row, which the matrix route refuses. An empty row
+  that would make the model infeasible, or a constraint empty in every row, is
+  an error. Rows the check cannot decide (a region or timeslice that sums the
+  levels beneath it, a year lag or lead) are kept.
 
 * A vintage's `end` ended the capacity built in it as well as its investment
   window: capacity of a vintage whose window closed before a later milestone

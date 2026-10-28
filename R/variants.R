@@ -459,6 +459,35 @@ The roster is the authoritative set: a label that appears only in a data slot ',
 # Rows of one slot belonging to a given cell. NA in a selector column broadcasts
 # to every variant; "TOTAL" rows are group aggregates and are dropped here (they
 # become constraints instead). The selector columns are then pinned to the cell.
+# Stock columns of a capacity table: `stock` (technology, trade) and the
+# per-part `inp.stock`, `out.stock`, `stg.stock` (storage).
+.stock_cols <- function(d) grep("(^|\\.)stock$", names(d), value = TRUE)
+
+# Mark the capacity rows whose stock names no vintage (`.stock_orphan`), so
+# that after the per-variant selection fills in the vintage they can still be
+# told apart.
+.mark_orphan_stock <- function(d) {
+  d <- as.data.frame(d)
+  sc <- .stock_cols(d)
+  if (!nrow(d) || !length(sc)) return(d)
+  has_stock <- Reduce(`|`, lapply(sc, function(cn) !is.na(d[[cn]])))
+  no_vin <- if ("vintage" %in% names(d)) is.na(d$vintage) else rep(TRUE, nrow(d))
+  d$.stock_orphan <- has_stock & no_vin
+  d
+}
+
+# Clear the marked stock on every variant but the earliest vintage (`keep =
+# FALSE`), and drop the mark.
+.drop_orphan_stock <- function(d, keep) {
+  if (!".stock_orphan" %in% names(d)) return(d)
+  if (!keep) {
+    sc <- .stock_cols(d)
+    if (length(sc)) d[d$.stock_orphan %in% TRUE, sc] <- NA_real_
+  }
+  d$.stock_orphan <- NULL
+  d
+}
+
 .variant_timeslice <- function(d, vintage, cluster) {
   d <- as.data.frame(d)
   if (nrow(d) == 0L) return(d)
@@ -571,7 +600,7 @@ The roster is the authoritative set: a label that appears only in a data slot ',
                '" is clustered: stock cannot be broadcast across clusters ',
                '(that would duplicate it).')
         }
-        if ("stock" %in% names(st) && "vintage" %in% names(st) &&
+        if ("vintage" %in% names(st) &&
             any(is.na(st$vintage)) && length(.variant_levels(tech, "vintage")) > 0L) {
           message("Technology '", nm, "': `stock` rows without a `vintage` are ",
                   "assigned to the earliest vintage.")
@@ -1567,18 +1596,16 @@ The roster is the authoritative set: a label that appears only in a data slot ',
              'listed in `.variant_classes$', class(tech)[1], '$slots` must be a ',
              'table, or its rows cannot be selected per variant.', call. = FALSE)
       }
-      d <- .variant_timeslice(slot(tech, s), vin, clu)
+      src <- slot(tech, s)
+      # stock without a vintage belongs to the earliest vintage only (a
+      # technology's `stock`, a storage's `inp.stock`/`out.stock`/`stg.stock`):
+      # the rows are marked before the selection fills in the vintage
+      if (s == "capacity") src <- .mark_orphan_stock(src)
+      d <- .variant_timeslice(src, vin, clu)
       d <- .variant_share_scale(d, tech, s, clu)
       if (s == "vintage") d <- .variant_default_window(d, vin)
-      if (s == "capacity" && "stock" %in% names(d) && !is.na(vin)) {
-        # stock without a vintage belongs to the earliest vintage only
-        if ("vintage" %in% names(as.data.frame(slot(tech, s)))) {
-          raw <- as.data.frame(slot(tech, s))
-          orphan <- is.na(raw$vintage) & !is.na(raw$stock)
-          if (any(orphan) && !identical(vin, earliest)) {
-            d$stock[d$stock %in% raw$stock[orphan]] <- NA_real_
-          }
-        }
+      if (s == "capacity") {
+        d <- .drop_orphan_stock(d, keep = is.na(vin) || identical(vin, earliest))
       }
       slot(v, s) <- d
     }

@@ -48,6 +48,25 @@
          ".")
 }
 
+# The error for columns a slot does not have: the object, the slot, the
+# columns, the slot's own columns that look meant (a part-prefixed name ending
+# in it, as `stock` -> `inp.stock`, or a near spelling), a renamed column's new
+# name, and every column the slot accepts.
+.unknown_column_msg <- function(bad, slot_name, cols, class_name, name = "") {
+  cls <- as.character(class_name)[1]
+  near <- unique(unlist(lapply(bad, function(b) {
+    c(cols[endsWith(cols, paste0(".", b))],
+      cols[agrepl(b, cols, max.distance = 1) & abs(nchar(cols) - nchar(b)) <= 1])
+  })))
+  paste0(
+    cls, if (length(name) && nzchar(name)) paste0(' "', name, '"'), ": unknown column",
+    if (length(bad) > 1) "s", " ", paste0("`", bad, "`", collapse = ", "),
+    " in @", slot_name, ".",
+    if (length(near)) paste0(" Did you mean ", paste0("`", near, "`", collapse = ", "), "?"),
+    .renamed_column_hint(bad, class_name),
+    "\n  Columns of @", slot_name, ": ", paste(cols, collapse = ", "))
+}
+
 # Slots that accept USER-DEFINED extra columns beyond the prototype. The
 # weather link tables forward such columns as arguments to the transform
 # function a row names in its `transform` column (see R/class-weather.R),
@@ -143,16 +162,8 @@
                                           length.out = nrow(slot(obj, s)))
               }
             } else {
-              stop(paste(
-                'Unknown column "',
-                paste(.bad,
-                '"in the slot: "',
-                s,
-                collapse = '", "'),
-                '"\n',
-                .renamed_column_hint(.bad, class_name),
-                sep = ""
-              ))
+              stop(.unknown_column_msg(.bad, s, colnames(slot(obj, s)), class_name, x),
+                   call. = FALSE)
             }
           }
           slot(obj, s) <- slot(obj, s)[0, , drop = FALSE] # initiate data.frame

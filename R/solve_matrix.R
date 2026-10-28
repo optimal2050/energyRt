@@ -86,6 +86,11 @@
                     time_limit = s$gpu_time_limit,
                     presolve = s$gpu_presolve,
                     options = s$gpu_solver_options,
+                    # cuOpt's Python interface: the solution at any status, and
+                    # PDLP warm starts (remote runs)
+                    api = s$gpu_api,
+                    warm_start = s$gpu_warm_start,
+                    save_warm_start = s$gpu_save_warm_start,
                     wsl_user = s$wsl_user %||% env("ENERGYRT_WSL_USER"),
                     cuopt_cli = s$cuopt_cli %||% env("ENERGYRT_CUOPT_CLI"))
     control <- control[!vapply(control, is.null, logical(1))]
@@ -248,7 +253,10 @@
   if (isTRUE(echo)) cat("Decoding solution ...\n")
   # variables substituted at build time are written from their definitions
   # one at a time, never held together with the solved columns
-  args <- list(sol, index_dir = solver.dir, format = "parquet", solver = solver)
+  # a solve stopped at a limit is decoded as it stands; its status is the
+  # solver's and is reported with the run, not refused here
+  args <- list(sol, index_dir = solver.dir, format = "parquet", solver = solver,
+               require_optimal = FALSE)
   if ("substituted" %in% names(formals(multimod::read_mps_solution))) {
     args$substituted <- "defer"
   }

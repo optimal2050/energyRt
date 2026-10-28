@@ -31,6 +31,19 @@ test_that("cuOpt options and the WSL install come from the preset, then ENERGYRT
   expect_identical(.mm_solve_args(s, "C:/r")$control$wsl_user, "me")
 })
 
+test_that("the Python-interface WSL preset passes the interface and the warm-start files", {
+  withr::local_envvar(ENERGYRT_WSL_USER = NA, ENERGYRT_CUOPT_CLI = NA)
+  a <- .mm_solve_args(solver_options$mm_cuopt_wsl_py, "C:/r")
+  expect_identical(a[c("solver", "where")], list(solver = "cuopt", where = "wsl"))
+  expect_identical(a$control, list(method = 1L, time_limit = 7200, api = "python"))
+  s <- solver_options$mm_cuopt_wsl_py
+  s$gpu_save_warm_start <- TRUE
+  s$gpu_warm_start <- "C:/old/warm_start.pkl"
+  a <- .mm_solve_args(s, "C:/r")$control
+  expect_true(a$save_warm_start)
+  expect_identical(a$warm_start, "C:/old/warm_start.pkl")
+})
+
 test_that("a cloud preset carries the transport settings and a compressed solution", {
   s <- solver_options$mm_cuopt_cloud
   s$cloud_namespace <- "org"
