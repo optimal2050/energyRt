@@ -610,6 +610,47 @@ map_mCommReg <- function(scen, fmp) {
   invisible()
 }
 
+# `waf` is read at the technology's own timeslices: a weather series with no
+# value at one of them (an ANNUAL series in an hourly bound) would read as 0
+# there and silently zero the technology, so it is an error. Checked per
+# weather and timeframe, from the technology's timeslice rule, so the bound
+# maps are not enumerated. A series' timeslices are those its object gives
+# (pWeather drops zero values, so its rows cannot tell a gap from a zero); a
+# series with rows of no timeslice holds at all.
+.waf_timeframe_check <- function(scen) {
+  ws <- lapply(c("mTechWeatherAfLo", "mTechWeatherAfUp"), function(nm) .gds(scen, nm))
+  ws <- ws[!vapply(ws, is.null, logical(1))]
+  ts <- .proc_timeslice_rule(scen, "technology", "tech")
+  if (!length(ws) || is.null(ts)) return(invisible())
+  wt <- dplyr::bind_rows(apply_to_scenario_data(
+    scen = scen, classes = "weather", as_list = TRUE,
+    func = function(x) {
+      sl <- if ("timeslice" %in% names(x@weather)) unique(as.character(x@weather$timeslice)) else character()
+      o <- list()
+      o[[x@name]] <- data.frame(weather = x@name, timeslice = if (length(sl)) sl else NA_character_,
+                                stringsAsFactors = FALSE)
+      o
+    }))
+  if (is.null(wt) || !nrow(wt)) return(invisible())
+  chr <- function(d) { d <- as.data.frame(d); for (j in names(d)) d[[j]] <- as.character(d[[j]]); d }
+  w <- dplyr::distinct(do.call(rbind, lapply(ws, function(x) chr(x[, c("weather", "tech")]))))
+  pf <- chr(ts$tables$proc_frame[, c("tech", "timeframe")])
+  fs <- chr(ts$tables$frame_slice[, c("timeframe", "timeslice")])
+  full <- unique(wt$weather[is.na(wt$timeslice)])
+  wtf <- dplyr::inner_join(w[!w$weather %in% full, , drop = FALSE], pf, by = "tech")
+  if (!nrow(wtf)) return(invisible())
+  x <- dplyr::inner_join(dplyr::distinct(wtf[, c("weather", "timeframe")]), fs,
+                         by = "timeframe", relationship = "many-to-many")
+  miss <- dplyr::distinct(dplyr::anti_join(x, wt, by = c("weather", "timeslice"))[, c("weather", "timeframe")])
+  if (nrow(miss)) {
+    bad <- dplyr::distinct(dplyr::inner_join(wtf, miss, by = c("weather", "timeframe"))[, c("tech", "weather")])
+    stop("waf: the weather series has no value at the timeslices of the bound ",
+         "it multiplies (", paste(utils::head(do.call(paste, c(bad, sep = "/")), 5), collapse = ", "),
+         "). Give the weather the technology's timeframe.", call. = FALSE)
+  }
+  invisible()
+}
+
 # `wafs` multiplies `afs`: a weather side with no `afs` on that side is an error
 .wafs_needs_afs <- function(scen, side) {
   w <- .gds(scen, paste0("mTechWeatherAfs", side))
@@ -631,6 +672,7 @@ map_meqBalUp <- function(scen, fmp) .cjoin(scen, "meqBalUp", fmp)
 map_meqBalFx <- function(scen, fmp) .cjoin(scen, "meqBalFx", fmp)
 # C2 technology availability factors
 map_meqTechAfLo     <- function(scen, fmp) {
+  .waf_timeframe_check(scen)
   scen <- .weather_lo_default(scen, "mTechWeatherAfLo", "pTechAf", "mvTechAct", "tech")
   if (isTRUE(getOption("energyRt.fx_equ", TRUE))) return(.tech_af_fx_maps(scen, fmp))
   .set_cells_rules(.cjoin(scen, "meqTechAfLo", fmp), "meqTechAfLo")

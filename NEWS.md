@@ -312,6 +312,10 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* A weather series at a coarser timeframe than the availability bound it
+  multiplies (`waf`) read as zero and silently switched the technology off. It
+  is now an error naming the series and the timeslices.
+
 * `unmark_delete()` left `delete_importance` and `marked_at` behind in the
   manifest, so an entry with no mark still carried an importance beside it and
   read as marked-at-some-tier to any reader that did not also test

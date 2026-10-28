@@ -69,3 +69,18 @@ test_that("a declared af.lo is kept and multiplies the weather bound", {
   expect_true(all(out >= 0.5 * WX_POT - 1e-6))
   expect_true(all(out <= WX_POT + 1e-6))
 })
+
+# @covers mTechWeatherAfLo pWeather depth=I
+test_that("a waf series coarser than the technology's timeslices is an error, not a zero", {
+  m <- wx_model("wx_tf")
+  # an ANNUAL series in the hourly bound: no value at the technology's hours
+  m@data[[1]]@data$WY <- newWeather("WY", timeframe = "ANNUAL", region = "R1",
+                                    weather = data.frame(region = "R1", timeslice = "ANNUAL", wval = 0.9))
+  m@data[[1]]@data$WIND@weather <- data.frame(weather = c("W1", "WY"), waf.fx = 1)
+  expect_error(suppressMessages(suppressWarnings(interpolate_model(m, name = "wx_tf", overwrite = TRUE))),
+               "no value at the timeslices")
+  # hours with a zero value (solar at night) are values, not gaps
+  m <- wx_model("wx_tf0")
+  m@data[[1]]@data$W1@weather$wval <- c(0, 0.9, 0.5, 0)
+  expect_no_error(suppressMessages(suppressWarnings(interpolate_model(m, name = "wx_tf0", overwrite = TRUE))))
+})
