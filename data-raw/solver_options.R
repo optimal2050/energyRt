@@ -429,6 +429,60 @@ julia_highs_barrier_bs3$inc3 <- paste0(julia_highs_barrier$inc3,
   'set_optimizer_attribute(model, "user_bound_scale", -3) # bounds x 2^-3 (MW/MWh/EUR models)
 ')
 
+# HiPO, HiGHS's own parallel interior point method, named explicitly. Asking
+# for `ipm` (as `julia_highs_barrier` does) also enters HiPO, but restarts with
+# IPX if HiPO stalls, and that restart has been seen to end in `Hipo: Internal
+# error` rather than fall back cleanly; `hipo` runs HiPO alone. Where both
+# converge they agree exactly: 82 iterations and the same objective to ten
+# digits, 301 s each, on a 1.36M x 1.47M hourly LP.
+#
+# Julia only. The R `highs` build is compiled without amd, blas, metis and rcm,
+# reports those features unavailable and silently reverts to `choose`; pip
+# `highspy` likewise.
+#
+# HiPO is a CPU method -- a threaded sparse factorisation of the Newton system,
+# tuned by `hipo_system`, `hipo_ordering`, `hipo_parallel_type` and
+# `hipo_block_size` -- so it does not compete with a GPU solve for the card.
+julia_highs_hipo <- julia_highs
+julia_highs_hipo$name <- "julia_highs_hipo"
+julia_highs_hipo$inc3 <- c({
+'# HiGHS options in JuMP/Julia
+set_optimizer_attribute(model, "presolve", "on")
+# set_attribute(model, "time_limit", 3600.0)
+
+# HiPO interior point, not `ipm`: no IPX restart
+set_optimizer_attribute(model, "solver", "hipo")
+set_optimizer_attribute(model, "run_crossover", "off") # polishing the solution
+'
+})
+
+# the same recovering a basic (vertex) solution. Crossover costs an extra solve
+# and does not scale, but the duals are then vertex duals rather than a point in
+# the interior of the optimal dual face.
+julia_highs_hipo_xover <- julia_highs_hipo
+julia_highs_hipo_xover$name <- "julia_highs_hipo_xover"
+julia_highs_hipo_xover$inc3 <- sub('"run_crossover", "off"',
+                                   '"run_crossover", "on"',
+                                   julia_highs_hipo$inc3, fixed = TRUE)
+
+# the same with bounds and right-hand sides scaled by 2^-3 (see julia_highs_barrier_bs3)
+julia_highs_hipo_bs3 <- julia_highs_hipo
+julia_highs_hipo_bs3$name <- "julia_highs_hipo_bs3"
+julia_highs_hipo_bs3$inc3 <- paste0(julia_highs_hipo$inc3,
+  'set_optimizer_attribute(model, "user_bound_scale", -3) # bounds x 2^-3 (MW/MWh/EUR models)
+')
+
+# IPX, the interior point method HiGHS carried before HiPO, named explicitly so
+# the two can be compared on the same model. Available in every build.
+julia_highs_ipx <- julia_highs
+julia_highs_ipx$name <- "julia_highs_ipx"
+julia_highs_ipx$inc3 <- sub(
+  '# HiPO interior point, not `ipm`: no IPX restart
+set_optimizer_attribute(model, "solver", "hipo")',
+  '# IPX interior point, named explicitly: no HiPO attempt first
+set_optimizer_attribute(model, "solver", "ipx")',
+  julia_highs_hipo$inc3, fixed = TRUE)
+
 julia_highs_simplex <- julia_highs
 julia_highs_simplex$name <- "julia_highs_simplex"
 julia_highs_simplex$inc3 <- c({
@@ -769,6 +823,10 @@ solver_options <- list(
   julia_highs_rdata = julia_highs_rdata,
   julia_highs_barrier = julia_highs_barrier,
   julia_highs_barrier_bs3 = julia_highs_barrier_bs3,
+  julia_highs_hipo = julia_highs_hipo,
+  julia_highs_hipo_xover = julia_highs_hipo_xover,
+  julia_highs_hipo_bs3 = julia_highs_hipo_bs3,
+  julia_highs_ipx = julia_highs_ipx,
   julia_glpk = julia_glpk,
   julia_highs_simplex = julia_highs_simplex,
   julia_highs_parallel = julia_highs_parallel,
