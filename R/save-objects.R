@@ -2535,6 +2535,17 @@ seal_scenario <- function(x, inputs = TRUE, outputs = FALSE, verbose = TRUE) {
     stop("scenario '", e$name, "': outputs are sealed together with the ",
          "inputs; seal_scenario(x, inputs = TRUE, outputs = TRUE).", call. = FALSE)
   }
+  # Sealing the outputs closes the runs to further writing, which a solve
+  # still in flight is in the middle of doing.
+  if (isTRUE(outputs)) {
+    busy <- .runs_in_flight(e$path)
+    if (length(busy)) {
+      stop("scenario '", e$name, "': cannot seal the outputs while ",
+           length(busy), " run(s) are still running (",
+           .preview_chr(busy), "). Wait for them, or clear_run() any whose ",
+           "process is gone.", call. = FALSE)
+    }
+  }
   if (isTRUE(inputs) && !st$inputs) .seal_set("scenario", x, TRUE, verbose = FALSE)
   # outputs keep their state unless asked: open on a first seal
   out <- if (isTRUE(outputs)) TRUE else if (st$inputs) st$outputs else FALSE

@@ -96,6 +96,8 @@ NULL
   list(
     variant = variant, solve = solve, dir = dir,
     has_record = has_record, status = status, imported = imported,
+    # a `running` record is only scratch to reclaim once its process is gone
+    live = .run_liveness(rec),
     solution_mb = dir_size(mod_out, missing = "zero") / 1024^2,
     scratch_mb = .art_paths_size(.art_scratch_paths(dir, imported)) / 1024^2
   )
@@ -143,7 +145,14 @@ NULL
     return(paste0(info$status, " solve; only the record is worth keeping"))
   }
   if (identical(info$status, "running")) {
-    return("stale 'running' record -- the process did not finish")
+    # Only a run whose process is demonstrably gone is scratch. Suggesting a
+    # live one put its generated model, its input/ and its solver log on the
+    # list that drop_solver_outputs(runs = NULL) unlinks -- a routine cleanup
+    # could delete the working files of a solve in flight.
+    if (identical(info$live %||% "dead", "dead")) {
+      return("stale 'running' record -- the process did not finish")
+    }
+    return("")
   }
   if (info$imported && info$scratch_mb > 0) {
     return("solution imported; the solver scratch is redundant")

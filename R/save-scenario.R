@@ -127,19 +127,38 @@
       started <- tryCatch(
         as.POSIXct(prev$started, format = "%Y-%m-%dT%H:%M:%S", tz = "UTC"),
         error = function(e) NA)
+      # A live run is not a stale record to warn about and overwrite: the
+      # other process is still writing this directory, and whichever of the
+      # two finished last would leave a record describing the other's files.
+      # `unknown` refuses too -- see .run_liveness().
+      live <- .run_liveness(prev)
+      if (live %in% c("alive", "unknown")) {
+        why <- if (identical(live, "unknown")) {
+          paste0("; ", .run_unknown_reason(prev))
+        } else {
+          ""
+        }
+        stop("Run '", basename(run_dir), "' is still running on ",
+             prev$hostname %||% "?", "/", prev$user %||% "?", ", started ",
+             prev$started %||% "?", " (", .run_elapsed(prev), " ago)", why,
+             ".
+  Solve into another run (`run = \"<label>\"`), wait for ",
+             "it, or clear_run() if you know it is gone.", call. = FALSE)
+      }
       fresh <- !is.na(started) &&
         difftime(Sys.time(), started, units = "hours") < 24
       if (fresh) {
         warning("Run '", basename(run_dir), "' has a 'running' record from ",
                 prev$hostname %||% "?", "/", prev$user %||% "?",
                 " started ", prev$started,
-                ". A concurrent solve of the same run overwrites it.",
+                " whose process is gone; it is overwritten.",
                 call. = FALSE)
       }
     }
   }
   dir.create(run_dir, recursive = TRUE, showWarnings = FALSE)
   solver <- scen@settings@solver
+  stamp <- .run_proc_stamp()
   rec <- list(
     label = arg$run.label %||% basename(run_dir),
     variant = arg$run.variant %||% "",
@@ -152,8 +171,15 @@
     status = "running",
     modinp = if (nzchar(arg$run.variant %||% "")) "own" else "shared",
     energyRt_version = as.character(utils::packageVersion("energyRt")),
-    hostname = unname(Sys.info()["nodename"]),
+    hostname = .run_host(),
     user = unname(Sys.info()["user"]),
+    # the process, so a record that stops being written can be told from one
+    # whose writer is still alive (see R/run_liveness.R)
+    pid = stamp$pid,
+    pid_started = stamp$pid_started,
+    # a detached launch keeps no handle on the solver, so the pid above is the
+    # LAUNCHER's: recorded as provenance, not trusted as liveness
+    detached = !isTRUE(arg$wait),
     saved = prev$saved %||% .registry_now(),
     updated = .registry_now()
   )
@@ -377,6 +403,8 @@ drop_scenario_run <- function(object, run, force = FALSE) {
   stopifnot(is(object, "scenario"))
   # sealed outputs keep their runs (see ?seal_scenario)
   .scenario_seal_guard(object, "outputs")
+  # a run still being written is not a run to remove
+  .run_busy_guard(object, run, "Cannot drop this run", force = force)
   id <- .parse_run_id(run, object)
   run_dir <- .run_dir(object, id$variant, id$solve)
   if (!dir.exists(run_dir)) {

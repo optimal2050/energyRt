@@ -29,6 +29,7 @@ NULL
          marked = logical(0), importance = numeric(0),
          marked_at = character(0),
          runs = integer(0), solved = integer(0),
+         running = integer(0), crashed = integer(0),
          size_mb = numeric(0), format = character(0), ondisk = logical(0),
          base = character(0), shares = integer(0), used_by = integer(0),
          lineage_warn = character(0), path = character(0))
@@ -36,28 +37,26 @@ NULL
 
 # Runs of a stored scenario, counted from `run.yml` rather than from a loaded
 # object. `scenario_runs()` needs a `scenario`, and loading every one of them
-# to count its runs would cost far more than the store walk itself. Both
-# layouts .run_dirs() knows are covered: runs/<solve>/ and
-# runs/<variant>/<solve>/.
+# to count its runs would cost far more than the store walk itself.
+#
+# The state is DERIVED, not taken from the record: a `running` record whose
+# process is gone and which produced no solution is a crash, and the record
+# itself can never say so (see R/run_liveness.R).
 .status_runs_at <- function(path) {
-  root <- fp(path, "runs")
-  if (!dir.exists(root)) return(c(runs = 0L, solved = 0L))
-  ry <- character(0)
-  for (d1 in list.dirs(root, recursive = FALSE)) {
-    if (file.exists(fp(d1, "run.yml"))) {
-      ry <- c(ry, fp(d1, "run.yml"))
-      next
-    }
-    for (d2 in list.dirs(d1, recursive = FALSE)) {
-      if (file.exists(fp(d2, "run.yml"))) ry <- c(ry, fp(d2, "run.yml"))
-    }
-  }
-  if (!length(ry)) return(c(runs = 0L, solved = 0L))
+  ry <- .run_yaml_paths(path)
+  none <- c(runs = 0L, solved = 0L, running = 0L, crashed = 0L)
+  if (!length(ry)) return(none)
   st <- vapply(ry, function(f) {
     r <- tryCatch(yaml::read_yaml(f), error = function(e) list())
-    as.character(r$status %||% "unknown")
+    if (!length(r)) return("unknown")
+    # a solution exists if the record carries an objective OR the solver's
+    # output is complete -- the detached case, where nothing closed the record
+    has_sol <- !is.na(suppressWarnings(as.numeric(r$objective %||% NA))) ||
+      .run_output_complete(dirname(f))
+    .run_state(r, has_solution = has_sol)
   }, character(1), USE.NAMES = FALSE)
-  c(runs = length(st), solved = sum(st == "solved"))
+  c(runs = length(st), solved = sum(st == "solved"),
+    running = sum(st == "running"), crashed = sum(st == "crashed"))
 }
 
 # One pass over the four store roots, reading each manifest once. Both the
@@ -157,6 +156,8 @@ NULL
     marked_at = lc$marked_at,
     runs = as.integer(rr[["runs"]]),
     solved = as.integer(rr[["solved"]]),
+    running = as.integer(rr[["running"]]),
+    crashed = as.integer(rr[["crashed"]]),
     size_mb = if (isTRUE(sizes)) {
       round(dir_size(path, missing = "zero") / 1024^2, 2)
     } else {
@@ -401,7 +402,10 @@ print.en_status <- function(x, ...) {
           "no"
         }, "\n", sep = "")
     if (identical(x$type, "scenario")) {
-      cat("  runs      ", x$runs, " (", x$solved, " solved)\n", sep = "")
+      cat("  runs      ", x$runs, " (", x$solved, " solved",
+          if (x$running > 0) paste0(", ", x$running, " running") else "",
+          if (x$crashed > 0) paste0(", ", x$crashed, " crashed") else "",
+          ")\n", sep = "")
     }
     cat("  storage   ",
         if (is.na(x$size_mb)) "not measured (sizes = TRUE)" else
@@ -437,6 +441,8 @@ print.en_status <- function(x, ...) {
                   character(1)),
     marked = ifelse(x$marked, paste0("yes (", x$importance, ")"), ""),
     runs = ifelse(x$runs > 0, paste0(x$solved, "/", x$runs), ""),
+    live = ifelse(x$running > 0, paste0(x$running, " running"),
+                  ifelse(x$crashed > 0, paste0(x$crashed, " crashed"), "")),
     base = x$base,
     shares = ifelse(x$shares > 0, as.character(x$shares), ""),
     used_by = ifelse(is.na(x$used_by) | x$used_by == 0, "",

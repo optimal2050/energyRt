@@ -253,6 +253,23 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 * `autoplot(<by_sample>, "histogram")` draws a result's spread across the
   samples, weighted by each sample's coverage, with the free pass overlaid on
   the floored one when `ncap_floor > 0`.
+* `solve_scenario(wait = FALSE)` launches the solver detached and returns at
+  once, for running several scenarios or carrying on working. `wait` is a
+  documented argument now, and is refused together with `read.solution = TRUE`,
+  `transient = TRUE` or an external `solver.dir`, none of which can be honoured
+  once the call returns before the solve does. Collect the result later with
+  `import_solution()`. Detached solving covers the backends that launch a
+  solver process (GLPK, GAMS, Pyomo, JuMP).
+
+* A run record now identifies the process that wrote it (`pid`, `pid_started`,
+  `detached`), so a run still being written can be told from one whose writer
+  is gone. While a run is in flight, reading it, dropping it, re-solving into
+  it and sealing the scenario's outputs are refused rather than allowed to
+  corrupt or overwrite it; `clear_run()` is the override, and `get_status()`
+  reports a run whose process has gone without finishing as `crashed`. A run
+  recorded on another host refuses as well, since liveness cannot be checked
+  from elsewhere.
+
 * `get_status()` reports the state of a saved object -- sealed (for a scenario,
   inputs and outputs separately), marked for deletion, runs held, size on disk
   -- for one model, repository, dataset or scenario, or for every saved object
@@ -311,6 +328,11 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   `mmcloud::get_hf_token()` and `mmcloud::set_hf_token()`.
 
 ## Bug fixes
+
+* `drop_solver_outputs()` could delete the working files of a solve in
+  progress: `.art_suggest()` labelled any `running` record stale with no
+  liveness test, and the cleanup unlinks exactly the suggested rows. Only a run
+  whose process is demonstrably gone is now treated as reclaimable scratch.
 
 * `unmark_delete()` left `delete_importance` and `marked_at` behind in the
   manifest, so an entry with no mark still carried an importance beside it and

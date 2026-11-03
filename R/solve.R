@@ -255,9 +255,11 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     } else {
       arg$wait <- scen@settings@solver$wait
     }
-  } else if (is_empty(arg$invisible)) {
-    arg$invisible <- arg$wait
   }
+  # `invisible` keeps its own default. It used to be forced to follow `wait`,
+  # which made `wait = FALSE` also mean "show the console" -- two unrelated
+  # choices moving together, and on Windows the console is how a detached run
+  # is watched, so it is worth setting on its own.
   scen@settings@solver$wait <- arg$wait
   if (is_empty(arg$invisible)) {
     if (is_empty(scen@settings@solver$invisible)) {
@@ -429,7 +431,11 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   if (isTRUE(arg$read.solution) && isTRUE(arg[["run"]])) {
     scen <- read_solution(scen, solver.dir = arg$solver.dir, echo = arg$echo)
   }
-  if (record) {
+  # A detached solve is not finished when this returns: the record stays
+  # `running` and the process that owns it is the one that will close it, or
+  # the liveness check will find it gone. Stamping "finished" here would mark
+  # a solve complete at the moment it was launched.
+  if (record && isTRUE(arg$wait)) {
     status <- if (!isTRUE(arg$read.solution)) {
       "finished" # solver ran; solution not read, so optimality is unknown
     } else if (isTRUE(scen@status$optimal)) {
@@ -666,6 +672,14 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 #'   `runs/[<variant>/]<label>/`.
 #' @param transient logical, use a throwaway timestamp directory deleted
 #'   after the run (no run record).
+#' @param wait logical. `TRUE` (default) blocks until the solver exits.
+#'   `FALSE` launches it detached and returns at once, leaving the run record
+#'   at `status: "running"` for the solver's process to close; collect the
+#'   result later with [import_solution()] or [read_solution()]. Detached
+#'   solving works for the backends that launch a solver process -- GLPK,
+#'   GAMS, Pyomo and JuMP -- and is refused together with `read.solution =
+#'   TRUE`, `transient = TRUE` or an external `solver.dir`, none of which can
+#'   be honoured once the call returns before the solve does.
 #' @param tmp.dir,tmp.del deprecated aliases of `solver.dir` / `transient`.
 #' @param force logical, re-solve a scenario already solved to optimal.
 #' @param variant character (`solve_scenario()` only): declare the scenario's
@@ -755,7 +769,7 @@ solve_model <- function(object, name = NULL, solver = NULL,
 #' @export
 solve_scenario <- function(object, name = object@name, solver = NULL, solver.dir = NULL,
                        transient = FALSE, force = FALSE, kvl = NULL,
-                       variant = NULL, ...,
+                       variant = NULL, wait = TRUE, ...,
                        tmp.dir = NULL, tmp.del = NULL) {
   if (!is.null(variant)) {
     # own-problem variant: the interpolated problem in `object` belongs to this
@@ -813,7 +827,30 @@ solve_scenario <- function(object, name = object@name, solver = NULL, solver.dir
   if (!is.null(solver)) arg[["solver"]] <- solver
   if (!is.null(solver.dir)) arg$solver.dir <- solver.dir
   arg$transient <- transient
-  if (is.null(arg$read.solution)) arg$read.solution <- TRUE
+  arg$wait <- wait
+  # A detached solve returns before the solver has written anything, so the
+  # three things that assume a finished directory are refused rather than
+  # silently reinterpreted. Each is a different mistake and says so.
+  if (!isTRUE(wait)) {
+    if (isTRUE(arg$read.solution)) {
+      stop("`read.solution = TRUE` cannot be honoured with `wait = FALSE`: ",
+           "the solver has written nothing when this call returns. Collect ",
+           "the run later with import_solution(scenario, run).", call. = FALSE)
+    }
+    if (isTRUE(transient)) {
+      stop("`transient = TRUE` deletes the solver directory when this call ",
+           "returns, which with `wait = FALSE` is while the solver is still ",
+           "using it.", call. = FALSE)
+    }
+    if (!is.null(solver.dir)) {
+      stop("`solver.dir` turns off the run record (external mode), and a ",
+           "detached solve with no record cannot be tracked or collected. ",
+           "Drop `solver.dir`, or solve with `wait = TRUE`.", call. = FALSE)
+    }
+  }
+  # read.solution follows `wait` unless the caller set it: there is nothing to
+  # read when the solver has only just been launched
+  if (is.null(arg$read.solution)) arg$read.solution <- isTRUE(wait)
   arg$scen <- scen
 
   scen <- do.call(.executeScenario, arg)

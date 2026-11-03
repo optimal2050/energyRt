@@ -24,6 +24,7 @@ solve_scenario(
   force = FALSE,
   kvl = NULL,
   variant = NULL,
+  wait = TRUE,
   ...,
   tmp.dir = NULL,
   tmp.del = NULL
@@ -84,6 +85,14 @@ variant's problem (\code{modInp}, settings snapshot, \code{variant.yml}) under
 \verb{runs/<variant>/} — once, shared by all its solves — leaving the
 scenario-level (base) problem untouched. Switch between problems with
 \code{\link[=read_solution]{read_solution()}} (\code{run = "<variant>/<solve>"} vs \code{run = "<solve>"}).}
+
+\item{wait}{logical. \code{TRUE} (default) blocks until the solver exits.
+\code{FALSE} launches it detached and returns at once, leaving the run record
+at \code{status: "running"} for the solver's process to close; collect the
+result later with \code{\link[=import_solution]{import_solution()}} or \code{\link[=read_solution]{read_solution()}}. Detached
+solving works for the backends that launch a solver process -- GLPK,
+GAMS, Pyomo and JuMP -- and is refused together with \code{read.solution = TRUE}, \code{transient = TRUE} or an external \code{solver.dir}, none of which can
+be honoured once the call returns before the solve does.}
 
 \item{tmp.dir, tmp.del}{deprecated aliases of \code{solver.dir} / \code{transient}.}
 

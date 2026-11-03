@@ -38,7 +38,7 @@ Imports: methods, grid, stats, generics, data.table, tibble, tidyr, dplyr, rlang
 Suggests: shiny, DT, pak, knitr, rmarkdown, sf, ggplot2,
         testthat (>= 3.0.0), devtools, openxlsx, jsonlite, readxl,
         httr2, xml2, base64enc, tinytex, patchwork,
-        waldo, withr, mmcloud, DBI, RSQLite, multimod,
+        waldo, withr, mmcloud, DBI, RSQLite, multimod, ps,
         nestedscales, glpsol
 Remotes: optimal2050/geoscales, optimal2050/timescales,
         optimal2050/nestedscales
@@ -143,6 +143,7 @@ Collate:
     'report_cache.R'
     'report_elements.R'
     'report_helpers.R'
+    'run_liveness.R'
     'save-objects.R'
     'save-params.R'
     'solve_by_region.R'

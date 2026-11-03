@@ -335,6 +335,7 @@ reference:
   - load_scenario
   - seal_model
   - get_status
+  - clear_run
   - list_versions
   - list_dependents
   - model_hash

@@ -240,6 +240,11 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
   }
   if (!is.null(run)) {
     # switch the active run: read this run's solver/output and remember it
+    # A run still being written has no solution to read: output/ is partial,
+    # and the fallbacks below would otherwise serve an earlier solve's modOut
+    # as if it were this one's.
+    .run_busy_guard(scen, run, "Cannot read this run",
+                    force = isTRUE(arg$force))
     id <- .parse_run_id(run, scen)
     run_solver <- .run_solver_dir(.run_dir(scen, id$variant, id$solve))
     if (!dir.exists(run_solver)) {
