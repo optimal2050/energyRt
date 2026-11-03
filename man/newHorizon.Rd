@@ -13,6 +13,7 @@ newHorizon(
   mid_is_end = FALSE,
   mid_is_start = FALSE,
   force_BY_interval_to_1_year = TRUE,
+  base_year = NULL,
   desc = NULL,
   name = NULL
 )
@@ -39,6 +40,15 @@ The vector will be considered as lengths of each modeled interval in period.}
 \item{mid_is_start}{logical, if TRUE, the mid-year will be set to the start of the interval.}
 
 \item{force_BY_interval_to_1_year}{logical, if TRUE (default), the base-year (first) interval will be forced to one year.}
+
+\item{base_year}{a single integer year, or \code{NULL} (the default) for a
+horizon every year of which is optimised. The marked year is GIVEN rather
+than decided: it is interpolated as any other year and what it holds can be
+carried forward as stock, but it is not passed to the solver -- its own
+solution comes from a separate solve. Milestones \strong{before} it are
+historical and leave the model altogether, remaining interpolation anchors
+only. Must name a milestone of this horizon, and cannot be its last.
+See \code{\link[=solve_base_year]{solve_base_year()}}.}
 
 \item{desc}{character. Description of the horizon object, for own references.}
 

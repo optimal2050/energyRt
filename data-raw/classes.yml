@@ -3713,6 +3713,17 @@ class:
         given, and rendered fiscally (`FY2025-26`) when the calendar carries a
         non-January `year_start`. The label is presentation only and never reaches
         the solver -- see `year_label()`.
+    base_year:
+      type: integer
+      description: >
+        Optional single milestone year that is GIVEN rather than decided. The
+        marked year is interpolated as any other year but is not passed to the
+        solver -- its own solution comes from a separate solve
+        (`solve_base_year()`) and what it decided can be carried into the
+        projection as sunk stock. Milestones BEFORE it are historical and enter
+        no LP at all. Both still anchor interpolation, which reads the anchor
+        years present in the data rather than the milestone list. Empty when
+        every milestone is optimised. See `solve_base_year()`.
 ## config #######################################################################
   config:
     name:

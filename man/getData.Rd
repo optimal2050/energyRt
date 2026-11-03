@@ -54,6 +54,7 @@ getData(object, ...)
   unfold = TRUE,
   variants = TRUE,
   run = NULL,
+  base_year = FALSE,
   verbose = FALSE
 )
 
@@ -88,6 +89,7 @@ getData(object, ...)
   unfold = TRUE,
   variants = TRUE,
   run = NULL,
+  base_year = FALSE,
   verbose = FALSE
 )
 
@@ -320,6 +322,17 @@ passed keeps its active run; a variant run brings its own problem with
 it, parameters included. Spanning runs of different problems warns —
 their results are not like-for-like. Not to be confused with \code{variants},
 below, which is about technologies.}
+
+\item{base_year}{logical, default \code{FALSE}. When \code{TRUE}, a scenario whose
+horizon marks a base year also returns that year, read from the separate
+run the scenario recorded (see \code{\link[=solve_base_year]{solve_base_year()}}), and every row gains
+a \code{source} column — \code{"solved"} for the scenario's own LP, \code{"base"} for
+the base year. \code{vObjective} is not unioned: the base year and the
+projection are separate optimisations, so only the projection's is
+returned. A scenario that records no base year, or whose recorded source
+cannot be read, warns and returns its own rows alone. Note that
+post-processing applies the FIRST object's horizon and calendar labels to
+every row.}
 
 \item{verbose}{logical, print progress and diagnostic messages.}
 

@@ -749,6 +749,17 @@ drop_scenario_run <- function(object, run, force = FALSE) {
   mf$base <- if (is.null(b)) prev$base else list(
     name = b$name,
     path = if (nzchar(b$path %||% "")) .registry_rel_path(b$path) else "")
+  # a marked base year: the year itself, the milestones it sent to history and
+  # -- when a base-year solution was carried -- where that came from. `hash` is
+  # over the carried ledger, so re-solving the base year to a different answer
+  # makes this link detectably stale.
+  by <- scen@misc$base_year
+  mf$base_year <- if (is.null(by)) prev$base_year else list(
+    year = as.integer(by$year),
+    history = as.integer(by$history %||% integer(0)),
+    scenario = as.character(by$scenario %||% ""),
+    run = as.character(by$run %||% ""),
+    hash = as.character(by$hash %||% ""))
   # lifecycle state (seal/mark, R/save-objects.R) survives re-saves
   for (k in c("sealed", "sealed_at", "sealed_hash", "outputs_sealed",
               "marked_delete", "delete_importance", "marked_at")) {

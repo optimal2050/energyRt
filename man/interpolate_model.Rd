@@ -11,6 +11,7 @@ interpolate_model(
   name = NULL,
   ...,
   base = NULL,
+  base_year_scenario = base,
   desc = NULL,
   ondisk = FALSE,
   overwrite = FALSE,
@@ -56,6 +57,16 @@ and the model is interpolated in full. \code{object} may be the base itself.
 New processes, commodities and other model objects are built on the base
 too: the per-object tables of the objects the base already holds are
 reused, the new objects' tables are computed, and every map is rebuilt.}
+
+\item{base_year_scenario}{where the base year's own solution comes from,
+when the horizon marks one (see \code{\link[=newHorizon]{newHorizon()}}). Defaults to \code{base}, so a
+projection built on a base takes that base's base-year solution for free.
+May also be a solved \link{scenario}, the list \code{\link[=solve_base_year]{solve_base_year()}} returns, a
+scenario name, or \code{"<scenario>/<run>"}; \code{NULL} or \code{FALSE} carries nothing.
+What crosses is only what that solve DECIDED — its new capacity, written
+as sunk \code{stock} at its true vintage. The model's own \verb{@stock} is left
+alone. With no source the projection still excludes the base year, and
+starts from the model's declared \verb{@stock}; a message says so.}
 
 \item{desc}{character scenario description.}
 

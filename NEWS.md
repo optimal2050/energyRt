@@ -27,6 +27,16 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* `newHorizon(base_year = )` marks one milestone as GIVEN rather than decided.
+  The marked year is interpolated as any other but never reaches the solver,
+  and the milestones before it are historical and enter no LP at all; both
+  still anchor interpolation. `solve_base_year()` solves the base year on its
+  own, and `interpolate_model(base_year_scenario = )` carries what it decided
+  into the projection as sunk `stock` at its true vintage, leaving the model's
+  declared `@stock` untouched. With no source the projection still excludes
+  the base year and starts from the model's own stock. `getData(base_year =
+  TRUE)` returns both, labelled by a `source` column.
+
 * Solver preset `mm_cuopt_wsl_py`: cuOpt on a local GPU through WSL, run
   through cuOpt's Python interface. The solution is kept at a time limit, and
   `gpu_save_warm_start = TRUE` / `gpu_warm_start = <file>` save and continue

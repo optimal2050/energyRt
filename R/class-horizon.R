@@ -18,12 +18,14 @@ setClass(
     name = "character",
     desc = "character",
     period = "integer",
-    intervals = "data.table"
+    intervals = "data.table",
+    base_year = "integer"
   ),
   prototype(
     name = character(),
     desc = character(),
     period = integer(),
+    base_year = integer(),
     intervals = data.table(
       start = integer(),
       mid = integer(),
@@ -58,6 +60,14 @@ setClass(
 #' @param ... named slots with new values.
 #' @param warn_nodata logical; warn when the update is called with no data.
 #' @param force_BY_interval_to_1_year logical, if TRUE (default), the base-year (first) interval will be forced to one year.
+#' @param base_year a single integer year, or `NULL` (the default) for a
+#' horizon every year of which is optimised. The marked year is GIVEN rather
+#' than decided: it is interpolated as any other year and what it holds can be
+#' carried forward as stock, but it is not passed to the solver -- its own
+#' solution comes from a separate solve. Milestones **before** it are
+#' historical and leave the model altogether, remaining interpolation anchors
+#' only. Must name a milestone of this horizon, and cannot be its last.
+#' See [solve_base_year()].
 #' @param mid_is_end logical, if TRUE, the mid-year will be set to the end of the interval.
 #' @param mid_is_start logical, if TRUE, the mid-year will be set to the start of the interval.
 #'
@@ -108,6 +118,7 @@ newHorizon <- function(
     mid_is_end = FALSE,
     mid_is_start = FALSE,
     force_BY_interval_to_1_year = TRUE,
+    base_year = NULL,
     desc = NULL,
     name = NULL
     ) {
@@ -235,8 +246,44 @@ newHorizon <- function(
   if (mid_is_end) intervals$mid <- intervals$end
   if (mid_is_start) intervals$mid <- intervals$start
   h@intervals <- .fill_interval_labels(intervals)
+  if (!is.null(base_year)) h@base_year <- .check_base_year(base_year, h)
   # h <- .data2slots("period", x = "", period = period, intervals = intervals)
   return(h)
+}
+
+# The base year is ONE milestone of this horizon, and cannot be its last --
+# a horizon with nothing left to project is not a horizon. Milestones before
+# the base year are historical and leave the model altogether
+# (`.by_split()`), which is why there is never more than one.
+# Validated here rather than in a setValidity() so the message can name the
+# milestones on offer; `horizon` has no validity method today.
+.check_base_year <- function(base_year, h) {
+  if (is.logical(base_year)) {
+    stop("`base_year` is a year, not a flag: name the milestone itself ",
+         "(base_year = 2025), or NULL to optimise every year.", call. = FALSE)
+  }
+  .check_integer(base_year, ": base_year")
+  by <- unique(as.integer(base_year))
+  if (length(by) != 1L) {
+    stop("`base_year` is a single year (got ", length(by),
+         "). Milestones before it are historical and leave the model -- see ",
+         "solve_base_year() -- so there is never more than one.",
+         call. = FALSE)
+  }
+  mids <- as.integer(h@intervals$mid)
+  if (!length(mids)) {
+    stop("`base_year` needs a horizon with intervals to mark.", call. = FALSE)
+  }
+  if (!(by %in% mids)) {
+    stop("base_year ", by, " is not a milestone of this horizon. ",
+         "Milestones: ", paste(mids, collapse = ", "), ".", call. = FALSE)
+  }
+  if (!any(mids > by)) {
+    stop("base_year ", by, " is this horizon's last milestone, leaving ",
+         "nothing to project. Milestones: ", paste(mids, collapse = ", "),
+         ".", call. = FALSE)
+  }
+  by
 }
 
 #' @family update horizon

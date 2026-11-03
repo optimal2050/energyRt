@@ -125,6 +125,15 @@
 #'   New processes, commodities and other model objects are built on the base
 #'   too: the per-object tables of the objects the base already holds are
 #'   reused, the new objects' tables are computed, and every map is rebuilt.
+#' @param base_year_scenario where the base year's own solution comes from,
+#'   when the horizon marks one (see [newHorizon()]). Defaults to `base`, so a
+#'   projection built on a base takes that base's base-year solution for free.
+#'   May also be a solved [scenario], the list [solve_base_year()] returns, a
+#'   scenario name, or `"<scenario>/<run>"`; `NULL` or `FALSE` carries nothing.
+#'   What crosses is only what that solve DECIDED — its new capacity, written
+#'   as sunk `stock` at its true vintage. The model's own `@stock` is left
+#'   alone. With no source the projection still excludes the base year, and
+#'   starts from the model's declared `@stock`; a message says so.
 #' @param .reuse internal: an interpolated scenario whose per-object tables
 #'   are reused for the objects it holds (set by `base`).
 #' @param verbose logical; print per-step progress. This also governs the
@@ -157,6 +166,7 @@
 #' model_size(interpolate_model(mod, name = "FOLDED", fold = TRUE))
 #' }
 interpolate_model <- function(object, name = NULL, ..., base = NULL,
+                       base_year_scenario = base,
                        desc = NULL, ondisk = FALSE, overwrite = FALSE,
                        fold = FALSE, sparse = TRUE, prune = TRUE,
                        validate = TRUE, code = NULL, kvl = FALSE,
@@ -203,17 +213,36 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   }
   # A derived scenario: the base plus what the new objects add (below).
   if (!is.null(base)) {
-    .derived <- .interpolate_from_base(object, base, name = name, args = list(...),
-                                       ondisk = ondisk, given = .given, fold = fold,
-                                       sparse = sparse, prune = prune,
-                                       verbose = verbose, validate = validate,
-                                       boundary_prices = boundary_prices)
+    # A base-year source other than the base itself writes `stock` into objects
+    # the base ALREADY holds, so the base's tables are not the tables this call
+    # asks for. `.base_refusal()` cannot see it: the carry happens inside this
+    # function, after the model identity it compares was taken.
+    .by_reusable <- is.null(.base_year(
+      tryCatch(getHorizon(object), error = function(e) NULL))) ||
+      identical(base_year_scenario, base)
+    if (!.by_reusable && verbose) {
+      message("Interpolating in full: `base_year_scenario` differs from the ",
+              "base, so the base's tables are not the ones this call needs.")
+    }
+    .derived <- if (.by_reusable) {
+      .interpolate_from_base(object, base, name = name, args = list(...),
+                             ondisk = ondisk, given = .given, fold = fold,
+                             sparse = sparse, prune = prune,
+                             verbose = verbose, validate = validate,
+                             boundary_prices = boundary_prices)
+    } else {
+      NULL
+    }
     if (!is.null(.derived)) return(.derived)
   }
   # A scenario re-interpolates its model with its settings (calendar, horizon)
   .scen_settings <- NULL
+  .scen_by_link <- NULL
   if (inherits(object, "scenario")) {
     .scen_settings <- object@settings
+    # the base-year source this scenario was built on, so re-interpolating it
+    # does not silently lose the carry (resolved below, after the horizon)
+    .scen_by_link <- object@misc$base_year
     object <- object@model
   }
   # the model as given, so a later `base = ` call can tell it is the same one
@@ -544,6 +573,47 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
          "`mod <- setHorizon(mod, 2020:2050)`, or pass a horizon object via ",
          "`...`: `interpolate_model(mod, name, newHorizon(period = ...))`.",
          call. = FALSE)
+  }
+
+  # --- the base year ------------------------------------------------------ #
+  # Two independent effects, in this order.
+  #
+  # NARROWING is unconditional on the mark: a marked horizon says the base year
+  # and everything before it are GIVEN, so they leave the solver whether or not
+  # a base-year solution happens to be available. The years that left still
+  # anchor interpolation -- `@period` is the whole horizon's and
+  # `.interp_one_series()` extends its grid with the anchor years in the data.
+  #
+  # THE CARRY is conditional on a source. With none, the projection starts from
+  # the model's own `@stock`, which is a complete request in itself: a
+  # calibrated fleet is normally written into `@stock` at build time, with no
+  # ledger to carry. Said out loud, not assumed.
+  .by_mark <- .base_year(scen@settings@horizon)
+  if (!is.null(.by_mark)) {
+    .hh <- .by_split(scen@settings@horizon)
+    scen <- setHorizon(scen, .hh$main)
+    scen@misc$base_year <- list(year = .by_mark, history = .hh$history)
+    .by_src <- .by_source(base_year_scenario %||% .scen_by_link$scenario,
+                          .by_mark)
+    if (is.null(.by_src)) {
+      message("base year ", .by_mark, ": not optimised, and no base-year ",
+              "solution was given -- the projection starts from the model's ",
+              "own @stock (base_year_scenario = carries one forward)")
+    } else {
+      .n_carry <- nrow(as.data.frame(.by_src$ledger$newcap %||% data.frame()))
+      object <- .by_carry_newcap(object, .by_src$ledger, .hh$main,
+                                 verbose = verbose)
+      .model_given <- .by_carry_newcap(.model_given, .by_src$ledger, .hh$main,
+                                       verbose = FALSE)
+      scen@model <- .model_given
+      scen@misc$base_year$scenario <- .by_src$scenario
+      scen@misc$base_year$run <- .by_src$run
+      scen@misc$base_year$hash <- .by_src$hash
+      message("base year ", .by_mark, ": not optimised; ", .n_carry,
+              " capacity vintage(s) carried forward as stock",
+              if (!is.na(.by_src$scenario))
+                paste0(" from '", .by_src$scenario, "'") else "")
+    }
   }
 
   # guard: every region referenced by a model object must be declared. Catches
