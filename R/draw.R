@@ -304,9 +304,12 @@ utils::globalVariables(
       filter(!is.na(value)) |>
       group_by(io, acomm, comm, unit, parameter) |>
       summarise(
+        # One coupling can carry many rows -- a value per vintage, cluster,
+        # region, year or timeslice -- and the diagram has room for one label,
+        # so collapse them to a value or a range, as `ccom_par` does above.
         lab_par = make_label(
-          paste0(parameter, ":"),
-          in_brackets = value,
+          paste0(unique(parameter), ":"),
+          in_brackets = format_value_range(value),
           two_lines = FALSE,
           bracket_type = "square"
         ),
@@ -2629,6 +2632,11 @@ draw_process <- function(
     # which would otherwise paint over anything already drawn.
     newpage = TRUE) {
   box_open <- match.arg(box_open)
+  # The "use" and "act" bracket abscissae are pure geometry. They are read
+  # again by the use2cact label, which is drawn whether or not either bracket
+  # was, so they cannot live inside the blocks that draw them.
+  use_x <- 0.5 - box_width * 0.00
+  act_x <- 0.5 + box_width * 0.2
   result <- tryCatch(
     {
 
@@ -2961,11 +2969,13 @@ draw_process <- function(
           } # end of groups
 
           ## "use" bracket #####
-          if (show_use_bar) {
-            cinp <- inputs |> filter(grepl("cinp", iotype))
+          # A weather-driven generator has no `cinp` row at all (it consumes
+          # nothing but an aux commodity), and `range()` of nothing is
+          # Inf/-Inf with a warning -- there is no bracket to draw.
+          cinp <- inputs |> filter(grepl("cinp", iotype))
+          if (show_use_bar && nrow(cinp) > 0) {
             y_use <- range(cinp$y, na.rm = TRUE) + 0.4 * inp_arrow_spacing * c(-1, 1)
 
-            use_x <- 0.5 - box_width * 0.00
             grid::grid.lines(
               x = c(use_x, use_x),
               y = y_use,
@@ -3169,11 +3179,10 @@ draw_process <- function(
           } # end of groups
 
           ## "act" bracket ####
-          if (show_act_bar) {
-            cout <- outputs |>
-              filter(grepl("cout", iotype))
+          cout <- outputs |>
+            filter(grepl("cout", iotype))
+          if (show_act_bar && nrow(cout) > 0) {
             y_act <- range(cout$y, na.rm = TRUE) + 0.42 * out_arrow_spacing * c(-1, 1)
-            act_x <- 0.5 + box_width * 0.2
 
             grid::grid.lines(
               x = c(act_x, act_x),

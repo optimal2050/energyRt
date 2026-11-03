@@ -323,14 +323,14 @@ definition and its runs. This larger TOPIA example is not executed while the
 introductory vignette builds:
 
 ```{r solve-calendar-samples, eval = FALSE}
-TOPIA_KIT <- topia$modules$electricity$R1
+TOPIA_KIT <- topia$modules$electricity
 TOPIA_SAMPLING <- newModel(
   name = "TOPIA_SAMPLING",
   desc = "TOPIA model used to demonstrate calendar sampling",
   data = TOPIA_KIT$repo,
   calendar = s4_h24,
   region = TOPIA_KIT$regions,
-  horizon = topia$modules$horizons$base,
+  horizon = topia$modules$horizons$BY2025_50_by10,
   discount = 0.05
 )
 TOPIA_SAMPLING <- setGeoscale(

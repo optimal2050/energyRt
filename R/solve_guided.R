@@ -72,7 +72,7 @@
 #' @seealso [solve_guided()], [horizon_windows()]
 #' @export
 #' @examples
-#' h <- topia$modules$horizons$base
+#' h <- topia$modules$horizons$BY2025_50_by10
 #'
 #' # backward guidance: the endpoint first, then each neighbouring pair
 #' w <- guided_windows(h)
@@ -234,13 +234,13 @@ guided_windows <- function(horizon, direction = c("backward", "forward"),
 #' \dontrun{
 #' open_project(tempdir())
 #'
-#' ek  <- topia$modules$electricity$R3
-#' mod <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod <- newModel("TOPIA", data = topia_elc$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
-#'                 region = ek$regions,
-#'                 horizon = topia$modules$horizons$base,
+#'                 region = topia_elc$regions,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10,
 #'                 discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #'
 #' # the endpoint first, then each neighbouring pair, then the full horizon
 #' # with the guidance as bounds
@@ -277,8 +277,18 @@ solve_guided <- function(object, name = NULL, ...,
          call. = FALSE)
   }
   iv <- as.data.frame(h_full@intervals)
+  # A marked base year names guided's base stage, and sends the milestones
+  # before it to history: those are given, so no stage optimises them. Without
+  # a mark the first milestone is the base, exactly as before.
+  .hh <- .by_split(h_full)
+  by_year <- if (is.null(.hh)) as.integer(iv$mid[1]) else .base_year(h_full)
+  if (!is.null(.hh)) iv <- iv[as.integer(iv$mid) >= by_year, , drop = FALSE]
+  if (nrow(iv) < 2L) {
+    stop("A guided solve needs at least two milestone years to optimise; ",
+         "this horizon leaves ", nrow(iv), " after its base year (", by_year,
+         ").", call. = FALSE)
+  }
   n <- nrow(iv)
-  by_year <- as.integer(iv$mid[1])
   ly_year <- as.integer(iv$mid[n])
   extra <- list(...)
 
@@ -350,9 +360,16 @@ solve_guided <- function(object, name = NULL, ...,
 
   # --- base: pin the past as stock ---------------------------------------- #
   if ("base" %in% stages) {
-    h_by <- newHorizon(intervals = iv[1, , drop = FALSE],
-                       force_BY_interval_to_1_year = FALSE,
-                       name = sprintf("g_by_%d", by_year))
+    # the same slice `.by_split()` makes, when the horizon marks one
+    h_by <- if (is.null(.hh)) {
+      newHorizon(intervals = iv[1, , drop = FALSE],
+                 force_BY_interval_to_1_year = FALSE,
+                 name = sprintf("g_by_%d", by_year))
+    } else {
+      .h <- .hh$by
+      .h@name <- sprintf("g_by_%d", by_year)
+      .h
+    }
     res <- run_stage("base", h_by, "s0_base", by_year, FALSE, calendar_guide)
     st <- record(st, "base", "s0_base", by_year, res)
     if (!res$ok) failed <- TRUE else {
@@ -477,13 +494,13 @@ getData.guided <- function(object, name = NULL, ..., merge = TRUE) {
 #' \dontrun{
 #' open_project(tempdir())
 #'
-#' ek  <- topia$modules$electricity$R3
-#' mod <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod <- newModel("TOPIA", data = topia_elc$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
-#'                 region = ek$regions,
-#'                 horizon = topia$modules$horizons$base,
+#'                 region = topia_elc$regions,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10,
 #'                 discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #'
 #' # what the guidance cost, against a true perfect-foresight run
 #' pf  <- solve_model(mod, name = "PF", solver = solver_options$glpk)

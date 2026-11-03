@@ -135,7 +135,7 @@ setClass("tax",
 #'   )
 #'  )
 newTax <- function(
-  name,
+  name = "",
   desc = "",
   comm = "",
   geoframe = character(),

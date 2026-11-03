@@ -353,12 +353,12 @@
 #' @family process spec
 #' @export
 #' @examples
-#' spec <- process_to_spec(topia$modules$electricity$R3$ECOA)
+#' spec <- process_to_spec(getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE))
 #'
 #' # a spec already in memory is returned as-is, so the same call accepts
 #' # either a list or the path to a YAML file written by `process_to_spec()`
 #' f <- tempfile(fileext = ".yml")
-#' process_to_spec(topia$modules$electricity$R3$ECOA, file = f)
+#' process_to_spec(getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE), file = f)
 #' identical(read_process_spec(f)$name, spec$name)
 read_process_spec <- function(spec) {
   if (is.character(spec) && length(spec) == 1) {
@@ -700,7 +700,7 @@ process_from_spec <- function(spec, strict = FALSE) {
 #' @family process spec
 #' @export
 #' @examples
-#' tech <- topia$modules$electricity$R3$ECOA
+#' tech <- getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE)
 #'
 #' # the object as a plain nested list: diffable, editable, writable as YAML
 #' spec <- process_to_spec(tech)
@@ -794,7 +794,7 @@ process_to_spec <- function(object, file = NULL) {
 #' @family process spec
 #' @export
 #' @examples
-#' spec <- process_to_spec(topia$modules$electricity$R3$ECOA)
+#' spec <- process_to_spec(getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE))
 #'
 #' # the constructor call that would rebuild the object, as text
 #' cat(process_spec_code(spec))

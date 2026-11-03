@@ -4,6 +4,18 @@
 
 skip_if_not_installed("ggplot2")
 
+# A fill legend's title may sit on the scale rather than in `labs()`.
+.ap_fill_name <- function(p) {
+  nm <- p$labels$fill
+  if (!is.null(nm)) return(as.character(nm))
+  for (sc in p$scales$scales) {
+    if ("fill" %in% sc$aesthetics && !is.null(sc$name) && !is.na(sc$name)) {
+      return(as.character(sc$name))
+    }
+  }
+  NA_character_
+}
+
 .ap_geoms <- function(p) vapply(p$layers, function(l) class(l$geom)[1],
                                 character(1))
 
@@ -92,7 +104,7 @@ test_that("supply style='regions' draws uncapped availability full-height", {
   expect_match(p$labels$caption, "unlimited availability")
   expect_true("GeomText" %in% .ap_geoms(p))       # the "uncapped" label
   d <- p$data
-  ava <- d[grepl("availability", as.character(d$measure)), , drop = FALSE]
+  ava <- d[grepl("^ava", as.character(d$measure)), , drop = FALSE]
   # the uncapped region's bar is drawn at the finite panel maximum
   expect_equal(ava$value[ava$uncapped], max(ava$value[!ava$uncapped]))
   expect_no_error(ggplot2::ggplot_build(p))
@@ -147,14 +159,17 @@ test_that("report_fig_height follows the facet rows", {
 })
 
 test_that("demand style='heatmap' draws region rows on the calendar", {
-  dem <- newDemand("DEM_HM", commodity = "ELC", unit = "GWh",
+  dem <- newDemand("DEM_HM", desc = "Heatmap demand", commodity = "ELC",
+    unit = "GWh",
     demand = data.frame(region = rep(c("R1", "R2"), each = 3),
                         timeslice = rep(c("s1_h01", "s1_h02", "s1_h03"), 2),
                         demand = c(1, 2, 3, 4, 5, 6)))
   p <- ggplot2::autoplot(dem, style = "heatmap")
   expect_true("GeomTile" %in% .ap_geoms(p))
   expect_setequal(unique(as.character(p$data$region)), c("R1", "R2"))
-  expect_match(p$labels$subtitle, "commodity: ELC")
+  # the subtitle carries `@desc`, never a reading of the chart
+  expect_match(p$labels$subtitle, "Heatmap demand")
+  expect_match(.ap_fill_name(p), "GWh")
 })
 
 test_that("weather family heatmap keeps the best and last clusters", {

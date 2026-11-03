@@ -2,60 +2,85 @@
 % Please edit documentation in R/topia.R
 \name{topia_profiles}
 \alias{topia_profiles}
-\title{TOPIA input profiles (deterministic)}
+\title{TOPIA input profiles}
 \usage{
 topia_profiles(
   regions,
-  calendar = c("s4_h24", "m12_h24", "topia_seasons"),
+  calendar = c("s4_h24", "m12_h24", "topia_seasons", "d365_h24"),
+  dataset = NULL,
   source = c("saved", "ideea"),
   resources = c(WSOL = "WSOL", WWIN = "WWIN", WHYD = "WHYD"),
   cluster = 1L,
-  diversify = TRUE
+  diversify = NULL
 )
 }
 \arguments{
-\item{regions}{character vector of region names.}
+\item{regions}{character vector of region codes: a region of the TOPIA map
+(\code{W1}, \code{W2}, \code{C1}--\code{C6}, \code{E1}--\code{E3}), a zone (\code{WEST}, \code{CENTRAL}, \code{EAST})
+or the nation (\code{TOPIA}). An unknown code is an error that lists what is
+known.}
 
 \item{calendar}{target resolution: \code{"s4_h24"} (4 seasons x 24 hours, 96
 timeslices, the default base case), \code{"m12_h24"} (12 months x 24 hours,
-288) or \code{"topia_seasons"} (4 seasons x 3 dayparts, 12).}
+288), \code{"topia_seasons"} (4 seasons x 3 dayparts, 12) or \code{"d365_h24"}
+(8760).}
+
+\item{dataset}{\code{"simulated"} or \code{"sample"}. \code{NULL} (the default) picks the
+set built for \code{calendar} -- the sample for \code{"d365_h24"}, the simulated set
+otherwise. Naming a pair that was not built is an error saying what each
+set covers.}
 
 \item{source}{\code{"saved"} (packaged data, default) or \code{"ideea"} (re-aggregate
-from \code{IDEEA::ideea_modules} if installed).}
+from \code{IDEEA::ideea_modules} if installed). The IDEEA route yields one
+region-agnostic shape per resource and replicates it to every region.}
 
 \item{resources}{named character vector mapping resource keys (\code{WSOL},
 \code{WWIN}, \code{WHYD}) to IDEEA element names, used when \code{source = "ideea"}.}
 
 \item{cluster}{integer, which IDEEA resource cluster to use (\code{source = "ideea"}).}
 
-\item{diversify}{logical (default \code{TRUE}): scale the solar and wind capacity
-factors by deterministic per-region factors (defined for the TOPIA map
-regions \code{W1}, \code{W2}, \code{C1}--\code{C6}, \code{E1}--\code{E3}; other names get factor 1), so regions have different
-renewable endowments -- sunnier south, windier coast. \code{FALSE} replicates
-identical profiles to every region.}
+\item{diversify}{defunct. TOPIA's profiles are per region and are not scaled
+copies of one shape, so there is nothing to diversify; passing it warns
+and changes nothing.}
 }
 \value{
-a list of tidy data.frames, each replicated across \code{regions}:
-\code{weather} (\code{resource}, \code{region}, \code{timeslice}, \code{wval}), \code{demand} (\code{region},
-\code{timeslice}, \code{load} -- a relative load shape) and \code{stock} (\code{region}, \code{tech},
-\code{gw} -- base-year capacity).
+a list of tidy data.frames: \code{weather} (\code{resource}, \code{region},
+\code{timeslice}, \code{wval}), \code{demand} (\code{region}, \code{timeslice}, \code{load} -- a relative
+load shape) and \code{stock} (\code{region}, \code{tech}, \code{gw} -- base-year capacity,
+replicated across \code{regions}).
 }
 \description{
-Expand TOPIA's saved, region-agnostic profiles (\code{topia$weather},
-\code{topia$demand}, \code{topia$stock}) to a set of regions for a chosen calendar,
-returning a list of three tidy data.frames. The weather capacity factors can
-be re-sourced at run time from IDEEA (\code{source = "ideea"}); \code{"saved"}
-(default) uses the packaged data and never needs an external dataset.
+Expand TOPIA's per-region profiles (\code{topia$weather}, \code{topia$demand},
+\code{topia$stock}) to a set of regions for a chosen calendar, returning a list
+of three tidy data.frames.
 }
 \details{
+Two input datasets ship and the caller chooses between them:
+
+\describe{
+\item{\code{"simulated"}}{closed-form shapes on the small calendars
+(\code{s4_h24}, \code{m12_h24}, \code{topia_seasons}). Demonstration data: it carries a
+spatial gradient and a diurnal structure, and is not a resource estimate
+for anywhere.}
+\item{\code{"sample"}}{a measured hourly set on \code{d365_h24}. Multi-day calm
+spells survive only at that resolution, so it is where flexibility has
+something to earn -- reducing the hourly series to a handful of typical
+days keeps about a quarter of the wind's variance and none of its calm
+spells, which is why the small calendars are served by the simulated set
+instead.}
+}
+
+A request for a coarser geoscale code -- a zone, or the nation -- averages
+its member regions, which is what a copperplate zone sees.
+
 Not to be confused with the near-namesake \code{\link[=topia_profile]{topia_profile()}}, which takes no
 TOPIA data at all: it generates a synthetic step / sine / cosine / hex shape
 over any calendar and returns a single data.frame.
 }
 \examples{
-# weather, demand and stock expanded to the regions of a model
+# weather, demand and stock for two regions of the TOPIA map
 prof <- topia_profiles(c("W1", "W2"), calendar = "s4_h24")
-lapply(prof, head, 3)
+head(prof$weather, 3)
 }
 \seealso{
 \link{topia}, \code{\link[=topia_profile]{topia_profile()}}, \link{calendars}

@@ -313,6 +313,8 @@ setClass("summand",
 #' @param eq Type of the relation ('==' default, '<=', '>=')
 #' @param for.each list or data.frame with sets that define the dimension of the constraint.
 #' @param rhs a numeric value, list or data frame with sets and numeric values for each constraint.
+#' A single value (a number, a one-element list or a one-cell data frame) is
+#' the right-hand side of every row: it replaces `defVal`.
 #' Note: zero values will be replaced with `replace_zerros` to avoid dropping them by the interpolation algorithms.
 #' @param defVal `r get_slot_doc("constraint", "defVal")`
 #' @param interpolation `r get_slot_doc("constraint", "interpolation")`
@@ -336,7 +338,7 @@ setClass("summand",
 #'
 #' @export
 newConstraint <- function(
-    name,
+    name = "",
     desc = "",
     ...,
     eq = "==",
@@ -356,6 +358,30 @@ newConstraint <- function(
     )
   }
   obj@eq[] <- eq
+  # a single value as `rhs` is the right-hand side of every row, i.e. the
+  # constraint's default: it replaces `defVal` (a differing `defVal` is
+  # reported) and leaves no rhs table. Given as a number, a one-element list
+  # or a one-cell data frame.
+  rhs_one <- NULL
+  if (is.numeric(rhs)) {
+    if (length(rhs) != 1) {
+      stop("rhs must be a single numeric value or a data.frame with sets and numeric values for each constraint.")
+    }
+    rhs_one <- rhs
+  } else if (!is.data.frame(rhs) && is.list(rhs) && length(rhs) == 1 && length(rhs[[1]]) == 1) {
+    rhs_one <- rhs[[1]]
+  } else if (is.data.frame(rhs) && ncol(rhs) == 1 && nrow(rhs) == 1) {
+    rhs_one <- rhs[1, 1]
+  }
+  if (!is.null(rhs_one)) {
+    rhs_one <- as.numeric(rhs_one)
+    if (!is.null(defVal) && !is.na(defVal) && !isTRUE(all.equal(as.numeric(defVal), rhs_one))) {
+      warning("Constraint '", name, "': `rhs` is a single value (", rhs_one,
+              ") and is the constraint's value everywhere; `defVal` (", defVal, ") is replaced.")
+    }
+    defVal <- rhs_one
+    rhs <- data.frame()
+  }
   if (is.null(defVal)) {
     warning("It is advisable to define 'defVal' parameter.")
     if (eq == "==") {
@@ -367,29 +393,12 @@ newConstraint <- function(
     }
   }
 
-  if (is.numeric(rhs)) {
-    if (length(rhs) != 1) {
-      stop("rhs must be a single numeric value or a data.frame with sets and numeric values for each constraint.")
-    }
-    if (is.na(defVal)) defVal <- rhs
-    rhs <- data.frame()
-    # rhs <- data.frame(rhs = rhs, stringsAsFactors = FALSE)
-  }
   if (!is.data.frame(rhs) && is.list(rhs)) {
     tmp <- sapply(rhs, length)
     if (any(tmp[1] != tmp) || is.null(names(rhs))) {
       stop("Length of the list elements in 'rhs' must be identical.")
     }
     rhs <- as.data.frame(rhs, stringsAsFactors = FALSE)
-  }
-  if (!is.data.frame(rhs) && is.list(rhs) && length(rhs) == 1 && length(rhs[[1]]) == 1) {
-    if (is.na(defVal)) defVal <- rhs[[1]]
-    rhs <- data.frame()
-    # rhs <- data.frame(rhs = rhs[[1]], stringsAsFactors = FALSE)
-  }
-  if (is.data.frame(rhs) && ncol(rhs) == 1 && nrow(rhs) == 1) {
-    if (is.na(defVal)) defVal <- rhs[1, 1]
-    rhs <- data.frame()
   }
   if (!is.null(replace_zerros) && any(rhs$rhs == 0)) {
     # warning("Zero values in 'rhs' will be replaced with '", replace_zerros, "' to avoid ignoring them by the current interpolation algorithms. Use non-zero value to avoid auto-replacement and the warning. Use 'replace_zerros = NULL' to avoid replacement.")
@@ -606,6 +615,59 @@ addSummand <- function(
 }
 
 # Calculate do equation need additional set, and add it
+# Which rows of a constraint's `for.each` have at least one term with a member
+# of its variable's domain (the gate map, as built). Rows are matched on the
+# `for.each` columns the variable carries, except region and timeslice, where
+# a row may sum the levels beneath it. NULL when it cannot be decided: a gate
+# map kept as a rule (no table), a variable indexing one set twice, or a term
+# with a year lag or lead.
+.cns_covered_rows <- function(prec, stm) {
+  fe <- as.data.frame(stm@for.each)
+  covered <- rep(FALSE, nrow(fe))
+  for (sm in stm@lhs) {
+    v <- sm@variable
+    sets <- .variable_set[[v]]
+    dims <- .variable_dim[[v]]
+    if (is.null(dims) || length(dims) != length(sets)) dims <- sets
+    if (is.null(sets) || anyDuplicated(sets)) return(NULL)
+    if (!is.null(sm@for.sum$lag.year) || !is.null(sm@for.sum$lead.year)) return(NULL)
+    d <- .variable_domain_rows(prec, v)
+    if (is.null(d) || !all(sets %in% names(d))) return(NULL)
+    for (k in intersect(names(sm@for.sum), dims)) {
+      vals <- sm@for.sum[[k]]
+      if (.for_sum_unrestricted(vals)) next
+      s <- sets[match(k, dims)]
+      d <- d[as.character(d[[s]]) %in% as.character(vals), , drop = FALSE]
+    }
+    if (!nrow(d)) next
+    on <- setdiff(intersect(names(fe), sets), c("region", "timeslice"))
+    if (!length(on)) return(rep(TRUE, nrow(fe)))
+    key <- function(x) do.call(paste, c(lapply(x[on], as.character), sep = "\r"))
+    covered <- covered | key(fe) %in% key(d)
+  }
+  covered
+}
+
+# The right-hand side of each `for.each` row where it is known without
+# interpolation: an exact row of the rhs table, or `defVal` when there is no
+# table. NA otherwise.
+.cns_row_rhs <- function(stm) {
+  fe <- as.data.frame(stm@for.each)
+  if (nrow(stm@rhs) == 0 || !("rhs" %in% names(stm@rhs))) return(rep(as.numeric(stm@defVal), nrow(fe)))
+  r <- as.data.frame(stm@rhs)
+  on <- setdiff(names(r), "rhs")
+  if (!length(on) || !all(on %in% names(fe))) return(rep(NA_real_, nrow(fe)))
+  key <- function(x) do.call(paste, c(lapply(x[on], as.character), sep = "\r"))
+  as.numeric(r$rhs[match(key(fe), key(r))])
+}
+
+# A short description of some `for.each` rows, for messages.
+.cns_rows_label <- function(fe) {
+  fe <- as.data.frame(fe)
+  lab <- do.call(paste, c(lapply(names(fe), function(n) paste0(n, " ", fe[[n]])), sep = ", "))
+  paste(utils::head(lab, 6), collapse = "; ")
+}
+
 .getSetEquation <- function(prec, stm, approxim) {
 
   # temporary fix for constraints interpolation: expanding year set
@@ -1108,6 +1170,37 @@ addSummand <- function(
     }
     if (any(all.set$lead.year)) {
       stm@for.each <- stm@for.each[stm@for.each$year %in% prec@parameters[["mMilestoneHasNext"]]@data$year, , drop = FALSE]
+    }
+  }
+  # Rows in which no term has a member of its variable's domain carry no
+  # coefficient: a technology that cannot be built yet in that year, say. Such
+  # a row is dropped (with a message) when it could not bind anyway (`<=` a
+  # non-negative value, `>=` a non-positive one, `==` zero); an empty row that
+  # would make the model infeasible is an error, and so is a constraint empty
+  # in every row (a misspelt name or a filter that selects nothing). Rows the
+  # check cannot decide are kept.
+  if (nrow(stm@for.each) > 0 && length(old_for_each) > 0) {
+    cov <- .cns_covered_rows(prec, stm)
+    if (!is.null(cov) && !all(cov)) {
+      if (!any(cov)) {
+        stop.constr("no term has any member of its variable's domain in any row: the constraint constrains nothing. Check the names and filters of its terms.")
+      }
+      rhs <- .cns_row_rhs(stm)
+      eq <- as.character(stm@eq)
+      harmless <- switch(eq, "<=" = rhs >= 0, ">=" = rhs <= 0, "==" = abs(rhs) <= 1e-12)
+      empty <- !cov & !is.na(rhs)
+      bad <- empty & !harmless
+      if (any(bad)) {
+        stop.constr(paste0(
+          "no term exists in ", sum(bad), " row(s) whose right-hand side cannot be met by zero (",
+          .cns_rows_label(stm@for.each[bad, , drop = FALSE]), ")."))
+      }
+      if (any(empty)) {
+        message("Constraint '", stm@name, "': ", sum(empty),
+                " row(s) dropped, no term exists there (",
+                .cns_rows_label(stm@for.each[empty, , drop = FALSE]), ").")
+        stm@for.each <- stm@for.each[!empty, , drop = FALSE]
+      }
     }
   }
   # An indexed equation whose `for.each` domain was emptied by the horizon

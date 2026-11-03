@@ -24,6 +24,14 @@ Create separate trade objects to optimize different parts of the trade network
 
 \item{\code{desc}}{character. Description of the trade object.}
 
+\item{\code{units}}{data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in the cost, capacity and activity columns are bare. A declared \code{costs} that disagrees with the model's \code{config@currency} is an error rather than a silent conversion; leave a column empty to claim nothing. One unit per kind: a storage prices three capacities but states \code{capacity} once.
+
+\describe{
+\item{capacity}{character. Unit of capacity.}
+\item{activity}{character. Unit of the activity variable.}
+\item{costs}{character. Currency of the cost columns.}
+}}
+
 \item{\code{commodity}}{character. The traded commodity short name.}
 
 \item{\code{geoframe}}{character. Optional. The geoscale level this object's regions are expressed at; unset (the default) derives it from the region codes. See \code{technology@geoframe} for the full rule, including the consistency checks it turns on. \code{trade} has no \code{region} slot: the level is the one its ROUTES are expressed at, checked against every \code{src} and \code{dst}. A corridor delivers at \code{dst}, so its level may not be coarser than the traded commodity's -- moving a state-level commodity between nations would have to distribute it among the destination's children, which the balance layer does not do.}

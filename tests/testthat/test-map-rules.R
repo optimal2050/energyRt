@@ -163,6 +163,49 @@ test_that("the availability-factor maps decided per cell equal the hourly build"
   expect_true("meqTechAfFx" %in% .rule_params(cells))
 })
 
+test_that("af rows with a year and no timeslice are decided per cell, not hour by hour", {
+  pr_local_model()
+  unlink(pr_root(), recursive = TRUE)
+  af <- c("meqTechAfLo", "meqTechAfUp", "meqTechAfFx")
+  tuples <- function(scen, nm) {
+    p <- scen@modInp@parameters[[nm]]
+    d <- if (is.null(p)) NULL else get_data_slot(p)
+    if (is.null(d) || !nrow(d)) return(NULL)
+    as_tuples(as.data.frame(d)[, c("tech", "region", "year", "timeslice")])
+  }
+  cal <- newCalendar(timetable = make_timetable(struct = list(ANNUAL = "ANNUAL", SL = pr_slices)), name = "prc")
+  W <- newWeather("W1", timeframe = "SL", region = "R1",
+                  weather = data.frame(region = "R1", timeslice = pr_slices, wval = c(0.2, 0.9, 0.5, 0.1)))
+  # a factor for the first year only: af.fx by year, no timeslice
+  yr_fx <- data.frame(year = c(2025L, 2030L), af.fx = c(0.9, 1))
+  wind <- newTechnology("WIND", output = list(comm = "ELC"), cap2act = 1, af = yr_fx,
+                        weather = data.frame(weather = "W1", waf.fx = 1),
+                        capacity = data.frame(region = "R1", stock = 10))
+  # the same rows beside per-timeslice ones in the same cells
+  sol <- newTechnology("SOL", output = list(comm = "ELC"), cap2act = 1,
+                       af = rbind(transform(yr_fx, timeslice = NA_character_, af.up = NA_real_),
+                                  data.frame(year = 2030L, timeslice = pr_slices[1:2], af.fx = NA, af.up = 0.5)),
+                       weather = data.frame(weather = "W1", waf.fx = 1),
+                       capacity = data.frame(region = "R1", stock = 10))
+  gas <- newTechnology("GAS", output = list(comm = "ELC"), cap2act = 1,
+                       capacity = data.frame(region = "R1", stock = 20), varom = list(varom = 50))
+  mk <- function(nm, ...) newModel(nm, region = "R1", discount = 0, calendar = cal, horizon = newHorizon(c(2025, 2030)),
+    repo = newRepository(paste0("r_", nm), newCommodity("ELC", timeframe = "SL"), W, ...,
+                         newDemand("DEM", commodity = "ELC", demand = data.frame(timeslice = pr_slices, demand = 5))))
+  models <- list(wild = mk("mrw", wind, gas), mixed = mk("mrx", wind, sol, gas))
+  for (nm in names(models)) {
+    cells <- withr::with_options(list(energyRt.map_rules = TRUE, energyRt.map_rules_verify = TRUE),
+      suppressMessages(suppressWarnings(interpolate_model(models[[nm]], name = paste0("mry_", nm, "_c"),
+                                                          path = pr_root("scenarios", paste0("mry_", nm, "_c"))))))
+    hourly <- withr::with_options(list(energyRt.map_rules = FALSE),
+      suppressMessages(suppressWarnings(interpolate_model(models[[nm]], name = paste0("mry_", nm, "_h"),
+                                                          path = pr_root("scenarios", paste0("mry_", nm, "_h"))))))
+    for (m in af) expect_identical(tuples(cells, m), tuples(hourly, m), info = paste(nm, m))
+    # the wildcard-only model: WIND's fixed cells are whole, kept as a rule
+    if (nm == "wild") expect_true("meqTechAfFx" %in% .rule_params(cells))
+  }
+})
+
 test_that("the timeslice maps equal their rules and keep only the rule after interpolation", {
   pr_local_model()
   unlink(pr_root(), recursive = TRUE)

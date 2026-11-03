@@ -127,7 +127,7 @@ test_that("a trade group bound spans years, and a region on it errors", {
     newTrade("TBD_ELC", commodity = "ELC", routes = rt,
              capacity = data.frame(vintage = "TOTAL", region = "R1",
                                    cap.up = 4)),
-    "Unknown column")
+    "unknown column")
 })
 
 test_that("mTradeCapacityVariable is gone from the R side", {

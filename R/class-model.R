@@ -366,6 +366,7 @@ add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
                'repository "', obj@data[[hit_repo]]@name,
                '". Use `overwrite = TRUE` to replace it.', call. = FALSE)
         }
+        .assert_valid_object(x)
         obj@data[[hit_repo]]@data[[hit_obj]] <- x
         ii[k] <- FALSE            # handled: keep it off the default-repo path
         arg[k] <- list(NULL)

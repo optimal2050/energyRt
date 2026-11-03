@@ -125,8 +125,22 @@
 #'   New processes, commodities and other model objects are built on the base
 #'   too: the per-object tables of the objects the base already holds are
 #'   reused, the new objects' tables are computed, and every map is rebuilt.
+#' @param base_year_scenario where the base year's own solution comes from,
+#'   when the horizon marks one (see [newHorizon()]). Defaults to `base`, so a
+#'   projection built on a base takes that base's base-year solution for free.
+#'   May also be a solved [scenario], the list [solve_base_year()] returns, a
+#'   scenario name, or `"<scenario>/<run>"`; `NULL` or `FALSE` carries nothing.
+#'   What crosses is only what that solve DECIDED — its new capacity, written
+#'   as sunk `stock` at its true vintage. The model's own `@stock` is left
+#'   alone. With no source the projection still excludes the base year, and
+#'   starts from the model's declared `@stock`; a message says so.
 #' @param .reuse internal: an interpolated scenario whose per-object tables
 #'   are reused for the objects it holds (set by `base`).
+#' @param check run [check_feasibility()] on the interpolated scenario and
+#'   STOP when it finds a contradiction, rather than returning a scenario
+#'   that can only solve to INFEASIBLE. Off by default: the check costs a
+#'   pass over the parameter tables, and a model known to be sound does
+#'   not need it.
 #' @param verbose logical; print per-step progress. This also governs the
 #'   variant-expansion report -- how many process objects were expanded and how
 #'   many constraints were generated for them. The generated constraints
@@ -140,13 +154,13 @@
 #' @export
 #' @examples
 #' \donttest{
-#' ek  <- topia$modules$electricity$R3
-#' mod <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod <- newModel("TOPIA", data = topia_elc$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
-#'                 region = ek$regions,
-#'                 horizon = topia$modules$horizons$base,
+#'                 region = topia_elc$regions,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10,
 #'                 discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #'
 #' # build the solver-facing sets and parameters; nothing is solved yet
 #' scen <- interpolate_model(mod, name = "BASE")
@@ -157,6 +171,7 @@
 #' model_size(interpolate_model(mod, name = "FOLDED", fold = TRUE))
 #' }
 interpolate_model <- function(object, name = NULL, ..., base = NULL,
+                       base_year_scenario = base,
                        desc = NULL, ondisk = FALSE, overwrite = FALSE,
                        fold = FALSE, sparse = TRUE, prune = TRUE,
                        validate = TRUE, code = NULL, kvl = FALSE,
@@ -166,6 +181,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
                        fx_equ = getOption("energyRt.fx_equ", TRUE),
                        on_missing_input = getOption("energyRt.on_missing_input",
                                                     "stop"),
+                       check = FALSE,
                        verbose = isVerbose(), .reuse = NULL) {
   # which build arguments the caller set (read before any is reassigned)
   .given <- c(fold = !missing(fold), sparse = !missing(sparse),
@@ -203,17 +219,36 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   }
   # A derived scenario: the base plus what the new objects add (below).
   if (!is.null(base)) {
-    .derived <- .interpolate_from_base(object, base, name = name, args = list(...),
-                                       ondisk = ondisk, given = .given, fold = fold,
-                                       sparse = sparse, prune = prune,
-                                       verbose = verbose, validate = validate,
-                                       boundary_prices = boundary_prices)
+    # A base-year source other than the base itself writes `stock` into objects
+    # the base ALREADY holds, so the base's tables are not the tables this call
+    # asks for. `.base_refusal()` cannot see it: the carry happens inside this
+    # function, after the model identity it compares was taken.
+    .by_reusable <- is.null(.base_year(
+      tryCatch(getHorizon(object), error = function(e) NULL))) ||
+      identical(base_year_scenario, base)
+    if (!.by_reusable && verbose) {
+      message("Interpolating in full: `base_year_scenario` differs from the ",
+              "base, so the base's tables are not the ones this call needs.")
+    }
+    .derived <- if (.by_reusable) {
+      .interpolate_from_base(object, base, name = name, args = list(...),
+                             ondisk = ondisk, given = .given, fold = fold,
+                             sparse = sparse, prune = prune,
+                             verbose = verbose, validate = validate,
+                             boundary_prices = boundary_prices)
+    } else {
+      NULL
+    }
     if (!is.null(.derived)) return(.derived)
   }
   # A scenario re-interpolates its model with its settings (calendar, horizon)
   .scen_settings <- NULL
+  .scen_by_link <- NULL
   if (inherits(object, "scenario")) {
     .scen_settings <- object@settings
+    # the base-year source this scenario was built on, so re-interpolating it
+    # does not silently lose the carry (resolved below, after the horizon)
+    .scen_by_link <- object@misc$base_year
     object <- object@model
   }
   # the model as given, so a later `base = ` call can tell it is the same one
@@ -248,6 +283,10 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   object <- .upgrade_model_summands(object)
   # Same for storages serialized before the `inp2stg` slot.
   object <- .upgrade_model_storages(object)
+  # An object priced in another currency is a mistake no number in the output
+  # reveals, so it stops here rather than being absorbed. Silent unless both
+  # the model and the object declare one.
+  .check_model_currency(object)
   # `scen@model` keeps the model as given (plus the repositories added below);
   # the expanded build copy is used only while interpolating
   .model_given <- object
@@ -544,6 +583,47 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
          "`mod <- setHorizon(mod, 2020:2050)`, or pass a horizon object via ",
          "`...`: `interpolate_model(mod, name, newHorizon(period = ...))`.",
          call. = FALSE)
+  }
+
+  # --- the base year ------------------------------------------------------ #
+  # Two independent effects, in this order.
+  #
+  # NARROWING is unconditional on the mark: a marked horizon says the base year
+  # and everything before it are GIVEN, so they leave the solver whether or not
+  # a base-year solution happens to be available. The years that left still
+  # anchor interpolation -- `@period` is the whole horizon's and
+  # `.interp_one_series()` extends its grid with the anchor years in the data.
+  #
+  # THE CARRY is conditional on a source. With none, the projection starts from
+  # the model's own `@stock`, which is a complete request in itself: a
+  # calibrated fleet is normally written into `@stock` at build time, with no
+  # ledger to carry. Said out loud, not assumed.
+  .by_mark <- .base_year(scen@settings@horizon)
+  if (!is.null(.by_mark)) {
+    .hh <- .by_split(scen@settings@horizon)
+    scen <- setHorizon(scen, .hh$main)
+    scen@misc$base_year <- list(year = .by_mark, history = .hh$history)
+    .by_src <- .by_source(base_year_scenario %||% .scen_by_link$scenario,
+                          .by_mark)
+    if (is.null(.by_src)) {
+      message("base year ", .by_mark, ": not optimised, and no base-year ",
+              "solution was given -- the projection starts from the model's ",
+              "own @stock (base_year_scenario = carries one forward)")
+    } else {
+      .n_carry <- nrow(as.data.frame(.by_src$ledger$newcap %||% data.frame()))
+      object <- .by_carry_newcap(object, .by_src$ledger, .hh$main,
+                                 verbose = verbose)
+      .model_given <- .by_carry_newcap(.model_given, .by_src$ledger, .hh$main,
+                                       verbose = FALSE)
+      scen@model <- .model_given
+      scen@misc$base_year$scenario <- .by_src$scenario
+      scen@misc$base_year$run <- .by_src$run
+      scen@misc$base_year$hash <- .by_src$hash
+      message("base year ", .by_mark, ": not optimised; ", .n_carry,
+              " capacity vintage(s) carried forward as stock",
+              if (!is.na(.by_src$scenario))
+                paste0(" from '", .by_src$scenario, "'") else "")
+    }
   }
 
   # guard: every region referenced by a model object must be declared. Catches
@@ -1383,6 +1463,20 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   scen <- .strip_rule_tables(scen, verbose = verbose)
   # the model as given; .scen_build_model() rebuilds the expanded copy
   scen@model <- .model_given
+  # Opt-in: the only reason to ask for the check here is to be stopped before
+  # a solve that cannot succeed, so a proven contradiction is an error. The
+  # findings are printed first, because the message is the point.
+  if (isTRUE(check)) {
+    .f <- check_feasibility(scen, verbose = TRUE)
+    if (NROW(.f) > 0) {
+      stop("interpolate_model(): the model contradicts itself in ", NROW(.f),
+           " place(s), listed above -- a forced requirement exceeds a ",
+           "ceiling that cannot be raised. Solving it would return ",
+           "INFEASIBLE without saying why. Fix the declarations, or call ",
+           "again with `check = FALSE` to build the scenario anyway.",
+           call. = FALSE)
+    }
+  }
   scen
 }
 
@@ -2539,13 +2633,13 @@ interpolate_bounds <- function(
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # drop the approximation context the scenario no longer needs; the
@@ -2685,13 +2779,13 @@ trim_parameters <- function(object, verbose = FALSE) {
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # no rows means every parameter's domain, bounds and defaults agree
@@ -3517,13 +3611,13 @@ map_comm_geoframe <- function(scen, comm = NULL) {
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # the timeframe a process is resolved at: the finest of its commodities
@@ -3721,13 +3815,13 @@ get_process_timeframe <- function(object, process = NULL,
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # the class of the processes asked for, or of every one of them
@@ -3778,13 +3872,13 @@ get_process_class <- function(object, process = NULL, classes = NULL) {
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' get_process_inputs(scen, process = c("ECOA", "EGAS"))
@@ -3865,13 +3959,13 @@ get_process_inputs <- function(object, process = NULL, classes = NULL) {
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' get_process_outputs(scen, process = c("ECOA", "SUP_COA"))
@@ -3994,13 +4088,13 @@ get_process_outputs <- function(object, process = NULL, classes = NULL) {
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # a process with no auxiliary flow reports an empty vector, not a missing entry
@@ -4059,13 +4153,13 @@ get_process_aux <- function(object, process = NULL, classes = NULL) {
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # only `storage` holds a commodity
@@ -4103,13 +4197,13 @@ get_process_stored <- function(object, process = NULL, classes = NULL) {
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # every commodity a process touches, whichever side it enters on
@@ -4236,13 +4330,13 @@ nl2df <- named_list_to_df
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' get_process_region(scen, process = "ECOA")
@@ -4361,45 +4455,14 @@ get_process_region <- function(object, process = NULL, classes = NULL,
 # }
 
 
-#' Start and end years for process by region
-#'
-#' @param object scenario object
-#' @param process character vector of process names, if not provided,
-#' @param classes character vector of class names to search for
-#'
-#' @returns data frame with columns `process`, `region`, `start`, `end`
-#' @export
-#'
-#' @examples
-#' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
-#'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
-#'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
-#' scen <- interpolate_model(mod, name = "EX")
-#'
-#' # the years a process may be invested in, by region
-#' get_process_invest_window(scen, process = c("ECOA", "EWIN"))
-#' }
-get_process_invest_window <- function(object, process = NULL, classes = NULL) {
-  # collect all lifespans for each process
-  if (is.null(classes)) {
-    classes <- c(
-      "process", "technology", "storage",
-      # "import", "export", "demand", "supply",
-      "trade"
-    )
-  }
-
-  # `start` and `end` are separate parameters, each with its own region
-  # granularity and its own NA-region broadcast (the universal rule:
-  # region-specific rows override the broadcast). Collecting them one
-  # column at a time through `.lifespan_resolve()` keeps the keying
-  # honest -- post-expansion each process is a single (vintage, cluster)
-  # cell, asserted in `.assert_variants_expanded()`.
+# One lifespan column (`start`, `end`, `olife`) per (process, region), each
+# with its own region granularity and its own NA-region broadcast (the
+# universal rule: region-specific rows override the broadcast). Collecting
+# them one column at a time through `.lifespan_resolve()` keeps the keying
+# honest -- post-expansion each process is a single (vintage, cluster) cell,
+# asserted in `.assert_variants_expanded()`. `inf_as_na`: an infinite value
+# is an unbounded side (`start`/`end`); `olife` keeps it.
+.lifespan_col_table <- function(object, col, classes, inf_as_na = TRUE) {
   collect_col <- function(col) {
     rows <- apply_to_scenario_data(
       scen = object,
@@ -4432,9 +4495,12 @@ get_process_invest_window <- function(object, process = NULL, classes = NULL) {
                          value = numeric())
     }
     # Inf -> NA (unbounded side), then integer typing
+    if (inf_as_na) {
+      rows <- rows |>
+        mutate(value = if_else(is.infinite(value), NA_real_, value),
+               value = as.integer(value))
+    }
     rows |>
-      mutate(value = if_else(is.infinite(value), NA_real_, value),
-             value = as.integer(value)) |>
       unique() |>
       as.data.table()
   }
@@ -4456,8 +4522,44 @@ get_process_invest_window <- function(object, process = NULL, classes = NULL) {
       arrange(process, region)
   }
 
-  ll_s <- expand_na(collect_col("start")) |> rename(start = value)
-  ll_e <- expand_na(collect_col("end")) |> rename(end = value)
+  expand_na(collect_col(col))
+}
+
+#' Start and end years for process by region
+#'
+#' @param object scenario object
+#' @param process character vector of process names, if not provided,
+#' @param classes character vector of class names to search for
+#'
+#' @returns data frame with columns `process`, `region`, `start`, `end`
+#' @export
+#'
+#' @examples
+#' \donttest{
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
+#'                  calendar = topia$modules$calendars$s4_h24,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
+#'                  discount = 0.05)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
+#' scen <- interpolate_model(mod, name = "EX")
+#'
+#' # the years a process may be invested in, by region
+#' get_process_invest_window(scen, process = c("ECOA", "EWIN"))
+#' }
+get_process_invest_window <- function(object, process = NULL, classes = NULL) {
+  # collect all lifespans for each process
+  if (is.null(classes)) {
+    classes <- c(
+      "process", "technology", "storage",
+      # "import", "export", "demand", "supply",
+      "trade"
+    )
+  }
+
+  ll_s <- .lifespan_col_table(object, "start", classes) |> rename(start = value)
+  ll_e <- .lifespan_col_table(object, "end", classes) |> rename(end = value)
 
   win <- full_join(ll_s, ll_e, by = c("process", "region")) |>
     mutate(start = as.integer(start), end = as.integer(end)) |>
@@ -4684,6 +4786,35 @@ get_process_stock_years <- function(scen, process = NULL, classes = NULL) {
 
 }
 
+# The milestones capacity built in an investment year stands in: from the
+# build year while year < build year + olife (no olife given: the default; an
+# infinite one: to the horizon's end). With an investment window open to the
+# horizon's end these are investment years already; a window closed by `end`
+# ends the building, not the capacity built.
+.process_life_years <- function(scen, invest_years) {
+  empty <- data.table(process = character(), region = character(), year = integer())
+  if (is.null(invest_years) || NROW(invest_years) == 0L) return(empty)
+  ol <- .lifespan_col_table(scen, "olife", c("process", "technology", "storage", "trade"),
+                            inf_as_na = FALSE)
+  ol <- as.data.table(ol)[, list(olife = value[1]), by = c("process", "region")]
+  inv <- as.data.table(invest_years)[, c("process", "region", "year")]
+  data.table::setnames(inv, "year", "built")
+  inv <- merge(inv, ol, by = c("process", "region"), all.x = TRUE)
+  inv[is.na(olife), olife := .default_olife()]
+  mids <- as.integer(scen@settings@horizon@intervals$mid)
+  j <- inv[, list(year = mids), by = c("process", "region", "built", "olife")]
+  j <- j[j$year >= j$built & (is.infinite(j$olife) | j$year < j$built + j$olife), ]
+  unique(j[, list(process, region, year)])
+}
+
+utils::globalVariables(c("olife", "built"))
+
+# the default operational life of a process with none given
+.default_olife <- function() {
+  d <- tryCatch(.defVal$olife, error = function(e) NULL)
+  if (is.numeric(d) && length(d) == 1L && is.finite(d)) d else 1
+}
+
 get_process_years <- function(scen, process = NULL, classes = NULL) {
   # check if scen@modInp@sets$process_years exists and/or rerun
 
@@ -4710,6 +4841,7 @@ get_process_years <- function(scen, process = NULL, classes = NULL) {
     # ### process availability over years by region
     process_years <- rbind(
       scen@modInp@sets$process_invest_year,
+      .process_life_years(scen, scen@modInp@sets$process_invest_year),
       scen@modInp@sets$process_stock_year
     )
 

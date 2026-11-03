@@ -6,7 +6,7 @@
 \title{Create new export object}
 \usage{
 newExport(
-  name,
+  name = "",
   desc = "",
   commodity = "",
   unit = NULL,

@@ -135,21 +135,26 @@ plus a seasonal swing). The diurnal band and the winter/summer contrast are
 immediately visible:
 
 ```{r hm-day, fig.height = 2.6}
-cal  <- calendars$d365_h24
-tt   <- cal@timetable
+calendar_d365h24 <- calendars$d365_h24
+timetable <- calendar_d365h24@timetable
+hour <- timescales::tsl2hour(timetable$timeslice, calendar_d365h24@name)
+yday <- timescales::tsl2yday(timetable$timeslice, calendar_d365h24@name)
 prof <- data.frame(
-  timeslice = tt$timeslice,
-  load  = 50 + 30 * sin(2 * pi * (timescales::tsl2hour(tt$timeslice, cal@name) - 6) / 24) +
-                15 * cos(2 * pi *  timescales::tsl2yday(tt$timeslice, cal@name)      / 365))
+  timeslice = timetable$timeslice,
+  load = 50 + 30 * sin(2 * pi * (hour - 6) / 24) +
+              15 * cos(2 * pi * yday / 365))
 
-plot_heatmap(prof, calendar = cal, value = "load")   # x = YDAY, y = HOUR
+# x = YDAY, y = HOUR
+plot_heatmap(prof, calendar = calendar_d365h24, value = "load")
 ```
 
 Facet a day-of-year format by `"month"` to get one day-of-month × hour panel per
 month:
 
 ```{r hm-month, fig.height = 4.5}
-plot_heatmap(prof, calendar = cal, value = "load", facet = "month")  # 12 panels
+# 12 panels
+plot_heatmap(prof, calendar = calendar_d365h24, value = "load",
+             facet = "month")
 ```
 
 `palette` selects the viridis option and `name` labels the colour bar, exactly as
@@ -165,20 +170,20 @@ calendar (`s4_h24`): pull the object with `getObject()`, take one region
 bar.
 
 ```{r hm-demand, fig.height = 2.6}
-repo <- topia$modules$electricity$R3$repo
-wcal <- calendars$s4_h24
+repo <- topia$modules$electricity$repo
+calendar_s4h24 <- calendars$s4_h24
 
 DEM <- getObject(repo, name = "DEM_ELC", drop = TRUE)
 dem <- subset(as.data.frame(DEM@demand), region == "W1" & year == 2050)
-plot_heatmap(dem[, c("timeslice", "demand")], calendar = wcal, value = "demand",
-             name = "PJ")
+plot_heatmap(dem[, c("timeslice", "demand")], calendar = calendar_s4h24,
+             value = "demand", name = "PJ")
 ```
 
 ```{r hm-weather, fig.height = 2.6}
 WSOL <- getObject(repo, name = "WSOL", drop = TRUE)
 wsol <- subset(as.data.frame(WSOL@weather), region == "W1")
-plot_heatmap(wsol[, c("timeslice", "wval")], calendar = wcal, value = "wval",
-             name = "capacity factor")
+plot_heatmap(wsol[, c("timeslice", "wval")], calendar = calendar_s4h24,
+             value = "wval", name = "capacity factor")
 ```
 
 The weather heatmap is exactly what `autoplot()` draws for a `weather` object
@@ -267,18 +272,20 @@ when unset) labels the value axis — the fill legend for the heatmap, the y-axi
 for line/area.
 
 ```{r wea, fig.height = 3}
-WSOL <- getObject(topia$modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
-wcal <- calendars$s4_h24
+WSOL <- getObject(topia$modules$electricity$repo,
+                  name = "WSOL", drop = TRUE)
+calendar_s4h24 <- calendars$s4_h24
 
-autoplot(WSOL, calendar = wcal)                    # heatmap (default), faceted by region
+# heatmap (default), faceted by region
+autoplot(WSOL, calendar = calendar_s4h24)
 ```
 
 The **line** view reads the diurnal shape directly — one line per season, the
 capacity factor on the y-axis:
 
 ```{r wea-line, fig.height = 3}
-autoplot(WSOL, type = "line", calendar = wcal)
-autoplot(WSOL, type = "area", calendar = wcal)     # or filled areas
+autoplot(WSOL, style = "line", calendar = calendar_s4h24)
+autoplot(WSOL, style = "area", calendar = calendar_s4h24)     # or filled areas
 ```
 
 # Notes

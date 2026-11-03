@@ -54,23 +54,23 @@ test_that("a calendar's uncovered timeslices are drawn, not dropped", {
   expect_false(any(is.na(d_full$fill) | d_full$fill == "grey90"))
 })
 
-test_that("the subtitle counts coverage, overlap and multiplicity", {
+test_that("the caption counts coverage, overlap and multiplicity", {
   bs <- cov_bs()
   # the leaves, not @timeslice_share, which counts every level of the nesting
-  expect_match(ggplot2::autoplot(bs)$labels$subtitle, "3 units")
-  expect_match(ggplot2::autoplot(bs)$labels$subtitle,
+  expect_match(ggplot2::autoplot(bs)$labels$caption, "3 units")
+  expect_match(ggplot2::autoplot(bs)$labels$caption,
                "8,760 of 8,760 timeslices covered")
 
   shared <- bs
   extra <- bs$samples[1:40, ]
   extra$sample <- "s04"
   shared$samples <- rbind(bs$samples, extra)
-  expect_match(ggplot2::autoplot(shared)$labels$subtitle,
+  expect_match(ggplot2::autoplot(shared)$labels$caption,
                "40 claimed by more than one unit")
 
   boot <- bs
   boot$samples$count[1:20] <- 2L
-  expect_match(ggplot2::autoplot(boot)$labels$subtitle, "20 drawn more than once")
+  expect_match(ggplot2::autoplot(boot)$labels$caption, "20 drawn more than once")
 })
 
 test_that("a timeslice two samples drew is marked, not given to the first", {
@@ -110,7 +110,7 @@ test_that("the wall needs a day timeframe and says so when it has none", {
 test_that("the wall rolls each unit up to whole days", {
   p <- ggplot2::autoplot(cov_bs("d365_h24"), "wall")
   # 365 day cells, not 8,760 slices
-  expect_match(p$labels$subtitle, "365 of 365 days covered")
+  expect_match(p$labels$caption, "365 of 365 days covered")
   expect_identical(nrow(ggplot2::ggplot_build(p)$data[[1]]), 365L)
 })
 
@@ -121,8 +121,8 @@ test_that("an annual calendar is refused for what it is", {
 test_that("a by_region sequence without geometry lists its regions", {
   p <- ggplot2::autoplot(cov_br(c("u1", "u2"), list(c("R1", "R2"), "R3")))
   expect_s3_class(p, "ggplot")
-  expect_match(p$labels$subtitle, "no geometry")
-  expect_match(p$labels$subtitle, "3 of 3 regions")
+  expect_match(p$labels$caption, "no geometry")
+  expect_match(p$labels$caption, "3 of 3 regions")
 })
 
 test_that("regions are mapped on a geoframe that contains them", {
@@ -154,7 +154,7 @@ test_that("regions are mapped on a geoframe that contains them", {
   p2 <- ggplot2::autoplot(cov_br(c("u1", "u2"), list(c("A1", "A2"), c("A3", "A4"))),
                  geoscale = gs)
   expect_identical(sum(fill_of(p2) == "grey90"), 2L)
-  expect_match(p2$labels$subtitle, "4 of 6 regions")
+  expect_match(p2$labels$caption, "4 of 6 regions")
 
   # a level the regions are not members of is a blank map, so it warns
   expect_warning(ggplot2::autoplot(cov_br("u1", list(c("A1", "A2"))), geoscale = gs,

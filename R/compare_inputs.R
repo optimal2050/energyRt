@@ -37,20 +37,22 @@
 #' @export
 #' @examples
 #' \donttest{
-#' ek  <- topia$modules$electricity$R3
-#' mod <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod <- newModel("TOPIA", data = topia_elc$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
-#'                 region = ek$regions,
-#'                 horizon = topia$modules$horizons$base,
+#'                 region = topia_elc$regions,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10,
 #'                 discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #'
-#' # the same model with a three-step gas supply curve instead of flat supply
-#' mod2 <- add(mod, ek$GAS_CURVE, overwrite = TRUE)
-#' a <- interpolate_model(mod,  name = "FLAT")
-#' b <- interpolate_model(mod2, name = "CURVE")
+#' # the same model with every step of the gas supply curve priced 25% higher
+#' sup_gas <- getObject(topia_elc$repo, name = "SUP_GAS", drop = TRUE)
+#' sup_gas@supply$cost <- sup_gas@supply$cost * 1.25
+#' mod2 <- add(mod, sup_gas, overwrite = TRUE)
+#' a <- interpolate_model(mod,  name = "BASE")
+#' b <- interpolate_model(mod2, name = "DEAR_GAS")
 #'
-#' cmp <- compare_inputs(a, b, names = c("flat", "curve"))
+#' cmp <- compare_inputs(a, b, names = c("base", "dear gas"))
 #' cmp
 #' print(cmp, max_diffs = 3)
 #' }

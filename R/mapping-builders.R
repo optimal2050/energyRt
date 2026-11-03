@@ -610,6 +610,47 @@ map_mCommReg <- function(scen, fmp) {
   invisible()
 }
 
+# `waf` is read at the technology's own timeslices: a weather series with no
+# value at one of them (an ANNUAL series in an hourly bound) would read as 0
+# there and silently zero the technology, so it is an error. Checked per
+# weather and timeframe, from the technology's timeslice rule, so the bound
+# maps are not enumerated. A series' timeslices are those its object gives
+# (pWeather drops zero values, so its rows cannot tell a gap from a zero); a
+# series with rows of no timeslice holds at all.
+.waf_timeframe_check <- function(scen) {
+  ws <- lapply(c("mTechWeatherAfLo", "mTechWeatherAfUp"), function(nm) .gds(scen, nm))
+  ws <- ws[!vapply(ws, is.null, logical(1))]
+  ts <- .proc_timeslice_rule(scen, "technology", "tech")
+  if (!length(ws) || is.null(ts)) return(invisible())
+  wt <- dplyr::bind_rows(apply_to_scenario_data(
+    scen = scen, classes = "weather", as_list = TRUE,
+    func = function(x) {
+      sl <- if ("timeslice" %in% names(x@weather)) unique(as.character(x@weather$timeslice)) else character()
+      o <- list()
+      o[[x@name]] <- data.frame(weather = x@name, timeslice = if (length(sl)) sl else NA_character_,
+                                stringsAsFactors = FALSE)
+      o
+    }))
+  if (is.null(wt) || !nrow(wt)) return(invisible())
+  chr <- function(d) { d <- as.data.frame(d); for (j in names(d)) d[[j]] <- as.character(d[[j]]); d }
+  w <- dplyr::distinct(do.call(rbind, lapply(ws, function(x) chr(x[, c("weather", "tech")]))))
+  pf <- chr(ts$tables$proc_frame[, c("tech", "timeframe")])
+  fs <- chr(ts$tables$frame_slice[, c("timeframe", "timeslice")])
+  full <- unique(wt$weather[is.na(wt$timeslice)])
+  wtf <- dplyr::inner_join(w[!w$weather %in% full, , drop = FALSE], pf, by = "tech")
+  if (!nrow(wtf)) return(invisible())
+  x <- dplyr::inner_join(dplyr::distinct(wtf[, c("weather", "timeframe")]), fs,
+                         by = "timeframe", relationship = "many-to-many")
+  miss <- dplyr::distinct(dplyr::anti_join(x, wt, by = c("weather", "timeslice"))[, c("weather", "timeframe")])
+  if (nrow(miss)) {
+    bad <- dplyr::distinct(dplyr::inner_join(wtf, miss, by = c("weather", "timeframe"))[, c("tech", "weather")])
+    stop("waf: the weather series has no value at the timeslices of the bound ",
+         "it multiplies (", paste(utils::head(do.call(paste, c(bad, sep = "/")), 5), collapse = ", "),
+         "). Give the weather the technology's timeframe.", call. = FALSE)
+  }
+  invisible()
+}
+
 # `wafs` multiplies `afs`: a weather side with no `afs` on that side is an error
 .wafs_needs_afs <- function(scen, side) {
   w <- .gds(scen, paste0("mTechWeatherAfs", side))
@@ -631,6 +672,7 @@ map_meqBalUp <- function(scen, fmp) .cjoin(scen, "meqBalUp", fmp)
 map_meqBalFx <- function(scen, fmp) .cjoin(scen, "meqBalFx", fmp)
 # C2 technology availability factors
 map_meqTechAfLo     <- function(scen, fmp) {
+  .waf_timeframe_check(scen)
   scen <- .weather_lo_default(scen, "mTechWeatherAfLo", "pTechAf", "mvTechAct", "tech")
   if (isTRUE(getOption("energyRt.fx_equ", TRUE))) return(.tech_af_fx_maps(scen, fmp))
   .set_cells_rules(.cjoin(scen, "meqTechAfLo", fmp), "meqTechAfLo")
@@ -706,6 +748,33 @@ map_meqTechAfFx     <- function(scen, fmp) scen
   P <- dt(P)
   if (!all(c(key, "type", "value") %in% names(P))) return(NULL)
   for (cl in c(key, "type")) data.table::set(P, j = cl, value = as.character(P[[cl]]))
+  # rows with no timeslice hold for every timeslice of the technology (and a
+  # missing region or year for every cell of it); the more specific row takes
+  # precedence. A cell they cover alone (W) is decided at the cell level, never
+  # expanded; in a cell they share with per-timeslice rows they are expanded to
+  # its timeslices
+  W <- NULL
+  wild <- is.na(P$timeslice)
+  if (any(wild)) {
+    W <- P[wild]
+    data.table::set(W, j = "timeslice", value = NULL)
+    P <- P[!wild]
+    W[, spec := !is.na(region) + !is.na(year)]
+    W[, pat := paste(is.na(region), is.na(year))]
+    W <- data.table::rbindlist(lapply(split(W, by = "pat", keep.by = FALSE), function(x) {
+      on <- c("tech", c("region", "year")[!is.na(c(x$region[1], x$year[1]))])
+      x <- x[, setdiff(names(x), setdiff(cell, on)), with = FALSE]
+      x[cells[, cell, with = FALSE], on = on, nomatch = NULL, allow.cartesian = TRUE]
+    }), use.names = TRUE)
+    data.table::setorderv(W, c(cell, "type", "spec"), order = c(1L, 1L, 1L, 1L, -1L))
+    W <- unique(W, by = c(cell, "type"))[, spec := NULL]
+    mixed <- unique(W[, cell, with = FALSE])[unique(P[, cell, with = FALSE]), on = cell, nomatch = NULL]
+    if (nrow(mixed)) {
+      Wm <- W[mixed, on = cell, nomatch = NULL][ts, on = "tech", nomatch = NULL, allow.cartesian = TRUE]
+      P <- data.table::rbindlist(list(P, Wm[!P, on = c(key, "type")]), use.names = TRUE)
+      W <- W[!mixed, on = cell]
+    }
+  }
   if (anyNA(P[, key, with = FALSE])) return(NULL)
   # the rows inside the activity domain
   P <- P[cells[, cell, with = FALSE], on = cell, nomatch = NULL]
@@ -734,6 +803,25 @@ map_meqTechAfFx     <- function(scen, fmp) scen
   counts <- add(counts, L, "nL")
   counts <- add(counts, UO, "nUO")
   counts <- add(counts, F, "nF")
+  # the cells covered by rows with no timeslice: every timeslice alike, so a
+  # condition holds in all n of them or in none
+  if (!is.null(W) && nrow(W)) {
+    wc <- unique(W[, cell, with = FALSE])
+    wl <- W[type == "lo", c(cell, "value"), with = FALSE]
+    wu <- W[type == "up", c(cell, "value"), with = FALSE]
+    data.table::setnames(wl, "value", "vlo"); data.table::setnames(wu, "value", "vup")
+    wc <- wu[wl[wc, on = cell], on = cell]
+    isL <- !is.na(wc$vlo) & wc$vlo != 0
+    isUO <- !is.na(wc$vup) & wc$vup == Inf
+    vup <- ifelse(is.na(wc$vup), dv[2], wc$vup)
+    isF <- isL & !isUO & is.finite(wc$vlo) & is.finite(vup) &
+      abs(wc$vlo - vup) <= 1e-12 * pmax(1, abs(wc$vlo)) &
+      wc$tech %in% .tech_af_weather_same(scen, unique(wc$tech))
+    wc <- wc[, cell, with = FALSE][, `:=`(wL = isL, wUO = isUO, wF = isF)]
+    counts <- wc[counts, on = cell]
+    counts[!is.na(wL), `:=`(nL = nL + n * wL, nUO = nUO + n * wUO, nF = nF + n * wF)]
+    counts[, c("wL", "wUO", "wF") := NULL]
+  }
   counts[, `:=`(lo = nL - nF, up = n - nUO - nF, fx = nF)]
   list(cells = cells, ts = ts, base = base, counts = counts, L = L[, key, with = FALSE], UO = UO, F = F)
 }
@@ -803,7 +891,8 @@ map_meqTechAfFx     <- function(scen, fmp) scen
   invisible(TRUE)
 }
 
-utils::globalVariables(c("vup", "vlo", "nL", "nUO", "nF", "k", "n", "type", "lo", "up", "fx", "tech"))
+utils::globalVariables(c("vup", "vlo", "nL", "nUO", "nF", "k", "n", "type", "lo", "up", "fx", "tech",
+                         "wL", "wUO", "wF", "spec", "pat", "region", "year"))
 
 .tech_af_fx_maps_hourly <- function(scen, fmp) {
   mem <- function(x) NULL

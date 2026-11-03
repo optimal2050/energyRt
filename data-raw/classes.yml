@@ -205,6 +205,23 @@ class:
     unit:
       type: character
       description: The main unit of the commodity used in the model.
+    units:
+      type: data.frame
+      description: >
+        Key units of the object, for reference and for carrying its units with
+        it. An object moved between models is only meaningful where the units
+        agree, and nothing else in the object records them: the numbers in
+        `cost`/`invcost` and the capacity and activity columns are bare. A
+        declared `costs` that disagrees with the model's `config@currency` is
+        an error rather than a silent conversion; leave a column empty to
+        claim nothing.
+      columns:
+        activity:
+          type: character
+          description: Unit of the activity variable.
+        costs:
+          type: character
+          description: Currency of the cost columns.
     weather:
       type: data.frame
       description: Weather factors to apply to the supply.
@@ -1213,6 +1230,26 @@ class:
     desc:
       type: character
       description: Description of the storage.
+    units:
+      type: data.frame
+      description: >
+        Key units of the object, for reference and for carrying its units with
+        it. An object moved between models is only meaningful where the units
+        agree, and nothing else in the object records them: the numbers in the
+        cost, capacity and activity columns are bare. A declared `costs` that
+        disagrees with the model's `config@currency` is an error rather than a
+        silent conversion; leave a column empty to claim nothing. One unit per
+        kind: a storage prices three capacities but states `capacity` once.
+      columns:
+        capacity:
+          type: character
+          description: Unit of capacity.
+        activity:
+          type: character
+          description: Unit of the activity variable.
+        costs:
+          type: character
+          description: Currency of the cost columns.
     input:
       type: data.frame
       description: >
@@ -2107,6 +2144,26 @@ class:
     desc:
       type: character
       description: Description of the trade object.
+    units:
+      type: data.frame
+      description: >
+        Key units of the object, for reference and for carrying its units with
+        it. An object moved between models is only meaningful where the units
+        agree, and nothing else in the object records them: the numbers in the
+        cost, capacity and activity columns are bare. A declared `costs` that
+        disagrees with the model's `config@currency` is an error rather than a
+        silent conversion; leave a column empty to claim nothing. One unit per
+        kind: a storage prices three capacities but states `capacity` once.
+      columns:
+        capacity:
+          type: character
+          description: Unit of capacity.
+        activity:
+          type: character
+          description: Unit of the activity variable.
+        costs:
+          type: character
+          description: Currency of the cost columns.
     commodity:
       type: character
       description: The traded commodity short name.
@@ -3713,6 +3770,17 @@ class:
         given, and rendered fiscally (`FY2025-26`) when the calendar carries a
         non-January `year_start`. The label is presentation only and never reaches
         the solver -- see `year_label()`.
+    base_year:
+      type: integer
+      description: >
+        Optional single milestone year that is GIVEN rather than decided. The
+        marked year is interpolated as any other year but is not passed to the
+        solver -- its own solution comes from a separate solve
+        (`solve_base_year()`) and what it decided can be carried into the
+        projection as sunk stock. Milestones BEFORE it are historical and enter
+        no LP at all. Both still anchor interpolation, which reads the anchor
+        years present in the data rather than the milestone list. Empty when
+        every milestone is optimised. See `solve_base_year()`.
 ## config #######################################################################
   config:
     name:
@@ -3724,6 +3792,18 @@ class:
     desc:
       type: character
       description: Description of the configuration object for own references.
+    currency:
+      type: character
+      description: >
+        Optional. The currency every cost in the model is stated in, and the
+        unit of the objective. Unset (the default) claims nothing, which is
+        how every model written before this slot behaves. Declared, it is
+        checked against each object's own `@units$costs`: an object that
+        names a different currency is an error, not a conversion, because
+        there is no exchange rate in the model to convert with. The point is
+        objects moving between models -- a technology priced in `MUSD` added
+        to a model counting `bnEUR` is a mistake that no number in the output
+        reveals.
     region:
       type: character
       description: >

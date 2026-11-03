@@ -22,7 +22,7 @@ The reverse of \code{\link[=process_from_spec]{process_from_spec()}}: slot table
 omitted from rows, i.e. read back as "applies to ALL").
 }
 \examples{
-tech <- topia$modules$electricity$R3$ECOA
+tech <- getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE)
 
 # the object as a plain nested list: diffable, editable, writable as YAML
 spec <- process_to_spec(tech)

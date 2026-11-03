@@ -31,6 +31,6 @@ Thin wrapper around \code{\link{report}} that fixes \code{format = "pdf"}.
 open_project(tempdir())
 
 # needs a LaTeX installation
-report_pdf(topia$modules$electricity$R3$ECOA)
+report_pdf(getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE))
 }
 }

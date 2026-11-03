@@ -138,3 +138,32 @@ test_that("trade lifespans still build and read back", {
   expect_named(d, c("vintage", "region", "cluster", "olife"))
   expect_true(is.na(d$region))
 })
+
+test_that("a vintage's `end` closes its build window, not the capacity's life", {
+  # vintage 2030 is built only up to 2039; capacity built in 2030 (olife 30)
+  # must still stand in 2040 and 2050, and the 2040 vintage in 2050
+  ELC <- newCommodity("ELC", unit = "MWh"); GAS <- newCommodity("GAS", unit = "MWh")
+  SG <- newSupply("SG", commodity = "GAS", supply = data.frame(cost = 10))
+  D <- newDemand("D", commodity = "ELC",
+                 demand = data.frame(year = c(2025, 2030, 2040, 2050), demand = 1000))
+  T1 <- newTechnology("T1", input = data.frame(comm = "GAS"), output = data.frame(comm = "ELC"),
+    ceff = data.frame(comm = "GAS", cinp2use = 0.5),
+    vintage = data.frame(vintage = c("2030", "2040", "2050"), start = c(2030L, 2040L, 2050L),
+                         end = c(2039L, 2049L, NA), olife = 30L),
+    invcost = data.frame(vintage = c("2030", "2040", "2050"), invcost = 1000, wacc = 0.07),
+    cap2act = 8760)
+  m <- newModel("vl_end", data = newRepository("r", ELC, GAS, SG, D, T1), region = "R1",
+    calendar = calendars$annual,
+    horizon = newHorizon(intervals = data.frame(start = c(2025, 2026, 2036, 2046),
+                                                mid = c(2025, 2030, 2040, 2050),
+                                                end = c(2025, 2035, 2045, 2055))))
+  s <- suppressMessages(interpolate_model(m, name = "vl_end"))
+  span <- as.data.frame(get_data_slot(s@modInp@parameters$mTechSpan))
+  new  <- as.data.frame(get_data_slot(s@modInp@parameters$mTechNew))
+  yrs <- function(d, p) sort(d$year[d$tech == p])
+  expect_equal(yrs(new, "T1_VIN2030"), 2030L)
+  expect_equal(yrs(span, "T1_VIN2030"), c(2030L, 2040L, 2050L))
+  expect_equal(yrs(new, "T1_VIN2040"), 2040L)
+  expect_equal(yrs(span, "T1_VIN2040"), c(2040L, 2050L))
+  expect_equal(yrs(span, "T1_VIN2050"), 2050L)
+})

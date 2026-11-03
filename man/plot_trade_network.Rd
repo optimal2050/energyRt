@@ -8,12 +8,13 @@ plot_trade_network(
   object,
   map = NULL,
   value = c("input", "capacity", "flow"),
+  comm = NULL,
   year = NULL,
   timeslice = "ANNUAL",
   level = NULL,
   curvature = 0.15,
   labels = TRUE,
-  node_size = TRUE,
+  node_size = FALSE,
   ...
 )
 }
@@ -28,14 +29,22 @@ one, else a circular layout.}
 
 \item{value}{what sets the link width:
 \itemize{
-\item \code{"input"}: the trade objects' \verb{@capacity} in \code{year} -- existing links
-(\code{stock} > 0) solid, width = stock, with a faint band up to \code{cap.up};
-projects (no stock, expandable through \code{ncap.up}, \code{cap.up} or an
-\verb{@invcost} row) dashed, width = \code{cap.up} (else \code{ncap.up});
+\item \code{"input"}: the trade objects' \verb{@capacity} in \code{year}, by what the link
+IS rather than by one category -- \code{stock} (capacity standing, no way to
+add more) solid; \code{stock + new} (standing capacity that may also be
+expanded, through \code{ncap.up}, \code{cap.up} or an \verb{@invcost} row) long-dashed;
+\code{new} (nothing standing, investable only) dotted. Width is the standing
+capacity, or the ceiling for a link with none, with a faint band out to
+\code{cap.up} where one is declared;
 \item \code{"capacity"}: the solved \code{vTradeCap} in \code{year};
 \item \code{"flow"}: the solved \code{vTradeIr} in \code{year}, netted per pair; the arrow
 points in the net direction.
 }}
+
+\item{comm}{draw only the trades carrying this commodity (or these). \code{NULL}
+(default) draws every one. Commodities that are not in the same capacity
+unit cannot share one width scale, which is what makes this the usual
+way to read a mixed repository.}
 
 \item{year}{the year to draw; default the first year present.}
 
@@ -51,7 +60,10 @@ and those inside one region dropped.}
 
 \item{labels}{draw region names.}
 
-\item{node_size}{scale nodes by the total value of their links.}
+\item{node_size}{scale the node points by the capacity connected to each
+region. \code{FALSE} (default) draws them at one size: the sum of the links
+touching a region is the links read a second way, and beside the
+corridors themselves it says the same thing twice.}
 
 \item{...}{unused.}
 }

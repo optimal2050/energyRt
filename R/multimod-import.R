@@ -515,7 +515,8 @@ convert_parameter <- function(en_param, orig_param = NULL, inMemory = FALSE,
 #' Is this scenario folded?
 #'
 #' True when any parameter records a fold. Note this is necessary but not
-#' sufficient for detecting wildcards: on the R7 kit `fold = TRUE` leaves
+#' sufficient for detecting wildcards: on a seven-region TOPIA layout
+#' `fold = TRUE` leaves
 #' wildcards in 22 parameters while only 11 carry `fold_info`, because
 #' `fold = FALSE` also densifies wildcards that came from the source data and
 #' `fold = TRUE` skips that step. Use it to decide *whether to look*, never as
@@ -696,11 +697,12 @@ create_link_log_entry <- function(multimod_name, scenario_name, type, status,
 #' @export
 #' @examples
 #' \dontrun{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions, horizon = topia$modules$horizons$base)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "BASE")
 #'
 #' # a model read from its algebra, with empty sets and parameters
@@ -1367,11 +1369,12 @@ print_import_summary <- function(import_log) {
 #' @export
 #' @examples
 #' \dontrun{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions, horizon = topia$modules$horizons$base)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "BASE")
 #'
 #' # a model read from its algebra, with empty sets and parameters
@@ -1395,11 +1398,12 @@ multimod_import_log <- function(model) {
 #' @export
 #' @examples
 #' \dontrun{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions, horizon = topia$modules$horizons$base)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "BASE")
 #'
 #' # a model read from its algebra, with empty sets and parameters
@@ -1503,7 +1507,8 @@ multimod_unmatched <- function(model) {
 #'   `.mapping_spec`, `"hint"` keeps the GAMS comment. Three variables differ
 #'   (`vTechStockCap`, `vStorageInp`, `vStorageOut`). `"spec"` is the default
 #'   because it is the choice that reproduces GLPK's column count (2,318 on the
-#'   R1 kit, against 2,295 for `"hint"`) - the three hints are stale.
+#'   a one-region TOPIA layout, against 2,295 for `"hint"`) - the three
+#'   hints are stale.
 #' @param scalars Variables that legitimately have no domain.
 #' @param verbose Logical; report what was filled and what conflicted.
 #'

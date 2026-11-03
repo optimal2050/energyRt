@@ -109,7 +109,7 @@
 #' @family technology process
 #' @export
 #' @examples
-#' tech <- topia$modules$electricity$R3$ECOA
+#' tech <- getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE)
 #' f <- tempfile(fileext = ".xlsx")
 #'
 #' # one sheet per slot that carries data, plus an `info` sheet
@@ -312,7 +312,7 @@ write_technology_xlsx <- function(x, path, include_empty = TRUE,
 #' @family technology process
 #' @export
 #' @examples
-#' tech <- topia$modules$electricity$R3$ECOA
+#' tech <- getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE)
 #' f <- tempfile(fileext = ".xlsx")
 #' write_technology_xlsx(tech, f)
 #'

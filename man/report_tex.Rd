@@ -32,6 +32,6 @@ Produces a standalone \code{.tex} file without compiling to PDF.
 open_project(tempdir())
 
 # the LaTeX source, for inclusion in a larger document
-report_tex(topia$modules$electricity$R3$ECOA)
+report_tex(getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE))
 }
 }

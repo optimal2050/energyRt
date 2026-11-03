@@ -37,6 +37,6 @@ registry is updated.
 \dontrun{
 # migrate a scenario folder written by an older energyRt to the current
 # runs/<variant>/<solve>/ layout
-upgrade_scenario_layout("scenarios/BASE-TOPIA-s4_h24-base")
+upgrade_scenario_layout("scenarios/BASE-TOPIA-s4_h24-BY2025_50_by10")
 }
 }

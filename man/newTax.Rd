@@ -5,7 +5,7 @@
 \title{Create a new tax object}
 \usage{
 newTax(
-  name,
+  name = "",
   desc = "",
   comm = "",
   geoframe = character(),

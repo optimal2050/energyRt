@@ -35,8 +35,20 @@
 #' for the multimod matrix route, and a `_barrier` suffix for the interior-point
 #' method rather than simplex. The matrix presets name the matrix writer, the
 #' solver and the place: `mm_cuopt_wsl` (cuOpt on a local GPU through WSL),
-#' `mm_cuopt_cloud` (cuOpt on a rented GPU), `pyomo_cuopt_cloud` (a Pyomo-written
-#' matrix on a rented GPU).
+#' `mm_cuopt_wsl_py` (the same through cuOpt's Python interface: a solution at
+#' any status, PDLP warm starts through `gpu_save_warm_start` and
+#' `gpu_warm_start`), `mm_cuopt_cloud` (cuOpt on a rented GPU),
+#' `pyomo_cuopt_cloud` (a Pyomo-written matrix on a rented GPU).
+#'
+#' The `julia_*` presets call Julia directly, building a JuMP model in a Julia
+#' subprocess, and so reach the solvers Julia's HiGHS build carries and the R
+#' and Python builds do not: `julia_highs_hipo` (HiGHS's own parallel interior
+#' point method, a threaded CPU factorisation, named explicitly so it is not
+#' restarted with IPX), with `_xover` for a vertex solution and `_bs3` for
+#' scaled bounds, `julia_highs_ipx` for the older interior point method, and
+#' `julia_highs_pdlp` / `julia_highs_hipdlp` for the first-order methods. The R
+#' `highs` build is compiled without amd, blas, metis and rcm and silently
+#' reverts to `choose` when asked for `hipo`.
 #'
 #' These entries are data only -- selecting one does not check that the solver
 #' is installed. The former names `mmcloud`, `mmcloud_crossover`,

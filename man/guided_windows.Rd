@@ -37,7 +37,7 @@ window's period lengths span the calendar (\code{pPeriodLen} is row-local, so a
 bare row slice would leave the intervening years unweighted).
 }
 \examples{
-h <- topia$modules$horizons$base
+h <- topia$modules$horizons$BY2025_50_by10
 
 # backward guidance: the endpoint first, then each neighbouring pair
 w <- guided_windows(h)

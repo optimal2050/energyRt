@@ -154,8 +154,8 @@
 #' \dontrun{
 #' open_project(tempdir())
 #'
-#' ek  <- topia$modules$electricity$R3
-#' tech <- ek$ECOA
+#' topia_elc <- topia$modules$electricity
+#' tech <- getObject(topia_elc$repo, name = "ECOA", drop = TRUE)
 #'
 #' # an object on its own: its assumptions, and an ex-ante estimate of what it
 #' # could do
@@ -163,10 +163,11 @@
 #'
 #' # the same object as the model sees it -- prices and calendar from the
 #' # model it belongs to
-#' mod <- newModel("TOPIA", data = ek$repo,
+#' mod <- newModel("TOPIA", data = topia_elc$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
-#'                 region = ek$regions, horizon = topia$modules$horizons$base)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#'                 region = topia_elc$regions,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' report(tech, model = mod)
 #'
 #' # and as a solved scenario realized it, against that ex-ante estimate
@@ -2792,7 +2793,7 @@ setMethod("report", "scenario",
 #' open_project(tempdir())
 #'
 #' # needs a LaTeX installation
-#' report_pdf(topia$modules$electricity$R3$ECOA)
+#' report_pdf(getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE))
 #' }
 #' @export
 setGeneric("report_pdf", function(object, ...) standardGeneric("report_pdf"))
@@ -2813,17 +2814,18 @@ setMethod("report_pdf", "ANY", function(object, ...) {
 #' @examples
 #' \dontrun{
 #' open_project(tempdir())
-#' tech <- topia$modules$electricity$R3$ECOA
+#' tech <- getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE)
 #'
 #' # a portable single-file page under the project's reports/
 #' report_html(tech)
 #'
 #' # a scenario's report covers results, where an object's covers assumptions
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions, horizon = topia$modules$horizons$base)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
 #' report_html(scen)
 #' }
@@ -2848,7 +2850,7 @@ setMethod("report_html", "ANY", function(object, ...) {
 #' open_project(tempdir())
 #'
 #' # the LaTeX source, for inclusion in a larger document
-#' report_tex(topia$modules$electricity$R3$ECOA)
+#' report_tex(getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE))
 #' }
 #' @export
 setGeneric("report_tex", function(object, ...) standardGeneric("report_tex"))
@@ -2869,7 +2871,7 @@ setMethod("report_tex", "ANY", function(object, ...) {
 #' \dontrun{
 #' open_project(tempdir())
 #'
-#' report_docx(topia$modules$electricity$R3$ECOA)
+#' report_docx(getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE))
 #' }
 #' @export
 setGeneric("report_docx", function(object, ...) standardGeneric("report_docx"))

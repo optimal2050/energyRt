@@ -30,17 +30,18 @@ Produces a portable single-file \code{.html} document with embedded assets.
 \examples{
 \dontrun{
 open_project(tempdir())
-tech <- topia$modules$electricity$R3$ECOA
+tech <- getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE)
 
 # a portable single-file page under the project's reports/
 report_html(tech)
 
 # a scenario's report covers results, where an object's covers assumptions
-ek   <- topia$modules$electricity$R3
-mod  <- newModel("TOPIA", data = ek$repo,
+topia_elc <- topia$modules$electricity
+mod  <- newModel("TOPIA", data = topia_elc$repo,
                  calendar = topia$modules$calendars$s4_h24,
-                 region = ek$regions, horizon = topia$modules$horizons$base)
-mod <- setGeoscale(mod, ek$geoscale)
+                 region = topia_elc$regions,
+                 horizon = topia$modules$horizons$BY2025_50_by10)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
 report_html(scen)
 }

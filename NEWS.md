@@ -27,6 +27,21 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* `newHorizon(base_year = )` marks one milestone as GIVEN rather than decided.
+  The marked year is interpolated as any other but never reaches the solver,
+  and the milestones before it are historical and enter no LP at all; both
+  still anchor interpolation. `solve_base_year()` solves the base year on its
+  own, and `interpolate_model(base_year_scenario = )` carries what it decided
+  into the projection as sunk `stock` at its true vintage, leaving the model's
+  declared `@stock` untouched. With no source the projection still excludes
+  the base year and starts from the model's own stock. `getData(base_year =
+  TRUE)` returns both, labelled by a `source` column.
+
+* Solver preset `mm_cuopt_wsl_py`: cuOpt on a local GPU through WSL, run
+  through cuOpt's Python interface. The solution is kept at a time limit, and
+  `gpu_save_warm_start = TRUE` / `gpu_warm_start = <file>` save and continue
+  from PDLP's warm-start data.
+
 * `solve_by_sample()` accepts a saved scenario as its first argument, or an
   explicit `base =`: the scenario's model drives the sequence and the scenario
   becomes the base, so each sample's interpolated tables are stored as a row
@@ -333,6 +348,40 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   progress: `.art_suggest()` labelled any `running` record stale with no
   liveness test, and the cleanup unlinks exactly the suggested rows. Only a run
   whose process is demonstrably gone is now treated as reclaimable scratch.
+* A column a slot does not have is reported with the object, the slot, the
+  columns that look meant (`stock` -> `inp.stock`, `out.stock`, `stg.stock`;
+  a near spelling) and every column the slot accepts. An object whose slot was
+  assigned directly (`@<-`) is checked when it enters a repository or a model,
+  instead of failing later in interpolation with an unrelated message.
+
+* A storage's stock without a vintage (`inp.stock`, `out.stock`, `stg.stock`)
+  was given to every vintage, so a storage with several vintages carried its
+  stock once per vintage. It now goes to the earliest vintage only, as a
+  technology's and a trade's `stock` already did.
+
+* A user constraint row in which no term has a member of its variable's
+  domain (a technology that cannot be built yet in that year) is dropped at
+  interpolation, with a message, when it could not bind anyway (`<=` a
+  non-negative value, `>=` a non-positive one, `==` zero). Before, it reached
+  the matrix as an empty row, which the matrix route refuses. An empty row
+  that would make the model infeasible, or a constraint empty in every row, is
+  an error. Rows the check cannot decide (a region or timeslice that sums the
+  levels beneath it, a year lag or lead) are kept.
+
+* A vintage's `end` ended the capacity built in it as well as its investment
+  window: capacity of a vintage whose window closed before a later milestone
+  was gone in that milestone. Capacity now stands from its build year for its
+  operational life (`olife`), whatever the window.
+
+* `newConstraint()` discarded a single-value `rhs` whenever `defVal` was set,
+  and `defVal` is always set (given, or 0 / `Inf` by default), so
+  `rhs = 100` built a constraint at 0, or with no limit for `<=`. A single
+  value is now the right-hand side of every row and replaces `defVal`, with a
+  warning when they differ.
+
+* A weather series at a coarser timeframe than the availability bound it
+  multiplies (`waf`) read as zero and silently switched the technology off. It
+  is now an error naming the series and the timeslices.
 
 * `unmark_delete()` left `delete_importance` and `marked_at` behind in the
   manifest, so an entry with no mark still carried an importance beside it and

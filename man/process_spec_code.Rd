@@ -16,7 +16,7 @@ A single character string of R code.
 Used by the designer's export tab.
 }
 \examples{
-spec <- process_to_spec(topia$modules$electricity$R3$ECOA)
+spec <- process_to_spec(getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE))
 
 # the constructor call that would rebuild the object, as text
 cat(process_spec_code(spec))

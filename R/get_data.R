@@ -39,13 +39,13 @@ getData <- function(object, ...) UseMethod("getData")
 #' \dontrun{
 #' open_project(tempdir())
 #'
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
 #'
 #' # which parameters carry a `tech` set, and what their dimensions are
@@ -180,6 +180,16 @@ findData <- function(object,
 #'   it, parameters included. Spanning runs of different problems warns —
 #'   their results are not like-for-like. Not to be confused with `variants`,
 #'   below, which is about technologies.
+#' @param base_year logical, default `FALSE`. When `TRUE`, a scenario whose
+#'   horizon marks a base year also returns that year, read from the separate
+#'   run the scenario recorded (see [solve_base_year()]), and every row gains
+#'   a `source` column — `"solved"` for the scenario's own LP, `"base"` for
+#'   the base year. `vObjective` is not unioned: the base year and the
+#'   projection are separate optimisations, so only the projection's is
+#'   returned. A scenario that records no base year, or whose recorded source
+#'   cannot be read, warns and returns its own rows alone. Note that
+#'   post-processing applies the FIRST object's horizon and calendar labels to
+#'   every row.
 #' @param variants logical, default `TRUE`: attach the technology-variant
 #'   provenance columns `base`, `vintage` and `cluster` (from
 #'   `scenario@modInp@sets$variant`) to the returned data, so results of a
@@ -255,6 +265,7 @@ getData.scenario <- function(
     unfold = TRUE,
     variants = TRUE,
     run = NULL,
+    base_year = FALSE,
     verbose = FALSE) {
   # if (name == "vObjective") browser()
   arg <- list(...)
@@ -357,6 +368,45 @@ getData.scenario <- function(
               "results are not like-for-like.", call. = FALSE)
     }
     object <- exp_scen; names(object) <- exp_nm; run_of <- exp_run
+  }
+
+  # The base year, on request. A marked scenario's LP does not contain it, so
+  # its rows come from the separate run the scenario recorded -- read through
+  # the same positioning machinery as `run =`, and labelled by a `source`
+  # column so the two halves are never mistaken for one solve.
+  src_of <- NULL
+  if (isTRUE(base_year)) {
+    exp_scen <- list(); exp_nm <- character(0)
+    exp_run <- character(0); exp_src <- character(0)
+    for (s in seq_along(object)) {
+      sc0 <- object[[s]]; nmi <- names(object)[s]
+      exp_scen[[length(exp_scen) + 1L]] <- sc0
+      exp_nm <- c(exp_nm, nmi)
+      exp_run <- c(exp_run, if (is.null(run_of)) "" else run_of[s])
+      exp_src <- c(exp_src, "solved")
+      link <- .by_link_of(sc0)
+      if (is.null(link)) {
+        warning("getData(base_year = TRUE): scenario '", nmi,
+                "' records no base year; its own rows only.", call. = FALSE)
+        next
+      }
+      sb <- .by_link_open(link)
+      if (is.null(sb)) {
+        warning("getData(base_year = TRUE): scenario '", nmi, "' records a ",
+                "base year (", link$year, ") whose solution cannot be read",
+                if (nzchar(link$scenario)) paste0(" from '", link$scenario,
+                  if (nzchar(link$run)) paste0("/", link$run) else "", "'")
+                else " (no source was carried)", ".", call. = FALSE)
+        next
+      }
+      exp_scen[[length(exp_scen) + 1L]] <- sb
+      exp_nm <- c(exp_nm, nmi)
+      exp_run <- c(exp_run, link$run)
+      exp_src <- c(exp_src, "base")
+    }
+    object <- exp_scen; names(object) <- exp_nm
+    src_of <- exp_src
+    if (!is.null(run_of)) run_of <- exp_run
   }
 
   # Identify filters
@@ -595,6 +645,13 @@ getData.scenario <- function(
               collect() |>
               filter(kk)
             if (!is.null(dkk) && nrow(dkk) > 0) {
+              # The base year and the projection are separate optimisations,
+              # so their objectives do not union into anything -- the same
+              # refusal getData.recursive() makes. Every other variable does.
+              if (!is.null(src_of) && identical(src_of[s], "base") &&
+                  identical(pv, "vObjective")) {
+                next
+              }
               nkk <- sum(kk)
               tagcols <- data.frame(
                 scenario = rep(sc, nkk),
@@ -607,10 +664,17 @@ getData.scenario <- function(
               if (!is.null(run_of)) {
                 tagcols$run <- rep(run_of[s], nkk)
               }
+              # which solve the row came from: "solved" or "base"
+              if (!is.null(src_of)) {
+                tagcols$source <- rep(src_of[s], nkk)
+              }
               dat <- dplyr::bind_cols(tagcols, dkk)
               le <- length(ll) + 1
               nm_ll <- names(ll)
-              nm_le <- if (!is.null(run_of)) {
+              nm_le <- if (!is.null(src_of)) {
+                # a scenario and its base year share the scenario's name
+                paste(sc, src_of[s], pv, sep = ".")
+              } else if (!is.null(run_of)) {
                 # several runs of one scenario share its name, so the run has
                 # to be in the element name or merge = FALSE returns a list
                 # whose names do not identify its elements
@@ -1605,7 +1669,7 @@ getObjects <- function(obj, class = c(), regex = NULL, ...) {
 #' @seealso [getData()], [get_region()], [find_in_model()]
 #' @examples
 #' \dontrun{
-#' repo <- topia$modules$electricity$R3$repo
+#' repo <- topia$modules$electricity$repo
 #' getObject(repo, class = "technology")                 # all technologies
 #' getObject(repo, class = c("supply", "commodity"))     # two classes
 #' getObject(repo, region = "R1")                         # everything in R1

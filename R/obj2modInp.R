@@ -330,13 +330,13 @@ setMethod(
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # write one parameter back after editing it outside the model. The data

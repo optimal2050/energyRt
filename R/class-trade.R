@@ -8,6 +8,7 @@
 #' @md
 #' @slot name `r get_slot_doc("trade", "name")`
 #' @slot desc `r get_slot_doc("trade", "desc")`
+#' @slot units `r get_slot_doc("trade", "units")`
 #' @slot commodity `r get_slot_doc("trade", "commodity")`
 #' @slot geoframe `r get_slot_doc("trade", "geoframe")`
 #' @slot routes `r get_slot_doc("trade", "routes")`
@@ -34,6 +35,7 @@ setClass("trade",
     # General information
     name = "character", # Short name
     desc = "character", # Details
+    units = "data.frame",
     commodity = "character", # Vector if NULL that
     geoframe = "character",
     routes = "data.frame",
@@ -57,6 +59,12 @@ setClass("trade",
     # General information
     name = "", # name in sets
     desc = "",
+    units = data.frame(
+      capacity = character(),
+      activity = character(),
+      costs = character(),
+      stringsAsFactors = FALSE
+    ),
     commodity = NULL, #
     geoframe = character(),
     routes = data.frame(
@@ -256,6 +264,7 @@ setMethod("initialize", "trade", function(.Object, ...) {
 #' @md
 #' @param name `r get_slot_doc("trade", "name")`
 #' @param desc `r get_slot_doc("trade", "desc")`
+#' @param units `r get_slot_doc("trade", "units")`
 #' @param commodity `r get_slot_doc("trade", "commodity")`
 #' @param geoframe `r get_slot_doc("trade", "geoframe")`
 #' @param routes `r get_slot_doc("trade", "routes")`
@@ -352,11 +361,13 @@ newTrade <- function(
     weather = data.frame(),
     cap2act = 1,
     optimizeRetirement = FALSE,
+    units = data.frame(),
     misc = list(),
     ...
 ) {
   args <- list(
     desc = desc,
+    units = units,
     commodity = commodity,
     geoframe = geoframe,
     routes = routes,
