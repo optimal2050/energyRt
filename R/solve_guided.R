@@ -72,7 +72,7 @@
 #' @seealso [solve_guided()], [horizon_windows()]
 #' @export
 #' @examples
-#' h <- topia$modules$horizons$base
+#' h <- topia$modules$horizons$BY2025_50_by10
 #'
 #' # backward guidance: the endpoint first, then each neighbouring pair
 #' w <- guided_windows(h)
@@ -234,13 +234,13 @@ guided_windows <- function(horizon, direction = c("backward", "forward"),
 #' \dontrun{
 #' open_project(tempdir())
 #'
-#' ek  <- topia$modules$electricity$R3
-#' mod <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod <- newModel("TOPIA", data = topia_elc$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
-#'                 region = ek$regions,
-#'                 horizon = topia$modules$horizons$base,
+#'                 region = topia_elc$regions,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10,
 #'                 discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #'
 #' # the endpoint first, then each neighbouring pair, then the full horizon
 #' # with the guidance as bounds
@@ -494,13 +494,13 @@ getData.guided <- function(object, name = NULL, ..., merge = TRUE) {
 #' \dontrun{
 #' open_project(tempdir())
 #'
-#' ek  <- topia$modules$electricity$R3
-#' mod <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod <- newModel("TOPIA", data = topia_elc$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
-#'                 region = ek$regions,
-#'                 horizon = topia$modules$horizons$base,
+#'                 region = topia_elc$regions,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10,
 #'                 discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #'
 #' # what the guidance cost, against a true perfect-foresight run
 #' pf  <- solve_model(mod, name = "PF", solver = solver_options$glpk)

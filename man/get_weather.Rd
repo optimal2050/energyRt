@@ -20,11 +20,11 @@ is a separate \code{weather} object in the repository.
 }
 \examples{
 # the weather series a process is linked to, read from its own slots
-ek <- topia$modules$electricity$R3
-get_weather(ek$EWIN)
+topia_elc <- topia$modules$electricity
+get_weather(getObject(topia_elc$repo, name = "EWIN", drop = TRUE))
 
 # a process with no weather link reports none
-get_weather(ek$ECOA)
+get_weather(getObject(topia_elc$repo, name = "ECOA", drop = TRUE))
 }
 \seealso{
 Other model:

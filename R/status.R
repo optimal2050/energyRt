@@ -231,7 +231,7 @@ NULL
 #'   is a name that needs disambiguating. A dataset is always named this way:
 #'   [load_dataset()] returns an unclassed payload, so there is nothing to
 #'   dispatch on.
-#' @param sizes measure folder sizes with [dir_size()]. Defaults to `TRUE` for
+#' @param sizes measure folder sizes with `dir_size()`. Defaults to `TRUE` for
 #'   one object and `FALSE` for a whole project, where walking a large store
 #'   would dominate the call.
 #' @param lineage resolve `used_by` and check for broken references. Needs the

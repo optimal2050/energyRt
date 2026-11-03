@@ -2,6 +2,7 @@
 #'
 #' @slot name `r get_slot_doc("supply", "name")`
 #' @slot desc `r get_slot_doc("supply", "desc")`
+#' @slot units `r get_slot_doc("supply", "units")`
 #' @slot commodity `r get_slot_doc("supply", "commodity")`
 #' @slot unit `r get_slot_doc("supply", "unit")`
 #' @slot weather `r get_slot_doc("supply", "weather")`
@@ -20,6 +21,7 @@ setClass("supply",
   representation(
     name = "character",
     desc = "character",
+    units = "data.frame",
     commodity = "character",
     unit = "character",
     weather = "data.frame",
@@ -33,6 +35,11 @@ setClass("supply",
   prototype(
     name = "",
     desc = "",
+    units = data.frame(
+      activity = character(),
+      costs = character(),
+      stringsAsFactors = FALSE
+    ),
     commodity = "",
     unit = "",
     weather = data.frame(
@@ -113,6 +120,7 @@ setMethod("initialize", "supply", function(.Object, ...) {
 #' @md
 #' @param name `r get_slot_doc("supply", "name")`
 #' @param desc `r get_slot_doc("supply", "desc")`
+#' @param units `r get_slot_doc("supply", "units")`
 #' @param commodity `r get_slot_doc("supply", "commodity")`
 #' @param unit `r get_slot_doc("supply", "unit")`
 #' @param weather `r get_slot_doc("supply", "weather")`
@@ -163,6 +171,7 @@ newSupply <- function(
   cluster = data.frame(),
   geoframe = character(),
   region = character(),
+  units = data.frame(),
   misc = list(),
   ...
   ) {
@@ -170,6 +179,7 @@ newSupply <- function(
     "supply",
     name,
     desc = desc,
+    units = units,
     commodity = commodity,
     unit = unit,
     weather = weather,

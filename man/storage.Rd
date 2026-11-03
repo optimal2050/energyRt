@@ -33,6 +33,7 @@ newStorage(
   fullYear = TRUE,
   weather = data.frame(),
   optimizeRetirement = FALSE,
+  units = data.frame(),
   misc = list(),
   ...
 )
@@ -360,6 +361,14 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 }}
 
 \item{optimizeRetirement}{logical. Incidates if the retirement of the storage should be optimized. Also requires the same parameter in the \code{model} or \code{scenario} class to be set to TRUE to be effective.}
+
+\item{units}{data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in the cost, capacity and activity columns are bare. A declared \code{costs} that disagrees with the model's \code{config@currency} is an error rather than a silent conversion; leave a column empty to claim nothing. One unit per kind: a storage prices three capacities but states \code{capacity} once.
+
+\describe{
+\item{capacity}{character. Unit of capacity.}
+\item{activity}{character. Unit of the activity variable.}
+\item{costs}{character. Currency of the cost columns.}
+}}
 
 \item{misc}{list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the storage data, or other metadata.}
 

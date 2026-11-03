@@ -5,7 +5,7 @@
 \title{Create new export object}
 \usage{
 newImport(
-  name,
+  name = "",
   desc = "",
   commodity = "",
   unit = NULL,

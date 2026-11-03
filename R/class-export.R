@@ -163,7 +163,7 @@ setMethod("initialize", "export", function(.Object, ...) {
 #' )
 #' draw(EXPOIL)
 newExport <- function(
-    name,
+    name = "",
     desc = "",
     commodity = "",
     unit = NULL,

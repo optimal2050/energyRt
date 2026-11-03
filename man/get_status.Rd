@@ -35,7 +35,7 @@ is a name that needs disambiguating. A dataset is always named this way:
 \code{\link[=load_dataset]{load_dataset()}} returns an unclassed payload, so there is nothing to
 dispatch on.}
 
-\item{sizes}{measure folder sizes with \code{\link[=dir_size]{dir_size()}}. Defaults to \code{TRUE} for
+\item{sizes}{measure folder sizes with \code{dir_size()}. Defaults to \code{TRUE} for
 one object and \code{FALSE} for a whole project, where walking a large store
 would dominate the call.}
 

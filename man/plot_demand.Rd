@@ -12,16 +12,20 @@ plot_demand(
   interpolate = TRUE,
   palette = "D",
   calendar = NULL,
+  region = NULL,
   ...
 )
 
 \method{autoplot}{demand}(
   object,
-  style = c("area", "line", "heatmap"),
+  style = c("area", "line", "heatmap", "map"),
   year = NULL,
   interpolate = TRUE,
   palette = "D",
   calendar = NULL,
+  region = NULL,
+  param = NULL,
+  map = NULL,
   ...
 )
 }
@@ -44,7 +48,12 @@ data years.}
 \item{calendar}{Optional \code{calendar} object ordering the heatmap's
 timeslice axis.}
 
-\item{...}{Passed to \code{\link[=getData]{getData()}} (e.g. \verb{region =} filter).}
+\item{region}{which regions to draw: a vector of region codes, or a number
+to take that many in the order they appear. \code{NULL} (default) draws every
+region the object carries.}
+
+\item{...}{Passed to \code{\link[=getData]{getData()}} by \code{style = "area"}, which interpolates;
+the \code{"line"} and \code{"heatmap"} styles read \verb{@demand} directly and ignore it.}
 }
 \value{
 A \code{ggplot} object (or \code{NULL}, invisibly, if there is nothing to plot).

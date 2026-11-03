@@ -103,6 +103,7 @@ getMix <- function(object,
   pieces <- switch(type,
     generation = list(
       list(var = "vTechOut",     flow = "generation",  comm = comm),
+      list(var = "vTechInp",     flow = "consumption", comm = comm),
       list(var = "vStorageOut",  flow = "storage-out", comm = comm),
       list(var = "vStorageInp",  flow = "storage-in",  comm = comm),
       list(var = "vImportRow",   flow = "import",      comm = comm),
@@ -397,10 +398,11 @@ autoplot.scenario <- function(object,
                             rbind(bars[c("process", "hour", "value")]), sum)
     agg$process <- .mix_other_last(agg$process)
     p <- ggplot2::ggplot(agg, ggplot2::aes(hour, value, fill = process)) +
-      ggplot2::geom_col(width = 1, alpha = 0.9) +
-      ggplot2::labs(x = "hour", y = "value", fill = NULL,
-                    title = ttl, subtitle = paste0("timeslices: ", timeslice,
-                                                   "  year: ", year)) +
+      ggplot2::geom_col(width = 1) +
+      ggplot2::labs(x = "hour", y = "value", fill = "process",
+                    title = ttl,
+                    caption = paste0("timeslices: ", timeslice,
+                                     "  year: ", year)) +
       theme_energyRt()
     for (comp in .legend_compact(length(unique(agg$process)))) p <- p + comp
     if (nrow(dem) > 0 && "hour" %in% names(dem)) {
@@ -427,8 +429,8 @@ autoplot.scenario <- function(object,
   p <- ggplot2::ggplot(agg,
       ggplot2::aes(factor(.data$year), .data$value,
                    fill = .data[[fill_var]])) +
-    ggplot2::geom_col(alpha = 0.9) +
-    ggplot2::labs(x = "year", y = "value", fill = NULL, title = ttl) +
+    ggplot2::geom_col() +
+    ggplot2::labs(x = "year", y = "value", fill = fill_var, title = ttl) +
     theme_energyRt()
   for (comp in .legend_compact(length(unique(agg[[fill_var]])))) p <- p + comp
   if (nrow(dem) > 0 && gtype == "generation") {
@@ -606,9 +608,9 @@ plot_process_windows <- function(object, region = NULL, horizon = NULL) {
       linewidth = 4, colour = "steelblue", na.rm = TRUE) +
     ggplot2::labs(x = "year", y = NULL,
                   title = "Process investment and operating windows",
-                  subtitle = paste("grey: exogenous stock · solid: new",
-                                   "capacity can be built · translucent:",
-                                   "last vintage operates")) +
+                  caption = paste("grey: exogenous stock · solid: new",
+                                  "capacity can be built · translucent:",
+                                  "last vintage operates")) +
     theme_energyRt()
   if (nrow(pt) > 0) {
     p <- p + ggplot2::geom_point(
@@ -669,10 +671,10 @@ plot_process_windows <- function(object, region = NULL, horizon = NULL) {
       linewidth = 4, colour = "steelblue", na.rm = TRUE) +
     ggplot2::labs(x = "year", y = NULL,
                   title = "Process investment and operating windows (by structure)",
-                  subtitle = paste("grey: exogenous stock · solid: new",
-                                   "capacity can be built · translucent:",
-                                   "last vintage operates · (n) = processes ·",
-                                   "Gk = group, see index table")) +
+                  caption = paste("grey: exogenous stock · solid: new",
+                                  "capacity can be built · translucent:",
+                                  "last vintage operates · (n) = processes ·",
+                                  "Gk = group, see index table")) +
     theme_energyRt()
   if (nrow(pt) > 0) {
     p <- p + ggplot2::geom_point(

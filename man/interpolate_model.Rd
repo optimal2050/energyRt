@@ -26,6 +26,7 @@ interpolate_model(
   parent_levels = getOption("energyRt.parent_levels", FALSE),
   fx_equ = getOption("energyRt.fx_equ", TRUE),
   on_missing_input = getOption("energyRt.on_missing_input", "stop"),
+  check = FALSE,
   verbose = isVerbose(),
   .reuse = NULL
 )
@@ -175,6 +176,12 @@ declared in a region where one of its input commodities has no source.
 processes that could only be built new. Defaults to
 \code{getOption("energyRt.on_missing_input", "stop")}.}
 
+\item{check}{run \code{\link[=check_feasibility]{check_feasibility()}} on the interpolated scenario and
+STOP when it finds a contradiction, rather than returning a scenario
+that can only solve to INFEASIBLE. Off by default: the check costs a
+pass over the parameter tables, and a model known to be sound does
+not need it.}
+
 \item{verbose}{logical; print per-step progress. This also governs the
 variant-expansion report -- how many process objects were expanded and how
 many constraints were generated for them. The generated constraints
@@ -198,13 +205,13 @@ and validates the result. The returned scenario is ready for \code{\link[=solve_
 }
 \examples{
 \donttest{
-ek  <- topia$modules$electricity$R3
-mod <- newModel("TOPIA", data = ek$repo,
+topia_elc <- topia$modules$electricity
+mod <- newModel("TOPIA", data = topia_elc$repo,
                 calendar = topia$modules$calendars$s4_h24,
-                region = ek$regions,
-                horizon = topia$modules$horizons$base,
+                region = topia_elc$regions,
+                horizon = topia$modules$horizons$BY2025_50_by10,
                 discount = 0.05)
-mod <- setGeoscale(mod, ek$geoscale)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 
 # build the solver-facing sets and parameters; nothing is solved yet
 scen <- interpolate_model(mod, name = "BASE")

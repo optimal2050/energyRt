@@ -55,7 +55,7 @@ leading \code{meta} block. The workbook can be read back with
 \code{\link[=read_technology_xlsx]{read_technology_xlsx()}}.
 }
 \examples{
-tech <- topia$modules$electricity$R3$ECOA
+tech <- getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE)
 f <- tempfile(fileext = ".xlsx")
 
 # one sheet per slot that carries data, plus an `info` sheet

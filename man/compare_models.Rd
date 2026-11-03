@@ -42,17 +42,19 @@ discount rates, \code{optimizeRetirement}) is compared as well. With
 drill-down, printable per object via \code{print(x, name = "...")}.
 }
 \examples{
-ek  <- topia$modules$electricity$R3
-mod <- newModel("TOPIA", data = ek$repo,
+topia_elc <- topia$modules$electricity
+mod <- newModel("TOPIA", data = topia_elc$repo,
                 calendar = topia$modules$calendars$s4_h24,
-                region = ek$regions,
-                horizon = topia$modules$horizons$base,
+                region = topia_elc$regions,
+                horizon = topia$modules$horizons$BY2025_50_by10,
                 discount = 0.05)
-mod <- setGeoscale(mod, ek$geoscale)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 
-# swap domestic gas for a three-step supply curve and see what moved
-mod2 <- add(mod, ek$GAS_CURVE, overwrite = TRUE)
-cmp <- compare_models(mod, mod2, names = c("flat", "curve"))
+# reprice the gas supply curve and see what moved
+sup_gas <- getObject(topia_elc$repo, name = "SUP_GAS", drop = TRUE)
+sup_gas@supply$cost <- sup_gas@supply$cost * 1.25
+mod2 <- add(mod, sup_gas, overwrite = TRUE)
+cmp <- compare_models(mod, mod2, names = c("base", "dear gas"))
 cmp
 
 # drill into the one object that changed

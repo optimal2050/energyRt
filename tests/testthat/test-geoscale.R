@@ -279,7 +279,7 @@ test_that("topia reaches its data the way an INSTALL does", {
   utils::data("topia", package = "energyRt", envir = e)
   shipped <- get("topia", envir = e)
   expect_setequal(names(shipped),
-                  c("geoscales", "weather", "demand", "stock", "modules"))
+                  c("geoscales", "links", "weather", "demand", "stock", "modules"))
   # the 0.91 break: no second copy of the geometry anywhere in the dataset
   expect_false(any(c("map", "geo") %in% names(shipped)))
   expect_null(shipped$modules$maps)
@@ -328,8 +328,9 @@ test_that("plot_map delegates drawing to geoscales::geoscale_plot", {
   geoms <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   expect_true("GeomSf" %in% geoms)
   expect_equal(p$labels$title, "capacity")
-  expect_equal(p$labels$subtitle, "by region")
-  expect_null(p$labels$fill)
+  expect_null(p$labels$subtitle)
+  # the level names the legend instead of the subtitle
+  expect_equal(p$labels$fill, "region")
   # viridis, not ggplot's default blue gradient
   fills <- ggplot2::ggplot_build(p)$data[[1]]$fill
   expect_true(any(grepl("^#", fills)))
@@ -337,7 +338,7 @@ test_that("plot_map delegates drawing to geoscales::geoscale_plot", {
 
   # a coarser level aggregates first and yields one polygon per zone
   pz <- plot_map(sol, "capacity", level = "zone")
-  expect_equal(pz$labels$subtitle, "by zone")
+  expect_null(pz$labels$subtitle)
   expect_equal(nrow(ggplot2::ggplot_build(pz)$data[[1]]), 1L)
 })
 

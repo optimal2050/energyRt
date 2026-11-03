@@ -51,26 +51,23 @@
 #'     cannot drive the shipped kits (`ELC` is balanced at the `HOUR` level
 #'     and [topia_profiles()] has no annual shapes); it ships as the
 #'     coarsest example calendar.}
-#'   \item{horizons}{planning horizons (`base` = 2025/2030/2040/2050, each
-#'     milestone the MID-point of its period, so that is where its costs are
-#'     discounted from;
-#'     `unit` = the single year 2025 for the unit kits).}
-#'   \item{electricity}{per region layout (`R1`, `R3`, `R7`, `R11` -- an
-#'     n-region layout is keyed `R<n>` and takes the first n regions of the
-#'     canonical west-to-east order `W1`, `W2`, `C1`..`C6`, `E1`..`E3`),
-#'     each a "kit":
-#'     `repo` (the base repository), `geoscale` (the layout's slice of the
-#'     `nation -> zone -> region` hierarchy, without geometry -- a kit model
-#'     MUST carry it, see the examples), the individual blocks (`repo_comm`,
-#'     `repo_supply`, `DEM_ELC`, `WSOL`/`WWIN`/`WHYD`, the technologies,
-#'     `STG_ELC`), the scenario levers `CO2_CAP`, `CT_CO2`, `RES_SHARE`,
-#'     `NO_NEW_NUC`, `EARLY_RET`, and the add-on modules -- re-declared
-#'     objects that REPLACE their base counterpart when added with
-#'     `add(mod, ., overwrite = TRUE)`: `GAS_CURVE` (domestic gas as a
-#'     3-step [asSupplyCurve()]),
-#'     `EWIN_SITES` (wind in two site-grade clusters, finite GOOD +
-#'     down-rated POOR), `ENUC_VINT` (nuclear in two build vintages, absent
-#'     from the `R1` kit, which reaches no nuclear region).
+#'   \item{horizons}{planning horizons, named for their MILESTONES rather
+#'     than the period end, with `BY` marking a one-year base year at the
+#'     front. `BY2025_50_by10` = milestones 2025/2030/2040/2050, a base year
+#'     then 10-year intervals (its periods run to 2055). Each milestone is the
+#'     MID-point of its period, so that is where its costs are discounted
+#'     from. `BY2025` = the base year alone, for the unit kits.}
+#'   \item{electricity}{THE model, over all eleven regions `W1`, `W2`,
+#'     `C1`..`C6`, `E1`..`E3`: `repo` (the repository), `regions`, `calendar`
+#'     (the name of the calendar it was built for), `geoscale` (its
+#'     `nation -> zone -> region` hierarchy, without geometry -- a model MUST
+#'     carry it, see the examples), and the scenario levers `CO2_CAP`,
+#'     `CT_CO2`, `EARLY_RET` and `GREEN_H2`, which are NOT in `repo` and
+#'     are added to a scenario on top of it. Built by
+#'     `data-raw/topia_model.R`, which
+#'     tangles `vignettes/topia-build.Rmd` -- the vignette is the source, so
+#'     what it documents and what ships cannot drift apart. Smaller cases come
+#'     from [subset_model_regions()], not from a saved layout.
 #'
 #'   The resources are CONCENTRATED, which is what drives trade: `COA` and
 #'   `GAS` are balanced per ZONE (`commodity@geoframe`) and traded between
@@ -105,11 +102,11 @@
 #' geoscales::geoscale_leaftable(gs)        # the region table
 #' plot_geoscale(gs, type = "map")
 #'
-#' um <- topia$modules$electricity$R3
+#' um <- topia$modules$electricity
 #' mod <- newModel("TOPIA", data = um$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
 #'                 region = um$regions,
-#'                 horizon = topia$modules$horizons$base,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10,
 #'                 discount = 0.05)
 #' mod <- setGeoscale(mod, um$geoscale)
 #' scen <- solve_scenario(interpolate_model(mod, "BASE"),
@@ -120,7 +117,7 @@
 #' umod <- newModel("UNIT", data = uk$repo,
 #'                  calendar = topia$modules$unit$calendars$unit_s4,
 #'                  region = uk$regions,
-#'                  horizon = topia$modules$horizons$unit, discount = 0)
+#'                  horizon = topia$modules$horizons$BY2025, discount = 0)
 #' }
 "topia"
 
@@ -146,7 +143,7 @@
 #                      timeslices like "m01_h00".
 #   "topia_seasons" -- 4 seasons x 3 dayparts (12 timeslices), timeslices like "WIN_DAY".
 
-.topia_calendars <- c("s4_h24", "m12_h24", "topia_seasons")
+.topia_calendars <- c("s4_h24", "m12_h24", "topia_seasons", "d365_h24")
 
 # ---- internal: map an IDEEA d365_h24 timeslice ("d001_h00") to a target timeslice -----
 .topia_season_of_month <- function(m) {
@@ -218,101 +215,192 @@
   do.call(rbind, out)[, c("resource", "timeslice", "wval")]
 }
 
-#' TOPIA input profiles (deterministic)
+.TOPIA_DATASETS <- c("simulated", "sample")
+
+# The kit's data, or the tables a rebuild is in the middle of making.
+# `data-raw/topia_modules.R` builds its repositories THROUGH topia_profiles(),
+# so without this seam regenerating `data/topia.rda` would read the previously
+# shipped copy of the data it is replacing. The option is set by
+# `data-raw/topia_data.R` and cleared by `data-raw/topia_assemble.R`.
+.topia_ds <- function() {
+  ov <- getOption("energyRt.topia_data", NULL)
+  if (is.null(ov)) energyRt::topia else ov
+}
+
+# region -> zone -> nation, from the kit's own geoscale table
+.topia_geo_map <- function() {
+  g <- as.data.frame(.topia_ds()$geoscales)
+  nm <- c("region", "zone", "nation")
+  pre <- sub("\\.region$", "", grep("\\.region$", names(g), value = TRUE)[1])
+  out <- g[, paste(pre, nm, sep = "."), drop = FALSE]
+  names(out) <- nm
+  out <- out[!is.na(out$region) & !duplicated(out$region), ]
+  out[] <- lapply(out, as.character)
+  out
+}
+
+# Which base regions does a requested code stand for?
+.topia_members <- function(code, gm) {
+  if (code %in% gm$region) return(code)
+  if (code %in% gm$zone) return(gm$region[gm$zone == code])
+  if (code %in% gm$nation) return(gm$region[gm$nation == code])
+  NULL
+}
+
+# Average a per-region table over the members of each requested code.
+.topia_lookup <- function(x, regions, value, gm) {
+  parts <- lapply(regions, function(r) {
+    mem <- .topia_members(r, gm)
+    if (is.null(mem)) {
+      stop("no TOPIA profile for region '", r, "'. Known codes: ",
+           paste(c(unique(gm$region), unique(gm$zone), unique(gm$nation)),
+                 collapse = ", "), call. = FALSE)
+    }
+    v <- x[x$region %in% mem, ]
+    agg <- stats::aggregate(v[[value]], by = list(timeslice = v$timeslice),
+                            FUN = mean)
+    d <- data.frame(region = r, timeslice = as.character(agg$timeslice),
+                    v = agg$x, stringsAsFactors = FALSE)
+    names(d)[names(d) == "v"] <- value
+    d
+  })
+  do.call(rbind, parts)
+}
+
+# Which dataset serves a calendar when the caller does not say?
+.topia_default_dataset <- function(calendar) {
+  if (identical(calendar, "d365_h24")) "sample" else "simulated"
+}
+
+.topia_pick <- function(x, calendar, dataset, what) {
+  v <- x[x$calendar == calendar & x$dataset == dataset, ]
+  if (nrow(v) == 0) {
+    have <- unique(as.character(x$calendar[x$dataset == dataset]))
+    stop("TOPIA's '", dataset, "' ", what, " is not built for calendar '",
+         calendar, "'. It covers: ", paste(have, collapse = ", "),
+         ". Pass `dataset =` to choose the other set.", call. = FALSE)
+  }
+  v
+}
+
+#' TOPIA input profiles
 #'
-#' Expand TOPIA's saved, region-agnostic profiles (`topia$weather`,
-#' `topia$demand`, `topia$stock`) to a set of regions for a chosen calendar,
-#' returning a list of three tidy data.frames. The weather capacity factors can
-#' be re-sourced at run time from IDEEA (`source = "ideea"`); `"saved"`
-#' (default) uses the packaged data and never needs an external dataset.
+#' Expand TOPIA's per-region profiles (`topia$weather`, `topia$demand`,
+#' `topia$stock`) to a set of regions for a chosen calendar, returning a list
+#' of three tidy data.frames.
+#'
+#' Two input datasets ship and the caller chooses between them:
+#'
+#' \describe{
+#'   \item{`"simulated"`}{closed-form shapes on the small calendars
+#'     (`s4_h24`, `m12_h24`, `topia_seasons`). Demonstration data: it carries a
+#'     spatial gradient and a diurnal structure, and is not a resource estimate
+#'     for anywhere.}
+#'   \item{`"sample"`}{a measured hourly set on `d365_h24`. Multi-day calm
+#'     spells survive only at that resolution, so it is where flexibility has
+#'     something to earn -- reducing the hourly series to a handful of typical
+#'     days keeps about a quarter of the wind's variance and none of its calm
+#'     spells, which is why the small calendars are served by the simulated set
+#'     instead.}
+#' }
+#'
+#' A request for a coarser geoscale code -- a zone, or the nation -- averages
+#' its member regions, which is what a copperplate zone sees.
 #'
 #' Not to be confused with the near-namesake [topia_profile()], which takes no
 #' TOPIA data at all: it generates a synthetic step / sine / cosine / hex shape
 #' over any calendar and returns a single data.frame.
 #'
-#' @param regions character vector of region names.
+#' @param regions character vector of region codes: a region of the TOPIA map
+#'   (`W1`, `W2`, `C1`--`C6`, `E1`--`E3`), a zone (`WEST`, `CENTRAL`, `EAST`)
+#'   or the nation (`TOPIA`). An unknown code is an error that lists what is
+#'   known.
 #' @param calendar target resolution: `"s4_h24"` (4 seasons x 24 hours, 96
 #'   timeslices, the default base case), `"m12_h24"` (12 months x 24 hours,
-#'   288) or `"topia_seasons"` (4 seasons x 3 dayparts, 12).
+#'   288), `"topia_seasons"` (4 seasons x 3 dayparts, 12) or `"d365_h24"`
+#'   (8760).
+#' @param dataset `"simulated"` or `"sample"`. `NULL` (the default) picks the
+#'   set built for `calendar` -- the sample for `"d365_h24"`, the simulated set
+#'   otherwise. Naming a pair that was not built is an error saying what each
+#'   set covers.
 #' @param source `"saved"` (packaged data, default) or `"ideea"` (re-aggregate
-#'   from `IDEEA::ideea_modules` if installed).
+#'   from `IDEEA::ideea_modules` if installed). The IDEEA route yields one
+#'   region-agnostic shape per resource and replicates it to every region.
 #' @param resources named character vector mapping resource keys (`WSOL`,
 #'   `WWIN`, `WHYD`) to IDEEA element names, used when `source = "ideea"`.
 #' @param cluster integer, which IDEEA resource cluster to use (`source =
 #'   "ideea"`).
-#' @param diversify logical (default `TRUE`): scale the solar and wind capacity
-#'   factors by deterministic per-region factors (defined for the TOPIA map
-#'   regions `W1`, `W2`, `C1`--`C6`, `E1`--`E3`; other names get factor 1), so regions have different
-#'   renewable endowments -- sunnier south, windier coast. `FALSE` replicates
-#'   identical profiles to every region.
+#' @param diversify defunct. TOPIA's profiles are per region and are not scaled
+#'   copies of one shape, so there is nothing to diversify; passing it warns
+#'   and changes nothing.
 #'
-#' @return a list of tidy data.frames, each replicated across `regions`:
-#'   `weather` (`resource`, `region`, `timeslice`, `wval`), `demand` (`region`,
-#'   `timeslice`, `load` -- a relative load shape) and `stock` (`region`, `tech`,
-#'   `gw` -- base-year capacity).
+#' @return a list of tidy data.frames: `weather` (`resource`, `region`,
+#'   `timeslice`, `wval`), `demand` (`region`, `timeslice`, `load` -- a relative
+#'   load shape) and `stock` (`region`, `tech`, `gw` -- base-year capacity,
+#'   replicated across `regions`).
 #' @seealso [topia], [topia_profile()], [calendars]
 #' @family topia
 #' @export
 #' @examples
-#' # weather, demand and stock expanded to the regions of a model
+#' # weather, demand and stock for two regions of the TOPIA map
 #' prof <- topia_profiles(c("W1", "W2"), calendar = "s4_h24")
-#' lapply(prof, head, 3)
+#' head(prof$weather, 3)
 topia_profiles <- function(regions,
-                            calendar = c("s4_h24", "m12_h24",
-                                         "topia_seasons"),
-                            source = c("saved", "ideea"),
-                            resources = c(WSOL = "WSOL", WWIN = "WWIN",
-                                          WHYD = "WHYD"),
-                            cluster = 1L,
-                            diversify = TRUE) {
+                           calendar = c("s4_h24", "m12_h24", "topia_seasons",
+                                        "d365_h24"),
+                           dataset = NULL,
+                           source = c("saved", "ideea"),
+                           resources = c(WSOL = "WSOL", WWIN = "WWIN",
+                                         WHYD = "WHYD"),
+                           cluster = 1L,
+                           diversify = NULL) {
   calendar <- match.arg(calendar)
   source <- match.arg(source)
-  stopifnot(is.character(regions), length(regions) > 0)
-
-  wx <- if (source == "ideea") {
-    .topia_weather_from_ideea(calendar, resources, cluster)
+  dataset <- if (is.null(dataset)) {
+    .topia_default_dataset(calendar)
   } else {
-    w <- as.data.frame(topia$weather)
-    w[w$calendar == calendar, c("resource", "timeslice", "wval")]
+    match.arg(dataset, .TOPIA_DATASETS)
   }
-  d <- as.data.frame(topia$demand)
-  dx <- d[d$calendar == calendar, c("timeslice", "load")]
-  sx <- as.data.frame(topia$stock)
+  stopifnot(is.character(regions), length(regions) > 0)
+  if (!is.null(diversify)) {
+    warning("`diversify` is defunct: TOPIA's profiles are per region and are ",
+            "not scaled copies of one shape. The argument is ignored.",
+            call. = FALSE)
+  }
+  gm <- .topia_geo_map()
 
-  # replicate each region-agnostic profile across the requested regions
-  rep_reg <- function(df) {
-    do.call(rbind, lapply(regions, function(r) {
-      cbind(region = r, df, stringsAsFactors = FALSE, row.names = NULL)
+  if (source == "ideea") {
+    wx <- .topia_weather_from_ideea(calendar, resources, cluster)
+    weather <- do.call(rbind, lapply(regions, function(r)
+      cbind(region = r, wx, stringsAsFactors = FALSE, row.names = NULL)))
+    weather <- weather[, c("resource", "region", "timeslice", "wval")]
+  } else {
+    w <- .topia_pick(as.data.frame(.topia_ds()$weather), calendar, dataset,
+                     "weather")
+    w$resource <- as.character(w$resource)
+    w$region <- as.character(w$region)
+    w$timeslice <- as.character(w$timeslice)
+    weather <- do.call(rbind, lapply(sort(unique(w$resource)), function(res) {
+      v <- .topia_lookup(w[w$resource == res, ], regions, "wval", gm)
+      cbind(resource = res, v, stringsAsFactors = FALSE, row.names = NULL)
     }))
+    weather <- weather[, c("resource", "region", "timeslice", "wval")]
   }
-  weather <- rep_reg(wx)[, c("resource", "region", "timeslice", "wval")]
 
-  # deterministic regional endowments: sunnier south, windier coast. Keyed by
-  # the TOPIA region codes in their canonical west-to-east order (W1, W2,
-  # C1..C6, E1..E3); each factor kept the position it had before the regions
-  # were renamed. Unknown region names keep factor 1.
-  if (isTRUE(diversify)) {
-    sol_f <- c(W1 = 1.15, W2 = 1.00, C1 = 0.90, C2 = 1.10, C3 = 0.95,
-               C4 = 0.85, C5 = 1.05, C6 = 0.90, E1 = 0.80, E2 = 1.20,
-               E3 = 1.00)
-    win_f <- c(W1 = 0.85, W2 = 1.15, C1 = 1.05, C2 = 0.90, C3 = 1.10,
-               C4 = 1.20, C5 = 0.95, C6 = 1.05, E1 = 1.15, E2 = 0.80,
-               E3 = 1.00)
-    f <- rep(1, nrow(weather))
-    i_sol <- weather$resource == "WSOL"
-    i_win <- weather$resource == "WWIN"
-    f[i_sol] <- ifelse(is.na(sol_f[weather$region[i_sol]]), 1,
-                       sol_f[weather$region[i_sol]])
-    f[i_win] <- ifelse(is.na(win_f[weather$region[i_win]]), 1,
-                       win_f[weather$region[i_win]])
-    weather$wval <- pmin(1, weather$wval * f)
-  }
+  d <- .topia_pick(as.data.frame(.topia_ds()$demand), calendar, dataset,
+                   "demand")
+  d$region <- as.character(d$region)
+  d$timeslice <- as.character(d$timeslice)
+  demand <- .topia_lookup(d, regions, "load", gm)
+
+  sx <- as.data.frame(.topia_ds()$stock)
+  stock <- do.call(rbind, lapply(regions, function(r)
+    cbind(region = r, sx, stringsAsFactors = FALSE, row.names = NULL)))
 
   list(
     weather = weather,
-    demand  = rep_reg(dx)[, c("region", "timeslice", "load")],
-    stock   = rep_reg(sx)[, c("region", "tech", "gw")]
-  )
+    demand = demand[, c("region", "timeslice", "load")],
+    stock = stock[, c("region", "tech", "gw")])
 }
 
 

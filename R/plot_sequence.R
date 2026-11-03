@@ -349,8 +349,8 @@ autoplot.by_sample <- function(object, type = c("coverage", "wall",
     .cov_fill_scale() +
     ggplot2::labs(x = x_tf, y = y_tf, fill = "sample",
                   title = "Calendar coverage",
-                  subtitle = .cov_subtitle(byk, length(unique(cv$unit)),
-                                           nrow(lt), "timeslices")) +
+                  caption = .cov_subtitle(byk, length(unique(cv$unit)),
+                                          nrow(lt), "timeslices")) +
     ggplot2::theme_minimal() +
     ggplot2::theme(
       panel.grid = ggplot2::element_blank(),
@@ -404,8 +404,8 @@ autoplot.by_sample <- function(object, type = c("coverage", "wall",
     ggplot2::facet_wrap(~MONTH) +
     ggplot2::labs(x = NULL, y = NULL, fill = "sample",
                   title = "Calendar coverage",
-                  subtitle = .cov_subtitle(byk, length(unique(cv$unit)),
-                                           ndays, "days")) +
+                  caption = .cov_subtitle(byk, length(unique(cv$unit)),
+                                          ndays, "days")) +
     timescales::theme_calendar()
 }
 
@@ -448,9 +448,9 @@ autoplot.by_region <- function(object, type = c("coverage"), geoscale = NULL,
                    levels = .cov_unit_levels(cv))
   geoscales::geoscale_plot(
     gs, data = d, geoframe = lvl, fill = "unit", fill_label = "unit",
-    title = "Region coverage",
-    subtitle = .cov_subtitle(byk, length(unique(cv$unit)),
-                             length(members), "regions")) +
+    title = "Region coverage") +
+    ggplot2::labs(caption = .cov_subtitle(byk, length(unique(cv$unit)),
+                                          length(members), "regions")) +
     .cov_fill_scale()
 }
 
@@ -485,9 +485,9 @@ autoplot.by_region <- function(object, type = c("coverage"), geoscale = NULL,
     .cov_fill_scale() +
     ggplot2::labs(
       x = NULL, y = NULL, fill = "unit", title = "Region coverage",
-      subtitle = paste0(.cov_subtitle(byk, length(unique(cv$unit)),
-                                      nrow(byk), "regions"),
-                        " | no geometry: regions listed, not mapped")) +
+      caption = paste0(.cov_subtitle(byk, length(unique(cv$unit)),
+                                     nrow(byk), "regions"),
+                       " | no geometry: regions listed, not mapped")) +
     ggplot2::theme_minimal() +
     ggplot2::theme(panel.grid = ggplot2::element_blank(),
                    axis.text.x = ggplot2::element_blank())

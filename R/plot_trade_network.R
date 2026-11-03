@@ -18,13 +18,20 @@
 #'   `geoscales::GeoScale`. When `NULL`, the object's geoscale is used if it has
 #'   one, else a circular layout.
 #' @param value what sets the link width:
-#'   * `"input"`: the trade objects' `@capacity` in `year` -- existing links
-#'     (`stock` > 0) solid, width = stock, with a faint band up to `cap.up`;
-#'     projects (no stock, expandable through `ncap.up`, `cap.up` or an
-#'     `@invcost` row) dashed, width = `cap.up` (else `ncap.up`);
+#'   * `"input"`: the trade objects' `@capacity` in `year`, by what the link
+#'     IS rather than by one category -- `stock` (capacity standing, no way to
+#'     add more) solid; `stock + new` (standing capacity that may also be
+#'     expanded, through `ncap.up`, `cap.up` or an `@invcost` row) long-dashed;
+#'     `new` (nothing standing, investable only) dotted. Width is the standing
+#'     capacity, or the ceiling for a link with none, with a faint band out to
+#'     `cap.up` where one is declared;
 #'   * `"capacity"`: the solved `vTradeCap` in `year`;
 #'   * `"flow"`: the solved `vTradeIr` in `year`, netted per pair; the arrow
 #'     points in the net direction.
+#' @param comm draw only the trades carrying this commodity (or these). `NULL`
+#'   (default) draws every one. Commodities that are not in the same capacity
+#'   unit cannot share one width scale, which is what makes this the usual
+#'   way to read a mixed repository.
 #' @param year the year to draw; default the first year present.
 #' @param timeslice for `value = "flow"`: `"ANNUAL"` (default), the year's total
 #'   as `getData(timeframe = "lowest")` returns it (weighted to the full year on
@@ -34,7 +41,10 @@
 #'   and those inside one region dropped.
 #' @param curvature bend of the links as a share of their length (0 = straight).
 #' @param labels draw region names.
-#' @param node_size scale nodes by the total value of their links.
+#' @param node_size scale the node points by the capacity connected to each
+#'   region. `FALSE` (default) draws them at one size: the sum of the links
+#'   touching a region is the links read a second way, and beside the
+#'   corridors themselves it says the same thing twice.
 #' @param ... unused.
 #'
 #' @return a `ggplot` object.
@@ -47,12 +57,13 @@
 #' }
 plot_trade_network <- function(object, map = NULL,
                                value = c("input", "capacity", "flow"),
+                               comm = NULL,
                                year = NULL, timeslice = "ANNUAL", level = NULL,
                                curvature = 0.15, labels = TRUE,
-                               node_size = TRUE, ...) {
+                               node_size = FALSE, ...) {
   check_package("ggplot2")
   value <- match.arg(value)
-  trades <- .as_trade_list(object)
+  trades <- .filter_trade_comm(.as_trade_list(object), comm)
   if (!length(trades)) {
     message("No trade objects to plot.")
     return(invisible(NULL))
@@ -107,8 +118,27 @@ plot_trade_network <- function(object, map = NULL,
   }
   links <- .tn_geometry(links, nodes, curvature)
 
+  # What the width is measured in. Keyed by COMMODITY and resolved against the
+  # links that survived, not against every trade handed in: a region map drops
+  # the zone-level fuel corridors, and their unit must not be reported for a
+  # picture they are not in.
+  cu <- vapply(trades, function(t)
+    .object_units(t, "capacity") %||% NA_character_, character(1))
+  names(cu) <- vapply(trades, .trade_comm, character(1))
+  cu <- cu[!duplicated(names(cu))]
+  cap_unit <- unique(stats::na.omit(unname(cu[as.character(links$comm)])))
+  if (length(cap_unit) > 1L) {
+    warning("the links carry more than one capacity unit (",
+            paste(cap_unit, collapse = ", "), "), and one width scale cannot ",
+            "measure both -- their widths are not comparable. Draw one ",
+            "commodity at a time, or declare them in the same unit.",
+            call. = FALSE)
+  }
+  .t <- .trade_plot_title(object)
   .tn_draw(links, nodes, shapes, value = value, year = attr(links, "year"),
-           timeslice = timeslice, labels = labels, node_size = node_size)
+           timeslice = timeslice, labels = labels, node_size = node_size,
+           cap_unit = if (length(cap_unit)) cap_unit else NULL,
+           ttl = .t$title, sub = .t$subtitle)
 }
 
 # the commodity a trade object carries (one per trade object)
@@ -152,14 +182,24 @@ plot_trade_network <- function(object, map = NULL,
     if (!is.finite(up) && is.finite(nup)) up <- stock + nup
     expandable <- (is.finite(nup) && nup > 0) || (is.finite(up) && up > stock) ||
       (any(d$invest) && !identical(nup, 0))
+    # Three states, because a corridor commonly has BOTH: capacity standing
+    # today and the right to build more. Collapsing that to "existing" hid
+    # every investable link behind the stock it already has.
     data.frame(trade = d$trade[1], stock = stock,
                upper = if (is.finite(up)) up else NA_real_,
-               status = if (stock > 0) "existing" else if (expandable) "project" else "none")
+               status = if (stock > 0 && expandable) "stock + new"
+                        else if (stock > 0) "stock"
+                        else if (expandable) "new"
+                        else "none")
   }))
   l <- merge(cbind(routes, .tn_pair(routes$src, routes$dst)), per, by = "trade")
   l <- unique(l[, c("trade", "comm", "a", "b", "stock", "upper", "status")])
-  l$value <- ifelse(l$status == "existing", l$stock, l$upper)
-  l$band <- ifelse(l$status == "existing" & !is.na(l$upper) & l$upper > l$stock, l$upper, NA_real_)
+  # The line's width is what STANDS; the band behind it is the headroom, drawn
+  # only when a ceiling says how much. A link with no stock has nothing to
+  # stand, so its width is the ceiling it could reach.
+  has_stock <- l$status %in% c("stock", "stock + new")
+  l$value <- ifelse(has_stock, l$stock, l$upper)
+  l$band <- ifelse(has_stock & !is.na(l$upper) & l$upper > l$stock, l$upper, NA_real_)
   out <- stats::aggregate(cbind(value, stock) ~ comm + a + b + status, data = l, FUN = sum, na.action = stats::na.pass)
   if (any(!is.na(l$band))) {
     bnd <- stats::aggregate(band ~ comm + a + b + status, data = l[!is.na(l$band), , drop = FALSE], FUN = sum)
@@ -275,14 +315,13 @@ plot_trade_network <- function(object, map = NULL,
 }
 
 #' @noRd
-.tn_draw <- function(links, nodes, shapes, value, year, timeslice, labels, node_size) {
+.tn_draw <- function(links, nodes, shapes, value, year, timeslice, labels,
+                     node_size, cap_unit = NULL, ttl = NULL, sub = NULL) {
   have_sf <- !is.null(shapes) && requireNamespace("sf", quietly = TRUE) && methods::is(shapes, "sf")
   crs <- if (have_sf) sf::st_crs(shapes) else NA
   as_sf <- have_sf && !is.na(crs)
   links$id <- seq_len(nrow(links))
-  links$kind <- switch(value,
-    input = ifelse(links$status == "project", "project", "existing"),
-    "solved")
+  links$kind <- switch(value, input = links$status, "solved")
   paths <- do.call(rbind, lapply(seq_len(nrow(links)), function(i)
     data.frame(id = i, x = links$geom[[i]][, "x"], y = links$geom[[i]][, "y"])))
   attrs <- links[, intersect(c("id", "comm", "value", "band", "kind", "dir"), names(links))]
@@ -308,15 +347,29 @@ plot_trade_network <- function(object, map = NULL,
   if (nrow(band)) {
     p <- p + path_layer(band, ggplot2::aes(linewidth = .data$band), colour = "grey55", alpha = 0.25, lineend = "round")
   }
-  mapping <- ggplot2::aes(linewidth = .data$value, linetype = .data$kind)
+  # Two different statements, so two layers rather than one line trying to
+  # carry both. What STANDS is solid and scaled by its capacity. What may be
+  # BUILT has no capacity to scale -- only a permission -- so it is a thin
+  # black dot-dash laid over the same route: present on an expandable link
+  # that already has stock, and alone on one that is only a proposal.
+  mapping <- ggplot2::aes(linewidth = .data$value)
   if (!is.null(colour_aes)) mapping$colour <- ggplot2::aes(colour = .data$comm)$colour
   directed <- links$id[links$dir %in% c("ab", "ba")]
-  undir <- paths[!paths$id %in% directed, , drop = FALSE]
-  dirp <- paths[paths$id %in% directed, , drop = FALSE]
+  std_id <- links$id[!links$kind %in% "new"]
+  new_id <- links$id[links$kind %in% c("stock + new", "new")]
   line_args <- list(lineend = "round", alpha = 0.85)
   if (is.null(colour_aes)) line_args$colour <- "#2C7FB8"
+  std <- paths[paths$id %in% std_id, , drop = FALSE]
+  undir <- std[!std$id %in% directed, , drop = FALSE]
+  dirp <- std[std$id %in% directed, , drop = FALSE]
   if (nrow(undir)) p <- p + do.call(path_layer, c(list(undir, mapping), line_args))
   if (nrow(dirp)) p <- p + do.call(path_layer, c(list(dirp, mapping, arrow = arr), line_args))
+  nw <- paths[paths$id %in% new_id, , drop = FALSE]
+  if (nrow(nw) && identical(value, "input")) {
+    p <- p + path_layer(nw, ggplot2::aes(linetype = "new"),
+                        colour = "grey10", linewidth = 0.35,
+                        lineend = "butt")
+  }
 
   pt <- if (node_size) ggplot2::aes(x = .data$x, y = .data$y, size = .data$total) else ggplot2::aes(x = .data$x, y = .data$y)
   p <- p + ggplot2::geom_point(data = nodes, mapping = pt, shape = 21, fill = "white", colour = "grey20", stroke = 0.5)
@@ -324,17 +377,28 @@ plot_trade_network <- function(object, map = NULL,
     p <- p + ggplot2::geom_text(data = nodes, ggplot2::aes(x = .data$x, y = .data$y, label = .data$region),
                                 vjust = -1.1, size = 2.8, colour = "grey15")
   }
-  what <- switch(value, input = "trade capacity (inputs)", capacity = "trade capacity (vTradeCap)",
-                 flow = paste0("net trade flow (vTradeIr), ",
-                               if (identical(toupper(timeslice), "ANNUAL")) "annual" else timeslice))
-  p <- p + ggplot2::scale_linewidth_continuous(value, range = c(0.4, 3.2), trans = "sqrt") +
-    ggplot2::scale_linetype_manual(NULL, values = c(existing = "solid", project = "22", solved = "solid"),
-                                   breaks = if (value == "input") c("existing", "project") else character()) +
-    ggplot2::scale_size_area(if (node_size) paste("connected", value) else NULL, max_size = 5) +
-    ggplot2::labs(title = paste0(toupper(substr(what, 1, 1)), substring(what, 2), if (!is.na(year)) paste0(", ", year))) +
+  # What the picture measures is on the legends; the caption carries the year
+  # and, for a flow, the slice it was read at. The title names the OBJECT.
+  cap <- paste(c(if (!is.na(year)) paste("year:", year),
+                 if (identical(value, "flow"))
+                   paste("flow:", if (identical(toupper(timeslice), "ANNUAL"))
+                     "annual" else timeslice)),
+               collapse = " · ")
+  if (!nzchar(cap)) cap <- NULL
+  # `value` names the MODE ("input" is where the number came from, not what it
+  # is). The width is a capacity in every mode but `flow`, so the legend says
+  # that -- with the unit the trades declare, where they agree on one.
+  wlab <- switch(value, flow = "flow", "capacity")
+  if (!is.null(cap_unit)) wlab <- paste0(wlab, ", ", paste(cap_unit, collapse = " / "))
+  p <- p + ggplot2::scale_linewidth_continuous(wlab, range = c(0.4, 3.2), trans = "sqrt") +
+    ggplot2::scale_linetype_manual(NULL,
+      values = c(new = "1636"), na.translate = FALSE) +
+    ggplot2::scale_size_area(if (node_size) paste("connected", wlab) else NULL,
+                             max_size = 5) +
+    ggplot2::labs(title = ttl, subtitle = sub, caption = cap) +
     ggplot2::theme_void() +
     ggplot2::theme(plot.title = ggplot2::element_text(face = "bold", size = 10), plot.title.position = "plot",
-                   legend.position = "bottom", legend.box = "vertical")
+                   legend.position = "right", legend.box = "vertical")
   if (multi_comm) p <- p + ggplot2::labs(colour = "commodity")
   if (as_sf) p <- p + ggplot2::coord_sf(crs = crs) else if (is.null(shapes)) p <- p + ggplot2::coord_equal(clip = "off")
   p

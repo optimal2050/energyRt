@@ -616,11 +616,16 @@ build_unit <- function(regions = .topia_regions[1], calendar = "unit_s4") {
 # `mid_is_end = TRUE`, so each period's costs were discounted from its LAST
 # year -- about five extra years of discounting per period, against everything
 # built late.
-base_horizon <- newHorizon(period = 2025:2055, intervals = c(1, 10, 10, 10),
-                           name = "base",
-                           desc = "2025-2055, milestones 2025/2030/2040/2050")
-unit_horizon <- newHorizon(period = 2025, name = "unit",
-                           desc = "single-year horizon (2025) for the unit kits")
+# Horizons are named for their MILESTONES, not the period end: the `by10`
+# intervals run to 2055, but 2050 is the last year the model decides. `BY`
+# marks a one-year base year at the front.
+horizon_BY2025_50_by10 <- newHorizon(
+  period = 2025:2055, intervals = c(1, 10, 10, 10),
+  name = "BY2025_50_by10",
+  desc = "base year 2025, then 10-year intervals; milestones 2025/2030/2040/2050")
+horizon_BY2025 <- newHorizon(
+  period = 2025, name = "BY2025",
+  desc = "base year 2025 alone, the single-year horizon for the unit kits")
 
 topia_modules <- list(
   info = paste("TOPIA teaching-model modules: a kit of energyRt building blocks",
@@ -631,10 +636,13 @@ topia_modules <- list(
                "all-unit-input models with hand-checkable integer objectives under",
                "`$unit`. Built by the TOPIA I vignette's explicit steps; mirrors",
                "IDEEA::ideea_modules."),
-  # the calendars this model uses: the generic ones it borrows, plus its own
-  calendars = c(calendars[c("annual", "s4_h24", "m12_h24")],
+  # the calendars this model uses: the generic ones it borrows, plus its own.
+  # `d365_h24` is here because the measured `sample` profiles are hourly and
+  # are served at no other resolution.
+  calendars = c(calendars[c("annual", "s4_h24", "m12_h24", "d365_h24")],
                 list(topia_seasons = topia_seasons)),
-  horizons  = list(base = base_horizon, unit = unit_horizon),
+  horizons  = list(BY2025_50_by10 = horizon_BY2025_50_by10,
+                   BY2025         = horizon_BY2025),
   # Keyed `R<n>` for an n-region layout. `R11` covers the whole map; the
   # smaller kits are PREFIXES of the canonical west-to-east order, so `R1` is
   # the westernmost region and `R3` reaches the first CENTRAL one. (The kit
@@ -646,7 +654,7 @@ topia_modules <- list(
     R11 = build_topia(.topia_regions[1:11],  calendar = "s4_h24")
   ),
   # Unit kits: `U<n>` layouts on the symmetric unit calendar; use with
-  # `$horizons$unit` and `discount = 0` so the objective stays an integer.
+  # `$horizons$BY2025` and `discount = 0` so the objective stays an integer.
   unit = list(
     # the unit kits' own calendars live with the kits -- `unit_s4`/`unit_s4h4`
     # are not shipped in `energyRt::calendars`
