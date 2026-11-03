@@ -58,11 +58,12 @@ test_that("unit add-on modules replace, not duplicate, the base objects", {
 # @covers mTechNew vTechNewCap depth=I backends=glpk forks=cluster,vintage
 test_that("TOPIA add-on modules land as clusters/vintages (R3)", {
   skip_if_no_fixtures()
-  k3 <- topia$modules$electricity$R3
+  k3 <- ut_golden_kits()$R3
   mod <- newModel("R3mods", data = k3$repo,
                   calendar = topia$modules$calendars$s4_h24,
                   region = k3$regions,
-                  horizon = topia$modules$horizons$base, discount = 0.05)
+                  horizon = topia$modules$horizons$BY2025_50_by10,
+                  discount = 0.05)
   mod <- setGeoscale(mod, k3$geoscale)
   mod <- add(mod, k3$GAS_CURVE, overwrite = TRUE)
   mod <- add(mod, k3$EWIN_SITES, overwrite = TRUE)

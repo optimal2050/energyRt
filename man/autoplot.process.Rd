@@ -15,8 +15,10 @@
   interpolate = TRUE,
   show_defaults = FALSE,
   units = NULL,
-  style = c("profile", "bar", "regions"),
-  type = c("availability", "cost"),
+  style = c("profile", "bar", "regions", "map"),
+  param = NULL,
+  map = NULL,
+  type = NULL,
   ...
 )
 
@@ -26,6 +28,9 @@
   interpolate = TRUE,
   show_defaults = FALSE,
   units = NULL,
+  style = c("profile", "map"),
+  param = NULL,
+  map = NULL,
   ...
 )
 
@@ -35,6 +40,9 @@
   interpolate = TRUE,
   show_defaults = FALSE,
   units = NULL,
+  style = c("profile", "map"),
+  param = NULL,
+  map = NULL,
   ...
 )
 
@@ -44,6 +52,9 @@
   interpolate = TRUE,
   show_defaults = FALSE,
   units = NULL,
+  style = c("profile", "map"),
+  param = NULL,
+  map = NULL,
   ...
 )
 
@@ -53,6 +64,9 @@
   interpolate = TRUE,
   show_defaults = FALSE,
   units = NULL,
+  style = c("profile", "map"),
+  param = NULL,
+  map = NULL,
   ...
 )
 }
@@ -78,15 +92,22 @@ without \code{ava.lo} shows its default of 0). Non-finite defaults (e.g.
 \item{units}{named list of base units passed to the unit resolver for the
 axis label; \code{NULL} (default) resolves them from the object.}
 
-\item{style}{For \code{supply} only: \code{"profile"} (default) draws the
-per-parameter year profile shared by all process classes; \code{"bar"} draws
-quantity or price by region over the years (stacked availability bars,
-per-region cost lines; \verb{type =} picks the quantity); \code{"regions"} draws
-the across-region comparison — availability and cost bars per region,
-with an unlimited (\code{Inf}) availability shown as a translucent
-full-height bar labelled "uncapped".}
+\item{style}{For \code{supply} only, WHICH CHART: \code{"profile"} (default) draws
+the per-parameter year profile shared by all process classes; \code{"bar"}
+draws the quantity by region over the years; \code{"regions"} draws the
+across-region comparison — availability and cost bars per region, with
+an unlimited (\code{Inf}) availability shown as a translucent full-height
+bar; \code{"map"} draws it on a \verb{map =} geoscale, at whatever level the
+object's own regions are declared at.}
 
-\item{type}{For \code{style = "bar"}: \code{"availability"} (default) or \code{"cost"}.}
+\item{param}{For \code{supply} only, WHICH QUANTITY: \code{"availability"} (default,
+the bound that binds — \code{ava.fx} over \code{ava.up}), one of \code{"ava.up"},
+\code{"ava.lo"}, \code{"ava.fx"} by name, or \code{"cost"}. The names are the columns
+of \verb{@supply}, so the argument, the legend title and the slot agree.}
+
+\item{map}{For \code{style = "map"}: a \code{geoscales::GeoScale}.}
+
+\item{type}{deprecated, use \code{param}.}
 
 \item{...}{Passed to \code{\link[=getData]{getData()}} (e.g. \verb{region=}, \verb{timeslice=} filters).}
 }

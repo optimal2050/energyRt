@@ -30,6 +30,6 @@ Thin wrapper around \code{\link{report}} that fixes \code{format = "docx"}.
 \dontrun{
 open_project(tempdir())
 
-report_docx(topia$modules$electricity$R3$ECOA)
+report_docx(getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE))
 }
 }

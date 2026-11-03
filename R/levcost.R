@@ -3424,7 +3424,7 @@ autoplot.levcost <- function(object,
       ggplot2::coord_cartesian(xlim = c(0, 1), ylim = c(0, 1)) +
       ggplot2::labs(
         title    = paste0("Production Frontier: ", names(object$levcost_npv)),
-        subtitle = paste0("Year ", yr_sel),
+        caption  = paste0("Year ", yr_sel),
         x        = paste0("Production share of ", c1_lbl),
         y        = paste0("Production share of ", c2_lbl),
         colour   = "Operating extreme"
@@ -3817,9 +3817,9 @@ autoplot.levcost_list <- function(object,
                   fill = "Component") +
     theme_energyRt()
   if (!is.null(facet)) {
-    p <- p + ggplot2::facet_wrap(facet) +
-      ggplot2::labs(subtitle = paste0(
-        "by ", paste(.levcost_dim_label(facet), collapse = " + ")))
+    # the facet strips already name the dimension; the caption is left free
+    # for `.facet_caption()`'s "showing N of M panels".
+    p <- p + ggplot2::facet_wrap(facet)
   }
   attr(p, "n_panels") <- n_panel
   attr(p, "n_x") <- n_x

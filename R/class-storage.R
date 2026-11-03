@@ -7,6 +7,7 @@
 #' @md
 #' @slot name `r get_slot_doc("storage", "name")`
 #' @slot desc `r get_slot_doc("storage", "desc")`
+#' @slot units `r get_slot_doc("storage", "units")`
 #' @slot aux `r get_slot_doc("storage", "aux")`
 #' @slot geoframe `r get_slot_doc("storage", "geoframe")`
 #' @slot region `r get_slot_doc("storage", "region")`
@@ -41,6 +42,7 @@ setClass("storage",
   representation(
     name = "character",
     desc = "character",
+    units = "data.frame",
     input = "data.frame",    # what fills the store   (the "charger" side)
     output = "data.frame",   # what it releases       (the "discharger" side)
     storage = "data.frame",  # what it HOLDS -- the level's commodity
@@ -69,6 +71,12 @@ setClass("storage",
   prototype(
     name = "",
     desc = "",
+    units = data.frame(
+      capacity = character(),
+      activity = character(),
+      costs = character(),
+      stringsAsFactors = FALSE
+    ),
     # Cluster declaration -- see the `technology` class for the full rationale.
     # For storage the motivating case is site-constrained capacity: pumped-hydro
     # head classes, CAES caverns, or duration classes via per-cluster `duration`.
@@ -864,6 +872,7 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'
 #' @param name `r get_slot_doc("storage", "name")`
 #' @param desc `r get_slot_doc("storage", "desc")`
+#' @param units `r get_slot_doc("storage", "units")`
 #' @param commodity convenience shorthand: the commodity used for whichever of
 #'   `input`, `output` and `storage` do not name their own. A battery is
 #'   `commodity = "ELC"` and nothing else; a hydrogen store is
@@ -1005,11 +1014,13 @@ newStorage <- function(
     fullYear = TRUE,
     weather = data.frame(),
     optimizeRetirement = FALSE,
+    units = data.frame(),
     misc = list(),
     ...
     ) {
   args <- list(
     desc = desc,
+    units = units,
     commodity = commodity,
     aux = aux,
     geoframe = geoframe,

@@ -1864,22 +1864,22 @@ expand_tech_variants <- function(mod, prefix = .variant_prefix(mod),
 #' @family technology process
 #' @export
 #' @examples
-#' ek  <- topia$modules$electricity$R3
-#' mod <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod <- newModel("TOPIA", data = topia_elc$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
-#'                 region = ek$regions,
-#'                 horizon = topia$modules$horizons$base,
+#'                 region = topia_elc$regions,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10,
 #'                 discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #'
-#' # the base kit has no variants
-#' getVariants(mod)
-#'
-#' # add the clustered-wind and vintaged-nuclear modules and ask again: this is
-#' # the roster of names the solver-facing sets will carry
-#' mod <- add(mod, ek$EWIN_SITES, ek$ENUC_VINT, overwrite = TRUE)
+#' # the shipped model is already varied: wind is split into site grades and
+#' # several processes carry vintages. This is the roster of names the
+#' # solver-facing sets will carry.
 #' getVariants(mod)
 #' getVariants(mod, class = "technology")
+#'
+#' # a process gains variants from its own @cluster / @vintage tables
+#' getObject(topia_elc$repo, name = "EWIN", drop = TRUE)@cluster
 getVariants <- function(object, class = NULL) {
   tv <- if (methods::is(object, "model")) {
     # the same provenance the interpolation would record, from the model's own
@@ -1926,17 +1926,16 @@ getVariants <- function(object, class = NULL) {
 #' \dontrun{
 #' open_project(tempdir())
 #'
-#' ek  <- topia$modules$electricity$R3
-#' mod <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod <- newModel("TOPIA", data = topia_elc$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
-#'                 region = ek$regions,
-#'                 horizon = topia$modules$horizons$base,
+#'                 region = topia_elc$regions,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10,
 #'                 discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #'
-#' # split wind into site grades, solve, then read the result BY GRADE rather
-#' # than by variant name
-#' mod  <- add(mod, ek$EWIN_SITES, overwrite = TRUE)
+#' # wind is already split into site grades, so solve and read the result BY
+#' # GRADE rather than by variant name
 #' scen <- solve_model(mod, name = "SITES", solver = solver_options$glpk)
 #'
 #' variantSummary(scen, "vTechCap", by = "cluster")

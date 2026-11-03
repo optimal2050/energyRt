@@ -212,8 +212,14 @@ NULL
     base <- .resolve_base_units(object)
     comm_units <- .resolve_comm_units(object)
   } else {
-    base <- list(capacity = "{capacity}", activity = "{activity}",
-                 use = "{use}", costs = "{costs}")
+    # `supply`, `storage` and `trade` carry a `@units` table of their own, so
+    # the same resolver fills their tokens; the columns they lack stay
+    # placeholders. Guarded because objects serialized before those slots
+    # existed have no `units` attribute at all.
+    base <- if ("units" %in% names(attributes(object)))
+      .resolve_base_units(object) else
+      list(capacity = "{capacity}", activity = "{activity}",
+           use = "{use}", costs = "{costs}")
     comm_units <- character(0)
     u <- tryCatch(slot(object, "unit"), error = function(e) NULL)
     if (length(u) == 1 && !is.na(u) && nzchar(u)) {

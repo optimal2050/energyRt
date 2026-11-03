@@ -166,13 +166,13 @@ NULL
 #' @family geoscale
 #' @export
 #' @examples
-#' ek  <- topia$modules$electricity$R3
-#' mod <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod <- newModel("TOPIA", data = topia_elc$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
-#'                 region = ek$regions,
-#'                 horizon = topia$modules$horizons$base,
+#'                 region = topia_elc$regions,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10,
 #'                 discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #'
 #' # families of processes that share a commodity signature, with their members
 #' head(get_process_groups(mod), 4)
@@ -639,11 +639,12 @@ get_process_groups <- function(x, regions = NULL) {
 #' @export
 #' @examples
 #' \dontrun{
-#' ek  <- topia$modules$electricity$R11
-#' mod <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod <- newModel("TOPIA", data = topia_elc$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
-#'                 region = ek$regions, horizon = topia$modules$horizons$base)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#'                 region = topia_elc$regions,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #'
 #' # how a family's regions group at each k, and the spread left inside the
 #' # clusters -- the input to choosing `clusters` for

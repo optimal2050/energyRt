@@ -343,9 +343,9 @@ plot_map <- function(object,
                            inherit.aes = FALSE, ...) +
           ggplot2::facet_wrap(~year) +
           geoscales::theme_geoscale() +
-          ggplot2::scale_fill_viridis_c(option = palette, name = NULL,
-                                        na.value = "grey92") +
-          ggplot2::labs(title = title, subtitle = paste0("by ", level)))
+          ggplot2::scale_fill_viridis_c(option = palette, end = 0.9,
+                                        name = level, na.value = "grey92") +
+          ggplot2::labs(title = title))
     }
     message("plot_map(): could not build a year-faceted map (no attached ",
             "geometry?); summing over years instead.")
@@ -359,8 +359,7 @@ plot_map <- function(object,
     gs, data = d, geoframe = level, fill = "value",
     palette = palette,
     title = title,
-    subtitle = paste0("by ", level),
-    fill_label = NULL,
+    fill_label = level,
     ...
   )
 }
@@ -443,6 +442,5 @@ plot_geoscale <- function(object, type = c("map", "stack", "icicle"),
   geoscales::geoscale_plot(gs, data = d, geoframe = finest, fill = "group",
                            title = paste0("geoscale: ",
                                           paste(frames, collapse = " > ")),
-                           subtitle = paste0("coloured by ", geoframe),
                            fill_label = geoframe, ...)
 }

@@ -159,7 +159,7 @@ setMethod("initialize", "import", function(.Object, ...) {
 #' draw(IMPOIL)
 #'
 newImport <- function(
-    name,
+    name = "",
     desc = "",
     commodity = "",
     unit = NULL,

@@ -187,6 +187,9 @@ setMethod("summary", signature(object = "repository"), function(object, ...) {
 # update() check what they are given, but a slot assigned with `@<-` is not
 # checked; an object entering a repository or a model is.
 .assert_valid_object <- function(x) {
+  # An object restored from a store written before a slot existed is missing
+  # it, not invalid; fill it from the prototype before judging.
+  x <- .upgrade_missing_slots(x)
   r <- methods::validObject(x, test = TRUE)
   if (!isTRUE(r)) {
     nm <- if (methods::.hasSlot(x, "name")) paste0(' "', x@name, '"') else ""
@@ -209,7 +212,9 @@ setMethod("add", signature("repository"), function(obj, ..., overwrite = FALSE) 
   }) |> list_flatten()
   ii <- sapply(arg, function(x) class(x)[1] %in% obj@permit)
   for (ob in arg[ii]) {
-    .assert_valid_object(ob)
+    # keep the return: it is the object with any slot its class has gained
+    # since it was serialized, which is what gets stored
+    ob <- .assert_valid_object(ob)
     if (!is.null(obj@data[[ob@name]]) && !overwrite) {
       stop("Object ", ob@name, " already exists in the repository.\n",
            "Use overwrite = TRUE to replace.")

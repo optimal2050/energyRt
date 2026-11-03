@@ -37,12 +37,13 @@ set_models_path(file.path(wf, "models"))                # ... and models
 set_repositories_path(file.path(wf, "repositories"))    # ... and repositories
 set_registry_file(file.path(wf, "energyRt_registry.csv"))
 
-um  <- topia$modules$electricity$R1
-mod <- newModel("TOPIA", data = um$repo,
+topia_elc <- topia$modules$electricity
+mod <- newModel("TOPIA", data = topia_elc$repo,
                 calendar = topia$modules$calendars$s4_h24,
-                region   = um$regions,
-                horizon  = topia$modules$horizons$base, discount = 0.05)
-mod <- setGeoscale(mod, um$geoscale)
+                region   = topia_elc$regions,
+                horizon  = topia$modules$horizons$BY2025_50_by10,
+                discount = 0.05)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 ```
 
 ```{r base-solve}
@@ -60,7 +61,7 @@ their data). By default it returns a named list keyed by object name; `drop =
 TRUE` unwraps a single match into the object itself.
 
 ```{r getobject}
-repo <- um$repo
+repo <- topia_elc$repo
 names(getObject(repo, class = "technology"))        # all technologies
 names(getObject(repo, class = "supply", region = "W1"))
 getObject(repo, name = "ECOA", drop = TRUE)@invcost # the ECOA object itself
@@ -111,7 +112,8 @@ repo_hi <- add(repo, ECOA, overwrite = TRUE)                # swap it back in
 
 mod_hi  <- newModel("TOPIA_HI", data = repo_hi,
                     calendar = topia$modules$calendars$s4_h24,
-                    region = um$regions, horizon = topia$modules$horizons$base,
+                    region = topia_elc$regions,
+                    horizon = topia$modules$horizons$BY2025_50_by10,
                     discount = 0.05)
 ```
 
@@ -229,7 +231,8 @@ comparison a one-liner. (Scenarios already *saved* compare by name alone:
 `getData(c("BASE", "CO2CAP"), ...)` loads them from the registry on the fly.)
 
 ```{r compare-solve}
-scen_cap <- interpolate_model(mod, "CO2CAP", um$CO2_CAP) |>   # add the CO2 cap lever
+# add the CO2 cap lever
+scen_cap <- interpolate_model(mod, "CO2CAP", topia_elc$CO2_CAP) |>
   solve_scenario(solver = solver_options$glpk, echo = FALSE)
 ```
 
@@ -254,7 +257,7 @@ A scenario that adds a lever to an interpolated one can be **built on it**:
 cap adds, and the result equals interpolating from scratch:
 
 ```{r compare-base}
-scen_cap2 <- interpolate_model(mod, "CO2CAP", um$CO2_CAP, base = scen)
+scen_cap2 <- interpolate_model(mod, "CO2CAP", topia_elc$CO2_CAP, base = scen)
 sum(compare_inputs(scen_cap2, scen_cap)$summary$status != "identical")
 ```
 
@@ -303,12 +306,13 @@ covers. Timeslice weights annualise the sample inside the solver
 slices are representative:
 
 ```{r sample-calendar}
-tt  <- topia$modules$calendars$s4_h24@timetable
-tt2 <- tt[tt$SEASON %in% c("WIN", "SUM"), ]      # two of the four seasons
-cal2 <- newCalendar(timetable = tt2, name = "s2h24",
-                    year_fraction = sum(tt2$share))
+timetable <- topia$modules$calendars$s4_h24@timetable
+# two of the four seasons
+timetable_2s <- timetable[timetable$SEASON %in% c("WIN", "SUM"), ]
+calendar_s2h24 <- newCalendar(timetable = timetable_2s, name = "s2h24",
+                              year_fraction = sum(timetable_2s$share))
 
-scen_t <- interpolate_model(mod, "S2", cal2) |>
+scen_t <- interpolate_model(mod, "S2", calendar_s2h24) |>
   solve_scenario(solver = solver_options$glpk, echo = FALSE)
 sapply(list(full = scen, sampled = scen_t),
        function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
@@ -322,9 +326,9 @@ objects naming out-of-sample timeslices interpolate cleanly — their
 out-of-sample rows are simply filtered.
 
 A sample of an already interpolated full-calendar scenario can be built on
-it, `interpolate_model(mod, "S2", cal2, base = scen)`: the full scenario's
-tables are taken filtered to the sampled timeslices instead of being
-recomputed.
+it, `interpolate_model(mod, "S2", calendar_s2h24, base = scen)`: the full
+scenario's tables are taken filtered to the sampled timeslices instead of
+being recomputed.
 
 ## Spatial sampling
 

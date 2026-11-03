@@ -60,26 +60,23 @@ the \code{topia-use} vignette).
 cannot drive the shipped kits (\code{ELC} is balanced at the \code{HOUR} level
 and \code{\link[=topia_profiles]{topia_profiles()}} has no annual shapes); it ships as the
 coarsest example calendar.}
-\item{horizons}{planning horizons (\code{base} = 2025/2030/2040/2050, each
-milestone the MID-point of its period, so that is where its costs are
-discounted from;
-\code{unit} = the single year 2025 for the unit kits).}
-\item{electricity}{per region layout (\code{R1}, \code{R3}, \code{R7}, \code{R11} -- an
-n-region layout is keyed \verb{R<n>} and takes the first n regions of the
-canonical west-to-east order \code{W1}, \code{W2}, \code{C1}..\code{C6}, \code{E1}..\code{E3}),
-each a "kit":
-\code{repo} (the base repository), \code{geoscale} (the layout's slice of the
-\code{nation -> zone -> region} hierarchy, without geometry -- a kit model
-MUST carry it, see the examples), the individual blocks (\code{repo_comm},
-\code{repo_supply}, \code{DEM_ELC}, \code{WSOL}/\code{WWIN}/\code{WHYD}, the technologies,
-\code{STG_ELC}), the scenario levers \code{CO2_CAP}, \code{CT_CO2}, \code{RES_SHARE},
-\code{NO_NEW_NUC}, \code{EARLY_RET}, and the add-on modules -- re-declared
-objects that REPLACE their base counterpart when added with
-\code{add(mod, ., overwrite = TRUE)}: \code{GAS_CURVE} (domestic gas as a
-3-step \code{\link[=asSupplyCurve]{asSupplyCurve()}}),
-\code{EWIN_SITES} (wind in two site-grade clusters, finite GOOD +
-down-rated POOR), \code{ENUC_VINT} (nuclear in two build vintages, absent
-from the \code{R1} kit, which reaches no nuclear region).
+\item{horizons}{planning horizons, named for their MILESTONES rather
+than the period end, with \code{BY} marking a one-year base year at the
+front. \code{BY2025_50_by10} = milestones 2025/2030/2040/2050, a base year
+then 10-year intervals (its periods run to 2055). Each milestone is the
+MID-point of its period, so that is where its costs are discounted
+from. \code{BY2025} = the base year alone, for the unit kits.}
+\item{electricity}{THE model, over all eleven regions \code{W1}, \code{W2},
+\code{C1}..\code{C6}, \code{E1}..\code{E3}: \code{repo} (the repository), \code{regions}, \code{calendar}
+(the name of the calendar it was built for), \code{geoscale} (its
+\code{nation -> zone -> region} hierarchy, without geometry -- a model MUST
+carry it, see the examples), and the scenario levers \code{CO2_CAP},
+\code{CT_CO2}, \code{EARLY_RET} and \code{GREEN_H2}, which are NOT in \code{repo} and
+are added to a scenario on top of it. Built by
+\code{data-raw/topia_model.R}, which
+tangles \code{vignettes/topia-build.Rmd} -- the vignette is the source, so
+what it documents and what ships cannot drift apart. Smaller cases come
+from \code{\link[=subset_model_regions]{subset_model_regions()}}, not from a saved layout.
 
 The resources are CONCENTRATED, which is what drives trade: \code{COA} and
 \code{GAS} are balanced per ZONE (\code{commodity@geoframe}) and traded between
@@ -112,11 +109,11 @@ gs <- topia$geoscales$honeycomb          # hierarchy + that layout's polygons
 geoscales::geoscale_leaftable(gs)        # the region table
 plot_geoscale(gs, type = "map")
 
-um <- topia$modules$electricity$R3
+um <- topia$modules$electricity
 mod <- newModel("TOPIA", data = um$repo,
                 calendar = topia$modules$calendars$s4_h24,
                 region = um$regions,
-                horizon = topia$modules$horizons$base,
+                horizon = topia$modules$horizons$BY2025_50_by10,
                 discount = 0.05)
 mod <- setGeoscale(mod, um$geoscale)
 scen <- solve_scenario(interpolate_model(mod, "BASE"),
@@ -127,7 +124,7 @@ uk <- topia$modules$unit$U1
 umod <- newModel("UNIT", data = uk$repo,
                  calendar = topia$modules$unit$calendars$unit_s4,
                  region = uk$regions,
-                 horizon = topia$modules$horizons$unit, discount = 0)
+                 horizon = topia$modules$horizons$BY2025, discount = 0)
 }
 }
 \seealso{

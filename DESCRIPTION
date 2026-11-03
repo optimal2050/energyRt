@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.90.0.9038
-Date: 2026-10-28
+Version: 0.90.1.9000
+Date: 2026-11-02
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -34,13 +34,14 @@ Depends: R (>= 4.3)
 Imports: methods, grid, stats, generics, data.table, tibble, tidyr, dplyr, rlang,
         stringr, lubridate, purrr, arrow (>= 10.0.0), progressr, cli,
         options (>= 0.2.0), grDevices, utils, tools, yaml,
-        geoscales (>= 0.6.0), timescales (>= 0.6.0)
+        geoscales (>= 0.7.0), timescales (>= 0.7.0)
 Suggests: shiny, DT, pak, knitr, rmarkdown, sf, ggplot2,
         testthat (>= 3.0.0), devtools, openxlsx, jsonlite, readxl,
         httr2, xml2, base64enc, tinytex, patchwork,
-        waldo, withr, mmcloud, DBI, RSQLite, multimod,
+        waldo, withr, mmcloud, DBI, RSQLite, multimod, energypal,
         nestedscales, glpsol
 Remotes: optimal2050/geoscales, optimal2050/timescales,
+        optimal2050/energypal,
         optimal2050/nestedscales
 SystemRequirements: Julia (>= 1.6) with JuMP or Python (>= 3.7) with
         Pyomo or GAMS (>= 24.9) or GLPK (>= 4.0)
@@ -84,6 +85,7 @@ Collate:
     'print.R'
     'plot.R'
     'check.R'
+    'check_feasibility.R'
     'geoscale.R'
     'mapping-builders.R'
     'check_levels.R'
@@ -95,6 +97,7 @@ Collate:
     'compare_values.R'
     'config_file.R'
     'convert.R'
+    'currency.R'
     'data.R'
     'data2slots.R'
     'design.R'

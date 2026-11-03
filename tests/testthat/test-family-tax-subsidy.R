@@ -105,10 +105,11 @@ test_that("family tax-subsidy: inp and bal subsidy rates land in modInp", {
 })
 
 test_that("family tax-subsidy: a levy charges each flow once, at its own level", {
-  ek <- topia$modules$electricity$R3
-  mod <- setGeoscale(newModel("TOPIA", data = ek$repo,
-    calendar = topia$modules$calendars$s4_h24, region = ek$regions,
-    horizon = topia$modules$horizons$base, discount = 0.05), ek$geoscale)
+  topia_r3 <- ut_golden_kits()$R3
+  mod <- setGeoscale(newModel("TOPIA", data = topia_r3$repo,
+    calendar = topia$modules$calendars$s4_h24, region = topia_r3$regions,
+    horizon = topia$modules$horizons$BY2025_50_by10, discount = 0.05),
+    topia_r3$geoscale)
   scen <- suppressMessages(suppressWarnings(interpolate_model(mod,
     newTax("TCO2", comm = "CO2", tax = data.frame(out = 10)),
     newTax("TCOA", comm = "COA", tax = data.frame(inp = 1)),

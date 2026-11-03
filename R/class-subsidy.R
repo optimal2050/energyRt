@@ -135,7 +135,7 @@ setClass("subsidy",
 #'    )
 #'  )
 newSubsidy <- function(
-  name,
+  name = "",
   desc = "",
   comm = "",
   geoframe = character(),

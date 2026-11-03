@@ -127,6 +127,11 @@
 #'   reused, the new objects' tables are computed, and every map is rebuilt.
 #' @param .reuse internal: an interpolated scenario whose per-object tables
 #'   are reused for the objects it holds (set by `base`).
+#' @param check run [check_feasibility()] on the interpolated scenario and
+#'   STOP when it finds a contradiction, rather than returning a scenario
+#'   that can only solve to INFEASIBLE. Off by default: the check costs a
+#'   pass over the parameter tables, and a model known to be sound does
+#'   not need it.
 #' @param verbose logical; print per-step progress. This also governs the
 #'   variant-expansion report -- how many process objects were expanded and how
 #'   many constraints were generated for them. The generated constraints
@@ -140,13 +145,13 @@
 #' @export
 #' @examples
 #' \donttest{
-#' ek  <- topia$modules$electricity$R3
-#' mod <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod <- newModel("TOPIA", data = topia_elc$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
-#'                 region = ek$regions,
-#'                 horizon = topia$modules$horizons$base,
+#'                 region = topia_elc$regions,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10,
 #'                 discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #'
 #' # build the solver-facing sets and parameters; nothing is solved yet
 #' scen <- interpolate_model(mod, name = "BASE")
@@ -166,6 +171,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
                        fx_equ = getOption("energyRt.fx_equ", TRUE),
                        on_missing_input = getOption("energyRt.on_missing_input",
                                                     "stop"),
+                       check = FALSE,
                        verbose = isVerbose(), .reuse = NULL) {
   # which build arguments the caller set (read before any is reassigned)
   .given <- c(fold = !missing(fold), sparse = !missing(sparse),
@@ -248,6 +254,10 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   object <- .upgrade_model_summands(object)
   # Same for storages serialized before the `inp2stg` slot.
   object <- .upgrade_model_storages(object)
+  # An object priced in another currency is a mistake no number in the output
+  # reveals, so it stops here rather than being absorbed. Silent unless both
+  # the model and the object declare one.
+  .check_model_currency(object)
   # `scen@model` keeps the model as given (plus the repositories added below);
   # the expanded build copy is used only while interpolating
   .model_given <- object
@@ -1383,6 +1393,20 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   scen <- .strip_rule_tables(scen, verbose = verbose)
   # the model as given; .scen_build_model() rebuilds the expanded copy
   scen@model <- .model_given
+  # Opt-in: the only reason to ask for the check here is to be stopped before
+  # a solve that cannot succeed, so a proven contradiction is an error. The
+  # findings are printed first, because the message is the point.
+  if (isTRUE(check)) {
+    .f <- check_feasibility(scen, verbose = TRUE)
+    if (NROW(.f) > 0) {
+      stop("interpolate_model(): the model contradicts itself in ", NROW(.f),
+           " place(s), listed above -- a forced requirement exceeds a ",
+           "ceiling that cannot be raised. Solving it would return ",
+           "INFEASIBLE without saying why. Fix the declarations, or call ",
+           "again with `check = FALSE` to build the scenario anyway.",
+           call. = FALSE)
+    }
+  }
   scen
 }
 
@@ -2539,13 +2563,13 @@ interpolate_bounds <- function(
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # drop the approximation context the scenario no longer needs; the
@@ -2685,13 +2709,13 @@ trim_parameters <- function(object, verbose = FALSE) {
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # no rows means every parameter's domain, bounds and defaults agree
@@ -3517,13 +3541,13 @@ map_comm_geoframe <- function(scen, comm = NULL) {
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # the timeframe a process is resolved at: the finest of its commodities
@@ -3721,13 +3745,13 @@ get_process_timeframe <- function(object, process = NULL,
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # the class of the processes asked for, or of every one of them
@@ -3778,13 +3802,13 @@ get_process_class <- function(object, process = NULL, classes = NULL) {
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' get_process_inputs(scen, process = c("ECOA", "EGAS"))
@@ -3865,13 +3889,13 @@ get_process_inputs <- function(object, process = NULL, classes = NULL) {
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' get_process_outputs(scen, process = c("ECOA", "SUP_COA"))
@@ -3994,13 +4018,13 @@ get_process_outputs <- function(object, process = NULL, classes = NULL) {
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # a process with no auxiliary flow reports an empty vector, not a missing entry
@@ -4059,13 +4083,13 @@ get_process_aux <- function(object, process = NULL, classes = NULL) {
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # only `storage` holds a commodity
@@ -4103,13 +4127,13 @@ get_process_stored <- function(object, process = NULL, classes = NULL) {
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # every commodity a process touches, whichever side it enters on
@@ -4236,13 +4260,13 @@ nl2df <- named_list_to_df
 #' @export
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' get_process_region(scen, process = "ECOA")
@@ -4442,13 +4466,13 @@ get_process_region <- function(object, process = NULL, classes = NULL,
 #'
 #' @examples
 #' \donttest{
-#' ek   <- topia$modules$electricity$R3
-#' mod  <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod  <- newModel("TOPIA", data = topia_elc$repo,
 #'                  calendar = topia$modules$calendars$s4_h24,
-#'                  region = ek$regions,
-#'                  horizon = topia$modules$horizons$base,
+#'                  region = topia_elc$regions,
+#'                  horizon = topia$modules$horizons$BY2025_50_by10,
 #'                  discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' scen <- interpolate_model(mod, name = "EX")
 #'
 #' # the years a process may be invested in, by region

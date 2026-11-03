@@ -26,9 +26,9 @@ if (exists("open_project")) {
   open_project(path = scratch)
 }
 
-topia_electricity <- topia$modules$electricity$R3
+topia_electricity <- topia$modules$golden$R3
 topia_calendar <- topia$modules$calendars$s4_h24
-topia_horizon <- topia$modules$horizons$base
+topia_horizon <- topia$modules$horizons$BY2025_50_by10
 
 # Keep storage visible in this compact demonstration. A 1 GW existing battery
 # in each region is a sunk asset, so the dispatch exposes charging and

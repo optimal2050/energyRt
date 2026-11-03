@@ -19,7 +19,7 @@ test_that("plot_trade_network draws inputs without a map", {
   l <- .tn_input(tr, do.call(rbind, lapply(tr, function(t) data.frame(
     trade = t@name, comm = .trade_comm(t), src = t@routes$src, dst = t@routes$dst))), NULL)
   expect_equal(l$value[l$a == "C" & l$b == "D"], 1500)
-  expect_equal(l$status[l$a == "C" & l$b == "D"], "project")
+  expect_equal(l$status[l$a == "C" & l$b == "D"], "new")
   expect_equal(l$value[l$a == "A" & l$b == "B" & l$comm == "ELC"], 1000)
   expect_equal(l$band[l$a == "A" & l$b == "B" & l$comm == "ELC"], 2000)
 })

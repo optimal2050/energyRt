@@ -9,14 +9,28 @@
 # ("validated out-of-band"): these entries pin them to goldens.
 # =========================================================================== #
 
+# The retiring pre-0.92 region kits. They left the shipped dataset when they
+# stopped being something to point users at; the goldens still pin them, so
+# they live here as a test fixture until the replacement model covers the
+# same ground, at which point this file and the fixture go together.
+ut_golden_kits <- local({
+  cache <- NULL
+  function() {
+    if (is.null(cache)) {
+      cache <<- readRDS(testthat::test_path("fixtures", "topia_golden.rds"))
+    }
+    cache
+  }
+})
+
 ut_build <- function(layout = "R3", calendar = "topia_seasons", lever = NULL) {
-  um <- topia$modules$electricity[[layout]]
+  um <- ut_golden_kits()[[layout]]
   stopifnot(!is.null(um))
   mod <- newModel(paste0("UT_", layout),
     data = um$repo,
     calendar = topia$modules$calendars[[calendar]],
     region = um$regions,
-    horizon = topia$modules$horizons$base,
+    horizon = topia$modules$horizons$BY2025_50_by10,
     discount = 0.05)
   # COA and GAS are balanced at the zone, so every kit model carries the
   # hierarchy it was built against (`nation -> zone -> region`, no geometry)
@@ -68,7 +82,7 @@ un_build <- function(layout = "U1", module = NULL) {
     calendar = topia$modules$unit$calendars[[kit$calendar]] %||%
       topia$modules$calendars[[kit$calendar]],
     region = kit$regions,
-    horizon = topia$modules$horizons$unit,
+    horizon = topia$modules$horizons$BY2025,
     discount = 0)
   if (!is.null(module) && !identical(module, "SOLAR_only")) {
     mod <- add(mod, kit[[module]], overwrite = TRUE)

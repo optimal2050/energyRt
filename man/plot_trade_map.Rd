@@ -11,6 +11,7 @@ plot_trade_map(
   labels = TRUE,
   route_color = "steelblue",
   level = NULL,
+  comm = NULL,
   ...
 )
 
@@ -31,6 +32,11 @@ it, only centroids and routes are drawn.}
 
 \item{level}{When \code{map} is a \code{Geoscale}, which level to draw. Defaults to the
 finest, i.e. the model's own regions.}
+
+\item{comm}{draw only the trades carrying this commodity (or these). \code{NULL}
+(default) draws every one. A repository usually mixes commodities that
+share neither a geoscale level nor a capacity unit, so one at a time is
+the readable case.}
 
 \item{...}{Unused.}
 }

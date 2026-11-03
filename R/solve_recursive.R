@@ -29,7 +29,7 @@
 #' @seealso [solve_recursive()]
 #' @export
 #' @examples
-#' h <- topia$modules$horizons$base
+#' h <- topia$modules$horizons$BY2025_50_by10
 #'
 #' # one window per milestone year
 #' vapply(horizon_windows(h), function(x) x$horizon@name, character(1))
@@ -176,13 +176,13 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #' \dontrun{
 #' open_project(tempdir())
 #'
-#' ek  <- topia$modules$electricity$R3
-#' mod <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod <- newModel("TOPIA", data = topia_elc$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
-#'                 region = ek$regions,
-#'                 horizon = topia$modules$horizons$base,
+#'                 region = topia_elc$regions,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10,
 #'                 discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #'
 #' # one solve per milestone year, each blind to the next, with capacity
 #' # carried forward
@@ -403,13 +403,13 @@ getData.recursive <- function(object, name = NULL, ..., merge = TRUE) {
 #' \dontrun{
 #' open_project(tempdir())
 #'
-#' ek  <- topia$modules$electricity$R3
-#' mod <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod <- newModel("TOPIA", data = topia_elc$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
-#'                 region = ek$regions,
-#'                 horizon = topia$modules$horizons$base,
+#'                 region = topia_elc$regions,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10,
 #'                 discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' res <- solve_recursive(mod, name = "MYOPIC", solver = solver_options$glpk)
 #'
 #' # per-step objectives are discounted to their own base years, so they do

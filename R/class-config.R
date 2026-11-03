@@ -10,6 +10,7 @@
 #'
 #' @slot name `r get_slot_doc("config", "name")`
 #' @slot desc `r get_slot_doc("config", "desc")`
+#' @slot currency `r get_slot_doc("config", "currency")`
 #' @slot region `r get_slot_doc("config", "region")`
 #' @slot calendar `r get_slot_doc("config", "calendar")`
 #' @slot geoscale `r get_slot_doc("config", "geoscale")`
@@ -32,6 +33,7 @@ setClass("config",
   representation(
     name = "character",
     desc = "character",
+    currency = "character",
     region = "character",
     # year = "numeric", # move to horizon
     calendar = "calendar",
@@ -55,6 +57,9 @@ setClass("config",
   prototype(
     name = "default",
     desc = "model configuration",
+    # Unset claims nothing, which is how every model written before this slot
+    # behaves. See `.model_currency()`.
+    currency = character(),
     debug = data.frame(
       comm = character(),
       region = character(),

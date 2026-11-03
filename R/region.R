@@ -654,11 +654,12 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
 #' @export
 #' @examples
 #' \dontrun{
-#' ek  <- topia$modules$electricity$R3
-#' mod <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod <- newModel("TOPIA", data = topia_elc$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
-#'                 region = ek$regions, horizon = topia$modules$horizons$base)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#'                 region = topia_elc$regions,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #'
 #' # the priced import/export stubs a sub-territory solve needs at its edge:
 #' # a share of the region's own demand, in `nsteps` price steps
@@ -1495,13 +1496,13 @@ Aggregating between two non-atom levels needs a level-aware ",
 #' @family model
 #' @export
 #' @examples
-#' ek  <- topia$modules$electricity$R3
-#' mod <- newModel("TOPIA", data = ek$repo,
+#' topia_elc <- topia$modules$electricity
+#' mod <- newModel("TOPIA", data = topia_elc$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
-#'                 region = ek$regions,
-#'                 horizon = topia$modules$horizons$base,
+#'                 region = topia_elc$regions,
+#'                 horizon = topia$modules$horizons$BY2025_50_by10,
 #'                 discount = 0.05)
-#' mod <- setGeoscale(mod, ek$geoscale)
+#' mod <- setGeoscale(mod, topia_elc$geoscale)
 #' get_region(mod)
 get_region <- function(object) {
   if (!isS4(object)) {
@@ -1629,11 +1630,11 @@ get_region <- function(object) {
 #' @export
 #' @examples
 #' # the weather series a process is linked to, read from its own slots
-#' ek <- topia$modules$electricity$R3
-#' get_weather(ek$EWIN)
+#' topia_elc <- topia$modules$electricity
+#' get_weather(getObject(topia_elc$repo, name = "EWIN", drop = TRUE))
 #'
 #' # a process with no weather link reports none
-#' get_weather(ek$ECOA)
+#' get_weather(getObject(topia_elc$repo, name = "ECOA", drop = TRUE))
 get_weather <- function(object) {
   if (!isS4(object)) {
     return(character(0))

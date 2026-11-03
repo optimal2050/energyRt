@@ -15,6 +15,7 @@ newSupply(
   cluster = data.frame(),
   geoframe = character(),
   region = character(),
+  units = data.frame(),
   misc = list(),
   ...
 )
@@ -97,6 +98,13 @@ REQUIRED whenever any other slot carries a \code{cluster} label, and AUTHORITATI
 \item{geoframe}{character. Optional. The geoscale level this object's regions are expressed at; unset (the default) derives it from the region codes. See \code{technology@geoframe} for the full rule, including the consistency checks it turns on. A supply DELIVERS its commodity, so its level may not be coarser than the commodity's balance level.}
 
 \item{region}{character. Regions where the supply process exists. Must include all regions used in other slots. \code{availability} and \code{reserve} slots also limit possible regions.}
+
+\item{units}{data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in \code{cost}/\code{invcost} and the capacity and activity columns are bare. A declared \code{costs} that disagrees with the model's \code{config@currency} is an error rather than a silent conversion; leave a column empty to claim nothing.
+
+\describe{
+\item{activity}{character. Unit of the activity variable.}
+\item{costs}{character. Currency of the cost columns.}
+}}
 
 \item{misc}{list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the supply data, or other metadata.}
 

@@ -531,8 +531,8 @@ cost section applies to technology, storage and trade only.
 \dontrun{
 open_project(tempdir())
 
-ek  <- topia$modules$electricity$R3
-tech <- ek$ECOA
+topia_elc <- topia$modules$electricity
+tech <- getObject(topia_elc$repo, name = "ECOA", drop = TRUE)
 
 # an object on its own: its assumptions, and an ex-ante estimate of what it
 # could do
@@ -540,10 +540,11 @@ report(tech)
 
 # the same object as the model sees it -- prices and calendar from the
 # model it belongs to
-mod <- newModel("TOPIA", data = ek$repo,
+mod <- newModel("TOPIA", data = topia_elc$repo,
                 calendar = topia$modules$calendars$s4_h24,
-                region = ek$regions, horizon = topia$modules$horizons$base)
-mod <- setGeoscale(mod, ek$geoscale)
+                region = topia_elc$regions,
+                horizon = topia$modules$horizons$BY2025_50_by10)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 report(tech, model = mod)
 
 # and as a solved scenario realized it, against that ex-ante estimate

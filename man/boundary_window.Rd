@@ -57,11 +57,12 @@ across regions).
 }
 \examples{
 \dontrun{
-ek  <- topia$modules$electricity$R3
-mod <- newModel("TOPIA", data = ek$repo,
+topia_elc <- topia$modules$electricity
+mod <- newModel("TOPIA", data = topia_elc$repo,
                 calendar = topia$modules$calendars$s4_h24,
-                region = ek$regions, horizon = topia$modules$horizons$base)
-mod <- setGeoscale(mod, ek$geoscale)
+                region = topia_elc$regions,
+                horizon = topia$modules$horizons$BY2025_50_by10)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 
 # the priced import/export stubs a sub-territory solve needs at its edge:
 # a share of the region's own demand, in `nsteps` price steps

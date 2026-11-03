@@ -24,7 +24,7 @@ produced by that function and rebuilds \link{class-technology} objects, coercing
 mini-table's columns back to the types declared by the class.
 }
 \examples{
-tech <- topia$modules$electricity$R3$ECOA
+tech <- getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE)
 f <- tempfile(fileext = ".xlsx")
 write_technology_xlsx(tech, f)
 

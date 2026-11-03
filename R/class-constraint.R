@@ -338,7 +338,7 @@ setClass("summand",
 #'
 #' @export
 newConstraint <- function(
-    name,
+    name = "",
     desc = "",
     ...,
     eq = "==",

@@ -383,6 +383,22 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
   if (length(g) == 0) NA_character_ else g[1]
 }
 
+# The level to CALL an object's regions by, as opposed to the level it
+# declares. `@geoframe` left unset means the regions are at whatever level
+# their codes are at; with no geoscale to resolve that against there is one
+# flat level, and energyRt calls it `region` -- the `region` slot, the `region`
+# column, `newModel(region =)`. Named here so the default lives in one place
+# rather than in each caller.
+#
+# Not a substitute for `.obj_geoframe()`: that answers what the object
+# DECLARES, and `NA` there is load-bearing (an undeclared level is resolved
+# from the region codes, not assumed). This is for labelling only.
+#' @noRd
+.geoframe_name <- function(obj, default = "region") {
+  lv <- .obj_geoframe(obj)
+  if (is.na(lv)) default else lv
+}
+
 # The regions a declared level covers, or `default` when no level is declared.
 #
 # This is the ONE default `@geoframe` sets: an object that names no regions of

@@ -21,12 +21,12 @@ form used by \code{\link[=process_from_spec]{process_from_spec()}} and the proce
 same structure.
 }
 \examples{
-spec <- process_to_spec(topia$modules$electricity$R3$ECOA)
+spec <- process_to_spec(getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE))
 
 # a spec already in memory is returned as-is, so the same call accepts
 # either a list or the path to a YAML file written by `process_to_spec()`
 f <- tempfile(fileext = ".yml")
-process_to_spec(topia$modules$electricity$R3$ECOA, file = f)
+process_to_spec(getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE), file = f)
 identical(read_process_spec(f)$name, spec$name)
 }
 \seealso{

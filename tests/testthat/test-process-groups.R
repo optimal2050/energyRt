@@ -23,7 +23,11 @@ cr_geoscale <- function() {
 
 cr_model <- function(with_trade = TRUE) {
   cal <- topia$modules$calendars$topia_seasons
-  shape <- topia$demand[topia$demand$calendar == "topia_seasons", ]
+  # `topia$demand` carries one shape PER REGION since 0.92, so a calendar
+  # filter alone returns eleven of them and every timeslice repeats. This
+  # fixture wants a single reference shape to scale by `lvl`.
+  shape <- topia$demand[topia$demand$calendar == "topia_seasons" &
+                          topia$demand$region == "C1", ]
   tt <- as.data.frame(cal@timetable)
   shape$share <- tt$share[match(shape$timeslice, tt$timeslice)]
   shape$w <- shape$load * shape$share

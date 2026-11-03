@@ -31,22 +31,22 @@ interpolating: the names a constraint, levy or report will have to refer to.
 The expansion runs on a throwaway copy, so the model passed in is unchanged.
 }
 \examples{
-ek  <- topia$modules$electricity$R3
-mod <- newModel("TOPIA", data = ek$repo,
+topia_elc <- topia$modules$electricity
+mod <- newModel("TOPIA", data = topia_elc$repo,
                 calendar = topia$modules$calendars$s4_h24,
-                region = ek$regions,
-                horizon = topia$modules$horizons$base,
+                region = topia_elc$regions,
+                horizon = topia$modules$horizons$BY2025_50_by10,
                 discount = 0.05)
-mod <- setGeoscale(mod, ek$geoscale)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 
-# the base kit has no variants
-getVariants(mod)
-
-# add the clustered-wind and vintaged-nuclear modules and ask again: this is
-# the roster of names the solver-facing sets will carry
-mod <- add(mod, ek$EWIN_SITES, ek$ENUC_VINT, overwrite = TRUE)
+# the shipped model is already varied: wind is split into site grades and
+# several processes carry vintages. This is the roster of names the
+# solver-facing sets will carry.
 getVariants(mod)
 getVariants(mod, class = "technology")
+
+# a process gains variants from its own @cluster / @vintage tables
+getObject(topia_elc$repo, name = "EWIN", drop = TRUE)@cluster
 }
 \seealso{
 Other technology process:

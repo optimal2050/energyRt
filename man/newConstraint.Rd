@@ -5,7 +5,7 @@
 \title{Create constraint object to add custom constraints to the model.}
 \usage{
 newConstraint(
-  name,
+  name = "",
   desc = "",
   ...,
   eq = "==",

@@ -26,6 +26,16 @@ any status, PDLP warm starts through \code{gpu_save_warm_start} and
 \code{pyomo_cuopt_cloud} (a Pyomo-written matrix on a rented GPU).
 }
 \details{
+The \verb{julia_*} presets call Julia directly, building a JuMP model in a Julia
+subprocess, and so reach the solvers Julia's HiGHS build carries and the R
+and Python builds do not: \code{julia_highs_hipo} (HiGHS's own parallel interior
+point method, a threaded CPU factorisation, named explicitly so it is not
+restarted with IPX), with \verb{_xover} for a vertex solution and \verb{_bs3} for
+scaled bounds, \code{julia_highs_ipx} for the older interior point method, and
+\code{julia_highs_pdlp} / \code{julia_highs_hipdlp} for the first-order methods. The R
+\code{highs} build is compiled without amd, blas, metis and rcm and silently
+reverts to \code{choose} when asked for \code{hipo}.
+
 These entries are data only -- selecting one does not check that the solver
 is installed. The former names \code{mmcloud}, \code{mmcloud_crossover},
 \code{mmcloud_pyomo} and \code{mmcloud_pyomo_crossover} remain as entries that stop a

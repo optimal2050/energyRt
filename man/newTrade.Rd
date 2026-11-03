@@ -25,6 +25,7 @@ newTrade(
   weather = data.frame(),
   cap2act = 1,
   optimizeRetirement = FALSE,
+  units = data.frame(),
   misc = list(),
   ...
 )
@@ -270,6 +271,14 @@ REQUIRED whenever any other slot carries a \code{cluster} label, and AUTHORITATI
 \item{cap2act}{numeric. Capacity to activity ratio.}
 
 \item{optimizeRetirement}{logical. Incidates if the retirement of the trade object should be optimized. Also requires the same parameter in the \code{model} or \code{scenario} class to be set to TRUE to be effective.}
+
+\item{units}{data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in the cost, capacity and activity columns are bare. A declared \code{costs} that disagrees with the model's \code{config@currency} is an error rather than a silent conversion; leave a column empty to claim nothing. One unit per kind: a storage prices three capacities but states \code{capacity} once.
+
+\describe{
+\item{capacity}{character. Unit of capacity.}
+\item{activity}{character. Unit of the activity variable.}
+\item{costs}{character. Currency of the cost columns.}
+}}
 
 \item{misc}{list. Additional information.}
 

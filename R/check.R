@@ -293,8 +293,8 @@ en_check_julia_pkgs <- function(pkgs = c("JuMP", "HiGHS", "Arrow")) {
 #         golden file and no per-backend tolerance. A dozen rows: inside any
 #         demo cap, so this level proves the chain (writer, data exchange,
 #         solver, reader) and nothing about capacity.
-#   full  the R1 electricity kit on `s4_h24`, the calendar its data is built
-#         for: the size the suite's own fixtures run at, and above the
+#   full  the shipped electricity model on `s4_h24`, the calendar its data is
+#         built for: the size the suite's own fixtures run at, and above the
 #         classic 300x300 demo cap. Its objective is not hand-computable, so the
 #         level asserts agreement with GLPK on the same model -- the same parity
 #         the cross tier checks, at probe scale.
@@ -325,21 +325,21 @@ en_check_julia_pkgs <- function(pkgs = c("JuMP", "HiGHS", "Arrow")) {
 .en_probe_model <- function(level = c("tiny", "full")) {
   level <- match.arg(level)
   if (level == "tiny") {
-    kit <- topia$modules$unit$U1
-    return(newModel("EN_PROBE", data = kit$repo,
-                    calendar = topia$modules$unit$calendars[[kit$calendar]],
-                    region   = kit$regions,
-                    horizon  = topia$modules$horizons$unit, discount = 0))
+    topia_unit <- topia$modules$unit$U1
+    return(newModel("EN_PROBE", data = topia_unit$repo,
+                    calendar = topia$modules$unit$calendars[[topia_unit$calendar]],
+                    region   = topia_unit$regions,
+                    horizon  = topia$modules$horizons$BY2025, discount = 0))
   }
-  kit <- topia$modules$electricity$R1
-  # the electricity kits balance COA and GAS at the zone, so the model needs
-  # the hierarchy the kit was built against
+  topia_elc <- topia$modules$electricity
+  # COA and GAS are balanced at the zone, so the model needs the hierarchy it
+  # was built against
   setGeoscale(
-    newModel("EN_PROBE_FULL", data = kit$repo,
+    newModel("EN_PROBE_FULL", data = topia_elc$repo,
              calendar = topia$modules$calendars$s4_h24,
-             region   = kit$regions,
-             horizon  = topia$modules$horizons$unit, discount = 0),
-    kit$geoscale)
+             region   = topia_elc$regions,
+             horizon  = topia$modules$horizons$BY2025, discount = 0),
+    topia_elc$geoscale)
 }
 
 #' @rdname en_check

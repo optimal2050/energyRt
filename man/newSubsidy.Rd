@@ -5,7 +5,7 @@
 \title{Create a new subsidy object}
 \usage{
 newSubsidy(
-  name,
+  name = "",
   desc = "",
   comm = "",
   geoframe = character(),

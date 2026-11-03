@@ -158,7 +158,7 @@ test_that("a derived scenario solves to the full scenario's objective", {
 })
 
 test_that("the model hash ignores the S7 class object of a geoscale", {
-  gs <- topia$modules$electricity$R3$geoscale
+  gs <- ut_golden_kits()$R3$geoscale
   x <- .strip_volatile(gs)
   expect_null(attr(x, "S7_class"))
   expect_identical(class(x), class(gs))
@@ -186,7 +186,7 @@ test_that("new processes and commodities on a base equal the full interpolation"
   skip_if_tier_below("fast")
   for (fold in c(FALSE, TRUE)) {
     mod <- ut_build("R3", "s4_h24")
-    new <- .ib_build_new(topia$modules$electricity$R3$repo)
+    new <- .ib_build_new(ut_golden_kits()$R3$repo)
     ref <- .ib_quiet(interpolate_model(mod, .ib_ref_add(), name = "REF",
                                        fold = fold, verbose = FALSE))
     full <- .ib_quiet(do.call(interpolate_model,
@@ -203,7 +203,7 @@ test_that("new processes and commodities on a base equal the full interpolation"
 test_that("new processes on existing commodities reuse the base's maps", {
   skip_if_tier_below("fast")
   mod <- ut_build("R3", "s4_h24")
-  new <- .ib_build_new(topia$modules$electricity$R3$repo)[1:2]
+  new <- .ib_build_new(ut_golden_kits()$R3$repo)[1:2]
   ref <- .ib_quiet(interpolate_model(mod, .ib_ref_add(), name = "REF",
                                      verbose = FALSE))
   full <- .ib_quiet(do.call(interpolate_model,
@@ -220,7 +220,7 @@ test_that("new processes on existing commodities reuse the base's maps", {
 test_that("a bound declared per region and one for all regions both bind", {
   # one storage's duration names its regions, the other's applies to all: the
   # NA of the second is a wildcard for its own rows
-  repo <- topia$modules$electricity$R3$repo
+  repo <- ut_golden_kits()$R3$repo
   stg <- repo@data$STG_ELC
   stg@name <- "STG_REG"
   stg@duration <- data.frame(vintage = NA_character_, cluster = NA_character_,

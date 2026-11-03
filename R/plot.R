@@ -11,7 +11,7 @@
 #' @include class-weather.R class-model.R class-repository.R
 
 
-plot_horizon <- function(object, ...) {
+plot_horizon <- function(object, ..., palette = "D") {
 
   check_package("ggplot2")
 
@@ -45,7 +45,8 @@ plot_horizon <- function(object, ...) {
       color = "black") +
     ggplot2::geom_vline(xintercept = y$mid, color = "white", alpha = 0.75) +
     ggplot2::geom_vline(xintercept = y$mid, linetype = "dashed") +
-    ggplot2::scale_fill_viridis_c(option = "C", name = "") +
+    ggplot2::scale_fill_viridis_c(option = palette, end = 0.9,
+                                  name = "year") +
     ggplot2::labs(y = NULL, x = "milestone year") +
     ggplot2::scale_x_continuous(
       breaks = .brk, labels = .brk_lab, expand = c(0, 0),
@@ -436,19 +437,16 @@ plot_commodity <- function(object, ..., palette = "D") {
   df$commodity <- factor(df$commodity, levels = unique(df$commodity))
 
   units <- unique(stats::na.omit(df$unit))
-  y_lab <- if (length(units) == 1 && nzchar(units)) {
-    paste0("emission factor [", units, "]")
-  } else {
-    "emission factor"
-  }
+  y_lab <- if (length(units) == 1 && nzchar(units)) units else "NA"
 
   p <- ggplot2::ggplot(df,
       ggplot2::aes(x = commodity, y = emis, fill = species)) +
     # Dodge, not stack: factors for different species are not additive.
     ggplot2::geom_col(position = ggplot2::position_dodge2(preserve = "single"),
                       width = 0.8) +
-    ggplot2::scale_fill_viridis_d(option = palette, end = 0.85) +
-    ggplot2::labs(x = NULL, y = y_lab, fill = "emission") +
+    .key_scale(levels(df$species) %||% sort(unique(as.character(df$species))),
+               palette, "emission") +
+    ggplot2::labs(x = NULL, y = y_lab) +
     theme_energyRt() +
     ggplot2::theme(
       axis.text.x   = ggplot2::element_text(angle = 30, hjust = 1),
@@ -628,12 +626,13 @@ plot_process_year <- function(object, year = NULL, interpolate = TRUE,
   xmid     <- if (no_years) 0 else stats::median(range(allyr, na.rm = TRUE))
   raw_pt <- raw; raw_pt$year[is.na(raw_pt$year)] <- xmid
 
-  sub_parts <- c("points: given data",
-                 if (isTRUE(interpolate)) "lines: interpolated",
-                 if (!is.null(def_df)) "dotted: defaults")
-  cap_txt <- if (length(def_skip) > 0)
-    paste("defaults not shown:", paste(unique(def_skip), collapse = ", ")) else
-    NULL
+  cap_txt <- paste(c(
+    paste(c("points: given data",
+            if (isTRUE(interpolate)) "lines: interpolated",
+            if (!is.null(def_df)) "dotted: defaults"), collapse = " · "),
+    if (length(def_skip) > 0)
+      paste("defaults not shown:", paste(unique(def_skip), collapse = ", "))),
+    collapse = " · ")
 
   p <- ggplot2::ggplot()
   if (!is.null(itp) && nrow(itp) > 0) {
@@ -656,9 +655,9 @@ plot_process_year <- function(object, year = NULL, interpolate = TRUE,
     ggplot2::facet_wrap(~ base, scales = "free_y",
                         labeller = .unit_labeller(object, raw, units)) +
     ggplot2::labs(x = if (no_years) "year (not set)" else "year",
-                  y = NULL, colour = NULL,
+                  y = NULL, colour = "param",
                   title = if (nzchar(obj_name)) obj_name else NULL,
-                  subtitle = paste(sub_parts, collapse = " · "),
+                  subtitle = .desc_of(object),
                   caption = cap_txt) +
     theme_energyRt() +
     ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
@@ -705,28 +704,46 @@ plot_process_year <- function(object, year = NULL, interpolate = TRUE,
 #' @return A `ggplot` object (or `NULL`, invisibly, if there is nothing to plot).
 #' @name autoplot.process
 #' @rdname autoplot.process
-#' @param style For `supply` only: `"profile"` (default) draws the
-#'   per-parameter year profile shared by all process classes; `"bar"` draws
-#'   quantity or price by region over the years (stacked availability bars,
-#'   per-region cost lines; `type =` picks the quantity); `"regions"` draws
-#'   the across-region comparison — availability and cost bars per region,
-#'   with an unlimited (`Inf`) availability shown as a translucent
-#'   full-height bar labelled "uncapped".
-#' @param type For `style = "bar"`: `"availability"` (default) or `"cost"`.
+#' @param style For `supply` only, WHICH CHART: `"profile"` (default) draws
+#'   the per-parameter year profile shared by all process classes; `"bar"`
+#'   draws the quantity by region over the years; `"regions"` draws the
+#'   across-region comparison — availability and cost bars per region, with
+#'   an unlimited (`Inf`) availability shown as a translucent full-height
+#'   bar; `"map"` draws it on a `map =` geoscale, at whatever level the
+#'   object's own regions are declared at.
+#' @param param For `supply` only, WHICH QUANTITY: `"availability"` (default,
+#'   the bound that binds — `ava.fx` over `ava.up`), one of `"ava.up"`,
+#'   `"ava.lo"`, `"ava.fx"` by name, or `"cost"`. The names are the columns
+#'   of `@supply`, so the argument, the legend title and the slot agree.
+#' @param map For `style = "map"`: a `geoscales::GeoScale`.
+#' @param type deprecated, use `param`.
 #' @exportS3Method ggplot2::autoplot
 autoplot.supply <- function(object, year = NULL, interpolate = TRUE,
                             show_defaults = FALSE, units = NULL,
-                            style = c("profile", "bar", "regions"),
-                            type = c("availability", "cost"), ...) {
+                            style = c("profile", "bar", "regions", "map"),
+                            param = NULL, map = NULL,
+                            type = NULL, ...) {
+  # `type` named the quantity before 0.92; `param` says the same thing and
+  # cannot be confused with `style`, which names the chart. `NULL` means
+  # every parameter the object declares, which the chart resolves.
+  if (!is.null(type)) param <- type
   style <- match.arg(style)
+  if (!is.null(param)) {
+    param <- match.arg(param, .supply_params, several.ok = TRUE)
+  }
+  if (identical(style, "map")) {
+    return(plot_supply_map(object, param = param, year = year,
+                           interpolate = interpolate, map = map, ...))
+  }
   switch(style,
     profile = plot_process_year(object, year = year,
                                 interpolate = interpolate,
                                 show_defaults = show_defaults,
                                 units = units, ...),
-    bar = plot_supply_bar(object, type = match.arg(type), year = year,
+    bar = plot_supply_bar(object, param = param %||% "availability",
+                          year = year,
                           interpolate = interpolate, ...),
-    regions = plot_supply_regions(object, year = year,
+    regions = plot_supply_regions(object, param = param, year = year,
                                   interpolate = interpolate, ...))
 }
 
@@ -762,18 +779,30 @@ autoplot.supply <- function(object, year = NULL, interpolate = TRUE,
   d
 }
 
-# Effective annual availability per (region, cluster, year): timeslice rows
-# sum to annual; ava.fx wins over ava.up on the same key. A key with neither
-# is unbounded and carries no row here.
-.supply_ava_annual <- function(d) {
-  a <- d[d$param %in% c("ava.up", "ava.fx") & is.finite(d$value), ,
-         drop = FALSE]
+# The binding availability parameter per (region, cluster, year): `ava.fx`
+# wins over `ava.up` on the same key, and a key with neither is unbounded
+# (`ava.up` defaults to `Inf`) so it carries no row here. `ava.lo` is a floor,
+# a different statement, and is read only when asked for by name.
+#
+# NOT an annual quantity, which is why this is no longer called
+# `.supply_ava_annual()`. Rows that differ only by timeslice are added
+# together, with no `pTimesliceShare`: `eqSupAvaUp` bounds `vSupOut` in EACH
+# timeslice, so a per-slice bound summed over slices is neither the slice
+# bound nor the year's. Where every row is `timeslice = NA` -- the usual case
+# for an ANNUAL commodity -- the sum is a no-op and the value is the bound as
+# declared.
+.supply_ava_bound <- function(d, which = NULL) {
+  keep <- if (is.null(which)) c("ava.up", "ava.fx") else which
+  a <- d[d$param %in% keep & is.finite(d$value), , drop = FALSE]
   if (nrow(a) == 0) return(NULL)
   kc <- intersect(c("region", "cluster", "year"), names(a))
   a <- a |>
     dplyr::group_by(dplyr::across(dplyr::all_of(c(kc, "param")))) |>
     dplyr::summarise(value = sum(.data$value), .groups = "drop") |>
     as.data.frame()
+  # the fx-over-up precedence is what "the bound that binds" means; asked for
+  # one parameter by name, there is nothing to arbitrate
+  if (!is.null(which)) return(a)
   fx <- a[a$param == "ava.fx", , drop = FALSE]
   up <- a[a$param == "ava.up", , drop = FALSE]
   if (nrow(fx) > 0 && nrow(up) > 0) {
@@ -785,10 +814,13 @@ autoplot.supply <- function(object, year = NULL, interpolate = TRUE,
 
 # Quantity and price by region over the years. Not exported: autoplot(sup,
 # style = "bar") reaches it.
-plot_supply_bar <- function(object, type = c("availability", "cost"),
-                            year = NULL, interpolate = TRUE, ...) {
+plot_supply_bar <- function(object, param = .supply_params,
+                            year = NULL, interpolate = TRUE, palette = "D",
+                            type = NULL, ...) {
   check_package("ggplot2")
-  type <- match.arg(type)
+  if (!is.null(type)) param <- type   # `type` named this before 0.92
+  param <- match.arg(param, .supply_params)
+  type <- if (identical(param, "cost")) "cost" else "availability"
   obj_name <- tryCatch(object@name, error = function(e) "")
   d <- .supply_long(object, year = year, interpolate = interpolate, ...)
   if (is.null(d)) {
@@ -802,7 +834,8 @@ plot_supply_bar <- function(object, type = c("availability", "cost"),
   unit <- if (length(unit) == 1 && !is.na(unit) && nzchar(unit)) unit else NULL
 
   if (type == "availability") {
-    a <- .supply_ava_annual(d)
+    a <- .supply_ava_bound(d, which = if (identical(param, "availability"))
+      NULL else param)
     if (is.null(a) || nrow(a) == 0) {
       message("No finite availability (ava.up/ava.fx) for '", obj_name,
               "': supply is uncapped.")
@@ -812,23 +845,28 @@ plot_supply_bar <- function(object, type = c("availability", "cost"),
     fill_col <- if (has_cluster && "cluster" %in% names(a)) "cluster" else
       "region"
     if (fill_col == "cluster") a <- .facet_cap(a, "region")
+    lev <- sort(unique(as.character(a[[fill_col]])))
+    a[[fill_col]] <- .key_index(a[[fill_col]], lev)
+    key_name <- if (identical(fill_col, "region")) .geoframe_name(object) else
+      fill_col
     p <- ggplot2::ggplot(a, ggplot2::aes(x = .data$year_f, y = .data$value,
                                          fill = .data[[fill_col]])) +
-      ggplot2::geom_col(position = "stack")
+      ggplot2::geom_col(position = "stack") +
+      .key_scale(lev, palette, key_name)
     if (fill_col == "cluster" && length(unique(a$region)) > 1)
       p <- p + ggplot2::facet_wrap(~region)
-    .facet_caption(p, a) + ggplot2::labs(
+    p <- p + ggplot2::labs(
       x = "year",
-      y = if (is.null(unit)) "availability" else
-        paste0("availability [", unit, "/year]"),
-      fill = NULL,
+      y = .supply_labels(object)[[param]],
       title = if (nzchar(obj_name)) obj_name else NULL,
-      subtitle = "annual supply availability (ava.fx, else ava.up)") +
+      subtitle = .desc_of(object),
+      caption = "availability: ava.fx, else ava.up") +
       theme_energyRt() +
       ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"),
                      axis.text.x = ggplot2::element_text(angle = 45,
                                                          hjust = 1)) +
-      .legend_compact(length(unique(a[[fill_col]])))
+      .legend_compact(length(lev))
+    .facet_caption(p, a)
   } else {
     co <- d[d$param == "cost" & !is.na(d$value), , drop = FALSE]
     if (nrow(co) == 0) {
@@ -847,31 +885,87 @@ plot_supply_bar <- function(object, type = c("availability", "cost"),
                    group = interaction(.data$region, .data$cluster)) else
       ggplot2::aes(x = .data$year_x, y = .data$value,
                    colour = .data$region, group = .data$region)
+    lev <- sort(unique(as.character(co$region)))
     ggplot2::ggplot(co, aes_ln) +
       ggplot2::geom_step(direction = "hv", linewidth = 0.6, na.rm = TRUE) +
       ggplot2::geom_point(size = 1.6, na.rm = TRUE) +
+      .key_scale(lev, palette, .geoframe_name(object), aes = "colour") +
       ggplot2::labs(
         x = "year",
-        y = if (is.null(unit)) "cost" else paste0("cost [per ", unit, "]"),
-        colour = NULL, linetype = NULL,
+        y = .supply_labels(object)[["cost"]],
+        linetype = "cluster",
         title = if (nzchar(obj_name)) obj_name else NULL,
-        subtitle = "supply cost by region (mean over timeslices)") +
+        subtitle = .desc_of(object),
+        caption = "cost: mean over timeslices") +
       theme_energyRt() +
       ggplot2::theme(plot.title = ggplot2::element_text(face = "bold")) +
-      .legend_compact(length(unique(co$region)))
+      .legend_compact(length(lev))
   }
 }
 
-# Across-region availability and cost bars for one display year. Not
-# exported: autoplot(sup, style = "regions") reaches it.
-plot_supply_regions <- function(object, year = NULL, interpolate = TRUE,
-                                ...) {
-  check_package("ggplot2")
+# What a supply plot can draw. `availability` is whichever bound binds
+# (`ava.fx` over `ava.up`); the rest name a column of `@supply` directly, so
+# the argument, the legend title and the slot all say the same word.
+#' @noRd
+.supply_params <- c("availability", "ava.up", "ava.lo", "ava.fx", "cost")
+
+# The named parameters this object actually declares. `availability` is left
+# out: it is whichever of `ava.fx`/`ava.up` binds, so including it would draw
+# the same numbers twice under two titles.
+#' @noRd
+.supply_filled <- function(v) {
+  nm <- setdiff(.supply_params, "availability")
+  nm <- nm[vapply(nm, function(k) k %in% names(v) && any(!is.na(v[[k]])),
+                  logical(1))]
+  # a supply with no bound at all still has its default `ava.up = Inf`
+  if (!length(nm)) "ava.up" else nm
+}
+
+# Axis and legend labels for the supply quantities: the PARAMETER as it is
+# declared, and its unit, with nothing added.
+#
+# `ava.up` is NOT a yearly total. `eqSupAvaUp` bounds `vSupOut` in each
+# timeslice and carries no `pTimesliceShare`, so what the number amounts to
+# over a year depends on the commodity's timeframe -- one slice for an ANNUAL
+# commodity, 96 or 8760 for an hourly one. The object does not know that, so
+# the plot states the parameter and lets the reader keep the timeframe in
+# mind, instead of printing a "/year" it cannot justify.
+#
+# The cost unit IS derivable: `costs` over `activity`, both declared.
+#' @noRd
+.supply_labels <- function(object) {
+  act <- .object_units(object, "activity")
+  if (is.null(act)) {
+    u <- tryCatch(object@unit, error = function(e) NULL)
+    if (length(u) == 1 && !is.na(u) && nzchar(u)) act <- u
+  }
+  cst <- .object_units(object, "costs")
+  d <- tryCatch(as.data.frame(object@supply), error = function(e) NULL)
+  has <- function(k) !is.null(d) && k %in% names(d) && any(!is.na(d[[k]]))
+  ava <- if (has("ava.fx") && has("ava.up")) "ava" else
+    if (has("ava.fx")) "ava.fx" else "ava.up"
+  # `ava.up` and `cost` are short enough to sit on one line with the unit
+  two <- function(nm, u) if (is.null(u)) nm else paste0(nm, ", ", u)
+  cost_u <- if (!is.null(cst) && !is.null(act)) paste0(cst, "/", act) else NULL
+  c(availability = two(ava, act),
+    ava.up = two("ava.up", act),
+    ava.lo = two("ava.lo", act),
+    ava.fx = two("ava.fx", act),
+    cost = two("cost", cost_u))
+}
+
+# Availability and cost per region for one display year -- the numbers behind
+# both the across-region bars and the map, derived once. Returns the display
+# year as an attribute, and NA where the supply declares no bound (uncapped)
+# or no cost.
+#' @noRd
+.supply_region_values <- function(object, year = NULL, interpolate = TRUE,
+                                  ...) {
   obj_name <- tryCatch(object@name, error = function(e) "")
   d <- .supply_long(object, year = NULL, interpolate = interpolate, ...)
   if (is.null(d)) {
     message("No supply data to plot for '", obj_name, "'.")
-    return(invisible(NULL))
+    return(NULL)
   }
   # display year: the requested one, else the latest with data
   yrs <- sort(unique(stats::na.omit(as.integer(d$year))))
@@ -888,15 +982,21 @@ plot_supply_regions <- function(object, year = NULL, interpolate = TRUE,
     setdiff(unique(dd$region), "(all)")))
   if (length(regions) == 0) regions <- "(all)"
 
-  a <- .supply_ava_annual(dd)
-  ava <- stats::setNames(rep(NA_real_, length(regions)), regions)
-  if (!is.null(a) && nrow(a) > 0) {
-    per_reg <- tapply(a$value, a$region, sum, na.rm = TRUE)
-    ava[names(per_reg)[names(per_reg) %in% regions]] <-
-      per_reg[names(per_reg) %in% regions]
-    if ("(all)" %in% names(per_reg) && !"(all)" %in% regions)
-      ava[] <- ifelse(is.na(ava), per_reg[["(all)"]], ava)
+  # `availability` is whichever bound binds; the three names are also
+  # addressable on their own, `ava.lo` among them
+  one <- function(which) {
+    a <- .supply_ava_bound(dd, which = which)
+    v <- stats::setNames(rep(NA_real_, length(regions)), regions)
+    if (!is.null(a) && nrow(a) > 0) {
+      per_reg <- tapply(a$value, a$region, sum, na.rm = TRUE)
+      v[names(per_reg)[names(per_reg) %in% regions]] <-
+        per_reg[names(per_reg) %in% regions]
+      if ("(all)" %in% names(per_reg) && !"(all)" %in% regions)
+        v[] <- ifelse(is.na(v), per_reg[["(all)"]], v)
+    }
+    unname(v)
   }
+  ava <- stats::setNames(one(NULL), regions)
   co <- dd[dd$param == "cost" & !is.na(dd$value), , drop = FALSE]
   cost <- stats::setNames(rep(NA_real_, length(regions)), regions)
   if (nrow(co) > 0) {
@@ -906,31 +1006,47 @@ plot_supply_regions <- function(object, year = NULL, interpolate = TRUE,
     if ("(all)" %in% names(per_reg) && !"(all)" %in% regions)
       cost[] <- ifelse(is.na(cost), per_reg[["(all)"]], cost)
   }
-  if (all(is.na(ava)) && all(is.na(cost))) {
+  if (all(is.na(ava)) && all(is.na(cost)) && all(is.na(one("ava.lo")))) {
     message("No availability or cost data to plot for '", obj_name, "'.")
-    return(invisible(NULL))
+    return(NULL)
   }
+  out <- data.frame(region = regions, availability = unname(ava),
+                    ava.up = one("ava.up"), ava.lo = one("ava.lo"),
+                    ava.fx = one("ava.fx"), cost = unname(cost),
+                    check.names = FALSE, stringsAsFactors = FALSE)
+  attr(out, "year") <- yr
+  out
+}
 
-  # an uncapped region draws a full-height translucent bar in the
-  # availability panel, labelled instead of valued
-  uncapped <- is.na(ava)
-  ymax <- if (any(!uncapped)) max(ava[!uncapped]) else 1
-  pdf_ <- rbind(
-    data.frame(region = regions, measure = "availability",
-               value = ifelse(uncapped, ymax, ava),
-               uncapped = uncapped, stringsAsFactors = FALSE),
-    data.frame(region = regions, measure = "cost",
-               value = unname(cost), uncapped = FALSE,
-               stringsAsFactors = FALSE))
+# Across-region availability and cost bars for one display year. Not
+# exported: autoplot(sup, style = "regions") reaches it.
+plot_supply_regions <- function(object, year = NULL, interpolate = TRUE,
+                                param = NULL, ...) {
+  check_package("ggplot2")
+  obj_name <- tryCatch(object@name, error = function(e) "")
+  v <- .supply_region_values(object, year = year, interpolate = interpolate, ...)
+  if (is.null(v)) return(invisible(NULL))
+  regions <- v$region
+  yr <- attr(v, "year")
+  if (is.null(param)) param <- .supply_filled(v)
+  param <- intersect(match.arg(param, .supply_params, several.ok = TRUE),
+                     names(v))
+
+  # One panel per parameter. A ceiling that is not declared is `Inf`, which
+  # has no height: it draws at the panel maximum, translucent and labelled,
+  # rather than being dropped as if the supply were absent.
+  lab_map <- .supply_labels(object)
+  pdf_ <- do.call(rbind, lapply(param, function(k) {
+    val <- stats::setNames(v[[k]], regions)
+    unc <- is.na(val) & k %in% c("availability", "ava.up", "ava.fx")
+    ymax <- if (any(!is.na(val))) max(val, na.rm = TRUE) else 1
+    data.frame(region = regions, measure = k,
+               value = ifelse(unc, ymax, val), uncapped = unc,
+               stringsAsFactors = FALSE)
+  }))
   pdf_ <- pdf_[!is.na(pdf_$value), , drop = FALSE]
-
-  unit <- tryCatch(object@unit, error = function(e) "")
-  unit <- if (length(unit) == 1 && !is.na(unit) && nzchar(unit)) unit else NULL
-  lab_map <- c(
-    availability = if (is.null(unit)) "availability" else
-      paste0("availability [", unit, "/year]"),
-    cost = if (is.null(unit)) "cost" else paste0("cost [per ", unit, "]"))
-  pdf_$measure <- factor(lab_map[pdf_$measure], levels = unname(lab_map))
+  pdf_$measure <- factor(lab_map[pdf_$measure],
+                         levels = unname(lab_map[param]))
 
   lab_df <- pdf_[pdf_$uncapped, , drop = FALSE]
   p <- ggplot2::ggplot(pdf_, ggplot2::aes(x = .data$region, y = .data$value)) +
@@ -941,10 +1057,12 @@ plot_supply_regions <- function(object, year = NULL, interpolate = TRUE,
     ggplot2::labs(
       x = NULL, y = NULL,
       title = if (nzchar(obj_name)) obj_name else NULL,
-      subtitle = if (is.na(yr)) "supply by region" else
-        paste0("supply by region, ", yr),
-      caption = if (any(pdf_$uncapped))
-        "translucent full-height bars: unlimited availability" else NULL) +
+      subtitle = .desc_of(object),
+      caption = paste(c(
+        if (!is.na(yr)) paste("year:", yr),
+        if (any(pdf_$uncapped))
+          "translucent full-height bars: unlimited availability"),
+        collapse = " · ")) +
     theme_energyRt() +
     ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"),
                    axis.text.x = ggplot2::element_text(angle = 45,
@@ -957,8 +1075,349 @@ plot_supply_regions <- function(object, year = NULL, interpolate = TRUE,
   p
 }
 
+# Availability or cost drawn on the map, for one display year. A supply names
+# the regions it exists in, and those may be at any level -- `SUP_COA` is
+# declared at the zone -- so the level is read off the names rather than
+# assumed, the same way a trade route's is. Not exported:
+# autoplot(sup, style = "map") reaches it.
+#' @noRd
+plot_supply_map <- function(object, param = NULL,
+                            year = NULL, interpolate = TRUE, map = NULL,
+                            palette = "D", type = NULL, ...) {
+  check_package("ggplot2")
+  check_package("geoscales")
+  if (!is.null(type)) param <- type   # `type` named this before 0.92
+  if (!is.null(param)) {
+    param <- match.arg(param, .supply_params, several.ok = TRUE)
+  }
+  # Several parameters are several maps, not one faceted map: ggplot2 has a
+  # single fill scale per plot, and `ava.up` in PJ cannot share a colour bar
+  # with `cost` in MUSD/PJ. Each gets its own scale and they are composed.
+  if (is.null(param) || length(param) > 1L) {
+    vv <- .supply_region_values(object, year = year,
+                                interpolate = interpolate, ...)
+    if (is.null(vv)) return(invisible(NULL))
+    if (is.null(param)) param <- .supply_filled(vv)
+    if (length(param) > 1L) {
+      check_package("patchwork")
+      ps <- lapply(param, function(k)
+        plot_supply_map(object, param = k, year = year,
+                        interpolate = interpolate, map = map,
+                        palette = palette, ...))
+      ps <- Filter(Negate(is.null), ps)
+      if (!length(ps)) return(invisible(NULL))
+      if (length(ps) == 1L) return(ps[[1]])
+      # the object's name and description belong to the set, not to each panel
+      ps <- lapply(ps, function(p)
+        p + ggplot2::labs(title = NULL, subtitle = NULL))
+      return(patchwork::wrap_plots(ps) +
+               patchwork::plot_annotation(
+                 title = tryCatch(object@name, error = function(e) NULL),
+                 subtitle = .desc_of(object)))
+    }
+  }
+  type <- param
+  obj_name <- tryCatch(object@name, error = function(e) "")
+  if (is.null(map)) {
+    stop("plot_supply_map: pass a `map` (a `geoscales::GeoScale`), e.g. ",
+         "`topia$geoscales$honeycomb`.", call. = FALSE)
+  }
+  if (!is_geoscale(map)) {
+    stop("plot_supply_map: `map` must be a `geoscales::GeoScale`.",
+         call. = FALSE)
+  }
+  v <- .supply_region_values(object, year = year, interpolate = interpolate, ...)
+  if (is.null(v)) return(invisible(NULL))
+  yr_v <- attr(v, "year")
+  v$value <- v[[type]]
+  # A supply that declares no `ava.up` is not missing a value: the default IS
+  # `Inf` (`R/defaults.R`), so the bound exists and is unlimited. There is
+  # nothing to shade, but where the supply exists is worth drawing, so the
+  # fill becomes the bound itself -- stated as `Inf`, which is what the model
+  # will use -- rather than a word the plot made up.
+  uncapped <- type %in% c("availability", "ava.up") && all(is.na(v$value)) &&
+    nrow(v) > 0
+  if (uncapped) {
+    v$value <- "Inf"
+  } else {
+    v <- v[!is.na(v$value), , drop = FALSE]
+  }
+  v <- v[, c("region", "value"), drop = FALSE]
+  attr(v, "year") <- yr_v
+  if (nrow(v) == 0) {
+    message("'", obj_name, "' declares no ", type,
+            if (type %in% c("availability", "ava.up", "ava.fx"))
+              "; it is unlimited wherever it exists" else "", ".")
+    return(invisible(NULL))
+  }
+  # the level the supply's own regions live at
+  frames <- tryCatch(as.character(geoscales::geoscale_geoframes(map)),
+                     error = function(e) character())
+  lvl <- NULL
+  for (f in frames) {
+    mem <- tryCatch(as.character(geoscales::geoscale_regions(map, geoframe = f)),
+                    error = function(e) character())
+    if (all(v$region %in% mem)) { lvl <- f; break }
+  }
+  if (is.null(lvl)) {
+    stop("plot_supply_map: the regions of '", obj_name, "' (",
+         paste(v$region, collapse = ", "), ") are not all members of any ",
+         "level of `map` (", paste(frames, collapse = ", "), ").",
+         call. = FALSE)
+  }
+  # `geoscale_plot()` keys the data by the geoframe's own name, not by
+  # "region": a zone-level supply joins on `zone`.
+  names(v)[names(v) == "region"] <- lvl
+  yr <- attr(v, "year")
+  lab <- .supply_labels(object)[[type]]
+  # the unit belongs under the quantity, not trailing after it: a legend
+  # title is a narrow column
+  p <- geoscales::geoscale_plot(
+    map, data = v, geoframe = lvl, fill = "value", palette = palette,
+    title = if (nzchar(obj_name)) obj_name else NULL,
+    subtitle = .desc_of(object),
+    fill_label = lab)
+  if (uncapped) {
+    # `geoscale_plot()` scales a fill continuously; an unbounded one is not
+    p <- suppressMessages(
+      # `breaks` keeps NA out of the LEGEND; `na.translate = FALSE` would
+      # also drop those rows and take the background regions with them
+      p + ggplot2::scale_fill_manual(
+        values = stats::setNames("#4E79A7", "Inf"), na.value = "grey85",
+        breaks = "Inf"))
+  }
+  lo <- tryCatch(as.data.frame(object@supply)$ava.lo, error = function(e) NULL)
+  has_lo <- !is.null(lo) && any(!is.na(lo) & lo != 0)
+  p + ggplot2::labs(caption = paste(c(
+    if (!is.na(yr)) paste("year:", yr),
+    # `.supply_ava_bound()` reads `ava.up` and `ava.fx` only
+    if (has_lo && identical(type, "availability"))
+      "ava.lo declared, not shown"),
+    collapse = " · "))
+}
+
+# Per-region values of an object's year-indexed parameters, for one display
+# year -- the generic behind the object maps, keyed on `.process_year_slot`
+# so every class that has a year profile can also have a map.
+#
+# Rows are collapsed to one value per (region, param). A quantity is SUMMED
+# over the dimensions the map does not show (a demand's timeslices add up to
+# the year's total); a price is AVERAGED, because adding a cost over
+# timeslices would be arithmetic on a rate. `.price_params` names which is
+# which: anything not listed is treated as a quantity.
+#' @noRd
+.price_params <- c("cost", "price", "invcost", "fixom", "varom", "cvarom",
+                   "avarom", "eac", "wacc", "payback", "retcost")
+
+# Which unit a parameter is measured in. `stock` and the capacity bounds are
+# a CAPACITY (GW); flows and bounds on them are an ACTIVITY (GWh, PJ); the
+# list above is a price. Getting this from the name is what lets one map
+# engine serve six classes.
+#' @noRd
+.capacity_params <- c("stock", "cap.lo", "cap.up", "cap.fx",
+                      "ncap.lo", "ncap.up", "ncap.fx",
+                      "ret.lo", "ret.up", "ret.fx")
+
+#' @noRd
+.object_region_values <- function(object, year = NULL, interpolate = TRUE,
+                                  ...) {
+  cls <- class(object)[1]
+  nm <- tryCatch(object@name, error = function(e) "")
+  slots <- .process_year_slot[[cls]]
+  if (is.null(slots)) {
+    stop("no map for class '", cls, "': it declares no year-indexed slots.",
+         call. = FALSE)
+  }
+  d <- .obj_long_get(object, slots, interpolate, NULL, ...)
+  if (is.null(d) || !nrow(d) || !("region" %in% names(d))) {
+    message("No region-indexed data to map for '", nm, "'.")
+    return(NULL)
+  }
+  d <- d[!is.na(d$region) & d$region != "(all)", , drop = FALSE]
+  if (!nrow(d)) {
+    message("'", nm, "' declares nothing per region.")
+    return(NULL)
+  }
+  yrs <- sort(unique(stats::na.omit(as.integer(d$year))))
+  yr <- if (!is.null(year)) as.integer(year)[1] else
+    if (length(yrs)) max(yrs) else NA_integer_
+  if (!is.na(yr) && "year" %in% names(d)) {
+    d <- d[is.na(d$year) | d$year == yr, , drop = FALSE]
+  }
+  agg <- function(p, v)
+    if (sub("^(inp|out|stg)[.]", "", p) %in% .price_params)
+      mean(v, na.rm = TRUE) else sum(v, na.rm = TRUE)
+  parts <- lapply(split(d, d$param), function(x) {
+    data.frame(region = names(tapply(x$value, x$region, function(v) 1)),
+               param = x$param[1],
+               value = as.numeric(tapply(x$value, x$region,
+                                         function(v) agg(x$param[1], v))),
+               stringsAsFactors = FALSE)
+  })
+  out <- do.call(rbind, parts)
+  out <- out[is.finite(out$value), , drop = FALSE]
+  if (!nrow(out)) {
+    message("Nothing finite to map for '", nm, "'.")
+    return(NULL)
+  }
+  attr(out, "year") <- yr
+  out
+}
+
+# The level a set of region names lives at, within a geoscale. A trade route,
+# a zone-declared supply and a region-declared technology each name their own
+# level, so it is read off the names rather than asked of the caller.
+#' @noRd
+.region_level <- function(map, regions, what = "object") {
+  frames <- tryCatch(as.character(geoscales::geoscale_geoframes(map)),
+                     error = function(e) character())
+  for (f in frames) {
+    mem <- tryCatch(as.character(geoscales::geoscale_regions(map, geoframe = f)),
+                    error = function(e) character())
+    if (all(regions %in% mem)) return(f)
+  }
+  stop("the regions of ", what, " (", paste(regions, collapse = ", "),
+       ") are not all members of any level of `map` (",
+       paste(frames, collapse = ", "), ").", call. = FALSE)
+}
+
+# One parameter of any year-indexed object, drawn on the map; several are
+# composed, each keeping its own scale, because one plot has one fill scale
+# and `invcost` in MUSD/GW cannot share a colour bar with `stock` in GW.
+#' @noRd
+plot_object_map <- function(object, param = NULL, year = NULL,
+                            interpolate = TRUE, map = NULL, palette = "D",
+                            all_params = FALSE, ...) {
+  check_package("ggplot2")
+  check_package("geoscales")
+  nm <- tryCatch(object@name, error = function(e) "")
+  if (is.null(map) || !is_geoscale(map)) {
+    stop("pass a `map` (a `geoscales::GeoScale`), e.g. ",
+         "`topia$geoscales$honeycomb`.", call. = FALSE)
+  }
+  v <- .object_region_values(object, year = year, interpolate = interpolate,
+                             ...)
+  if (is.null(v)) return(invisible(NULL))
+  have <- unique(v$param)
+  if (is.null(param)) {
+    # A process declares many parameters -- capacity bounds, three costs --
+    # and mapping all of them at once is a wall of panels, so these default
+    # to the first. The flow classes have few and default to all of them.
+    param <- if (isTRUE(all_params)) have else have[1]
+  }
+  param <- intersect(param, have)
+  if (!length(param)) {
+    message("'", nm, "' declares none of the requested parameter(s); it has: ",
+            paste(have, collapse = ", "), ".")
+    return(invisible(NULL))
+  }
+  if (length(param) > 1L) {
+    check_package("patchwork")
+    ps <- Filter(Negate(is.null), lapply(param, function(k)
+      plot_object_map(object, param = k, year = year,
+                      interpolate = interpolate, map = map,
+                      palette = palette, ...)))
+    if (!length(ps)) return(invisible(NULL))
+    if (length(ps) == 1L) return(ps[[1]])
+    ps <- lapply(ps, function(p) p + ggplot2::labs(title = NULL,
+                                                   subtitle = NULL))
+    return(patchwork::wrap_plots(ps) + patchwork::plot_annotation(
+      title = if (nzchar(nm)) nm else NULL, subtitle = .desc_of(object)))
+  }
+  d <- v[v$param == param, c("region", "value"), drop = FALSE]
+  lvl <- .region_level(map, d$region, paste0("'", nm, "'"))
+  names(d)[names(d) == "region"] <- lvl
+  # `import`, `export` and `demand` carry no `@units` table, but their scalar
+  # `@unit` IS the commodity's unit, which is what a quantity parameter is
+  # measured in. A price needs a currency and there is none to fall back on,
+  # so it stays unlabelled rather than guessed.
+  base <- sub("^(inp|out|stg)[.]", "", param)   # storage names its three parts
+  u <- if (base %in% .price_params) .object_units(object, "costs") else
+    if (base %in% .capacity_params) .object_units(object, "capacity") else {
+      .object_units(object, "activity") %||% {
+        cu <- tryCatch(object@unit, error = function(e) NULL)
+        if (length(cu) == 1 && !is.na(cu) && nzchar(cu)) cu else NULL
+      }
+    }
+  geoscales::geoscale_plot(
+    map, data = d, geoframe = lvl, fill = "value", palette = palette,
+    title = if (nzchar(nm)) nm else NULL, subtitle = .desc_of(object),
+    fill_label = if (is.null(u)) param else paste0(param, ", ", u)) +
+    ggplot2::labs(caption = if (!is.na(attr(v, "year")))
+      paste("year:", attr(v, "year")) else NULL)
+}
+
 # Demand gets its own plot: a timeslice-resolved demand has too many series for the
 # generic per-parameter chart (one line per timeslice).
+
+# Above this many discrete keys a fill legend stops being readable and the
+# scale is drawn as a colour bar with a handful of labels instead.
+.plot_max_keys <- 12L
+
+# The object's own description: the only thing a subtitle carries.
+#' @noRd
+.desc_of <- function(object) {
+  d <- tryCatch(object@desc, error = function(e) NULL)
+  if (is_empty(d)) NULL else as.character(d)[1]
+}
+
+# The unit an axis is in, `"NA"` when the object declares none. `per` appends
+# a denominator ("/year"), `inv` inverts it ("per PJ").
+#' @noRd
+.unit_of <- function(object, per = NULL, inv = FALSE) {
+  u <- tryCatch(object@unit, error = function(e) NA_character_)
+  if (!(length(u) == 1 && !is.na(u) && nzchar(u))) return("NA")
+  if (isTRUE(inv)) paste0("per ", u) else paste0(u, per)
+}
+
+# A viridis scale that stays readable as the categories grow: a key per level
+# up to `.plot_max_keys`, a colour bar with evenly spaced labels beyond it.
+# Past the threshold the caller must recode its column with `.key_index()`,
+# since the continuous scale maps a number.
+#' @noRd
+.key_scale <- function(lev, palette, name, aes = "fill") {
+  disc <- if (identical(aes, "colour")) ggplot2::scale_colour_viridis_d else
+    ggplot2::scale_fill_viridis_d
+  cont <- if (identical(aes, "colour")) ggplot2::scale_colour_viridis_c else
+    ggplot2::scale_fill_viridis_c
+  if (length(lev) <= .plot_max_keys) {
+    disc(option = palette, end = 0.9, name = name)
+  } else {
+    brk <- unique(round(seq(1, length(lev), length.out = 6)))
+    cont(option = palette, end = 0.9, name = name, breaks = brk,
+         labels = lev[brk])
+  }
+}
+
+#' @noRd
+.key_index <- function(x, lev) {
+  if (length(lev) <= .plot_max_keys) x else
+    as.integer(factor(as.character(x), levels = lev))
+}
+
+# `region` selects which of an object's regions to draw: a vector of codes,
+# or a number to take that many in the order they appear. An object from a
+# continental model carries every region, and faceting on all of them leaves
+# the panels too small to read. Returns zero rows when the filter selects
+# nothing, having said so; the caller decides what to return.
+#' @noRd
+.filter_region <- function(d, region, nm, what = "data") {
+  if (is.null(region) || !("region" %in% names(d))) return(d)
+  have <- unique(as.character(d$region))
+  keep <- if (is.numeric(region))
+    utils::head(have, max(1L, as.integer(region[1]))) else as.character(region)
+  miss <- setdiff(keep, have)
+  if (length(miss)) {
+    warning("region(s) not in '", nm, "': ", paste(miss, collapse = ", "),
+            call. = FALSE)
+  }
+  keep <- intersect(keep, have)
+  if (!length(keep)) {
+    message("No ", what, " left after the `region` filter for '", nm, "'.")
+    return(d[0, , drop = FALSE])
+  }
+  d[as.character(d$region) %in% keep, , drop = FALSE]
+}
 
 #' Visualize a demand object
 #'
@@ -988,16 +1447,23 @@ plot_supply_regions <- function(object, year = NULL, interpolate = TRUE,
 #'   annual totals over the target years; `FALSE` aggregates only the given
 #'   data years.
 #' @param palette viridis palette option, as in [ggplot2::scale_fill_viridis_d()].
-#' @param ... Passed to [getData()] (e.g. `region =` filter).
+#' @param region which regions to draw: a vector of region codes, or a number
+#'   to take that many in the order they appear. `NULL` (default) draws every
+#'   region the object carries.
+#' @param ... Passed to [getData()] by `style = "area"`, which interpolates;
+#'   the `"line"` and `"heatmap"` styles read `@demand` directly and ignore it.
 #'
 #' @return A `ggplot` object (or `NULL`, invisibly, if there is nothing to plot).
 #' @keywords internal
 plot_demand <- function(object, style = c("area", "line", "heatmap"),
                         year = NULL, interpolate = TRUE, palette = "D",
-                        calendar = NULL, ...) {
+                        calendar = NULL, region = NULL, ...) {
   check_package("ggplot2")
   style <- match.arg(style)
+
   obj_name <- tryCatch(object@name, error = function(e) "")
+  obj_desc <- tryCatch(object@desc, error = function(e) NULL)
+  if (is_empty(obj_desc)) obj_desc <- NULL
   raw <- as.data.frame(object@demand)
   raw <- raw[!is.na(raw$demand), , drop = FALSE]
   if (nrow(raw) == 0) {
@@ -1006,6 +1472,10 @@ plot_demand <- function(object, style = c("area", "line", "heatmap"),
   }
   if (!"region" %in% names(raw)) raw$region <- "(all)"
   raw$region[is.na(raw$region)] <- "(all)"   # aggregate() drops NA groups
+  # Applied here, so every style honours it -- the area branch reaches
+  # `getData()` through `...`, the profile branches read `@demand` directly.
+  raw <- .filter_region(raw, region, obj_name, "demand")
+  if (nrow(raw) == 0) return(invisible(NULL))
 
   # "line" and "heatmap" share the profile engine with plot_weather(), so a
   # demand shape and a weather factor read identically.
@@ -1020,13 +1490,11 @@ plot_demand <- function(object, style = c("area", "line", "heatmap"),
     }
     d$wval <- d$demand
     u <- tryCatch(object@unit, error = function(e) NA_character_)
-    comm <- paste(tryCatch(object@commodity, error = function(e) ""),
-                  collapse = ", ")
     return(.plot_profile(
       d, style = style, calendar = calendar, palette = palette,
-      unit_lab = if (length(u) == 1 && !is.na(u) && nzchar(u)) u else "demand",
+      unit_lab = .unit_of(object),
       title = if (nzchar(obj_name)) obj_name else NULL,
-      subtitle = if (nzchar(comm)) paste0("commodity: ", comm) else NULL))
+      subtitle = obj_desc))
   }
 
   if (style == "area") {
@@ -1041,22 +1509,56 @@ plot_demand <- function(object, style = c("area", "line", "heatmap"),
     tot <- if (!is.null(itp) && nrow(itp) > 0) {
       if (!"region" %in% names(itp)) itp$region <- "(all)"
       itp$region[is.na(itp$region)] <- "(all)"
+      # `itp` comes back from getData(), not from the filtered `raw`
+      itp <- .filter_region(itp, region, obj_name, "demand")
       stats::aggregate(value ~ region + year, itp, sum)
     } else {
       stats::aggregate(demand ~ region + year, raw, sum) |>
         stats::setNames(c("region", "year", "value"))
     }
     pts <- stats::aggregate(demand ~ region + year, raw, sum)
+    # `geom_area()` puts the LAST fill level at the bottom, so a band's upper
+    # edge is the cumulative total from the last level up to and including its
+    # own. Carry the given values onto that edge: at their own level they sit in
+    # a cloud at the foot of an eleven-region stack, unmatchable to a band.
+    lev <- sort(unique(as.character(tot$region)))
+    pts$region <- factor(as.character(pts$region), levels = lev)
+    pts <- pts[!is.na(pts$region), , drop = FALSE]
+    pts <- pts[order(pts$year, -as.integer(pts$region)), , drop = FALSE]
+    pts$stacked <- stats::ave(pts$demand, pts$year, FUN = cumsum)
+    # The unit goes on the y axis and the legend names the spatial level the
+    # bands are, so a reader is told what is measured and over what.
+    u <- tryCatch(object@unit, error = function(e) NA_character_)
+    y_lab <- if (length(u) == 1 && !is.na(u) && nzchar(u)) u else "NA"
+    gf_lab <- .geoframe_name(object)
+    # A key per region while they fit, a colour bar carrying a few region
+    # labels once they do not -- forty keys is a list, not a legend.
+    if (length(lev) <= .plot_max_keys) {
+      fill_scale <- ggplot2::scale_fill_viridis_d(option = palette, end = 0.9,
+                                                  name = gf_lab)
+    } else {
+      tot$region <- as.integer(factor(as.character(tot$region), levels = lev))
+      pts$region <- as.integer(pts$region)
+      brk <- unique(round(seq(1, length(lev), length.out = 6)))
+      fill_scale <- ggplot2::scale_fill_viridis_c(option = palette, end = 0.9,
+                                                  name = gf_lab,
+                                                  breaks = brk,
+                                                  labels = lev[brk])
+    }
+    # The points share the fill scale (`shape = 21` fills), so each given value
+    # carries its own band's colour and earns no legend of its own.
     p <- ggplot2::ggplot(tot,
-        ggplot2::aes(.data$year, .data$value, fill = .data$region)) +
-      ggplot2::geom_area(alpha = 0.75) +
+        ggplot2::aes(.data$year, .data$value, fill = .data$region,
+                     group = .data$region)) +
+      ggplot2::geom_area() +
       ggplot2::geom_point(data = pts,
-        ggplot2::aes(.data$year, .data$demand), inherit.aes = FALSE,
-        size = 2, na.rm = TRUE) +
-      ggplot2::scale_fill_viridis_d(option = palette, end = 0.9) +
-      ggplot2::labs(x = "year", y = "demand (annual total)", fill = NULL,
+        ggplot2::aes(.data$year, .data$stacked, fill = .data$region),
+        inherit.aes = FALSE, shape = 21, colour = "grey25", size = 2,
+        na.rm = TRUE) +
+      fill_scale +
+      ggplot2::labs(x = "year", y = y_lab,
                     title = if (nzchar(obj_name)) obj_name else NULL,
-                    subtitle = "areas: interpolated totals by region · points: given data (per region)") +
+                    subtitle = obj_desc) +
       theme_energyRt() +
       ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
     return(p)
@@ -1067,17 +1569,33 @@ plot_demand <- function(object, style = c("area", "line", "heatmap"),
 
 #' @rdname plot_demand
 #' @exportS3Method ggplot2::autoplot
-autoplot.demand <- function(object, style = c("area", "line", "heatmap"),
+autoplot.demand <- function(object,
+                            style = c("area", "line", "heatmap", "map"),
                             year = NULL, interpolate = TRUE, palette = "D",
-                            calendar = NULL, ...) {
+                            calendar = NULL, region = NULL, param = NULL,
+                            map = NULL, ...) {
+  style <- match.arg(style)
+  if (identical(style, "map")) {
+    return(plot_object_map(object, param = param, year = year,
+                           interpolate = interpolate, map = map,
+                           palette = palette, all_params = TRUE, ...))
+  }
   plot_demand(object, style = style, year = year, interpolate = interpolate,
-              palette = palette, calendar = calendar, ...)
+              palette = palette, calendar = calendar, region = region, ...)
 }
 
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
 autoplot.import <- function(object, year = NULL, interpolate = TRUE,
-                            show_defaults = FALSE, units = NULL, ...) {
+                            show_defaults = FALSE, units = NULL,
+                            style = c("profile", "map"), param = NULL,
+                            map = NULL, ...) {
+  style <- match.arg(style)
+  if (identical(style, "map")) {
+    return(plot_object_map(object, param = param, year = year,
+                           interpolate = interpolate, map = map,
+                           all_params = TRUE, ...))
+  }
   plot_process_year(object, year = year, interpolate = interpolate,
                     show_defaults = show_defaults, units = units, ...)
 }
@@ -1085,7 +1603,15 @@ autoplot.import <- function(object, year = NULL, interpolate = TRUE,
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
 autoplot.export <- function(object, year = NULL, interpolate = TRUE,
-                            show_defaults = FALSE, units = NULL, ...) {
+                            show_defaults = FALSE, units = NULL,
+                            style = c("profile", "map"), param = NULL,
+                            map = NULL, ...) {
+  style <- match.arg(style)
+  if (identical(style, "map")) {
+    return(plot_object_map(object, param = param, year = year,
+                           interpolate = interpolate, map = map,
+                           all_params = TRUE, ...))
+  }
   plot_process_year(object, year = year, interpolate = interpolate,
                     show_defaults = show_defaults, units = units, ...)
 }
@@ -1093,7 +1619,15 @@ autoplot.export <- function(object, year = NULL, interpolate = TRUE,
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
 autoplot.technology <- function(object, year = NULL, interpolate = TRUE,
-                                show_defaults = FALSE, units = NULL, ...) {
+                                show_defaults = FALSE, units = NULL,
+                                style = c("profile", "map"), param = NULL,
+                                map = NULL, ...) {
+  style <- match.arg(style)
+  if (identical(style, "map")) {
+    return(plot_object_map(object, param = param, year = year,
+                           interpolate = interpolate, map = map,
+                           all_params = FALSE, ...))
+  }
   plot_process_year(object, year = year, interpolate = interpolate,
                     show_defaults = show_defaults, units = units, ...)
 }
@@ -1101,7 +1635,15 @@ autoplot.technology <- function(object, year = NULL, interpolate = TRUE,
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
 autoplot.storage <- function(object, year = NULL, interpolate = TRUE,
-                             show_defaults = FALSE, units = NULL, ...) {
+                             show_defaults = FALSE, units = NULL,
+                             style = c("profile", "map"), param = NULL,
+                             map = NULL, ...) {
+  style <- match.arg(style)
+  if (identical(style, "map")) {
+    return(plot_object_map(object, param = param, year = year,
+                           interpolate = interpolate, map = map,
+                           all_params = FALSE, ...))
+  }
   plot_process_year(object, year = year, interpolate = interpolate,
                     show_defaults = show_defaults, units = units, ...)
 }
@@ -1199,7 +1741,8 @@ plot_lever_year <- function(object, year = NULL, interpolate = TRUE, ...) {
   p +
     ggplot2::geom_point(data = d, aes_xy, size = 2, na.rm = TRUE) +
     ggplot2::labs(x = "year", y = spec$ylab, colour = grp,
-                  title = if (nzchar(nm)) nm else NULL, subtitle = sub_txt) +
+                  title = if (nzchar(nm)) nm else NULL,
+                  subtitle = .desc_of(object), caption = sub_txt) +
     theme_energyRt() +
     ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
 }
@@ -1458,7 +2001,7 @@ plot_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
 #' @examples
 #' \dontrun{
 #' data("calendars", package = "energyRt")
-#' W <- getObject(topia$modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
+#' W <- getObject(topia$modules$electricity$repo, name = "WSOL", drop = TRUE)
 #' autoplot(W, calendar = calendars$s4_h24)                     # heatmap
 #' autoplot(W, style = "line", calendar = calendars$s4_h24)
 #' }
@@ -1467,6 +2010,7 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
                          datetime = FALSE, angle = 45, region = NULL, ...) {
   check_package("ggplot2")
   style <- match.arg(style)
+
   nm   <- tryCatch(object@name, error = function(e) "")
   d    <- as.data.frame(object@weather)
   if (is.null(d) || nrow(d) == 0 || !("wval" %in% names(d))) {
@@ -1475,29 +2019,11 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
   }
   d <- d[!is.na(d$wval), , drop = FALSE]
 
-  # A weather factor from a continental model carries every region, and
-  # faceting on all of them leaves panels too small to read. `region` selects
-  # a subset; `region = 1` (or any number) takes
-  # that many, in the order they appear.
-  if (!is.null(region) && "region" %in% names(d)) {
-    have <- unique(d$region)
-    keep <- if (is.numeric(region)) utils::head(have, max(1L, as.integer(region[1])))
-            else as.character(region)
-    miss <- setdiff(keep, have)
-    if (length(miss)) {
-      warning("plot_weather: region(s) not in '", nm, "': ",
-              paste(miss, collapse = ", "), call. = FALSE)
-    }
-    keep <- intersect(keep, have)
-    if (!length(keep)) {
-      message("No weather data left after the `region` filter for '", nm, "'.")
-      return(invisible(NULL))
-    }
-    d <- d[d$region %in% keep, , drop = FALSE]
-  }
+  d <- .filter_region(d, region, nm, "weather data")
+  if (nrow(d) == 0) return(invisible(NULL))
 
   u        <- object@unit
-  unit_lab <- if (length(u) == 1 && !is.na(u) && nzchar(u)) u else "capacity factor"
+  unit_lab <- if (length(u) == 1 && !is.na(u) && nzchar(u)) u else "NA"
 
   ttl <- if (nzchar(nm)) nm else NULL
   dsc <- tryCatch(object@desc, error = function(e) "")
@@ -1510,9 +2036,9 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
 # Shared sub-annual profile engine behind plot_weather() and plot_demand()
 # (styles "heatmap" / "line" / "area"): resolves the timeslice layout from the
 # calendar (or timeslice names), facets by region / year / coarser levels, and
-# draws the value in `wval`. The heatmap fill uses the `palette` option; the
-# line/area colour maps the coarse level with viridis "H", continuous when the
-# level is numeric (e.g. day of year), so long calendars read as a gradient.
+# draws the value in `wval`. Both the heatmap fill and the line/area colour
+# use the `palette` option; the coarse level is mapped continuously when it is
+# numeric (e.g. day of year), so long calendars read as a gradient.
 .plot_profile <- function(d, style, calendar = NULL, palette = "D",
                           datetime = FALSE, angle = 45, unit_lab = "value",
                           title = NULL, subtitle = NULL) {
@@ -1616,8 +2142,11 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
                                            group = .data[[coarse]]))
     }
     p <- p +
+      # `position = "identity"` overlays the groups, so the areas genuinely
+      # cover one another and the transparency is load-bearing.
       (if (style == "line") ggplot2::geom_line(linewidth = 0.7, na.rm = TRUE)
-       else ggplot2::geom_area(position = "identity", alpha = 0.35, na.rm = TRUE)) +
+       else ggplot2::geom_area(position = "identity", alpha = 0.35,
+                               na.rm = TRUE)) +
       ggplot2::labs(x = nice(fine), y = unit_lab,
                     colour = nice(coarse), fill = nice(coarse),
                     title = ttl, subtitle = sub) +
@@ -1625,11 +2154,17 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
     if (style == "line") p <- p + ggplot2::guides(fill = "none")
     if (!is.null(coarse)) {
       num <- is.numeric(d[[coarse]])
-      p <- p + (if (num) ggplot2::scale_colour_viridis_c(option = "H")
-                else ggplot2::scale_colour_viridis_d(option = "H", end = 0.9))
-      if (style == "area") {
-        p <- p + (if (num) ggplot2::scale_fill_viridis_c(option = "H")
-                  else ggplot2::scale_fill_viridis_d(option = "H", end = 0.9))
+      nm_c <- nice(coarse)
+      if (num) {
+        p <- p + ggplot2::scale_colour_viridis_c(option = palette, end = 0.9,
+                                                 name = nm_c)
+        if (style == "area")
+          p <- p + ggplot2::scale_fill_viridis_c(option = palette, end = 0.9,
+                                                 name = nm_c)
+      } else {
+        lv <- levels(d[[coarse]]) %||% sort(unique(as.character(d[[coarse]])))
+        p <- p + .key_scale(lv, palette, nm_c, aes = "colour")
+        if (style == "area") p <- p + .key_scale(lv, palette, nm_c)
       }
     }
     xc <- fine
@@ -1655,7 +2190,8 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
 #' @exportS3Method ggplot2::autoplot
 autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
                              calendar = NULL, region = NULL, ...) {
-  plot_weather(object, style = style, calendar = calendar, region = region, ...)
+  plot_weather(object, style = style, calendar = calendar, region = region,
+               ...)
 }
 
 # Chronological timeslice levels of a calendar (timetable row order), or NULL.
@@ -1760,6 +2296,39 @@ autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
        "repository/model/scenario.", call. = FALSE)
 }
 
+# Who the plot is OF: the container's own name and description, which is the
+# only thing a plot can honestly claim. A repository says `topia_transmission`,
+# a single object says its own name, and a bare list of objects says nothing --
+# there is no container to name, so inventing a title would be inventing a
+# subject. What the picture measures belongs on the axes and legends, not here.
+#' @noRd
+.trade_plot_title <- function(object) {
+  if (!isS4(object)) return(list(title = NULL, subtitle = NULL))
+  nm <- tryCatch(as.character(object@name)[1], error = function(e) NA_character_)
+  ds <- tryCatch(as.character(object@desc)[1], error = function(e) NA_character_)
+  ok <- function(v) !is.null(v) && length(v) && !is.na(v) && nzchar(v)
+  list(title = if (ok(nm)) nm else NULL,
+       subtitle = if (ok(ds)) ds else NULL)
+}
+
+# Keep only the trades carrying `comm`. A repository mixes commodities --
+# `ELC` region to region, `COA`/`GAS` zone to zone -- and they share neither a
+# map level nor a capacity unit, so drawing one at a time is the usual case.
+#' @noRd
+.filter_trade_comm <- function(trades, comm) {
+  if (is.null(comm) || !length(trades)) return(trades)
+  comm <- as.character(comm)
+  have <- vapply(trades, function(t)
+    paste(as.character(t@commodity), collapse = ","), character(1))
+  keep <- vapply(strsplit(have, ","), function(v) any(v %in% comm), logical(1))
+  if (!any(keep)) {
+    warning("no trade carries commodity ", paste(comm, collapse = ", "),
+            "; the object has: ", paste(sort(unique(have)), collapse = ", "),
+            call. = FALSE)
+  }
+  trades[keep]
+}
+
 #' Map inter-regional trade routes
 #'
 #' @description
@@ -1782,6 +2351,10 @@ autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
 #'   it, only centroids and routes are drawn.
 #' @param labels Logical; label region centroids with their names (default `TRUE`).
 #' @param route_color Colour of the route arrows.
+#' @param comm draw only the trades carrying this commodity (or these). `NULL`
+#'   (default) draws every one. A repository usually mixes commodities that
+#'   share neither a geoscale level nor a capacity unit, so one at a time is
+#'   the readable case.
 #' @param level When `map` is a `Geoscale`, which level to draw. Defaults to the
 #'   finest, i.e. the model's own regions.
 #' @param ... Unused.
@@ -1807,7 +2380,8 @@ autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
 #' plot_trade_map(TRD, map = topia$geoscales$honeycomb, level = "zone")
 #' }
 plot_trade_map <- function(object, map = NULL, labels = TRUE,
-                           route_color = "steelblue", level = NULL, ...) {
+                           route_color = "steelblue", level = NULL,
+                           comm = NULL, ...) {
   check_package("ggplot2")
   # A geoscale attached to the scenario/model is used when no map is given, so
   # `autoplot(scen)` and `plot_trade_map(repo)` work without one being passed.
@@ -1820,6 +2394,11 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
   # Keep the geoscale: when a coarser level is drawn, the route endpoints have
   # to be lifted to it too, or nothing will match the map.
   route_gs <- if (is_geoscale(map)) map else NULL
+  # `level = NULL` draws EVERY level: the polygons come from the finest one,
+  # the route endpoints from whichever level each names. Forcing one level
+  # silently discarded the routes declared at another -- the fuel corridors
+  # were simply invisible.
+  all_levels <- is.null(level) && !is.null(route_gs)
   map <- .trade_map_normalise(map, level = level)
   ce <- as.data.frame(map)
   if (!all(c("region", "x", "y") %in% names(ce))) {
@@ -1827,8 +2406,14 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
   }
   centers <- ce[, c("region", "x", "y")]
   centers$region <- as.character(centers$region)
+  centers$level <- if (is.null(route_gs)) NA_character_ else
+    .geo_default_level(route_gs) %||% NA_character_
+  if (all_levels) {
+    ca <- .trade_centers_all(route_gs)
+    if (!is.null(ca)) centers <- ca
+  }
 
-  trades <- .as_trade_list(object)
+  trades <- .filter_trade_comm(.as_trade_list(object), comm)
   if (length(trades) == 0) {
     message("No trade objects to plot."); return(invisible(NULL))
   }
@@ -1856,8 +2441,9 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
   seg$bidir <- as.logical(bidir[key[!duplicated(key)]])
 
   seg <- dplyr::rename(dplyr::left_join(seg, centers, by = c("src" = "region")),
-                       xsrc = "x", ysrc = "y")
-  seg <- dplyr::rename(dplyr::left_join(seg, centers, by = c("dst" = "region")),
+                       xsrc = "x", ysrc = "y", level = "level")
+  seg <- dplyr::rename(dplyr::left_join(seg, centers[, c("region", "x", "y")],
+                                        by = c("dst" = "region")),
                        xdst = "x", ydst = "y")
   miss <- is.na(seg$xsrc) | is.na(seg$xdst)
   if (any(miss)) {
@@ -1868,17 +2454,27 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
   if (nrow(seg) == 0) {
     message("No routes overlap the map."); return(invisible(NULL))
   }
+  # Nodes belong to the levels that were actually drawn. The centre table
+  # holds every level so a route can be placed wherever its endpoints live,
+  # but labelling all of them puts `WEST` and `TOPIA` on a map of electricity
+  # corridors that has no zone or nation route on it, and stacks a zone
+  # centroid on top of the region it covers.
+  if ("level" %in% names(centers)) {
+    drawn <- unique(stats::na.omit(seg$level))
+    if (length(drawn)) {
+      centers <- centers[centers$level %in% drawn, , drop = FALSE]
+    }
+  }
 
   have_sf <- requireNamespace("sf", quietly = TRUE) && methods::is(map, "sf")
   comm <- unique(unlist(lapply(trades, function(t)
     tryCatch(t@commodity, error = function(e) character()))))
   comm <- comm[nzchar(comm)]
-  ttl  <- if (length(trades) == 1L) {
-    n1 <- tryCatch(trades[[1]]@name, error = function(e) "")
-    if (nzchar(n1)) n1 else "Trade routes"
-  } else "Inter-regional trade"
-  sub  <- paste0(if (length(comm)) paste0(paste(comm, collapse = ", "), " · "),
-                 nrow(seg), " link(s)")
+  .t <- .trade_plot_title(object)
+  ttl <- .t$title
+  sub <- .t$subtitle
+  cap <- paste0(if (length(comm)) paste0(paste(comm, collapse = ", "), " · "),
+                nrow(seg), " link(s)")
 
   arr <- function(ends) grid::arrow(type = "closed", angle = 16, ends = ends,
                                     length = grid::unit(0.1, "inches"))
@@ -1894,6 +2490,24 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
   # layouts have none) or no sf.
   crs <- if (have_sf) sf::st_crs(map) else NA
   as_sf_layers <- have_sf && !is.na(crs)
+  # Routes from more than one level are different things -- a region
+  # interconnector and a zone pipeline -- so they are coloured apart rather
+  # than drawn as one network. A single level keeps `route_color`.
+  lvls <- unique(stats::na.omit(seg$level))
+  by_level <- length(lvls) > 1L
+  col_aes <- if (by_level) ggplot2::aes(colour = .data[["level"]]) else NULL
+  col_arg <- if (by_level) list() else list(colour = route_color)
+  seg_layer <- function(d, head) {
+    if (as_sf_layers) {
+      do.call(ggplot2::geom_sf, c(list(data = .routes_as_sf(d, crs),
+        mapping = col_aes, linewidth = 1.1, arrow = arr(head)), col_arg))
+    } else {
+      m <- if (is.null(col_aes)) seg_aes else utils::modifyList(seg_aes, col_aes)
+      do.call(ggplot2::geom_segment, c(list(data = d, mapping = m,
+        inherit.aes = FALSE, linewidth = 1.1, arrow = arr(head),
+        lineend = "round", linejoin = "mitre"), col_arg))
+    }
+  }
 
   p <- ggplot2::ggplot()
   if (have_sf) {
@@ -1903,15 +2517,9 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
     message("Package 'sf' not available: drawing centroids and routes only, ",
             "without region shapes.")
   }
+  if (nrow(un) > 0) p <- p + seg_layer(un, "last")
+  if (nrow(bi) > 0) p <- p + seg_layer(bi, "both")
   if (as_sf_layers) {
-    if (nrow(un) > 0) {
-      p <- p + ggplot2::geom_sf(data = .routes_as_sf(un, crs),
-        colour = route_color, linewidth = 1.1, arrow = arr("last"))
-    }
-    if (nrow(bi) > 0) {
-      p <- p + ggplot2::geom_sf(data = .routes_as_sf(bi, crs),
-        colour = route_color, linewidth = 1.1, arrow = arr("both"))
-    }
     pts <- sf::st_as_sf(centers, coords = c("x", "y"), crs = crs,
                         remove = FALSE)
     p <- p + ggplot2::geom_sf(data = pts, colour = "grey30", size = 1.6)
@@ -1921,16 +2529,6 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
         vjust = -0.8, size = 3, colour = "grey20")
     }
   } else {
-    if (nrow(un) > 0) {
-      p <- p + ggplot2::geom_segment(data = un, seg_aes, inherit.aes = FALSE,
-        colour = route_color, linewidth = 1.1, arrow = arr("last"),
-        lineend = "round", linejoin = "mitre")
-    }
-    if (nrow(bi) > 0) {
-      p <- p + ggplot2::geom_segment(data = bi, seg_aes, inherit.aes = FALSE,
-        colour = route_color, linewidth = 1.1, arrow = arr("both"),
-        lineend = "round", linejoin = "mitre")
-    }
     p <- p + ggplot2::geom_point(data = centers,
       ggplot2::aes(x = .data[["x"]], y = .data[["y"]]),
       inherit.aes = FALSE, colour = "grey30", size = 1.6)
@@ -1941,9 +2539,14 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
         inherit.aes = FALSE, vjust = -0.8, size = 3, colour = "grey20")
     }
   }
-  p + ggplot2::labs(title = ttl, subtitle = sub) +
+  if (by_level) {
+    p <- p + ggplot2::scale_colour_viridis_d(option = "D", end = 0.8,
+                                             name = "geoframe")
+  }
+  p + ggplot2::labs(title = ttl, subtitle = sub, caption = cap) +
     ggplot2::theme_void() +
-    ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
+    ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"),
+                   legend.position = "right")
 }
 
 #' @rdname plot_trade_map
@@ -1991,14 +2594,49 @@ autoplot.trade <- function(object, map = NULL, ...) {
 # inside a single aggregate region are internal to it and are dropped -- the
 # topological counterpart of the flow netting in `.geo_net_trade()`.
 #' @noRd
+# Centroids for EVERY level of a geoscale, labelled with the level they came
+# from. A trade's level is a property of its endpoints -- `ELC` names regions,
+# `COA` names zones -- so one table lets each route be drawn where it actually
+# is, instead of forcing them all onto one level and dropping whatever does
+# not fit.
+#' @noRd
+.trade_centers_all <- function(gs) {
+  frames <- tryCatch(as.character(geoscales::geoscale_geoframes(gs)),
+                     error = function(e) character())
+  out <- lapply(frames, function(f) {
+    m <- tryCatch(.trade_map_normalise(gs, level = f), error = function(e) NULL)
+    if (is.null(m)) return(NULL)
+    d <- as.data.frame(m)
+    if (!all(c("region", "x", "y") %in% names(d))) return(NULL)
+    data.frame(region = as.character(d$region), x = d$x, y = d$y,
+               level = f, stringsAsFactors = FALSE)
+  })
+  out <- do.call(rbind, Filter(Negate(is.null), out))
+  if (is.null(out)) return(NULL)
+  out[!duplicated(out$region), , drop = FALSE]
+}
+
 .routes_to_level <- function(routes, gs, level) {
   if (is.null(gs) || is.null(level)) return(routes)
   finest <- .geo_default_level(gs)
   if (identical(level, finest)) return(routes)
 
   map <- .geo_level_map(gs, from = finest, to = level)
-  routes$src <- unname(map[routes$src])
-  routes$dst <- unname(map[routes$dst])
+  # An endpoint may already BE at the target level -- `COA` and `GAS` move
+  # zone to zone, because that is where they are balanced. The lookup is keyed
+  # by finest-level names, so such an endpoint is not in it; lifting it would
+  # yield NA and the route would be dropped as if it did not exist. Keep it.
+  at_level <- tryCatch(
+    as.character(geoscales::geoscale_regions(gs, geoframe = level)),
+    error = function(e) character())
+  lift <- function(v) {
+    out <- unname(map[v])
+    keep <- v %in% at_level
+    out[keep] <- v[keep]
+    out
+  }
+  routes$src <- lift(routes$src)
+  routes$dst <- lift(routes$dst)
   routes <- routes[!is.na(routes$src) & !is.na(routes$dst), , drop = FALSE]
   routes[routes$src != routes$dst, , drop = FALSE]
 }
