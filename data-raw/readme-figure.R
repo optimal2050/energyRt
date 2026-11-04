@@ -26,7 +26,11 @@ if (exists("open_project")) {
   open_project(path = scratch)
 }
 
-topia_electricity <- topia$modules$golden$R3
+# The whole shipped model, all eleven regions, at hourly resolution: a summer
+# day's dispatch and the battery's cycle are two of the three result panels,
+# so the time axis cannot be coarsened, and the map panel draws the full
+# island. The solve takes a few minutes; this driver is run by hand.
+topia_electricity <- topia$modules$electricity
 topia_calendar <- topia$modules$calendars$s4_h24
 topia_horizon <- topia$modules$horizons$BY2025_50_by10
 
@@ -54,9 +58,11 @@ TOPIA <- newModel(
   horizon = topia_horizon,
   discount = 0.05
 )
+# The model needs its geoscale: COA and GAS are balanced per zone, so their
+# supply, imports and fuel trades are declared on zone codes.
 TOPIA <- setGeoscale(
   obj = TOPIA,
-  geoscale = topia$geoscale$island
+  geoscale = topia_electricity$geoscale
 )
 
 TOPIA_README <- solve_model(
@@ -173,10 +179,13 @@ carrier <- c(
   EWIN = "onwind",
   ESOL = "solar",
   STG_ELC = "battery",
-  TBD_ELC_W1_W2 = "electricity trade",
-  TBD_ELC_W2_C1 = "electricity trade",
   export = "electricity trade"
 )
+# Every electricity route is one legend key, however many the model carries:
+# naming them one by one left the other nine unmapped and their rows NA.
+trade_processes <- grep("^TBD_ELC_", names(topia_electricity$repo),
+                        value = TRUE)
+carrier[trade_processes] <- "electricity trade"
 carrier_label <- c(
   nuclear = "Nuclear",
   coal = "Coal",
