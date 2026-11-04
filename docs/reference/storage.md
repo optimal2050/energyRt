@@ -35,6 +35,7 @@ newStorage(
   fullYear = TRUE,
   weather = data.frame(),
   optimizeRetirement = FALSE,
+  units = data.frame(),
   misc = list(),
   ...
 )
@@ -1232,6 +1233,29 @@ newStorage(
   logical. Incidates if the retirement of the storage should be
   optimized. Also requires the same parameter in the `model` or
   `scenario` class to be set to TRUE to be effective.
+
+- units:
+
+  data.frame. Key units of the object, for reference and for carrying
+  its units with it. An object moved between models is only meaningful
+  where the units agree, and nothing else in the object records them:
+  the numbers in the cost, capacity and activity columns are bare. A
+  declared `costs` that disagrees with the model's `config@currency` is
+  an error rather than a silent conversion; leave a column empty to
+  claim nothing. One unit per kind: a storage prices three capacities
+  but states `capacity` once.
+
+  capacity
+
+  : character. Unit of capacity.
+
+  activity
+
+  : character. Unit of the activity variable.
+
+  costs
+
+  : character. Currency of the cost columns.
 
 - misc:
 

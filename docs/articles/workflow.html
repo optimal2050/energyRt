@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -119,12 +119,13 @@ article.</p>
 <span><span class="fu"><a href="../reference/registry_file.html">set_repositories_path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">wf</span>, <span class="st">"repositories"</span><span class="op">)</span><span class="op">)</span>    <span class="co"># ... and repositories</span></span>
 <span><span class="fu"><a href="../reference/registry_file.html">set_registry_file</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">wf</span>, <span class="st">"energyRt_registry.csv"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">um</span>  <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R1</span></span>
-<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">repo</span>,</span>
+<span><span class="va">topia_elc</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span></span>
+<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">repo</span>,</span>
 <span>                calendar <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span>
-<span>                region   <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">regions</span>,</span>
-<span>                horizon  <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>, discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
-<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">um</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></code></pre></div>
+<span>                region   <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">regions</span>,</span>
+<span>                horizon  <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">BY2025_50_by10</span>,</span>
+<span>                discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
+<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">topia_elc</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># interpolate + solve on the bundled GLPK; echo = FALSE keeps the log quiet</span></span>
 <span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -141,14 +142,14 @@ slot. It is the object-level counterpart of <code><a href="../reference/getData.
 object name; <code>drop = TRUE</code> unwraps a single match into the
 object itself.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">repo</span> <span class="op">&lt;-</span> <span class="va">um</span><span class="op">$</span><span class="va">repo</span></span>
+<code class="sourceCode R"><span><span class="va">repo</span> <span class="op">&lt;-</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">repo</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">repo</span>, class <span class="op">=</span> <span class="st">"technology"</span><span class="op">)</span><span class="op">)</span>        <span class="co"># all technologies</span></span>
-<span><span class="co">#&gt; [1] "ECOA" "EGAS" "ESOL" "EWIN" "EBIO"</span></span>
+<span><span class="co">#&gt; [1] "ECOA"  "EGAS"  "ENUC"  "ESOL"  "EWIN"  "EHYD"  "EBIO"  "H2ELC"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">repo</span>, class <span class="op">=</span> <span class="st">"supply"</span>, region <span class="op">=</span> <span class="st">"W1"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "SUP_BIO" "RES_SOL" "RES_WIN"</span></span>
+<span><span class="co">#&gt; [1] "SUP_BIO"   "RES_LANDS" "RES_LANDW"</span></span>
 <span><span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"ECOA"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">@</span><span class="va">invcost</span> <span class="co"># the ECOA object itself</span></span>
 <span><span class="co">#&gt;   vintage cluster region year invcost wacc payback eac retcost</span></span>
-<span><span class="co">#&gt; 1    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA    2000   NA      NA  NA      NA</span></span></code></pre></div>
+<span><span class="co">#&gt; 1    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA    2000   NA      NA  NA      25</span></span></code></pre></div>
 <p>Region matching reads <code>@region</code> slots and the
 <code>region</code>/<code>src</code>/<code>dst</code> columns of any
 data.frame slot, so it works for every class; region-agnostic objects
@@ -166,17 +167,17 @@ otherwise); every frame carries a <code>scenario</code> and a
 <code>name</code> column.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span>      <span class="co"># total system cost, MEUR</span></span>
-<span><span class="co">#&gt; [1] 18351.9</span></span>
+<span><span class="co">#&gt; [1] 147685.5</span></span>
 <span></span>
 <span><span class="va">gen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechOut"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">gen</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"scenario"</span>, <span class="st">"tech"</span>, <span class="st">"region"</span>, <span class="st">"year"</span>, <span class="st">"timeslice"</span>, <span class="st">"value"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 6</span></span></span>
 <span><span class="co">#&gt;   scenario tech  region  year timeslice value</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> BASE     ECOA  W1      <span style="text-decoration: underline;">2</span>025 WIN_h00   0.799</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> BASE     ECOA  W1      <span style="text-decoration: underline;">2</span>025 WIN_h01   0.736</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> BASE     ECOA  W1      <span style="text-decoration: underline;">2</span>025 WIN_h02   0.698</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> BASE     ECOA  W1      <span style="text-decoration: underline;">2</span>025 WIN_h03   0.673</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> BASE     EBIO  C1      <span style="text-decoration: underline;">2</span>040 WIN_h00    13.7</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> BASE     EBIO  C1      <span style="text-decoration: underline;">2</span>040 WIN_h01    13.7</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> BASE     EBIO  C1      <span style="text-decoration: underline;">2</span>040 WIN_h02    13.7</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> BASE     EBIO  C1      <span style="text-decoration: underline;">2</span>040 WIN_h03    13.7</span></span></code></pre></div>
 <p>The <code>...</code> accept set filters, exact
 (<code>comm = "ELC"</code>) or regex (<code>comm_ = "^EL"</code>).
 <code>timeframe = c("lowest","highest","all")</code> controls how
@@ -227,7 +228,8 @@ the object, put it back into the repository with
 <span></span>
 <span><span class="va">mod_hi</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA_HI"</span>, data <span class="op">=</span> <span class="va">repo_hi</span>,</span>
 <span>                    calendar <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span>
-<span>                    region <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">regions</span>, horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span>
+<span>                    region <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">regions</span>,</span>
+<span>                    horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">BY2025_50_by10</span>,</span>
 <span>                    discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></code></pre></div>
 <p>(For an already-interpolated scenario,
 <code>update_parameter(scen, param, data)</code> writes rows straight
@@ -248,9 +250,9 @@ valid names cannot contain; duplicate parts are dropped, so a scenario
 and model sharing a name appear once):</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/scenarios_path.html">get_scenarios_path</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpKs1y8G/wf"</span></span>
+<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpuG4EMi/wf"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">scen</span><span class="op">@</span><span class="va">path</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "BASE-TOPIA-s4_h24-base"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "BASE-TOPIA-s4_h24-BY2025_50_by10"</span></span></code></pre></div>
 <p>Saving a scenario writes an <strong>Arrow-backed</strong> folder that
 mirrors the scenario’s structure — a thin <code>scen.RData</code> shell,
 a <code>scenario.yml</code> manifest, each large data slot as a dataset,
@@ -314,11 +316,11 @@ resolves it through the project registry, and the cached accessor
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">saved</span><span class="op">@</span><span class="va">path</span><span class="op">)</span>                                 <span class="co"># the scenario folder</span></span>
-<span><span class="co">#&gt; [1] "BASE-TOPIA-s4_h24-base"</span></span>
+<span><span class="co">#&gt; [1] "BASE-TOPIA-s4_h24-BY2025_50_by10"</span></span>
 <span><span class="fu"><a href="../reference/isInMemory.html">isInMemory</a></span><span class="op">(</span><span class="va">saved</span><span class="op">)</span>                                    <span class="co"># FALSE -- data is on disk</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">ld</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span>        <span class="co"># lazy read, no full load</span></span>
-<span><span class="co">#&gt; [1] 18351.9</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 147685.5</span></span></code></pre></div>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ld</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/obj2mem.html">obj2mem</a></span><span class="op">(</span><span class="va">ld</span><span class="op">)</span>                                    <span class="co"># rehydrate fully into RAM</span></span></code></pre></div>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
@@ -349,7 +351,8 @@ comparison a one-liner. (Scenarios already <em>saved</em> compare by
 name alone: <code>getData(c("BASE", "CO2CAP"), ...)</code> loads them
 from the registry on the fly.)</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">scen_cap</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"CO2CAP"</span>, <span class="va">um</span><span class="op">$</span><span class="va">CO2_CAP</span><span class="op">)</span> <span class="op">|&gt;</span>   <span class="co"># add the CO2 cap lever</span></span>
+<code class="sourceCode R"><span><span class="co"># add the CO2 cap lever</span></span>
+<span><span class="va">scen_cap</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"CO2CAP"</span>, <span class="va">topia_elc</span><span class="op">$</span><span class="va">CO2_CAP</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span>, echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">emis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>BASE <span class="op">=</span> <span class="va">scen</span>, CO2CAP <span class="op">=</span> <span class="va">scen_cap</span><span class="op">)</span>, <span class="st">"vEmsFuelTot"</span>,</span>
@@ -365,13 +368,13 @@ from the registry on the fly.)</p>
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>BASE <span class="op">=</span> <span class="va">scen</span>, CO2CAP <span class="op">=</span> <span class="va">scen_cap</span><span class="op">)</span>,</span>
 <span>       <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   BASE CO2CAP </span></span>
-<span><span class="co">#&gt;  18352  32669</span></span></code></pre></div>
+<span><span class="co">#&gt; 147686 215173</span></span></code></pre></div>
 <p>A scenario that adds a lever to an interpolated one can be
 <strong>built on it</strong>: <code>base = scen</code> reuses BASE’s
 interpolated tables and computes only what the cap adds, and the result
 equals interpolating from scratch:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">scen_cap2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"CO2CAP"</span>, <span class="va">um</span><span class="op">$</span><span class="va">CO2_CAP</span>, base <span class="op">=</span> <span class="va">scen</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">scen_cap2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"CO2CAP"</span>, <span class="va">topia_elc</span><span class="op">$</span><span class="va">CO2_CAP</span>, base <span class="op">=</span> <span class="va">scen</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="../reference/compare_inputs.html">compare_inputs</a></span><span class="op">(</span><span class="va">scen_cap2</span>, <span class="va">scen_cap</span><span class="op">)</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">status</span> <span class="op">!=</span> <span class="st">"identical"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 0</span></span></code></pre></div>
 <p>The same holds for new technologies or commodities and for a sample
@@ -387,26 +390,26 @@ in-memory footprint:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_size.html">model_size</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
 <span><span class="co">#&gt; model_size: BASE</span></span>
 <span><span class="co">#&gt;   parameters : 200 value, 359 maps, 15 sets</span></span>
-<span><span class="co">#&gt;   param rows : 5,972</span></span>
-<span><span class="co">#&gt;   estimate   : ~20,012 variables, ~20,704 constraints (from gating maps)</span></span>
+<span><span class="co">#&gt;   param rows : 124,391</span></span>
+<span><span class="co">#&gt;   estimate   : ~244,839 variables, ~258,466 constraints (from gating maps)</span></span>
 <span><span class="co">#&gt;   top parameters by rows:</span></span>
+<span><span class="co">#&gt;     pTechCinp2use      25,728</span></span>
+<span><span class="co">#&gt;     pStorageInpEff     16,896</span></span>
+<span><span class="co">#&gt;     pStorageOutEff     16,896</span></span>
+<span><span class="co">#&gt;     pWeather           15,560</span></span>
+<span><span class="co">#&gt;     pTechUse2cact      13,056</span></span>
+<span><span class="co">#&gt;     pTradeIrVarom      8,468</span></span>
+<span><span class="co">#&gt;     pTradeIrEff        8,468</span></span>
+<span><span class="co">#&gt;     pDemand            4,224</span></span>
+<span><span class="co">#&gt;     pExportRowPrice    4,224</span></span>
+<span><span class="co">#&gt;     pExportRow         4,224</span></span>
 <span><span class="co">#&gt;     pTimesliceAgg      1,188</span></span>
-<span><span class="co">#&gt;     pTechCinp2use      1,152</span></span>
-<span><span class="co">#&gt;     pWeather           1,004</span></span>
+<span><span class="co">#&gt;     pTechFixom         676</span></span>
+<span><span class="co">#&gt;     pTechInvcost       676</span></span>
 <span><span class="co">#&gt;     pTimesliceWeight   404</span></span>
-<span><span class="co">#&gt;     pDemand            384</span></span>
-<span><span class="co">#&gt;     pExportRowPrice    384</span></span>
-<span><span class="co">#&gt;     pExportRow         384</span></span>
-<span><span class="co">#&gt;     pStorageInpEff     384</span></span>
-<span><span class="co">#&gt;     pStorageOutEff     384</span></span>
-<span><span class="co">#&gt;     pTimesliceShare    101</span></span>
-<span><span class="co">#&gt;     pTechFixom         20</span></span>
-<span><span class="co">#&gt;     pTechInvcost       20</span></span>
-<span><span class="co">#&gt;     pTechEac           17</span></span>
-<span><span class="co">#&gt;     pTechStock         14</span></span>
-<span><span class="co">#&gt;     pWacc              12</span></span>
+<span><span class="co">#&gt;     pTechCap2AInp      396</span></span>
 <span><span class="fu"><a href="../reference/size.html">size</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "10.8 Mb"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "25.5 Mb"</span></span></code></pre></div>
 <p>For a systematic check that a build is correct <em>and</em>
 efficient, <code>compare_interp_settings(mod)</code> and
 <code>compare_solve_settings(mod, solvers = ...)</code> interpolate (and
@@ -417,6 +420,51 @@ several builds, so they are best run interactively:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_interp_settings.html">compare_interp_settings</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span>                          <span class="co"># size/time by setting</span></span>
 <span><span class="fu"><a href="../reference/compare_solve_settings.html">compare_solve_settings</a></span><span class="op">(</span><span class="va">mod</span>, solvers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="the-base-year-given-not-decided">The base year: given, not decided<a class="anchor" aria-label="anchor" href="#the-base-year-given-not-decided"></a>
+</h2>
+<p>A milestone year whose values are known — an observed or calibrated
+base year — does not belong in the optimisation. Marking it on the
+horizon says so once, and three groups of years follow from the
+mark:</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newHorizon.html">newHorizon</a></span><span class="op">(</span><span class="fl">2020</span><span class="op">:</span><span class="fl">2050</span>, intervals <span class="op">=</span> <span class="fl">5</span>, base_year <span class="op">=</span> <span class="fl">2025</span>, name <span class="op">=</span> <span class="st">"h25"</span><span class="op">)</span></span>
+<span><span class="co">#            2020   historical -- optimised nowhere</span></span>
+<span><span class="co">#            2025   the base year, solved on its own</span></span>
+<span><span class="co"># 2030 ... 2050     the projection, what the solver optimises</span></span></code></pre></div>
+<p>Milestones <strong>before</strong> the base year are historical: they
+enter no LP at all, and a message names them when the split happens.
+Nothing is lost by their leaving — interpolation reads the anchor years
+present in the data, not the milestone list, so a parameter declared at
+2020 still drives the projection exactly as it did before the mark. The
+horizon’s <code>period</code> is kept whole on both halves for the same
+reason.</p>
+<p>Solve the base year on its own, then carry what it decided:</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">by</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_base_year.html">solve_base_year</a></span><span class="op">(</span><span class="va">mod</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span></span>
+<span><span class="va">prj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"PRJ"</span>, base_year_scenario <span class="op">=</span> <span class="va">by</span><span class="op">)</span></span>
+<span><span class="co">#&gt; base year 2025: not optimised; 12 capacity vintage(s) carried forward as stock</span></span></code></pre></div>
+<p>What crosses is only what the base-year solve
+<strong>decided</strong> — its new capacity, written as sunk
+<code>stock</code> at its true vintage, paying no annualised investment
+cost in the projection. The model’s own <code>@stock</code>, where
+observed history lives with its own vintages, is left untouched.</p>
+<p><code>base_year_scenario</code> defaults to <code>base</code>, so a
+projection built on a base takes that base’s base-year solution for
+free. It also accepts a solved scenario, a scenario name, or
+<code>"&lt;scenario&gt;/&lt;run&gt;"</code>. With no source at all the
+projection still excludes the base year and starts from the model’s
+declared <code>@stock</code>, saying so in one message — which is the
+normal shape when a calibrated fleet is written into the model at build
+time and there is no ledger to carry.</p>
+<p>The link is recorded in <code>scenario.yml</code>, so the base year
+can be read back alongside the projection:</p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">prj</span>, <span class="st">"vTechCap"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span>, base_year <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p>Every row gains a <code>source</code> column, <code>"solved"</code>
+or <code>"base"</code>. <code>vObjective</code> is not unioned: the two
+are separate optimisations.</p>
 </div>
 <div class="section level2">
 <h2 id="sampling-solving-a-subset-of-the-model">Sampling: solving a subset of the model<a class="anchor" aria-label="anchor" href="#sampling-solving-a-subset-of-the-model"></a>
@@ -436,18 +484,19 @@ sample inside the solver (the top slice carries weight
 <code>1/year_fraction</code>), so the objective is an <em>estimate</em>
 of the full model’s — and exactly equals it when the sampled slices are
 representative:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tt</span>  <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span><span class="op">@</span><span class="va">timetable</span></span>
-<span><span class="va">tt2</span> <span class="op">&lt;-</span> <span class="va">tt</span><span class="op">[</span><span class="va">tt</span><span class="op">$</span><span class="va">SEASON</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WIN"</span>, <span class="st">"SUM"</span><span class="op">)</span>, <span class="op">]</span>      <span class="co"># two of the four seasons</span></span>
-<span><span class="va">cal2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCalendar.html">newCalendar</a></span><span class="op">(</span>timetable <span class="op">=</span> <span class="va">tt2</span>, name <span class="op">=</span> <span class="st">"s2h24"</span>,</span>
-<span>                    year_fraction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">tt2</span><span class="op">$</span><span class="va">share</span><span class="op">)</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">timetable</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span><span class="op">@</span><span class="va">timetable</span></span>
+<span><span class="co"># two of the four seasons</span></span>
+<span><span class="va">timetable_2s</span> <span class="op">&lt;-</span> <span class="va">timetable</span><span class="op">[</span><span class="va">timetable</span><span class="op">$</span><span class="va">SEASON</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WIN"</span>, <span class="st">"SUM"</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="va">calendar_s2h24</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCalendar.html">newCalendar</a></span><span class="op">(</span>timetable <span class="op">=</span> <span class="va">timetable_2s</span>, name <span class="op">=</span> <span class="st">"s2h24"</span>,</span>
+<span>                              year_fraction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">timetable_2s</span><span class="op">$</span><span class="va">share</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">scen_t</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"S2"</span>, <span class="va">cal2</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span><span class="va">scen_t</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"S2"</span>, <span class="va">calendar_s2h24</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span>, echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>full <span class="op">=</span> <span class="va">scen</span>, sampled <span class="op">=</span> <span class="va">scen_t</span><span class="op">)</span>,</span>
 <span>       <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    full sampled </span></span>
-<span><span class="co">#&gt;   18352   20427</span></span></code></pre></div>
+<span><span class="co">#&gt;  147686  164007</span></span></code></pre></div>
 <p>Two traps: pass <code>year_fraction</code>
 <strong>explicitly</strong> (it is not recomputed from the subset), and
 <strong>subset the existing timetable</strong> rather than rebuilding
@@ -457,9 +506,9 @@ shares to a full year). Declarations are validated against the
 interpolate cleanly — their out-of-sample rows are simply filtered.</p>
 <p>A sample of an already interpolated full-calendar scenario can be
 built on it,
-<code>interpolate_model(mod, "S2", cal2, base = scen)</code>: the full
-scenario’s tables are taken filtered to the sampled timeslices instead
-of being recomputed.</p>
+<code>interpolate_model(mod, "S2", calendar_s2h24, base = scen)</code>:
+the full scenario’s tables are taken filtered to the sampled timeslices
+instead of being recomputed.</p>
 </div>
 <div class="section level3">
 <h3 id="spatial-sampling">Spatial sampling<a class="anchor" aria-label="anchor" href="#spatial-sampling"></a>
@@ -474,7 +523,7 @@ reweighting</strong>: regional quantities are extensive, so the
 objective is the sub-territory’s own, and disjoint samples <em>add
 up</em> to the full model (absent cross-boundary trade).</p>
 <p>TOPIA is single-region, so a compact three-region demo:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/geoscales/r/" class="external-link">geoscales</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">r3</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="st">"R2"</span>, <span class="st">"R3"</span><span class="op">)</span></span>
@@ -503,7 +552,7 @@ up</em> to the full model (absent cross-boundary trade).</p>
 <span>             invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>invcost <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Filtering the geoscale to <code>R1 + R2</code> and interpolating
 drops the <code>R2 -&gt; R3</code> route on the way:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">gs12</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/filter_geoscale.html" class="external-link">filter_geoscale</a></span><span class="op">(</span><span class="va">gs</span>, <span class="st">"region"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="st">"R2"</span><span class="op">)</span>,</span>
 <span>                        drop_empty_geoframes <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">scen12</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">m3</span>, <span class="st">"S12"</span>, <span class="va">gs12</span><span class="op">)</span></span>
@@ -517,7 +566,7 @@ stub</strong> at the kept endpoint — an export (kept source) or import
 that, the route’s <code>ava.up</code>) — via
 <code>boundary_prices</code>; routes without a price row are just
 dropped:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">bp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>src <span class="op">=</span> <span class="st">"R2"</span>, dst <span class="op">=</span> <span class="st">"R3"</span>, price <span class="op">=</span> <span class="fl">50</span>, cap.up <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="va">scen12p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">m3</span>, <span class="st">"S12P"</span>, <span class="va">gs12</span>, boundary_prices <span class="op">=</span> <span class="va">bp</span><span class="op">)</span></span>
 <span><span class="co">#&gt; spatial sample: sub-territory solve on 2 of 3 regions</span></span>
@@ -525,7 +574,7 @@ dropped:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"^EXP"</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">scen12p</span><span class="op">@</span><span class="va">modInp</span><span class="op">@</span><span class="va">sets</span><span class="op">$</span><span class="va">expp</span><span class="op">)</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "EXP_TR23_R22R3"</span></span></code></pre></div>
 <p>The same surgery is available up front, as a model-to-model verb:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">m12</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/subset_model_regions.html">subset_model_regions</a></span><span class="op">(</span><span class="va">m3</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="st">"R2"</span><span class="op">)</span>, boundary_prices <span class="op">=</span> <span class="va">bp</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">m12</span><span class="op">@</span><span class="va">config</span><span class="op">@</span><span class="va">region</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "R1" "R2"</span></span></code></pre></div>
@@ -550,7 +599,7 @@ without moving the price. For supply-curve work that is usually too
 generous. <code><a href="../reference/boundary_window.html">boundary_window()</a></code> builds a <strong>stepped
 curve</strong> instead — a rising cost of imports, a falling revenue on
 exports — and sizes its quantity from the region’s own demand:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">bw</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/boundary_window.html">boundary_window</a></span><span class="op">(</span><span class="va">m3</span>, regions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="st">"R2"</span><span class="op">)</span>,</span>
 <span>                      share <span class="op">=</span> <span class="fl">0.1</span>, nsteps <span class="op">=</span> <span class="fl">3</span>, price <span class="op">=</span> <span class="fl">40</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">bw</span>, <span class="fl">2</span><span class="op">)</span></span>
@@ -566,7 +615,7 @@ judgement, so <code>price</code> is required.</p>
 three extra columns (<code>nsteps</code>, <code>price_lo</code>,
 <code>price_hi</code>), so it goes where a flat one goes; omit them and
 you get exactly the flat stub as before.</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">m12w</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/subset_model_regions.html">subset_model_regions</a></span><span class="op">(</span><span class="va">m3</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="st">"R2"</span><span class="op">)</span>, boundary_prices <span class="op">=</span> <span class="va">bw</span><span class="op">)</span></span>
 <span><span class="va">stub</span> <span class="op">&lt;-</span> <span class="va">m12w</span><span class="op">@</span><span class="va">data</span><span class="op">[[</span><span class="st">"boundary_stubs"</span><span class="op">]</span><span class="op">]</span><span class="op">@</span><span class="va">data</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="co"># `@cluster` declares WHAT the steps are; the split itself is enforced in the</span></span>
@@ -583,7 +632,7 @@ you get exactly the flat stub as before.</p>
 <p><code><a href="../reference/solve_by_region.html">solve_by_region()</a></code> runs the whole sweep — one region at a
 time by default, or one group at a time — storing each as a variant of a
 single scenario:</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">br</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_by_region.html">solve_by_region</a></span><span class="op">(</span><span class="va">m3</span>, name <span class="op">=</span> <span class="st">"sweep"</span><span class="op">)</span>           <span class="co"># autarky</span></span>
 <span><span class="va">br</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_by_region.html">solve_by_region</a></span><span class="op">(</span><span class="va">m3</span>, name <span class="op">=</span> <span class="st">"sweep_w"</span>,         <span class="co"># with a trade window</span></span>
 <span>                      trade <span class="op">=</span> <span class="st">"auto"</span>, price <span class="op">=</span> <span class="fl">40</span>, share <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span>
@@ -607,7 +656,7 @@ infeasible one should not cost you the rest.</p>
 <code><a href="../reference/solve_by_sample.html">solve_by_sample()</a></code> runs a whole ensemble of them —
 consecutive blocks tiling the year, disjoint random draws, or bootstrap
 draws — and keeps every run:</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ens</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_by_sample.html">solve_by_sample</a></span><span class="op">(</span><span class="va">m3</span>, name <span class="op">=</span> <span class="st">"ens"</span>, sample_size <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>                       method <span class="op">=</span> <span class="st">"sequential"</span><span class="op">)</span>     <span class="co"># two-season blocks</span></span>
 <span><span class="va">ens</span><span class="op">$</span><span class="va">runs</span></span>
@@ -642,7 +691,7 @@ decides what to do with them. Two methods are exceptions:
 <code><a href="../reference/getData.html">getData()</a></code> on a recursive sequence stitches, taking each
 year from the step that decided it, and on a guided sequence it
 delegates to the final full-horizon solve.</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_recursive.html">solve_recursive</a></span><span class="op">(</span><span class="va">m3</span>, name <span class="op">=</span> <span class="st">"rec"</span><span class="op">)</span>  <span class="co"># milestone by milestone</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">br</span>, <span class="st">"vTechCap"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>    <span class="co"># stacked, with a `region` column</span></span>
@@ -708,7 +757,7 @@ each driver. <code><a href="../reference/sequence_coverage.html">sequence_covera
 — one row per unit and element covered, with <code>dim</code> naming the
 scale the units were drawn on — and <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> draws that
 frame on the scale itself.</p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/sequence_coverage.html">sequence_coverage</a></span><span class="op">(</span><span class="va">ens</span><span class="op">)</span>             <span class="co"># unit, dim, key, role, count</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">ens</span><span class="op">)</span>                      <span class="co"># the calendar, tiled by sample</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">ens</span>, <span class="st">"wall"</span>, year <span class="op">=</span> <span class="fl">2020</span><span class="op">)</span> <span class="co"># the same, as a wall calendar</span></span>
@@ -731,7 +780,7 @@ its geoscale — and falls back to a plain list of regions where the
 geoscale carries no geometry.</p>
 <p>The spread of a <em>result</em> across an ensemble is a histogram
 rather than a map:</p>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">ens</span>, <span class="st">"histogram"</span><span class="op">)</span>                                  <span class="co"># the objective</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">ens</span>, <span class="st">"histogram"</span>, var <span class="op">=</span> <span class="st">"vTechCap"</span>, by <span class="op">=</span> <span class="st">"tech"</span><span class="op">)</span></span></code></pre></div>
 <p>Bars are weighted by each sample’s <code>year_fraction</code>, since
@@ -757,7 +806,7 @@ bar one unit at a time; <code>verbose = TRUE</code> prints a line per
 unit, as an alternative or in addition. Only the outermost sequence
 claims the bar, so the interpolation inside a driver’s loop does not
 open a second one over the first.</p>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/progress.html">set_progress_bar</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">ens2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_by_sample.html">solve_by_sample</a></span><span class="op">(</span><span class="va">m3</span>, name <span class="op">=</span> <span class="st">"ens_bar"</span>, sample_size <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>                        verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>

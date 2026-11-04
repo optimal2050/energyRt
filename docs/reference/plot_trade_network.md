@@ -18,12 +18,13 @@ plot_trade_network(
   object,
   map = NULL,
   value = c("input", "capacity", "flow"),
+  comm = NULL,
   year = NULL,
   timeslice = "ANNUAL",
   level = NULL,
   curvature = 0.15,
   labels = TRUE,
-  node_size = TRUE,
+  node_size = FALSE,
   ...
 )
 ```
@@ -47,15 +48,25 @@ plot_trade_network(
 
   what sets the link width:
 
-  - `"input"`: the trade objects' `@capacity` in `year` – existing links
-    (`stock` \> 0) solid, width = stock, with a faint band up to
-    `cap.up`; projects (no stock, expandable through `ncap.up`, `cap.up`
-    or an `@invcost` row) dashed, width = `cap.up` (else `ncap.up`);
+  - `"input"`: the trade objects' `@capacity` in `year`, by what the
+    link IS rather than by one category – `stock` (capacity standing, no
+    way to add more) solid; `stock + new` (standing capacity that may
+    also be expanded, through `ncap.up`, `cap.up` or an `@invcost` row)
+    long-dashed; `new` (nothing standing, investable only) dotted. Width
+    is the standing capacity, or the ceiling for a link with none, with
+    a faint band out to `cap.up` where one is declared;
 
   - `"capacity"`: the solved `vTradeCap` in `year`;
 
   - `"flow"`: the solved `vTradeIr` in `year`, netted per pair; the
     arrow points in the net direction.
+
+- comm:
+
+  draw only the trades carrying this commodity (or these). `NULL`
+  (default) draws every one. Commodities that are not in the same
+  capacity unit cannot share one width scale, which is what makes this
+  the usual way to read a mixed repository.
 
 - year:
 
@@ -83,7 +94,10 @@ plot_trade_network(
 
 - node_size:
 
-  scale nodes by the total value of their links.
+  scale the node points by the capacity connected to each region.
+  `FALSE` (default) draws them at one size: the sum of the links
+  touching a region is the links read a second way, and beside the
+  corridors themselves it says the same thing twice.
 
 - ...:
 

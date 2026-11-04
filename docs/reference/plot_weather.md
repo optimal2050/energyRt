@@ -99,7 +99,7 @@ A `ggplot` object (or `NULL`, invisibly, if there is nothing to plot).
 ``` r
 if (FALSE) { # \dontrun{
 data("calendars", package = "energyRt")
-W <- getObject(topia$modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
+W <- getObject(topia$modules$electricity$repo, name = "WSOL", drop = TRUE)
 autoplot(W, calendar = calendars$s4_h24)                     # heatmap
 autoplot(W, style = "line", calendar = calendars$s4_h24)
 } # }

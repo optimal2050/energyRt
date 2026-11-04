@@ -49,6 +49,7 @@
 <url><loc>https://energyRt.org/reference/calendar.html</loc></url>
 <url><loc>https://energyRt.org/reference/calendars.html</loc></url>
 <url><loc>https://energyRt.org/reference/calendar_samples.html</loc></url>
+<url><loc>https://energyRt.org/reference/check_feasibility.html</loc></url>
 <url><loc>https://energyRt.org/reference/check_geoscale_regions.html</loc></url>
 <url><loc>https://energyRt.org/reference/check_name.html</loc></url>
 <url><loc>https://energyRt.org/reference/class-calendar.html</loc></url>
@@ -77,6 +78,7 @@
 <url><loc>https://energyRt.org/reference/class-weather.html</loc></url>
 <url><loc>https://energyRt.org/reference/clear_levcost_cache.html</loc></url>
 <url><loc>https://energyRt.org/reference/clear_report_cache.html</loc></url>
+<url><loc>https://energyRt.org/reference/clear_run.html</loc></url>
 <url><loc>https://energyRt.org/reference/collect_scenario_parameter_data.html</loc></url>
 <url><loc>https://energyRt.org/reference/collect_set_elements.html</loc></url>
 <url><loc>https://energyRt.org/reference/combine_vintages.html</loc></url>
@@ -142,6 +144,7 @@
 <url><loc>https://energyRt.org/reference/get_process_timeframe.html</loc></url>
 <url><loc>https://energyRt.org/reference/get_region.html</loc></url>
 <url><loc>https://energyRt.org/reference/get_slot_doc.html</loc></url>
+<url><loc>https://energyRt.org/reference/get_status.html</loc></url>
 <url><loc>https://energyRt.org/reference/get_variable.html</loc></url>
 <url><loc>https://energyRt.org/reference/get_weather.html</loc></url>
 <url><loc>https://energyRt.org/reference/ghost_options.html</loc></url>
@@ -276,6 +279,7 @@
 <url><loc>https://energyRt.org/reference/solver.html</loc></url>
 <url><loc>https://energyRt.org/reference/solver_options.html</loc></url>
 <url><loc>https://energyRt.org/reference/solver_path.html</loc></url>
+<url><loc>https://energyRt.org/reference/solve_base_year.html</loc></url>
 <url><loc>https://energyRt.org/reference/solve_by_region.html</loc></url>
 <url><loc>https://energyRt.org/reference/solve_by_sample.html</loc></url>
 <url><loc>https://energyRt.org/reference/solve_guided.html</loc></url>

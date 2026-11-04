@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -606,7 +606,7 @@ capacity of one technology reads:</p>
 <span><span class="va">COALLIM</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newConstraint.html">newConstraint</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"COALLIM"</span>, desc <span class="op">=</span> <span class="st">"Cap on new coal capacity"</span>, eq <span class="op">=</span> <span class="st">"&lt;="</span>,</span>
 <span>  cap <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>variable <span class="op">=</span> <span class="st">"vTechNewCap"</span>, for.sum <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>tech <span class="op">=</span> <span class="st">"PLANT"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  rhs <span class="op">=</span> <span class="fl">50</span>, defVal <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
+<span>  rhs <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
 <span><span class="va">COALLIM</span><span class="op">@</span><span class="va">lhs</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">@</span><span class="va">for.sum</span><span class="op">$</span><span class="va">tech</span></span>
 <span><span class="co">#&gt; [1] "PLANT"</span></span></code></pre></div>
 <p>A term can also be <em>targeted</em> rather than enumerated.
@@ -622,7 +622,7 @@ name expands to all of its realized variants:</p>
 <span><span class="fu"><a href="../reference/newConstraint.html">newConstraint</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"ECOA30"</span>, eq <span class="op">=</span> <span class="st">"&lt;="</span>,</span>
 <span>  cap <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>variable <span class="op">=</span> <span class="st">"vTechCap"</span>, process_ <span class="op">=</span> <span class="st">"^ECOA"</span>, vintage <span class="op">=</span> <span class="st">"2030"</span><span class="op">)</span>,</span>
-<span>  for.each <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>year <span class="op">=</span> <span class="fl">2030</span><span class="op">)</span>, rhs <span class="op">=</span> <span class="fl">100</span>, defVal <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
+<span>  for.each <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>year <span class="op">=</span> <span class="fl">2030</span><span class="op">)</span>, rhs <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="structures">Structures<a class="anchor" aria-label="anchor" href="#structures"></a>

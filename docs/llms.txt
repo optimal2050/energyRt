@@ -645,6 +645,8 @@ primitives.
   : Solve a model region by region
 - [`solve_guided()`](https://energyRt.org/reference/solve_guided.md) :
   Solve a model with guided perfect foresight
+- [`solve_base_year()`](https://energyRt.org/reference/solve_base_year.md)
+  : Solve the base year of a marked horizon
 - [`horizon_windows()`](https://energyRt.org/reference/horizon_windows.md)
   : Split a horizon into sequential solve windows
 - [`solution_ledger()`](https://energyRt.org/reference/solution_ledger.md)
@@ -884,6 +886,13 @@ larger than memory stay readable.
   [`delete_marked()`](https://energyRt.org/reference/seal.md) : Seal and
   unseal store entries; mark them for deletion
 
+- [`get_status()`](https://energyRt.org/reference/get_status.md)
+  [`print(`*`<en_status>`*`)`](https://energyRt.org/reference/get_status.md)
+  : Seal, mark, runs, storage and lineage of a saved object
+
+- [`clear_run()`](https://energyRt.org/reference/clear_run.md) : Release
+  a run that is marked running
+
 - [`list_versions()`](https://energyRt.org/reference/list_versions.md) :
   Versions held in the model, repository and dataset stores
 
@@ -991,6 +1000,9 @@ one.
 [`verify_solution()`](https://energyRt.org/reference/verify_solution.md)
 re-derives the model’s identities from the results.
 
+- [`check_feasibility()`](https://energyRt.org/reference/check_feasibility.md)
+  : Check a model for contradictions that need no solver
+
 - [`validate_scenario_parameters()`](https://energyRt.org/reference/validate_scenario_parameters.md)
   : Validate interpolated scenario parameters
 
@@ -1038,7 +1050,7 @@ Data bundled with the package for the examples and articles.
 - [`topia_profile()`](https://energyRt.org/reference/topia_profile.md) :
   Synthetic input shapes on a calendar (deterministic)
 - [`topia_profiles()`](https://energyRt.org/reference/topia_profiles.md)
-  : TOPIA input profiles (deterministic)
+  : TOPIA input profiles
 - [`model_structure`](https://energyRt.org/reference/model_structure.md)
   : Catalogue of the model vocabulary
 - [`prefix`](https://energyRt.org/reference/prefix.md)

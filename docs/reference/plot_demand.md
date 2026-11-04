@@ -32,17 +32,21 @@ plot_demand(
   interpolate = TRUE,
   palette = "D",
   calendar = NULL,
+  region = NULL,
   ...
 )
 
 # S3 method for class 'demand'
 autoplot(
   object,
-  style = c("area", "line", "heatmap"),
+  style = c("area", "line", "heatmap", "map"),
   year = NULL,
   interpolate = TRUE,
   palette = "D",
   calendar = NULL,
+  region = NULL,
+  param = NULL,
+  map = NULL,
   ...
 )
 ```
@@ -78,10 +82,17 @@ autoplot(
 
   Optional `calendar` object ordering the heatmap's timeslice axis.
 
+- region:
+
+  which regions to draw: a vector of region codes, or a number to take
+  that many in the order they appear. `NULL` (default) draws every
+  region the object carries.
+
 - ...:
 
-  Passed to [`getData()`](https://energyRt.org/reference/getData.md)
-  (e.g. `region =` filter).
+  Passed to [`getData()`](https://energyRt.org/reference/getData.md) by
+  `style = "area"`, which interpolates; the `"line"` and `"heatmap"`
+  styles read `@demand` directly and ignore it.
 
 ## Value
 

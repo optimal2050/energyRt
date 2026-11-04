@@ -41,7 +41,7 @@ observed year range) with each parameter's default interpolation rule."><meta pr
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -148,6 +148,7 @@ observed year range) with each parameter's default interpolation rule.</p>
 <span>  unfold <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  variants <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  run <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  base_year <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -183,6 +184,7 @@ observed year range) with each parameter's default interpolation rule.</p>
 <span>  unfold <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  variants <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  run <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  base_year <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -483,6 +485,19 @@ passed keeps its active run; a variant run brings its own problem with
 it, parameters included. Spanning runs of different problems warns —
 their results are not like-for-like. Not to be confused with <code>variants</code>,
 below, which is about technologies.</p></dd>
+
+
+<dt id="arg-base-year">base_year<a class="anchor" aria-label="anchor" href="#arg-base-year"></a></dt>
+<dd><p>logical, default <code>FALSE</code>. When <code>TRUE</code>, a scenario whose
+horizon marks a base year also returns that year, read from the separate
+run the scenario recorded (see <code><a href="solve_base_year.html">solve_base_year()</a></code>), and every row gains
+a <code>source</code> column — <code>"solved"</code> for the scenario's own LP, <code>"base"</code> for
+the base year. <code>vObjective</code> is not unioned: the base year and the
+projection are separate optimisations, so only the projection's is
+returned. A scenario that records no base year, or whose recorded source
+cannot be read, warns and returns its own rows alone. Note that
+post-processing applies the FIRST object's horizon and calendar labels to
+every row.</p></dd>
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>

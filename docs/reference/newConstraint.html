@@ -9,7 +9,7 @@ to add custom constraints to the model."><meta property="og:image" content="http
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,7 +70,7 @@ to add custom constraints to the model.</p>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">newConstraint</span><span class="op">(</span></span>
-<span>  <span class="va">name</span>,</span>
+<span>  name <span class="op">=</span> <span class="st">""</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">""</span>,</span>
 <span>  <span class="va">...</span>,</span>
 <span>  eq <span class="op">=</span> <span class="st">"=="</span>,</span>
@@ -116,6 +116,8 @@ as linear terms of mulipliers and variables.</p></li>
 
 <dt id="arg-rhs">rhs<a class="anchor" aria-label="anchor" href="#arg-rhs"></a></dt>
 <dd><p>a numeric value, list or data frame with sets and numeric values for each constraint.
+A single value (a number, a one-element list or a one-cell data frame) is
+the right-hand side of every row: it replaces <code>defVal</code>.
 Note: zero values will be replaced with <code>replace_zerros</code> to avoid dropping them by the interpolation algorithms.</p></dd>
 
 

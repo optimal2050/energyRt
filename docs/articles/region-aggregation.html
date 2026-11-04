@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -99,7 +99,7 @@
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://energyRt.org">energyRt</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/geoscales/r/" class="external-link">geoscales</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/nestedscales/" class="external-link">nestedscales</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/nestedscales/r/" class="external-link">nestedscales</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
@@ -618,7 +618,7 @@ code:</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_clusters.html">model_clusters</a></span><span class="op">(</span><span class="va">mod_7</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/plot_geoscale.html">plot_geoscale</a></span><span class="op">(</span><span class="va">cl</span><span class="op">$</span><span class="va">ECOA</span><span class="op">$</span><span class="va">geoscale</span>, type <span class="op">=</span> <span class="st">"map"</span>, geoframe <span class="op">=</span> <span class="st">"cluster"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/plot_geoscale.html">plot_geoscale</a></span><span class="op">(</span><span class="va">cl</span><span class="op">$</span><span class="va">ECOA</span><span class="op">$</span><span class="va">geoscale</span>, style <span class="op">=</span> <span class="st">"map"</span>, geoframe <span class="op">=</span> <span class="st">"cluster"</span><span class="op">)</span></span></code></pre></div>
 <p>The atoms are coloured by the cluster they joined. Every cluster is
 one connected blob and none crosses a zone boundary – that is the
 contiguity constraint, visible rather than asserted.</p>

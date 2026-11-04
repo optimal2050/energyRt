@@ -21,7 +21,7 @@ deprecated aliases."><meta property="og:image" content="https://energyRt.org/log
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -105,6 +105,7 @@ deprecated aliases.</p>
 <span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  kvl <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  variant <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  wait <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  <span class="va">...</span>,</span>
 <span>  tmp.dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  tmp.del <span class="op">=</span> <span class="cn">NULL</span></span>
@@ -190,6 +191,16 @@ scenario-level (base) problem untouched. Switch between problems with
 <code><a href="read.html">read_solution()</a></code> (<code>run = "&lt;variant&gt;/&lt;solve&gt;"</code> vs <code>run = "&lt;solve&gt;"</code>).</p></dd>
 
 
+<dt id="arg-wait">wait<a class="anchor" aria-label="anchor" href="#arg-wait"></a></dt>
+<dd><p>logical. <code>TRUE</code> (default) blocks until the solver exits.
+<code>FALSE</code> launches it detached and returns at once, leaving the run record
+at <code>status: "running"</code> for the solver's process to close; collect the
+result later with <code><a href="import_solution.html">import_solution()</a></code> or <code><a href="read.html">read_solution()</a></code>. Detached
+solving works for the backends that launch a solver process – GLPK,
+GAMS, Pyomo and JuMP – and is refused together with <code>read.solution = TRUE</code>, <code>transient = TRUE</code> or an external <code>solver.dir</code>, none of which can
+be honoured once the call returns before the solve does.</p></dd>
+
+
 <dt id="arg-tmp-dir-tmp-del">tmp.dir, tmp.del<a class="anchor" aria-label="anchor" href="#arg-tmp-dir-tmp-del"></a></dt>
 <dd><p>deprecated aliases of <code>solver.dir</code> / <code>transient</code>.</p></dd>
 
@@ -212,13 +223,13 @@ scenario-level (base) problem untouched. Switch between problems with
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="accessors.html">open_project</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">ek</span>   <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span></span></span>
-<span class="r-in"><span><span class="va">mod</span>  <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">repo</span>,</span></span>
+<span class="r-in"><span><span class="va">topia_elc</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span></span></span>
+<span class="r-in"><span><span class="va">mod</span>  <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">repo</span>,</span></span>
 <span class="r-in"><span>                 calendar <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span></span>
-<span class="r-in"><span>                 region <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">regions</span>,</span></span>
-<span class="r-in"><span>                 horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span></span>
+<span class="r-in"><span>                 region <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">regions</span>,</span></span>
+<span class="r-in"><span>                 horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">BY2025_50_by10</span>,</span></span>
 <span class="r-in"><span>                 discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">ek</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">topia_elc</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu">solve_model</span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span><span class="op">)</span></span></span>

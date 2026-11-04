@@ -171,16 +171,16 @@ Other comparison:
 if (FALSE) { # \dontrun{
 open_project(tempdir())
 
-ek  <- topia$modules$electricity$R3
-mod <- newModel("TOPIA", data = ek$repo,
+topia_elc <- topia$modules$electricity
+mod <- newModel("TOPIA", data = topia_elc$repo,
                 calendar = topia$modules$calendars$s4_h24,
-                region = ek$regions,
-                horizon = topia$modules$horizons$base,
+                region = topia_elc$regions,
+                horizon = topia$modules$horizons$BY2025_50_by10,
                 discount = 0.05)
-mod <- setGeoscale(mod, ek$geoscale)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 
 base <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
-cap  <- solve_model(add(mod, ek$CO2_CAP), name = "CAP",
+cap  <- solve_model(add(mod, topia_elc$CO2_CAP), name = "CAP",
                     solver = solver_options$glpk)
 
 # a NAMED list, the first entry as the baseline

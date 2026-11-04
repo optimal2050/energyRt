@@ -39,16 +39,16 @@ Other process spec:
 ## Examples
 
 ``` r
-tech <- topia$modules$electricity$R3$ECOA
+tech <- getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE)
 
 # the object as a plain nested list: diffable, editable, writable as YAML
 spec <- process_to_spec(tech)
 names(spec)
 #>  [1] "techspec"           "class"              "name"              
-#>  [4] "desc"               "cap2act"            "optimizeRetirement"
-#>  [7] "inputs"             "outputs"            "efficiency"        
-#> [10] "invcost"            "fixom"              "vintages"          
-#> [13] "capacity"          
+#>  [4] "desc"               "units"              "cap2act"           
+#>  [7] "optimizeRetirement" "inputs"             "outputs"           
+#> [10] "efficiency"         "invcost"            "fixom"             
+#> [13] "vintages"           "capacity"          
 spec$efficiency
 #> [[1]]
 #> [[1]]$comm
@@ -56,6 +56,14 @@ spec$efficiency
 #> 
 #> [[1]]$cinp2use
 #> [1] 0.4
+#> 
+#> 
+#> [[2]]
+#> [[2]]$comm
+#> [1] "ELC"
+#> 
+#> [[2]]$use2cact
+#> [1] 277.7778
 #> 
 #> 
 

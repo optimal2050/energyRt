@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -72,6 +72,7 @@
 <span>  mid_is_end <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  mid_is_start <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  force_BY_interval_to_1_year <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  base_year <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  desc <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  name <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span>
@@ -114,6 +115,17 @@ The vector will be considered as lengths of each modeled interval in period.</p>
 
 <dt id="arg-force-by-interval-to-year">force_BY_interval_to_1_year<a class="anchor" aria-label="anchor" href="#arg-force-by-interval-to-year"></a></dt>
 <dd><p>logical, if TRUE (default), the base-year (first) interval will be forced to one year.</p></dd>
+
+
+<dt id="arg-base-year">base_year<a class="anchor" aria-label="anchor" href="#arg-base-year"></a></dt>
+<dd><p>a single integer year, or <code>NULL</code> (the default) for a
+horizon every year of which is optimised. The marked year is GIVEN rather
+than decided: it is interpolated as any other year and what it holds can be
+carried forward as stock, but it is not passed to the solver – its own
+solution comes from a separate solve. Milestones <strong>before</strong> it are
+historical and leave the model altogether, remaining interpolation anchors
+only. Must name a milestone of this horizon, and cannot be its last.
+See <code><a href="solve_base_year.html">solve_base_year()</a></code>.</p></dd>
 
 
 <dt id="arg-desc">desc<a class="anchor" aria-label="anchor" href="#arg-desc"></a></dt>
@@ -201,6 +213,9 @@ The vector will be considered as lengths of each modeled interval in period.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     start   mid   end  label</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Slot "base_year":</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> integer(0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu">newHorizon</span><span class="op">(</span><span class="fl">2020</span><span class="op">:</span><span class="fl">2030</span>, desc <span class="op">=</span> <span class="st">"One-year intervals"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> An object of class "horizon"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Slot "name":</span>
@@ -227,6 +242,9 @@ The vector will be considered as lengths of each modeled interval in period.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 10:  2029  2029  2029   2029</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 11:  2030  2030  2030   2030</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Slot "base_year":</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> integer(0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu">newHorizon</span><span class="op">(</span><span class="fl">2020</span><span class="op">:</span><span class="fl">2030</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">5</span>, <span class="fl">10</span><span class="op">)</span>, desc <span class="op">=</span> <span class="st">"Different length intervals"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> An object of class "horizon"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Slot "name":</span>
@@ -245,6 +263,9 @@ The vector will be considered as lengths of each modeled interval in period.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2:  2021  2021  2022   2021</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3:  2023  2025  2027   2025</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4:  2028  2028  2030   2028</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Slot "base_year":</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> integer(0)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu">newHorizon</span><span class="op">(</span><span class="fl">2020</span><span class="op">:</span><span class="fl">2035</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">5</span>, <span class="fl">5</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> An object of class "horizon"</span>
@@ -267,6 +288,9 @@ The vector will be considered as lengths of each modeled interval in period.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4:  2028  2030  2032   2030</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5:  2033  2033  2035   2033</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Slot "base_year":</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> integer(0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu">newHorizon</span><span class="op">(</span><span class="fl">2020</span><span class="op">:</span><span class="fl">2050</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">5</span>, <span class="fl">7</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> An object of class "horizon"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Slot "name":</span>
@@ -287,6 +311,9 @@ The vector will be considered as lengths of each modeled interval in period.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3:  2023  2025  2027   2025</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4:  2028  2031  2034   2031</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5:  2035  2035  2035   2035</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Slot "base_year":</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> integer(0)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">newHorizon</span><span class="op">(</span>intervals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
@@ -312,6 +339,9 @@ The vector will be considered as lengths of each modeled interval in period.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2:  2031  2032  2033   2032</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3:  2034  2037  2040   2037</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Slot "base_year":</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> integer(0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">newHorizon</span><span class="op">(</span>period <span class="op">=</span> <span class="fl">2020</span><span class="op">:</span><span class="fl">2050</span>,</span></span>
 <span class="r-in"><span>           intervals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
@@ -336,6 +366,9 @@ The vector will be considered as lengths of each modeled interval in period.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2:  2031  2032  2033   2032</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3:  2034  2037  2040   2037</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Slot "base_year":</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> integer(0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">newHorizon</span><span class="op">(</span><span class="fl">2020</span><span class="op">:</span><span class="fl">2050</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">2</span>, <span class="fl">5</span>, <span class="fl">10</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>           desc <span class="op">=</span> <span class="st">"Pay attention to the length of the first interval"</span><span class="op">)</span></span></span>
@@ -358,6 +391,9 @@ The vector will be considered as lengths of each modeled interval in period.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3:  2023  2023  2024   2023</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4:  2025  2027  2029   2027</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5:  2030  2034  2039   2034</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Slot "base_year":</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> integer(0)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Explicit display labels; `mid` remains the model key</span></span></span>
@@ -383,6 +419,9 @@ The vector will be considered as lengths of each modeled interval in period.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2:  2026  2026  2029      2026</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3:  2030  2030  2034 FY2030-31</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Slot "base_year":</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> integer(0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">newHorizon</span><span class="op">(</span>period <span class="op">=</span> <span class="fl">2020</span><span class="op">:</span><span class="fl">2040</span>,</span></span>
 <span class="r-in"><span>           intervals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
@@ -406,6 +445,9 @@ The vector will be considered as lengths of each modeled interval in period.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2:  2031  2031  2032   2031</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3:  2032  2033  2034   2033</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4:  2035  2037  2040   2037</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Slot "base_year":</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> integer(0)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 </code></pre></div>
     </div>

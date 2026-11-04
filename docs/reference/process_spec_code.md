@@ -30,28 +30,33 @@ Other process spec:
 ## Examples
 
 ``` r
-spec <- process_to_spec(topia$modules$electricity$R3$ECOA)
+spec <- process_to_spec(getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE))
 
 # the constructor call that would rebuild the object, as text
 cat(process_spec_code(spec))
 #> newTechnology(
 #>   name = "ECOA",
 #>   desc = "Coal-fired power plant, subcritical",
-#>   cap2act = 31.536,
+#>   units = list(capacity = "GW", activity = "GWh", costs = "MUSD"),
+#>   cap2act = 8760,
 #>   optimizeRetirement = TRUE,
 #>   input = data.frame(
 #>     comm = c("COA"),
+#>     unit = c("PJ"),
 #>     combustion = c(1),
 #>     stringsAsFactors = FALSE),
 #>   output = data.frame(
 #>     comm = c("ELC"),
+#>     unit = c("GWh"),
 #>     stringsAsFactors = FALSE),
 #>   ceff = data.frame(
-#>     comm = c("COA"),
-#>     cinp2use = c(0.4),
+#>     comm = c("COA", "ELC"),
+#>     cinp2use = c(0.4, NA),
+#>     use2cact = c(NA, 277.7778),
 #>     stringsAsFactors = FALSE),
 #>   invcost = data.frame(
 #>     invcost = c(2000),
+#>     retcost = c(25),
 #>     stringsAsFactors = FALSE),
 #>   fixom = data.frame(
 #>     fixom = c(55),
@@ -62,9 +67,9 @@ cat(process_spec_code(spec))
 #>     olife = c(30),
 #>     stringsAsFactors = FALSE),
 #>   capacity = data.frame(
-#>     region = c("W1", "W2", "C1", "W1", "W2", "C1"),
-#>     year = c(2025, 2025, 2025, 2050, 2050, 2050),
-#>     stock = c(8.0, 4.0, 1.0, 2.4, 1.2, 0.3),
+#>     region = c("W1", "W2", "C1", "C2", "C3", "C4", "C5", "C6", "E1", "E2", "E3", "W1", "W2", "C1", "C2", "C3", "C4", "C5", "C6", "E1", "E2", "E3"),
+#>     year = c(2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050),
+#>     stock = c(8.0, 4.0, 1.0, 1.0, 1.0, 1.0, 3.0, 1.0, 1.0, 1.0, 1.0, 2.4, 1.2, 0.3, 0.3, 0.3, 0.3, 0.9, 0.3, 0.3, 0.3, 0.3),
 #>     stringsAsFactors = FALSE)
 #> )
 ```

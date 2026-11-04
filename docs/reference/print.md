@@ -87,12 +87,12 @@ print(tech)
 #> 
 
 # a model lists its data, calendar, regions and horizon
-ek  <- topia$modules$electricity$R3
-mod <- newModel("TOPIA", data = ek$repo,
+topia_elc <- topia$modules$electricity
+mod <- newModel("TOPIA", data = topia_elc$repo,
                 calendar = topia$modules$calendars$s4_h24,
-                region = ek$regions,
-                horizon = topia$modules$horizons$base)
-mod <- setGeoscale(mod, ek$geoscale)
+                region = topia_elc$regions,
+                horizon = topia$modules$horizons$BY2025_50_by10)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 print(mod)
 #> Name:  TOPIA 
 

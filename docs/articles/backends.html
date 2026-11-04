@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -552,237 +552,272 @@ data):</p>
 <td align="left">default</td>
 </tr>
 <tr class="odd">
+<td align="left">mm_cuopt_wsl_py</td>
+<td align="left">multimod (MPS)</td>
+<td align="left">cuOpt</td>
+<td align="left">local GPU (WSL)</td>
+<td align="left">default</td>
+</tr>
+<tr class="even">
 <td align="left">mm_cuopt_cloud</td>
 <td align="left">multimod (MPS)</td>
 <td align="left">cuOpt</td>
 <td align="left">cloud GPU</td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">mm_cuopt_cloud_crossover</td>
 <td align="left">multimod (MPS)</td>
 <td align="left">cuOpt</td>
 <td align="left">cloud GPU</td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">pyomo_cuopt_cloud</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">appsi_highs</td>
 <td align="left">cloud GPU</td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">pyomo_cuopt_cloud_crossover</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">appsi_highs</td>
 <td align="left">cloud GPU</td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_mps</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_cuopt_cloud</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left">cloud GPU</td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">neos_pyomo_cplex</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">—</td>
 <td align="left">NEOS</td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">neos_pyomo_cplex_barrier</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">—</td>
 <td align="left">NEOS</td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">neos_pyomo_cbc</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">—</td>
 <td align="left">NEOS</td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_cbc</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">Cbc</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_cplex</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_cplex_barrier</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_highs</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_highs_rdata</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">RData</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_highs_barrier</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_highs_barrier_bs3</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
+<tr class="even">
+<td align="left">julia_highs_hipo</td>
+<td align="left">Julia/JuMP</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
 <tr class="odd">
+<td align="left">julia_highs_hipo_xover</td>
+<td align="left">Julia/JuMP</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="even">
+<td align="left">julia_highs_hipo_bs3</td>
+<td align="left">Julia/JuMP</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="odd">
+<td align="left">julia_highs_ipx</td>
+<td align="left">Julia/JuMP</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="even">
 <td align="left">julia_glpk</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">GLPK</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_highs_simplex</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_highs_parallel</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_highs_pdlp</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_highs_hipdlp</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_cuopt</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">cuOpt</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_cuopt_concurrent</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">cuOpt</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_cuopt_pdlp</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">cuOpt</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_cuopt_crossover</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">cuOpt</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">gams_cplex</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">gams_gdx_cplex</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">GDX</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">gams_gdx_cplex_barrier</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">GDX</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">gams_gdx_cplex_parallel</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">GDX</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">gams_cbc</td>
 <td align="left">GAMS</td>
 <td align="left">CBC</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">gams_gdx_cbc</td>
 <td align="left">GAMS</td>
 <td align="left">CBC</td>
 <td align="left"></td>
 <td align="left">GDX</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">neos_gams_cplex</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left">NEOS</td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">neos_gams_cplex_barrier</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left">NEOS</td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">neos_gams_cbc</td>
 <td align="left">GAMS</td>
 <td align="left">CBC</td>

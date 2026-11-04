@@ -32,6 +32,24 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 ### New features
 
+- `newHorizon(base_year = )` marks one milestone as GIVEN rather than
+  decided. The marked year is interpolated as any other but never
+  reaches the solver, and the milestones before it are historical and
+  enter no LP at all; both still anchor interpolation.
+  [`solve_base_year()`](https://energyRt.org/reference/solve_base_year.md)
+  solves the base year on its own, and
+  `interpolate_model(base_year_scenario = )` carries what it decided
+  into the projection as sunk `stock` at its true vintage, leaving the
+  model’s declared `@stock` untouched. With no source the projection
+  still excludes the base year and starts from the model’s own stock.
+  `getData(base_year = TRUE)` returns both, labelled by a `source`
+  column.
+
+- Solver preset `mm_cuopt_wsl_py`: cuOpt on a local GPU through WSL, run
+  through cuOpt’s Python interface. The solution is kept at a time
+  limit, and `gpu_save_warm_start = TRUE` / `gpu_warm_start = <file>`
+  save and continue from PDLP’s warm-start data.
+
 - [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md)
   accepts a saved scenario as its first argument, or an explicit
   `base =`: the scenario’s model drives the sequence and the scenario
@@ -326,15 +344,18 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 - [`report()`](https://energyRt.org/reference/report.md) for every class
   and for models and scenarios (HTML, PDF, Word, TeX), with spatial and
   solved context (`geoscale =`, `model =`, `scenario =`).
+
 - [`levcost()`](https://energyRt.org/reference/levcost.md): analytic
   levelized cost of technologies, storage (LCOS) and trade (LCOT) per
   vintage, cluster and region; ex-post per variant on a solved scenario.
+
 - [`draw()`](https://energyRt.org/reference/draw.md) process diagrams;
   [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
   for objects, calendars, horizons, scenarios and comparisons;
   [`plot_map()`](https://energyRt.org/reference/plot_map.md),
   [`plot_trade_map()`](https://energyRt.org/reference/plot_trade_map.md),
   [`plot_trade_network()`](https://energyRt.org/reference/plot_trade_network.md).
+
 - [`sequence_coverage()`](https://energyRt.org/reference/sequence_coverage.md)
   reports what a solve sequence covered, one row per unit and element,
   and
@@ -343,12 +364,46 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   region sample on its geoscale, a recursive walk as a horizon Gantt
   with the look-ahead years marked apart from the decided ones. Elements
   no unit covered stay visible as gaps.
+
 - `autoplot(<by_sample>, "histogram")` draws a result’s spread across
   the samples, weighted by each sample’s coverage, with the free pass
   overlaid on the floored one when `ncap_floor > 0`.
+
+- `solve_scenario(wait = FALSE)` launches the solver detached and
+  returns at once, for running several scenarios or carrying on working.
+  `wait` is a documented argument now, and is refused together with
+  `read.solution = TRUE`, `transient = TRUE` or an external
+  `solver.dir`, none of which can be honoured once the call returns
+  before the solve does. Collect the result later with
+  [`import_solution()`](https://energyRt.org/reference/import_solution.md).
+  Detached solving covers the backends that launch a solver process
+  (GLPK, GAMS, Pyomo, JuMP).
+
+- A run record now identifies the process that wrote it (`pid`,
+  `pid_started`, `detached`), so a run still being written can be told
+  from one whose writer is gone. While a run is in flight, reading it,
+  dropping it, re-solving into it and sealing the scenario’s outputs are
+  refused rather than allowed to corrupt or overwrite it;
+  [`clear_run()`](https://energyRt.org/reference/clear_run.md) is the
+  override, and
+  [`get_status()`](https://energyRt.org/reference/get_status.md) reports
+  a run whose process has gone without finishing as `crashed`. A run
+  recorded on another host refuses as well, since liveness cannot be
+  checked from elsewhere.
+
+- [`get_status()`](https://energyRt.org/reference/get_status.md) reports
+  the state of a saved object – sealed (for a scenario, inputs and
+  outputs separately), marked for deletion, runs held, size on disk –
+  for one model, repository, dataset or scenario, or for every saved
+  object in the project. It reads the manifests, so it does not depend
+  on the registry being current. For a derived scenario it separates
+  `base`, which is provenance, from the tables it actually borrows,
+  which are what block unsealing or deleting that base.
+
 - The solve drivers report progress through **progressr**:
   [`set_progress_bar()`](https://energyRt.org/reference/progress.md) for
   a bar, `verbose = TRUE` for a line per unit, either or both.
+
 - TOPIA, the teaching model (was UTOPIA), rebuilt around concentrated
   resources traded between zones.
 
@@ -419,6 +474,61 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   [`mmcloud::set_hf_token()`](https://rdrr.io/pkg/mmcloud/man/hf_token.html).
 
 ### Bug fixes
+
+- [`drop_solver_outputs()`](https://energyRt.org/reference/drop_solver_outputs.md)
+  could delete the working files of a solve in progress:
+  `.art_suggest()` labelled any `running` record stale with no liveness
+  test, and the cleanup unlinks exactly the suggested rows. Only a run
+  whose process is demonstrably gone is now treated as reclaimable
+  scratch.
+
+- A column a slot does not have is reported with the object, the slot,
+  the columns that look meant (`stock` -\> `inp.stock`, `out.stock`,
+  `stg.stock`; a near spelling) and every column the slot accepts. An
+  object whose slot was assigned directly (`@<-`) is checked when it
+  enters a repository or a model, instead of failing later in
+  interpolation with an unrelated message.
+
+- A storage’s stock without a vintage (`inp.stock`, `out.stock`,
+  `stg.stock`) was given to every vintage, so a storage with several
+  vintages carried its stock once per vintage. It now goes to the
+  earliest vintage only, as a technology’s and a trade’s `stock` already
+  did.
+
+- A user constraint row in which no term has a member of its variable’s
+  domain (a technology that cannot be built yet in that year) is dropped
+  at interpolation, with a message, when it could not bind anyway (`<=`
+  a non-negative value, `>=` a non-positive one, `==` zero). Before, it
+  reached the matrix as an empty row, which the matrix route refuses. An
+  empty row that would make the model infeasible, or a constraint empty
+  in every row, is an error. Rows the check cannot decide (a region or
+  timeslice that sums the levels beneath it, a year lag or lead) are
+  kept.
+
+- A vintage’s `end` ended the capacity built in it as well as its
+  investment window: capacity of a vintage whose window closed before a
+  later milestone was gone in that milestone. Capacity now stands from
+  its build year for its operational life (`olife`), whatever the
+  window.
+
+- [`newConstraint()`](https://energyRt.org/reference/newConstraint.md)
+  discarded a single-value `rhs` whenever `defVal` was set, and `defVal`
+  is always set (given, or 0 / `Inf` by default), so `rhs = 100` built a
+  constraint at 0, or with no limit for `<=`. A single value is now the
+  right-hand side of every row and replaces `defVal`, with a warning
+  when they differ.
+
+- A weather series at a coarser timeframe than the availability bound it
+  multiplies (`waf`) read as zero and silently switched the technology
+  off. It is now an error naming the series and the timeslices.
+
+- [`unmark_delete()`](https://energyRt.org/reference/seal.md) left
+  `delete_importance` and `marked_at` behind in the manifest, so an
+  entry with no mark still carried an importance beside it and read as
+  marked-at-some-tier to any reader that did not also test
+  `marked_delete`. The registry masked this, since it NAs the importance
+  of an unmarked entry; the manifest did not. Both fields are now
+  cleared, for an entry and for a version.
 
 - `interpolate_model(base =)` refused every base when the caller also
   passed `path =`. The base is dispatched before the control arguments

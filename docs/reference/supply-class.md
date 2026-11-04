@@ -16,6 +16,24 @@ supply object with given specifications.
 
   character. Description of the supply object.
 
+- `units`:
+
+  data.frame. Key units of the object, for reference and for carrying
+  its units with it. An object moved between models is only meaningful
+  where the units agree, and nothing else in the object records them:
+  the numbers in `cost`/`invcost` and the capacity and activity columns
+  are bare. A declared `costs` that disagrees with the model's
+  `config@currency` is an error rather than a silent conversion; leave a
+  column empty to claim nothing.
+
+  activity
+
+  : character. Unit of the activity variable.
+
+  costs
+
+  : character. Currency of the cost columns.
+
 - `commodity`:
 
   character. The supplied commodity short name.

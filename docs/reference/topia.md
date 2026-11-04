@@ -88,27 +88,26 @@ levers to run scenarios (see the `topia-use` vignette).
 
 - horizons:
 
-  planning horizons (`base` = 2025/2030/2040/2050, each milestone the
+  planning horizons, named for their MILESTONES rather than the period
+  end, with `BY` marking a one-year base year at the front.
+  `BY2025_50_by10` = milestones 2025/2030/2040/2050, a base year then
+  10-year intervals (its periods run to 2055). Each milestone is the
   MID-point of its period, so that is where its costs are discounted
-  from; `unit` = the single year 2025 for the unit kits).
+  from. `BY2025` = the base year alone, for the unit kits.
 
 - electricity:
 
-  per region layout (`R1`, `R3`, `R7`, `R11` – an n-region layout is
-  keyed `R<n>` and takes the first n regions of the canonical
-  west-to-east order `W1`, `W2`, `C1`..`C6`, `E1`..`E3`), each a "kit":
-  `repo` (the base repository), `geoscale` (the layout's slice of the
-  `nation -> zone -> region` hierarchy, without geometry – a kit model
-  MUST carry it, see the examples), the individual blocks (`repo_comm`,
-  `repo_supply`, `DEM_ELC`, `WSOL`/`WWIN`/`WHYD`, the technologies,
-  `STG_ELC`), the scenario levers `CO2_CAP`, `CT_CO2`, `RES_SHARE`,
-  `NO_NEW_NUC`, `EARLY_RET`, and the add-on modules – re-declared
-  objects that REPLACE their base counterpart when added with
-  `add(mod, ., overwrite = TRUE)`: `GAS_CURVE` (domestic gas as a 3-step
-  [`asSupplyCurve()`](https://energyRt.org/reference/supply-curve.md)),
-  `EWIN_SITES` (wind in two site-grade clusters, finite GOOD +
-  down-rated POOR), `ENUC_VINT` (nuclear in two build vintages, absent
-  from the `R1` kit, which reaches no nuclear region).
+  THE model, over all eleven regions `W1`, `W2`, `C1`..`C6`, `E1`..`E3`:
+  `repo` (the repository), `regions`, `calendar` (the name of the
+  calendar it was built for), `geoscale` (its `nation -> zone -> region`
+  hierarchy, without geometry – a model MUST carry it, see the
+  examples), and the scenario levers `CO2_CAP`, `CT_CO2`, `EARLY_RET`
+  and `GREEN_H2`, which are NOT in `repo` and are added to a scenario on
+  top of it. Built by `data-raw/topia_model.R`, which tangles
+  `vignettes/topia-build.Rmd` – the vignette is the source, so what it
+  documents and what ships cannot drift apart. Smaller cases come from
+  [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md),
+  not from a saved layout.
 
   The resources are CONCENTRATED, which is what drives trade: `COA` and
   `GAS` are balanced per ZONE (`commodity@geoframe`) and traded between
@@ -148,17 +147,17 @@ Other topia:
 
 ``` r
 names(topia)
-#> [1] "geoscales" "weather"   "demand"    "stock"     "modules"  
+#> [1] "geoscales" "links"     "weather"   "demand"    "stock"     "modules"  
 names(topia$geoscales)
 #> [1] "squares"   "honeycomb" "island"    "continent"
 head(topia$weather)
-#>   calendar resource timeslice       wval
-#> 1   s4_h24     WSOL   FAL_h00 0.00000000
-#> 2   s4_h24     WSOL   FAL_h01 0.00000000
-#> 3   s4_h24     WSOL   FAL_h02 0.00000000
-#> 4   s4_h24     WSOL   FAL_h03 0.00000000
-#> 5   s4_h24     WSOL   FAL_h04 0.00000000
-#> 6   s4_h24     WSOL   FAL_h05 0.00132967
+#>     dataset calendar resource region timeslice   wval
+#> 1 simulated   s4_h24     WSOL     W1   FAL_h00 0.0189
+#> 2 simulated   s4_h24     WSOL     W1   FAL_h01 0.0189
+#> 3 simulated   s4_h24     WSOL     W1   FAL_h02 0.0189
+#> 4 simulated   s4_h24     WSOL     W1   FAL_h03 0.0189
+#> 5 simulated   s4_h24     WSOL     W1   FAL_h04 0.0212
+#> 6 simulated   s4_h24     WSOL     W1   FAL_h05 0.0655
 topia$stock
 #>   tech gw
 #> 1 ECOA  6
@@ -173,11 +172,11 @@ gs <- topia$geoscales$honeycomb          # hierarchy + that layout's polygons
 geoscales::geoscale_leaftable(gs)        # the region table
 plot_geoscale(gs, type = "map")
 
-um <- topia$modules$electricity$R3
+um <- topia$modules$electricity
 mod <- newModel("TOPIA", data = um$repo,
                 calendar = topia$modules$calendars$s4_h24,
                 region = um$regions,
-                horizon = topia$modules$horizons$base,
+                horizon = topia$modules$horizons$BY2025_50_by10,
                 discount = 0.05)
 mod <- setGeoscale(mod, um$geoscale)
 scen <- solve_scenario(interpolate_model(mod, "BASE"),
@@ -188,6 +187,6 @@ uk <- topia$modules$unit$U1
 umod <- newModel("UNIT", data = uk$repo,
                  calendar = topia$modules$unit$calendars$unit_s4,
                  region = uk$regions,
-                 horizon = topia$modules$horizons$unit, discount = 0)
+                 horizon = topia$modules$horizons$BY2025, discount = 0)
 } # }
 ```

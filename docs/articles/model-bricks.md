@@ -512,7 +512,7 @@ technology reads:
 COALLIM <- newConstraint(
   name = "COALLIM", desc = "Cap on new coal capacity", eq = "<=",
   cap = list(variable = "vTechNewCap", for.sum = list(tech = "PLANT")),
-  rhs = 50, defVal = 0)
+  rhs = 50)
 COALLIM@lhs[[1]]@for.sum$tech
 #> [1] "PLANT"
 ```
@@ -532,7 +532,7 @@ and a declared (base) name expands to all of its realized variants:
 newConstraint(
   name = "ECOA30", eq = "<=",
   cap = list(variable = "vTechCap", process_ = "^ECOA", vintage = "2030"),
-  for.each = data.frame(year = 2030), rhs = 100, defVal = 0)
+  for.each = data.frame(year = 2030), rhs = 100)
 ```
 
 ## Structures

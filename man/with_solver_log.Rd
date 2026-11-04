@@ -41,6 +41,7 @@ scen <- write_script(scen, solver = opt)
 
 Other interpolation:
 \code{\link[=interpolate_model]{interpolate_model()}},
+\code{\link[=recast_model_calendar]{recast_model_calendar()}},
 \code{\link[=subset_model_regions]{subset_model_regions()}}
 }
 \concept{interpolation}

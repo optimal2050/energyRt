@@ -21,7 +21,7 @@ they are laid out on a circle and no geography is needed."><meta property="og:im
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,12 +91,13 @@ they are laid out on a circle and no geography is needed.</p>
 <span>  <span class="va">object</span>,</span>
 <span>  map <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"input"</span>, <span class="st">"capacity"</span>, <span class="st">"flow"</span><span class="op">)</span>,</span>
+<span>  comm <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  year <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  timeslice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span>
 <span>  level <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  curvature <span class="op">=</span> <span class="fl">0.15</span>,</span>
 <span>  labels <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  node_size <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  node_size <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -118,14 +119,24 @@ one, else a circular layout.</p></dd>
 
 
 <dt id="arg-value">value<a class="anchor" aria-label="anchor" href="#arg-value"></a></dt>
-<dd><p>what sets the link width:</p><ul><li><p><code>"input"</code>: the trade objects' <code>@capacity</code> in <code>year</code> – existing links
-(<code>stock</code> &gt; 0) solid, width = stock, with a faint band up to <code>cap.up</code>;
-projects (no stock, expandable through <code>ncap.up</code>, <code>cap.up</code> or an
-<code>@invcost</code> row) dashed, width = <code>cap.up</code> (else <code>ncap.up</code>);</p></li>
+<dd><p>what sets the link width:</p><ul><li><p><code>"input"</code>: the trade objects' <code>@capacity</code> in <code>year</code>, by what the link
+IS rather than by one category – <code>stock</code> (capacity standing, no way to
+add more) solid; <code>stock + new</code> (standing capacity that may also be
+expanded, through <code>ncap.up</code>, <code>cap.up</code> or an <code>@invcost</code> row) long-dashed;
+<code>new</code> (nothing standing, investable only) dotted. Width is the standing
+capacity, or the ceiling for a link with none, with a faint band out to
+<code>cap.up</code> where one is declared;</p></li>
 <li><p><code>"capacity"</code>: the solved <code>vTradeCap</code> in <code>year</code>;</p></li>
 <li><p><code>"flow"</code>: the solved <code>vTradeIr</code> in <code>year</code>, netted per pair; the arrow
 points in the net direction.</p></li>
 </ul></dd>
+
+
+<dt id="arg-comm">comm<a class="anchor" aria-label="anchor" href="#arg-comm"></a></dt>
+<dd><p>draw only the trades carrying this commodity (or these). <code>NULL</code>
+(default) draws every one. Commodities that are not in the same capacity
+unit cannot share one width scale, which is what makes this the usual
+way to read a mixed repository.</p></dd>
 
 
 <dt id="arg-year">year<a class="anchor" aria-label="anchor" href="#arg-year"></a></dt>
@@ -153,7 +164,10 @@ and those inside one region dropped.</p></dd>
 
 
 <dt id="arg-node-size">node_size<a class="anchor" aria-label="anchor" href="#arg-node-size"></a></dt>
-<dd><p>scale nodes by the total value of their links.</p></dd>
+<dd><p>scale the node points by the capacity connected to each
+region. <code>FALSE</code> (default) draws them at one size: the sum of the links
+touching a region is the links read a second way, and beside the
+corridors themselves it says the same thing twice.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

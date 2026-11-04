@@ -56,7 +56,7 @@ process_cluster_sweep(
 
 A data.frame, one row per `k`, with the dispersion and silhouette
 columns
-[`nestedscales::cluster_sweep()`](https://rdrr.io/pkg/nestedscales/man/cluster_sweep.html)
+[`nestedscales::cluster_sweep()`](https://optimal2050.github.io/nestedscales/r/reference/cluster_sweep.html)
 returns plus `sizes`, the cluster sizes as a comma-separated string.
 
 ## Details
@@ -89,11 +89,12 @@ Other geoscale:
 
 ``` r
 if (FALSE) { # \dontrun{
-ek  <- topia$modules$electricity$R11
-mod <- newModel("TOPIA", data = ek$repo,
+topia_elc <- topia$modules$electricity
+mod <- newModel("TOPIA", data = topia_elc$repo,
                 calendar = topia$modules$calendars$s4_h24,
-                region = ek$regions, horizon = topia$modules$horizons$base)
-mod <- setGeoscale(mod, ek$geoscale)
+                region = topia_elc$regions,
+                horizon = topia$modules$horizons$BY2025_50_by10)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 
 # how a family's regions group at each k, and the spread left inside the
 # clusters -- the input to choosing `clusters` for

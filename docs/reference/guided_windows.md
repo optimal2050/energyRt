@@ -54,7 +54,7 @@ and `endpoint`.
 ## Examples
 
 ``` r
-h <- topia$modules$horizons$base
+h <- topia$modules$horizons$BY2025_50_by10
 
 # backward guidance: the endpoint first, then each neighbouring pair
 w <- guided_windows(h)

@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -89,7 +89,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>TOPIA II: running scenarios</h1>
             
-            <h4 data-toc-skip class="date">2026-10-26</h4>
+            <h4 data-toc-skip class="date">2026-11-03</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/vignettes/topia-use.Rmd" class="external-link"><code>vignettes/topia-use.Rmd</code></a></small>
       <div class="d-none name"><code>topia-use.Rmd</code></div>
@@ -100,18 +100,20 @@
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>This vignette uses the packaged
-[<code>topia</code>]<code>$modules</code> kit (built in <em>TOPIA I:
-building the model modules</em>) to assemble an energy-system model and
-run scenarios with <strong>GLPK</strong> (bundled, no external solver
-needed).</p>
+<p>This vignette takes the packaged
+[<code>topia</code>]<code>$modules</code> model – the one built object
+by object in <em>TOPIA I: building the model</em> – assembles it and
+runs scenarios on it.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://energyRt.org">energyRt</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
-<span><span class="va">have_sf</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"sf"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># region maps need the sf package</span></span>
+<span><span class="va">have_sf</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"sf"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>        <span class="co"># maps need sf</span></span>
+<span><span class="va">have_pal</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"energypal"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="co"># palette + order</span></span>
 <span><span class="fu"><a href="../reference/scenarios_path.html">set_scenarios_path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"topia"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/default_solver.html">set_default_solver</a></span><span class="op">(</span><span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span>             <span class="co"># set once, used by every solve</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/default_solver.html">set_default_solver</a></span><span class="op">(</span><span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span>   <span class="co"># set once, used by every solve</span></span>
+<span><span class="fu"><a href="../reference/default_solver.html">set_default_solver</a></span><span class="op">(</span><span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs</span><span class="op">)</span>             </span>
+<span><span class="co"># get_default_solver()</span></span></code></pre></div>
 <p>Two calls run every scenario in this vignette:
 <code><a href="../reference/interpolate_model.html">interpolate_model()</a></code> expands the model over regions, years
 and timeslices; <code><a href="../reference/solve_model.html">solve_scenario()</a></code> writes the solver files,
@@ -120,51 +122,222 @@ runs the default solver (set once above) and reads the solution.
 to watch GLPK work.</p>
 </div>
 <div class="section level2">
-<h2 id="selecting-a-topia-structure">Selecting a TOPIA structure<a class="anchor" aria-label="anchor" href="#selecting-a-topia-structure"></a>
+<h2 id="the-topia-model">The TOPIA model<a class="anchor" aria-label="anchor" href="#the-topia-model"></a>
 </h2>
-<p><code>topia$modules$electricity</code> offers ready region layouts
-(<code>R1</code>, <code>R3</code>, <code>R7</code>, <code>R11</code>);
-each is a kit with a base repository <code>$repo</code> and scenario
-levers. Calendars, horizons and maps sit alongside. (For a custom layout
-or calendar, build the blocks yourself following <em>TOPIA I: building
-the model</em>.)</p>
+<p><code>topia$modules$electricity</code> carries the model: a base
+repository <code>$repo</code>, the regions it covers, its geoscale, and
+the scenario levers used below. Calendars, horizons and map layouts sit
+alongside it. (For a different layout or calendar, build the blocks
+yourself following <em>TOPIA I: building the model</em>.)</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">)</span>          <span class="co"># available layouts</span></span>
-<span><span class="va">um</span>  <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span>     <span class="co"># the 3-region base case</span></span>
-<span><span class="va">cal</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span></span>
-<span><span class="va">hor</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>        <span class="co"># milestones 2025/2030/2040/2050</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">topia_elc</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span>           <span class="co"># the model</span></span>
+<span><span class="va">calendar_s4h24</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span></span>
+<span><span class="va">horizon_BY2025_50_by10</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">BY2025_50_by10</span></span>
+<span><span class="va">topia_elc</span><span class="op">$</span><span class="va">regions</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="assembling-and-solving-the-base-model">Assembling and solving the base model<a class="anchor" aria-label="anchor" href="#assembling-and-solving-the-base-model"></a>
 </h2>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">repo</span>, calendar <span class="op">=</span> <span class="va">cal</span>,</span>
-<span>                region <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">regions</span>, horizon <span class="op">=</span> <span class="va">hor</span>, discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
-<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">um</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span>
-<span><span class="va">scen_BASE</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_BASE</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span>    <span class="co"># total system cost, MUSD</span></span></code></pre></div>
-<p>The <code>R3</code> kit wires its regions with bi-directional
-transmission links (<code>TBD_ELC_*</code>).
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/progress.html">set_progress_bar</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">repo</span>,</span>
+<span>                calendar <span class="op">=</span> <span class="va">calendar_s4h24</span>,</span>
+<span>                region <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">regions</span>,</span>
+<span>                horizon <span class="op">=</span> <span class="va">horizon_BY2025_50_by10</span>, discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
+<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">topia_elc</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span>
+<span><span class="va">scen_BASE</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span>, check <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">scen_BASE</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span><span class="va">scen_BASE</span>, echo <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_BASE</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="co"># total system cost, MUSD</span></span></code></pre></div>
+<p>The regions are wired west to east with bi-directional transmission
+links (<code>TBD_ELC_*</code>), and the fuels move zone to zone.
 <code><a href="../reference/plot_trade_map.html">plot_trade_map()</a></code> draws that network over a map layout —
-pass any of <code>topia$geoscales</code> (here <code>honeycomb</code>);
-the 7-region kit shows six links:</p>
+pass any of <code>topia$geoscales</code>, here
+<code>honeycomb</code>:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_trade_map.html">plot_trade_map</a></span><span class="op">(</span><span class="va">um</span><span class="op">$</span><span class="va">repo</span>, map <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">geoscales</span><span class="op">$</span><span class="va">honeycomb</span><span class="op">)</span></span></code></pre></div>
-<p>Electricity generation by technology:</p>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_trade_map.html">plot_trade_map</a></span><span class="op">(</span><span class="va">topia_elc</span><span class="op">$</span><span class="va">repo</span>, map <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">geoscales</span><span class="op">$</span><span class="va">honeycomb</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="reading-the-solution">Reading the solution<a class="anchor" aria-label="anchor" href="#reading-the-solution"></a>
+</h2>
+<div class="section level3">
+<h3 id="the-electricity-balance">The electricity balance<a class="anchor" aria-label="anchor" href="#the-electricity-balance"></a>
+</h3>
+<p>Generation is only one side of the account. The bands below are drawn
+from the <code>carriers</code> palette in <strong>energypal</strong>,
+which supplies the colours <em>and</em> the order:
+<code>merit_order</code> is a sequence the palette declares, so neither
+is invented here. TOPIA’s own codes are mapped onto that vocabulary
+explicitly – a fuzzy lookup mis-reads them, matching <code>NUC</code> to
+nothing and <code>EGAS</code> to enhanced geothermal.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_BASE</span>, <span class="st">"vTechOut"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">year</span>, <span class="va">tech</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span>PJ <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">value</span><span class="op">)</span>, .groups <span class="op">=</span> <span class="st">"drop"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">year</span><span class="op">)</span>, <span class="va">PJ</span>, fill <span class="op">=</span> <span class="va">tech</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html" class="external-link">geom_col</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"year"</span>, title <span class="op">=</span> <span class="st">"Generation by technology (BASE)"</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">pal</span> <span class="op">&lt;-</span> <span class="fu">energypal</span><span class="fu">::</span><span class="fu"><a href="https://optimal2050.github.io/energypal/reference/energypal.html" class="external-link">energypal</a></span><span class="op">(</span><span class="st">"carriers"</span>, order <span class="op">=</span> <span class="st">"merit_order"</span>,</span>
+<span>                            include_groups <span class="op">=</span> <span class="cn">FALSE</span>, include_subtypes <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">carrier_of</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>ESOL <span class="op">=</span> <span class="st">"Solar"</span>, EWIN <span class="op">=</span> <span class="st">"Wind"</span>, EHYD <span class="op">=</span> <span class="st">"Hydro"</span>,</span>
+<span>                ENUC <span class="op">=</span> <span class="st">"Nuclear"</span>, EBIO <span class="op">=</span> <span class="st">"Bioenergy"</span>,</span>
+<span>                ECOA <span class="op">=</span> <span class="st">"FossilCoal"</span>, EGAS <span class="op">=</span> <span class="st">"FossilGas"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">stem</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"_(VIN|CL).*$"</span>, <span class="st">""</span>, <span class="va">x</span><span class="op">)</span>   <span class="co"># drop vintage/cluster suffixes</span></span></code></pre></div>
+<p>Sources stack above zero and consumers below it. Electricity leaves
+the system through three doors: final demand (<code>vDemInp</code>), the
+electrolyser drawing power to make hydrogen (<code>vTechInp</code>), and
+storage charging (<code>vStorageInp</code>).</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">gen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_BASE</span>, <span class="st">"vTechOut"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">elc_use</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_BASE</span>, <span class="st">"vTechInp"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">elc_dem</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_BASE</span>, <span class="st">"vDemInp"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">elc_sto</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_BASE</span>, <span class="st">"vStorageInp"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">sources</span> <span class="op">&lt;-</span> <span class="va">gen</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>band <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="va">carrier_of</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/graphics/stem.html" class="external-link">stem</a></span><span class="op">(</span><span class="va">tech</span><span class="op">)</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">year</span>, <span class="va">band</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span>GWh <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">value</span><span class="op">)</span>, .groups <span class="op">=</span> <span class="st">"drop"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">consumers</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span></span>
+<span>  <span class="va">elc_dem</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>band <span class="op">=</span> <span class="st">"Electricity"</span><span class="op">)</span>,</span>
+<span>  <span class="va">elc_use</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>band <span class="op">=</span> <span class="st">"Hydrogen"</span><span class="op">)</span>,</span>
+<span>  <span class="va">elc_sto</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>band <span class="op">=</span> <span class="st">"Storage"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">year</span>, <span class="va">band</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span>GWh <span class="op">=</span> <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">value</span><span class="op">)</span>, .groups <span class="op">=</span> <span class="st">"drop"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">balance</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span><span class="va">sources</span>, <span class="va">consumers</span><span class="op">)</span></span>
+<span><span class="va">balance</span><span class="op">$</span><span class="va">band</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">balance</span><span class="op">$</span><span class="va">band</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">pal</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">balance</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">year</span><span class="op">)</span>, <span class="va">GWh</span>, fill <span class="op">=</span> <span class="va">band</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html" class="external-link">geom_col</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_hline</a></span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fl">0</span>, linewidth <span class="op">=</span> <span class="fl">0.3</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_fill_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="va">pal</span>, breaks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">pal</span><span class="op">)</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"year"</span>, y <span class="op">=</span> <span class="st">"GWh"</span>, fill <span class="op">=</span> <span class="st">"carrier"</span>,</span>
+<span>       title <span class="op">=</span> <span class="st">"The electricity balance (BASE)"</span>,</span>
+<span>       subtitle <span class="op">=</span> <span class="st">"sources above zero, consumers below"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>Generation runs well above final demand, and the chart says why: the
+electrolyser is a load, and a large one. Three further readings of the
+same figure are worth making explicit.</p>
+<ul>
+<li>The <strong>storage band is empty</strong> – the battery is never
+built. At a four-season calendar the multi-day calm spells that make
+storage valuable are not present to be found, and the model has cheaper
+ways to meet a peak.</li>
+<li>
+<strong>Trade does not appear as a consumer.</strong>
+<code>vTradeIr</code> moves electricity between regions rather than out
+of the system, and no electricity is exported to the rest of the world,
+so at system level trade shows up only as the small residual of line
+losses. Per region it is a genuine source and sink.</li>
+<li>The gap between the two sides is exactly that residual: 3% is lost
+at each transmission hop.</li>
+</ul>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">balance</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>GWh <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">GWh</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/arrange.html" class="external-link">arrange</a></span><span class="op">(</span><span class="va">band</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_wider.html" class="external-link">pivot_wider</a></span><span class="op">(</span>id_cols <span class="op">=</span> <span class="va">band</span>, names_from <span class="op">=</span> <span class="va">year</span>, values_from <span class="op">=</span> <span class="va">GWh</span>,</span>
+<span>                     values_fill <span class="op">=</span> <span class="fl">0</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span>caption <span class="op">=</span> <span class="st">"The electricity balance, GWh (consumers negative)"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="the-colour-of-the-hydrogen">The colour of the hydrogen<a class="anchor" aria-label="anchor" href="#the-colour-of-the-hydrogen"></a>
+</h3>
+<p>Hydrogen is conventionally described by the electricity that made it:
+green from renewables, pink from nuclear, grey from unabated fossil
+fuel. The model itself supports no such label. Electricity is a pooled
+commodity, so the solution records how much each plant generated in a
+region-hour and how much the electrolyser drew in the same region-hour,
+and nothing about which flowed into which. A colour is therefore a
+<strong>convention laid over the solution</strong>, and the one used
+here is the hourly average mix: the draw in each hour is divided among
+the plants generating in that hour, in proportion to their output.</p>
+<p>The hourly resolution carries the argument. An electrolyser exists
+partly to absorb surplus, so an annual average would credit it with the
+year’s mix and conceal whether it actually ran when the wind blew.
+<code>timeframe = "highest"</code> keeps the timeslice detail that
+<code><a href="../reference/getData.html">getData()</a></code> otherwise aggregates away.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">gen_h</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_BASE</span>, <span class="st">"vTechOut"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>                 timeframe <span class="op">=</span> <span class="st">"highest"</span><span class="op">)</span></span>
+<span><span class="va">use_h</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_BASE</span>, <span class="st">"vTechInp"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>                 timeframe <span class="op">=</span> <span class="st">"highest"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">colour_of</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>Solar <span class="op">=</span> <span class="st">"GreenHydrogen"</span>, Wind <span class="op">=</span> <span class="st">"GreenHydrogen"</span>,</span>
+<span>               Hydro <span class="op">=</span> <span class="st">"GreenHydrogen"</span>, Nuclear <span class="op">=</span> <span class="st">"PinkHydrogen"</span>,</span>
+<span>               Bioenergy <span class="op">=</span> <span class="st">"OtherHydrogen"</span>, FossilCoal <span class="op">=</span> <span class="st">"GreyHydrogen"</span>,</span>
+<span>               FossilGas <span class="op">=</span> <span class="st">"GreyHydrogen"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">draw</span> <span class="op">&lt;-</span> <span class="va">use_h</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/graphics/stem.html" class="external-link">stem</a></span><span class="op">(</span><span class="va">tech</span><span class="op">)</span> <span class="op">==</span> <span class="st">"H2ELC"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">region</span>, <span class="va">year</span>, <span class="va">timeslice</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span>drawn <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">value</span><span class="op">)</span>, .groups <span class="op">=</span> <span class="st">"drop"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">h2_colour</span> <span class="op">&lt;-</span> <span class="va">gen_h</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">region</span>, <span class="va">year</span>, <span class="va">timeslice</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>share <span class="op">=</span> <span class="va">value</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">value</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">ungroup</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">inner_join</a></span><span class="op">(</span><span class="va">draw</span>, by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"region"</span>, <span class="st">"year"</span>, <span class="st">"timeslice"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>colour <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="va">colour_of</span><span class="op">[</span><span class="va">carrier_of</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/graphics/stem.html" class="external-link">stem</a></span><span class="op">(</span><span class="va">tech</span><span class="op">)</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>         GWh <span class="op">=</span> <span class="va">share</span> <span class="op">*</span> <span class="va">drawn</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">year</span>, <span class="va">colour</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span>GWh <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">GWh</span><span class="op">)</span>, .groups <span class="op">=</span> <span class="st">"drop"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">h2_colour</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">year</span><span class="op">)</span>, <span class="va">GWh</span>, fill <span class="op">=</span> <span class="va">colour</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html" class="external-link">geom_col</a></span><span class="op">(</span>position <span class="op">=</span> <span class="st">"fill"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_fill_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="fu">energypal</span><span class="fu">::</span><span class="fu"><a href="https://optimal2050.github.io/energypal/reference/energypal_colors.html" class="external-link">energypal_colors</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">h2_colour</span><span class="op">$</span><span class="va">colour</span><span class="op">)</span>, palette <span class="op">=</span> <span class="st">"carriers"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"year"</span>, y <span class="op">=</span> <span class="st">"share of the electricity consumed"</span>, fill <span class="op">=</span> <span class="st">"colour"</span>,</span>
+<span>       title <span class="op">=</span> <span class="st">"The colour of the hydrogen (BASE)"</span>,</span>
+<span>       subtitle <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"the electrolyser's draw attributed to the"</span>,</span>
+<span>                        <span class="st">"hourly generation mix"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>Most of the hydrogen is green, a third of it grey, and a small pink
+share comes from the nuclear fleet. The attributed total matches the
+electrolyser’s recorded draw, which is the check that the attribution
+neither invents nor loses energy:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>attributed <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">h2_colour</span><span class="op">$</span><span class="va">GWh</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  drawn <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">elc_use</span><span class="op">$</span><span class="va">value</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The national average hides the more instructive result. Attribution
+by region shows the colour following whatever that region happens to
+generate: hydrogen made beside the hydro reservoirs is almost entirely
+green, hydrogen made in the coal regions is predominantly grey, and the
+region holding the nuclear fleet produces hydrogen that is substantially
+pink.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">h2_region</span> <span class="op">&lt;-</span> <span class="va">gen_h</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">region</span>, <span class="va">year</span>, <span class="va">timeslice</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>share <span class="op">=</span> <span class="va">value</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">value</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">ungroup</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">inner_join</a></span><span class="op">(</span><span class="va">draw</span>, by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"region"</span>, <span class="st">"year"</span>, <span class="st">"timeslice"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>colour <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="va">colour_of</span><span class="op">[</span><span class="va">carrier_of</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/graphics/stem.html" class="external-link">stem</a></span><span class="op">(</span><span class="va">tech</span><span class="op">)</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>         GWh <span class="op">=</span> <span class="va">share</span> <span class="op">*</span> <span class="va">drawn</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">year</span> <span class="op">==</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">year</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">region</span>, <span class="va">colour</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span>GWh <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">GWh</span><span class="op">)</span>, .groups <span class="op">=</span> <span class="st">"drop_last"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>share <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fl">100</span> <span class="op">*</span> <span class="va">GWh</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">GWh</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">ungroup</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">h2_region</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_wider.html" class="external-link">pivot_wider</a></span><span class="op">(</span>id_cols <span class="op">=</span> <span class="va">region</span>, names_from <span class="op">=</span> <span class="va">colour</span>,</span>
+<span>                     values_from <span class="op">=</span> <span class="va">share</span>, values_fill <span class="op">=</span> <span class="fl">0</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span>caption <span class="op">=</span> <span class="st">"The colour of the hydrogen by region, final year (%)"</span><span class="op">)</span></span></code></pre></div>
+<p>The convention is one of several defensible ones, and the choice
+changes the answer. An average attribution of this kind credits the
+electrolyser with the mix it ran alongside. A <em>marginal</em>
+attribution would instead ask which plant changed its output because the
+electrolyser ran, which requires either the duals or a counterfactual
+solve. A stricter hourly-matching rule would count only renewable
+generation in the same hour and leave the remainder uncoloured. None is
+more correct than the others; what matters is that the rule is stated
+alongside the number.</p>
 <p>The dispatch over a representative summer day – generation stacked by
 technology, storage charging below zero, demand as the line
 (<code>autoplot(scenario)</code> reads the solution via
 <code><a href="../reference/getMix.html">getMix()</a></code>; note that <code><a href="../reference/getData.html">getData()</a></code> aggregates
 sub-annual values to ANNUAL by default – pass
 <code>timeframe = "highest"</code> for timeslice-level data):</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">scen_BASE</span>, <span class="st">"generation"</span>, timeslice <span class="op">=</span> <span class="st">"^SUM_"</span><span class="op">)</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="scenarios-layering-the-levers">Scenarios: layering the levers<a class="anchor" aria-label="anchor" href="#scenarios-layering-the-levers"></a>
@@ -172,55 +345,113 @@ sub-annual values to ANNUAL by default – pass
 <p>Each scenario adds a pre-built lever to the base model. The pattern
 is always <code>interpolate_model(mod, name, LEVER)</code> then
 <code><a href="../reference/solve_model.html">solve_scenario()</a></code>:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">scen_CO2CAP</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"CO2CAP"</span>, <span class="va">um</span><span class="op">$</span><span class="va">CO2_CAP</span><span class="op">)</span> <span class="op">|&gt;</span>       <span class="co"># emissions cap</span></span>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># emissions cap</span></span>
+<span><span class="va">scen_CO2CAP</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"CO2CAP"</span>, <span class="va">topia_elc</span><span class="op">$</span><span class="va">CO2_CAP</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">scen_CTAX</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"CARBONTAX"</span>, <span class="va">um</span><span class="op">$</span><span class="va">CT_CO2</span><span class="op">)</span> <span class="op">|&gt;</span>       <span class="co"># carbon tax</span></span>
+<span><span class="co"># carbon tax</span></span>
+<span><span class="va">scen_CTAX</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"CARBONTAX"</span>, <span class="va">topia_elc</span><span class="op">$</span><span class="va">CT_CO2</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">scen_RES</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"RES_SHARE"</span>, <span class="va">um</span><span class="op">$</span><span class="va">RES_SHARE</span><span class="op">)</span> <span class="op">|&gt;</span>     <span class="co"># renewable target</span></span>
+<span><span class="co"># early fossil retirement</span></span>
+<span><span class="va">scen_ERET</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"EARLY_RET"</span>, <span class="va">topia_elc</span><span class="op">$</span><span class="va">EARLY_RET</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">scen_NUC</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"NO_NEW_NUC"</span>, <span class="va">um</span><span class="op">$</span><span class="va">NO_NEW_NUC</span><span class="op">)</span> <span class="op">|&gt;</span>   <span class="co"># no new nuclear</span></span>
-<span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">scen_ERET</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"EARLY_RET"</span>, <span class="va">um</span><span class="op">$</span><span class="va">EARLY_RET</span><span class="op">)</span> <span class="op">|&gt;</span>    <span class="co"># early fossil retirement</span></span>
+<span><span class="co"># renewable-backed hydrogen</span></span>
+<span><span class="va">scen_GRN</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"GREEN_H2"</span>, <span class="va">topia_elc</span><span class="op">$</span><span class="va">GREEN_H2</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
-<p>The fifth lever, <code>EARLY_RET</code>, puts a declining per-region
+<p>The third lever, <code>EARLY_RET</code>, puts a declining per-region
 ceiling on installed coal and gas capacity – the plants carry
 <code>optimizeRetirement = TRUE</code>, so the model chooses
 <em>which</em> units to close first while the constraint sets the pace.
-The ceiling bites hardest on gas – generation falls from 108 to 51 PJ
-over the horizon – and what replaces it is wind (86 -&gt; 179 PJ) and a
-little biomass. Not storage: the four-hour battery stays out of every
-scenario in this vignette, which is a result worth reading rather than a
-missing feature. With a legacy gas fleet alive to 2050, unlimited LNG
-above the domestic cap and an export outlet for surplus, this system is
-never short of flexibility, so shifting energy in time earns less than
-building another wind farm. A battery enters only below roughly 40
-USD/kWh of reservoir – about a fifth of today’s cost – and then only in
-2050.</p>
+The ceiling bites hardest on gas; the generation chart above shows what
+fills the gap.</p>
+<p>Whether the battery is built at all is worth reading as a result
+rather than assumed. The model carries several ways to meet a peak – a
+legacy gas fleet alive to 2050, unlimited LNG above the domestic cap,
+transmission to a neighbour, and an electrolyser that can soak up
+surplus and sell the hydrogen – so shifting electricity in time has to
+beat all of them before it earns its capital. Check
+<code>vStorageOutCap</code> across the scenarios before concluding
+either way, and note that at a four-season calendar the multi-day calm
+spells that make storage valuable are not present to be found.</p>
 <p>Compare the scenarios with <code><a href="../reference/compare_scenarios.html">compare_scenarios()</a></code>: the
 overview carries every run’s objective (with differences against the
 baseline), the value tables flag which solved variables moved, and
 <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> draws the comparison charts. The full
 comparative document is one <code>report(cmp)</code> call away.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scl</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>BASE <span class="op">=</span> <span class="va">scen_BASE</span>, CO2CAP <span class="op">=</span> <span class="va">scen_CO2CAP</span>,</span>
-<span>            CARBONTAX <span class="op">=</span> <span class="va">scen_CTAX</span>, RES_SHARE <span class="op">=</span> <span class="va">scen_RES</span>,</span>
-<span>            EARLY_RET <span class="op">=</span> <span class="va">scen_ERET</span><span class="op">)</span></span>
+<span>            CARBONTAX <span class="op">=</span> <span class="va">scen_CTAX</span>, EARLY_RET <span class="op">=</span> <span class="va">scen_ERET</span>,</span>
+<span>            GREEN_H2 <span class="op">=</span> <span class="va">scen_GRN</span><span class="op">)</span></span>
 <span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_scenarios.html">compare_scenarios</a></span><span class="op">(</span><span class="va">scl</span><span class="op">)</span></span>
 <span><span class="va">cmp</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">cmp</span>, <span class="st">"emissions"</span><span class="op">)</span></span></code></pre></div>
 <p>Total system cost (objective) by scenario, straight from the
 overview:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">cmp</span><span class="op">$</span><span class="va">overview</span>, <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">objective</span><span class="op">)</span>, <span class="va">scenario</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>(The same charts can always be hand-rolled from the tidy layer –
 <code>getData(scl, ...)</code> and <code>getMix(scl, ...)</code> accept
 named scenario lists and add a <code>scenario</code> column.)</p>
 <p>A carbon <strong>tax</strong> and a CO2 <strong>cap</strong> both cut
-emissions but through different mechanisms (price vs quantity); a
-<strong>renewable target</strong> raises cost and can even raise CO2
-relative to a carbon price – a useful contrast for policy
-discussion.</p>
+emissions but through different mechanisms – a price the model responds
+to, against a quantity it must meet – and the two reach a given level of
+abatement at different cost. That contrast is the point of running them
+side by side.</p>
+<div class="section level3">
+<h3 id="requiring-green-hydrogen-and-what-that-does-not-buy">Requiring green hydrogen, and what that does not buy<a class="anchor" aria-label="anchor" href="#requiring-green-hydrogen-and-what-that-does-not-buy"></a>
+</h3>
+<p>The <code>GREEN_H2</code> lever makes the matching rule of the
+previous section binding rather than descriptive: in every region and
+timeslice, the electrolyser’s draw may not exceed renewable generation
+at that moment. It is the test used to certify renewable hydrogen, and
+it is costly – hydrogen output falls and total system cost rises, both
+visible in the comparison above.</p>
+<p>What it does not do is turn the attribution wholly green.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">colour_share</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">scen</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">g</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechOut"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>               timeframe <span class="op">=</span> <span class="st">"highest"</span><span class="op">)</span></span>
+<span>  <span class="va">u</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechInp"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>               timeframe <span class="op">=</span> <span class="st">"highest"</span><span class="op">)</span></span>
+<span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="va">u</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/graphics/stem.html" class="external-link">stem</a></span><span class="op">(</span><span class="va">tech</span><span class="op">)</span> <span class="op">==</span> <span class="st">"H2ELC"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">region</span>, <span class="va">year</span>, <span class="va">timeslice</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span>drawn <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">value</span><span class="op">)</span>, .groups <span class="op">=</span> <span class="st">"drop"</span><span class="op">)</span></span>
+<span>  <span class="va">g</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">region</span>, <span class="va">year</span>, <span class="va">timeslice</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>share <span class="op">=</span> <span class="va">value</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">value</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">ungroup</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">inner_join</a></span><span class="op">(</span><span class="va">d</span>, by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"region"</span>, <span class="st">"year"</span>, <span class="st">"timeslice"</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>colour <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="va">colour_of</span><span class="op">[</span><span class="va">carrier_of</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/graphics/stem.html" class="external-link">stem</a></span><span class="op">(</span><span class="va">tech</span><span class="op">)</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>           GWh <span class="op">=</span> <span class="va">share</span> <span class="op">*</span> <span class="va">drawn</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">colour</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span>GWh <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">GWh</span><span class="op">)</span>, .groups <span class="op">=</span> <span class="st">"drop"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>pct <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fl">100</span> <span class="op">*</span> <span class="va">GWh</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">GWh</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">base_mix</span> <span class="op">&lt;-</span> <span class="fu">colour_share</span><span class="op">(</span><span class="va">scen_BASE</span><span class="op">)</span></span>
+<span><span class="va">green_mix</span> <span class="op">&lt;-</span> <span class="fu">colour_share</span><span class="op">(</span><span class="va">scen_GRN</span><span class="op">)</span></span>
+<span><span class="va">base_mix</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">colour</span>, BASE <span class="op">=</span> <span class="va">pct</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">full_join</a></span><span class="op">(</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">green_mix</span>, <span class="va">colour</span>, GREEN_H2 <span class="op">=</span> <span class="va">pct</span><span class="op">)</span>, by <span class="op">=</span> <span class="st">"colour"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span>caption <span class="op">=</span> <span class="st">"Attributed colour, whole horizon (%)"</span><span class="op">)</span></span></code></pre></div>
+<p>The share attributed to renewables rises but does not reach 100%, and
+the reason is that the constraint and the attribution answer different
+questions. The constraint compares two quantities in the same hour:
+electrolysis against renewable output. The attribution divides the
+electrolyser’s draw among <em>everything</em> generating in that hour,
+and the coal and gas plants serving the rest of the load are still
+running. A single pooled commodity cannot say which generator supplied
+which consumer, so one solution supports both statements at once – the
+hydrogen is fully backed by renewable generation, and roughly a quarter
+of the electricity mix it drew from was fossil.</p>
+<p>Reconciling the two would require either a stricter rule – no fossil
+generation anywhere in the region while the electrolyser runs, which
+needs integer variables – or a physically separate green commodity that
+only renewable capacity feeds. Both are heavier than the teaching point
+they would buy, and neither is more honest than stating the
+convention.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="levelized-cost-of-a-process">Levelized cost of a process<a class="anchor" aria-label="anchor" href="#levelized-cost-of-a-process"></a>
@@ -231,19 +462,19 @@ its own costs (annualised investment <code>vTechEac</code>, fixed and
 variable O&amp;M, and attributed fuel) divided by its output in that
 solution. Because it reads the actual results – not a mini-model – it is
 exact at the model’s time resolution, with no calendar caveat.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">lc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/levcost.html">levcost</a></span><span class="op">(</span><span class="va">scen_BASE</span>, name <span class="op">=</span> <span class="st">"ENUC"</span><span class="op">)</span>      <span class="co"># the existing nuclear fleet</span></span>
-<span><span class="va">lc</span><span class="op">$</span><span class="va">levcost_npv</span>                               <span class="co"># NPV levelized cost, MUSD/PJ</span></span>
+<span><span class="va">lc</span><span class="op">$</span><span class="va">levcost_npv</span>                               <span class="co"># NPV levelized cost, MUSD/GWh</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">lc</span>, type <span class="op">=</span> <span class="st">"components"</span><span class="op">)</span>            <span class="co"># eac / fixom / varom / supply, by year</span></span></code></pre></div>
 <p><code>ENUC</code> runs on base-year capacity, so its <strong>capital
 is already sunk</strong> – the annualised-investment term
 <code>eac</code> is ~0 and the realized cost is <strong>fixed O&amp;M
 plus fuel</strong>; a <em>newly built</em> plant would add its
-<code>eac</code> here. The cost per PJ also depends on how hard a plant
+<code>eac</code> here. The cost per GWh also depends on how hard a plant
 is run: more output spreads the fixed costs, lowering the levelized
 cost. Priced across scenarios, <code>ENUC</code>’s LCOE tracks how much
 the existing fleet is dispatched as the policy mix changes:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">scl</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">lc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages</a></span><span class="op">(</span><span class="fu"><a href="../reference/levcost.html">levcost</a></span><span class="op">(</span><span class="va">s</span>, name <span class="op">=</span> <span class="st">"ENUC"</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">inherits</a></span><span class="op">(</span><span class="va">lc</span>, <span class="st">"levcost"</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">lc</span><span class="op">$</span><span class="va">levcost_npv</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span> <span class="kw">else</span> <span class="cn">NA_real_</span></span>
@@ -254,7 +485,7 @@ here; a plant with a <em>grouped</em> fuel input would need its group
 activity instead.) A full technology datasheet with the ex-post cost
 embedded is one call away (<code><a href="../reference/report.html">report()</a></code> renders HTML/PDF; needs
 pandoc):</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/report.html">report</a></span><span class="op">(</span><span class="va">scen_BASE</span>, name <span class="op">=</span> <span class="st">"ENUC"</span>, format <span class="op">=</span> <span class="st">"html"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># the whole-scenario results report: run provenance (scenario_runs()),</span></span>
@@ -263,26 +494,12 @@ pandoc):</p>
 <span><span class="fu"><a href="../reference/report.html">report</a></span><span class="op">(</span><span class="va">scen_BASE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="other-structures">Other structures<a class="anchor" aria-label="anchor" href="#other-structures"></a>
-</h2>
-<p>The same code runs on a different layout – e.g. the single-region
-<code>R1</code> or the larger <code>R7</code> / <code>R11</code>
-(heavier). Just swap the kit:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">um7</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R7</span></span>
-<span><span class="va">mod7</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA7"</span>, data <span class="op">=</span> <span class="va">um7</span><span class="op">$</span><span class="va">repo</span>, calendar <span class="op">=</span> <span class="va">cal</span>,</span>
-<span>                 region <span class="op">=</span> <span class="va">um7</span><span class="op">$</span><span class="va">regions</span>, horizon <span class="op">=</span> <span class="va">hor</span>, discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
-<span><span class="va">mod7</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod7</span>, <span class="va">um7</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span>
-<span><span class="va">scen7</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod7</span>, <span class="st">"BASE7"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
 <h2 id="next-steps">Next steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
 </h2>
-<p>Extend TOPIA with inter-regional trade (using the
-<code>topia$geoscales</code> layouts), technologies introduced via
-scenarios (CCS, hydrogen, CHP), and the honeycomb multi-region layout.
-See the workshop exercises for a step-by-step build.</p>
+<p>Extend TOPIA with technologies introduced via scenarios (CCS, CHP,
+direct air capture), a finer calendar where storage and the hydrogen
+chain have more to earn, and the other <code>topia$geoscales</code>
+layouts. See the workshop exercises for a step-by-step build.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -520,7 +520,7 @@ with no new plotting code:
 
 cl <- model_clusters(mod_7)
 
-plot_geoscale(cl$ECOA$geoscale, type = "map", geoframe = "cluster")
+plot_geoscale(cl$ECOA$geoscale, style = "map", geoframe = "cluster")
 ```
 
 The atoms are coloured by the cluster they joined. Every cluster is one

@@ -170,14 +170,17 @@ winter/summer contrast are immediately visible:
 
 ``` r
 
-cal  <- calendars$d365_h24
-tt   <- cal@timetable
+calendar_d365h24 <- calendars$d365_h24
+timetable <- calendar_d365h24@timetable
+hour <- timescales::tsl2hour(timetable$timeslice, calendar_d365h24@name)
+yday <- timescales::tsl2yday(timetable$timeslice, calendar_d365h24@name)
 prof <- data.frame(
-  timeslice = tt$timeslice,
-  load  = 50 + 30 * sin(2 * pi * (timescales::tsl2hour(tt$timeslice, cal@name) - 6) / 24) +
-                15 * cos(2 * pi *  timescales::tsl2yday(tt$timeslice, cal@name)      / 365))
+  timeslice = timetable$timeslice,
+  load = 50 + 30 * sin(2 * pi * (hour - 6) / 24) +
+              15 * cos(2 * pi * yday / 365))
 
-plot_heatmap(prof, calendar = cal, value = "load")   # x = YDAY, y = HOUR
+# x = YDAY, y = HOUR
+plot_heatmap(prof, calendar = calendar_d365h24, value = "load")
 ```
 
 ![](autoplot_files/figure-html/hm-day-1.png)
@@ -187,7 +190,9 @@ panel per month:
 
 ``` r
 
-plot_heatmap(prof, calendar = cal, value = "load", facet = "month")  # 12 panels
+# 12 panels
+plot_heatmap(prof, calendar = calendar_d365h24, value = "load",
+             facet = "month")
 ```
 
 ![](autoplot_files/figure-html/hm-month-1.png)
@@ -209,13 +214,13 @@ columns to
 
 ``` r
 
-repo <- topia$modules$electricity$R3$repo
-wcal <- calendars$s4_h24
+repo <- topia$modules$electricity$repo
+calendar_s4h24 <- calendars$s4_h24
 
 DEM <- getObject(repo, name = "DEM_ELC", drop = TRUE)
 dem <- subset(as.data.frame(DEM@demand), region == "W1" & year == 2050)
-plot_heatmap(dem[, c("timeslice", "demand")], calendar = wcal, value = "demand",
-             name = "PJ")
+plot_heatmap(dem[, c("timeslice", "demand")], calendar = calendar_s4h24,
+             value = "demand", name = "PJ")
 ```
 
 ![](autoplot_files/figure-html/hm-demand-1.png)
@@ -224,8 +229,8 @@ plot_heatmap(dem[, c("timeslice", "demand")], calendar = wcal, value = "demand",
 
 WSOL <- getObject(repo, name = "WSOL", drop = TRUE)
 wsol <- subset(as.data.frame(WSOL@weather), region == "W1")
-plot_heatmap(wsol[, c("timeslice", "wval")], calendar = wcal, value = "wval",
-             name = "capacity factor")
+plot_heatmap(wsol[, c("timeslice", "wval")], calendar = calendar_s4h24,
+             value = "wval", name = "capacity factor")
 ```
 
 ![](autoplot_files/figure-html/hm-weather-1.png)
@@ -355,10 +360,12 @@ for the heatmap, the y-axis for line/area.
 
 ``` r
 
-WSOL <- getObject(topia$modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
-wcal <- calendars$s4_h24
+WSOL <- getObject(topia$modules$electricity$repo,
+                  name = "WSOL", drop = TRUE)
+calendar_s4h24 <- calendars$s4_h24
 
-autoplot(WSOL, calendar = wcal)                    # heatmap (default), faceted by region
+# heatmap (default), faceted by region
+autoplot(WSOL, calendar = calendar_s4h24)
 ```
 
 ![](autoplot_files/figure-html/wea-1.png)
@@ -368,14 +375,14 @@ season, the capacity factor on the y-axis:
 
 ``` r
 
-autoplot(WSOL, type = "line", calendar = wcal)
+autoplot(WSOL, style = "line", calendar = calendar_s4h24)
 ```
 
 ![](autoplot_files/figure-html/wea-line-1.png)
 
 ``` r
 
-autoplot(WSOL, type = "area", calendar = wcal)     # or filled areas
+autoplot(WSOL, style = "area", calendar = calendar_s4h24)     # or filled areas
 ```
 
 ![](autoplot_files/figure-html/wea-line-2.png)

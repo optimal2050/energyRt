@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -92,28 +92,33 @@
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">spec</span> <span class="op">&lt;-</span> <span class="fu"><a href="process_to_spec.html">process_to_spec</a></span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span><span class="op">$</span><span class="va">ECOA</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">spec</span> <span class="op">&lt;-</span> <span class="fu"><a href="process_to_spec.html">process_to_spec</a></span><span class="op">(</span><span class="fu"><a href="getObject.html">getObject</a></span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"ECOA"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># the constructor call that would rebuild the object, as text</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu">process_spec_code</span><span class="op">(</span><span class="va">spec</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> newTechnology(</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   name = "ECOA",</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   desc = "Coal-fired power plant, subcritical",</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   cap2act = 31.536,</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   units = list(capacity = "GW", activity = "GWh", costs = "MUSD"),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   cap2act = 8760,</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   optimizeRetirement = TRUE,</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   input = data.frame(</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     comm = c("COA"),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     unit = c("PJ"),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     combustion = c(1),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     stringsAsFactors = FALSE),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   output = data.frame(</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     comm = c("ELC"),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     unit = c("GWh"),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     stringsAsFactors = FALSE),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ceff = data.frame(</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     comm = c("COA"),</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     cinp2use = c(0.4),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     comm = c("COA", "ELC"),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     cinp2use = c(0.4, NA),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     use2cact = c(NA, 277.7778),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     stringsAsFactors = FALSE),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   invcost = data.frame(</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     invcost = c(2000),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     retcost = c(25),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     stringsAsFactors = FALSE),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   fixom = data.frame(</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     fixom = c(55),</span>
@@ -124,9 +129,9 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span>     olife = c(30),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     stringsAsFactors = FALSE),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   capacity = data.frame(</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     region = c("W1", "W2", "C1", "W1", "W2", "C1"),</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     year = c(2025, 2025, 2025, 2050, 2050, 2050),</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     stock = c(8.0, 4.0, 1.0, 2.4, 1.2, 0.3),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     region = c("W1", "W2", "C1", "C2", "C3", "C4", "C5", "C6", "E1", "E2", "E3", "W1", "W2", "C1", "C2", "C3", "C4", "C5", "C6", "E1", "E2", "E3"),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     year = c(2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     stock = c(8.0, 4.0, 1.0, 1.0, 1.0, 1.0, 3.0, 1.0, 1.0, 1.0, 1.0, 2.4, 1.2, 0.3, 0.3, 0.3, 0.3, 0.9, 0.3, 0.3, 0.3, 0.3),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     stringsAsFactors = FALSE)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> )</span>
 </code></pre></div>

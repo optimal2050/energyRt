@@ -157,7 +157,7 @@ throwaway folder.
 ``` r
 
 scen <- save_scenario(scen, verbose = FALSE)
-#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/Rtmp639Dbr/sm-demo/scenarios/BASE-SM-smc'
+#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpszAVlt/sm-demo/scenarios/BASE-SM-smc'
 #> Directory size: 0.39 MB
 sort(list.files(scen@path))
 #> [1] "class"        "format"       "layout"       "logfile.csv"  "runs"        
@@ -211,7 +211,7 @@ list_versions("SM", type = "model")
 #> # A tibble: 1 × 7
 #>   status  name  type  version  sealed_at            refs size_mb
 #>   <chr>   <chr> <chr> <chr>    <dttm>              <int>   <dbl>
-#> 1 current SM    model ad6914ee 2026-10-27 02:46:06     0       0
+#> 1 current SM    model fb9ba598 2026-11-03 23:24:36     0       0
 ```
 
 **Only sealed versions are referenced.** A scenario records the model it
@@ -223,7 +223,7 @@ version lists the scenario among its dependents:
 ``` r
 
 scen <- save_scenario(scen, verbose = FALSE)
-#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/Rtmp639Dbr/sm-demo/scenarios/BASE-SM-smc'
+#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpszAVlt/sm-demo/scenarios/BASE-SM-smc'
 #> Directory size: 0.39 MB
 yaml::read_yaml(file.path(scen@path, "scenario.yml"))$model[c("name", "source")]
 #> $name
@@ -235,7 +235,7 @@ list_dependents("SM", type = "model")[, c("type", "name", "version")]
 #> # A tibble: 1 × 3
 #>   type     name  version 
 #>   <chr>    <chr> <chr>   
-#> 1 scenario BASE  ad6914ee
+#> 1 scenario BASE  fb9ba598
 ```
 
 A model that is not sealed is copied into the scenario folder
@@ -403,7 +403,7 @@ scen_low <- interpolate_model(make_mod(c(50, 50, 50)), name = "BASE",
                               overwrite = TRUE) |>
   solve_scenario(solver = solver_options$glpk, echo = FALSE, variant = "low")
 scen_low <- save_scenario(scen_low, verbose = FALSE)
-#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/Rtmp639Dbr/sm-demo/scenarios/BASE-SM-smc'
+#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpszAVlt/sm-demo/scenarios/BASE-SM-smc'
 #> Directory size: 0.7 MB
 scenario_runs(scen_low)[, c("run", "variant", "modinp", "objective")]
 #> # A tibble: 3 × 4
@@ -542,9 +542,8 @@ underscore).
 ## A worked example: a TOPIA project
 
 A project with two policy scenarios (`BASE`, `CO2CAP`) on the
-all-regions model `TOPIA_R11`, solved at full and sampled time
-resolution, for region subsets, and for a one-region continental
-aggregation:
+all-regions model `TOPIA`, solved at full and sampled time resolution,
+for region subsets, and for a one-region continental aggregation:
 
     topia-project/
     ├── energyRt_registry.csv                 the index (rebuildable)
@@ -552,12 +551,12 @@ aggregation:
     │   ├── topia_weather/  topia_demand/   big tables — stored ONCE
     │   └── topia_map/                       the Geoscale (rds)
     ├── repositories/
-    │   └── topia_r11/                       kit repo; tables as dataset refs
+    │   └── topia/                           kit repo; tables as dataset refs
     ├── models/
-    │   └── TOPIA_R11/                       ONE folder per name
+    │   └── TOPIA/                           ONE folder per name
     │       └── <hash>/                      the sealed version scenarios reference
     ├── scenarios/
-    │   ├── BASE-TOPIA_R11-d365_h24/         {scenario}-{model}-{calendar}
+    │   ├── BASE-TOPIA-d365_h24/             {scenario}-{model}-{calendar}
     │   │   ├── scenario.yml · scen.RData     manifest · identity + BASE problem
     │   │   ├── modInp/                       base problem's parameters
     │   │   └── runs/
@@ -569,21 +568,21 @@ aggregation:
     │   │       │   └── … · glpk/
     │   │       └── c1/                       VARIANT: continental aggregation
     │   │           └── … · julia_highs/
-    │   ├── CO2CAP-TOPIA_R11-d365_h24/       the policy scenario, built on the
+    │   ├── CO2CAP-TOPIA-d365_h24/           the policy scenario, built on the
     │   │   │                                 sealed BASE (base = BASE): it
     │   │   │                                 references BASE's tables and keeps
     │   │   │                                 only those the cap changes
     │   │   └── runs/julia_highs/  s4_h24/…   cuts actually solved
-    │   └── CHEAPGAS-TOPIA_R11-d365_h24/     an ASSUMPTION change = scenario
+    │   └── CHEAPGAS-TOPIA-d365_h24/         an ASSUMPTION change = scenario
     └── reports/  levcosts/                   derived-artifact tiers
 
 Reading the tree with the definitions above: `s4_h24`, `r3`, `r1` and
 `c1` are variants *because* their calendar or geoscale differs; `glpk`
 and `glpk-barrier` are runs *because* only the solver differs;
 `CHEAPGAS` is a scenario *because* an input price changed. The
-continental aggregation is a problem *of `TOPIA_R11`* — aggregation
-happens at interpolation, and `variant.yml` records the coarse geoscale
-as provenance (only an explicitly built and stored aggregate model would
+continental aggregation is a problem *of `TOPIA`* — aggregation happens
+at interpolation, and `variant.yml` records the coarse geoscale as
+provenance (only an explicitly built and stored aggregate model would
 earn its own `models/` entry). The weather year exists exactly once, in
 `datasets/`, referenced up the chain.
 
@@ -593,15 +592,15 @@ the solve label in `name` and the problem in `variant`:
 | type | name | parent | variant | path |
 |----|----|----|----|----|
 | dataset | `topia_weather` |  |  | `datasets/topia_weather` |
-| repository | `topia_r11` |  |  | `repositories/topia_r11` |
-| model | `TOPIA_R11` |  |  | `models/TOPIA_R11` |
-| scenario | `BASE` |  |  | `scenarios/BASE-TOPIA_R11-d365_h24` |
+| repository | `topia` |  |  | `repositories/topia` |
+| model | `TOPIA` |  |  | `models/TOPIA` |
+| scenario | `BASE` |  |  | `scenarios/BASE-TOPIA-d365_h24` |
 | run | `julia_highs` | `BASE` |  | `…/runs/julia_highs` |
 | run | `glpk` | `BASE` | `s4_h24` | `…/runs/s4_h24/glpk` |
 | run | `glpk-barrier` | `BASE` | `s4_h24` | `…/runs/s4_h24/glpk-barrier` |
 | run | `glpk` | `BASE` | `r3` | `…/runs/r3/glpk` |
 | run | `julia_highs` | `BASE` | `c1` | `…/runs/c1/julia_highs` |
-| scenario | `CO2CAP` |  |  | `scenarios/CO2CAP-TOPIA_R11-d365_h24` |
+| scenario | `CO2CAP` |  |  | `scenarios/CO2CAP-TOPIA-d365_h24` |
 | run | `julia_highs` | `CO2CAP` |  | `…/runs/julia_highs` |
 
 Typical queries against it:
@@ -703,8 +702,8 @@ save_dataset(name = "kit", fun = "energyRt::topia_profiles",
              args = list(regions = "R1"))   # store the CALL + a snapshot
 
 ## load (explicit IO) and get* (name-first, scenario shells cached in .scen)
-load_model("TOPIA_R11");  load_scenario("BASE");  load_scenarios()
-getScenario("BASE");  getModel("TOPIA_R11");  getDataset("wsol")
+load_model("TOPIA");      load_scenario("BASE");  load_scenarios()
+getScenario("BASE");  getModel("TOPIA");      getDataset("wsol")
 getData(c("BASE", "CO2CAP"), name = "vTechOut", merge = TRUE)
 
 ## runs and problems
@@ -724,12 +723,12 @@ interpolate_model(mod, cap, name = "CO2CAP", base = scen_base)
 interpolate_model(mod, cal_sample, name = "BASE_S", base = scen_base)
 
 ## lifecycle
-seal_model("TOPIA_R11");  seal_scenario("BASE")     # freeze as versions
+seal_model("TOPIA");      seal_scenario("BASE")     # freeze as versions
 unseal_scenario("BASE")                # refused while scenarios build on it
 list_versions()                        # versions with status, refs, size
-list_dependents("TOPIA_R11", type = "model", recursive = TRUE)
+list_dependents("TOPIA", type = "model", recursive = TRUE)
 mark_delete("OLD", type = "scenario", importance = 1)
-mark_delete("TOPIA_R11", type = "model", version = "unused")
+mark_delete("TOPIA", type = "model", version = "unused")
 delete_marked()                        # DRY RUN by default
 delete_marked(max_importance = 1, dry_run = FALSE)
 

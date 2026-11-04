@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -243,7 +243,7 @@ via <code>solve_scenario(solver.dir = "...")</code>, and
 <code>transient = TRUE</code> solves in a throwaway folder.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/save_scenario.html">save_scenario</a></span><span class="op">(</span><span class="va">scen</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/Rtmp639Dbr/sm-demo/scenarios/BASE-SM-smc'</span></span>
+<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpszAVlt/sm-demo/scenarios/BASE-SM-smc'</span></span>
 <span><span class="co">#&gt; Directory size: 0.39 MB</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">scen</span><span class="op">@</span><span class="va">path</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "class"        "format"       "layout"       "logfile.csv"  "runs"        </span></span>
@@ -290,7 +290,7 @@ loading it.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 7</span></span></span>
 <span><span class="co">#&gt;   status  name  type  version  sealed_at            refs size_mb</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dttm&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> current SM    model ad6914ee 2026-10-27 <span style="color: #949494;">02:46:06</span>     0       0</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> current SM    model fb9ba598 2026-11-03 <span style="color: #949494;">23:24:36</span>     0       0</span></span></code></pre></div>
 <p><strong>Only sealed versions are referenced.</strong> A scenario
 records the model it was interpolated from. When that model is a sealed
 version, <code><a href="../reference/save_scenario.html">save_scenario()</a></code> stores the reference
@@ -298,7 +298,7 @@ version, <code><a href="../reference/save_scenario.html">save_scenario()</a></co
 lists the scenario among its dependents:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/save_scenario.html">save_scenario</a></span><span class="op">(</span><span class="va">scen</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/Rtmp639Dbr/sm-demo/scenarios/BASE-SM-smc'</span></span>
+<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpszAVlt/sm-demo/scenarios/BASE-SM-smc'</span></span>
 <span><span class="co">#&gt; Directory size: 0.39 MB</span></span>
 <span><span class="fu">yaml</span><span class="fu">::</span><span class="fu"><a href="https://yaml.r-lib.org/reference/read_yaml.html" class="external-link">read_yaml</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">scen</span><span class="op">@</span><span class="va">path</span>, <span class="st">"scenario.yml"</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">model</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"source"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; $name</span></span>
@@ -310,7 +310,7 @@ lists the scenario among its dependents:</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 3</span></span></span>
 <span><span class="co">#&gt;   type     name  version </span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> scenario BASE  ad6914ee</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> scenario BASE  fb9ba598</span></span></code></pre></div>
 <p>A model that is not sealed is copied into the scenario folder
 (<code>model/</code>), so a later change to the store cannot alter a
 saved scenario; <code>save_scenario(mode = "full")</code> (or
@@ -470,7 +470,7 @@ their <em>own</em> interpolated problem, with their solves inside.</p>
 <span>                              overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span>, echo <span class="op">=</span> <span class="cn">FALSE</span>, variant <span class="op">=</span> <span class="st">"low"</span><span class="op">)</span></span>
 <span><span class="va">scen_low</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/save_scenario.html">save_scenario</a></span><span class="op">(</span><span class="va">scen_low</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/Rtmp639Dbr/sm-demo/scenarios/BASE-SM-smc'</span></span>
+<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpszAVlt/sm-demo/scenarios/BASE-SM-smc'</span></span>
 <span><span class="co">#&gt; Directory size: 0.7 MB</span></span>
 <span><span class="fu"><a href="../reference/scenario_runs.html">scenario_runs</a></span><span class="op">(</span><span class="va">scen_low</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"run"</span>, <span class="st">"variant"</span>, <span class="st">"modinp"</span>, <span class="st">"objective"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 4</span></span></span>
@@ -631,21 +631,21 @@ follow the name rule (letters, digits, underscore).</p>
 <h2 id="a-worked-example-a-topia-project">A worked example: a TOPIA project<a class="anchor" aria-label="anchor" href="#a-worked-example-a-topia-project"></a>
 </h2>
 <p>A project with two policy scenarios (<code>BASE</code>,
-<code>CO2CAP</code>) on the all-regions model <code>TOPIA_R11</code>,
-solved at full and sampled time resolution, for region subsets, and for
-a one-region continental aggregation:</p>
+<code>CO2CAP</code>) on the all-regions model <code>TOPIA</code>, solved
+at full and sampled time resolution, for region subsets, and for a
+one-region continental aggregation:</p>
 <pre><code>topia-project/
 ├── energyRt_registry.csv                 the index (rebuildable)
 ├── datasets/
 │   ├── topia_weather/  topia_demand/   big tables — stored ONCE
 │   └── topia_map/                       the Geoscale (rds)
 ├── repositories/
-│   └── topia_r11/                       kit repo; tables as dataset refs
+│   └── topia/                           kit repo; tables as dataset refs
 ├── models/
-│   └── TOPIA_R11/                       ONE folder per name
+│   └── TOPIA/                           ONE folder per name
 │       └── &lt;hash&gt;/                      the sealed version scenarios reference
 ├── scenarios/
-│   ├── BASE-TOPIA_R11-d365_h24/         {scenario}-{model}-{calendar}
+│   ├── BASE-TOPIA-d365_h24/             {scenario}-{model}-{calendar}
 │   │   ├── scenario.yml · scen.RData     manifest · identity + BASE problem
 │   │   ├── modInp/                       base problem's parameters
 │   │   └── runs/
@@ -657,12 +657,12 @@ a one-region continental aggregation:</p>
 │   │       │   └── … · glpk/
 │   │       └── c1/                       VARIANT: continental aggregation
 │   │           └── … · julia_highs/
-│   ├── CO2CAP-TOPIA_R11-d365_h24/       the policy scenario, built on the
+│   ├── CO2CAP-TOPIA-d365_h24/           the policy scenario, built on the
 │   │   │                                 sealed BASE (base = BASE): it
 │   │   │                                 references BASE's tables and keeps
 │   │   │                                 only those the cap changes
 │   │   └── runs/julia_highs/  s4_h24/…   cuts actually solved
-│   └── CHEAPGAS-TOPIA_R11-d365_h24/     an ASSUMPTION change = scenario
+│   └── CHEAPGAS-TOPIA-d365_h24/         an ASSUMPTION change = scenario
 └── reports/  levcosts/                   derived-artifact tiers</code></pre>
 <p>Reading the tree with the definitions above: <code>s4_h24</code>,
 <code>r3</code>, <code>r1</code> and <code>c1</code> are variants
@@ -670,7 +670,7 @@ a one-region continental aggregation:</p>
 and <code>glpk-barrier</code> are runs <em>because</em> only the solver
 differs; <code>CHEAPGAS</code> is a scenario <em>because</em> an input
 price changed. The continental aggregation is a problem <em>of
-<code>TOPIA_R11</code></em> — aggregation happens at interpolation, and
+<code>TOPIA</code></em> — aggregation happens at interpolation, and
 <code>variant.yml</code> records the coarse geoscale as provenance (only
 an explicitly built and stored aggregate model would earn its own
 <code>models/</code> entry). The weather year exists exactly once, in
@@ -703,24 +703,24 @@ carrying the solve label in <code>name</code> and the problem in
 </tr>
 <tr class="even">
 <td>repository</td>
-<td><code>topia_r11</code></td>
+<td><code>topia</code></td>
 <td></td>
 <td></td>
-<td><code>repositories/topia_r11</code></td>
+<td><code>repositories/topia</code></td>
 </tr>
 <tr class="odd">
 <td>model</td>
-<td><code>TOPIA_R11</code></td>
+<td><code>TOPIA</code></td>
 <td></td>
 <td></td>
-<td><code>models/TOPIA_R11</code></td>
+<td><code>models/TOPIA</code></td>
 </tr>
 <tr class="even">
 <td>scenario</td>
 <td><code>BASE</code></td>
 <td></td>
 <td></td>
-<td><code>scenarios/BASE-TOPIA_R11-d365_h24</code></td>
+<td><code>scenarios/BASE-TOPIA-d365_h24</code></td>
 </tr>
 <tr class="odd">
 <td>run</td>
@@ -762,7 +762,7 @@ carrying the solve label in <code>name</code> and the problem in
 <td><code>CO2CAP</code></td>
 <td></td>
 <td></td>
-<td><code>scenarios/CO2CAP-TOPIA_R11-d365_h24</code></td>
+<td><code>scenarios/CO2CAP-TOPIA-d365_h24</code></td>
 </tr>
 <tr class="odd">
 <td>run</td>
@@ -860,8 +860,8 @@ paths:</p>
 <span>             args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>regions <span class="op">=</span> <span class="st">"R1"</span><span class="op">)</span><span class="op">)</span>   <span class="co"># store the CALL + a snapshot</span></span>
 <span></span>
 <span><span class="co">## load (explicit IO) and get* (name-first, scenario shells cached in .scen)</span></span>
-<span><span class="fu"><a href="../reference/model_store.html">load_model</a></span><span class="op">(</span><span class="st">"TOPIA_R11"</span><span class="op">)</span>;  <span class="fu"><a href="../reference/load_scenario.html">load_scenario</a></span><span class="op">(</span><span class="st">"BASE"</span><span class="op">)</span>;  <span class="fu"><a href="../reference/load_scenario.html">load_scenarios</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/accessors.html">getScenario</a></span><span class="op">(</span><span class="st">"BASE"</span><span class="op">)</span>;  <span class="fu"><a href="../reference/accessors.html">getModel</a></span><span class="op">(</span><span class="st">"TOPIA_R11"</span><span class="op">)</span>;  <span class="fu"><a href="../reference/accessors.html">getDataset</a></span><span class="op">(</span><span class="st">"wsol"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/model_store.html">load_model</a></span><span class="op">(</span><span class="st">"TOPIA"</span><span class="op">)</span>;      <span class="fu"><a href="../reference/load_scenario.html">load_scenario</a></span><span class="op">(</span><span class="st">"BASE"</span><span class="op">)</span>;  <span class="fu"><a href="../reference/load_scenario.html">load_scenarios</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/accessors.html">getScenario</a></span><span class="op">(</span><span class="st">"BASE"</span><span class="op">)</span>;  <span class="fu"><a href="../reference/accessors.html">getModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span><span class="op">)</span>;      <span class="fu"><a href="../reference/accessors.html">getDataset</a></span><span class="op">(</span><span class="st">"wsol"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"BASE"</span>, <span class="st">"CO2CAP"</span><span class="op">)</span>, name <span class="op">=</span> <span class="st">"vTechOut"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co">## runs and problems</span></span>
@@ -881,12 +881,12 @@ paths:</p>
 <span><span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">cal_sample</span>, name <span class="op">=</span> <span class="st">"BASE_S"</span>, base <span class="op">=</span> <span class="va">scen_base</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co">## lifecycle</span></span>
-<span><span class="fu"><a href="../reference/seal.html">seal_model</a></span><span class="op">(</span><span class="st">"TOPIA_R11"</span><span class="op">)</span>;  <span class="fu"><a href="../reference/seal.html">seal_scenario</a></span><span class="op">(</span><span class="st">"BASE"</span><span class="op">)</span>     <span class="co"># freeze as versions</span></span>
+<span><span class="fu"><a href="../reference/seal.html">seal_model</a></span><span class="op">(</span><span class="st">"TOPIA"</span><span class="op">)</span>;      <span class="fu"><a href="../reference/seal.html">seal_scenario</a></span><span class="op">(</span><span class="st">"BASE"</span><span class="op">)</span>     <span class="co"># freeze as versions</span></span>
 <span><span class="fu"><a href="../reference/seal.html">unseal_scenario</a></span><span class="op">(</span><span class="st">"BASE"</span><span class="op">)</span>                <span class="co"># refused while scenarios build on it</span></span>
 <span><span class="fu"><a href="../reference/list_versions.html">list_versions</a></span><span class="op">(</span><span class="op">)</span>                        <span class="co"># versions with status, refs, size</span></span>
-<span><span class="fu"><a href="../reference/list_dependents.html">list_dependents</a></span><span class="op">(</span><span class="st">"TOPIA_R11"</span>, type <span class="op">=</span> <span class="st">"model"</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/list_dependents.html">list_dependents</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, type <span class="op">=</span> <span class="st">"model"</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/seal.html">mark_delete</a></span><span class="op">(</span><span class="st">"OLD"</span>, type <span class="op">=</span> <span class="st">"scenario"</span>, importance <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/seal.html">mark_delete</a></span><span class="op">(</span><span class="st">"TOPIA_R11"</span>, type <span class="op">=</span> <span class="st">"model"</span>, version <span class="op">=</span> <span class="st">"unused"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/seal.html">mark_delete</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, type <span class="op">=</span> <span class="st">"model"</span>, version <span class="op">=</span> <span class="st">"unused"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/seal.html">delete_marked</a></span><span class="op">(</span><span class="op">)</span>                        <span class="co"># DRY RUN by default</span></span>
 <span><span class="fu"><a href="../reference/seal.html">delete_marked</a></span><span class="op">(</span>max_importance <span class="op">=</span> <span class="fl">1</span>, dry_run <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>

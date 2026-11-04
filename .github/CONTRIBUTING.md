@@ -47,11 +47,9 @@ Two things about the test suite that catch everyone once:
   generics keep their conventional shapes. See
   [CONVENTIONS.md § Naming](https://github.com/optimal2050/.github/blob/main/CONVENTIONS.md).
 - **A unit keeps its own capitalisation inside a name**: `annual_GWh`,
-  `sol_GW`, `cost_MUSD`, `emis_ktCO2`, `area_km2` — never `annual_gwh` or
-  `_mw`. A unit is a case-bearing symbol (`mW` is a milliwatt, `Mw` is
-  nothing), so lowercasing it to fit a snake_case habit turns a name the
-  reader can check into one they must guess. The rest of the name stays
-  snake_case; the unit is a symbol pinned to the end, not a word.
+  `sol_GW`, `cost_MUSD`, `emis_ktCO2`, `area_km2`; never `annual_gwh` or
+  `_mw`. Units are case-bearing symbols (`mW` is a milliwatt, `Mw` is
+  nothing). The rest of the name stays snake_case.
 - **`en_` is the package's namespace prefix** wherever a name must be
   claimed in a space energyRt does not own: low-level utilities
   (`en_config()`, `en_option()`, `en_open_dataset()`, `en_install_*()`),
@@ -126,9 +124,7 @@ the class being acted on is not obvious from context.
 Three more that come up in every vignette and `data-raw/` driver.
 
 **An argument is a name, not a pipeline.** Filter and join into a named object
-first, then pass that name. A pipeline written into an argument hides a
-transformation inside a definition, cannot be inspected or re-run on its own,
-and buries the constructor's remaining arguments:
+first, then pass that name:
 
 ```r
 # no
@@ -149,10 +145,9 @@ WSOL <- newWeather(
 A single argument-level call (`cap2act = convert("GW*year", "GWh", 1)`) is not
 a pipeline and stays where it is.
 
-**A table built in place is written vertically** once it has more than one row
-or more than two columns — `data.frame()` and `list()` included, base R being
-no exemption. Two scalars (`ceff = data.frame(comm = "HYD", cinp2use = 1)`)
-stay on one line.
+**A table built in place is written vertically** beyond one row or two columns,
+`data.frame()` and `list()` included. Two scalars
+(`ceff = data.frame(comm = "HYD", cinp2use = 1)`) stay on one line.
 
 ```r
 supply = data.frame(
@@ -162,9 +157,8 @@ supply = data.frame(
 ```
 
 **A table shown to the reader goes through `kable()`**, with a caption stating
-the units. Raw console output is for when the raw form is the point: an
-object's `print` method, or a `head()` peek showing what a function returns. A
-bare data.frame printed for its contents is the case `kable()` exists for.
+the units. Raw console output is for when the raw form is the point — an
+object's `print` method, or a `head()` peek showing what a function returns.
 
 ## Solver backends
 

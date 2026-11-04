@@ -226,6 +226,7 @@ model_size(interpolate_model(mod, name = "FOLDED", fold = TRUE))
 \code{\link[=solve_model]{solve_model()}}, \code{\link[=solve_scenario]{solve_scenario()}}, the \code{interpolate} S4 method.
 
 Other interpolation:
+\code{\link[=recast_model_calendar]{recast_model_calendar()}},
 \code{\link[=subset_model_regions]{subset_model_regions()}},
 \code{\link[=with_solver_log]{with_solver_log()}}
 }

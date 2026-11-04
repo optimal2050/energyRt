@@ -7,7 +7,7 @@ custom constraints to the model.
 
 ``` r
 newConstraint(
-  name,
+  name = "",
   desc = "",
   ...,
   eq = "==",
@@ -56,9 +56,10 @@ newConstraint(
 - rhs:
 
   a numeric value, list or data frame with sets and numeric values for
-  each constraint. Note: zero values will be replaced with
-  `replace_zerros` to avoid dropping them by the interpolation
-  algorithms.
+  each constraint. A single value (a number, a one-element list or a
+  one-cell data frame) is the right-hand side of every row: it replaces
+  `defVal`. Note: zero values will be replaced with `replace_zerros` to
+  avoid dropping them by the interpolation algorithms.
 
 - defVal:
 

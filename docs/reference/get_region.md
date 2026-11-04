@@ -41,13 +41,13 @@ Other model:
 ## Examples
 
 ``` r
-ek  <- topia$modules$electricity$R3
-mod <- newModel("TOPIA", data = ek$repo,
+topia_elc <- topia$modules$electricity
+mod <- newModel("TOPIA", data = topia_elc$repo,
                 calendar = topia$modules$calendars$s4_h24,
-                region = ek$regions,
-                horizon = topia$modules$horizons$base,
+                region = topia_elc$regions,
+                horizon = topia$modules$horizons$BY2025_50_by10,
                 discount = 0.05)
-mod <- setGeoscale(mod, ek$geoscale)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 get_region(mod)
-#> [1] "W1" "W2" "C1"
+#>  [1] "W1" "W2" "C1" "C2" "C3" "C4" "C5" "C6" "E1" "E2" "E3"
 ```

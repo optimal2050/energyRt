@@ -19,7 +19,7 @@ differ, or guarding a refactor of the interpolation pipeline."><meta property="o
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -151,508 +151,134 @@ fold-vs-dense representation drift first (requires scenario inputs).</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="va">ek</span>  <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span></span></span>
-<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">repo</span>,</span></span>
+<span class="r-in"><span><span class="va">topia_elc</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">repo</span>,</span></span>
 <span class="r-in"><span>                calendar <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span></span>
-<span class="r-in"><span>                region <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">regions</span>,</span></span>
-<span class="r-in"><span>                horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span></span>
+<span class="r-in"><span>                region <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">regions</span>,</span></span>
+<span class="r-in"><span>                horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">BY2025_50_by10</span>,</span></span>
 <span class="r-in"><span>                discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">ek</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">topia_elc</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># the same model with a three-step gas supply curve instead of flat supply</span></span></span>
-<span class="r-in"><span><span class="va">mod2</span> <span class="op">&lt;-</span> <span class="fu"><a href="add.html">add</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">ek</span><span class="op">$</span><span class="va">GAS_CURVE</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">a</span> <span class="op">&lt;-</span> <span class="fu"><a href="interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>,  name <span class="op">=</span> <span class="st">"FLAT"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># the same model with every step of the gas supply curve priced 25% higher</span></span></span>
+<span class="r-in"><span><span class="va">sup_gas</span> <span class="op">&lt;-</span> <span class="fu"><a href="getObject.html">getObject</a></span><span class="op">(</span><span class="va">topia_elc</span><span class="op">$</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"SUP_GAS"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">sup_gas</span><span class="op">@</span><span class="va">supply</span><span class="op">$</span><span class="va">cost</span> <span class="op">&lt;-</span> <span class="va">sup_gas</span><span class="op">@</span><span class="va">supply</span><span class="op">$</span><span class="va">cost</span> <span class="op">*</span> <span class="fl">1.25</span></span></span>
+<span class="r-in"><span><span class="va">mod2</span> <span class="op">&lt;-</span> <span class="fu"><a href="add.html">add</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">sup_gas</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">a</span> <span class="op">&lt;-</span> <span class="fu"><a href="interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>,  name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Cost declared at a coarse geoscale level:</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_COA_WEST_CENTRAL@invcost: CENTRAL, WEST</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_GAS_WEST_CENTRAL@invcost: CENTRAL, WEST</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_COA_CENTRAL_EAST@invcost: CENTRAL, EAST</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_GAS_EAST_CENTRAL@invcost: CENTRAL, EAST</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.</span>
-<span class="r-in"><span><span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod2</span>, name <span class="op">=</span> <span class="st">"CURVE"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod2</span>, name <span class="op">=</span> <span class="st">"DEAR_GAS"</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Cost declared at a coarse geoscale level:</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_COA_WEST_CENTRAL@invcost: CENTRAL, WEST</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_GAS_WEST_CENTRAL@invcost: CENTRAL, WEST</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_COA_CENTRAL_EAST@invcost: CENTRAL, EAST</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_GAS_EAST_CENTRAL@invcost: CENTRAL, EAST</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu">compare_inputs</span><span class="op">(</span><span class="va">a</span>, <span class="va">b</span>, names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"flat"</span>, <span class="st">"curve"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu">compare_inputs</span><span class="op">(</span><span class="va">a</span>, <span class="va">b</span>, names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"base"</span>, <span class="st">"dear gas"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">cmp</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ===========================================================================</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> compare_inputs:  A = flat   vs   B = curve   (tol=1e-08, unfold=FALSE)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> compare_inputs:  A = base   vs   B = dear gas   (tol=1e-08, unfold=FALSE)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ===========================================================================</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Parameters: 574 common  | identical: 564  differing: 10  | only-flat: 0  only-curve: 0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Parameters: 574 common  | identical: 573  differing: 1  | only-base: 0  only-dear gas: 0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> --- Differing parameters ---</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      parameter        status  n_A  n_B n_diff max_abs_diff meta</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        mSupAva rows-mismatch 2716 2724      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      mSupAvaUp rows-mismatch   24   32      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       mSupComm rows-mismatch    7    9      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       mSupSpan rows-mismatch   14   16      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mSupTimeslice rows-mismatch  292  294      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      mvSupCost rows-mismatch   28   36      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        pSupAva rows-mismatch   24   32      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       pSupCost rows-mismatch   28   36      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        process rows-mismatch   23   25      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>            sup rows-mismatch    7    9      0            0     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  parameter     status n_A n_B n_diff max_abs_diff meta</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   pSupCost value-diff 160 160     12         1.82     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> --- Sets ---</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   only in curve: variant</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   sup             +flat:[SUP_GAS]  +curve:[SUP_GAS_CLS1,SUP_GAS_CLS2,SUP_GAS_CLS3]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   process         +flat:[SUP_GAS]  +curve:[SUP_GAS_CLS1,SUP_GAS_CLS2,SUP_GAS_CLS3]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Sets: identical.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> User constraints / costs: identical.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> misc: identical.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> --- Data diffs (waldo, first 5 of 10) ---</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> --- Data diffs (waldo, first 1 of 1) ---</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ------------------------------------------------------------</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> process  [rows-mismatch]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  `attr(flat, 'row.names')[21:23]`: <span style="color: #555555;">21</span> <span style="color: #555555;">22</span> <span style="color: #555555;">23</span>      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `attr(curve, 'row.names')[21:25]`: <span style="color: #555555;">21</span> <span style="color: #555555;">22</span> <span style="color: #555555;">23</span> <span style="color: #0000BB;">24</span> <span style="color: #0000BB;">25</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> flat vs curve</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               <span style="font-weight: bold;">             process</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[15, ]  STG_ELC             </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[16, ]  SUP_BIO             </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[17, ]  SUP_COA             </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[18, ]  SUP_GAS             </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[18, ] SUP_GAS_CLS1        </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[19, ] SUP_GAS_CLS2        </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[20, ] SUP_GAS_CLS3        </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[19, ]  SUP_NUC             </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[20, ]  TBD_COA_WEST_CENTRAL</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[21, ]  TBD_ELC_W1_W2       </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$process           | curve$process              </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [15] <span style="color: #555555;">"STG_ELC"</span>              | <span style="color: #555555;">"STG_ELC"</span>              [15]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [16] <span style="color: #555555;">"SUP_BIO"</span>              | <span style="color: #555555;">"SUP_BIO"</span>              [16]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [17] <span style="color: #555555;">"SUP_COA"</span>              | <span style="color: #555555;">"SUP_COA"</span>              [17]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [18] <span style="color: #00BB00;">"SUP_GAS"</span>              - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span>         [18]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                             - <span style="color: #00BB00;">"SUP_GAS_CLS2"</span>         [19]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                             - <span style="color: #00BB00;">"SUP_GAS_CLS3"</span>         [20]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [19] <span style="color: #555555;">"SUP_NUC"</span>              | <span style="color: #555555;">"SUP_NUC"</span>              [21]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [20] <span style="color: #555555;">"TBD_COA_WEST_CENTRAL"</span> | <span style="color: #555555;">"TBD_COA_WEST_CENTRAL"</span> [22]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [21] <span style="color: #555555;">"TBD_ELC_W1_W2"</span>        | <span style="color: #555555;">"TBD_ELC_W1_W2"</span>        [23]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ------------------------------------------------------------</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> sup  [rows-mismatch]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  `attr(flat, 'row.names')[5:7]`: <span style="color: #555555;">5</span> <span style="color: #555555;">6</span> <span style="color: #555555;">7</span>    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `attr(curve, 'row.names')[5:9]`: <span style="color: #555555;">5</span> <span style="color: #555555;">6</span> <span style="color: #555555;">7</span> <span style="color: #0000BB;">8</span> <span style="color: #0000BB;">9</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> flat vs curve</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              <span style="font-weight: bold;">         sup</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[3, ]  RES_WIN     </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[4, ]  SUP_BIO     </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[5, ]  SUP_COA     </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[6, ]  SUP_GAS     </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[6, ] SUP_GAS_CLS1</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[7, ] SUP_GAS_CLS2</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[8, ] SUP_GAS_CLS3</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[7, ]  SUP_NUC     </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     flat$sup  | curve$sup         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3] <span style="color: #555555;">"RES_WIN"</span> | <span style="color: #555555;">"RES_WIN"</span>      [3]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4] <span style="color: #555555;">"SUP_BIO"</span> | <span style="color: #555555;">"SUP_BIO"</span>      [4]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [5] <span style="color: #555555;">"SUP_COA"</span> | <span style="color: #555555;">"SUP_COA"</span>      [5]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [6] <span style="color: #00BB00;">"SUP_GAS"</span> - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span> [6]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               - <span style="color: #00BB00;">"SUP_GAS_CLS2"</span> [7]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               - <span style="color: #00BB00;">"SUP_GAS_CLS3"</span> [8]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [7] <span style="color: #555555;">"SUP_NUC"</span> | <span style="color: #555555;">"SUP_NUC"</span>      [9]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ------------------------------------------------------------</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> pSupCost  [rows-mismatch]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  `attr(flat, 'row.names')[26:28]`: <span style="color: #555555;">26</span> <span style="color: #555555;">27</span> <span style="color: #555555;">28</span>                      and 1 more...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `attr(curve, 'row.names')[26:36]`: <span style="color: #555555;">26</span> <span style="color: #555555;">27</span> <span style="color: #555555;">28</span> <span style="color: #0000BB;">29</span> <span style="color: #0000BB;">30</span> <span style="color: #0000BB;">31</span> <span style="color: #0000BB;">32</span> <span style="color: #0000BB;">33</span> <span style="color: #0000BB;">34</span> <span style="color: #0000BB;">35</span>           ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> flat vs curve</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               <span style="font-weight: bold;">comm  region          sup timeslice value year</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[18, ]   COA WEST    SUP_COA         ANNUAL   1.8 2030</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[19, ]   COA WEST    SUP_COA         ANNUAL   1.8 2040</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[20, ]   COA WEST    SUP_COA         ANNUAL   1.8 2050</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[21, ]   GAS WEST    SUP_GAS         ANNUAL   6.0 2025</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[22, ]   GAS WEST    SUP_GAS         ANNUAL   6.0 2030</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[23, ]   GAS WEST    SUP_GAS         ANNUAL   6.0 2040</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[24, ]   GAS WEST    SUP_GAS         ANNUAL   6.0 2050</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[21, ]  GAS WEST    SUP_GAS_CLS1    ANNUAL   4.0 2025</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[22, ]  GAS WEST    SUP_GAS_CLS1    ANNUAL   4.0 2030</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[23, ]  GAS WEST    SUP_GAS_CLS1    ANNUAL   4.0 2040</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[24, ]  GAS WEST    SUP_GAS_CLS1    ANNUAL   4.0 2050</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[25, ]  GAS WEST    SUP_GAS_CLS2    ANNUAL   8.0 2025</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[26, ]  GAS WEST    SUP_GAS_CLS2    ANNUAL   8.0 2030</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[27, ]  GAS WEST    SUP_GAS_CLS2    ANNUAL   8.0 2040</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> pSupCost  [value-diff]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> base vs dear gas</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   <span style="font-weight: bold;"> value</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  base[142, ]      2.288</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  base[143, ]      2.470</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  base[144, ]      2.600</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- base[145, ]      3.200</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ dear gas[145, ]  4.000</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- base[146, ]      3.360</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ dear gas[146, ]  4.200</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- base[147, ]      3.680</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ dear gas[147, ]  4.600</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- base[148, ]      4.160</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ dear gas[148, ]  5.200</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- base[149, ]      4.000</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ dear gas[149, ]  5.000</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- base[150, ]      4.200</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ dear gas[150, ]  5.250</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- base[151, ]      4.600</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ dear gas[151, ]  5.750</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> and 8 more ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$comm | curve$comm               </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [22] <span style="color: #555555;">"GAS"</span>     | <span style="color: #555555;">"GAS"</span>      [22]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [23] <span style="color: #555555;">"GAS"</span>     | <span style="color: #555555;">"GAS"</span>      [23]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [24] <span style="color: #555555;">"GAS"</span>     | <span style="color: #555555;">"GAS"</span>      [24]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [25]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [28]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [29]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [30]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [31]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...         ...        and 4 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$region | curve$region               </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [22] <span style="color: #555555;">"WEST"</span>      | <span style="color: #555555;">"WEST"</span>       [22]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [23] <span style="color: #555555;">"WEST"</span>      | <span style="color: #555555;">"WEST"</span>       [23]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [24] <span style="color: #555555;">"WEST"</span>      | <span style="color: #555555;">"WEST"</span>       [24]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [25]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [28]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [29]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [30]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [31]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...           ...          and 4 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$sup  | curve$sup                    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [18] <span style="color: #555555;">"SUP_COA"</span> | <span style="color: #555555;">"SUP_COA"</span>      [18]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [19] <span style="color: #555555;">"SUP_COA"</span> | <span style="color: #555555;">"SUP_COA"</span>      [19]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [20] <span style="color: #555555;">"SUP_COA"</span> | <span style="color: #555555;">"SUP_COA"</span>      [20]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [21] <span style="color: #00BB00;">"SUP_GAS"</span> - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span> [21]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [22] <span style="color: #00BB00;">"SUP_GAS"</span> - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span> [22]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [23] <span style="color: #00BB00;">"SUP_GAS"</span> - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span> [23]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [24] <span style="color: #00BB00;">"SUP_GAS"</span> - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span> [24]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #00BB00;">"SUP_GAS_CLS2"</span> [25]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #00BB00;">"SUP_GAS_CLS2"</span> [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #00BB00;">"SUP_GAS_CLS2"</span> [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...         ...            and 8 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$timeslice | curve$timeslice               </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [26] <span style="color: #555555;">"ANNUAL"</span>       | <span style="color: #555555;">"ANNUAL"</span>        [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [27] <span style="color: #555555;">"ANNUAL"</span>       | <span style="color: #555555;">"ANNUAL"</span>        [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [28] <span style="color: #555555;">"ANNUAL"</span>       | <span style="color: #555555;">"ANNUAL"</span>        [28]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [29]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [30]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [31]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [32]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [33]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [34]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [35]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...              ...             and 1 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  `flat$value[18:27]`: <span style="color: #555555;">1.8</span> <span style="color: #555555;">1.8</span> <span style="color: #555555;">1.8</span> <span style="color: #00BB00;">6</span> <span style="color: #00BB00;">6</span> <span style="color: #00BB00;">6</span> <span style="color: #00BB00;">6</span>       and 8 more...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `curve$value[18:35]`: <span style="color: #555555;">1.8</span> <span style="color: #555555;">1.8</span> <span style="color: #555555;">1.8</span> <span style="color: #00BB00;">4</span> <span style="color: #00BB00;">4</span> <span style="color: #00BB00;">4</span> <span style="color: #00BB00;">4</span> <span style="color: #00BB00;">8</span> <span style="color: #00BB00;">8</span> <span style="color: #00BB00;">8</span>           ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$year | curve$year               </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [26] <span style="color: #555555;">2030</span>      | <span style="color: #555555;">2030</span>       [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [27] <span style="color: #555555;">2040</span>      | <span style="color: #555555;">2040</span>       [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [28] <span style="color: #555555;">2050</span>      | <span style="color: #555555;">2050</span>       [28]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2025</span>       [29]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2030</span>       [30]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2040</span>       [31]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2050</span>       [32]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2025</span>       [33]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2030</span>       [34]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2040</span>       [35]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...         ...        and 1 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ------------------------------------------------------------</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> pSupAva  [rows-mismatch]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  `attr(flat, 'row.names')[22:24]`: <span style="color: #555555;">22</span> <span style="color: #555555;">23</span> <span style="color: #555555;">24</span>                      and 1 more...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `attr(curve, 'row.names')[22:32]`: <span style="color: #555555;">22</span> <span style="color: #555555;">23</span> <span style="color: #555555;">24</span> <span style="color: #0000BB;">25</span> <span style="color: #0000BB;">26</span> <span style="color: #0000BB;">27</span> <span style="color: #0000BB;">28</span> <span style="color: #0000BB;">29</span> <span style="color: #0000BB;">30</span> <span style="color: #0000BB;">31</span>           ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> flat vs curve</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               <span style="font-weight: bold;">comm  region          sup timeslice type     value year</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[18, ]   COA WEST    SUP_COA         ANNUAL   up 300.00000 2030</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[19, ]   COA WEST    SUP_COA         ANNUAL   up 300.00000 2040</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[20, ]   COA WEST    SUP_COA         ANNUAL   up 300.00000 2050</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[21, ]   GAS WEST    SUP_GAS         ANNUAL   up  50.00000 2025</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[22, ]   GAS WEST    SUP_GAS         ANNUAL   up  50.00000 2030</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[23, ]   GAS WEST    SUP_GAS         ANNUAL   up  50.00000 2040</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[24, ]   GAS WEST    SUP_GAS         ANNUAL   up  50.00000 2050</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[21, ]  GAS WEST    SUP_GAS_CLS1    ANNUAL   up  16.66667 2025</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[22, ]  GAS WEST    SUP_GAS_CLS1    ANNUAL   up  16.66667 2030</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[23, ]  GAS WEST    SUP_GAS_CLS1    ANNUAL   up  16.66667 2040</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[24, ]  GAS WEST    SUP_GAS_CLS1    ANNUAL   up  16.66667 2050</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[25, ]  GAS WEST    SUP_GAS_CLS2    ANNUAL   up  16.66667 2025</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[26, ]  GAS WEST    SUP_GAS_CLS2    ANNUAL   up  16.66667 2030</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[27, ]  GAS WEST    SUP_GAS_CLS2    ANNUAL   up  16.66667 2040</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> and 5 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$comm | curve$comm               </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [22] <span style="color: #555555;">"GAS"</span>     | <span style="color: #555555;">"GAS"</span>      [22]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [23] <span style="color: #555555;">"GAS"</span>     | <span style="color: #555555;">"GAS"</span>      [23]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [24] <span style="color: #555555;">"GAS"</span>     | <span style="color: #555555;">"GAS"</span>      [24]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [25]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [28]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [29]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [30]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [31]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...         ...        and 1 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$region | curve$region               </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [22] <span style="color: #555555;">"WEST"</span>      | <span style="color: #555555;">"WEST"</span>       [22]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [23] <span style="color: #555555;">"WEST"</span>      | <span style="color: #555555;">"WEST"</span>       [23]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [24] <span style="color: #555555;">"WEST"</span>      | <span style="color: #555555;">"WEST"</span>       [24]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [25]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [28]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [29]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [30]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [31]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...           ...          and 1 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$sup  | curve$sup                    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [18] <span style="color: #555555;">"SUP_COA"</span> | <span style="color: #555555;">"SUP_COA"</span>      [18]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [19] <span style="color: #555555;">"SUP_COA"</span> | <span style="color: #555555;">"SUP_COA"</span>      [19]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [20] <span style="color: #555555;">"SUP_COA"</span> | <span style="color: #555555;">"SUP_COA"</span>      [20]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [21] <span style="color: #00BB00;">"SUP_GAS"</span> - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span> [21]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [22] <span style="color: #00BB00;">"SUP_GAS"</span> - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span> [22]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [23] <span style="color: #00BB00;">"SUP_GAS"</span> - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span> [23]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [24] <span style="color: #00BB00;">"SUP_GAS"</span> - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span> [24]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #00BB00;">"SUP_GAS_CLS2"</span> [25]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #00BB00;">"SUP_GAS_CLS2"</span> [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #00BB00;">"SUP_GAS_CLS2"</span> [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...         ...            and 5 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$timeslice | curve$timeslice               </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [22] <span style="color: #555555;">"ANNUAL"</span>       | <span style="color: #555555;">"ANNUAL"</span>        [22]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [23] <span style="color: #555555;">"ANNUAL"</span>       | <span style="color: #555555;">"ANNUAL"</span>        [23]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [24] <span style="color: #555555;">"ANNUAL"</span>       | <span style="color: #555555;">"ANNUAL"</span>        [24]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [25]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [28]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [29]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [30]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [31]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...              ...             and 1 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$type | curve$type               </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [22] <span style="color: #555555;">"up"</span>      | <span style="color: #555555;">"up"</span>       [22]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [23] <span style="color: #555555;">"up"</span>      | <span style="color: #555555;">"up"</span>       [23]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [24] <span style="color: #555555;">"up"</span>      | <span style="color: #555555;">"up"</span>       [24]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"up"</span>       [25]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"up"</span>       [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"up"</span>       [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"up"</span>       [28]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"up"</span>       [29]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"up"</span>       [30]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"up"</span>       [31]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...         ...        and 1 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$value | curve$value                    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [18] <span style="color: #555555;">300</span>        | <span style="color: #555555;">300</span>              [18]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [19] <span style="color: #555555;">300</span>        | <span style="color: #555555;">300</span>              [19]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [20] <span style="color: #555555;">300</span>        | <span style="color: #555555;">300</span>              [20]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [21] <span style="color: #00BB00;">50</span>         - <span style="color: #00BB00;">16.6666666666667</span> [21]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [22] <span style="color: #00BB00;">50</span>         - <span style="color: #00BB00;">16.6666666666667</span> [22]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [23] <span style="color: #00BB00;">50</span>         - <span style="color: #00BB00;">16.6666666666667</span> [23]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [24] <span style="color: #00BB00;">50</span>         - <span style="color: #00BB00;">16.6666666666667</span> [24]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 - <span style="color: #00BB00;">16.6666666666667</span> [25]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 - <span style="color: #00BB00;">16.6666666666667</span> [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 - <span style="color: #00BB00;">16.6666666666667</span> [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...          ...              and 5 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$year | curve$year               </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [22] <span style="color: #555555;">2030</span>      | <span style="color: #555555;">2030</span>       [22]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [23] <span style="color: #555555;">2040</span>      | <span style="color: #555555;">2040</span>       [23]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [24] <span style="color: #555555;">2050</span>      | <span style="color: #555555;">2050</span>       [24]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2025</span>       [25]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2030</span>       [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2040</span>       [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2050</span>       [28]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2025</span>       [29]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2030</span>       [30]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2040</span>       [31]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...         ...        and 1 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ------------------------------------------------------------</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> mSupTimeslice  [rows-mismatch]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  `attr(flat, 'row.names')[290:292]`: <span style="color: #555555;">290</span> <span style="color: #555555;">291</span> <span style="color: #555555;">292</span>        </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `attr(curve, 'row.names')[290:294]`: <span style="color: #555555;">290</span> <span style="color: #555555;">291</span> <span style="color: #555555;">292</span> <span style="color: #0000BB;">293</span> <span style="color: #0000BB;">294</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> flat vs curve</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                <span style="font-weight: bold;">         sup timeslice</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[288, ]  RES_WIN        WIN_h23</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[289, ]  SUP_BIO        ANNUAL </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[290, ]  SUP_COA        ANNUAL </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[291, ]  SUP_GAS        ANNUAL </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[291, ] SUP_GAS_CLS1   ANNUAL </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[292, ] SUP_GAS_CLS2   ANNUAL </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[293, ] SUP_GAS_CLS3   ANNUAL </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[292, ]  SUP_NUC        ANNUAL </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       flat$sup  | curve$sup           </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [288] <span style="color: #555555;">"RES_WIN"</span> | <span style="color: #555555;">"RES_WIN"</span>      [288]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [289] <span style="color: #555555;">"SUP_BIO"</span> | <span style="color: #555555;">"SUP_BIO"</span>      [289]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [290] <span style="color: #555555;">"SUP_COA"</span> | <span style="color: #555555;">"SUP_COA"</span>      [290]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [291] <span style="color: #00BB00;">"SUP_GAS"</span> - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span> [291]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 - <span style="color: #00BB00;">"SUP_GAS_CLS2"</span> [292]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 - <span style="color: #00BB00;">"SUP_GAS_CLS3"</span> [293]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [292] <span style="color: #555555;">"SUP_NUC"</span> | <span style="color: #555555;">"SUP_NUC"</span>      [294]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `flat$timeslice[290:292]`:  <span style="color: #555555;">"ANNUAL"</span> <span style="color: #555555;">"ANNUAL"</span> <span style="color: #555555;">"ANNUAL"</span>                  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `curve$timeslice[290:294]`: <span style="color: #555555;">"ANNUAL"</span> <span style="color: #555555;">"ANNUAL"</span> <span style="color: #555555;">"ANNUAL"</span> <span style="color: #0000BB;">"ANNUAL"</span> <span style="color: #0000BB;">"ANNUAL"</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       base$value | dear gas$value               </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [142] <span style="color: #555555;">2.29</span>       | <span style="color: #555555;">2.29</span>           [142]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [143] <span style="color: #555555;">2.47</span>       | <span style="color: #555555;">2.47</span>           [143]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [144] <span style="color: #555555;">2.60</span>       | <span style="color: #555555;">2.60</span>           [144]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [145] <span style="color: #00BB00;">3.20</span>       - <span style="color: #00BB00;">4.00</span>           [145]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [146] <span style="color: #00BB00;">3.36</span>       - <span style="color: #00BB00;">4.20</span>           [146]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [147] <span style="color: #00BB00;">3.68</span>       - <span style="color: #00BB00;">4.60</span>           [147]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [148] <span style="color: #00BB00;">4.16</span>       - <span style="color: #00BB00;">5.20</span>           [148]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [149] <span style="color: #00BB00;">4.00</span>       - <span style="color: #00BB00;">5.00</span>           [149]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [150] <span style="color: #00BB00;">4.20</span>       - <span style="color: #00BB00;">5.25</span>           [150]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [151] <span style="color: #00BB00;">4.60</span>       - <span style="color: #00BB00;">5.75</span>           [151]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ... ...          ...            and 8 more ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ===========================================================================</span>
 <span class="r-in"><span><span class="fu"><a href="print.html">print</a></span><span class="op">(</span><span class="va">cmp</span>, max_diffs <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ===========================================================================</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> compare_inputs:  A = flat   vs   B = curve   (tol=1e-08, unfold=FALSE)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> compare_inputs:  A = base   vs   B = dear gas   (tol=1e-08, unfold=FALSE)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ===========================================================================</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Parameters: 574 common  | identical: 564  differing: 10  | only-flat: 0  only-curve: 0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Parameters: 574 common  | identical: 573  differing: 1  | only-base: 0  only-dear gas: 0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> --- Differing parameters ---</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      parameter        status  n_A  n_B n_diff max_abs_diff meta</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        mSupAva rows-mismatch 2716 2724      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      mSupAvaUp rows-mismatch   24   32      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       mSupComm rows-mismatch    7    9      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       mSupSpan rows-mismatch   14   16      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mSupTimeslice rows-mismatch  292  294      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      mvSupCost rows-mismatch   28   36      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        pSupAva rows-mismatch   24   32      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       pSupCost rows-mismatch   28   36      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        process rows-mismatch   23   25      0            0     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>            sup rows-mismatch    7    9      0            0     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  parameter     status n_A n_B n_diff max_abs_diff meta</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   pSupCost value-diff 160 160     12         1.82     </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> --- Sets ---</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   only in curve: variant</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   sup             +flat:[SUP_GAS]  +curve:[SUP_GAS_CLS1,SUP_GAS_CLS2,SUP_GAS_CLS3]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   process         +flat:[SUP_GAS]  +curve:[SUP_GAS_CLS1,SUP_GAS_CLS2,SUP_GAS_CLS3]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Sets: identical.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> User constraints / costs: identical.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> misc: identical.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> --- Data diffs (waldo, first 3 of 10) ---</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> --- Data diffs (waldo, first 1 of 1) ---</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ------------------------------------------------------------</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> process  [rows-mismatch]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  `attr(flat, 'row.names')[21:23]`: <span style="color: #555555;">21</span> <span style="color: #555555;">22</span> <span style="color: #555555;">23</span>      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `attr(curve, 'row.names')[21:25]`: <span style="color: #555555;">21</span> <span style="color: #555555;">22</span> <span style="color: #555555;">23</span> <span style="color: #0000BB;">24</span> <span style="color: #0000BB;">25</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> flat vs curve</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               <span style="font-weight: bold;">             process</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[15, ]  STG_ELC             </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[16, ]  SUP_BIO             </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[17, ]  SUP_COA             </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[18, ]  SUP_GAS             </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[18, ] SUP_GAS_CLS1        </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[19, ] SUP_GAS_CLS2        </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[20, ] SUP_GAS_CLS3        </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[19, ]  SUP_NUC             </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[20, ]  TBD_COA_WEST_CENTRAL</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[21, ]  TBD_ELC_W1_W2       </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$process           | curve$process              </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [15] <span style="color: #555555;">"STG_ELC"</span>              | <span style="color: #555555;">"STG_ELC"</span>              [15]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [16] <span style="color: #555555;">"SUP_BIO"</span>              | <span style="color: #555555;">"SUP_BIO"</span>              [16]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [17] <span style="color: #555555;">"SUP_COA"</span>              | <span style="color: #555555;">"SUP_COA"</span>              [17]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [18] <span style="color: #00BB00;">"SUP_GAS"</span>              - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span>         [18]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                             - <span style="color: #00BB00;">"SUP_GAS_CLS2"</span>         [19]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                             - <span style="color: #00BB00;">"SUP_GAS_CLS3"</span>         [20]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [19] <span style="color: #555555;">"SUP_NUC"</span>              | <span style="color: #555555;">"SUP_NUC"</span>              [21]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [20] <span style="color: #555555;">"TBD_COA_WEST_CENTRAL"</span> | <span style="color: #555555;">"TBD_COA_WEST_CENTRAL"</span> [22]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [21] <span style="color: #555555;">"TBD_ELC_W1_W2"</span>        | <span style="color: #555555;">"TBD_ELC_W1_W2"</span>        [23]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ------------------------------------------------------------</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> sup  [rows-mismatch]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  `attr(flat, 'row.names')[5:7]`: <span style="color: #555555;">5</span> <span style="color: #555555;">6</span> <span style="color: #555555;">7</span>    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `attr(curve, 'row.names')[5:9]`: <span style="color: #555555;">5</span> <span style="color: #555555;">6</span> <span style="color: #555555;">7</span> <span style="color: #0000BB;">8</span> <span style="color: #0000BB;">9</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> flat vs curve</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              <span style="font-weight: bold;">         sup</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[3, ]  RES_WIN     </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[4, ]  SUP_BIO     </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[5, ]  SUP_COA     </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[6, ]  SUP_GAS     </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[6, ] SUP_GAS_CLS1</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[7, ] SUP_GAS_CLS2</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[8, ] SUP_GAS_CLS3</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[7, ]  SUP_NUC     </span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     flat$sup  | curve$sup         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3] <span style="color: #555555;">"RES_WIN"</span> | <span style="color: #555555;">"RES_WIN"</span>      [3]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4] <span style="color: #555555;">"SUP_BIO"</span> | <span style="color: #555555;">"SUP_BIO"</span>      [4]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [5] <span style="color: #555555;">"SUP_COA"</span> | <span style="color: #555555;">"SUP_COA"</span>      [5]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [6] <span style="color: #00BB00;">"SUP_GAS"</span> - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span> [6]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               - <span style="color: #00BB00;">"SUP_GAS_CLS2"</span> [7]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               - <span style="color: #00BB00;">"SUP_GAS_CLS3"</span> [8]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [7] <span style="color: #555555;">"SUP_NUC"</span> | <span style="color: #555555;">"SUP_NUC"</span>      [9]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ------------------------------------------------------------</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> pSupCost  [rows-mismatch]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  `attr(flat, 'row.names')[26:28]`: <span style="color: #555555;">26</span> <span style="color: #555555;">27</span> <span style="color: #555555;">28</span>                      and 1 more...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `attr(curve, 'row.names')[26:36]`: <span style="color: #555555;">26</span> <span style="color: #555555;">27</span> <span style="color: #555555;">28</span> <span style="color: #0000BB;">29</span> <span style="color: #0000BB;">30</span> <span style="color: #0000BB;">31</span> <span style="color: #0000BB;">32</span> <span style="color: #0000BB;">33</span> <span style="color: #0000BB;">34</span> <span style="color: #0000BB;">35</span>           ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> flat vs curve</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               <span style="font-weight: bold;">comm  region          sup timeslice value year</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[18, ]   COA WEST    SUP_COA         ANNUAL   1.8 2030</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[19, ]   COA WEST    SUP_COA         ANNUAL   1.8 2040</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  flat[20, ]   COA WEST    SUP_COA         ANNUAL   1.8 2050</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[21, ]   GAS WEST    SUP_GAS         ANNUAL   6.0 2025</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[22, ]   GAS WEST    SUP_GAS         ANNUAL   6.0 2030</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[23, ]   GAS WEST    SUP_GAS         ANNUAL   6.0 2040</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- flat[24, ]   GAS WEST    SUP_GAS         ANNUAL   6.0 2050</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[21, ]  GAS WEST    SUP_GAS_CLS1    ANNUAL   4.0 2025</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[22, ]  GAS WEST    SUP_GAS_CLS1    ANNUAL   4.0 2030</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[23, ]  GAS WEST    SUP_GAS_CLS1    ANNUAL   4.0 2040</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[24, ]  GAS WEST    SUP_GAS_CLS1    ANNUAL   4.0 2050</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[25, ]  GAS WEST    SUP_GAS_CLS2    ANNUAL   8.0 2025</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[26, ]  GAS WEST    SUP_GAS_CLS2    ANNUAL   8.0 2030</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ curve[27, ]  GAS WEST    SUP_GAS_CLS2    ANNUAL   8.0 2040</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> pSupCost  [value-diff]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> base vs dear gas</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   <span style="font-weight: bold;"> value</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  base[142, ]      2.288</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  base[143, ]      2.470</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #555555;">  base[144, ]      2.600</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- base[145, ]      3.200</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ dear gas[145, ]  4.000</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- base[146, ]      3.360</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ dear gas[146, ]  4.200</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- base[147, ]      3.680</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ dear gas[147, ]  4.600</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- base[148, ]      4.160</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ dear gas[148, ]  5.200</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- base[149, ]      4.000</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ dear gas[149, ]  5.000</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- base[150, ]      4.200</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ dear gas[150, ]  5.250</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- base[151, ]      4.600</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ dear gas[151, ]  5.750</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> and 8 more ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$comm | curve$comm               </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [22] <span style="color: #555555;">"GAS"</span>     | <span style="color: #555555;">"GAS"</span>      [22]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [23] <span style="color: #555555;">"GAS"</span>     | <span style="color: #555555;">"GAS"</span>      [23]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [24] <span style="color: #555555;">"GAS"</span>     | <span style="color: #555555;">"GAS"</span>      [24]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [25]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [28]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [29]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [30]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">"GAS"</span>      [31]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...         ...        and 4 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$region | curve$region               </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [22] <span style="color: #555555;">"WEST"</span>      | <span style="color: #555555;">"WEST"</span>       [22]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [23] <span style="color: #555555;">"WEST"</span>      | <span style="color: #555555;">"WEST"</span>       [23]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [24] <span style="color: #555555;">"WEST"</span>      | <span style="color: #555555;">"WEST"</span>       [24]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [25]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [28]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [29]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [30]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  - <span style="color: #0000BB;">"WEST"</span>       [31]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...           ...          and 4 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$sup  | curve$sup                    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [18] <span style="color: #555555;">"SUP_COA"</span> | <span style="color: #555555;">"SUP_COA"</span>      [18]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [19] <span style="color: #555555;">"SUP_COA"</span> | <span style="color: #555555;">"SUP_COA"</span>      [19]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [20] <span style="color: #555555;">"SUP_COA"</span> | <span style="color: #555555;">"SUP_COA"</span>      [20]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [21] <span style="color: #00BB00;">"SUP_GAS"</span> - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span> [21]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [22] <span style="color: #00BB00;">"SUP_GAS"</span> - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span> [22]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [23] <span style="color: #00BB00;">"SUP_GAS"</span> - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span> [23]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [24] <span style="color: #00BB00;">"SUP_GAS"</span> - <span style="color: #00BB00;">"SUP_GAS_CLS1"</span> [24]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #00BB00;">"SUP_GAS_CLS2"</span> [25]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #00BB00;">"SUP_GAS_CLS2"</span> [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #00BB00;">"SUP_GAS_CLS2"</span> [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...         ...            and 8 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$timeslice | curve$timeslice               </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [26] <span style="color: #555555;">"ANNUAL"</span>       | <span style="color: #555555;">"ANNUAL"</span>        [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [27] <span style="color: #555555;">"ANNUAL"</span>       | <span style="color: #555555;">"ANNUAL"</span>        [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [28] <span style="color: #555555;">"ANNUAL"</span>       | <span style="color: #555555;">"ANNUAL"</span>        [28]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [29]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [30]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [31]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [32]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [33]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [34]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     - <span style="color: #0000BB;">"ANNUAL"</span>        [35]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...              ...             and 1 more ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  `flat$value[18:27]`: <span style="color: #555555;">1.8</span> <span style="color: #555555;">1.8</span> <span style="color: #555555;">1.8</span> <span style="color: #00BB00;">6</span> <span style="color: #00BB00;">6</span> <span style="color: #00BB00;">6</span> <span style="color: #00BB00;">6</span>       and 8 more...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `curve$value[18:35]`: <span style="color: #555555;">1.8</span> <span style="color: #555555;">1.8</span> <span style="color: #555555;">1.8</span> <span style="color: #00BB00;">4</span> <span style="color: #00BB00;">4</span> <span style="color: #00BB00;">4</span> <span style="color: #00BB00;">4</span> <span style="color: #00BB00;">8</span> <span style="color: #00BB00;">8</span> <span style="color: #00BB00;">8</span>           ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      flat$year | curve$year               </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [26] <span style="color: #555555;">2030</span>      | <span style="color: #555555;">2030</span>       [26]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [27] <span style="color: #555555;">2040</span>      | <span style="color: #555555;">2040</span>       [27]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [28] <span style="color: #555555;">2050</span>      | <span style="color: #555555;">2050</span>       [28]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2025</span>       [29]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2030</span>       [30]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2040</span>       [31]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2050</span>       [32]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2025</span>       [33]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2030</span>       [34]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                - <span style="color: #0000BB;">2040</span>       [35]          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  ... ...         ...        and 1 more ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       base$value | dear gas$value               </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [142] <span style="color: #555555;">2.29</span>       | <span style="color: #555555;">2.29</span>           [142]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [143] <span style="color: #555555;">2.47</span>       | <span style="color: #555555;">2.47</span>           [143]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [144] <span style="color: #555555;">2.60</span>       | <span style="color: #555555;">2.60</span>           [144]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [145] <span style="color: #00BB00;">3.20</span>       - <span style="color: #00BB00;">4.00</span>           [145]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [146] <span style="color: #00BB00;">3.36</span>       - <span style="color: #00BB00;">4.20</span>           [146]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [147] <span style="color: #00BB00;">3.68</span>       - <span style="color: #00BB00;">4.60</span>           [147]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [148] <span style="color: #00BB00;">4.16</span>       - <span style="color: #00BB00;">5.20</span>           [148]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [149] <span style="color: #00BB00;">4.00</span>       - <span style="color: #00BB00;">5.00</span>           [149]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [150] <span style="color: #00BB00;">4.20</span>       - <span style="color: #00BB00;">5.25</span>           [150]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [151] <span style="color: #00BB00;">4.60</span>       - <span style="color: #00BB00;">5.75</span>           [151]         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ... ...          ...            and 8 more ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ===========================================================================</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>

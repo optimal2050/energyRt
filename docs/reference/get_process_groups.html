@@ -15,7 +15,7 @@ different inputs and stay separate however alike their costs look."><meta proper
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -122,21 +122,26 @@ keys of its <code>clusters</code> argument.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">ek</span>  <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span></span></span>
-<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">repo</span>,</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">topia_elc</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">repo</span>,</span></span>
 <span class="r-in"><span>                calendar <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span></span>
-<span class="r-in"><span>                region <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">regions</span>,</span></span>
-<span class="r-in"><span>                horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span></span>
+<span class="r-in"><span>                region <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">regions</span>,</span></span>
+<span class="r-in"><span>                horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">BY2025_50_by10</span>,</span></span>
 <span class="r-in"><span>                discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">ek</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">topia_elc</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># families of processes that share a commodity signature, with their members</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">get_process_groups</span><span class="op">(</span><span class="va">mod</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   group      class                signature n members  regions</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1  ECOA technology in:COA|out:ELC|aux:|grp: 3    ECOA W1,W2,C1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2  EGAS technology in:GAS|out:ELC|aux:|grp: 3    EGAS W1,W2,C1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3  ESOL technology in:SOL|out:ELC|aux:|grp: 3    ESOL W1,W2,C1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4  EWIN technology in:WIN|out:ELC|aux:|grp: 3    EWIN W1,W2,C1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   group      class                  signature  n members</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  ECOA technology   in:COA|out:ELC|aux:|grp: 11    ECOA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  EGAS technology   in:GAS|out:ELC|aux:|grp: 11    EGAS</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  ESOL technology in:|out:ELC|aux:LANDS|grp: 11    ESOL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5  EWIN technology in:|out:ELC|aux:LANDW|grp: 11    EWIN</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                            regions</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 W1,W2,C1,C2,C3,C4,C5,C6,E1,E2,E3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 W1,W2,C1,C2,C3,C4,C5,C6,E1,E2,E3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 W1,W2,C1,C2,C3,C4,C5,C6,E1,E2,E3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 W1,W2,C1,C2,C3,C4,C5,C6,E1,E2,E3</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

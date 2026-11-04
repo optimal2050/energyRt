@@ -58,6 +58,7 @@ getData(
   unfold = TRUE,
   variants = TRUE,
   run = NULL,
+  base_year = FALSE,
   verbose = FALSE
 )
 
@@ -93,6 +94,7 @@ getData(
   unfold = TRUE,
   variants = TRUE,
   run = NULL,
+  base_year = FALSE,
   verbose = FALSE
 )
 
@@ -433,6 +435,20 @@ getData(
   brings its own problem with it, parameters included. Spanning runs of
   different problems warns — their results are not like-for-like. Not to
   be confused with `variants`, below, which is about technologies.
+
+- base_year:
+
+  logical, default `FALSE`. When `TRUE`, a scenario whose horizon marks
+  a base year also returns that year, read from the separate run the
+  scenario recorded (see
+  [`solve_base_year()`](https://energyRt.org/reference/solve_base_year.md)),
+  and every row gains a `source` column — `"solved"` for the scenario's
+  own LP, `"base"` for the base year. `vObjective` is not unioned: the
+  base year and the projection are separate optimisations, so only the
+  projection's is returned. A scenario that records no base year, or
+  whose recorded source cannot be read, warns and returns its own rows
+  alone. Note that post-processing applies the FIRST object's horizon
+  and calendar labels to every row.
 
 - verbose:
 

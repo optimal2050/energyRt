@@ -19,6 +19,7 @@ interpolate_model(
   name = NULL,
   ...,
   base = NULL,
+  base_year_scenario = base,
   desc = NULL,
   ondisk = FALSE,
   overwrite = FALSE,
@@ -33,6 +34,7 @@ interpolate_model(
   parent_levels = getOption("energyRt.parent_levels", FALSE),
   fx_equ = getOption("energyRt.fx_equ", TRUE),
   on_missing_input = getOption("energyRt.on_missing_input", "stop"),
+  check = FALSE,
   verbose = isVerbose(),
   .reuse = NULL
 )
@@ -79,6 +81,22 @@ interpolate(object, ...)
   base too: the per-object tables of the objects the base already holds
   are reused, the new objects' tables are computed, and every map is
   rebuilt.
+
+- base_year_scenario:
+
+  where the base year's own solution comes from, when the horizon marks
+  one (see
+  [`newHorizon()`](https://energyRt.org/reference/newHorizon.md)).
+  Defaults to `base`, so a projection built on a base takes that base's
+  base-year solution for free. May also be a solved
+  [scenario](https://energyRt.org/reference/class-scenario.md), the list
+  [`solve_base_year()`](https://energyRt.org/reference/solve_base_year.md)
+  returns, a scenario name, or `"<scenario>/<run>"`; `NULL` or `FALSE`
+  carries nothing. What crosses is only what that solve DECIDED — its
+  new capacity, written as sunk `stock` at its true vintage. The model's
+  own `@stock` is left alone. With no source the projection still
+  excludes the base year, and starts from the model's declared `@stock`;
+  a message says so.
 
 - desc:
 
@@ -220,6 +238,15 @@ interpolate(object, ...)
   only be built new. Defaults to
   `getOption("energyRt.on_missing_input", "stop")`.
 
+- check:
+
+  run
+  [`check_feasibility()`](https://energyRt.org/reference/check_feasibility.md)
+  on the interpolated scenario and STOP when it finds a contradiction,
+  rather than returning a scenario that can only solve to INFEASIBLE.
+  Off by default: the check costs a pass over the parameter tables, and
+  a model known to be sound does not need it.
+
 - verbose:
 
   logical; print per-step progress. This also governs the
@@ -253,19 +280,20 @@ Other interpolation:
 
 ``` r
 # \donttest{
-ek  <- topia$modules$electricity$R3
-mod <- newModel("TOPIA", data = ek$repo,
+topia_elc <- topia$modules$electricity
+mod <- newModel("TOPIA", data = topia_elc$repo,
                 calendar = topia$modules$calendars$s4_h24,
-                region = ek$regions,
-                horizon = topia$modules$horizons$base,
+                region = topia_elc$regions,
+                horizon = topia$modules$horizons$BY2025_50_by10,
                 discount = 0.05)
-mod <- setGeoscale(mod, ek$geoscale)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 
 # build the solver-facing sets and parameters; nothing is solved yet
 scen <- interpolate_model(mod, name = "BASE")
 #> Cost declared at a coarse geoscale level:
 #>   TBD_COA_WEST_CENTRAL@invcost: CENTRAL, WEST
-#>   TBD_GAS_WEST_CENTRAL@invcost: CENTRAL, WEST
+#>   TBD_COA_CENTRAL_EAST@invcost: CENTRAL, EAST
+#>   TBD_GAS_EAST_CENTRAL@invcost: CENTRAL, EAST
 #> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.
 scen
 #> Name:  BASE 
@@ -277,28 +305,29 @@ scen
 model_size(interpolate_model(mod, name = "FOLDED", fold = TRUE))
 #> Cost declared at a coarse geoscale level:
 #>   TBD_COA_WEST_CENTRAL@invcost: CENTRAL, WEST
-#>   TBD_GAS_WEST_CENTRAL@invcost: CENTRAL, WEST
+#>   TBD_COA_CENTRAL_EAST@invcost: CENTRAL, EAST
+#>   TBD_GAS_EAST_CENTRAL@invcost: CENTRAL, EAST
 #> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.
 #> model_size: FOLDED
 #>   parameters : 200 value, 359 maps, 15 sets
-#>   param rows : 2,111  (fold step: 8,741 -> 2,111, saved 6,630 = 76%)
-#>   folded dims: region=20  timeslice=11  year=19
-#>   estimate   : ~61,849 variables, ~63,464 constraints (from gating maps)
+#>   param rows : 9,781  (fold step: 23,974 -> 9,781, saved 14,193 = 59%)
+#>   folded dims: region=22  timeslice=14  year=15
+#>   estimate   : ~244,839 variables, ~258,466 constraints (from gating maps)
 #>   top parameters by rows:
-#>     pWeather           753
-#>     pDemand            384
+#>     pDemand            4,224
+#>     pWeather           3,890
 #>     pTimesliceAgg      297
-#>     pExportRow         288
+#>     pSupAva            288
+#>     pTechStock         170
+#>     pSupCost           160
 #>     pTimesliceShare    101
-#>     pTechStock         50
-#>     pTechFixom         28
-#>     pTechInvcost       28
-#>     pTechEac           20
-#>     pTechCinp2use      16
-#>     pDiscountFactor    15
-#>     pTechStockSurv     12
-#>     pTradeIrVarom      8
-#>     pTradeIrEff        8
-#>     pSupCost           7
+#>     pTechFixom         68
+#>     pTechInvcost       68
+#>     pDiscountFactor    42
+#>     pTechCap2AInp      36
+#>     pStorageDuration   32
+#>     pTechEac           30
+#>     pTechCinp2use      28
+#>     pTradeIrVarom      27
 # }
 ```

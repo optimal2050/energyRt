@@ -7,7 +7,7 @@ production, consumption, or balance of a commodity.
 
 ``` r
 newSubsidy(
-  name,
+  name = "",
   desc = "",
   comm = "",
   geoframe = character(),

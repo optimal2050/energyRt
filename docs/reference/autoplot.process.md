@@ -24,8 +24,10 @@ autoplot(
   interpolate = TRUE,
   show_defaults = FALSE,
   units = NULL,
-  style = c("profile", "bar", "regions"),
-  type = c("availability", "cost"),
+  style = c("profile", "bar", "regions", "map"),
+  param = NULL,
+  map = NULL,
+  type = NULL,
   ...
 )
 
@@ -36,6 +38,9 @@ autoplot(
   interpolate = TRUE,
   show_defaults = FALSE,
   units = NULL,
+  style = c("profile", "map"),
+  param = NULL,
+  map = NULL,
   ...
 )
 
@@ -46,6 +51,9 @@ autoplot(
   interpolate = TRUE,
   show_defaults = FALSE,
   units = NULL,
+  style = c("profile", "map"),
+  param = NULL,
+  map = NULL,
   ...
 )
 
@@ -56,6 +64,9 @@ autoplot(
   interpolate = TRUE,
   show_defaults = FALSE,
   units = NULL,
+  style = c("profile", "map"),
+  param = NULL,
+  map = NULL,
   ...
 )
 
@@ -66,6 +77,9 @@ autoplot(
   interpolate = TRUE,
   show_defaults = FALSE,
   units = NULL,
+  style = c("profile", "map"),
+  param = NULL,
+  map = NULL,
   ...
 )
 ```
@@ -107,17 +121,29 @@ autoplot(
 
 - style:
 
-  For `supply` only: `"profile"` (default) draws the per-parameter year
-  profile shared by all process classes; `"bar"` draws quantity or price
-  by region over the years (stacked availability bars, per-region cost
-  lines; `type =` picks the quantity); `"regions"` draws the
+  For `supply` only, WHICH CHART: `"profile"` (default) draws the
+  per-parameter year profile shared by all process classes; `"bar"`
+  draws the quantity by region over the years; `"regions"` draws the
   across-region comparison — availability and cost bars per region, with
   an unlimited (`Inf`) availability shown as a translucent full-height
-  bar labelled "uncapped".
+  bar; `"map"` draws it on a `map =` geoscale, at whatever level the
+  object's own regions are declared at.
+
+- param:
+
+  For `supply` only, WHICH QUANTITY: `"availability"` (default, the
+  bound that binds — `ava.fx` over `ava.up`), one of `"ava.up"`,
+  `"ava.lo"`, `"ava.fx"` by name, or `"cost"`. The names are the columns
+  of `@supply`, so the argument, the legend title and the slot agree.
+
+- map:
+
+  For `style = "map"`: a
+  [`geoscales::GeoScale`](https://optimal2050.github.io/geoscales/r/reference/GeoScale.html).
 
 - type:
 
-  For `style = "bar"`: `"availability"` (default) or `"cost"`.
+  deprecated, use `param`.
 
 - ...:
 

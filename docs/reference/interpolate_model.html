@@ -17,7 +17,7 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -86,6 +86,7 @@ and validates the result. The returned scenario is ready for <code><a href="solv
 <span>  name <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span>,</span>
 <span>  base <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  base_year_scenario <span class="op">=</span> <span class="va">base</span>,</span>
 <span>  desc <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ondisk <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  overwrite <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -100,6 +101,7 @@ and validates the result. The returned scenario is ready for <code><a href="solv
 <span>  parent_levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"energyRt.parent_levels"</span>, <span class="cn">FALSE</span><span class="op">)</span>,</span>
 <span>  fx_equ <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"energyRt.fx_equ"</span>, <span class="cn">TRUE</span><span class="op">)</span>,</span>
 <span>  on_missing_input <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">getOption</a></span><span class="op">(</span><span class="st">"energyRt.on_missing_input"</span>, <span class="st">"stop"</span><span class="op">)</span>,</span>
+<span>  check <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="fu"><a href="isVerbose.html">isVerbose</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  .reuse <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span>
@@ -142,6 +144,18 @@ and the model is interpolated in full. <code>object</code> may be the base itsel
 <p>New processes, commodities and other model objects are built on the base
 too: the per-object tables of the objects the base already holds are
 reused, the new objects' tables are computed, and every map is rebuilt.</p></dd>
+
+
+<dt id="arg-base-year-scenario">base_year_scenario<a class="anchor" aria-label="anchor" href="#arg-base-year-scenario"></a></dt>
+<dd><p>where the base year's own solution comes from,
+when the horizon marks one (see <code><a href="newHorizon.html">newHorizon()</a></code>). Defaults to <code>base</code>, so a
+projection built on a base takes that base's base-year solution for free.
+May also be a solved <a href="class-scenario.html">scenario</a>, the list <code><a href="solve_base_year.html">solve_base_year()</a></code> returns, a
+scenario name, or <code>"&lt;scenario&gt;/&lt;run&gt;"</code>; <code>NULL</code> or <code>FALSE</code> carries nothing.
+What crosses is only what that solve DECIDED — its new capacity, written
+as sunk <code>stock</code> at its true vintage. The model's own <code>@stock</code> is left
+alone. With no source the projection still excludes the base year, and
+starts from the model's declared <code>@stock</code>; a message says so.</p></dd>
 
 
 <dt id="arg-desc">desc<a class="anchor" aria-label="anchor" href="#arg-desc"></a></dt>
@@ -274,6 +288,14 @@ processes that could only be built new. Defaults to
 <code>getOption("energyRt.on_missing_input", "stop")</code>.</p></dd>
 
 
+<dt id="arg-check">check<a class="anchor" aria-label="anchor" href="#arg-check"></a></dt>
+<dd><p>run <code><a href="check_feasibility.html">check_feasibility()</a></code> on the interpolated scenario and
+STOP when it finds a contradiction, rather than returning a scenario
+that can only solve to INFEASIBLE. Off by default: the check costs a
+pass over the parameter tables, and a model known to be sound does
+not need it.</p></dd>
+
+
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
 <dd><p>logical; print per-step progress. This also governs the
 variant-expansion report – how many process objects were expanded and how
@@ -303,19 +325,20 @@ are reused for the objects it holds (set by <code>base</code>).</p></dd>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="va">ek</span>  <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span></span></span>
-<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">repo</span>,</span></span>
+<span class="r-in"><span><span class="va">topia_elc</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">repo</span>,</span></span>
 <span class="r-in"><span>                calendar <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span></span>
-<span class="r-in"><span>                region <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">regions</span>,</span></span>
-<span class="r-in"><span>                horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span></span>
+<span class="r-in"><span>                region <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">regions</span>,</span></span>
+<span class="r-in"><span>                horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">BY2025_50_by10</span>,</span></span>
 <span class="r-in"><span>                discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">ek</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">topia_elc</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># build the solver-facing sets and parameters; nothing is solved yet</span></span></span>
 <span class="r-in"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu">interpolate_model</span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Cost declared at a coarse geoscale level:</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_COA_WEST_CENTRAL@invcost: CENTRAL, WEST</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_GAS_WEST_CENTRAL@invcost: CENTRAL, WEST</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_COA_CENTRAL_EAST@invcost: CENTRAL, EAST</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_GAS_EAST_CENTRAL@invcost: CENTRAL, EAST</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.</span>
 <span class="r-in"><span><span class="va">scen</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Name:  BASE </span>
@@ -327,29 +350,30 @@ are reused for the objects it holds (set by <code>base</code>).</p></dd>
 <span class="r-in"><span><span class="fu"><a href="model_size.html">model_size</a></span><span class="op">(</span><span class="fu">interpolate_model</span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"FOLDED"</span>, fold <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Cost declared at a coarse geoscale level:</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_COA_WEST_CENTRAL@invcost: CENTRAL, WEST</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_GAS_WEST_CENTRAL@invcost: CENTRAL, WEST</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_COA_CENTRAL_EAST@invcost: CENTRAL, EAST</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   TBD_GAS_EAST_CENTRAL@invcost: CENTRAL, EAST</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> model_size: FOLDED</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   parameters : 200 value, 359 maps, 15 sets</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   param rows : 2,111  (fold step: 8,741 -&gt; 2,111, saved 6,630 = 76%)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   folded dims: region=20  timeslice=11  year=19</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   estimate   : ~61,849 variables, ~63,464 constraints (from gating maps)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   param rows : 9,781  (fold step: 23,974 -&gt; 9,781, saved 14,193 = 59%)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   folded dims: region=22  timeslice=14  year=15</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   estimate   : ~244,839 variables, ~258,466 constraints (from gating maps)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   top parameters by rows:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pWeather           753</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pDemand            384</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pDemand            4,224</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pWeather           3,890</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     pTimesliceAgg      297</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pExportRow         288</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pSupAva            288</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechStock         170</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pSupCost           160</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     pTimesliceShare    101</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechStock         50</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechFixom         28</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechInvcost       28</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechEac           20</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechCinp2use      16</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pDiscountFactor    15</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechStockSurv     12</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pTradeIrVarom      8</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pTradeIrEff        8</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     pSupCost           7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechFixom         68</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechInvcost       68</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pDiscountFactor    42</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechCap2AInp      36</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pStorageDuration   32</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechEac           30</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTechCinp2use      28</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     pTradeIrVarom      27</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

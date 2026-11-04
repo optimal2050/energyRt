@@ -63,6 +63,7 @@ get_region(sub)
 \seealso{
 Other interpolation:
 \code{\link[=interpolate_model]{interpolate_model()}},
+\code{\link[=recast_model_calendar]{recast_model_calendar()}},
 \code{\link[=with_solver_log]{with_solver_log()}}
 }
 \concept{interpolation}

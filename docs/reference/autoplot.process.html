@@ -25,7 +25,7 @@ interpolation direction."><meta property="og:image" content="https://energyRt.or
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -100,8 +100,10 @@ interpolation direction.</p>
 <span>  interpolate <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  show_defaults <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  units <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  style <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"profile"</span>, <span class="st">"bar"</span>, <span class="st">"regions"</span><span class="op">)</span>,</span>
-<span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"availability"</span>, <span class="st">"cost"</span><span class="op">)</span>,</span>
+<span>  style <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"profile"</span>, <span class="st">"bar"</span>, <span class="st">"regions"</span>, <span class="st">"map"</span><span class="op">)</span>,</span>
+<span>  param <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  map <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  type <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -112,6 +114,9 @@ interpolation direction.</p>
 <span>  interpolate <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  show_defaults <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  units <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  style <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"profile"</span>, <span class="st">"map"</span><span class="op">)</span>,</span>
+<span>  param <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  map <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -122,6 +127,9 @@ interpolation direction.</p>
 <span>  interpolate <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  show_defaults <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  units <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  style <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"profile"</span>, <span class="st">"map"</span><span class="op">)</span>,</span>
+<span>  param <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  map <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -132,6 +140,9 @@ interpolation direction.</p>
 <span>  interpolate <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  show_defaults <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  units <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  style <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"profile"</span>, <span class="st">"map"</span><span class="op">)</span>,</span>
+<span>  param <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  map <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -142,6 +153,9 @@ interpolation direction.</p>
 <span>  interpolate <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  show_defaults <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  units <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  style <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"profile"</span>, <span class="st">"map"</span><span class="op">)</span>,</span>
+<span>  param <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  map <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -182,17 +196,28 @@ axis label; <code>NULL</code> (default) resolves them from the object.</p></dd>
 
 
 <dt id="arg-style">style<a class="anchor" aria-label="anchor" href="#arg-style"></a></dt>
-<dd><p>For <code>supply</code> only: <code>"profile"</code> (default) draws the
-per-parameter year profile shared by all process classes; <code>"bar"</code> draws
-quantity or price by region over the years (stacked availability bars,
-per-region cost lines; <code>type =</code> picks the quantity); <code>"regions"</code> draws
-the across-region comparison — availability and cost bars per region,
-with an unlimited (<code>Inf</code>) availability shown as a translucent
-full-height bar labelled "uncapped".</p></dd>
+<dd><p>For <code>supply</code> only, WHICH CHART: <code>"profile"</code> (default) draws
+the per-parameter year profile shared by all process classes; <code>"bar"</code>
+draws the quantity by region over the years; <code>"regions"</code> draws the
+across-region comparison — availability and cost bars per region, with
+an unlimited (<code>Inf</code>) availability shown as a translucent full-height
+bar; <code>"map"</code> draws it on a <code>map =</code> geoscale, at whatever level the
+object's own regions are declared at.</p></dd>
+
+
+<dt id="arg-param">param<a class="anchor" aria-label="anchor" href="#arg-param"></a></dt>
+<dd><p>For <code>supply</code> only, WHICH QUANTITY: <code>"availability"</code> (default,
+the bound that binds — <code>ava.fx</code> over <code>ava.up</code>), one of <code>"ava.up"</code>,
+<code>"ava.lo"</code>, <code>"ava.fx"</code> by name, or <code>"cost"</code>. The names are the columns
+of <code>@supply</code>, so the argument, the legend title and the slot agree.</p></dd>
+
+
+<dt id="arg-map">map<a class="anchor" aria-label="anchor" href="#arg-map"></a></dt>
+<dd><p>For <code>style = "map"</code>: a <code><a href="https://optimal2050.github.io/geoscales/r/reference/GeoScale.html" class="external-link">geoscales::GeoScale</a></code>.</p></dd>
 
 
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
-<dd><p>For <code>style = "bar"</code>: <code>"availability"</code> (default) or <code>"cost"</code>.</p></dd>
+<dd><p>deprecated, use <code>param</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

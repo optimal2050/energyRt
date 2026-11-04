@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -393,12 +393,12 @@ path:</p>
 <span>  object <span class="op">=</span> <span class="va">BASE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpkxaKv6/energyRt-intro/BASE-HELLO-HELLO_HORIZON'</span></span>
+<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpoRamMa/energyRt-intro/BASE-HELLO-HELLO_HORIZON'</span></span>
 <span><span class="co">#&gt; Directory size: 0.24 MB</span></span>
 <span></span>
 <span><span class="va">project_registry</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">load_registry</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">project_registry</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"type"</span>, <span class="st">"name"</span>, <span class="st">"parent"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 19 × 3</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 31 × 3</span></span></span>
 <span><span class="co">#&gt;    type     name  parent</span></span>
 <span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span> model    HELLO <span style="color: #949494;">""</span>    </span></span>
@@ -411,15 +411,7 @@ path:</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">11</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">12</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">13</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">14</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">15</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">16</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">17</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">18</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">19</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 21 more rows</span></span></span>
 <span></span>
 <span><span class="va">BASE</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_scenario.html">load_scenario</a></span><span class="op">(</span></span>
 <span>  path <span class="op">=</span> <span class="st">"BASE"</span>,</span>
@@ -474,14 +466,14 @@ specifications and records how much of the year each one covers.</p>
 preserving the sample definition and its runs. This larger TOPIA example
 is not executed while the introductory vignette builds:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">TOPIA_KIT</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R1</span></span>
+<code class="sourceCode R"><span><span class="va">TOPIA_KIT</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span></span>
 <span><span class="va">TOPIA_SAMPLING</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"TOPIA_SAMPLING"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"TOPIA model used to demonstrate calendar sampling"</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">TOPIA_KIT</span><span class="op">$</span><span class="va">repo</span>,</span>
 <span>  calendar <span class="op">=</span> <span class="va">s4_h24</span>,</span>
 <span>  region <span class="op">=</span> <span class="va">TOPIA_KIT</span><span class="op">$</span><span class="va">regions</span>,</span>
-<span>  horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span>
+<span>  horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">BY2025_50_by10</span>,</span>
 <span>  discount <span class="op">=</span> <span class="fl">0.05</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">TOPIA_SAMPLING</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/setGeoscale.html">setGeoscale</a></span><span class="op">(</span></span>

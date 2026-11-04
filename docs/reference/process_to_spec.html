@@ -11,7 +11,7 @@ omitted from rows, i.e. read back as "applies to ALL").'><meta property="og:imag
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -104,16 +104,16 @@ alternative container).</p></dd>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">tech</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span><span class="op">$</span><span class="va">ECOA</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">tech</span> <span class="op">&lt;-</span> <span class="fu"><a href="getObject.html">getObject</a></span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"ECOA"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># the object as a plain nested list: diffable, editable, writable as YAML</span></span></span>
 <span class="r-in"><span><span class="va">spec</span> <span class="op">&lt;-</span> <span class="fu">process_to_spec</span><span class="op">(</span><span class="va">tech</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">spec</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  [1] "techspec"           "class"              "name"              </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [4] "desc"               "cap2act"            "optimizeRetirement"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [7] "inputs"             "outputs"            "efficiency"        </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [10] "invcost"            "fixom"              "vintages"          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [13] "capacity"          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [4] "desc"               "units"              "cap2act"           </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [7] "optimizeRetirement" "inputs"             "outputs"           </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [10] "efficiency"         "invcost"            "fixom"             </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [13] "vintages"           "capacity"          </span>
 <span class="r-in"><span><span class="va">spec</span><span class="op">$</span><span class="va">efficiency</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [[1]]</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [[1]]$comm</span>
@@ -121,6 +121,14 @@ alternative container).</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [[1]]$cinp2use</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [[2]]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [[2]]$comm</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "ELC"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [[2]]$use2cact</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 277.7778</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>

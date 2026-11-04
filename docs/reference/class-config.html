@@ -11,7 +11,7 @@ scenario settings."><meta property="og:image" content="https://energyRt.org/logo
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,6 +81,10 @@ scenario settings.</p>
 
 <dt><code>desc</code></dt>
 <dd><p>character. Description of the configuration object for own references.</p></dd>
+
+
+<dt><code>currency</code></dt>
+<dd><p>character. Optional. The currency every cost in the model is stated in, and the unit of the objective. Unset (the default) claims nothing, which is how every model written before this slot behaves. Declared, it is checked against each object's own <code>@units$costs</code>: an object that names a different currency is an error, not a conversion, because there is no exchange rate in the model to convert with. The point is objects moving between models – a technology priced in <code>MUSD</code> added to a model counting <code>bnEUR</code> is a mistake that no number in the output reveals.</p></dd>
 
 
 <dt><code>region</code></dt>

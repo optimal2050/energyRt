@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -95,6 +95,7 @@
 <span>  fullYear <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  weather <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  optimizeRetirement <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  units <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  misc <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -801,6 +802,21 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 
 <dt id="arg-optimizeretirement">optimizeRetirement<a class="anchor" aria-label="anchor" href="#arg-optimizeretirement"></a></dt>
 <dd><p>logical. Incidates if the retirement of the storage should be optimized. Also requires the same parameter in the <code>model</code> or <code>scenario</code> class to be set to TRUE to be effective.</p></dd>
+
+
+<dt id="arg-units">units<a class="anchor" aria-label="anchor" href="#arg-units"></a></dt>
+<dd><p>data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in the cost, capacity and activity columns are bare. A declared <code>costs</code> that disagrees with the model's <code>config@currency</code> is an error rather than a silent conversion; leave a column empty to claim nothing. One unit per kind: a storage prices three capacities but states <code>capacity</code> once.</p>
+<dl><dt>capacity</dt>
+<dd><p>character. Unit of capacity.</p></dd>
+
+<dt>activity</dt>
+<dd><p>character. Unit of the activity variable.</p></dd>
+
+<dt>costs</dt>
+<dd><p>character. Currency of the cost columns.</p></dd>
+
+
+</dl></dd>
 
 
 <dt id="arg-misc">misc<a class="anchor" aria-label="anchor" href="#arg-misc"></a></dt>

@@ -2,7 +2,7 @@ Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
 Version: 0.90.1.9000
-Date: 2026-11-02
+Date: 2026-11-03
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -143,6 +143,8 @@ Collate:
     'process-levels.R'
     'process_designer.R'
     'read_sequence.R'
+    'timeslices.R'
+    'recast.R'
     'registry.R'
     'report_cache.R'
     'report_elements.R'
@@ -160,7 +162,6 @@ Collate:
     'status.R'
     'storage_duration.R'
     'techspec.R'
-    'timeslices.R'
     'topia.R'
     'trade_kvl.R'
     'units.R'

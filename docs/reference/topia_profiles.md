@@ -1,22 +1,20 @@
-# TOPIA input profiles (deterministic)
+# TOPIA input profiles
 
-Expand TOPIA's saved, region-agnostic profiles (`topia$weather`,
-`topia$demand`, `topia$stock`) to a set of regions for a chosen
-calendar, returning a list of three tidy data.frames. The weather
-capacity factors can be re-sourced at run time from IDEEA
-(`source = "ideea"`); `"saved"` (default) uses the packaged data and
-never needs an external dataset.
+Expand TOPIA's per-region profiles (`topia$weather`, `topia$demand`,
+`topia$stock`) to a set of regions for a chosen calendar, returning a
+list of three tidy data.frames.
 
 ## Usage
 
 ``` r
 topia_profiles(
   regions,
-  calendar = c("s4_h24", "m12_h24", "topia_seasons"),
+  calendar = c("s4_h24", "m12_h24", "topia_seasons", "d365_h24"),
+  dataset = NULL,
   source = c("saved", "ideea"),
   resources = c(WSOL = "WSOL", WWIN = "WWIN", WHYD = "WHYD"),
   cluster = 1L,
-  diversify = TRUE
+  diversify = NULL
 )
 ```
 
@@ -24,19 +22,30 @@ topia_profiles(
 
 - regions:
 
-  character vector of region names.
+  character vector of region codes: a region of the TOPIA map (`W1`,
+  `W2`, `C1`–`C6`, `E1`–`E3`), a zone (`WEST`, `CENTRAL`, `EAST`) or the
+  nation (`TOPIA`). An unknown code is an error that lists what is
+  known.
 
 - calendar:
 
   target resolution: `"s4_h24"` (4 seasons x 24 hours, 96 timeslices,
-  the default base case), `"m12_h24"` (12 months x 24 hours, 288) or
-  `"topia_seasons"` (4 seasons x 3 dayparts, 12).
+  the default base case), `"m12_h24"` (12 months x 24 hours, 288),
+  `"topia_seasons"` (4 seasons x 3 dayparts, 12) or `"d365_h24"` (8760).
+
+- dataset:
+
+  `"simulated"` or `"sample"`. `NULL` (the default) picks the set built
+  for `calendar` – the sample for `"d365_h24"`, the simulated set
+  otherwise. Naming a pair that was not built is an error saying what
+  each set covers.
 
 - source:
 
   `"saved"` (packaged data, default) or `"ideea"` (re-aggregate from
   [`IDEEA::ideea_modules`](https://ideea-model.github.io/IDEEA/reference/ideea_modules.html)
-  if installed).
+  if installed). The IDEEA route yields one region-agnostic shape per
+  resource and replicates it to every region.
 
 - resources:
 
@@ -49,20 +58,38 @@ topia_profiles(
 
 - diversify:
 
-  logical (default `TRUE`): scale the solar and wind capacity factors by
-  deterministic per-region factors (defined for the TOPIA map regions
-  `W1`, `W2`, `C1`–`C6`, `E1`–`E3`; other names get factor 1), so
-  regions have different renewable endowments – sunnier south, windier
-  coast. `FALSE` replicates identical profiles to every region.
+  defunct. TOPIA's profiles are per region and are not scaled copies of
+  one shape, so there is nothing to diversify; passing it warns and
+  changes nothing.
 
 ## Value
 
-a list of tidy data.frames, each replicated across `regions`: `weather`
-(`resource`, `region`, `timeslice`, `wval`), `demand` (`region`,
-`timeslice`, `load` – a relative load shape) and `stock` (`region`,
-`tech`, `gw` – base-year capacity).
+a list of tidy data.frames: `weather` (`resource`, `region`,
+`timeslice`, `wval`), `demand` (`region`, `timeslice`, `load` – a
+relative load shape) and `stock` (`region`, `tech`, `gw` – base-year
+capacity, replicated across `regions`).
 
 ## Details
+
+Two input datasets ship and the caller chooses between them:
+
+- `"simulated"`:
+
+  closed-form shapes on the small calendars (`s4_h24`, `m12_h24`,
+  `topia_seasons`). Demonstration data: it carries a spatial gradient
+  and a diurnal structure, and is not a resource estimate for anywhere.
+
+- `"sample"`:
+
+  a measured hourly set on `d365_h24`. Multi-day calm spells survive
+  only at that resolution, so it is where flexibility has something to
+  earn – reducing the hourly series to a handful of typical days keeps
+  about a quarter of the wind's variance and none of its calm spells,
+  which is why the small calendars are served by the simulated set
+  instead.
+
+A request for a coarser geoscale code – a zone, or the nation – averages
+its member regions, which is what a copperplate zone sees.
 
 Not to be confused with the near-namesake
 [`topia_profile()`](https://energyRt.org/reference/topia_profile.md),
@@ -81,25 +108,11 @@ Other topia: [`topia`](https://energyRt.org/reference/topia.md),
 ## Examples
 
 ``` r
-# weather, demand and stock expanded to the regions of a model
+# weather, demand and stock for two regions of the TOPIA map
 prof <- topia_profiles(c("W1", "W2"), calendar = "s4_h24")
-lapply(prof, head, 3)
-#> $weather
-#>   resource region timeslice wval
-#> 1     WSOL     W1   FAL_h00    0
-#> 2     WSOL     W1   FAL_h01    0
-#> 3     WSOL     W1   FAL_h02    0
-#> 
-#> $demand
-#>   region timeslice load
-#> 1     W1   WIN_h00 0.84
-#> 2     W1   SPR_h00 0.63
-#> 3     W1   SUM_h00 0.77
-#> 
-#> $stock
-#>   region tech gw
-#> 1     W1 ECOA  6
-#> 2     W1 EGAS  3
-#> 3     W1 ENUC  2
-#> 
+head(prof$weather, 3)
+#>   resource region timeslice   wval
+#> 1     WHYD     W1   FAL_h00 0.2265
+#> 2     WHYD     W1   FAL_h01 0.2265
+#> 3     WHYD     W1   FAL_h02 0.2265
 ```

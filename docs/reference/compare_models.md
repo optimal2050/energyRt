@@ -71,76 +71,59 @@ Other comparison:
 ## Examples
 
 ``` r
-ek  <- topia$modules$electricity$R3
-mod <- newModel("TOPIA", data = ek$repo,
+topia_elc <- topia$modules$electricity
+mod <- newModel("TOPIA", data = topia_elc$repo,
                 calendar = topia$modules$calendars$s4_h24,
-                region = ek$regions,
-                horizon = topia$modules$horizons$base,
+                region = topia_elc$regions,
+                horizon = topia$modules$horizons$BY2025_50_by10,
                 discount = 0.05)
-mod <- setGeoscale(mod, ek$geoscale)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 
-# swap domestic gas for a three-step supply curve and see what moved
-mod2 <- add(mod, ek$GAS_CURVE, overwrite = TRUE)
-cmp <- compare_models(mod, mod2, names = c("flat", "curve"))
+# reprice the gas supply curve and see what moved
+sup_gas <- getObject(topia_elc$repo, name = "SUP_GAS", drop = TRUE)
+sup_gas@supply$cost <- sup_gas@supply$cost * 1.25
+mod2 <- add(mod, sup_gas, overwrite = TRUE)
+cmp <- compare_models(mod, mod2, names = c("base", "dear gas"))
 cmp
-#> model comparison: flat vs curve
-#> changed: 1  same: 34 
+#> model comparison: base vs dear gas
+#> changed: 1  same: 47 
 #> 
 #> --- Objects ---
 #>     name  class   hash_a   hash_b  status
-#>  SUP_GAS supply e74383cf 757453a4 changed
+#>  SUP_GAS supply 4d4340e5 c74858d7 changed
 #> Configuration: identical.
 #> 
 #> Drill down with print(x, name = "SUP_GAS")
 
 # drill into the one object that changed
 print(cmp, name = "SUP_GAS")
-#> slot differences for 'SUP_GAS' (flat vs curve):
-#> $desc
-#> $desc$a
-#> [1] "Domestic gas, pooled within a zone"
-#> 
-#> $desc$b
-#> [1] "Domestic gas, stepped marginal cost"
-#> 
-#> 
+#> slot differences for 'SUP_GAS' (base vs dear gas):
 #> $supply
-#> `attr(old, 'row.names')`: 1    
-#> `attr(new, 'row.names')`: 1 2 3
-#> 
 #> old vs new
-#>            ava.fx ava.lo   ava.up cluster cost region timeslice year
-#> - old[1, ]     NA     NA 50.00000      NA    6   WEST        NA   NA
-#> + new[1, ]     NA     NA 16.66667      S1    4   WEST        NA   NA
-#> + new[2, ]     NA     NA 16.66667      S2    8   WEST        NA   NA
-#> + new[3, ]     NA     NA 16.66667      S3   12   WEST        NA   NA
+#>             cost
+#> - old[1, ]  3.20
+#> + new[1, ]  4.00
+#> - old[2, ]  4.00
+#> + new[2, ]  5.00
+#> - old[3, ]  5.60
+#> + new[3, ]  7.00
+#> - old[4, ]  3.36
+#> + new[4, ]  4.20
+#> - old[5, ]  4.20
+#> + new[5, ]  5.25
+#> - old[6, ]  5.88
+#> + new[6, ]  7.35
+#> - old[7, ]  3.68
+#> + new[7, ]  4.60
+#> - old[8, ]  4.60
+#> + new[8, ]  5.75
+#> - old[9, ]  6.44
+#> + new[9, ]  8.05
+#> - old[10, ] 4.16
+#> + new[10, ] 5.20
+#> and 2 more ...
 #> 
-#> `old$ava.fx`: NA      
-#> `new$ava.fx`: NA NA NA
-#> 
-#> `old$ava.lo`: NA      
-#> `new$ava.lo`: NA NA NA
-#> 
-#> `old$ava.up`:               50                                  
-#> `new$ava.up`: 16.6666666666667 16.6666666666667 16.6666666666667
-#> 
-#> `old$cluster`: NA            
-#> `new$cluster`: "S1" "S2" "S3"
-#> 
-#> `old$cost`: 6     
-#> `new$cost`: 4 8 12
-#> 
-#> `old$region`: "WEST"              
-#> `new$region`: "WEST" "WEST" "WEST"
-#> 
-#> `old$timeslice`: NA      
-#> `new$timeslice`: NA NA NA
-#> 
-#> `old$year`: NA      
-#> `new$year`: NA NA NA
-#> 
-#> $cluster
-#> `old` is NULL
-#> `new` is an S3 object of class <data.frame>, a list
+#> `old$cost`: 3.20 4.00 5.60 3.36 4.20 5.88 3.68 4.60 6.44 4.16 and 2 more...
+#> `new$cost`: 4.00 5.00 7.00 4.20 5.25 7.35 4.60 5.75 8.05 5.20           ...
 #> 
 ```

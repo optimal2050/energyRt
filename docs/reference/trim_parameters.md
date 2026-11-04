@@ -38,17 +38,18 @@ whose map was not built.
 
 ``` r
 # \donttest{
-ek   <- topia$modules$electricity$R3
-mod  <- newModel("TOPIA", data = ek$repo,
+topia_elc <- topia$modules$electricity
+mod  <- newModel("TOPIA", data = topia_elc$repo,
                  calendar = topia$modules$calendars$s4_h24,
-                 region = ek$regions,
-                 horizon = topia$modules$horizons$base,
+                 region = topia_elc$regions,
+                 horizon = topia$modules$horizons$BY2025_50_by10,
                  discount = 0.05)
-mod <- setGeoscale(mod, ek$geoscale)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 scen <- interpolate_model(mod, name = "EX")
 #> Cost declared at a coarse geoscale level:
 #>   TBD_COA_WEST_CENTRAL@invcost: CENTRAL, WEST
-#>   TBD_GAS_WEST_CENTRAL@invcost: CENTRAL, WEST
+#>   TBD_COA_CENTRAL_EAST@invcost: CENTRAL, EAST
+#>   TBD_GAS_EAST_CENTRAL@invcost: CENTRAL, EAST
 #> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.
 
 # drop the approximation context the scenario no longer needs; the
@@ -56,44 +57,44 @@ scen <- interpolate_model(mod, name = "EX")
 model_size(scen)
 #> model_size: EX
 #>   parameters : 200 value, 359 maps, 15 sets
-#>   param rows : 18,411
-#>   estimate   : ~61,849 variables, ~63,464 constraints (from gating maps)
+#>   param rows : 124,391
+#>   estimate   : ~244,839 variables, ~258,466 constraints (from gating maps)
 #>   top parameters by rows:
-#>     pTechCinp2use      3,840
-#>     pWeather           3,012
-#>     pTradeIrVarom      1,552
-#>     pTradeIrEff        1,552
+#>     pTechCinp2use      25,728
+#>     pStorageInpEff     16,896
+#>     pStorageOutEff     16,896
+#>     pWeather           15,560
+#>     pTechUse2cact      13,056
+#>     pTradeIrVarom      8,468
+#>     pTradeIrEff        8,468
+#>     pDemand            4,224
+#>     pExportRowPrice    4,224
+#>     pExportRow         4,224
 #>     pTimesliceAgg      1,188
-#>     pDemand            1,152
-#>     pExportRowPrice    1,152
-#>     pExportRow         1,152
-#>     pStorageInpEff     1,152
-#>     pStorageOutEff     1,152
+#>     pTechFixom         676
+#>     pTechInvcost       676
 #>     pTimesliceWeight   404
-#>     pTechAf            384
-#>     pTimesliceShare    101
-#>     pTechFixom         68
-#>     pTechInvcost       68
+#>     pTechCap2AInp      396
 model_size(trim_parameters(scen))
 #> model_size: EX
 #>   parameters : 200 value, 359 maps, 15 sets
-#>   param rows : 18,394
-#>   estimate   : ~61,849 variables, ~63,464 constraints (from gating maps)
+#>   param rows : 123,597
+#>   estimate   : ~244,839 variables, ~258,466 constraints (from gating maps)
 #>   top parameters by rows:
-#>     pTechCinp2use      3,840
-#>     pWeather           3,012
-#>     pTradeIrVarom      1,552
-#>     pTradeIrEff        1,552
+#>     pTechCinp2use      25,728
+#>     pStorageInpEff     16,896
+#>     pStorageOutEff     16,896
+#>     pWeather           15,560
+#>     pTechUse2cact      13,056
+#>     pTradeIrVarom      8,468
+#>     pTradeIrEff        8,468
+#>     pDemand            4,224
+#>     pExportRowPrice    4,224
+#>     pExportRow         4,224
 #>     pTimesliceAgg      1,188
-#>     pDemand            1,152
-#>     pExportRowPrice    1,152
-#>     pExportRow         1,152
-#>     pStorageInpEff     1,152
-#>     pStorageOutEff     1,152
+#>     pTechFixom         456
 #>     pTimesliceWeight   404
+#>     pTechCap2AInp      396
 #>     pTechAf            384
-#>     pTimesliceShare    101
-#>     pTechFixom         65
-#>     pTechEac           54
 # }
 ```

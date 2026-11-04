@@ -262,6 +262,7 @@ data):
 | mm_julia_highs_barrier_bs3 | multimod (MPS) | HiGHS |  | default |
 | mm_cuopt_wsl | multimod (MPS) | cuOpt | local GPU (WSL) | default |
 | mm_cuopt_wsl_crossover | multimod (MPS) | cuOpt | local GPU (WSL) | default |
+| mm_cuopt_wsl_py | multimod (MPS) | cuOpt | local GPU (WSL) | default |
 | mm_cuopt_cloud | multimod (MPS) | cuOpt | cloud GPU | default |
 | mm_cuopt_cloud_crossover | multimod (MPS) | cuOpt | cloud GPU | default |
 | pyomo_cuopt_cloud | Python/Pyomo | appsi_highs | cloud GPU | default |
@@ -278,6 +279,10 @@ data):
 | julia_highs_rdata | Julia/JuMP | HiGHS |  | RData |
 | julia_highs_barrier | Julia/JuMP | HiGHS |  | default |
 | julia_highs_barrier_bs3 | Julia/JuMP | HiGHS |  | default |
+| julia_highs_hipo | Julia/JuMP | HiGHS |  | default |
+| julia_highs_hipo_xover | Julia/JuMP | HiGHS |  | default |
+| julia_highs_hipo_bs3 | Julia/JuMP | HiGHS |  | default |
+| julia_highs_ipx | Julia/JuMP | HiGHS |  | default |
 | julia_glpk | Julia/JuMP | GLPK |  | default |
 | julia_highs_simplex | Julia/JuMP | HiGHS |  | default |
 | julia_highs_parallel | Julia/JuMP | HiGHS |  | default |

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -88,6 +88,21 @@ the storage cycle will be a calendar day).</p>
 
 <dt><code>desc</code></dt>
 <dd><p>character. Description of the storage.</p></dd>
+
+
+<dt><code>units</code></dt>
+<dd><p>data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in the cost, capacity and activity columns are bare. A declared <code>costs</code> that disagrees with the model's <code>config@currency</code> is an error rather than a silent conversion; leave a column empty to claim nothing. One unit per kind: a storage prices three capacities but states <code>capacity</code> once.</p>
+<dl><dt>capacity</dt>
+<dd><p>character. Unit of capacity.</p></dd>
+
+<dt>activity</dt>
+<dd><p>character. Unit of the activity variable.</p></dd>
+
+<dt>costs</dt>
+<dd><p>character. Currency of the cost columns.</p></dd>
+
+
+</dl></dd>
 
 
 <dt><code>aux</code></dt>

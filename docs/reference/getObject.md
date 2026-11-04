@@ -174,7 +174,7 @@ structurally). A scenario is unwrapped to its model automatically.
 
 ``` r
 if (FALSE) { # \dontrun{
-repo <- topia$modules$electricity$R3$repo
+repo <- topia$modules$electricity$repo
 getObject(repo, class = "technology")                 # all technologies
 getObject(repo, class = c("supply", "commodity"))     # two classes
 getObject(repo, region = "R1")                         # everything in R1

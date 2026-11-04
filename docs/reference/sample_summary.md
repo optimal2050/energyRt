@@ -57,13 +57,13 @@ and one column per requested quantile (unweighted).
 if (FALSE) { # \dontrun{
 open_project(tempdir())
 
-ek  <- topia$modules$electricity$R3
-mod <- newModel("TOPIA", data = ek$repo,
+topia_elc <- topia$modules$electricity
+mod <- newModel("TOPIA", data = topia_elc$repo,
                 calendar = topia$modules$calendars$s4_h24,
-                region = ek$regions,
-                horizon = topia$modules$horizons$base,
+                region = topia_elc$regions,
+                horizon = topia$modules$horizons$BY2025_50_by10,
                 discount = 0.05)
-mod <- setGeoscale(mod, ek$geoscale)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 res <- solve_by_sample(mod, name = "BY_SAMPLE", level = "SEASON",
                        sample_size = 2, n = 2, method = "random", seed = 1,
                        solver = solver_options$glpk)

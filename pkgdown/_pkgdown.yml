@@ -160,6 +160,7 @@ reference:
   - horizons
   - tsl_sets
   - make_timetable
+  - recast_model_calendar
   - autoplot.calendar
   - autoplot.horizon
   - year_label
@@ -373,6 +374,7 @@ reference:
     Checks on a model's inputs, on an interpolated scenario, and on a solved
     one. `verify_solution()` re-derives the model's identities from the results.
   contents:
+  - check_feasibility
   - validate_scenario_parameters
   - verify_solution
   - verify_checks

@@ -85,11 +85,11 @@ Other technology process:
 ## Examples
 
 ``` r
-tech <- topia$modules$electricity$R3$ECOA
+tech <- getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE)
 f <- tempfile(fileext = ".xlsx")
 
 # one sheet per slot that carries data, plus an `info` sheet
 write_technology_xlsx(tech, f)
 basename(f)
-#> [1] "filef318471a1673.xlsx"
+#> [1] "filea1982791137b.xlsx"
 ```

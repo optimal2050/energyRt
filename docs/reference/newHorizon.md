@@ -12,6 +12,7 @@ newHorizon(
   mid_is_end = FALSE,
   mid_is_start = FALSE,
   force_BY_interval_to_1_year = TRUE,
+  base_year = NULL,
   desc = NULL,
   name = NULL
 )
@@ -58,6 +59,18 @@ update(object, ..., warn_nodata = TRUE)
 
   logical, if TRUE (default), the base-year (first) interval will be
   forced to one year.
+
+- base_year:
+
+  a single integer year, or `NULL` (the default) for a horizon every
+  year of which is optimised. The marked year is GIVEN rather than
+  decided: it is interpolated as any other year and what it holds can be
+  carried forward as stock, but it is not passed to the solver – its own
+  solution comes from a separate solve. Milestones **before** it are
+  historical and leave the model altogether, remaining interpolation
+  anchors only. Must name a milestone of this horizon, and cannot be its
+  last. See
+  [`solve_base_year()`](https://energyRt.org/reference/solve_base_year.md).
 
 - desc:
 
@@ -146,6 +159,9 @@ newHorizon(2020:2050)
 #>     start   mid   end  label
 #>     <int> <int> <int> <char>
 #> 
+#> Slot "base_year":
+#> integer(0)
+#> 
 newHorizon(2020:2030, desc = "One-year intervals")
 #> An object of class "horizon"
 #> Slot "name":
@@ -172,6 +188,9 @@ newHorizon(2020:2030, desc = "One-year intervals")
 #> 10:  2029  2029  2029   2029
 #> 11:  2030  2030  2030   2030
 #> 
+#> Slot "base_year":
+#> integer(0)
+#> 
 newHorizon(2020:2030, c(1, 2, 5, 10), desc = "Different length intervals")
 #> An object of class "horizon"
 #> Slot "name":
@@ -190,6 +209,9 @@ newHorizon(2020:2030, c(1, 2, 5, 10), desc = "Different length intervals")
 #> 2:  2021  2021  2022   2021
 #> 3:  2023  2025  2027   2025
 #> 4:  2028  2028  2030   2028
+#> 
+#> Slot "base_year":
+#> integer(0)
 #> 
 newHorizon(2020:2035, c(1, 2, 5, 5, 5))
 #> An object of class "horizon"
@@ -212,6 +234,9 @@ newHorizon(2020:2035, c(1, 2, 5, 5, 5))
 #> 4:  2028  2030  2032   2030
 #> 5:  2033  2033  2035   2033
 #> 
+#> Slot "base_year":
+#> integer(0)
+#> 
 newHorizon(2020:2050, c(1, 2, 5, 7, 1))
 #> An object of class "horizon"
 #> Slot "name":
@@ -232,6 +257,9 @@ newHorizon(2020:2050, c(1, 2, 5, 7, 1))
 #> 3:  2023  2025  2027   2025
 #> 4:  2028  2031  2034   2031
 #> 5:  2035  2035  2035   2035
+#> 
+#> Slot "base_year":
+#> integer(0)
 #> 
 
 newHorizon(intervals = data.frame(
@@ -257,6 +285,9 @@ newHorizon(intervals = data.frame(
 #> 2:  2031  2032  2033   2032
 #> 3:  2034  2037  2040   2037
 #> 
+#> Slot "base_year":
+#> integer(0)
+#> 
 
 newHorizon(period = 2020:2050,
            intervals = data.frame(
@@ -281,6 +312,9 @@ newHorizon(period = 2020:2050,
 #> 2:  2031  2032  2033   2032
 #> 3:  2034  2037  2040   2037
 #> 
+#> Slot "base_year":
+#> integer(0)
+#> 
 
 newHorizon(2020:2050, c(3, 2, 5, 10),
            desc = "Pay attention to the length of the first interval")
@@ -303,6 +337,9 @@ newHorizon(2020:2050, c(3, 2, 5, 10),
 #> 3:  2023  2023  2024   2023
 #> 4:  2025  2027  2029   2027
 #> 5:  2030  2034  2039   2034
+#> 
+#> Slot "base_year":
+#> integer(0)
 #> 
 
 # Explicit display labels; `mid` remains the model key
@@ -328,6 +365,9 @@ newHorizon(intervals = data.frame(
 #> 2:  2026  2026  2029      2026
 #> 3:  2030  2030  2034 FY2030-31
 #> 
+#> Slot "base_year":
+#> integer(0)
+#> 
 
 newHorizon(period = 2020:2040,
            intervals = data.frame(
@@ -351,5 +391,8 @@ newHorizon(period = 2020:2040,
 #> 2:  2031  2031  2032   2031
 #> 3:  2032  2033  2034   2033
 #> 4:  2035  2037  2040   2037
+#> 
+#> Slot "base_year":
+#> integer(0)
 #> 
 ```

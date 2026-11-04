@@ -25,7 +25,7 @@ The expansion runs on a throwaway copy, so the model passed in is unchanged."><m
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -125,35 +125,68 @@ The expansion runs on a throwaway copy, so the model passed in is unchanged.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">ek</span>  <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span></span></span>
-<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">repo</span>,</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">topia_elc</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">repo</span>,</span></span>
 <span class="r-in"><span>                calendar <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span></span>
-<span class="r-in"><span>                region <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">regions</span>,</span></span>
-<span class="r-in"><span>                horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span></span>
+<span class="r-in"><span>                region <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">regions</span>,</span></span>
+<span class="r-in"><span>                horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">BY2025_50_by10</span>,</span></span>
 <span class="r-in"><span>                discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">ek</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">topia_elc</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># the base kit has no variants</span></span></span>
+<span class="r-in"><span><span class="co"># the shipped model is already varied: wind is split into site grades and</span></span></span>
+<span class="r-in"><span><span class="co"># several processes carry vintages. This is the roster of names the</span></span></span>
+<span class="r-in"><span><span class="co"># solver-facing sets will carry.</span></span></span>
 <span class="r-in"><span><span class="fu">getVariants</span><span class="op">(</span><span class="va">mod</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># add the clustered-wind and vintaged-nuclear modules and ask again: this is</span></span></span>
-<span class="r-in"><span><span class="co"># the roster of names the solver-facing sets will carry</span></span></span>
-<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="add.html">add</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">ek</span><span class="op">$</span><span class="va">EWIN_SITES</span>, <span class="va">ek</span><span class="op">$</span><span class="va">ENUC_VINT</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">getVariants</span><span class="op">(</span><span class="va">mod</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Technology 'ENUC': `stock` rows without a `vintage` are assigned to the earliest vintage.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>            name      class base vintage cluster</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 ENUC_VINv2025 technology ENUC   v2025    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 ENUC_VINv2040 technology ENUC   v2040    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3   EWIN_CLGOOD technology EWIN    &lt;NA&gt;    GOOD</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4   EWIN_CLPOOR technology EWIN    &lt;NA&gt;    POOR</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 name      class      base vintage cluster</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1       SUP_COA_CLS1     supply   SUP_COA    &lt;NA&gt;      S1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2       SUP_COA_CLS2     supply   SUP_COA    &lt;NA&gt;      S2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3       SUP_COA_CLS3     supply   SUP_COA    &lt;NA&gt;      S3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4       SUP_GAS_CLS1     supply   SUP_GAS    &lt;NA&gt;      S1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5       SUP_GAS_CLS2     supply   SUP_GAS    &lt;NA&gt;      S2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6       SUP_GAS_CLS3     supply   SUP_GAS    &lt;NA&gt;      S3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7       SUP_BIO_CLS1     supply   SUP_BIO    &lt;NA&gt;      S1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8       SUP_BIO_CLS2     supply   SUP_BIO    &lt;NA&gt;      S2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9       SUP_BIO_CLS3     supply   SUP_BIO    &lt;NA&gt;      S3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10    RES_LANDW_CLHI     supply RES_LANDW    &lt;NA&gt;      HI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11    RES_LANDW_CLLO     supply RES_LANDW    &lt;NA&gt;      LO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12      ESOL_VIN2015 technology      ESOL    2015    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13      ESOL_VIN2030 technology      ESOL    2030    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14      ESOL_VIN2045 technology      ESOL    2045    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15 EWIN_VIN2015_CLHI technology      EWIN    2015      HI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16 EWIN_VIN2030_CLHI technology      EWIN    2030      HI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17 EWIN_VIN2045_CLHI technology      EWIN    2045      HI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18 EWIN_VIN2015_CLLO technology      EWIN    2015      LO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19 EWIN_VIN2030_CLLO technology      EWIN    2030      LO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20 EWIN_VIN2045_CLLO technology      EWIN    2045      LO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 21   STG_ELC_VIN2025    storage   STG_ELC    2025    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 22   STG_ELC_VIN2035    storage   STG_ELC    2035    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 23   STG_ELC_VIN2045    storage   STG_ELC    2045    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 24     H2ELC_VIN2030 technology     H2ELC    2030    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 25     H2ELC_VIN2040 technology     H2ELC    2040    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 26     H2ELC_VIN2050 technology     H2ELC    2050    &lt;NA&gt;</span>
 <span class="r-in"><span><span class="fu">getVariants</span><span class="op">(</span><span class="va">mod</span>, class <span class="op">=</span> <span class="st">"technology"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Technology 'ENUC': `stock` rows without a `vintage` are assigned to the earliest vintage.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>            name      class base vintage cluster</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 ENUC_VINv2025 technology ENUC   v2025    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 ENUC_VINv2040 technology ENUC   v2040    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3   EWIN_CLGOOD technology EWIN    &lt;NA&gt;    GOOD</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4   EWIN_CLPOOR technology EWIN    &lt;NA&gt;    POOR</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 name      class  base vintage cluster</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1       ESOL_VIN2015 technology  ESOL    2015    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2       ESOL_VIN2030 technology  ESOL    2030    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3       ESOL_VIN2045 technology  ESOL    2045    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  EWIN_VIN2015_CLHI technology  EWIN    2015      HI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5  EWIN_VIN2030_CLHI technology  EWIN    2030      HI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6  EWIN_VIN2045_CLHI technology  EWIN    2045      HI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7  EWIN_VIN2015_CLLO technology  EWIN    2015      LO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8  EWIN_VIN2030_CLLO technology  EWIN    2030      LO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9  EWIN_VIN2045_CLLO technology  EWIN    2045      LO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10     H2ELC_VIN2030 technology H2ELC    2030    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11     H2ELC_VIN2040 technology H2ELC    2040    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12     H2ELC_VIN2050 technology H2ELC    2050    &lt;NA&gt;</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># a process gains variants from its own @cluster / @vintage tables</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="getObject.html">getObject</a></span><span class="op">(</span><span class="va">topia_elc</span><span class="op">$</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"EWIN"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">@</span><span class="va">cluster</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   cluster                     desc region cap.share.fx act.share.lo</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1      HI exposed ridges and coast   &lt;NA&gt;           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2      LO      open inland terrain   &lt;NA&gt;           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   act.share.up act.share.fx order</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1           NA           NA     1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2           NA           NA     2</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

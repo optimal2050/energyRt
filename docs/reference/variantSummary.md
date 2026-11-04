@@ -59,17 +59,16 @@ Other technology process:
 if (FALSE) { # \dontrun{
 open_project(tempdir())
 
-ek  <- topia$modules$electricity$R3
-mod <- newModel("TOPIA", data = ek$repo,
+topia_elc <- topia$modules$electricity
+mod <- newModel("TOPIA", data = topia_elc$repo,
                 calendar = topia$modules$calendars$s4_h24,
-                region = ek$regions,
-                horizon = topia$modules$horizons$base,
+                region = topia_elc$regions,
+                horizon = topia$modules$horizons$BY2025_50_by10,
                 discount = 0.05)
-mod <- setGeoscale(mod, ek$geoscale)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 
-# split wind into site grades, solve, then read the result BY GRADE rather
-# than by variant name
-mod  <- add(mod, ek$EWIN_SITES, overwrite = TRUE)
+# wind is already split into site grades, so solve and read the result BY
+# GRADE rather than by variant name
 scen <- solve_model(mod, name = "SITES", solver = solver_options$glpk)
 
 variantSummary(scen, "vTechCap", by = "cluster")

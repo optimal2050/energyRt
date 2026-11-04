@@ -56,19 +56,24 @@ Other geoscale:
 ## Examples
 
 ``` r
-ek  <- topia$modules$electricity$R3
-mod <- newModel("TOPIA", data = ek$repo,
+topia_elc <- topia$modules$electricity
+mod <- newModel("TOPIA", data = topia_elc$repo,
                 calendar = topia$modules$calendars$s4_h24,
-                region = ek$regions,
-                horizon = topia$modules$horizons$base,
+                region = topia_elc$regions,
+                horizon = topia$modules$horizons$BY2025_50_by10,
                 discount = 0.05)
-mod <- setGeoscale(mod, ek$geoscale)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 
 # families of processes that share a commodity signature, with their members
 head(get_process_groups(mod), 4)
-#>   group      class                signature n members  regions
-#> 1  ECOA technology in:COA|out:ELC|aux:|grp: 3    ECOA W1,W2,C1
-#> 2  EGAS technology in:GAS|out:ELC|aux:|grp: 3    EGAS W1,W2,C1
-#> 3  ESOL technology in:SOL|out:ELC|aux:|grp: 3    ESOL W1,W2,C1
-#> 4  EWIN technology in:WIN|out:ELC|aux:|grp: 3    EWIN W1,W2,C1
+#>   group      class                  signature  n members
+#> 1  ECOA technology   in:COA|out:ELC|aux:|grp: 11    ECOA
+#> 2  EGAS technology   in:GAS|out:ELC|aux:|grp: 11    EGAS
+#> 4  ESOL technology in:|out:ELC|aux:LANDS|grp: 11    ESOL
+#> 5  EWIN technology in:|out:ELC|aux:LANDW|grp: 11    EWIN
+#>                            regions
+#> 1 W1,W2,C1,C2,C3,C4,C5,C6,E1,E2,E3
+#> 2 W1,W2,C1,C2,C3,C4,C5,C6,E1,E2,E3
+#> 4 W1,W2,C1,C2,C3,C4,C5,C6,E1,E2,E3
+#> 5 W1,W2,C1,C2,C3,C4,C5,C6,E1,E2,E3
 ```

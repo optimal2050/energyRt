@@ -27,12 +27,13 @@ set_models_path(file.path(wf, "models"))                # ... and models
 set_repositories_path(file.path(wf, "repositories"))    # ... and repositories
 set_registry_file(file.path(wf, "energyRt_registry.csv"))
 
-um  <- topia$modules$electricity$R1
-mod <- newModel("TOPIA", data = um$repo,
+topia_elc <- topia$modules$electricity
+mod <- newModel("TOPIA", data = topia_elc$repo,
                 calendar = topia$modules$calendars$s4_h24,
-                region   = um$regions,
-                horizon  = topia$modules$horizons$base, discount = 0.05)
-mod <- setGeoscale(mod, um$geoscale)
+                region   = topia_elc$regions,
+                horizon  = topia$modules$horizons$BY2025_50_by10,
+                discount = 0.05)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 ```
 
 ``` r
@@ -54,14 +55,14 @@ their data). By default it returns a named list keyed by object name;
 
 ``` r
 
-repo <- um$repo
+repo <- topia_elc$repo
 names(getObject(repo, class = "technology"))        # all technologies
-#> [1] "ECOA" "EGAS" "ESOL" "EWIN" "EBIO"
+#> [1] "ECOA"  "EGAS"  "ENUC"  "ESOL"  "EWIN"  "EHYD"  "EBIO"  "H2ELC"
 names(getObject(repo, class = "supply", region = "W1"))
-#> [1] "SUP_BIO" "RES_SOL" "RES_WIN"
+#> [1] "SUP_BIO"   "RES_LANDS" "RES_LANDW"
 getObject(repo, name = "ECOA", drop = TRUE)@invcost # the ECOA object itself
 #>   vintage cluster region year invcost wacc payback eac retcost
-#> 1    <NA>    <NA>   <NA>   NA    2000   NA      NA  NA      NA
+#> 1    <NA>    <NA>   <NA>   NA    2000   NA      NA  NA      25
 ```
 
 Region matching reads `@region` slots and the `region`/`src`/`dst`
@@ -80,17 +81,17 @@ otherwise); every frame carries a `scenario` and a `name` column.
 ``` r
 
 getData(scen, "vObjective", merge = TRUE)$value      # total system cost, MEUR
-#> [1] 18351.9
+#> [1] 147685.5
 
 gen <- getData(scen, "vTechOut", comm = "ELC", merge = TRUE)
 head(gen[, c("scenario", "tech", "region", "year", "timeslice", "value")], 4)
 #> # A tibble: 4 × 6
 #>   scenario tech  region  year timeslice value
 #>   <chr>    <chr> <chr>  <int> <chr>     <dbl>
-#> 1 BASE     ECOA  W1      2025 WIN_h00   0.799
-#> 2 BASE     ECOA  W1      2025 WIN_h01   0.736
-#> 3 BASE     ECOA  W1      2025 WIN_h02   0.698
-#> 4 BASE     ECOA  W1      2025 WIN_h03   0.673
+#> 1 BASE     EBIO  C1      2040 WIN_h00    13.7
+#> 2 BASE     EBIO  C1      2040 WIN_h01    13.7
+#> 3 BASE     EBIO  C1      2040 WIN_h02    13.7
+#> 4 BASE     EBIO  C1      2040 WIN_h03    13.7
 ```
 
 The `...` accept set filters, exact (`comm = "ELC"`) or regex
@@ -148,7 +149,8 @@ repo_hi <- add(repo, ECOA, overwrite = TRUE)                # swap it back in
 
 mod_hi  <- newModel("TOPIA_HI", data = repo_hi,
                     calendar = topia$modules$calendars$s4_h24,
-                    region = um$regions, horizon = topia$modules$horizons$base,
+                    region = topia_elc$regions,
+                    horizon = topia$modules$horizons$BY2025_50_by10,
                     discount = 0.05)
 ```
 
@@ -174,9 +176,9 @@ scenario and model sharing a name appear once):
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpKs1y8G/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpuG4EMi/wf"
 basename(scen@path)
-#> [1] "BASE-TOPIA-s4_h24-base"
+#> [1] "BASE-TOPIA-s4_h24-BY2025_50_by10"
 ```
 
 Saving a scenario writes an **Arrow-backed** folder that mirrors the
@@ -258,11 +260,11 @@ identical(getScenario("BASE")@name, ld@name)
 ``` r
 
 basename(saved@path)                                 # the scenario folder
-#> [1] "BASE-TOPIA-s4_h24-base"
+#> [1] "BASE-TOPIA-s4_h24-BY2025_50_by10"
 isInMemory(saved)                                    # FALSE -- data is on disk
 #> [1] TRUE
 getData(ld, "vObjective", merge = TRUE)$value        # lazy read, no full load
-#> [1] 18351.9
+#> [1] 147685.5
 ```
 
 ``` r
@@ -307,7 +309,8 @@ them from the registry on the fly.)
 
 ``` r
 
-scen_cap <- interpolate_model(mod, "CO2CAP", um$CO2_CAP) |>   # add the CO2 cap lever
+# add the CO2 cap lever
+scen_cap <- interpolate_model(mod, "CO2CAP", topia_elc$CO2_CAP) |>
   solve_scenario(solver = solver_options$glpk, echo = FALSE)
 ```
 
@@ -330,7 +333,7 @@ emis |>
 sapply(list(BASE = scen, CO2CAP = scen_cap),
        function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
 #>   BASE CO2CAP 
-#>  18352  32669
+#> 147686 215173
 ```
 
 A scenario that adds a lever to an interpolated one can be **built on
@@ -339,7 +342,7 @@ what the cap adds, and the result equals interpolating from scratch:
 
 ``` r
 
-scen_cap2 <- interpolate_model(mod, "CO2CAP", um$CO2_CAP, base = scen)
+scen_cap2 <- interpolate_model(mod, "CO2CAP", topia_elc$CO2_CAP, base = scen)
 sum(compare_inputs(scen_cap2, scen_cap)$summary$status != "identical")
 #> [1] 0
 ```
@@ -361,26 +364,26 @@ in-memory footprint:
 model_size(scen)
 #> model_size: BASE
 #>   parameters : 200 value, 359 maps, 15 sets
-#>   param rows : 5,972
-#>   estimate   : ~20,012 variables, ~20,704 constraints (from gating maps)
+#>   param rows : 124,391
+#>   estimate   : ~244,839 variables, ~258,466 constraints (from gating maps)
 #>   top parameters by rows:
+#>     pTechCinp2use      25,728
+#>     pStorageInpEff     16,896
+#>     pStorageOutEff     16,896
+#>     pWeather           15,560
+#>     pTechUse2cact      13,056
+#>     pTradeIrVarom      8,468
+#>     pTradeIrEff        8,468
+#>     pDemand            4,224
+#>     pExportRowPrice    4,224
+#>     pExportRow         4,224
 #>     pTimesliceAgg      1,188
-#>     pTechCinp2use      1,152
-#>     pWeather           1,004
+#>     pTechFixom         676
+#>     pTechInvcost       676
 #>     pTimesliceWeight   404
-#>     pDemand            384
-#>     pExportRowPrice    384
-#>     pExportRow         384
-#>     pStorageInpEff     384
-#>     pStorageOutEff     384
-#>     pTimesliceShare    101
-#>     pTechFixom         20
-#>     pTechInvcost       20
-#>     pTechEac           17
-#>     pTechStock         14
-#>     pWacc              12
+#>     pTechCap2AInp      396
 size(scen)
-#> [1] "10.8 Mb"
+#> [1] "25.5 Mb"
 ```
 
 For a systematic check that a build is correct *and* efficient,
@@ -396,6 +399,60 @@ interactively:
 compare_interp_settings(mod)                          # size/time by setting
 compare_solve_settings(mod, solvers = list(solver_options$glpk))
 ```
+
+## The base year: given, not decided
+
+A milestone year whose values are known — an observed or calibrated base
+year — does not belong in the optimisation. Marking it on the horizon
+says so once, and three groups of years follow from the mark:
+
+``` r
+
+h <- newHorizon(2020:2050, intervals = 5, base_year = 2025, name = "h25")
+#            2020   historical -- optimised nowhere
+#            2025   the base year, solved on its own
+# 2030 ... 2050     the projection, what the solver optimises
+```
+
+Milestones **before** the base year are historical: they enter no LP at
+all, and a message names them when the split happens. Nothing is lost by
+their leaving — interpolation reads the anchor years present in the
+data, not the milestone list, so a parameter declared at 2020 still
+drives the projection exactly as it did before the mark. The horizon’s
+`period` is kept whole on both halves for the same reason.
+
+Solve the base year on its own, then carry what it decided:
+
+``` r
+
+by  <- solve_base_year(mod, solver = solver_options$glpk)
+prj <- interpolate_model(mod, name = "PRJ", base_year_scenario = by)
+#> base year 2025: not optimised; 12 capacity vintage(s) carried forward as stock
+```
+
+What crosses is only what the base-year solve **decided** — its new
+capacity, written as sunk `stock` at its true vintage, paying no
+annualised investment cost in the projection. The model’s own `@stock`,
+where observed history lives with its own vintages, is left untouched.
+
+`base_year_scenario` defaults to `base`, so a projection built on a base
+takes that base’s base-year solution for free. It also accepts a solved
+scenario, a scenario name, or `"<scenario>/<run>"`. With no source at
+all the projection still excludes the base year and starts from the
+model’s declared `@stock`, saying so in one message — which is the
+normal shape when a calibrated fleet is written into the model at build
+time and there is no ledger to carry.
+
+The link is recorded in `scenario.yml`, so the base year can be read
+back alongside the projection:
+
+``` r
+
+getData(prj, "vTechCap", merge = TRUE, base_year = TRUE)
+```
+
+Every row gains a `source` column, `"solved"` or `"base"`. `vObjective`
+is not unioned: the two are separate optimisations.
 
 ## Sampling: solving a subset of the model
 
@@ -416,17 +473,18 @@ slices are representative:
 
 ``` r
 
-tt  <- topia$modules$calendars$s4_h24@timetable
-tt2 <- tt[tt$SEASON %in% c("WIN", "SUM"), ]      # two of the four seasons
-cal2 <- newCalendar(timetable = tt2, name = "s2h24",
-                    year_fraction = sum(tt2$share))
+timetable <- topia$modules$calendars$s4_h24@timetable
+# two of the four seasons
+timetable_2s <- timetable[timetable$SEASON %in% c("WIN", "SUM"), ]
+calendar_s2h24 <- newCalendar(timetable = timetable_2s, name = "s2h24",
+                              year_fraction = sum(timetable_2s$share))
 
-scen_t <- interpolate_model(mod, "S2", cal2) |>
+scen_t <- interpolate_model(mod, "S2", calendar_s2h24) |>
   solve_scenario(solver = solver_options$glpk, echo = FALSE)
 sapply(list(full = scen, sampled = scen_t),
        function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
 #>    full sampled 
-#>   18352   20427
+#>  147686  164007
 ```
 
 Two traps: pass `year_fraction` **explicitly** (it is not recomputed
@@ -439,9 +497,9 @@ timeslices interpolate cleanly — their out-of-sample rows are simply
 filtered.
 
 A sample of an already interpolated full-calendar scenario can be built
-on it, `interpolate_model(mod, "S2", cal2, base = scen)`: the full
-scenario’s tables are taken filtered to the sampled timeslices instead
-of being recomputed.
+on it, `interpolate_model(mod, "S2", calendar_s2h24, base = scen)`: the
+full scenario’s tables are taken filtered to the sampled timeslices
+instead of being recomputed.
 
 ### Spatial sampling
 

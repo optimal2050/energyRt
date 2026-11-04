@@ -32,6 +32,7 @@ solve_scenario(
   force = FALSE,
   kvl = NULL,
   variant = NULL,
+  wait = TRUE,
   ...,
   tmp.dir = NULL,
   tmp.del = NULL
@@ -126,6 +127,20 @@ solve(a, b, ...)
   [`read_solution()`](https://energyRt.org/reference/read.md)
   (`run = "<variant>/<solve>"` vs `run = "<solve>"`).
 
+- wait:
+
+  logical. `TRUE` (default) blocks until the solver exits. `FALSE`
+  launches it detached and returns at once, leaving the run record at
+  `status: "running"` for the solver's process to close; collect the
+  result later with
+  [`import_solution()`](https://energyRt.org/reference/import_solution.md)
+  or [`read_solution()`](https://energyRt.org/reference/read.md).
+  Detached solving works for the backends that launch a solver process –
+  GLPK, GAMS, Pyomo and JuMP – and is refused together with
+  `read.solution = TRUE`, `transient = TRUE` or an external
+  `solver.dir`, none of which can be honoured once the call returns
+  before the solve does.
+
 - tmp.dir, tmp.del:
 
   deprecated aliases of `solver.dir` / `transient`.
@@ -150,13 +165,13 @@ a scenario object with the solution.
 if (FALSE) { # \dontrun{
 open_project(tempdir())
 
-ek   <- topia$modules$electricity$R3
-mod  <- newModel("TOPIA", data = ek$repo,
+topia_elc <- topia$modules$electricity
+mod  <- newModel("TOPIA", data = topia_elc$repo,
                  calendar = topia$modules$calendars$s4_h24,
-                 region = ek$regions,
-                 horizon = topia$modules$horizons$base,
+                 region = topia_elc$regions,
+                 horizon = topia$modules$horizons$BY2025_50_by10,
                  discount = 0.05)
-mod <- setGeoscale(mod, ek$geoscale)
+mod <- setGeoscale(mod, topia_elc$geoscale)
 scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
 
 sum(getData(scen, "vObjective", merge = TRUE)$value)

@@ -21,7 +21,7 @@ drill-down, printable per object via print(x, name = "...").'><meta property="og
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -143,77 +143,60 @@ objects), <code>counts</code> (status table), <code>names</code>.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">ek</span>  <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span></span></span>
-<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">repo</span>,</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">topia_elc</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">repo</span>,</span></span>
 <span class="r-in"><span>                calendar <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span></span>
-<span class="r-in"><span>                region <span class="op">=</span> <span class="va">ek</span><span class="op">$</span><span class="va">regions</span>,</span></span>
-<span class="r-in"><span>                horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span></span>
+<span class="r-in"><span>                region <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">regions</span>,</span></span>
+<span class="r-in"><span>                horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">BY2025_50_by10</span>,</span></span>
 <span class="r-in"><span>                discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">ek</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">topia_elc</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># swap domestic gas for a three-step supply curve and see what moved</span></span></span>
-<span class="r-in"><span><span class="va">mod2</span> <span class="op">&lt;-</span> <span class="fu"><a href="add.html">add</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">ek</span><span class="op">$</span><span class="va">GAS_CURVE</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu">compare_models</span><span class="op">(</span><span class="va">mod</span>, <span class="va">mod2</span>, names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"flat"</span>, <span class="st">"curve"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># reprice the gas supply curve and see what moved</span></span></span>
+<span class="r-in"><span><span class="va">sup_gas</span> <span class="op">&lt;-</span> <span class="fu"><a href="getObject.html">getObject</a></span><span class="op">(</span><span class="va">topia_elc</span><span class="op">$</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"SUP_GAS"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">sup_gas</span><span class="op">@</span><span class="va">supply</span><span class="op">$</span><span class="va">cost</span> <span class="op">&lt;-</span> <span class="va">sup_gas</span><span class="op">@</span><span class="va">supply</span><span class="op">$</span><span class="va">cost</span> <span class="op">*</span> <span class="fl">1.25</span></span></span>
+<span class="r-in"><span><span class="va">mod2</span> <span class="op">&lt;-</span> <span class="fu"><a href="add.html">add</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">sup_gas</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu">compare_models</span><span class="op">(</span><span class="va">mod</span>, <span class="va">mod2</span>, names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"base"</span>, <span class="st">"dear gas"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">cmp</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> model comparison: flat vs curve</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> changed: 1  same: 34 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> model comparison: base vs dear gas</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> changed: 1  same: 47 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> --- Objects ---</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     name  class   hash_a   hash_b  status</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  SUP_GAS supply e74383cf 757453a4 changed</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  SUP_GAS supply 4d4340e5 c74858d7 changed</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Configuration: identical.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Drill down with print(x, name = "SUP_GAS")</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># drill into the one object that changed</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="print.html">print</a></span><span class="op">(</span><span class="va">cmp</span>, name <span class="op">=</span> <span class="st">"SUP_GAS"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> slot differences for 'SUP_GAS' (flat vs curve):</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $desc</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $desc$a</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Domestic gas, pooled within a zone"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $desc$b</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Domestic gas, stepped marginal cost"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> slot differences for 'SUP_GAS' (base vs dear gas):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $supply</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `attr(old, 'row.names')`: <span style="color: #555555;">1</span>    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `attr(new, 'row.names')`: <span style="color: #555555;">1</span> <span style="color: #0000BB;">2</span> <span style="color: #0000BB;">3</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> old vs new</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>            <span style="font-weight: bold;">ava.fx ava.lo   ava.up cluster cost region timeslice year</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- old[1, ]     NA     NA 50.00000      NA    6   WEST        NA   NA</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ new[1, ]     NA     NA 16.66667      S1    4   WEST        NA   NA</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ new[2, ]     NA     NA 16.66667      S2    8   WEST        NA   NA</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ new[3, ]     NA     NA 16.66667      S3   12   WEST        NA   NA</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             <span style="font-weight: bold;">cost</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- old[1, ]  3.20</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ new[1, ]  4.00</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- old[2, ]  4.00</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ new[2, ]  5.00</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- old[3, ]  5.60</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ new[3, ]  7.00</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- old[4, ]  3.36</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ new[4, ]  4.20</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- old[5, ]  4.20</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ new[5, ]  5.25</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- old[6, ]  5.88</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ new[6, ]  7.35</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- old[7, ]  3.68</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ new[7, ]  4.60</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- old[8, ]  4.60</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ new[8, ]  5.75</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- old[9, ]  6.44</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ new[9, ]  8.05</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">- old[10, ] 4.16</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">+ new[10, ] 5.20</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> and 2 more ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `old$ava.fx`: <span style="color: #555555;">NA</span>      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `new$ava.fx`: <span style="color: #555555;">NA</span> <span style="color: #0000BB;">NA</span> <span style="color: #0000BB;">NA</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `old$ava.lo`: <span style="color: #555555;">NA</span>      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `new$ava.lo`: <span style="color: #555555;">NA</span> <span style="color: #0000BB;">NA</span> <span style="color: #0000BB;">NA</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `old$ava.up`:               <span style="color: #00BB00;">50</span>                                  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `new$ava.up`: <span style="color: #00BB00;">16.6666666666667</span> <span style="color: #00BB00;">16.6666666666667</span> <span style="color: #00BB00;">16.6666666666667</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `old$cluster`: <span style="color: #00BB00;">NA</span>            </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `new$cluster`: <span style="color: #00BB00;">"S1"</span> <span style="color: #00BB00;">"S2"</span> <span style="color: #00BB00;">"S3"</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `old$cost`: <span style="color: #00BB00;">6</span>     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `new$cost`: <span style="color: #00BB00;">4</span> <span style="color: #00BB00;">8</span> <span style="color: #00BB00;">12</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `old$region`: <span style="color: #555555;">"WEST"</span>              </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `new$region`: <span style="color: #555555;">"WEST"</span> <span style="color: #0000BB;">"WEST"</span> <span style="color: #0000BB;">"WEST"</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `old$timeslice`: <span style="color: #555555;">NA</span>      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `new$timeslice`: <span style="color: #555555;">NA</span> <span style="color: #0000BB;">NA</span> <span style="color: #0000BB;">NA</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `old$year`: <span style="color: #555555;">NA</span>      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `new$year`: <span style="color: #555555;">NA</span> <span style="color: #0000BB;">NA</span> <span style="color: #0000BB;">NA</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $cluster</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `old` is <span style="color: #00BB00;">NULL</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> `new` is <span style="color: #00BB00;">an S3 object of class &lt;data.frame&gt;, a list</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> `old$cost`: <span style="color: #00BB00;">3.20</span> <span style="color: #00BB00;">4.00</span> <span style="color: #00BB00;">5.60</span> <span style="color: #00BB00;">3.36</span> <span style="color: #00BB00;">4.20</span> <span style="color: #00BB00;">5.88</span> <span style="color: #00BB00;">3.68</span> <span style="color: #00BB00;">4.60</span> <span style="color: #00BB00;">6.44</span> <span style="color: #00BB00;">4.16</span> and 2 more...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> `new$cost`: <span style="color: #00BB00;">4.00</span> <span style="color: #00BB00;">5.00</span> <span style="color: #00BB00;">7.00</span> <span style="color: #00BB00;">4.20</span> <span style="color: #00BB00;">5.25</span> <span style="color: #00BB00;">7.35</span> <span style="color: #00BB00;">4.60</span> <span style="color: #00BB00;">5.75</span> <span style="color: #00BB00;">8.05</span> <span style="color: #00BB00;">5.20</span>           ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 </code></pre></div>
     </div>

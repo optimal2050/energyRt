@@ -40,7 +40,7 @@ possibly empty).
 ## Examples
 
 ``` r
-h <- topia$modules$horizons$base
+h <- topia$modules$horizons$BY2025_50_by10
 
 # one window per milestone year
 vapply(horizon_windows(h), function(x) x$horizon@name, character(1))

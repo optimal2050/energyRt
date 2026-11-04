@@ -8,7 +8,7 @@ The method replaces slots of the export object with new values.
 
 ``` r
 newExport(
-  name,
+  name = "",
   desc = "",
   commodity = "",
   unit = NULL,

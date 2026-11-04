@@ -47,7 +47,7 @@ Other technology process:
 ## Examples
 
 ``` r
-tech <- topia$modules$electricity$R3$ECOA
+tech <- getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE)
 f <- tempfile(fileext = ".xlsx")
 write_technology_xlsx(tech, f)
 

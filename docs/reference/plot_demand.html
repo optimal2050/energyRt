@@ -43,7 +43,7 @@ y, next on x), faceted by region and year.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -124,17 +124,21 @@ the same layout as the <code><a href="plot_weather.html">plot_weather()</a></cod
 <span>  interpolate <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  palette <span class="op">=</span> <span class="st">"D"</span>,</span>
 <span>  calendar <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  region <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'demand'</span></span>
 <span><span class="fu">autoplot</span><span class="op">(</span></span>
 <span>  <span class="va">object</span>,</span>
-<span>  style <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"area"</span>, <span class="st">"line"</span>, <span class="st">"heatmap"</span><span class="op">)</span>,</span>
+<span>  style <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"area"</span>, <span class="st">"line"</span>, <span class="st">"heatmap"</span>, <span class="st">"map"</span><span class="op">)</span>,</span>
 <span>  year <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  interpolate <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  palette <span class="op">=</span> <span class="st">"D"</span>,</span>
 <span>  calendar <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  region <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  param <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  map <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -173,8 +177,15 @@ data years.</p></dd>
 timeslice axis.</p></dd>
 
 
+<dt id="arg-region">region<a class="anchor" aria-label="anchor" href="#arg-region"></a></dt>
+<dd><p>which regions to draw: a vector of region codes, or a number
+to take that many in the order they appear. <code>NULL</code> (default) draws every
+region the object carries.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed to <code><a href="getData.html">getData()</a></code> (e.g. <code>region =</code> filter).</p></dd>
+<dd><p>Passed to <code><a href="getData.html">getData()</a></code> by <code>style = "area"</code>, which interpolates;
+the <code>"line"</code> and <code>"heatmap"</code> styles read <code>@demand</code> directly and ignore it.</p></dd>
 
 </dl></div>
     <div class="section level2">

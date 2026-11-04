@@ -2,19 +2,21 @@
 
 ## Overview
 
-This vignette uses the packaged \[`topia`\]`$modules` kit (built in
-*TOPIA I: building the model modules*) to assemble an energy-system
-model and run scenarios with **GLPK** (bundled, no external solver
-needed).
+This vignette takes the packaged \[`topia`\]`$modules` model – the one
+built object by object in *TOPIA I: building the model* – assembles it
+and runs scenarios on it.
 
 ``` r
 
 library(energyRt)
 library(dplyr)
 library(ggplot2)
-have_sf <- requireNamespace("sf", quietly = TRUE)   # region maps need the sf package
+have_sf  <- requireNamespace("sf", quietly = TRUE)        # maps need sf
+have_pal <- requireNamespace("energypal", quietly = TRUE) # palette + order
 set_scenarios_path(file.path(tempdir(), "topia"))
-set_default_solver(solver_options$glpk)             # set once, used by every solve
+set_default_solver(solver_options$glpk)   # set once, used by every solve
+set_default_solver(solver_options$julia_highs)             
+# get_default_solver()
 ```
 
 Two calls run every scenario in this vignette:
@@ -25,54 +27,239 @@ writes the solver files, runs the default solver (set once above) and
 reads the solution. `echo = FALSE` keeps the solver log out of the page
 — drop it to watch GLPK work.
 
-## Selecting a TOPIA structure
+## The TOPIA model
 
-`topia$modules$electricity` offers ready region layouts (`R1`, `R3`,
-`R7`, `R11`); each is a kit with a base repository `$repo` and scenario
-levers. Calendars, horizons and maps sit alongside. (For a custom layout
-or calendar, build the blocks yourself following *TOPIA I: building the
-model*.)
+`topia$modules$electricity` carries the model: a base repository
+`$repo`, the regions it covers, its geoscale, and the scenario levers
+used below. Calendars, horizons and map layouts sit alongside it. (For a
+different layout or calendar, build the blocks yourself following *TOPIA
+I: building the model*.)
 
 ``` r
 
-names(topia$modules$electricity)          # available layouts
-um  <- topia$modules$electricity$R3     # the 3-region base case
-cal <- topia$modules$calendars$s4_h24
-hor <- topia$modules$horizons$base        # milestones 2025/2030/2040/2050
+topia_elc <- topia$modules$electricity           # the model
+calendar_s4h24 <- topia$modules$calendars$s4_h24
+horizon_BY2025_50_by10 <- topia$modules$horizons$BY2025_50_by10
+topia_elc$regions
 ```
 
 ## Assembling and solving the base model
 
 ``` r
 
-mod <- newModel("TOPIA", data = um$repo, calendar = cal,
-                region = um$regions, horizon = hor, discount = 0.05)
-mod <- setGeoscale(mod, um$geoscale)
-scen_BASE <- interpolate_model(mod, name = "BASE") |>
-  solve_scenario(echo = FALSE)
-getData(scen_BASE, "vObjective", merge = TRUE)$value    # total system cost, MUSD
+set_progress_bar()
+mod <- newModel("TOPIA", data = topia_elc$repo,
+                calendar = calendar_s4h24,
+                region = topia_elc$regions,
+                horizon = horizon_BY2025_50_by10, discount = 0.05)
+mod <- setGeoscale(mod, topia_elc$geoscale)
+scen_BASE <- interpolate_model(mod, name = "BASE", verbose = TRUE, check = TRUE)
+
+scen_BASE <- solve_scenario(scen_BASE, echo = TRUE)
+getData(scen_BASE, "vObjective", merge = TRUE) # total system cost, MUSD
 ```
 
-The `R3` kit wires its regions with bi-directional transmission links
-(`TBD_ELC_*`).
+The regions are wired west to east with bi-directional transmission
+links (`TBD_ELC_*`), and the fuels move zone to zone.
 [`plot_trade_map()`](https://energyRt.org/reference/plot_trade_map.md)
-draws that network over a map layout — pass any of `topia$geoscales`
-(here `honeycomb`); the 7-region kit shows six links:
+draws that network over a map layout — pass any of `topia$geoscales`,
+here `honeycomb`:
 
 ``` r
 
-plot_trade_map(um$repo, map = topia$geoscales$honeycomb)
+plot_trade_map(topia_elc$repo, map = topia$geoscales$honeycomb)
 ```
 
-Electricity generation by technology:
+## Reading the solution
+
+### The electricity balance
+
+Generation is only one side of the account. The bands below are drawn
+from the `carriers` palette in **energypal**, which supplies the colours
+*and* the order: `merit_order` is a sequence the palette declares, so
+neither is invented here. TOPIA’s own codes are mapped onto that
+vocabulary explicitly – a fuzzy lookup mis-reads them, matching `NUC` to
+nothing and `EGAS` to enhanced geothermal.
 
 ``` r
 
-getData(scen_BASE, "vTechOut", comm = "ELC", merge = TRUE) |>
-  group_by(year, tech) |> summarise(PJ = sum(value), .groups = "drop") |>
-  ggplot(aes(factor(year), PJ, fill = tech)) + geom_col() +
-  labs(x = "year", title = "Generation by technology (BASE)") + theme_bw()
+pal <- energypal::energypal("carriers", order = "merit_order",
+                            include_groups = FALSE, include_subtypes = FALSE)
+
+carrier_of <- c(ESOL = "Solar", EWIN = "Wind", EHYD = "Hydro",
+                ENUC = "Nuclear", EBIO = "Bioenergy",
+                ECOA = "FossilCoal", EGAS = "FossilGas")
+
+stem <- function(x) sub("_(VIN|CL).*$", "", x)   # drop vintage/cluster suffixes
 ```
+
+Sources stack above zero and consumers below it. Electricity leaves the
+system through three doors: final demand (`vDemInp`), the electrolyser
+drawing power to make hydrogen (`vTechInp`), and storage charging
+(`vStorageInp`).
+
+``` r
+
+gen <- getData(scen_BASE, "vTechOut", comm = "ELC", merge = TRUE)
+elc_use <- getData(scen_BASE, "vTechInp", comm = "ELC", merge = TRUE)
+elc_dem <- getData(scen_BASE, "vDemInp", comm = "ELC", merge = TRUE)
+elc_sto <- getData(scen_BASE, "vStorageInp", comm = "ELC", merge = TRUE)
+
+sources <- gen |>
+  mutate(band = unname(carrier_of[stem(tech)])) |>
+  group_by(year, band) |>
+  summarise(GWh = sum(value), .groups = "drop")
+
+consumers <- bind_rows(
+  elc_dem |> mutate(band = "Electricity"),
+  elc_use |> mutate(band = "Hydrogen"),
+  elc_sto |> mutate(band = "Storage")) |>
+  group_by(year, band) |>
+  summarise(GWh = -sum(value), .groups = "drop")
+
+balance <- bind_rows(sources, consumers)
+balance$band <- factor(balance$band, levels = names(pal))
+
+ggplot(balance, aes(factor(year), GWh, fill = band)) +
+  geom_col() +
+  geom_hline(yintercept = 0, linewidth = 0.3) +
+  scale_fill_manual(values = pal, breaks = names(pal), drop = TRUE) +
+  labs(x = "year", y = "GWh", fill = "carrier",
+       title = "The electricity balance (BASE)",
+       subtitle = "sources above zero, consumers below") +
+  theme_bw()
+```
+
+Generation runs well above final demand, and the chart says why: the
+electrolyser is a load, and a large one. Three further readings of the
+same figure are worth making explicit.
+
+- The **storage band is empty** – the battery is never built. At a
+  four-season calendar the multi-day calm spells that make storage
+  valuable are not present to be found, and the model has cheaper ways
+  to meet a peak.
+- **Trade does not appear as a consumer.** `vTradeIr` moves electricity
+  between regions rather than out of the system, and no electricity is
+  exported to the rest of the world, so at system level trade shows up
+  only as the small residual of line losses. Per region it is a genuine
+  source and sink.
+- The gap between the two sides is exactly that residual: 3% is lost at
+  each transmission hop.
+
+``` r
+
+balance |>
+  mutate(GWh = round(GWh)) |>
+  arrange(band) |>
+  tidyr::pivot_wider(id_cols = band, names_from = year, values_from = GWh,
+                     values_fill = 0) |>
+  knitr::kable(caption = "The electricity balance, GWh (consumers negative)")
+```
+
+### The colour of the hydrogen
+
+Hydrogen is conventionally described by the electricity that made it:
+green from renewables, pink from nuclear, grey from unabated fossil
+fuel. The model itself supports no such label. Electricity is a pooled
+commodity, so the solution records how much each plant generated in a
+region-hour and how much the electrolyser drew in the same region-hour,
+and nothing about which flowed into which. A colour is therefore a
+**convention laid over the solution**, and the one used here is the
+hourly average mix: the draw in each hour is divided among the plants
+generating in that hour, in proportion to their output.
+
+The hourly resolution carries the argument. An electrolyser exists
+partly to absorb surplus, so an annual average would credit it with the
+year’s mix and conceal whether it actually ran when the wind blew.
+`timeframe = "highest"` keeps the timeslice detail that
+[`getData()`](https://energyRt.org/reference/getData.md) otherwise
+aggregates away.
+
+``` r
+
+gen_h <- getData(scen_BASE, "vTechOut", comm = "ELC", merge = TRUE,
+                 timeframe = "highest")
+use_h <- getData(scen_BASE, "vTechInp", comm = "ELC", merge = TRUE,
+                 timeframe = "highest")
+
+colour_of <- c(Solar = "GreenHydrogen", Wind = "GreenHydrogen",
+               Hydro = "GreenHydrogen", Nuclear = "PinkHydrogen",
+               Bioenergy = "OtherHydrogen", FossilCoal = "GreyHydrogen",
+               FossilGas = "GreyHydrogen")
+
+draw <- use_h |>
+  filter(stem(tech) == "H2ELC") |>
+  group_by(region, year, timeslice) |>
+  summarise(drawn = sum(value), .groups = "drop")
+
+h2_colour <- gen_h |>
+  group_by(region, year, timeslice) |>
+  mutate(share = value / sum(value)) |>
+  ungroup() |>
+  inner_join(draw, by = c("region", "year", "timeslice")) |>
+  mutate(colour = unname(colour_of[carrier_of[stem(tech)]]),
+         GWh = share * drawn) |>
+  group_by(year, colour) |>
+  summarise(GWh = sum(GWh), .groups = "drop")
+
+ggplot(h2_colour, aes(factor(year), GWh, fill = colour)) +
+  geom_col(position = "fill") +
+  scale_fill_manual(values = energypal::energypal_colors(
+    unique(h2_colour$colour), palette = "carriers")) +
+  labs(x = "year", y = "share of the electricity consumed", fill = "colour",
+       title = "The colour of the hydrogen (BASE)",
+       subtitle = paste("the electrolyser's draw attributed to the",
+                        "hourly generation mix")) +
+  theme_bw()
+```
+
+Most of the hydrogen is green, a third of it grey, and a small pink
+share comes from the nuclear fleet. The attributed total matches the
+electrolyser’s recorded draw, which is the check that the attribution
+neither invents nor loses energy:
+
+``` r
+
+c(attributed = round(sum(h2_colour$GWh)),
+  drawn = round(sum(elc_use$value)))
+```
+
+The national average hides the more instructive result. Attribution by
+region shows the colour following whatever that region happens to
+generate: hydrogen made beside the hydro reservoirs is almost entirely
+green, hydrogen made in the coal regions is predominantly grey, and the
+region holding the nuclear fleet produces hydrogen that is substantially
+pink.
+
+``` r
+
+h2_region <- gen_h |>
+  group_by(region, year, timeslice) |>
+  mutate(share = value / sum(value)) |>
+  ungroup() |>
+  inner_join(draw, by = c("region", "year", "timeslice")) |>
+  mutate(colour = unname(colour_of[carrier_of[stem(tech)]]),
+         GWh = share * drawn) |>
+  filter(year == max(year)) |>
+  group_by(region, colour) |>
+  summarise(GWh = sum(GWh), .groups = "drop_last") |>
+  mutate(share = round(100 * GWh / sum(GWh), 1)) |>
+  ungroup()
+
+h2_region |>
+  tidyr::pivot_wider(id_cols = region, names_from = colour,
+                     values_from = share, values_fill = 0) |>
+  knitr::kable(caption = "The colour of the hydrogen by region, final year (%)")
+```
+
+The convention is one of several defensible ones, and the choice changes
+the answer. An average attribution of this kind credits the electrolyser
+with the mix it ran alongside. A *marginal* attribution would instead
+ask which plant changed its output because the electrolyser ran, which
+requires either the duals or a counterfactual solve. A stricter
+hourly-matching rule would count only renewable generation in the same
+hour and leave the remainder uncoloured. None is more correct than the
+others; what matters is that the rule is stated alongside the number.
 
 The dispatch over a representative summer day – generation stacked by
 technology, storage charging below zero, demand as the line
@@ -95,31 +282,35 @@ always `interpolate_model(mod, name, LEVER)` then
 
 ``` r
 
-scen_CO2CAP <- interpolate_model(mod, "CO2CAP", um$CO2_CAP) |>       # emissions cap
+# emissions cap
+scen_CO2CAP <- interpolate_model(mod, "CO2CAP", topia_elc$CO2_CAP) |>
   solve_scenario(echo = FALSE)
-scen_CTAX <- interpolate_model(mod, "CARBONTAX", um$CT_CO2) |>       # carbon tax
+# carbon tax
+scen_CTAX <- interpolate_model(mod, "CARBONTAX", topia_elc$CT_CO2) |>
   solve_scenario(echo = FALSE)
-scen_RES <- interpolate_model(mod, "RES_SHARE", um$RES_SHARE) |>     # renewable target
+# early fossil retirement
+scen_ERET <- interpolate_model(mod, "EARLY_RET", topia_elc$EARLY_RET) |>
   solve_scenario(echo = FALSE)
-scen_NUC <- interpolate_model(mod, "NO_NEW_NUC", um$NO_NEW_NUC) |>   # no new nuclear
-  solve_scenario(echo = FALSE)
-scen_ERET <- interpolate_model(mod, "EARLY_RET", um$EARLY_RET) |>    # early fossil retirement
+# renewable-backed hydrogen
+scen_GRN <- interpolate_model(mod, "GREEN_H2", topia_elc$GREEN_H2) |>
   solve_scenario(echo = FALSE)
 ```
 
-The fifth lever, `EARLY_RET`, puts a declining per-region ceiling on
+The third lever, `EARLY_RET`, puts a declining per-region ceiling on
 installed coal and gas capacity – the plants carry
 `optimizeRetirement = TRUE`, so the model chooses *which* units to close
 first while the constraint sets the pace. The ceiling bites hardest on
-gas – generation falls from 108 to 51 PJ over the horizon – and what
-replaces it is wind (86 -\> 179 PJ) and a little biomass. Not storage:
-the four-hour battery stays out of every scenario in this vignette,
-which is a result worth reading rather than a missing feature. With a
-legacy gas fleet alive to 2050, unlimited LNG above the domestic cap and
-an export outlet for surplus, this system is never short of flexibility,
-so shifting energy in time earns less than building another wind farm. A
-battery enters only below roughly 40 USD/kWh of reservoir – about a
-fifth of today’s cost – and then only in 2050.
+gas; the generation chart above shows what fills the gap.
+
+Whether the battery is built at all is worth reading as a result rather
+than assumed. The model carries several ways to meet a peak – a legacy
+gas fleet alive to 2050, unlimited LNG above the domestic cap,
+transmission to a neighbour, and an electrolyser that can soak up
+surplus and sell the hydrogen – so shifting electricity in time has to
+beat all of them before it earns its capital. Check `vStorageOutCap`
+across the scenarios before concluding either way, and note that at a
+four-season calendar the multi-day calm spells that make storage
+valuable are not present to be found.
 
 Compare the scenarios with
 [`compare_scenarios()`](https://energyRt.org/reference/compare_scenarios.md):
@@ -132,8 +323,8 @@ draws the comparison charts. The full comparative document is one
 ``` r
 
 scl <- list(BASE = scen_BASE, CO2CAP = scen_CO2CAP,
-            CARBONTAX = scen_CTAX, RES_SHARE = scen_RES,
-            EARLY_RET = scen_ERET)
+            CARBONTAX = scen_CTAX, EARLY_RET = scen_ERET,
+            GREEN_H2 = scen_GRN)
 cmp <- compare_scenarios(scl)
 cmp
 autoplot(cmp, "emissions")
@@ -151,9 +342,68 @@ with(cmp$overview, setNames(round(objective), scenario))
 and add a `scenario` column.)
 
 A carbon **tax** and a CO2 **cap** both cut emissions but through
-different mechanisms (price vs quantity); a **renewable target** raises
-cost and can even raise CO2 relative to a carbon price – a useful
-contrast for policy discussion.
+different mechanisms – a price the model responds to, against a quantity
+it must meet – and the two reach a given level of abatement at different
+cost. That contrast is the point of running them side by side.
+
+### Requiring green hydrogen, and what that does not buy
+
+The `GREEN_H2` lever makes the matching rule of the previous section
+binding rather than descriptive: in every region and timeslice, the
+electrolyser’s draw may not exceed renewable generation at that moment.
+It is the test used to certify renewable hydrogen, and it is costly –
+hydrogen output falls and total system cost rises, both visible in the
+comparison above.
+
+What it does not do is turn the attribution wholly green.
+
+``` r
+
+colour_share <- function(scen) {
+  g <- getData(scen, "vTechOut", comm = "ELC", merge = TRUE,
+               timeframe = "highest")
+  u <- getData(scen, "vTechInp", comm = "ELC", merge = TRUE,
+               timeframe = "highest")
+  d <- u |>
+    filter(stem(tech) == "H2ELC") |>
+    group_by(region, year, timeslice) |>
+    summarise(drawn = sum(value), .groups = "drop")
+  g |>
+    group_by(region, year, timeslice) |>
+    mutate(share = value / sum(value)) |>
+    ungroup() |>
+    inner_join(d, by = c("region", "year", "timeslice")) |>
+    mutate(colour = unname(colour_of[carrier_of[stem(tech)]]),
+           GWh = share * drawn) |>
+    group_by(colour) |>
+    summarise(GWh = sum(GWh), .groups = "drop") |>
+    mutate(pct = round(100 * GWh / sum(GWh), 1))
+}
+
+base_mix <- colour_share(scen_BASE)
+green_mix <- colour_share(scen_GRN)
+base_mix |>
+  select(colour, BASE = pct) |>
+  full_join(select(green_mix, colour, GREEN_H2 = pct), by = "colour") |>
+  knitr::kable(caption = "Attributed colour, whole horizon (%)")
+```
+
+The share attributed to renewables rises but does not reach 100%, and
+the reason is that the constraint and the attribution answer different
+questions. The constraint compares two quantities in the same hour:
+electrolysis against renewable output. The attribution divides the
+electrolyser’s draw among *everything* generating in that hour, and the
+coal and gas plants serving the rest of the load are still running. A
+single pooled commodity cannot say which generator supplied which
+consumer, so one solution supports both statements at once – the
+hydrogen is fully backed by renewable generation, and roughly a quarter
+of the electricity mix it drew from was fossil.
+
+Reconciling the two would require either a stricter rule – no fossil
+generation anywhere in the region while the electrolyser runs, which
+needs integer variables – or a physically separate green commodity that
+only renewable capacity feeds. Both are heavier than the teaching point
+they would buy, and neither is more honest than stating the convention.
 
 ## Levelized cost of a process
 
@@ -167,14 +417,14 @@ exact at the model’s time resolution, with no calendar caveat.
 ``` r
 
 lc <- levcost(scen_BASE, name = "ENUC")      # the existing nuclear fleet
-lc$levcost_npv                               # NPV levelized cost, MUSD/PJ
+lc$levcost_npv                               # NPV levelized cost, MUSD/GWh
 autoplot(lc, type = "components")            # eac / fixom / varom / supply, by year
 ```
 
 `ENUC` runs on base-year capacity, so its **capital is already sunk** –
 the annualised-investment term `eac` is ~0 and the realized cost is
 **fixed O&M plus fuel**; a *newly built* plant would add its `eac` here.
-The cost per PJ also depends on how hard a plant is run: more output
+The cost per GWh also depends on how hard a plant is run: more output
 spreads the fixed costs, lowering the levelized cost. Priced across
 scenarios, `ENUC`’s LCOE tracks how much the existing fleet is
 dispatched as the policy mix changes:
@@ -204,24 +454,9 @@ report(scen_BASE, name = "ENUC", format = "html")
 report(scen_BASE)
 ```
 
-## Other structures
-
-The same code runs on a different layout – e.g. the single-region `R1`
-or the larger `R7` / `R11` (heavier). Just swap the kit:
-
-``` r
-
-um7 <- topia$modules$electricity$R7
-mod7 <- newModel("TOPIA7", data = um7$repo, calendar = cal,
-                 region = um7$regions, horizon = hor, discount = 0.05)
-mod7 <- setGeoscale(mod7, um7$geoscale)
-scen7 <- interpolate_model(mod7, "BASE7") |>
-  solve_scenario(echo = FALSE)
-```
-
 ## Next steps
 
-Extend TOPIA with inter-regional trade (using the `topia$geoscales`
-layouts), technologies introduced via scenarios (CCS, hydrogen, CHP),
-and the honeycomb multi-region layout. See the workshop exercises for a
-step-by-step build.
+Extend TOPIA with technologies introduced via scenarios (CCS, CHP,
+direct air capture), a finer calendar where storage and the hydrogen
+chain have more to earn, and the other `topia$geoscales` layouts. See
+the workshop exercises for a step-by-step build.

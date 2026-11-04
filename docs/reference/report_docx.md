@@ -40,6 +40,6 @@ Path to the generated `.docx` file (invisibly).
 if (FALSE) { # \dontrun{
 open_project(tempdir())
 
-report_docx(topia$modules$electricity$R3$ECOA)
+report_docx(getObject(topia$modules$electricity$repo, name = "ECOA", drop = TRUE))
 } # }
 ```

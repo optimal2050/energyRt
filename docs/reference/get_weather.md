@@ -31,11 +31,11 @@ Other model:
 
 ``` r
 # the weather series a process is linked to, read from its own slots
-ek <- topia$modules$electricity$R3
-get_weather(ek$EWIN)
+topia_elc <- topia$modules$electricity
+get_weather(getObject(topia_elc$repo, name = "EWIN", drop = TRUE))
 #> [1] "WWIN"
 
 # a process with no weather link reports none
-get_weather(ek$ECOA)
+get_weather(getObject(topia_elc$repo, name = "ECOA", drop = TRUE))
 #> character(0)
 ```

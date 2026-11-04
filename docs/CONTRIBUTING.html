@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9037</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -90,6 +90,8 @@
 <strong>Class-prefixed nouns</strong> for properties and queries: <code><a href="reference/model_hash.html">model_hash()</a></code>, <code><a href="reference/scenario_runs.html">scenario_runs()</a></code>, <code><a href="reference/solution_ledger.html">solution_ledger()</a></code>.</li>
 <li>Constructors (<code><a href="reference/newScenario.html">newScenario()</a></code>), <code>get_/set_</code> option accessors, and foreign generics keep their conventional shapes. See <a href="https://github.com/optimal2050/.github/blob/main/CONVENTIONS.md" class="external-link">CONVENTIONS.md § Naming</a>.</li>
 <li>
+<strong>A unit keeps its own capitalisation inside a name</strong>: <code>annual_GWh</code>, <code>sol_GW</code>, <code>cost_MUSD</code>, <code>emis_ktCO2</code>, <code>area_km2</code> — never <code>annual_gwh</code> or <code>_mw</code>. A unit is a case-bearing symbol (<code>mW</code> is a milliwatt, <code>Mw</code> is nothing), so lowercasing it to fit a snake_case habit turns a name the reader can check into one they must guess. The rest of the name stays snake_case; the unit is a symbol pinned to the end, not a word.</li>
+<li>
 <strong><code>en_</code> is the package’s namespace prefix</strong> wherever a name must be claimed in a space energyRt does not own: low-level utilities (<code>en_config()</code>, <code>en_option()</code>, <code>en_open_dataset()</code>, <code>en_install_*()</code>), S3 class tags on foreign structures (<code>en_registry</code> on the registry tibble), CSS classes and LaTeX colour names in the report templates (<code>.en-rule</code>, <code>en_blue</code>), and, as <strong><code>en-</code></strong>, the knitr chunk labels of every shipped template (<code>en-setup</code>, <code>en-css</code>, …). Template chunk labels MUST carry the prefix: <code><a href="reference/report.html">report()</a></code> can run inside a user’s own knit, where an unprefixed label like <code>setup</code> collides with the outer document’s chunks and aborts the render (“Duplicate chunk label”). <strong><code>en</code> is the only permitted prefix</strong> — never package initials or project names (<code>ert</code>, <code>ideea</code>). This is now checked: <code>tests/testthat/test-naming.R</code> fails on a foreign prefix, so the rule cannot rot back in.</li>
 </ul></div>
 <div class="section level2">
@@ -118,6 +120,30 @@
 <li>
 <code><a href="reference/read.html">read()</a></code> / <code>read_solution(scen, run = )</code> — read a <strong>different recorded run</strong> back into the scenario (<code>"&lt;solve&gt;"</code> or <code>"&lt;variant&gt;/&lt;solve&gt;"</code>, see <code><a href="reference/scenario_runs.html">scenario_runs()</a></code>), or pick up a solve that ran with <code>wait = FALSE</code>.</li>
 </ul><p><code><a href="https://rdrr.io/r/base/solve.html" class="external-link">solve()</a></code>, <code><a href="reference/interpolate_model.html">interpolate()</a></code> and <code><a href="reference/read.html">read()</a></code> are the S4 generics; <code><a href="reference/solve_model.html">solve_model()</a></code>, <code><a href="reference/solve_model.html">solve_scenario()</a></code>, <code><a href="reference/interpolate_model.html">interpolate_model()</a></code> and <code><a href="reference/read.html">read_solution()</a></code> are the canonical names they dispatch onto. Both spellings are supported and neither is deprecated — prefer the generic in prose and examples, the explicit name where the class being acted on is not obvious from context.</p>
+<p>Three more that come up in every vignette and <code>data-raw/</code> driver.</p>
+<p><strong>An argument is a name, not a pipeline.</strong> Filter and join into a named object first, then pass that name. A pipeline written into an argument hides a transformation inside a definition, cannot be inspected or re-run on its own, and buries the constructor’s remaining arguments:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># no</span></span>
+<span><span class="va">WSOL</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/newWeather.html">newWeather</a></span><span class="op">(</span></span>
+<span>  name <span class="op">=</span> <span class="st">"WSOL"</span>,</span>
+<span>  weather <span class="op">=</span> <span class="va">prof</span><span class="op">$</span><span class="va">weather</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/stats/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">resource</span> <span class="op">==</span> <span class="st">"WSOL"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># yes</span></span>
+<span><span class="va">wsol</span> <span class="op">&lt;-</span> <span class="va">prof</span><span class="op">$</span><span class="va">weather</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/stats/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">resource</span> <span class="op">==</span> <span class="st">"WSOL"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">WSOL</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/newWeather.html">newWeather</a></span><span class="op">(</span></span>
+<span>  name <span class="op">=</span> <span class="st">"WSOL"</span>,</span>
+<span>  weather <span class="op">=</span> <span class="va">wsol</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>A single argument-level call (<code>cap2act = convert("GW*year", "GWh", 1)</code>) is not a pipeline and stays where it is.</p>
+<p><strong>A table built in place is written vertically</strong> once it has more than one row or more than two columns — <code><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame()</a></code> and <code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code> included, base R being no exemption. Two scalars (<code>ceff = data.frame(comm = "HYD", cinp2use = 1)</code>) stay on one line.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">supply</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  region <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"C1"</span>, <span class="st">"C4"</span>, <span class="st">"E1"</span><span class="op">)</span>,</span>
+<span>  cost <span class="op">=</span> <span class="fl">0</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><strong>A table shown to the reader goes through <code>kable()</code></strong>, with a caption stating the units. Raw console output is for when the raw form is the point: an object’s <code>print</code> method, or a <code><a href="https://rdrr.io/r/utils/head.html" class="external-link">head()</a></code> peek showing what a function returns. A bare data.frame printed for its contents is the case <code>kable()</code> exists for.</p>
 </div>
 <div class="section level2">
 <h2 id="solver-backends">Solver backends<a class="anchor" aria-label="anchor" href="#solver-backends"></a></h2>

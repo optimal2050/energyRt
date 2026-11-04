@@ -7,7 +7,7 @@ consumption, or balance of a commodity.
 
 ``` r
 newTax(
-  name,
+  name = "",
   desc = "",
   comm = "",
   geoframe = character(),

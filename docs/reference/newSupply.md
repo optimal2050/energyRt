@@ -17,6 +17,7 @@ newSupply(
   cluster = data.frame(),
   geoframe = character(),
   region = character(),
+  units = data.frame(),
   misc = list(),
   ...
 )
@@ -232,6 +233,24 @@ newSupply(
   character. Regions where the supply process exists. Must include all
   regions used in other slots. `availability` and `reserve` slots also
   limit possible regions.
+
+- units:
+
+  data.frame. Key units of the object, for reference and for carrying
+  its units with it. An object moved between models is only meaningful
+  where the units agree, and nothing else in the object records them:
+  the numbers in `cost`/`invcost` and the capacity and activity columns
+  are bare. A declared `costs` that disagrees with the model's
+  `config@currency` is an error rather than a silent conversion; leave a
+  column empty to claim nothing.
+
+  activity
+
+  : character. Unit of the activity variable.
+
+  costs
+
+  : character. Currency of the cost columns.
 
 - misc:
 

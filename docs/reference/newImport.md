@@ -7,7 +7,7 @@ Import object to represent commodity import from the Rest of the World
 
 ``` r
 newImport(
-  name,
+  name = "",
   desc = "",
   commodity = "",
   unit = NULL,

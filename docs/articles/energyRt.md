@@ -269,12 +269,12 @@ BASE <- save_scenario(
   object = BASE,
   verbose = FALSE
 )
-#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpkxaKv6/energyRt-intro/BASE-HELLO-HELLO_HORIZON'
+#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpoRamMa/energyRt-intro/BASE-HELLO-HELLO_HORIZON'
 #> Directory size: 0.24 MB
 
 project_registry <- load_registry()
 project_registry[, c("type", "name", "parent")]
-#> # A tibble: 19 × 3
+#> # A tibble: 31 × 3
 #>    type     name  parent
 #>    <chr>    <chr> <chr> 
 #>  1 model    HELLO ""    
@@ -287,15 +287,7 @@ project_registry[, c("type", "name", "parent")]
 #>  8 scenario BASE  ""    
 #>  9 run      glpk  "BASE"
 #> 10 scenario BASE  ""    
-#> 11 run      glpk  "BASE"
-#> 12 scenario BASE  ""    
-#> 13 run      glpk  "BASE"
-#> 14 scenario BASE  ""    
-#> 15 run      glpk  "BASE"
-#> 16 scenario BASE  ""    
-#> 17 run      glpk  "BASE"
-#> 18 scenario BASE  ""    
-#> 19 run      glpk  "BASE"
+#> # ℹ 21 more rows
 
 BASE <- load_scenario(
   path = "BASE",
@@ -362,14 +354,14 @@ introductory vignette builds:
 
 ``` r
 
-TOPIA_KIT <- topia$modules$electricity$R1
+TOPIA_KIT <- topia$modules$electricity
 TOPIA_SAMPLING <- newModel(
   name = "TOPIA_SAMPLING",
   desc = "TOPIA model used to demonstrate calendar sampling",
   data = TOPIA_KIT$repo,
   calendar = s4_h24,
   region = TOPIA_KIT$regions,
-  horizon = topia$modules$horizons$base,
+  horizon = topia$modules$horizons$BY2025_50_by10,
   discount = 0.05
 )
 TOPIA_SAMPLING <- setGeoscale(
