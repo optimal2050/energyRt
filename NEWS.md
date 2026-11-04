@@ -62,6 +62,20 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   `$runs` gains a `pass` column. `ncap_floor = 0` is the default and changes
   nothing.
 
+* `recast_model_calendar()` rebuilds a model's time-varying data on another
+  calendar. Timeslice values are rates, so aggregation is a weighted mean and
+  annual totals are conserved; `rules =` overrides it per column. TOPIA at 4
+  seasons instead of 96 hourly slices solves in 1.4 s rather than 408 s.
+
+* `subset_model_regions()` keeps a declaration made above the region level (a
+  `@geoframe = "zone"` supply or trade) when the whole group survives, instead
+  of dropping it. A subset that splits such a group now errors and names the
+  options. `interpolate_model(geoscale = )` does not do this yet.
+
+* `check_feasibility()` reports unservable demand, missing process inputs and
+  binding supply ceilings, on a model or an interpolated scenario;
+  `interpolate_model(check = TRUE)` runs it.
+
 ### Model building
 
 * Three-part storage: charger, reservoir and discharger with their own
@@ -260,6 +274,15 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 * `draw()` process diagrams; `autoplot()` for objects, calendars, horizons,
   scenarios and comparisons; `plot_map()`, `plot_trade_map()`,
   `plot_trade_network()`.
+* `getMix("generation")` includes technology consumption, so a process that
+  consumes the balanced commodity appears as a sink instead of vanishing.
+* `style = "map"` for supply, import, export, demand, technology and storage;
+  trade maps take `comm` and any geoscale level, and separate stock from
+  investable capacity.
+* Shared `autoplot()` settings: `@desc` as subtitle, the object's unit on the
+  y axis, legends titled by the key they show.
+* `autoplot(<supply>)`: `param =` picks the quantity, `style =` the chart;
+  `type =` is deprecated.
 * `sequence_coverage()` reports what a solve sequence covered, one row per unit
   and element, and `autoplot()` draws it: a sampled calendar as a tile grid or
   a wall calendar, a region sample on its geoscale, a recursive walk as a
@@ -295,8 +318,15 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 * The solve drivers report progress through **progressr**: `set_progress_bar()`
   for a bar, `verbose = TRUE` for a line per unit, either or both.
-* TOPIA, the teaching model (was UTOPIA), rebuilt around concentrated resources
-  traded between zones.
+### Shipped data
+
+* TOPIA (was UTOPIA) rebuilt as one 11-region model: land as the scarce
+  resource (`LANDS`, `LANDW`) in place of `SOL`/`WIN`, wind site clusters,
+  vintages, fuel supply curves, a transmission network from the geoscale, and
+  a hydrogen chain (`H2ELC`, `STG_H2`, `EXP_H2`). Tangled from
+  `vignettes/topia-build.Rmd`.
+* New TOPIA lever `GREEN_H2`: electrolysis capped by renewable generation in
+  the same region and timeslice (hourly matching, not unbundling).
 
 ## Breaking changes
 
@@ -333,6 +363,11 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   `arrow_format` is split into `storage_format` and `exchange_format`.
 * UTOPIA is TOPIA (regions `W1`/`W2`, `C1`-`C6`, `E1`-`E3`); the test tier
   `nightly` is `full`.
+* `topia$modules$golden` is no longer shipped. The retiring per-layout kits are
+  a test fixture (`tests/testthat/fixtures/topia_golden.rds`); examples and
+  articles use `topia$modules$electricity`.
+* TOPIA's horizons are rekeyed: `$horizons$base` is `$BY2025_50_by10` and
+  `$unit` is `$BY2025`.
 * The cloud presets are renamed: `mmcloud` is `mm_cuopt_cloud`,
   `mmcloud_crossover` is `mm_cuopt_cloud_crossover`, `mmcloud_pyomo` is
   `pyomo_cuopt_cloud`, `mmcloud_pyomo_crossover` is

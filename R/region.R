@@ -97,8 +97,39 @@ NULL
 #' endpoint. When the model carries a geoscale, it is filtered in step
 #' (recording coverage; see `geoscales::geoscale_coverage()`).
 #'
-#' The same behaviour is available without this verb by passing a
-#' `geoscales::filter_geoscale()` subset to [interpolate_model()].
+#' Much of this is also reachable without the verb, by passing a
+#' `geoscales::filter_geoscale()` subset to [interpolate_model()] -- but not
+#' all of it: that route does not yet keep a declaration made above the region
+#' level (see below), so on a multi-level model the two do not agree. Use the
+#' verb where any object is declared on a coarser code than the model's
+#' regions.
+#'
+#' @section Declarations above the region level:
+#' A model may declare an object at a coarser geoscale cell than its regions: a
+#' commodity with `@geoframe = "zone"` is balanced per zone, and its supply,
+#' imports and trade routes are then declared on zone codes rather than region
+#' codes. Against a subset such a code is in one of three states.
+#'
+#' * **Covered** -- every region under it survives. It is kept exactly as it
+#'   is, since it describes the ground the subset holds, and the message names
+#'   it.
+#' * **Outside** -- none survives. It is dropped, like any other out-of-sample
+#'   object.
+#' * **Split** -- some survive. The call **stops**. Halving a coarse
+#'   declaration needs a rule, and no default is safe: leaving the parent's
+#'   resource unchanged overstates a pool the dropped regions shared, and
+#'   taking a proportional share understates one that is indivisible. The error
+#'   names the objects and the three ways on -- extend `region` to the whole
+#'   group, [aggregate_model_regions()] to that level and subset there, or
+#'   disaggregate those objects to region level in the model first.
+#'
+#' A split group that no object is declared at is not a problem and passes
+#' silently: a geoscale whose groups the subset happens to cut is normal.
+#' `weather` is exempt -- a coarse weather object feeding its children carries
+#' an intensive series, so the parent's profile is inherited unchanged. A
+#' coarse `invcost` or `fixom` is exempt too: it is charged once at the cell,
+#' which costs the subset too much rather than making it infeasible, so it
+#' stays a warning naming the remedy -- declare the cost on the endpoints.
 #'
 #' @param object a [model].
 #' @param region character vector of regions to keep (must be a subset of the
@@ -145,7 +176,14 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
   # every route: a coarse-declared trade cost does not scale with the subset.
   .warn_sampled_coarse_costs(object, keep = region)
 
-  object <- .subset_model_regions(object, keep = region,
+  # A declaration above the region level is covered by the subset only when
+  # EVERY region under it survives; a group the subset cuts in half cannot be
+  # honoured without a rule, and there is no safe default (see
+  # `.refuse_split_groups()`).
+  cl <- .region_group_closure(object, keep = region)
+  .refuse_split_groups(object, keep = region, split = cl$split)
+
+  object <- .subset_model_regions(object, keep = region, keep_up = cl$covered,
                                boundary_prices = boundary_prices,
                                verbose = verbose)
   object@config@region <- r_m[r_m %in% region]
@@ -229,12 +267,17 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
   mod
 }
 
-.subset_model_regions <- function(mod, keep, boundary_prices = NULL,
+.subset_model_regions <- function(mod, keep, keep_up = character(0),
+                                  boundary_prices = NULL,
                                   verbose = isVerbose()) {
   # legacy models: storages serialized before the `inp2stg` slot would error
   # in the slot walk below ("no slot of name"); same shim as interp_mod()
   mod <- .upgrade_model_storages(mod)
   keep <- as.character(keep)
+  # A coarse code every one of whose regions survives is kept as it stands: it
+  # describes exactly the ground the subset holds. Codes the subset cuts in
+  # half never reach here -- `.refuse_split_groups()` stops the call.
+  keep <- unique(c(keep, as.character(keep_up)))
   stubs <- list()
   # Dropping model content must never be silent: count here, report once at the end.
   n_routes_dropped <- 0L
@@ -378,8 +421,12 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
 
   # One line, always: what left the model. `verbose = TRUE` names each item.
   if (n_objs_dropped > 0L || n_routes_dropped > 0L) {
-    message("spatial sample: kept ", length(keep), " region(s); dropped ",
-            n_objs_dropped, " object(s) and ", n_routes_dropped,
+    # `keep` carries the covered coarse codes too; the count is of regions.
+    message("spatial sample: kept ", length(setdiff(keep, keep_up)),
+            " region(s)",
+            if (length(keep_up))
+              paste0(" (whole: ", paste(keep_up, collapse = ", "), ")") else "",
+            "; dropped ", n_objs_dropped, " object(s) and ", n_routes_dropped,
             " trade route(s) outside the sample",
             if (!isTRUE(verbose)) " (verbose = TRUE lists them)" else "")
   }
@@ -1954,6 +2001,155 @@ Declare commodities with `newCommodity()` and add them to the model; ",
 }
 
 
+# Multi-level subsetting ------------------------------------------------------
+#
+# A model may declare an object at a coarser geoscale cell than its regions: a
+# commodity with `@geoframe = "zone"` is balanced per zone, and its supply,
+# imports and fuel trades are declared on zone codes (TOPIA's COA and GAS).
+# Such a code is NOT a region, so judging it by the kept region vector drops
+# it, and the surviving processes lose the source they drew on.
+#
+# Against a subset a coarse code is in one of three states:
+#   covered -- every region under it survives: keep it exactly as it is, since
+#              it describes the ground the subset holds,
+#   split   -- some survive: it cannot be honoured without a rule, and there is
+#              no safe default, so the call stops (`.refuse_split_groups()`),
+#   outside -- none survive: drop it, as any other out-of-sample object.
+#
+# Weather is deliberately exempt: a coarse weather object feeding its children
+# is an intensive series (a capacity factor), so inheriting the parent's
+# profile unchanged is right, and `keep_wx` already does that.
+#' @noRd
+.region_group_closure <- function(mod, keep) {
+  out <- list(covered = character(0), split = character(0))
+  gs <- tryCatch(mod@config@geoscale, error = function(e) NULL)
+  if (is.null(gs) || !is_geoscale(gs)) return(out)
+  if (!requireNamespace("geoscales", quietly = TRUE)) return(out)
+  keep <- as.character(keep)
+  frames <- geoscales::geoscale_geoframes(gs)
+  if (length(frames) < 2L) return(out)
+  finest <- frames[length(frames)]
+  lt <- tryCatch(as.data.frame(geoscales::geoscale_leaftable(gs)),
+                 error = function(e) NULL)
+  if (is.null(lt) || !finest %in% names(lt)) return(out)
+
+  atoms <- as.character(lt[[finest]])
+  for (f in setdiff(frames, finest)) {
+    if (!f %in% names(lt)) next
+    codes <- as.character(lt[[f]])
+    for (code in unique(codes[!is.na(codes)])) {
+      kids <- unique(atoms[!is.na(codes) & codes == code])
+      kids <- kids[!is.na(kids)]
+      if (!length(kids)) next
+      n_kept <- sum(kids %in% keep)
+      if (n_kept == length(kids)) {
+        out$covered <- c(out$covered, code)
+      } else if (n_kept > 0L) {
+        out$split <- c(out$split, code)
+      }
+    }
+  }
+  out$covered <- setdiff(unique(out$covered), keep)
+  out$split <- setdiff(unique(out$split), keep)
+  out
+}
+
+# The cost slots a coarse declaration may sit in. Charged once at the cell,
+# they are a COMPARABILITY problem, not a feasibility one: the subset still
+# solves, and `.warn_sampled_coarse_costs()` warns and names the remedy
+# (declare the cost on the endpoints). They are therefore excluded from the
+# split refusal, which is for declarations the model cannot do without.
+# Shared so the two cannot drift apart.
+.coarse_cost_slots <- c("invcost", "fixom")
+
+# Where a split code is actually DECLARED. Only a declaration makes the split
+# a problem: a geoscale whose groups the subset happens to cut is normal, and
+# the flat case (every object at region level) must stay silent.
+#' @noRd
+.split_group_refs <- function(mod, split) {
+  hits <- list()
+  if (!length(split)) return(hits)
+  scan <- function(el) {
+    if (methods::is(el, "repository")) {
+      for (nm in names(el@data)) scan(el@data[[nm]])
+      return(invisible(NULL))
+    }
+    if (!isS4(el) || methods::is(el, "weather")) return(invisible(NULL))
+    nm_el <- tryCatch(el@name, error = function(e) "<unnamed>")
+    for (sn in .instance_slots(el)) {
+      if (identical(sn, "misc")) next
+      v <- methods::slot(el, sn)
+      if (is.character(v) && identical(sn, "region") && length(v)) {
+        if (any(v %in% split)) {
+          hits[[length(hits) + 1L]] <<- data.frame(
+            object = nm_el, slot = "@region",
+            code = paste(intersect(unique(v), split), collapse = ","),
+            stringsAsFactors = FALSE)
+        }
+        next
+      }
+      if (!is.data.frame(v) || !nrow(v)) next
+      if (sn %in% .coarse_cost_slots) next
+      for (cl in intersect(c("region", "src", "dst"), colnames(v))) {
+        cd <- unique(as.character(v[[cl]]))
+        if (any(cd %in% split)) {
+          hits[[length(hits) + 1L]] <<- data.frame(
+            object = nm_el, slot = paste0("@", sn, "$", cl),
+            code = paste(intersect(cd, split), collapse = ","),
+            stringsAsFactors = FALSE)
+        }
+      }
+    }
+    invisible(NULL)
+  }
+  for (el in mod@data) scan(el)
+  hits
+}
+
+# Stop, naming the ways on. No rule is defaulted: an unchanged parent resource
+# overstates a pool the dropped regions shared, a proportional share
+# understates one that is indivisible, and which applies is a modelling
+# judgement the subset cannot make.
+#' @noRd
+.refuse_split_groups <- function(mod, keep, split) {
+  if (!length(split)) return(invisible(NULL))
+  hits <- .split_group_refs(mod, split)
+  if (!length(hits)) return(invisible(NULL))
+  h <- do.call(rbind, hits)
+  used <- unique(unlist(strsplit(h$code, ",", fixed = TRUE)))
+  used <- intersect(split, used)
+  gs <- tryCatch(mod@config@geoscale, error = function(e) NULL)
+  frames <- tryCatch(geoscales::geoscale_geoframes(gs),
+                     error = function(e) NULL)
+  finest <- if (length(frames)) frames[length(frames)] else "region"
+  lt <- tryCatch(as.data.frame(geoscales::geoscale_leaftable(gs)),
+                 error = function(e) NULL)
+  missing_by_code <- vapply(used, function(code) {
+    if (is.null(lt)) return("")
+    f <- names(lt)[vapply(names(lt), function(n)
+      code %in% as.character(lt[[n]]), logical(1))]
+    if (!length(f)) return("")
+    kids <- unique(as.character(lt[[finest]])[as.character(lt[[f[1]]]) == code])
+    paste(setdiff(kids, keep), collapse = ", ")
+  }, character(1))
+  where <- paste0("  ", h$object, h$slot, " (", h$code, ")")
+  stop("the subset cuts region group(s) the model declares objects at: ",
+       paste(sprintf("%s (add %s to keep it whole)", used, missing_by_code),
+             collapse = "; "), ".\n",
+       paste(utils::head(where, 12), collapse = "\n"),
+       if (nrow(h) > 12L) paste0("\n  ... and ", nrow(h) - 12L, " more")
+       else "",
+       "\nA declaration above the region level cannot be cut in half without ",
+       "a rule, and there is no safe default: an unchanged parent resource ",
+       "overstates a pool the dropped regions shared, a proportional share ",
+       "understates an indivisible one. Three ways on:\n",
+       "  * extend `region` to the whole group, as named above;\n",
+       "  * aggregate the model to that level first ",
+       "(`aggregate_model_regions(level = )`) and subset there;\n",
+       "  * disaggregate those objects to region level in the model, then ",
+       "subset.", call. = FALSE)
+}
+
 # A cost declared at a COARSE geoscale cell is charged once, in full, at that
 # cell -- it does not know how many of the cell's children are still in the
 # model. Subsetting the regions therefore changes the answer: the sub-model
@@ -1965,7 +2161,7 @@ Declare commodities with `newCommodity()` and add them to the model; ",
 # actually bites -- the cell must lose at least one child and keep at least one,
 # or nothing changes.
 #' @noRd
-.warn_sampled_coarse_costs <- function(mod, keep, slots = c("invcost", "fixom")) {
+.warn_sampled_coarse_costs <- function(mod, keep, slots = .coarse_cost_slots) {
   gs <- tryCatch(mod@config@geoscale, error = function(e) NULL)
   if (is.null(gs) || !is_geoscale(gs)) return(invisible(NULL))
   if (!requireNamespace("geoscales", quietly = TRUE)) return(invisible(NULL))
