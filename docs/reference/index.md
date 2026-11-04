@@ -155,6 +155,8 @@ your own.
   the common formats with structure
 - [`make_timetable()`](https://energyRt.org/reference/calendar.md) :
   Create timetable of time-timeslices from given structure as a list
+- [`recast_model_calendar()`](https://energyRt.org/reference/recast_model_calendar.md)
+  : Recast a model onto another calendar
 - [`autoplot(`*`<calendar>`*`)`](https://energyRt.org/reference/plot_calendar_method.md)
   : Visualize a Calendar object
 - [`autoplot(`*`<horizon>`*`)`](https://energyRt.org/reference/plot_horizon_method.md)

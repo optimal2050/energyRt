@@ -40,6 +40,7 @@ output appears only when the process ends, and nothing is retained.
 
 Other interpolation:
 [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md),
+[`recast_model_calendar()`](https://energyRt.org/reference/recast_model_calendar.md),
 [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
 
 ## Examples

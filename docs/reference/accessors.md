@@ -111,7 +111,10 @@ open_project(path = ".", verbose = TRUE)
 ## Value
 
 the requested object; `open_project()` returns the previous option
-values, invisibly.
+values, invisibly – the registry file and the five store paths as they
+stood before the call, to be passed back to their own `set_*()` the way
+[`options()`](https://rdrr.io/r/base/options.html) and
+[`par()`](https://rdrr.io/r/graphics/par.html) allow.
 
 ## Examples
 

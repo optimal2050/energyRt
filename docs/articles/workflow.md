@@ -81,17 +81,17 @@ otherwise); every frame carries a `scenario` and a `name` column.
 ``` r
 
 getData(scen, "vObjective", merge = TRUE)$value      # total system cost, MEUR
-#> [1] 147685.5
+#> [1] 205569.8
 
 gen <- getData(scen, "vTechOut", comm = "ELC", merge = TRUE)
 head(gen[, c("scenario", "tech", "region", "year", "timeslice", "value")], 4)
 #> # A tibble: 4 × 6
 #>   scenario tech  region  year timeslice value
 #>   <chr>    <chr> <chr>  <int> <chr>     <dbl>
-#> 1 BASE     EBIO  C1      2040 WIN_h00    13.7
-#> 2 BASE     EBIO  C1      2040 WIN_h01    13.7
-#> 3 BASE     EBIO  C1      2040 WIN_h02    13.7
-#> 4 BASE     EBIO  C1      2040 WIN_h03    13.7
+#> 1 BASE     EBIO  C2      2040 WIN_h00    17.1
+#> 2 BASE     EBIO  C2      2040 WIN_h01    17.1
+#> 3 BASE     EBIO  C2      2040 WIN_h02    17.1
+#> 4 BASE     EBIO  C2      2040 WIN_h03    17.1
 ```
 
 The `...` accept set filters, exact (`comm = "ELC"`) or regex
@@ -176,7 +176,7 @@ scenario and model sharing a name appear once):
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpuG4EMi/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpMpeqlg/wf"
 basename(scen@path)
 #> [1] "BASE-TOPIA-s4_h24-BY2025_50_by10"
 ```
@@ -264,7 +264,7 @@ basename(saved@path)                                 # the scenario folder
 isInMemory(saved)                                    # FALSE -- data is on disk
 #> [1] TRUE
 getData(ld, "vObjective", merge = TRUE)$value        # lazy read, no full load
-#> [1] 147685.5
+#> [1] 205569.8
 ```
 
 ``` r
@@ -333,7 +333,7 @@ emis |>
 sapply(list(BASE = scen, CO2CAP = scen_cap),
        function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
 #>   BASE CO2CAP 
-#> 147686 215173
+#> 205570 240456
 ```
 
 A scenario that adds a lever to an interpolated one can be **built on
@@ -383,7 +383,7 @@ model_size(scen)
 #>     pTimesliceWeight   404
 #>     pTechCap2AInp      396
 size(scen)
-#> [1] "25.5 Mb"
+#> [1] "25.6 Mb"
 ```
 
 For a systematic check that a build is correct *and* efficient,
@@ -484,7 +484,7 @@ scen_t <- interpolate_model(mod, "S2", calendar_s2h24) |>
 sapply(list(full = scen, sampled = scen_t),
        function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
 #>    full sampled 
-#>  147686  164007
+#>  205570  218324
 ```
 
 Two traps: pass `year_fraction` **explicitly** (it is not recomputed

@@ -82,7 +82,9 @@ plot_trade_network(
 - level:
 
   for a geoscale `map`: the level to draw; routes are lifted to it and
-  those inside one region dropped.
+  those inside one region dropped. `NULL` (default) draws every level,
+  so corridors declared at the level their commodity is balanced on are
+  kept whatever that level is.
 
 - curvature:
 

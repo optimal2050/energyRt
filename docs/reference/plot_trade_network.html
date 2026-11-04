@@ -21,7 +21,7 @@ they are laid out on a circle and no geography is needed."><meta property="og:im
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -152,7 +152,9 @@ for that snapshot.</p></dd>
 
 <dt id="arg-level">level<a class="anchor" aria-label="anchor" href="#arg-level"></a></dt>
 <dd><p>for a geoscale <code>map</code>: the level to draw; routes are lifted to it
-and those inside one region dropped.</p></dd>
+and those inside one region dropped. <code>NULL</code> (default) draws every level,
+so corridors declared at the level their commodity is balanced on are
+kept whatever that level is.</p></dd>
 
 
 <dt id="arg-curvature">curvature<a class="anchor" aria-label="anchor" href="#arg-curvature"></a></dt>

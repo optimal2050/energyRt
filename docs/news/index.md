@@ -73,6 +73,24 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   `$scenarios_free`; `$runs` gains a `pass` column. `ncap_floor = 0` is
   the default and changes nothing.
 
+- [`recast_model_calendar()`](https://energyRt.org/reference/recast_model_calendar.md)
+  rebuilds a model’s time-varying data on another calendar. Timeslice
+  values are rates, so aggregation is a weighted mean and annual totals
+  are conserved; `rules =` overrides it per column. TOPIA at 4 seasons
+  instead of 96 hourly slices solves in 1.4 s rather than 408 s.
+
+- [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
+  keeps a declaration made above the region level (a
+  `@geoframe = "zone"` supply or trade) when the whole group survives,
+  instead of dropping it. A subset that splits such a group now errors
+  and names the options. `interpolate_model(geoscale = )` does not do
+  this yet.
+
+- [`check_feasibility()`](https://energyRt.org/reference/check_feasibility.md)
+  reports unservable demand, missing process inputs and binding supply
+  ceilings, on a model or an interpolated scenario;
+  `interpolate_model(check = TRUE)` runs it.
+
 #### Model building
 
 - Three-part storage: charger, reservoir and discharger with their own
@@ -356,6 +374,22 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   [`plot_trade_map()`](https://energyRt.org/reference/plot_trade_map.md),
   [`plot_trade_network()`](https://energyRt.org/reference/plot_trade_network.md).
 
+- `getMix("generation")` includes technology consumption, so a process
+  that consumes the balanced commodity appears as a sink instead of
+  vanishing.
+
+- `style = "map"` for supply, import, export, demand, technology and
+  storage; trade maps take `comm` and any geoscale level, and separate
+  stock from investable capacity.
+
+- Shared
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  settings: `@desc` as subtitle, the object’s unit on the y axis,
+  legends titled by the key they show.
+
+- `autoplot(<supply>)`: `param =` picks the quantity, `style =` the
+  chart; `type =` is deprecated.
+
 - [`sequence_coverage()`](https://energyRt.org/reference/sequence_coverage.md)
   reports what a solve sequence covered, one row per unit and element,
   and
@@ -388,7 +422,7 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   override, and
   [`get_status()`](https://energyRt.org/reference/get_status.md) reports
   a run whose process has gone without finishing as `crashed`. A run
-  recorded on another host refuses as well, since liveness cannot be
+  recorded on another host refuses as well, since the process cannot be
   checked from elsewhere.
 
 - [`get_status()`](https://energyRt.org/reference/get_status.md) reports
@@ -402,10 +436,18 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 - The solve drivers report progress through **progressr**:
   [`set_progress_bar()`](https://energyRt.org/reference/progress.md) for
-  a bar, `verbose = TRUE` for a line per unit, either or both.
+  a bar, `verbose = TRUE` for a line per unit, either or both. \###
+  Shipped data
 
-- TOPIA, the teaching model (was UTOPIA), rebuilt around concentrated
-  resources traded between zones.
+- TOPIA (was UTOPIA) rebuilt as one 11-region model: land as the scarce
+  resource (`LANDS`, `LANDW`) in place of `SOL`/`WIN`, wind site
+  clusters, vintages, fuel supply curves, a transmission network from
+  the geoscale, and a hydrogen chain (`H2ELC`, `STG_H2`, `EXP_H2`).
+  Tangled from `vignettes/topia-build.Rmd`.
+
+- New TOPIA lever `GREEN_H2`: electrolysis capped by renewable
+  generation in the same region and timeslice (hourly matching, not
+  unbundling).
 
 ### Breaking changes
 
@@ -461,6 +503,13 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 - UTOPIA is TOPIA (regions `W1`/`W2`, `C1`-`C6`, `E1`-`E3`); the test
   tier `nightly` is `full`.
 
+- `topia$modules$golden` is no longer shipped. The retiring per-layout
+  kits are a test fixture (`tests/testthat/fixtures/topia_golden.rds`);
+  examples and articles use `topia$modules$electricity`.
+
+- TOPIA’s horizons are rekeyed: `$horizons$base` is `$BY2025_50_by10`
+  and `$unit` is `$BY2025`.
+
 - The cloud presets are renamed: `mmcloud` is `mm_cuopt_cloud`,
   `mmcloud_crossover` is `mm_cuopt_cloud_crossover`, `mmcloud_pyomo` is
   `pyomo_cuopt_cloud`, `mmcloud_pyomo_crossover` is
@@ -475,12 +524,62 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 ### Bug fixes
 
+- [`open_project()`](https://energyRt.org/reference/accessors.md)
+  returns the option values it replaced, as documented. It collected
+  them from the `set_*()` calls, which report the previously SET value –
+  empty for a working default never set explicitly – so on a fresh
+  session the list came back empty and restoring a previous project from
+  it did nothing.
+
+- [`clear_run()`](https://energyRt.org/reference/clear_run.md) takes a
+  path as well as a scenario, and records the abandonment in the
+  registry. It required a loadable scenario, which the cases it exists
+  for – a run recorded on another machine, or a store in a layout this
+  version no longer reads – often cannot provide, although only the
+  run’s directory is ever read. The run’s registry row is updated from
+  the rewritten record, so a listing no longer says `running` until the
+  next
+  [`refresh_registry()`](https://energyRt.org/reference/registry.md).
+
+- [`newModel()`](https://energyRt.org/reference/newModel.md) compares
+  the model’s `currency` against each object’s `@units$costs` at
+  construction. The check existed but ran only in
+  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md),
+  so an object priced in another currency sat in a model until something
+  unrelated failed much later.
+
+- [`plot_trade_network()`](https://energyRt.org/reference/plot_trade_network.md)
+  draws routes declared at any level of a geoscale `map`. It placed
+  nodes at one level – the finest, unless `level =` named another – so a
+  corridor declared where its commodity is balanced was dropped with a
+  warning about regions “not in `map`”. `level =` still selects one
+  level, and
+  [`plot_trade_map()`](https://energyRt.org/reference/plot_trade_map.md)
+  already drew every level – the two views now agree.
+
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  refuses a bare `units` value instead of dropping it. `units` names a
+  base unit per commodity (`units = list(ELC = "GWh")`); a parameter
+  name passed there – `units = "cost"`, where `param = "cost"` is meant
+  – was accepted and ignored, and the chart then drew something else in
+  silence. A style that labels from the object says that `units` has no
+  effect on it.
+
+- A `demand` naming no year was dropped instead of read:
+  [`aggregate()`](https://rdrr.io/r/stats/aggregate.html) drops NA
+  groups, so
+  [`check_feasibility()`](https://energyRt.org/reference/check_feasibility.md)
+  and `autoplot(style = "area")` both stopped with an aggregation error.
+  The requirement is now checked and reported at `year = NA`, and
+  `years =` keeps it; the annual stack asks for `year =` when the object
+  names no window of its own.
+
 - [`drop_solver_outputs()`](https://energyRt.org/reference/drop_solver_outputs.md)
   could delete the working files of a solve in progress:
-  `.art_suggest()` labelled any `running` record stale with no liveness
-  test, and the cleanup unlinks exactly the suggested rows. Only a run
-  whose process is demonstrably gone is now treated as reclaimable
-  scratch.
+  `.art_suggest()` labelled any `running` record stale with no check of
+  the owning process, and the cleanup unlinks exactly the suggested
+  rows. Only a run whose process is demonstrably gone is now treated as
+  reclaimable scratch.
 
 - A column a slot does not have is reported with the object, the slot,
   the columns that look meant (`stock` -\> `inp.stock`, `out.stock`,

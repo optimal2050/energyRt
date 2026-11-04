@@ -37,7 +37,7 @@ directory (the option defaults)."><meta property="og:image" content="https://ene
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -198,7 +198,9 @@ alone is refused and this picks one. See the <code>model</code> column of
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>the requested object; <code>open_project()</code> returns the previous
-option values, invisibly.</p>
+option values, invisibly – the registry file and the five store paths as
+they stood before the call, to be passed back to their own <code>set_*()</code> the
+way <code><a href="https://rdrr.io/r/base/options.html" class="external-link">options()</a></code> and <code><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par()</a></code> allow.</p>
     </div>
 
     <div class="section level2">

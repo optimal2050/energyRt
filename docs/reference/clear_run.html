@@ -13,7 +13,7 @@ operations proceed again."><meta property="og:image" content="https://energyRt.o
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -62,7 +62,7 @@ operations proceed again."><meta property="og:image" content="https://energyRt.o
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Release a run that is marked running</h1>
-      <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/R/run_liveness.R" class="external-link"><code>R/run_liveness.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/R/run_state.R" class="external-link"><code>R/run_state.R</code></a></small>
       <div class="d-none name"><code>clear_run.Rd</code></div>
     </div>
 
@@ -83,7 +83,10 @@ operations proceed again.</p>
 
 
 <dl><dt id="arg-object">object<a class="anchor" aria-label="anchor" href="#arg-object"></a></dt>
-<dd><p>a scenario.</p></dd>
+<dd><p>a scenario, or the PATH to a saved scenario directory. A
+path is what the cases this function exists for can offer: a store
+written on another machine, or one in an on-disk layout this version no
+longer loads. Only the directory is read.</p></dd>
 
 
 <dt id="arg-run">run<a class="anchor" aria-label="anchor" href="#arg-run"></a></dt>

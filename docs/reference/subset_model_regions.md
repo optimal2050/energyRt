@@ -48,15 +48,54 @@ the restricted [model](https://energyRt.org/reference/class-model.md).
 
 ## Details
 
-The same behaviour is available without this verb by passing a
+Much of this is also reachable without the verb, by passing a
 [`geoscales::filter_geoscale()`](https://optimal2050.github.io/geoscales/r/reference/filter_geoscale.html)
 subset to
-[`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md).
+[`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+– but not all of it: that route does not yet keep a declaration made
+above the region level (see below), so on a multi-level model the two do
+not agree. Use the verb where any object is declared on a coarser code
+than the model's regions.
+
+## Declarations above the region level
+
+A model may declare an object at a coarser geoscale cell than its
+regions: a commodity with `@geoframe = "zone"` is balanced per zone, and
+its supply, imports and trade routes are then declared on zone codes
+rather than region codes. Against a subset such a code is in one of
+three states.
+
+- **Covered** – every region under it survives. It is kept exactly as it
+  is, since it describes the ground the subset holds, and the message
+  names it.
+
+- **Outside** – none survives. It is dropped, like any other
+  out-of-sample object.
+
+- **Split** – some survive. The call **stops**. Halving a coarse
+  declaration needs a rule, and no default is safe: leaving the parent's
+  resource unchanged overstates a pool the dropped regions shared, and
+  taking a proportional share understates one that is indivisible. The
+  error names the objects and the three ways on – extend `region` to the
+  whole group,
+  [`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md)
+  to that level and subset there, or disaggregate those objects to
+  region level in the model first.
+
+A split group that no object is declared at is not a problem and passes
+silently: a geoscale whose groups the subset happens to cut is normal.
+`weather` is exempt – a coarse weather object feeding its children
+carries an intensive series, so the parent's profile is inherited
+unchanged. A coarse `invcost` or `fixom` is exempt too: it is charged
+once at the cell, which costs the subset too much rather than making it
+infeasible, so it stays a warning naming the remedy – declare the cost
+on the endpoints.
 
 ## See also
 
 Other interpolation:
 [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md),
+[`recast_model_calendar()`](https://energyRt.org/reference/recast_model_calendar.md),
 [`with_solver_log()`](https://energyRt.org/reference/with_solver_log.md)
 
 ## Examples

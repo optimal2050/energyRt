@@ -273,6 +273,7 @@ an interpolated
 `interpolate` S4 method.
 
 Other interpolation:
+[`recast_model_calendar()`](https://energyRt.org/reference/recast_model_calendar.md),
 [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md),
 [`with_solver_log()`](https://energyRt.org/reference/with_solver_log.md)
 

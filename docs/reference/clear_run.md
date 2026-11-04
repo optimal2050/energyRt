@@ -15,7 +15,10 @@ clear_run(object, run, verbose = TRUE)
 
 - object:
 
-  a scenario.
+  a scenario, or the PATH to a saved scenario directory. A path is what
+  the cases this function exists for can offer: a store written on
+  another machine, or one in an on-disk layout this version no longer
+  loads. Only the directory is read.
 
 - run:
 

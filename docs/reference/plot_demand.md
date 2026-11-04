@@ -66,7 +66,10 @@ autoplot(
 
   Optional integer vector of years. For `"area"` these are the
   interpolation targets (default: range of the given years); for
-  `"line"` and `"heatmap"` they filter which given years are shown.
+  `"line"` and `"heatmap"` they filter which given years are shown. An
+  object that names no year applies to every year and so has no default
+  window of its own: `"area"` then needs `year =`, while `"line"` and
+  `"heatmap"` read its shape without one.
 
 - interpolate:
 

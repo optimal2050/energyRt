@@ -157,7 +157,7 @@ throwaway folder.
 ``` r
 
 scen <- save_scenario(scen, verbose = FALSE)
-#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpszAVlt/sm-demo/scenarios/BASE-SM-smc'
+#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpmsSq76/sm-demo/scenarios/BASE-SM-smc'
 #> Directory size: 0.39 MB
 sort(list.files(scen@path))
 #> [1] "class"        "format"       "layout"       "logfile.csv"  "runs"        
@@ -211,7 +211,7 @@ list_versions("SM", type = "model")
 #> # A tibble: 1 × 7
 #>   status  name  type  version  sealed_at            refs size_mb
 #>   <chr>   <chr> <chr> <chr>    <dttm>              <int>   <dbl>
-#> 1 current SM    model fb9ba598 2026-11-03 23:24:36     0       0
+#> 1 current SM    model fb9ba598 2026-11-04 06:13:06     0       0
 ```
 
 **Only sealed versions are referenced.** A scenario records the model it
@@ -223,7 +223,7 @@ version lists the scenario among its dependents:
 ``` r
 
 scen <- save_scenario(scen, verbose = FALSE)
-#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpszAVlt/sm-demo/scenarios/BASE-SM-smc'
+#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpmsSq76/sm-demo/scenarios/BASE-SM-smc'
 #> Directory size: 0.39 MB
 yaml::read_yaml(file.path(scen@path, "scenario.yml"))$model[c("name", "source")]
 #> $name
@@ -403,7 +403,7 @@ scen_low <- interpolate_model(make_mod(c(50, 50, 50)), name = "BASE",
                               overwrite = TRUE) |>
   solve_scenario(solver = solver_options$glpk, echo = FALSE, variant = "low")
 scen_low <- save_scenario(scen_low, verbose = FALSE)
-#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpszAVlt/sm-demo/scenarios/BASE-SM-smc'
+#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpmsSq76/sm-demo/scenarios/BASE-SM-smc'
 #> Directory size: 0.7 MB
 scenario_runs(scen_low)[, c("run", "variant", "modinp", "objective")]
 #> # A tibble: 3 × 4

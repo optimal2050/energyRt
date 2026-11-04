@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -89,7 +89,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>TOPIA I: building the model</h1>
             
-            <h4 data-toc-skip class="date">2026-11-03</h4>
+            <h4 data-toc-skip class="date">2026-11-04</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/vignettes/topia-build.Rmd" class="external-link"><code>vignettes/topia-build.Rmd</code></a></small>
       <div class="d-none name"><code>topia-build.Rmd</code></div>
@@ -876,7 +876,7 @@ horizon</caption>
 <span>  cluster <span class="op">=</span> <span class="va">bio_steps</span>,</span>
 <span>  supply <span class="op">=</span> <span class="va">bio_supply</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">SUP_BIO</span>, style <span class="op">=</span> <span class="st">"map"</span>, map <span class="op">=</span> <span class="va">gs</span>, units <span class="op">=</span> <span class="st">"cost"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">SUP_BIO</span>, style <span class="op">=</span> <span class="st">"map"</span>, map <span class="op">=</span> <span class="va">gs</span>, param <span class="op">=</span> <span class="st">"cost"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="topia-build_files/figure-html/supply-fuels-2.png"><!-- --></p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">SUP_BIO</span><span class="op">)</span></span></code></pre></div>
@@ -1057,8 +1057,8 @@ GW</caption>
 </h2>
 <p>Coal and gas can be imported without a quantity limit in each zone at
 3.5 and 9.0 MUSD/PJ, respectively. Hydrogen can be sold outward from any
-region at 0.09 MUSD/GWh, capped at 2000 GWh a year per region: the
-demand that makes electrolysis worth building.</p>
+region at 0.09 MUSD/GWh, capped at 38 GWh per region in each timeslice:
+the demand that makes electrolysis worth building.</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">IMP_COA</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newImport.html">newImport</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"IMP_COA"</span>,</span>
@@ -1101,7 +1101,7 @@ demand that makes electrolysis worth building.</p>
 <span>  export <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    region <span class="op">=</span> <span class="va">regions</span>,</span>
 <span>    price <span class="op">=</span> <span class="fl">0.09</span>,</span>
-<span>    exp.up <span class="op">=</span> <span class="fl">2000</span></span>
+<span>    exp.up <span class="op">=</span> <span class="fl">38</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">EXP_H2</span>, style <span class="op">=</span> <span class="st">"map"</span>, map <span class="op">=</span> <span class="va">gs</span><span class="op">)</span></span></code></pre></div>

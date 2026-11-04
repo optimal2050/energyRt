@@ -508,7 +508,7 @@ SUP_BIO <- newSupply(
   cluster = bio_steps,
   supply = bio_supply
 )
-autoplot(SUP_BIO, style = "map", map = gs, units = "cost")
+autoplot(SUP_BIO, style = "map", map = gs, param = "cost")
 ```
 
 ![](topia-build_files/figure-html/supply-fuels-2.png)
@@ -663,8 +663,8 @@ autoplot(RES_HYD, style = "map", map = gs)
 
 Coal and gas can be imported without a quantity limit in each zone at
 3.5 and 9.0 MUSD/PJ, respectively. Hydrogen can be sold outward from any
-region at 0.09 MUSD/GWh, capped at 2000 GWh a year per region: the
-demand that makes electrolysis worth building.
+region at 0.09 MUSD/GWh, capped at 38 GWh per region in each timeslice:
+the demand that makes electrolysis worth building.
 
 ``` r
 
@@ -717,7 +717,7 @@ EXP_H2 <- newExport(
   export = data.frame(
     region = regions,
     price = 0.09,
-    exp.up = 2000
+    exp.up = 38
   )
 )
 autoplot(EXP_H2, style = "map", map = gs)

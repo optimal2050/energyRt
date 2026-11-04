@@ -17,7 +17,7 @@ endpoint. When the model carries a geoscale, it is filtered in step
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -121,13 +121,45 @@ stub.</p></dd>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>The same behaviour is available without this verb by passing a
-<code><a href="https://optimal2050.github.io/geoscales/r/reference/filter_geoscale.html" class="external-link">geoscales::filter_geoscale()</a></code> subset to <code><a href="interpolate_model.html">interpolate_model()</a></code>.</p>
+    <p>Much of this is also reachable without the verb, by passing a
+<code><a href="https://optimal2050.github.io/geoscales/r/reference/filter_geoscale.html" class="external-link">geoscales::filter_geoscale()</a></code> subset to <code><a href="interpolate_model.html">interpolate_model()</a></code> – but not
+all of it: that route does not yet keep a declaration made above the region
+level (see below), so on a multi-level model the two do not agree. Use the
+verb where any object is declared on a coarser code than the model's
+regions.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="declarations-above-the-region-level">Declarations above the region level<a class="anchor" aria-label="anchor" href="#declarations-above-the-region-level"></a></h2>
+
+
+<p>A model may declare an object at a coarser geoscale cell than its regions: a
+commodity with <code>@geoframe = "zone"</code> is balanced per zone, and its supply,
+imports and trade routes are then declared on zone codes rather than region
+codes. Against a subset such a code is in one of three states.</p><ul><li><p><strong>Covered</strong> – every region under it survives. It is kept exactly as it
+is, since it describes the ground the subset holds, and the message names
+it.</p></li>
+<li><p><strong>Outside</strong> – none survives. It is dropped, like any other out-of-sample
+object.</p></li>
+<li><p><strong>Split</strong> – some survive. The call <strong>stops</strong>. Halving a coarse
+declaration needs a rule, and no default is safe: leaving the parent's
+resource unchanged overstates a pool the dropped regions shared, and
+taking a proportional share understates one that is indivisible. The error
+names the objects and the three ways on – extend <code>region</code> to the whole
+group, <code><a href="aggregate_model_regions.html">aggregate_model_regions()</a></code> to that level and subset there, or
+disaggregate those objects to region level in the model first.</p></li>
+</ul><p>A split group that no object is declared at is not a problem and passes
+silently: a geoscale whose groups the subset happens to cut is normal.
+<code>weather</code> is exempt – a coarse weather object feeding its children carries
+an intensive series, so the parent's profile is inherited unchanged. A
+coarse <code>invcost</code> or <code>fixom</code> is exempt too: it is charged once at the cell,
+which costs the subset too much rather than making it infeasible, so it
+stays a warning naming the remedy – declare the cost on the endpoints.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p>Other interpolation:
 <code><a href="interpolate_model.html">interpolate_model()</a></code>,
+<code><a href="recast_model_calendar.html">recast_model_calendar()</a></code>,
 <code><a href="with_solver_log.html">with_solver_log()</a></code></p></div>
     </div>
 
