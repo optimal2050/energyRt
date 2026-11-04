@@ -97,7 +97,7 @@ NULL
     variant = variant, solve = solve, dir = dir,
     has_record = has_record, status = status, imported = imported,
     # a `running` record is only scratch to reclaim once its process is gone
-    live = .run_liveness(rec),
+    live = .get_pid_state(rec),
     solution_mb = dir_size(mod_out, missing = "zero") / 1024^2,
     scratch_mb = .art_paths_size(.art_scratch_paths(dir, imported)) / 1024^2
   )

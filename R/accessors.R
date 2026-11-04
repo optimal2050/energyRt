@@ -77,7 +77,9 @@
 #' @param ... passed to the dispatched accessor.
 #'
 #' @return the requested object; `open_project()` returns the previous
-#'   option values, invisibly.
+#'   option values, invisibly -- the registry file and the five store paths as
+#'   they stood before the call, to be passed back to their own `set_*()` the
+#'   way `options()` and `par()` allow.
 #'
 #' @rdname accessors
 #' @export
@@ -196,15 +198,28 @@ getDataset <- function(name, hash = NULL, verbose = FALSE) {
 open_project <- function(path = ".", verbose = TRUE) {
   path <- gsub("[\\/]+", "/",
                normalizePath(path, winslash = "/", mustWork = TRUE))
+  # The settings in force BEFORE this call, so a caller can put them back the
+  # way `options()` and `par()` allow -- which is what the returned list is
+  # for. They are read with the getters, not taken from the setters' return
+  # values: `options::opt_set()` reports the previously SET value, and a
+  # working default that was never set explicitly reports as empty, so the
+  # list came back empty on a fresh session and restoring from it did nothing.
   old <- list(
-    registry_file      = set_registry_file(fp(path, "energyRt_registry.csv")),
-    scenarios_path     = set_scenarios_path(fp(path, "scenarios")),
-    models_path        = set_models_path(fp(path, "models")),
-    repositories_path  = set_repositories_path(fp(path, "repositories")),
-    datasets_path      = set_datasets_path(fp(path, "datasets")),
-    reports_path       = set_reports_path(fp(path, "reports")),
-    levcost_cache_path = set_levcost_cache_path(fp(path, "levcosts"))
+    registry_file      = get_registry_file(),
+    scenarios_path     = get_scenarios_path(),
+    models_path        = get_models_path(),
+    repositories_path  = get_repositories_path(),
+    datasets_path      = get_datasets_path(),
+    reports_path       = get_reports_path(),
+    levcost_cache_path = get_levcost_cache_path()
   )
+  set_registry_file(fp(path, "energyRt_registry.csv"))
+  set_scenarios_path(fp(path, "scenarios"))
+  set_models_path(fp(path, "models"))
+  set_repositories_path(fp(path, "repositories"))
+  set_datasets_path(fp(path, "datasets"))
+  set_reports_path(fp(path, "reports"))
+  set_levcost_cache_path(fp(path, "levcosts"))
   if (isTRUE(verbose)) {
     n_scen <- tryCatch(
       nrow(find_in_registry(.registry_open(), type = "scenario")),

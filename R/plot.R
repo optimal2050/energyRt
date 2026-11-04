@@ -728,13 +728,16 @@ autoplot.supply <- function(object, year = NULL, interpolate = TRUE,
   # every parameter the object declares, which the chart resolves.
   if (!is.null(type)) param <- type
   style <- match.arg(style)
+  .check_units_arg(units)
   if (!is.null(param)) {
     param <- match.arg(param, .supply_params, several.ok = TRUE)
   }
   if (identical(style, "map")) {
+    .units_unused(units, "map")
     return(plot_supply_map(object, param = param, year = year,
                            interpolate = interpolate, map = map, ...))
   }
+  if (style %in% c("bar", "regions")) .units_unused(units, style)
   switch(style,
     profile = plot_process_year(object, year = year,
                                 interpolate = interpolate,
@@ -1442,7 +1445,10 @@ plot_object_map <- function(object, param = NULL, year = NULL,
 #'   timeslice axis.
 #' @param year Optional integer vector of years. For `"area"` these are the
 #'   interpolation targets (default: range of the given years); for `"line"`
-#'   and `"heatmap"` they filter which given years are shown.
+#'   and `"heatmap"` they filter which given years are shown. An object that
+#'   names no year applies to every year and so has no default window of its
+#'   own: `"area"` then needs `year =`, while `"line"` and `"heatmap"` read
+#'   its shape without one.
 #' @param interpolate Logical, default `TRUE`: for `"area"`, interpolate the
 #'   annual totals over the target years; `FALSE` aggregates only the given
 #'   data years.
@@ -1504,6 +1510,13 @@ plot_demand <- function(object, style = c("area", "line", "heatmap"),
       obsy <- sort(unique(stats::na.omit(as.integer(raw$year))))
       year_target <- if (length(obsy) >= 2) seq(min(obsy), max(obsy)) else obsy
     }
+    # A value given for no year applies to every year, so an object that names
+    # none carries no window of its own to lay on an annual axis.
+    if (!length(year_target)) {
+      message("'", obj_name, "' names no year: pass `year =` for an annual ",
+              "axis, or style = \"line\"/\"heatmap\" to read its shape.")
+      return(invisible(NULL))
+    }
     itp <- if (isTRUE(interpolate))
       .obj_long_get(object, "demand", TRUE, year_target, ...) else NULL
     tot <- if (!is.null(itp) && nrow(itp) > 0) {
@@ -1516,7 +1529,14 @@ plot_demand <- function(object, style = c("area", "line", "heatmap"),
       stats::aggregate(demand ~ region + year, raw, sum) |>
         stats::setNames(c("region", "year", "value"))
     }
-    pts <- stats::aggregate(demand ~ region + year, raw, sum)
+    # The points are the GIVEN values, and a row naming no year has no year to
+    # sit at -- aggregate() would drop it, taking every other row with it.
+    given <- raw[!is.na(raw$year), , drop = FALSE]
+    pts <- if (nrow(given)) {
+      stats::aggregate(demand ~ region + year, given, sum)
+    } else {
+      data.frame(region = character(), year = integer(), demand = numeric())
+    }
     # `geom_area()` puts the LAST fill level at the bottom, so a band's upper
     # edge is the cumulative total from the last level up to and including its
     # own. Carry the given values onto that edge: at their own level they sit in
@@ -1591,7 +1611,9 @@ autoplot.import <- function(object, year = NULL, interpolate = TRUE,
                             style = c("profile", "map"), param = NULL,
                             map = NULL, ...) {
   style <- match.arg(style)
+  .check_units_arg(units)
   if (identical(style, "map")) {
+    .units_unused(units, "map")
     return(plot_object_map(object, param = param, year = year,
                            interpolate = interpolate, map = map,
                            all_params = TRUE, ...))
@@ -1607,7 +1629,9 @@ autoplot.export <- function(object, year = NULL, interpolate = TRUE,
                             style = c("profile", "map"), param = NULL,
                             map = NULL, ...) {
   style <- match.arg(style)
+  .check_units_arg(units)
   if (identical(style, "map")) {
+    .units_unused(units, "map")
     return(plot_object_map(object, param = param, year = year,
                            interpolate = interpolate, map = map,
                            all_params = TRUE, ...))
@@ -1623,7 +1647,9 @@ autoplot.technology <- function(object, year = NULL, interpolate = TRUE,
                                 style = c("profile", "map"), param = NULL,
                                 map = NULL, ...) {
   style <- match.arg(style)
+  .check_units_arg(units)
   if (identical(style, "map")) {
+    .units_unused(units, "map")
     return(plot_object_map(object, param = param, year = year,
                            interpolate = interpolate, map = map,
                            all_params = FALSE, ...))
@@ -1639,7 +1665,9 @@ autoplot.storage <- function(object, year = NULL, interpolate = TRUE,
                              style = c("profile", "map"), param = NULL,
                              map = NULL, ...) {
   style <- match.arg(style)
+  .check_units_arg(units)
   if (identical(style, "map")) {
+    .units_unused(units, "map")
     return(plot_object_map(object, param = param, year = year,
                            interpolate = interpolate, map = map,
                            all_params = FALSE, ...))

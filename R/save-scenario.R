@@ -130,8 +130,8 @@
       # A live run is not a stale record to warn about and overwrite: the
       # other process is still writing this directory, and whichever of the
       # two finished last would leave a record describing the other's files.
-      # `unknown` refuses too -- see .run_liveness().
-      live <- .run_liveness(prev)
+      # `unknown` refuses too -- see .get_pid_state().
+      live <- .get_pid_state(prev)
       if (live %in% c("alive", "unknown")) {
         why <- if (identical(live, "unknown")) {
           paste0("; ", .run_unknown_reason(prev))
@@ -174,11 +174,11 @@
     hostname = .run_host(),
     user = unname(Sys.info()["user"]),
     # the process, so a record that stops being written can be told from one
-    # whose writer is still alive (see R/run_liveness.R)
+    # whose writer is still alive (see R/run_state.R)
     pid = stamp$pid,
     pid_started = stamp$pid_started,
     # a detached launch keeps no handle on the solver, so the pid above is the
-    # LAUNCHER's: recorded as provenance, not trusted as liveness
+    # LAUNCHER's: recorded as provenance, not as evidence the solver runs
     detached = !isTRUE(arg$wait),
     saved = prev$saved %||% .registry_now(),
     updated = .registry_now()

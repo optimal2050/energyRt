@@ -38,3 +38,29 @@ test_that("crossing links are bent apart", {
   expect_length(g$geom, 2)
   expect_true(all(vapply(g$geom, nrow, 0L) > 2))
 })
+
+
+# Corridors are declared at the level their commodity is BALANCED on, so one
+# model mixes levels: electricity region to region, a fuel zone to zone.
+# Drawing one level dropped the rest.
+test_that("routes declared at different levels are all drawn by default", {
+  skip_if_not_installed("ggplot2")
+  skip_if_not_installed("geoscales")
+  gs <- topia$geoscales$honeycomb
+  tr <- list(mk_trade("T_ELC", "ELC", "W1", "W2", 1000),
+             mk_trade("T_GAS", "GAS", "WEST", "CENTRAL", 500))
+
+  p <- plot_trade_network(tr, map = gs)
+  expect_s3_class(p, "ggplot")
+  lk <- p$plot_env$links
+  expect_setequal(unique(lk$comm), c("ELC", "GAS"))
+  expect_setequal(c(lk$a, lk$b), c("W1", "W2", "WEST", "CENTRAL"))
+
+  # naming one level is still honoured, and still says what it dropped
+  expect_warning(p1 <- plot_trade_network(tr, map = gs, level = "region"),
+                 "not in `map`")
+  expect_setequal(unique(p1$plot_env$links$comm), "ELC")
+  # at zone level the region corridor is internal to WEST, so it goes
+  p2 <- plot_trade_network(tr, map = gs, level = "zone")
+  expect_setequal(unique(p2$plot_env$links$comm), "GAS")
+})

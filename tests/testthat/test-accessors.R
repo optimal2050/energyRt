@@ -46,6 +46,37 @@ acc_clear_bank <- function(...) {
   }
 }
 
+# The returned list is what `acc_project()` above restores from, so this is
+# the test that keeps that helper honest: the values must be the ones in force
+# BEFORE the call. They used to come from the setters, which report the
+# previously SET value -- empty for a default never set explicitly -- so the
+# list came back empty on a fresh session and the restore was a no-op.
+test_that("open_project returns the settings it replaced, so they restore", {
+  before <- list(registry_file = get_registry_file(),
+                 scenarios_path = get_scenarios_path(),
+                 models_path = get_models_path(),
+                 repositories_path = get_repositories_path(),
+                 datasets_path = get_datasets_path(),
+                 reports_path = get_reports_path(),
+                 levcost_cache_path = get_levcost_cache_path())
+  d <- file.path(tempdir(), paste0("op-", as.integer(runif(1, 1e5, 9e5))))
+  dir.create(d, recursive = TRUE, showWarnings = FALSE)
+  old <- suppressMessages(open_project(d, verbose = FALSE))
+
+  expect_identical(old, before)
+  expect_identical(get_scenarios_path(), fp(d, "scenarios"))
+
+  set_registry_file(old$registry_file)
+  set_scenarios_path(old$scenarios_path)
+  set_models_path(old$models_path)
+  set_repositories_path(old$repositories_path)
+  set_datasets_path(old$datasets_path)
+  set_reports_path(old$reports_path)
+  set_levcost_cache_path(old$levcost_cache_path)
+  expect_identical(get_scenarios_path(), before$scenarios_path)
+  expect_identical(get_registry_file(), before$registry_file)
+})
+
 test_that("open_project points the five options and reports them back", {
   acc_project()
   expect_identical(get_registry_file(),

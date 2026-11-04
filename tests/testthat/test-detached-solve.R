@@ -1,5 +1,5 @@
-# Detached solving (`wait = FALSE`) and the run-liveness machinery
-# (R/solve.R, R/run_liveness.R).
+# Detached solving (`wait = FALSE`) and the run-state machinery
+# (R/solve.R, R/run_state.R).
 #
 # Two claims are worth pinning. First, that a detached solve changes nothing
 # but timing: the objective collected afterwards must equal the one a blocking
@@ -124,7 +124,7 @@ test_that("invisible no longer tracks wait", {
   expect_true(isTRUE(s@settings@solver$invisible))
 })
 
-# --- stage 2: liveness ------------------------------------------------------ #
+# --- stage 2: pid state ------------------------------------------------------ #
 
 test_that("the run record identifies the process that wrote it", {
   ds_local("stamp")
@@ -138,40 +138,40 @@ test_that("the run record identifies the process that wrote it", {
                "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
 })
 
-test_that("liveness separates alive, dead and not-checkable", {
+test_that("the pid state separates alive, dead and not-checkable", {
   ds_local("live")
   skip_if_not_installed("ps")
   s <- ds_solve(ds_scen("DSLIVE"))
   run <- scenario_runs(s)$run[1]
   host <- unname(Sys.info()["nodename"])
 
-  expect_identical(energyRt:::.run_liveness(ds_live(s, run)), "alive")
+  expect_identical(energyRt:::.get_pid_state(ds_live(s, run)), "alive")
 
   # a pid that cannot be running
   r <- ds_set(s, run, status = "running", pid = 999999L,
               pid_started = ds_now_stamp(), hostname = host)
-  expect_identical(energyRt:::.run_liveness(r), "dead")
+  expect_identical(energyRt:::.get_pid_state(r), "dead")
 
   # pid REUSE: the right pid, a different process. This is what the start time
   # is recorded for -- on the pid alone this case reads alive.
   r <- ds_set(s, run, status = "running", pid = Sys.getpid(),
               pid_started = "2020-01-01T00:00:00Z", hostname = host)
-  expect_identical(energyRt:::.run_liveness(r), "dead")
+  expect_identical(energyRt:::.get_pid_state(r), "dead")
 
   # another machine: not checkable from here
   r <- ds_set(s, run, status = "running", pid = Sys.getpid(),
               pid_started = ds_now_stamp(), hostname = "SOME-OTHER-HOST")
-  expect_identical(energyRt:::.run_liveness(r), "unknown")
+  expect_identical(energyRt:::.get_pid_state(r), "unknown")
   expect_match(energyRt:::.run_unknown_reason(r), "SOME-OTHER-HOST")
 
   # a stamp that cannot be read is not evidence of being alive
   r <- ds_set(s, run, status = "running", pid = Sys.getpid(),
               pid_started = "rubbish", hostname = host)
-  expect_identical(energyRt:::.run_liveness(r), "unknown")
+  expect_identical(energyRt:::.get_pid_state(r), "unknown")
 
   # a record that already closed itself is never alive
   r <- ds_set(s, run, status = "solved")
-  expect_identical(energyRt:::.run_liveness(r), "dead")
+  expect_identical(energyRt:::.get_pid_state(r), "dead")
 })
 
 test_that("a dead running record is a crash, which no record can self-report", {
@@ -182,8 +182,8 @@ test_that("a dead running record is a crash, which no record can self-report", {
   r <- ds_set(s, run, status = "running", pid = 999999L,
               pid_started = ds_now_stamp(),
               hostname = unname(Sys.info()["nodename"]))
-  expect_identical(energyRt:::.run_state(r, has_solution = FALSE), "crashed")
-  expect_identical(energyRt:::.run_state(r, has_solution = TRUE), "finished")
+  expect_identical(energyRt:::.get_run_state(r, has_solution = FALSE), "crashed")
+  expect_identical(energyRt:::.get_run_state(r, has_solution = TRUE), "finished")
 
   # a crash leaves no objective and no complete output/: strip both, since
   # this fixture solved first in order to have a run at all
@@ -257,7 +257,7 @@ test_that("a cleanup does not select a run that is still being written", {
   run <- scenario_runs(s)$run[1]
   ds_live(s, run)
 
-  # .art_suggest() called ANY running record stale with no liveness test, and
+  # .art_suggest() called ANY running record stale without checking the process, and
   # drop_solver_outputs(runs = NULL) unlinks exactly the suggested rows -- so
   # this could delete the generated model and logs of a solve in flight
   a <- suppressMessages(drop_solver_outputs(s, dry_run = TRUE, verbose = FALSE))
@@ -300,7 +300,7 @@ test_that("clear_run releases the guard without touching the output", {
   expect_gt(files_before, 0L)
 
   # an incomplete output is what makes the guard the deciding factor; a
-  # foreign host is the case liveness cannot resolve on its own
+  # foreign host is the case the pid state cannot resolve on its own
   unlink(fp(out, "variable_list.csv"))
   ds_set(s, run, status = "running", pid = Sys.getpid(),
          pid_started = ds_now_stamp(), hostname = "SOME-OTHER-HOST")
@@ -331,4 +331,49 @@ test_that("clear_run warns when the process it releases is alive", {
   ds_live(s, run)
   expect_warning(suppressMessages(clear_run(s, run, verbose = FALSE)),
                  "LIVE process")
+})
+
+
+# A run is addressed by its directory, so the cases `clear_run()` exists for --
+# a record from another machine, or a store in a layout this version no longer
+# loads -- can be cleared without a loadable scenario.
+test_that("clear_run() takes a path, and mirrors the status into the registry", {
+  root <- file.path(tempdir(), paste0("cr-", as.integer(runif(1, 1e5, 9e5))))
+  dir.create(file.path(root, "scenarios"), recursive = TRUE)
+  # only the registry file is needed, and it is restored from the value read
+  # back rather than from open_project()'s return, which is empty on a fresh
+  # session -- so the project cannot leak into the test files that follow
+  orf <- get_registry_file()
+  on.exit(set_registry_file(orf), add = TRUE)
+  set_registry_file(file.path(root, "energyRt_registry.csv"))
+  save_registry(newRegistry())
+
+  # no scenario.yml, so nothing here can be loaded as a scenario
+  scen_dir <- file.path(root, "scenarios", "LEGACY-mod-cal-Y2025")
+  run_dir <- file.path(scen_dir, "runs", "v1", "glpk")
+  dir.create(run_dir, recursive = TRUE)
+  yaml::write_yaml(list(solver = "glpk", status = "running",
+                        hostname = "SOME-OTHER-BOX",
+                        started = "2026-09-09T10:00:00Z"),
+                   file.path(run_dir, "run.yml"))
+  expect_error(load_scenario("LEGACY-mod-cal-Y2025"))
+
+  expect_silent(clear_run(scen_dir, "v1/glpk", verbose = FALSE))
+  rec <- yaml::read_yaml(file.path(run_dir, "run.yml"))
+  expect_identical(rec$status, "abandoned")
+  expect_true(nzchar(rec$abandoned_at))
+  # nothing else is rewritten
+  expect_identical(rec$solver, "glpk")
+  expect_identical(rec$started, "2026-09-09T10:00:00Z")
+
+  reg <- load_registry()
+  r <- reg[reg$type == "run", ]
+  expect_equal(nrow(r), 1L)
+  expect_identical(r$name, "glpk")
+  expect_identical(r$variant, "v1")
+  expect_identical(r$status, "abandoned")
+  expect_identical(r$parent, "LEGACY-mod-cal-Y2025")
+
+  expect_error(clear_run(42, "x"), "must be a scenario")
+  expect_error(clear_run(file.path(root, "nope"), "x"), "no directory at")
 })

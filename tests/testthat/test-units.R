@@ -36,3 +36,36 @@ test_that("complete = TRUE reports empty parameters with resolved tokens", {
   u0 <- as.data.frame(getUnits(.units_tech()))
   expect_false("af" %in% u0$slot)
 })
+
+
+# The model's currency, at construction ---------------------------------------
+#
+# There is no exchange rate in a model, so a cost priced in another currency is
+# an error rather than something converted. It used to be raised only by
+# `interpolate_model()`, which let a mismatched object sit in a model until
+# something much later failed.
+
+.cur_repo <- function(costs = "MUSD") {
+  sup <- newSupply("SUP_COA", commodity = "COA", unit = "PJ",
+                   units = data.frame(activity = "PJ", costs = costs),
+                   supply = data.frame(region = "R1", cost = 2.5, ava.up = 10))
+  newRepository("cur") |> add(newCommodity("COA", unit = "PJ"), sup)
+}
+
+test_that("newModel() refuses an object priced in another currency", {
+  expect_error(
+    newModel("CUR", currency = "cr.INR", region = "R1", data = .cur_repo()),
+    "counts in 'cr.INR'")
+})
+
+test_that("a matching currency, and none at all, both construct", {
+  expect_s4_class(
+    newModel("CUR2", currency = "MUSD", region = "R1", data = .cur_repo()),
+    "model")
+  expect_s4_class(newModel("CUR3", region = "R1", data = .cur_repo()), "model")
+  # an object claiming nothing is not compared
+  expect_s4_class(
+    newModel("CUR4", currency = "cr.INR", region = "R1",
+             data = .cur_repo(costs = NA_character_)),
+    "model")
+})

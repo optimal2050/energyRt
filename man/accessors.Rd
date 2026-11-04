@@ -70,7 +70,9 @@ alone is refused and this picks one. See the \code{model} column of
 }
 \value{
 the requested object; \code{open_project()} returns the previous
-option values, invisibly.
+option values, invisibly -- the registry file and the five store paths as
+they stood before the call, to be passed back to their own \code{set_*()} the
+way \code{options()} and \code{par()} allow.
 }
 \description{
 The short, name-first accessors over the project stores (see the

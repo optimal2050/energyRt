@@ -85,6 +85,27 @@ test_that("a declared demand above a bounded supply is reported", {
   expect_equal(f$available, 10)
 })
 
+test_that("a demand naming no year is checked, not dropped", {
+  # `year` is NA in every row, and aggregate() drops NA groups: the
+  # requirement vanished and the contradiction was reported as clean.
+  m <- newModel("CFN", region = c("R1", "R2"), data = newRepository("cfn", list(
+    newCommodity("ELC", timeframe = "ANNUAL"),
+    newSupply("SUP_ELC", commodity = "ELC", unit = "GWh",
+              supply = data.frame(region = c("R1", "R2"), ava.up = c(5, 100))),
+    newDemand("DEM_BY", commodity = "ELC", unit = "GWh",
+              demand = data.frame(region = c("R1", "R2"),
+                                  timeslice = "ANNUAL", demand = c(10, 20))))))
+  f <- check_feasibility(m, verbose = FALSE)
+  expect_equal(nrow(f), 1L)
+  expect_equal(f$region, "R1")
+  expect_equal(f$required, 10)
+  expect_equal(f$available, 5)
+  expect_true(is.na(f$year))
+  # a requirement for no particular year holds in every year, so naming one
+  # must not filter it out
+  expect_equal(nrow(check_feasibility(m, years = 2030, verbose = FALSE)), 1L)
+})
+
 test_that("a clean result is reported as no contradiction, not as feasible", {
   expect_message(check_feasibility(.cf_model()),
                  "NOT a feasibility guarantee")

@@ -435,7 +435,7 @@ SUP_BIO <- newSupply(
   cluster = bio_steps,
   supply = bio_supply
 )
-autoplot(SUP_BIO, style = "map", map = gs, units = "cost")
+autoplot(SUP_BIO, style = "map", map = gs, param = "cost")
 autoplot(SUP_BIO)
 
 

@@ -41,7 +41,7 @@ NULL
 #
 # The state is DERIVED, not taken from the record: a `running` record whose
 # process is gone and which produced no solution is a crash, and the record
-# itself can never say so (see R/run_liveness.R).
+# itself can never say so (see R/run_state.R).
 .status_runs_at <- function(path) {
   ry <- .run_yaml_paths(path)
   none <- c(runs = 0L, solved = 0L, running = 0L, crashed = 0L)
@@ -53,7 +53,7 @@ NULL
     # output is complete -- the detached case, where nothing closed the record
     has_sol <- !is.na(suppressWarnings(as.numeric(r$objective %||% NA))) ||
       .run_output_complete(dirname(f))
-    .run_state(r, has_solution = has_sol)
+    .get_run_state(r, has_solution = has_sol)
   }, character(1), USE.NAMES = FALSE)
   c(runs = length(st), solved = sum(st == "solved"),
     running = sum(st == "running"), crashed = sum(st == "crashed"))

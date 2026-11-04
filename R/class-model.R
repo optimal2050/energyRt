@@ -67,6 +67,18 @@ setMethod("initialize", "model", function(.Object, ...) {
 #'   )
 #' }
 newModel <- function(name = "", desc = "", ...) {
+  # The currency is compared against the objects' own `@units$costs` HERE and
+  # not only at interpolation: there is no exchange rate in a model, so a
+  # mismatch is an error, and it should name the call that introduced it
+  # rather than surface a model later. The builder has several early returns,
+  # so the check sits outside it.
+  obj <- .newModel_build(name = name, desc = desc, ...)
+  .check_model_currency(obj)
+  obj
+}
+
+#' @noRd
+.newModel_build <- function(name = "", desc = "", ...) {
   # mdl <- .data2slots("model", name,
   #                    ignore_args = unique(c(config_slots, horizon_slots)),
   #                    ignore_classes = "repository", ...)

@@ -691,3 +691,30 @@ setMethod("getUnits", "export", .get_units_process)
 #' @rdname getUnits
 #' @export
 setMethod("getUnits", "storage", .get_units_process)
+
+
+# `units` overrides the axis label's base unit PER COMMODITY, so it is a named
+# list: units = list(ELC = "GWh"). A bare value is the `param =` mistake --
+# `units = "cost"` reads as the name of a parameter to draw, and was accepted
+# and then dropped, so the chart answered a question nobody asked.
+#' @noRd
+.check_units_arg <- function(units) {
+  if (is.null(units)) return(invisible(NULL))
+  nm <- names(units)
+  if (!length(nm) || anyNA(nm) || !all(nzchar(nm))) {
+    stop("`units` names a base unit per commodity, e.g. ",
+         "units = list(ELC = \"GWh\"). To choose WHICH parameter is drawn, ",
+         "use `param =`.", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+# A style that labels from the object cannot honour `units`. Saying so beats
+# dropping it: the argument was given for a reason.
+#' @noRd
+.units_unused <- function(units, style) {
+  if (is.null(units)) return(invisible(NULL))
+  warning("`units` labels the profile chart's axis and has no effect on ",
+          "style = \"", style, "\".", call. = FALSE)
+  invisible(NULL)
+}

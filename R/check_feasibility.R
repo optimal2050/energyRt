@@ -129,11 +129,16 @@ NULL
     if (!nrow(d) || !("demand" %in% names(d))) return(NULL)
     d <- d[!is.na(d$demand), , drop = FALSE]
     if (!nrow(d) || !("region" %in% names(d))) return(NULL)
-    yr <- if ("year" %in% names(d)) d$year else NA_integer_
+    yr <- if ("year" %in% names(d)) as.integer(d$year) else NA_integer_
+    # A demand given for no particular year applies to every year, so it has
+    # nothing to group on, and aggregate() drops NA groups. It travels on the
+    # same "..any" sentinel the ceiling match uses further down.
+    ykey <- ifelse(is.na(yr), "..any", as.character(yr))
     agg <- stats::aggregate(
       list(value = d$demand),
-      list(region = as.character(d$region), year = as.integer(yr)),
+      list(region = as.character(d$region), ykey = ykey),
       sum, na.rm = TRUE)
+    agg$year <- suppressWarnings(as.integer(agg$ykey))
     agg$process <- o@name
     agg$acomm <- as.character(o@commodity)
     agg$cluster <- NA_character_
@@ -330,11 +335,17 @@ check_feasibility <- function(object, years = NULL, verbose = TRUE) {
     r <- req[req$acomm == cm & !(req$region %in% safe), , drop = FALSE]
     if (!nrow(r)) return(NULL)
     r$ckey <- ifelse(is.na(r$cluster), "..any", r$cluster)
+    # The year is carried as a label here for the same reason the ceiling
+    # carries one: a requirement declared for no particular year is NA
+    # throughout, and the formula method would drop it to nothing.
+    r$ykey <- ifelse(is.na(r$year), "..any", as.character(r$year))
     r <- stats::aggregate(
       list(required = r$value),
-      list(check = r$check, region = r$region, year = r$year,
+      list(check = r$check, region = r$region, ykey = r$ykey,
            ckey = r$ckey, forced_by = r$process),
       sum, na.rm = TRUE)
+    r$year <- suppressWarnings(as.integer(
+      ifelse(r$ykey == "..any", NA, r$ykey)))
     # A ceiling given for no particular year applies to every year, and one
     # given for no particular tier serves every tier.
     ceil$ckey <- ifelse(is.na(ceil$cluster), "..any", ceil$cluster)

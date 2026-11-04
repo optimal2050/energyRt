@@ -305,7 +305,7 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   it and sealing the scenario's outputs are refused rather than allowed to
   corrupt or overwrite it; `clear_run()` is the override, and `get_status()`
   reports a run whose process has gone without finishing as `crashed`. A run
-  recorded on another host refuses as well, since liveness cannot be checked
+  recorded on another host refuses as well, since the process cannot be checked
   from elsewhere.
 
 * `get_status()` reports the state of a saved object -- sealed (for a scenario,
@@ -379,10 +379,43 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* `open_project()` returns the option values it replaced, as documented. It
+  collected them from the `set_*()` calls, which report the previously SET
+  value -- empty for a working default never set explicitly -- so on a fresh
+  session the list came back empty and restoring a previous project from it
+  did nothing.
+* `clear_run()` takes a path as well as a scenario, and records the
+  abandonment in the registry. It required a loadable scenario, which the
+  cases it exists for -- a run recorded on another machine, or a store in a
+  layout this version no longer reads -- often cannot provide, although only
+  the run's directory is ever read. The run's registry row is updated from the
+  rewritten record, so a listing no longer says `running` until the next
+  `refresh_registry()`.
+* `newModel()` compares the model's `currency` against each object's
+  `@units$costs` at construction. The check existed but ran only in
+  `interpolate_model()`, so an object priced in another currency sat in a model
+  until something unrelated failed much later.
+* `plot_trade_network()` draws routes declared at any level of a geoscale
+  `map`. It placed nodes at one level -- the finest, unless `level =` named
+  another -- so a corridor declared where its commodity is balanced was
+  dropped with a warning about regions "not in `map`". `level =` still selects
+  one level, and `plot_trade_map()` already drew every level -- the two views
+  now agree.
+* `autoplot()` refuses a bare `units` value instead of dropping it. `units`
+  names a base unit per commodity (`units = list(ELC = "GWh")`); a parameter
+  name passed there -- `units = "cost"`, where `param = "cost"` is meant --
+  was accepted and ignored, and the chart then drew something else in silence.
+  A style that labels from the object says that `units` has no effect on it.
+* A `demand` naming no year was dropped instead of read: `aggregate()` drops
+  NA groups, so `check_feasibility()` and `autoplot(style = "area")` both
+  stopped with an aggregation error. The requirement is now checked and
+  reported at `year = NA`, and `years =` keeps it; the annual stack asks for
+  `year =` when the object names no window of its own.
 * `drop_solver_outputs()` could delete the working files of a solve in
   progress: `.art_suggest()` labelled any `running` record stale with no
-  liveness test, and the cleanup unlinks exactly the suggested rows. Only a run
-  whose process is demonstrably gone is now treated as reclaimable scratch.
+  check of the owning process, and the cleanup unlinks exactly the suggested
+  rows. Only a run whose process is demonstrably gone is now treated as
+  reclaimable scratch.
 * A column a slot does not have is reported with the object, the slot, the
   columns that look meant (`stock` -> `inp.stock`, `out.stock`, `stg.stock`;
   a near spelling) and every column the slot accepts. An object whose slot was

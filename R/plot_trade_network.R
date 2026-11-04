@@ -38,7 +38,9 @@
 #'   a sampled calendar); or any timeslice of the calendar -- a day, an hour --
 #'   for that snapshot.
 #' @param level for a geoscale `map`: the level to draw; routes are lifted to it
-#'   and those inside one region dropped.
+#'   and those inside one region dropped. `NULL` (default) draws every level,
+#'   so corridors declared at the level their commodity is balanced on are
+#'   kept whatever that level is.
 #' @param curvature bend of the links as a share of their length (0 = straight).
 #' @param labels draw region names.
 #' @param node_size scale the node points by the capacity connected to each
@@ -102,9 +104,18 @@ plot_trade_network <- function(object, map = NULL,
   regions <- sort(unique(c(links$a, links$b)))
   shapes <- NULL
   if (!is.null(map)) {
+    # The polygons are one level -- a background cannot be two -- but the NODES
+    # need not be: a model declares its corridors at the level each commodity
+    # is balanced on, so electricity may run between regions while a fuel runs
+    # between zones. Naming one level silently dropped every route declared at
+    # another, which is the same defect `plot_trade_map()` was fixed for.
     shapes <- .trade_map_normalise(map, level = level)
     ce <- as.data.frame(shapes)
     nodes <- data.frame(region = as.character(ce$region), x = ce$x, y = ce$y)
+    if (is.null(level) && !is.null(route_gs)) {
+      ca <- .trade_centers_all(route_gs)
+      if (!is.null(ca)) nodes <- ca[, c("region", "x", "y")]
+    }
     miss <- setdiff(regions, nodes$region)
     if (length(miss)) {
       warning("Dropping links of ", length(miss), " region(s) not in `map`: ",

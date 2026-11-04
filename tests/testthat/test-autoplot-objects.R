@@ -29,6 +29,33 @@ test_that("a year-less supply plots without the 'no data' message", {
   expect_true("GeomPoint" %in% .ap_geoms(p))
 })
 
+# A demand that names no year is the base-year idiom: the observed level and
+# shape, with the milestone it lands on left to the horizon. The annual stack
+# has no window of its own to draw it on, and `aggregate()` drops NA groups,
+# so both branches used to fail -- the area one by erroring.
+test_that("a year-less demand declines the annual axis instead of erroring", {
+  dem <- newDemand("DEM_BY", commodity = "ELC", unit = "GWh",
+                   demand = data.frame(region = c("R1", "R2"),
+                                       timeslice = "ANNUAL",
+                                       demand = c(10, 20)))
+  expect_message(p <- ggplot2::autoplot(dem, style = "area"), "names no year")
+  expect_null(p)
+})
+
+test_that("`year =` gives a year-less demand its window, at a constant level", {
+  dem <- newDemand("DEM_BY", commodity = "ELC", unit = "GWh",
+                   demand = data.frame(region = c("R1", "R2"),
+                                       timeslice = "ANNUAL",
+                                       demand = c(10, 20)))
+  p <- ggplot2::autoplot(dem, style = "area", year = 2020:2030)
+  expect_s3_class(p, "ggplot")
+  expect_identical(range(p$data$year), c(2020L, 2030L))
+  # the level applies to every year, so each region is flat across the window
+  expect_equal(sum(p$data$value), (10 + 20) * 11)
+  # no year is given, so there are no given-value points to carry
+  expect_equal(nrow(p$layers[[2]]$data), 0L)
+})
+
 test_that("year-keyed data gives points + interpolated lines, extrapolable", {
   sup <- newSupply("SUP_GAS", commodity = "GAS",
                    supply = data.frame(year = c(2020L, 2040L),
@@ -321,4 +348,28 @@ test_that("getUnits() covers the flow classes", {
   expect_equal(u$unit[u$parameter == "cost"], "{costs}/GWh")
   u2 <- getUnits(.units_supply(), units = c(costs = "cr.INR"))
   expect_equal(u2$unit[u2$parameter == "cost"], "cr.INR/GWh")
+})
+
+
+# `units` names a base unit per commodity for the axis label. A bare value is
+# the `param =` mistake, and it used to be accepted and dropped -- the chart
+# then answered a different question in silence.
+.ua_supply <- function() {
+  newSupply("SUP_COA", commodity = "COA", unit = "PJ",
+            supply = data.frame(region = c("R1", "R2"), cost = c(2.5, 3.5),
+                                ava.up = c(10, 20)))
+}
+
+test_that("a bare `units` value is refused, naming `param =`", {
+  expect_error(ggplot2::autoplot(.ua_supply(), units = "cost"), "use `param =`")
+  expect_s3_class(
+    ggplot2::autoplot(.ua_supply(), units = list(COA = "PJ")), "ggplot")
+})
+
+test_that("a style that cannot label from `units` says so", {
+  expect_warning(ggplot2::autoplot(.ua_supply(), style = "bar",
+                                   units = list(COA = "PJ")),
+                 "no effect on style")
+  expect_silent(p <- ggplot2::autoplot(.ua_supply(), style = "bar"))
+  expect_s3_class(p, "ggplot")
 })

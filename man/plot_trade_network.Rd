@@ -54,7 +54,9 @@ a sampled calendar); or any timeslice of the calendar -- a day, an hour --
 for that snapshot.}
 
 \item{level}{for a geoscale \code{map}: the level to draw; routes are lifted to it
-and those inside one region dropped.}
+and those inside one region dropped. \code{NULL} (default) draws every level,
+so corridors declared at the level their commodity is balanced on are
+kept whatever that level is.}
 
 \item{curvature}{bend of the links as a share of their length (0 = straight).}
 

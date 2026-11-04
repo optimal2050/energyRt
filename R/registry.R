@@ -489,6 +489,49 @@ find_in_registry <- function(reg, type = NULL, name = NULL, hash = NULL,
   invisible(ok)
 }
 
+# Mirror one RUN's status into its registry row, straight after `run.yml` is
+# written, so `load_registry()` does not lag until the next
+# `refresh_registry()`.
+#
+# The sibling of `.registry_sync_entry()`, which cannot serve: it reads an
+# entry MANIFEST, and a run has a `run.yml` instead. A run also carries no
+# seal and no deletion mark -- those verbs act on the four entry types -- so
+# `status` is the only field, and it is read back from the record rather than
+# passed in, which keeps the row a copy of the file and not a second opinion.
+#
+# A project with no registry is left alone, as everywhere else: creating one
+# is `newRegistry()`, never a side effect.
+#' @noRd
+.registry_sync_run <- function(run_dir, scen_name) {
+  f <- get_registry_file()
+  if (!file.exists(f)) return(invisible(FALSE))
+  reg <- tryCatch(load_registry(f), error = function(e) NULL)
+  if (is.null(reg)) return(invisible(FALSE))
+  run_dir <- gsub("[\\/]+", "/", run_dir)
+  rec <- tryCatch(yaml::read_yaml(fp(run_dir, "run.yml")),
+                  error = function(e) NULL)
+  if (is.null(rec)) return(invisible(FALSE))
+  # runs/<solve>/ is a base solve; runs/<variant>/<solve>/ a variant's
+  parent_dir <- basename(dirname(run_dir))
+  reg <- add_to_registry(
+    reg, "run", basename(run_dir),
+    path = .registry_rel_path(run_dir, reg_file = f),
+    parent = scen_name,
+    variant = if (identical(parent_dir, "runs")) "" else parent_dir,
+    status = as.character(rec$status %||% ""))
+  ok <- tryCatch({
+    save_registry(reg, f)
+    TRUE
+  }, error = function(e) {
+    # `run.yml` is already written and is the source of truth, so this is a
+    # stale cache rather than lost state
+    warning("Written to 'run.yml', but the registry could not be updated (",
+            conditionMessage(e), ") - run refresh_registry().", call. = FALSE)
+    FALSE
+  })
+  invisible(ok)
+}
+
 # Is the registry CSV behind the stores? Used by `refresh_registry(lazy =
 # TRUE)` and by the drift line in `summary()`; never by the default refresh.
 #

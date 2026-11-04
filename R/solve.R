@@ -433,7 +433,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   }
   # A detached solve is not finished when this returns: the record stays
   # `running` and the process that owns it is the one that will close it, or
-  # the liveness check will find it gone. Stamping "finished" here would mark
+  # the pid check will find it gone. Stamping "finished" here would mark
   # a solve complete at the moment it was launched.
   if (record && isTRUE(arg$wait)) {
     status <- if (!isTRUE(arg$read.solution)) {
