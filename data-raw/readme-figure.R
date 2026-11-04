@@ -4,27 +4,29 @@
 # for every panel. Run from the package root; the solve is written to a scratch
 # project so nothing lands in the repository.
 suppressMessages({
-  library(energyRt)
+  # load_all(), not library(): `data(package = "energyRt")` reads the INSTALLED
+  # copy, so after a `data/topia.rda` rebuild this driver silently drew the
+  # previous dataset -- it rendered the uncapped hydrogen chain for several
+  # rounds after the cap had been changed. A data-raw driver has to see the
+  # source tree it is run from.
+  pkgload::load_all(".", quiet = TRUE)
   library(ggplot2)
   library(patchwork)
 })
 options(warn = 1)
 
-data(
-  list = "topia",
-  package = "energyRt"
-)
-
-scratch_root <- tempdir()
-scratch <- file.path(scratch_root, "readme-figure")
-dir.create(
-  path = scratch,
-  showWarnings = FALSE,
-  recursive = TRUE
-)
-if (exists("open_project")) {
-  open_project(path = scratch)
-}
+# The solve is kept in the package's own project store (gitignored), not in
+# tempdir(): iterating on the figure should not cost another eight-minute
+# solve. It is reused only when it came from the same model -- reusing a solve
+# that no longer matches is the same class of error as reading a stale
+# dataset, which this driver has already made once.
+open_project(path = ".")
+readme_scenario <- "README_FIGURE"
+# HiGHS barrier through multimod: 72 s against glpsol's 450 on this model, and
+# GLPK is for small models by the stack's own guidance -- this is the eleven
+# region hourly case. cuOpt on a local GPU (`mm_cuopt_wsl_py`) is roughly
+# twice as fast again where WSL has it installed.
+readme_solver <- solver_options$mm_highs_barrier
 
 # The whole shipped model, all eleven regions, at hourly resolution: a summer
 # day's dispatch and the battery's cycle are two of the three result panels,
@@ -65,11 +67,30 @@ TOPIA <- setGeoscale(
   geoscale = topia_electricity$geoscale
 )
 
-TOPIA_README <- solve_model(
-  object = TOPIA,
-  name = "TOPIA_README",
-  solver = solver_options$glpk
+stored_runs <- tryCatch(
+  load_scenarios(names = readme_scenario, verbose = FALSE),
+  error = function(e) list()
 )
+TOPIA_README <- NULL
+if (length(stored_runs) >= 1L && methods::is(stored_runs[[1]], "scenario")) {
+  stored_scenario <- stored_runs[[1]]
+  stored_matches <- isTRUE(stored_scenario@status$solved) &&
+    identical(model_hash(stored_scenario@model), model_hash(TOPIA))
+  if (stored_matches) {
+    message("reusing the stored solve '", readme_scenario, "'")
+    TOPIA_README <- stored_scenario
+  } else {
+    message("the stored solve is from another model; solving again")
+  }
+}
+if (is.null(TOPIA_README)) {
+  TOPIA_README <- solve_model(
+    object = TOPIA,
+    name = readme_scenario,
+    solver = readme_solver
+  )
+  TOPIA_README <- save_scenario(TOPIA_README)
+}
 
 # Space axis: one map plane per geoframe, nation on top, every unit named.
 map_geoframes <- c("nation", "zone", "region")
@@ -179,6 +200,7 @@ carrier <- c(
   EWIN = "onwind",
   ESOL = "solar",
   STG_ELC = "battery",
+  H2ELC = "electrolysis",
   export = "electricity trade"
 )
 # Every electricity route is one legend key, however many the model carries:
@@ -195,6 +217,7 @@ carrier_label <- c(
   onwind = "Wind",
   solar = "Solar",
   battery = "Storage",
+  electrolysis = "Electrolysis",
   "electricity trade" = "Trade"
 )
 
@@ -204,16 +227,65 @@ p_day <- autoplot(
   timeslice = "^SUM_",
   year = 2030
 )
-p_storage <- autoplot(
+# 3b draws the battery's LEVEL across the whole year, not its charge and
+# discharge on one day: on a summer day the fleet barely cycles and the panel
+# came out nearly empty. At s4_h24 a year is four typical days, 96 slices, so
+# one panel shows the daily cycle and lets the seasons be compared.
+# `autoplot(type = "storage")` gives the in/out flows only; the level is
+# `vStorageLevel`.
+storage_level <- getData(
   object = TOPIA_README,
-  type = "storage",
-  timeslice = "^SUM_",
-  year = 2030
+  name = "vStorageLevel",
+  year = 2030,
+  merge = TRUE
+)
+storage_level <- aggregate(
+  x = value ~ timeslice,
+  data = storage_level,
+  FUN = sum
+)
+# Season and hour come from the calendar, not from the label text: the
+# timetable names the season of every timeslice, and tsl2hour() reads the
+# hour off the calendar rather than off the string.
+storage_level <- merge(
+  x = storage_level,
+  y = topia_calendar@timetable[, c("timeslice", "SEASON")],
+  by = "timeslice"
+)
+storage_level$hour <- timescales::tsl2hour(
+  tsl = as.character(storage_level$timeslice),
+  calendar = timescales_calendar
+)
+storage_level$season <- factor(
+  x = as.character(storage_level$SEASON),
+  levels = unique(as.character(topia_calendar@timetable$SEASON))
 )
 p_year <- autoplot(
   object = TOPIA_README,
   type = "generation",
   comm = "ELC"
+)
+# 3c is faceted by region by default, and eleven panels in a third of the
+# figure's width cannot carry a year axis. Faceting by zone instead put nearly
+# all of the hydrogen in EAST, several times that zone's own demand, which
+# reads as a defect rather than as the resource concentration it is. The panel
+# is national: one set of bars for the island.
+#
+# `facet = NULL` does not do this -- autoplot reads NULL as "decide for me"
+# and still facets when the model has more than one region -- so the region
+# column is dropped and the facet removed after the fact. by_carrier()
+# aggregates on every remaining column, which collapses the regions.
+drop_region <- function(d) {
+  d$region <- NULL
+  d
+}
+p_year$data <- drop_region(p_year$data)
+# The demand overlay is a second layer with its own data, and it has to be
+# summed over the regions too or the load line is drawn eleven times.
+p_year$layers[[2]]$data <- aggregate(
+  x = value ~ .,
+  data = drop_region(p_year$layers[[2]]$data),
+  FUN = sum
 )
 
 # one level set for both panels, so the collected legend is shared
@@ -294,23 +366,39 @@ p_day <- by_carrier(
     subtitle = NULL,
     x = "hour",
     y = NULL
-  )
+  ) +
+  # 3a and 3c carry the same keys, and patchwork drew both rather than
+  # merging them -- two legends, overlaying the panels beside them. 3c is the
+  # only one that keeps a legend; `drop = FALSE` there shows every key.
+  theme(legend.position = "none")
 
 battery_color <- energypal::energypal_colors(
   sources = "battery",
   palette = energy_palette
 )
 battery_color <- unname(battery_color)
-storage_values <- c(STG_ELC = battery_color)
-storage_scale <- scale_fill_manual(
-  values = storage_values,
-  name = NULL
+storage_mapping <- aes(
+  x = hour,
+  y = value
 )
-p_storage <- p_storage + storage_scale
-p_storage <- p_storage +
+storage_hour_breaks <- c(0, 6, 12, 18)
+p_storage <- ggplot(
+  data = storage_level,
+  mapping = storage_mapping
+) +
+  geom_area(fill = battery_color) +
+  # one typical day per season, named on top; the hours run along the axis
+  facet_wrap(
+    facets = vars(season),
+    nrow = 1
+  ) +
+  scale_x_continuous(
+    breaks = storage_hour_breaks,
+    expand = expansion(mult = c(0, 0))
+  ) +
   labs(
-    title = "3b  Storage operation: four-hour battery",
-    subtitle = "1 GW stock per region · discharge above zero · charge below zero",
+    title = "3b  Storage level",
+    subtitle = "four-hour battery, 1 GW stock per region · 2030, all regions",
     x = "hour",
     y = NULL
   ) +
@@ -336,6 +424,13 @@ p_year <- by_carrier(
   plot = p_year,
   load_geom = year_load_geom
 ) +
+  facet_null() +
+  # one column: `legend.direction = "vertical"` stacks the two guides but lets
+  # the fill guide itself wrap, which gave three columns
+  guides(
+    fill = guide_legend(ncol = 1, order = 2),
+    colour = guide_legend(ncol = 1, order = 1)
+  ) +
   labs(
     title = "3c  Generation mix over the horizon",
     y = NULL
@@ -346,10 +441,9 @@ p_year <- by_carrier(
 
 mix_heights <- c(0.82, 0.58, 1)
 p_mix <- p_day / p_storage / p_year
-p_mix <- p_mix + plot_layout(
-  heights = mix_heights,
-  guides = "collect"
-)
+# Guides are collected ONCE, at the outer layout below. Collecting here as
+# well drew the legend twice, overlaying the panels it sat beside.
+p_mix <- p_mix + plot_layout(heights = mix_heights)
 
 # The README now explains energyRt as a flow: reusable components are combined
 # with independent time and space axes, then compiled, solved and analyzed.
@@ -360,7 +454,7 @@ p_axes <- p_axes + plot_layout(heights = axes_heights)
 
 figure_widths <- c(0.72, 1.08, 1.28)
 fig <- p_bricks | p_axes | p_mix
-fig <- fig + plot_layout(widths = figure_widths)
+fig <- fig + plot_layout(widths = figure_widths, guides = "collect")
 
 figure_subtitle <- paste(
   "TOPIA in energyRt: reusable components × modeler-defined time and space",
@@ -401,16 +495,40 @@ figure_theme <- theme(
   plot.margin = panel_margin,
   legend.key.size = legend_key_size,
   legend.text = legend_text,
-  legend.spacing.y = legend_spacing
+  legend.spacing.y = legend_spacing,
+  # one column, sitting low beside the results rather than centred against
+  # them: the collected legend belongs to 3c, which is the bottom panel
+  legend.direction = "vertical",
+  legend.box = "vertical",
+  # low beside the results, but lifted clear of the bottom edge
+  legend.justification = "bottom",
+  legend.box.margin = margin(b = 70)
 )
 fig <- fig & figure_theme
 
+# What the results panel drew, so a stale dataset or a changed aggregation is
+# visible in the log rather than only in the picture.
+cat("\n3c totals by carrier (GWh over the horizon):\n")
+print(aggregate(value ~ process, data = p_year$data, FUN = sum),
+      row.names = FALSE)
+
+figure_file <- "man/figures/readme-model.png"
+# ragg warns rather than errors when it cannot write (a viewer holding the
+# file open is enough), and the report below used to print regardless -- a
+# run then looked successful while the figure on disk was the previous one.
+figure_before <- if (file.exists(figure_file)) file.mtime(figure_file) else NA
 ggsave(
-  filename = "man/figures/readme-model.png",
+  filename = figure_file,
   plot = fig,
   width = 15,
   height = 9.5,
   dpi = 200,
   bg = "white"
 )
-cat("written man/figures/readme-model.png\n")
+if (!file.exists(figure_file) ||
+    (!is.na(figure_before) && file.mtime(figure_file) <= figure_before)) {
+  stop("ggsave() did not write ", figure_file,
+       " -- it is most likely open in another program.", call. = FALSE)
+}
+cat("written ", figure_file, " - ",
+    round(file.size(figure_file) / 1024), " KB\n", sep = "")

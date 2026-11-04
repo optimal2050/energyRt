@@ -39,8 +39,8 @@ plot_demand(
 interpolation targets (default: range of the given years); for \code{"line"}
 and \code{"heatmap"} they filter which given years are shown. An object that
 names no year applies to every year and so has no default window of its
-own: \code{"area"} then needs \code{year =}, while \code{"line"} and
-\code{"heatmap"} read its shape without one.}
+own: \code{"area"} then needs \verb{year =}, while \code{"line"} and \code{"heatmap"} read
+its shape without one.}
 
 \item{interpolate}{Logical, default \code{TRUE}: for \code{"area"}, interpolate the
 annual totals over the target years; \code{FALSE} aggregates only the given

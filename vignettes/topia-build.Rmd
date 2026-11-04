@@ -545,8 +545,8 @@ autoplot(RES_HYD, style = "map", map = gs)
 
 Coal and gas can be imported without a quantity limit in each zone at 3.5 and
 9.0 MUSD/PJ, respectively. Hydrogen can be sold outward from any region at
-0.09 MUSD/GWh, capped at 2000 GWh a year per region: the demand that makes
-electrolysis worth building.
+0.09 MUSD/GWh, capped at 38 GWh per region in each timeslice: the demand that
+makes electrolysis worth building.
 
 ```{r imports}
 IMP_COA <- newImport(
@@ -586,7 +586,7 @@ EXP_H2 <- newExport(
   export = data.frame(
     region = regions,
     price = 0.09,
-    exp.up = 2000
+    exp.up = 38
   )
 )
 autoplot(EXP_H2, style = "map", map = gs)
