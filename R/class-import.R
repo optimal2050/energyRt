@@ -104,6 +104,7 @@ setClass("import",
   S3methods = FALSE
 )
 setMethod("initialize", "import", function(.Object, ...) {
+  .refuse_initialize_dots("import", "newImport", ...)
   .Object
 })
 

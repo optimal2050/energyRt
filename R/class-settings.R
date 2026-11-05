@@ -48,6 +48,7 @@ setClass("settings",
 )
 
 setMethod("initialize", "settings", function(.Object, ...) {
+  .refuse_initialize_dots("settings", "newModel", ...)
   .Object
 })
 

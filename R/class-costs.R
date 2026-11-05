@@ -47,6 +47,7 @@ setClass("costs",
   S3methods = FALSE
 )
 setMethod("initialize", "costs", function(.Object, ...) {
+  .refuse_initialize_dots("costs", "newCosts", ...)
   .Object
 })
 

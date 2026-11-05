@@ -39,6 +39,7 @@ setClass("repository",
 
 # initialize ####
 setMethod("initialize", "repository", function(.Object, ...) {
+  .refuse_initialize_dots("repository", "newRepository", ...)
   .Object@permit <- c(
     "commodity", "demand", "supply",
     "technology", "storage",

@@ -515,6 +515,7 @@ setValidity("storage", function(object) {
 })
 
 setMethod("initialize", "storage", function(.Object, ...) {
+  .refuse_initialize_dots("storage", "newStorage", ...)
   .Object
 })
 

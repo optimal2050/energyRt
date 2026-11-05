@@ -35,8 +35,10 @@ setClass("scenario",
     misc = "list"
   ),
   prototype(
-    name = NULL,
-    desc = NULL,
+    # `character()`, not NULL: the slots are typed `character`, so NULL made
+    # every scenario fail `validObject()` on sight
+    name = character(),
+    desc = character(),
     model = NULL,
     # subset = list(),
     settings = NULL,
@@ -57,6 +59,7 @@ setClass("scenario",
 )
 
 setMethod("initialize", "scenario", function(.Object, ...) {
+  .refuse_initialize_dots("scenario", "newScenario", ...)
   .Object
 })
 
@@ -90,13 +93,64 @@ newScenario <- function(
             "arguments are deprecated and ignored; scenarios are registered ",
             "in the project registry on save_scenario().")
   }
+  # The name becomes a solver symbol and a directory name, so it is validated
+  # here as every other object's is.
+  .assert_object_name(name, what = "scenario")
+
   scen <- new("scenario")
   scen@name <- name
+  # A scenario returned by this constructor is VALID: the typed slots carry
+  # empty objects of their declared classes rather than NULL. `modInp` and
+  # `modOut` are built here instead of in the prototype because an empty one
+  # costs 270 ms and 88 ms respectively.
+  scen@desc <- character()
+  scen@model <- new("model")
+  scen@settings <- new("settings")
+  scen@modInp <- new("modInp")
+  scen@modOut <- new("modOut")
   if (!is.null(path)) {
     scen@path <- path
   }
   if (!is.null(model)) {
+    # `model` is the second positional parameter, so a stray object passed
+    # positionally lands here rather than in `...`. Say so, instead of letting
+    # the S4 slot assignment report a type mismatch the caller did not write.
+    if (!methods::is(model, "model")) {
+      stop("newScenario(): `model` must be a `model` object, not a '",
+           class(model)[1], "'. A model object (commodity, technology, ...) ",
+           "belongs in the MODEL -- build it with `newModel()` and pass that.",
+           call. = FALSE)
+    }
     scen@model <- model
+  }
+
+  # `...` was documented as "model objects or settings to assign" and then
+  # ignored, so `desc` and `misc` passed there vanished. Read what is
+  # meaningful and refuse the rest rather than dropping it.
+  arg <- list(...)
+  if (length(arg) > 0) {
+    nms <- names(arg)
+    if (is.null(nms)) nms <- rep("", length(arg))
+    for (i in seq_along(arg)) {
+      v <- arg[[i]]
+      if (identical(nms[i], "desc")) {
+        scen@desc <- as.character(v)
+      } else if (identical(nms[i], "misc")) {
+        if (!is.list(v)) stop('"misc" must be a named list', call. = FALSE)
+        scen@misc <- v
+      } else if (methods::is(v, "settings")) {
+        scen@settings <- v
+      } else if (methods::is(v, "model")) {
+        scen@model <- v
+      } else {
+        stop("newScenario(): unused argument",
+             if (nzchar(nms[i])) paste0(" `", nms[i], "`") else
+               paste0(" of class '", class(v)[1], "'"),
+             ". A scenario takes `desc`, `misc`, a `model` or a `settings` ",
+             "object; model objects are added to the MODEL, and scenarios ",
+             "are normally created by `interpolate_model()`.", call. = FALSE)
+      }
+    }
   }
   scen
 }

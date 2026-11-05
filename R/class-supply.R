@@ -104,6 +104,7 @@ setClass("supply",
 )
 
 setMethod("initialize", "supply", function(.Object, ...) {
+  .refuse_initialize_dots("supply", "newSupply", ...)
   .Object
 })
 

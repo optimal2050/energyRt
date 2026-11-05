@@ -105,6 +105,7 @@ setClass("export",
 )
 
 setMethod("initialize", "export", function(.Object, ...) {
+  .refuse_initialize_dots("export", "newExport", ...)
   .Object
 })
 

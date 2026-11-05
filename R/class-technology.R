@@ -321,7 +321,14 @@ setClass("technology",
       ret.fx = numeric(),
       stringsAsFactors = FALSE
     ),
-    optimizeRetirement = TRUE,
+    # The prototype carries the SAME defaults as `newTechnology()`, because an
+    # object restored from an older scenario has its missing slots filled from
+    # here: with `optimizeRetirement = TRUE` an upgraded technology retired
+    # endogenously while a newly built one did not, and `fullYear` arriving as
+    # `logical(0)` breaks the bare `if (tech@fullYear)` in
+    # `R/interpolation-support.R`. `storage` already pairs them this way.
+    optimizeRetirement = FALSE,
+    fullYear = TRUE,
     # upgrade.technology = character(),
     geoframe = character(),
     region = character(),
@@ -333,6 +340,7 @@ setClass("technology",
 )
 
 setMethod("initialize", "technology", function(.Object, ...) {
+  .refuse_initialize_dots("technology", "newTechnology", ...)
   .Object
 })
 

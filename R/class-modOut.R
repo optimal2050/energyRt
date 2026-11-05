@@ -41,6 +41,7 @@ setClass("modOut",
 )
 
 setMethod("initialize", "modOut", function(.Object, ...) {
+  .refuse_initialize_dots("modOut", NULL, ...)
   # Pre-populate `@variables` with one empty, correctly-typed `variable` per
   # declared variable, mirroring how `modInp`'s initialize builds `@parameters`
   # from `data-raw/modInp.yml`. `read_solution()` then fills them.

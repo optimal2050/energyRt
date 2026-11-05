@@ -147,6 +147,7 @@ is_geoscale <- function(x) {
 }
 
 setMethod("initialize", "config", function(.Object, ...) {
+  .refuse_initialize_dots("config", "newModel", ...)
   if (!exists(".defVal") || !exists(".modInp") || !exists(".defInt")) {
     load("R/sysdata.rda")
   }

@@ -60,6 +60,7 @@ setClass("constraint",
   S3methods = FALSE
 )
 setMethod("initialize", "constraint", function(.Object, ...) {
+  .refuse_initialize_dots("constraint", "newConstraint", ...)
   .Object
 })
 

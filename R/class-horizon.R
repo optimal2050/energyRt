@@ -36,6 +36,11 @@ setClass(
   )
 )
 
+setMethod("initialize", "horizon", function(.Object, ...) {
+  .refuse_initialize_dots("horizon", "newHorizon", ...)
+  .Object
+})
+
 # Functions and methods to define and set model horizon
 
 #' Create a new object of class 'horizon'

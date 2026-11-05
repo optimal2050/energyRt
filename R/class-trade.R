@@ -244,6 +244,7 @@ setClass("trade",
 )
 
 setMethod("initialize", "trade", function(.Object, ...) {
+  .refuse_initialize_dots("trade", "newTrade", ...)
   .Object
 })
 

@@ -85,6 +85,11 @@ setClass("tax",
   S3methods = FALSE
 )
 
+setMethod("initialize", "tax", function(.Object, ...) {
+  .refuse_initialize_dots("tax", "newTax", ...)
+  .Object
+})
+
 # setGeneric("newTax", function(name, ...) standardGeneric("newTax"))
 #' @title Create a new tax object
 #' @name newTax

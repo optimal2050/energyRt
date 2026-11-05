@@ -36,6 +36,7 @@ setClass("model",
 )
 
 setMethod("initialize", "model", function(.Object, ...) {
+  .refuse_initialize_dots("model", "newModel", ...)
   .Object
 })
 
@@ -120,11 +121,18 @@ newModel <- function(name = "", desc = "", ...) {
     }
     if (inherits(arg$data, c("repository"))) {
       repo <- arg$data
-    } else if (!inherits(arg$data, "list")) {
-      # arg$data <- purrr::list_flatten(arg$data, name_spec = "{inner}")
-      repo <- do.call("add", c(object = repo, arg$data))
+    } else if (inherits(arg$data, "list")) {
+      # a list of model objects, which is what the error below offers.
+      # `repo` goes in POSITIONALLY: `add()` dispatches S3 on its first
+      # positional argument, so `c(object = repo, ...)` named it and dispatch
+      # fell through to the first list element instead.
+      repo <- do.call("add", c(list(repo), arg$data))
+    } else if (isS4(arg$data)) {
+      # a single object, accepted for convenience
+      repo <- add(repo, arg$data)
     } else {
-      stop('"data" ("repository") must be a "repository" or "list" object')
+      stop('"data" ("repository") must be a "repository", a list of model ',
+           'objects, or a single model object')
     }
     # obj@data <- repo@data
     obj <- add(obj, arg$data)
@@ -266,7 +274,8 @@ setMethod("setHorizon", signature(obj = "model"),
     has_h <- sapply(args, function(x) inherits(x, "horizon"))
     if (any(has_h)) {
       if (sum(has_h) > 1) stop('Two or more "horizon" objects found.')
-      obj@config@horizon <- args[has_h]
+      # the OBJECT, not the enclosing list: the slot is typed `horizon`
+      obj@config@horizon <- args[[which(has_h)[1]]]
     } else {
       obj@config <- setHorizon(obj@config, ...)
     }
@@ -280,19 +289,47 @@ setMethod("getHorizon", signature(obj = "model"), function(obj) {
   getHorizon(obj@config)
 })
 
+# Name of the repository that `add(model, <object>)` creates when the caller
+# names none. Anything but "" -- see the note in add.model().
+.default_repo_name <- "default_repository"
+
 # Methods ####
+# A model is a container of model objects, so it follows the ordinary R laws:
+# `[[` extracts one object, `[` returns a same-kind subset (a model with the
+# same configuration and a narrowed repository), and `$` / `names()` /
+# `length()` address the objects it holds. Before 0.92 `[[` and `[` were the
+# same expression and both returned a list, and `$` / `names()` resolved to the
+# `repository` methods defined further down this file -- so a model had no
+# container interface of its own.
 ## [[ ####
 #' @export
 setMethod("[[", c("model", "ANY"), function(x, i) {
-  flatten_mod_data(x@data)[i]
+  flatten_mod_data(x@data)[[i]]
   }
 )
 
+## [ ####
 #' @export
 setMethod("[", c("model", "ANY"), function(x, i) {
-  flatten_mod_data(x@data)[i]
+  keep <- flatten_mod_data(x@data)[i]
+  x@data <- list(do.call(newRepository,
+                         c(list(name = .default_repo_name), unname(keep))))
+  x
 }
 )
+
+## $ ####
+#' @export
+setMethod("$", "model", function(x, name) flatten_mod_data(x@data)[[name]])
+
+## names / length ####
+#' @export
+#' @family model scenario
+setMethod("names", "model", function(x) names(flatten_mod_data(x@data)))
+
+#' @export
+#' @family model scenario
+setMethod("length", "model", function(x) length(flatten_mod_data(x@data)))
 
 ## $ ####
 #' @export
@@ -318,10 +355,6 @@ setReplaceMethod("$", c("repository", "ANY"),
 #' @export
 #' @family repository
 setMethod("names", "repository", function(x) names(x@data))
-
-# Name of the repository that `add(model, <object>)` creates when the caller
-# names none. Anything but "" -- see the note in add.model().
-.default_repo_name <- "default_repository"
 
 add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
   # cls <- c('technology', 'commodity', 'region', 'commodity',

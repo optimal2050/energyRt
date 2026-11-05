@@ -100,8 +100,68 @@ check_name <- function(x, dot = FALSE) {
 # objects). Names travel into GAMS/GLPK/JuMP/Pyomo identifiers, where
 # dashes, dots and spaces are illegal — and "-" is the path-slug separator.
 # Run/variant LABELS are not object names and are not checked here.
+# `new("<class>", slot = value)`: refuse rather than discard
+#
+# Most classes define `initialize()` as a passthrough returning `.Object`, so
+# anything handed to `new()` used to vanish -- `new("technology", name = "X")`
+# returned a technology named "". The public constructors are the supported
+# path because they are the only route through `.data2slots()`: column checks,
+# type coercion, renamed-column diagnostics and the conflicting-row check all
+# live there, so a `new()` that accepted slot values would mint objects that
+# skipped every one of them.
+#
+# Bare `new("<class>")` stays supported: prototypes are built that way in ~29
+# internal places.
+#' @noRd
+.refuse_initialize_dots <- function(cls, ctor, ...) {
+  n <- ...length()
+  if (n == 0L) return(invisible(NULL))
+  nms <- names(list(...))
+  if (is.null(nms)) nms <- rep("", n)
+  shown <- ifelse(nzchar(nms), nms, paste0("<", seq_len(n), ">"))
+  # `ctor = NULL` for a generated class with no public constructor
+  advice <- if (is.null(ctor)) {
+    paste0("  It is built by the solve pipeline (`solve_scenario()`, ",
+           "`read_solution()`); assign a slot after construction if you ",
+           "really need to (`obj@<slot> <- value`).")
+  } else {
+    paste0("  Use ", ctor, "() instead -- the constructors are the only path ",
+           "through the construction checks (column names, types, renamed ",
+           "columns, conflicting rows).")
+  }
+  stop("new(\"", cls, "\", ...) does not accept slot values, and would ",
+       "silently discard ", if (n == 1L) "" else paste0(n, " of them: "),
+       paste0("`", shown, "`", collapse = ", "),
+       ".\n", advice, "\n  `new(\"", cls,
+       "\")` with no arguments is still supported for an empty prototype.",
+       call. = FALSE)
+}
+
+# Classes a repository stores, i.e. the ones addressed BY NAME: `repo[["X"]]`,
+# `add(mod, obj, overwrite = TRUE)`, the solver symbol and the scenario path
+# all go through the name. Mirrors `newRepository()@permit`.
+#' @noRd
+.NAMED_OBJECT_CLASSES <- c(
+  "commodity", "demand", "supply",
+  "technology", "storage",
+  "trade", "export", "import", "weather",
+  "tax", "subsidy", "constraint", "costs"
+)
+
 .assert_object_name <- function(name, what = "object") {
-  if (!length(name) || !nzchar(name %||% "")) return(invisible(TRUE))
+  if (!length(name) || !nzchar(name %||% "")) {
+    # Deprecated 2026-11-05: an unnamed brick cannot be addressed in a
+    # repository, and the name becomes a solver identifier. Still accepted for
+    # one cycle; containers and internal prototypes keep empty names for good.
+    if (length(what) == 1L && what %in% .NAMED_OBJECT_CLASSES) {
+      warning("A ", what, " should have a non-empty name. An unnamed object ",
+              "cannot be addressed in a repository (`repo[[\"<name>\"]]`, ",
+              "`add(..., overwrite = TRUE)`), and the name becomes a solver ",
+              "identifier. This will be an error in a future release.",
+              call. = FALSE)
+    }
+    return(invisible(TRUE))
+  }
   if (!check_name(name, dot = TRUE)) {
     bad <- gsub("[.A-Za-z0-9_]", "", name)
     stop("Invalid ", what, " name '", name, "'",

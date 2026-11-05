@@ -89,6 +89,11 @@ setClass("subsidy",
   S3methods = FALSE
 )
 
+setMethod("initialize", "subsidy", function(.Object, ...) {
+  .refuse_initialize_dots("subsidy", "newSubsidy", ...)
+  .Object
+})
+
 # setGeneric("newSub", function(name, ...) standardGeneric("newSub"))
 
 #' @title Create a new subsidy object

@@ -42,7 +42,10 @@ pr_scen <- function(...) {
   mi <- new("modInp")
   mi@parameters <- list(...)
   mi <- mark_inMemory(mi)
-  scen <- new("scenario", name = "prtest")
+  # the name is assigned, not passed to `new()`: `new("scenario", name =)`
+  # discarded it silently until the construction guard started refusing
+  scen <- new("scenario")
+  scen@name <- "prtest"
   scen@modInp <- mi
   scen@status$sparse <- TRUE
   scen

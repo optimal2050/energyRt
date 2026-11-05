@@ -93,6 +93,7 @@ setClass("calendar", # alt: timestructure, timescales, timescheme, timeframe, sc
 )
 
 setMethod("initialize", "calendar", function(.Object, ...) {
+  .refuse_initialize_dots("calendar", "newCalendar", ...)
   .Object
 })
 

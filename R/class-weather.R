@@ -66,6 +66,7 @@ setClass("weather",
   S3methods = FALSE
 )
 setMethod("initialize", "weather", function(.Object, ...) {
+  .refuse_initialize_dots("weather", "newWeather", ...)
   .Object
 })
 

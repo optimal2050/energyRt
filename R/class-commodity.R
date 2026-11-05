@@ -87,6 +87,7 @@ setClass("commodity",
 )
 
 setMethod("initialize", "commodity", function(.Object, ...) {
+  .refuse_initialize_dots("commodity", "newCommodity", ...)
   .Object
 })
 
