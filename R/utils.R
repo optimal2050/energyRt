@@ -184,7 +184,7 @@ findDuplicates <- function(x) {
     rs <- NULL
     for (pr in names(x@modInp@parameters))
       if (x@modInp@parameters[[pr]]@type %in% c('numpar', 'bounds')) {
-        tmp <- x@modInp@parameters[[pr]]@data
+        tmp <- get_data_slot(x@modInp@parameters[[pr]])
         tmp <- tmp[, -ncol(tmp), drop = FALSE]
         fl <- duplicated(tmp)
         if (any(fl)) {

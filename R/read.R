@@ -479,11 +479,11 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
           if (sname != "year") {
             if (!is.null(scen@modInp@parameters[[sname]])) {
               # !!! move to the top before aliases
-              set_levels <- scen@modInp@parameters[[sname]]@data[[sname]]
+              set_levels <- get_data_slot(scen@modInp@parameters[[sname]])[[sname]]
             } else {
               set_levels <- sort(rr$set_vec[[sname]])
             }
-            # set_levels <- scen@modInp@parameters[[sname]]@data[[sname]]
+            # set_levels <- get_data_slot(scen@modInp@parameters[[sname]])[[sname]]
             # vr[[j]] <- factor(vr[[j]], levels = sort(rr$set_vec[[sname]]))
             vr[[j]] <- factor(vr[[j]], levels = set_levels)
           } else {

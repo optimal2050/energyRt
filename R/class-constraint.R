@@ -591,7 +591,7 @@ addSummand <- function(
 .drop_unbinding_constraint <- function(stm, for_each, prec) {
   detail <- ""
   if (!is.null(for_each$year)) {
-    model_years <- sort(unique(prec@parameters[["mMidMilestone"]]@data$year))
+    model_years <- sort(unique(get_data_slot(prec@parameters[["mMidMilestone"]])$year))
     detail <- paste0(
       " Its year(s) ", .collapse_values(sort(unique(for_each$year))),
       " are outside the model horizon (",
@@ -1133,18 +1133,18 @@ addSummand <- function(
     tmp_fe <- stm@for.each
     fl_na <- colnames(stm@for.each)[apply(is.na(stm@for.each), 2, any)]
     for (i in fl_na) {
-      tmg <- prec@parameters[[i]]@data
+      tmg <- get_data_slot(prec@parameters[[i]])
       if (i == "year") {
-        tmg <- prec@parameters[["mMidMilestone"]]@data
+        tmg <- get_data_slot(prec@parameters[["mMidMilestone"]])
         if (any(all.set$lag.year)) {
           tmg <- tmg[
-            !(tmg$year %in% prec@parameters[["mMilestoneFirst"]]@data$year), ,
+            !(tmg$year %in% get_data_slot(prec@parameters[["mMilestoneFirst"]])$year), ,
             drop = FALSE
           ]
         }
         if (any(all.set$lead.year)) {
           tmg <- tmg[
-            tmg$year %in% prec@parameters[["mMilestoneHasNext"]]@data$year, ,
+            tmg$year %in% get_data_slot(prec@parameters[["mMilestoneHasNext"]])$year, ,
             drop = FALSE
           ]
         }
@@ -1164,12 +1164,12 @@ addSummand <- function(
   # kept for the diagnostic below: the requested domain, before horizon filtering
   fe_before_horizon <- stm@for.each
   if (!is.null(stm@for.each$year)) {
-    stm@for.each <- stm@for.each[stm@for.each$year %in% prec@parameters[["mMidMilestone"]]@data$year, , drop = FALSE]
+    stm@for.each <- stm@for.each[stm@for.each$year %in% get_data_slot(prec@parameters[["mMidMilestone"]])$year, , drop = FALSE]
     if (any(all.set$lag.year)) {
-      stm@for.each <- stm@for.each[!(stm@for.each$year %in% prec@parameters[["mMilestoneFirst"]]@data$year), , drop = FALSE]
+      stm@for.each <- stm@for.each[!(stm@for.each$year %in% get_data_slot(prec@parameters[["mMilestoneFirst"]])$year), , drop = FALSE]
     }
     if (any(all.set$lead.year)) {
-      stm@for.each <- stm@for.each[stm@for.each$year %in% prec@parameters[["mMilestoneHasNext"]]@data$year, , drop = FALSE]
+      stm@for.each <- stm@for.each[stm@for.each$year %in% get_data_slot(prec@parameters[["mMilestoneHasNext"]])$year, , drop = FALSE]
     }
   }
   # Rows in which no term has a member of its variable's domain carry no

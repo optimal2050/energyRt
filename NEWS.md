@@ -76,6 +76,15 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   binding supply ceilings, on a model or an interpolated scenario;
   `interpolate_model(check = TRUE)` runs it.
 
+* `check_feasibility()` is aware of economic retirement. A requirement that
+  follows from standing capacity is forced only while that capacity must
+  stand, so findings carry a `retirement` column and are reported under both
+  settings -- off (the whole stock stands) and on (what the `ret.up` /
+  `ret.fx` bounds still pin) -- with the model's own setting named in the
+  report and in the `retirement_actual` attribute.
+  `interpolate_model(check = TRUE)` stops only on findings under the live
+  setting, since a finding under the other one is a counterfactual.
+
 ### Model building
 
 * Three-part storage: charger, reservoir and discharger with their own
@@ -396,6 +405,15 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   carried the zero, no equation read it, and the supply solved without a limit.
   The gate now drops only genuinely default bounds (`Inf` for `up`, `0` for
   `lo`), so a declared zero closes the supply as written.
+
+* `check_feasibility()` read its tables from `@data` and its declarations
+  from the object slots directly, so it saw nothing of a table parked in the
+  scenario's store (`save_scenario()` empties `@data` above
+  `energyRt.ondisk_min_rows`), nothing of a map defined by a rule, and
+  nothing of an object saved on disk -- and reported "no contradiction"
+  instead of checking, silently, on exactly the large models where it
+  matters. Every query now goes through `get_data_slot()` and
+  `get_lazy_data()`.
 
 * `open_project()` returns the option values it replaced, as documented. It
   collected them from the `set_*()` calls, which report the previously SET

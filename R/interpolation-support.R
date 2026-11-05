@@ -671,12 +671,12 @@
   ))
   msg_small_err <- NULL
   for (i in non_negative) {
-    if (any(scen@modInp@parameters[[i]]@data$value < 0)) {
-      if (any(scen@modInp@parameters[[i]]@data$value < -1e-7)) {
+    if (any(get_data_slot(scen@modInp@parameters[[i]])$value < 0)) {
+      if (any(get_data_slot(scen@modInp@parameters[[i]])$value < -1e-7)) {
         msg <- paste0('An attempt to assignin negative numbers
                       to non-negative parameter: "', i)
-        tmp <- scen@modInp@parameters[[i]]@data[
-          scen@modInp@parameters[[i]]@data$value < 0, ,
+        tmp <- get_data_slot(scen@modInp@parameters[[i]])[
+          get_data_slot(scen@modInp@parameters[[i]])$value < 0, ,
           drop = FALSE]
         msg <- c(msg, capture.output(print(tmp[1:min(c(10, nrow(tmp))), ,
                                                drop = FALSE])))
@@ -691,9 +691,12 @@
       } else {
         msg_small_err <- c(msg_small_err, i)
         scen@modInp@parameters[[i]] <- .param_ref_clear(scen@modInp@parameters[[i]])
+        # a WRITE: `.param_ref_clear()` above materialises the table, so the
+        # slot is the assignment target. The accessor cannot stand on the
+        # left of `<-`.
         scen@modInp@parameters[[i]]@data[
-          scen@modInp@parameters[[i]]@data$value > -1e-7 &
-          scen@modInp@parameters[[i]]@data$value < 0, "value"] <- 0
+          get_data_slot(scen@modInp@parameters[[i]])$value > -1e-7 &
+          get_data_slot(scen@modInp@parameters[[i]])$value < 0, "value"] <- 0
       }
     }
   }
@@ -806,7 +809,7 @@ interpolate_slot <- function(
     )
     # mTechRampUp <- pTechRampUp[, colnames(pTechRampUp) != "value", drop = FALSE]
     mTechRampUp <- select(pTechRampUp, -value)
-    if (ncol(mTechRampUp) != ncol(obj@parameters[[mname]]@data)) {
+    if (ncol(mTechRampUp) != ncol(get_data_slot(obj@parameters[[mname]]))) {
       mTechRampUp <- merge0(mTechRampUp, mact)
     }
     # adding timeslicep (next) to the mapping
@@ -814,9 +817,9 @@ interpolate_slot <- function(
     # if (!is_empty(ramp_data) && any(!is.na(ramp_data))) {
 
     if (tech@fullYear) {
-      TimesliceNext <- obj@parameters[["mTimesliceFYearNext"]]@data
+      TimesliceNext <- get_data_slot(obj@parameters[["mTimesliceFYearNext"]])
     } else {
-      TimesliceNext <- obj@parameters[["mTimesliceNext"]]@data
+      TimesliceNext <- get_data_slot(obj@parameters[["mTimesliceNext"]])
     }
     mTechRampUp <- left_join(mTechRampUp, TimesliceNext, by = "timeslice") |>
       select(all_of(obj@parameters[[mname]]@dimSets))
