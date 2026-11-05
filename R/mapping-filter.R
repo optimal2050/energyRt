@@ -640,14 +640,20 @@ map_mSupAvaUp <- function(scen, fmp) {
   mSupAva <- .gds(scen, "mSupAva"); pSupAva <- .gds(scen, "pSupAva")
   if (is.null(mSupAva) || is.null(pSupAva)) return(scen)
   sk <- intersect(c("sup", "comm", "region", "year"), colnames(pSupAva))
+  # The non-default test is per BOUND TYPE: `up` defaults to Inf, `lo` to 0
+  # (`mapping-builders.R` spells the same rule for the generic recipes). Testing
+  # `value != 0` on the UP bound dropped a declared `ava.up = 0` -- the most
+  # binding ceiling there is -- so `eqSupAvaUp` was never generated for that
+  # cell and the supply solved as unbounded.
   up <- unique(pSupAva[pSupAva$type == "up" & !is.na(pSupAva$value) &
-                         is.finite(pSupAva$value) & pSupAva$value != 0,
+                         is.finite(pSupAva$value),
                        sk, drop = FALSE])
   if (nrow(up) > 0) {
     scen <- .set_map(scen, "mSupAvaUp",
              .filt_cr(scen, .reduce_dup(.fold_join(mSupAva, up))), fmp)
   }
   # meqSupAvaLo (constraint-recipe sibling): same derivation, lower-bound keys.
+  # Here `value != 0` IS the non-default test, because 0 is the `lo` default.
   lo <- unique(pSupAva[pSupAva$type == "lo" & !is.na(pSupAva$value) &
                          pSupAva$value != 0, sk, drop = FALSE])
   if (nrow(lo) > 0) {

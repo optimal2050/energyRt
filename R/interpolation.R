@@ -1468,13 +1468,24 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # findings are printed first, because the message is the point.
   if (isTRUE(check)) {
     .f <- check_feasibility(scen, verbose = TRUE)
-    if (NROW(.f) > 0) {
-      stop("interpolate_model(): the model contradicts itself in ", NROW(.f),
-           " place(s), listed above -- a forced requirement exceeds a ",
-           "ceiling that cannot be raised. Solving it would return ",
-           "INFEASIBLE without saying why. Fix the declarations, or call ",
-           "again with `check = FALSE` to build the scenario anyway.",
-           call. = FALSE)
+    # The report carries both retirement settings. A finding under the
+    # setting this model does NOT have is a counterfactual, not a
+    # contradiction -- with economic retirement on, the optimiser can scrap
+    # the capacity that forced the requirement -- so only the live setting
+    # stops the build.
+    .ra <- attr(.f, "retirement_actual") %||% "off"
+    .live <- if ("retirement" %in% names(.f)) {
+      .f[.f$retirement == .ra, , drop = FALSE]
+    } else {
+      .f
+    }
+    if (NROW(.live) > 0) {
+      stop("interpolate_model(): the model contradicts itself in ",
+           NROW(.live), " place(s), listed above (retirement = ", .ra,
+           ") -- a forced requirement exceeds a ceiling that cannot be ",
+           "raised. Solving it would return INFEASIBLE without saying why. ",
+           "Fix the declarations, or call again with `check = FALSE` to ",
+           "build the scenario anyway.", call. = FALSE)
     }
   }
   scen
@@ -1973,7 +1984,10 @@ expand_na_rows <- function(data, column, all_values, group_cols = NULL) {
     return(data)
   }
 
-  if (!is_vector(all_values)) {
+  # `rlang::` qualified: the bare call errored the first time this helper was
+  # ever reached from the pipeline (it was dead code until the partial-wildcard
+  # expansion started using it).
+  if (!rlang::is_vector(all_values)) {
     stop("all_values must be a vector")
   }
 
@@ -1987,8 +2001,8 @@ expand_na_rows <- function(data, column, all_values, group_cols = NULL) {
 
   if (!is_empty(group_cols)) {
     dd <- data |>
-      group_by(across(all_of(group_cols))) |>
-      group_split()
+      dplyr::group_by(dplyr::across(dplyr::all_of(group_cols))) |>
+      dplyr::group_split()
   } else {
     dd <- list(data)
   }
@@ -1996,22 +2010,23 @@ expand_na_rows <- function(data, column, all_values, group_cols = NULL) {
   # Separate NA and non-NA rows
   dd <- lapply(dd, function(d) {
     na_rows <- d |>
-      dplyr::filter(is.na(.data[[col]])) |> select(-!!col)
+      dplyr::filter(is.na(.data[[col]])) |> dplyr::select(-dplyr::all_of(col))
 
-    non_na_rows <- d |> filter(!is.na(.data[[col]])) |> as.data.table()
+    non_na_rows <- d |> dplyr::filter(!is.na(.data[[col]])) |>
+      data.table::as.data.table()
 
     all_values_d <- all_values[!(all_values %in% non_na_rows[[col]])]
 
     # Create all combinations: NA rows × all_values
     expanded <- tidyr::crossing(
       na_rows,
-      as.data.table(set_names(list(all_values_d), col))
+      data.table::as.data.table(stats::setNames(list(all_values_d), col))
     )
 
-    rbindlist(list(non_na_rows, expanded), use.names = TRUE)
+    data.table::rbindlist(list(non_na_rows, expanded), use.names = TRUE)
   })
-  dd <- rbindlist(dd, use.names = TRUE) |>
-    arrange(across(any_of(c("region", "vintage", "year"))))
+  dd <- data.table::rbindlist(dd, use.names = TRUE) |>
+    dplyr::arrange(dplyr::across(dplyr::any_of(c("region", "vintage", "year"))))
 
   stopifnot(!anyDuplicated(dd))
 
@@ -2495,6 +2510,104 @@ interpolate_bounds <- function(
     return("inter")
   }
   rule[1]
+}
+
+#' Broadcast partially-wildcarded key columns onto their member sets
+#'
+#' An NA in a key column means "every member of that dimension" -- the contract
+#' `data-raw/classes.yml` states for 160 slots ("NA for every region") and
+#' `test-conflicting-rows.R` asserts at construction ("specific overrides
+#' broadcast").
+#'
+#' When the column is ENTIRELY NA, `unfold_parameters()` materialises it late
+#' and cheaply. When it carries a MIX of NA and named members, the NA rows used
+#' to survive as their own `set_cols` tuple: a parallel series that anchored
+#' nothing (so `back.inter.forth` back-filled over it) and was then dropped as
+#' all-default. Expanding per row restores the contract, and taking the member
+#' sets from `.fold_member_sets()` -- the same source the fully-NA path uses --
+#' keeps the two spellings of "all regions" in agreement by construction.
+#'
+#' `expand_na_rows()` excludes members an explicit row already claims, but does
+#' so across the WHOLE table, so it is called per group of the other keys:
+#' precedence is judged cell by cell, not table-wide. Ungrouped, a wildcard at
+#' 2025 beside named rows at 2030 would expand to nothing.
+#' @noRd
+.expand_partial_wildcards <- function(scen, raw, dims, pname = NULL) {
+  cand <- intersect(c("region", "timeslice"), intersect(dims, names(raw)))
+  if (length(cand) == 0) return(raw)
+  # An OBJECT's own data decides, not the parameter's. A wildcard row has to be
+  # materialised only where the SAME object also names members of that
+  # dimension, because that is the only case where the two must meet in one
+  # interpolation series. Judging it parameter-wide instead made an unrelated
+  # object's rows change this one's representation: a supply declared with no
+  # region at all stayed a wildcard row when interpolated alone and was
+  # materialised when a second, region-keyed supply shared the parameter, so
+  # the incremental (`base =`) and full paths disagreed on row count.
+  ent <- setdiff(intersect(dims, names(raw)), c("region", "timeslice", "year"))
+  mixed_ents <- function(cl) {
+    if (length(ent) == 0) {
+      v <- raw[[cl]]
+      return(if (anyNA(v) && !all(is.na(v))) list(all = TRUE) else NULL)
+    }
+    key <- do.call(paste, c(raw[ent], list(sep = "")))
+    has_na <- tapply(is.na(raw[[cl]]), key, any)
+    has_ex <- tapply(!is.na(raw[[cl]]), key, any)
+    k <- names(has_na)[has_na & has_ex]
+    if (length(k) == 0) NULL else list(all = FALSE, keys = k, key = key)
+  }
+  cand <- Filter(function(cl) !is.null(mixed_ents(cl)), cand)
+  if (length(cand) == 0) return(raw)
+
+  keys <- intersect(c(dims, "type"), names(raw))
+  for (cl in cand) {
+    # `.fold_member_sets()` answers in one of two shapes: a PER-ENTITY table
+    # `data.frame(<key>, <dim>)` (the regions a given tech/sup/comm operates
+    # in), or a one-column full member set from the `.entity_allowed()`
+    # fallback. Joining on the entity key is the stricter reading -- a wildcard
+    # means "every member this object operates at", not "every member in the
+    # model" -- and it is the same answer `unfold_parameters()` gives the
+    # fully-NA case.
+    ms <- .fold_member_sets(scen, raw, dims = cl, pname = pname)[[cl]]
+    if (is.null(ms)) next
+    ms <- as.data.frame(ms)
+    if (nrow(ms) == 0 || !cl %in% names(ms)) next
+    by <- intersect(setdiff(names(ms), cl), names(raw))
+
+    me <- mixed_ents(cl)
+    if (is.null(me)) next
+    in_scope <- if (isTRUE(me$all)) rep(TRUE, nrow(raw)) else me$key %in% me$keys
+    na_rows <- raw[in_scope & is.na(raw[[cl]]), , drop = FALSE]
+    # everything else is carried through untouched, wildcard rows of
+    # single-spelling objects included
+    ex_rows <- raw[!(in_scope & is.na(raw[[cl]])), , drop = FALSE]
+    if (nrow(na_rows) == 0) next
+    src <- na_rows[, setdiff(names(na_rows), cl), drop = FALSE]
+    add <- if (length(by) > 0) {
+      dplyr::inner_join(src, ms[, c(by, cl), drop = FALSE], by = by,
+                        relationship = "many-to-many")
+    } else {
+      dplyr::cross_join(src, ms[, cl, drop = FALSE])
+    }
+    if (nrow(add) == 0) next
+    # Explicit wins, judged cell by cell: drop only the cells an explicit row
+    # already claims, so a wildcard still fills the rest of the dimension.
+    #
+    # The claim is per CELL, not per cell and bound type, which is the same
+    # "most specific row wins" rule the bounds that stay unexpanded get from
+    # `.bound_at()` (`test-fx-equ-families.R`). It matters because an `af.fx`
+    # declaration has already been folded into a `lo` row and an `up` row by
+    # the time this runs: suppressing only the matching type would land the
+    # wildcard's `lo` half on a slice where an explicit `up` is the specific
+    # value, and `lower > upper` would stop interpolation.
+    cell <- intersect(setdiff(keys, "type"),
+                      intersect(names(add), names(ex_rows)))
+    if (nrow(ex_rows) > 0 && length(cell) > 0) {
+      add <- dplyr::anti_join(add, unique(ex_rows[, cell, drop = FALSE]),
+                              by = cell)
+    }
+    raw <- as.data.frame(dplyr::bind_rows(ex_rows, add))
+  }
+  raw
 }
 
 #' Interpolate a single value column across years for each set combination
@@ -3287,6 +3400,9 @@ interpolate_parameters <- function(scen, drop_default = FALSE, params = NULL) {
     .tick0 <- Sys.time()
     raw <- as.data.frame(raw)
     non_year <- setdiff(param@dimSets, "year")
+    # A partially-wildcarded key column is broadcast here, so the wildcard rows
+    # join the series they qualify instead of becoming a parallel one.
+    raw <- .expand_partial_wildcards(scen, raw, param@dimSets, pname = pn)
 
     # Per-parameter override of the global `drop_default`. A parameter may set
     # `@misc$dropIfEmpty` (from the `dropIfEmpty` field in modInp.yml) to force

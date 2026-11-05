@@ -379,6 +379,24 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* **A wildcard row beside named rows is no longer ignored.** An NA in a key
+  column means "every member of that dimension", but interpolation treated the
+  NA as a member of its own: a base-year anchor written
+  `region = NA, timeslice = NA` became a separate series, anchored nothing, and
+  was dropped -- the later milestone's value was back-cast over it as if the
+  row were absent. Every class was affected (reported on `demand`, reproduced
+  on `supply`). A wildcard row is now broadcast onto the members its own object
+  operates at, with explicit rows still winning cell by cell, so the two
+  spellings of "all regions" give the same answer. Declaring the column and
+  omitting it already worked and is unchanged.
+
+* **A zero supply ceiling bound instead of reading as unbounded.**
+  `ava.up = 0` was excluded from `mSupAvaUp`, which kept only rows with
+  `value != 0` although the upper bound's default is `Inf`. The parameter
+  carried the zero, no equation read it, and the supply solved without a limit.
+  The gate now drops only genuinely default bounds (`Inf` for `up`, `0` for
+  `lo`), so a declared zero closes the supply as written.
+
 * `open_project()` returns the option values it replaced, as documented. It
   collected them from the `set_*()` calls, which report the previously SET
   value -- empty for a working default never set explicitly -- so on a fresh
