@@ -65,7 +65,9 @@ setClass("trade",
       costs = character(),
       stringsAsFactors = FALSE
     ),
-    commodity = NULL, #
+    # `character()`, not NULL: the slot is typed "character", so a NULL
+    # prototype made a default trade fail `validObject()`.
+    commodity = character(), #
     geoframe = character(),
     routes = data.frame(
       src = character(),

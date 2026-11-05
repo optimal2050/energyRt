@@ -91,6 +91,7 @@ Collate:
     'mapping-builders.R'
     'check_levels.R'
     'class-costs.R'
+    'class-validity.R'
     'compare_inputs.R'
     'compare_models.R'
     'report.R'

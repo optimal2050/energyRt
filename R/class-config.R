@@ -80,7 +80,11 @@ setClass("config",
       sdr = numeric(), # social discount rate
       stringsAsFactors = FALSE
     ),
-    region = NULL,
+    # `character()`, not NULL: the slot is typed "character", so NULL made
+    # every `config` -- and so every `model` -- fail `validObject()` on sight.
+    # Every reader goes through `as.character()`, which treats the two
+    # identically, so this is a validity fix with no behavioural half.
+    region = character(),
     # year = as.numeric(2005:2050),
     horizon = new("horizon"),
     calendar = newCalendar(),
@@ -110,10 +114,9 @@ setClass("config",
 # is stated here. `geoscales` need not be installed: an S7 object carries a
 # plain character class attribute, so `is_geoscale()` is a pure attribute test.
 #
-# Note this only runs when `validObject()` is called explicitly -- `config`'s
-# `initialize` method does not validate, and cannot: the prototype sets
-# `region = NULL` for a "character" slot, so a default `config` does not pass
-# validation. `setGeoscale()` therefore checks its own argument.
+# `config`'s `initialize` method does not validate, so this runs only when
+# `validObject()` is called explicitly -- but a default `config` now passes it
+# (see `region` in the prototype above).
 setValidity("config", function(object) {
   if (!methods::.hasSlot(object, "geoscale")) return(TRUE)
   gs <- object@geoscale
@@ -182,9 +185,9 @@ setMethod("setCalendar", signature(obj = "config"), function(obj, ...) {
 #' @export
 setMethod("setGeoscale", signature(obj = "config"), function(obj, geoscale,
                                                              ...) {
-  # Check the argument, not the whole object: `validObject()` on a `config` is
-  # not currently safe to call, because the prototype sets `region = NULL` for
-  # a "character"-typed slot and so fails validation out of the box.
+  # The argument is checked here rather than by validating the whole object,
+  # so the message names `geoscale` instead of reporting the first invalid
+  # slot it happens to find.
   if (!is.null(geoscale) && !is_geoscale(geoscale)) {
     stop("`geoscale` must be a `geoscales::GeoScale` object or NULL, not ",
          class(geoscale)[1], ".", call. = FALSE)

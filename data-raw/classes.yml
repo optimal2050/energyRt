@@ -3278,6 +3278,14 @@ class:
         Named list or data frame with numeric values for the variable included
         in the costs-constraint. A constant or a data frame with the same dimensions
         as the subseted variable.
+    defVal:
+      type: numeric
+      description: >
+        Scalar multiplier. Set from `mult` when it is a single number, or a
+        data frame with no set columns: the value then multiplies every element
+        of the subsetted variable. A `mult` that carries set columns goes to
+        the `mult` slot and leaves this at its default of zero, which makes the
+        cost constraint identically zero and is warned about at construction.
     misc:
       type: list
       description: Additional information.

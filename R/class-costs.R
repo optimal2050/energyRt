@@ -35,7 +35,9 @@ setClass("costs",
     # parameter= list() # For the future
   ),
   prototype(
-    name = NULL,
+    # `character()`, not NULL: the slot is typed "character", so a NULL
+    # prototype made a default costs fail `validObject()`.
+    name = character(),
     desc = "", # desc
     variable = character(),
     subset = data.frame(),

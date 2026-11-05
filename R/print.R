@@ -221,7 +221,9 @@ print.supply <- function(x, ...) {
   if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
   cat("Commodity: ", x@commodity, "\n")
   # cat('Reserve: ', x@reserve, '\n')
-  if (!is.null(x@region)) cat('region: "', paste(x@region, collapse = '", "'), '"\n', sep = "")
+  # `length()`, not `!is.null()`: the slot is typed "character", so the NULL
+  # test never fired and an object with no region printed `region: ""`.
+  if (length(x@region)) cat('region: "', paste(x@region, collapse = '", "'), '"\n', sep = "")
   g <- getClass("supply")
   yy <- names(g@slots)[sapply(names(g@slots), function(y) {
     g@slots[[y]] ==
@@ -247,7 +249,7 @@ print.technology <- function(x, ...) {
   # if (x@type!='') cat('type: ', x@type, '\n')
   if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
   if (x@cap2act != "") cat("cap2act: ", x@cap2act, "\n")
-  if (!is.null(x@region)) cat('region: "', paste(x@region, collapse = '", "'), '"\n', sep = "")
+  if (length(x@region)) cat('region: "', paste(x@region, collapse = '", "'), '"\n', sep = "")
   # if(!is.null(x@reporting_years)) cat('reporting period: ', x@reporting_years, '\n')
   for (i in .technology_data_frame()) if_print_data_frame(x, i)
 }

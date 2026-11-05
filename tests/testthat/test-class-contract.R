@@ -200,6 +200,75 @@ test_that("newScenario reads what it documents and refuses the rest", {
 })
 
 # --------------------------------------------------------------------------- #
+# 5b. the validity rule: constructors valid, prototypes drafts
+#
+# Priority 2 item 7 asked the package to choose one rule and document it; the
+# ruling (2026-11-05) is the one in `?energyRt-validity`: a public constructor
+# returns an object `validObject()` accepts, while a bare `new("<class>")`
+# prototype is an internal draft. The draft set is pinned EXACTLY, so a class
+# joins or leaves it only by a visible edit here.
+
+cc_ctor_cases <- function() list(
+  commodity  = newCommodity("CC_C", desc = "d"),
+  demand     = newDemand("CC_D", commodity = "CC_C", desc = "d"),
+  supply     = newSupply("CC_U", commodity = "CC_C", desc = "d"),
+  technology = newTechnology("CC_T", desc = "d", output = list(comm = "CC_C")),
+  storage    = newStorage("CC_G", desc = "d", commodity = "CC_C"),
+  trade      = newTrade("CC_R", desc = "d", commodity = "CC_C"),
+  weather    = newWeather("CC_W", desc = "d"),
+  constraint = suppressWarnings(newConstraint("CC_K", desc = "d")),
+  costs      = suppressWarnings(newCosts("CC_O", variable = "vTechCap",
+                                         desc = "d")),
+  tax        = newTax("CC_X", desc = "d", comm = "CC_C"),
+  subsidy    = newSubsidy("CC_B", desc = "d", comm = "CC_C"),
+  horizon    = newHorizon(2025),
+  calendar   = energyRt::calendars$annual,
+  repository = newRepository("cc_rp"),
+  model      = cc_model(),
+  scenario   = newScenario("CC_SV", path = NULL)
+)
+
+test_that("every public constructor returns a valid object", {
+  bad <- character(0)
+  for (nm in names(cc_ctor_cases())) {
+    o <- cc_ctor_cases()[[nm]]
+    ok <- tryCatch({ validObject(o); TRUE }, error = function(e) {
+      bad <<- c(bad, paste0(nm, ": ", conditionMessage(e))); FALSE })
+    expect_s4_class(o, nm)
+  }
+  expect_equal(bad, character(0))
+})
+
+test_that("the prototypes that are drafts are exactly the documented ones", {
+  # every class with a prototype, so a newly invalid one cannot hide
+  classes <- c("commodity", "demand", "supply", "import", "export",
+               "technology", "storage", "trade", "weather", "constraint",
+               "costs", "tax", "subsidy", "horizon", "calendar", "config",
+               "settings", "repository", "model", "scenario", "modInp",
+               "modOut")
+  drafts <- character(0)
+  for (cl in classes) {
+    p <- tryCatch(new(cl), error = function(e) NULL)
+    expect_s4_class(p, cl)
+    if (is.null(p)) next
+    if (!isTRUE(tryCatch({ validObject(p); TRUE }, error = function(e) FALSE)))
+      drafts <- c(drafts, cl)
+  }
+  # `scenario` alone: its `model`/`settings`/`modInp`/`modOut` slots are NULL
+  # in the prototype because valid empties cost ~360 ms at package load.
+  # Four classes left this set on 2026-11-05, all the same one-line defect --
+  # a NULL prototype in a "character" slot: `config@region`,
+  # `trade@commodity`, `constraint@name` and `costs@name`.
+  expect_equal(drafts, "scenario")
+})
+
+test_that("a default config and model are valid", {
+  expect_true(isTRUE(validObject(new("config"))))
+  expect_true(isTRUE(validObject(new("model"))))
+  expect_equal(as.character(new("config")@region), character(0))
+})
+
+# --------------------------------------------------------------------------- #
 # 6. empty names
 
 test_that("an empty name warns for a storable brick and not for a container", {

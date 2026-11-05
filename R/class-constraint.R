@@ -46,7 +46,9 @@ setClass("constraint",
     # parameter= list() # For the future
   ),
   prototype(
-    name = NULL,
+    # `character()`, not NULL: the slot is typed "character", so a NULL
+    # prototype made a default constraint fail `validObject()`.
+    name = character(),
     desc = "", # desc
     eq = factor("==", levels = c(">=", "<=", "==")),
     for.each = data.frame(),
