@@ -77,7 +77,7 @@ topia_model <- list(
 )
 
 stopifnot(
-  length(topia_model$regions) == 11L,
+  length(topia_model$regions) == 12L,
   methods::is(topia_model$repo, "repository"),
   length(getObject(topia_model$repo)) > 0L
 )

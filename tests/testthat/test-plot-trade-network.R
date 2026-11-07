@@ -47,14 +47,14 @@ test_that("routes declared at different levels are all drawn by default", {
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("geoscales")
   gs <- topia$geoscales$honeycomb
-  tr <- list(mk_trade("T_ELC", "ELC", "W1", "W2", 1000),
-             mk_trade("T_GAS", "GAS", "WEST", "CENTRAL", 500))
+  tr <- list(mk_trade("T_ELC", "ELC", "R01", "R03", 1000),
+             mk_trade("T_GAS", "GAS", "NW", "NE", 500))
 
   p <- plot_trade_network(tr, map = gs)
   expect_s3_class(p, "ggplot")
   lk <- p$plot_env$links
   expect_setequal(unique(lk$comm), c("ELC", "GAS"))
-  expect_setequal(c(lk$a, lk$b), c("W1", "W2", "WEST", "CENTRAL"))
+  expect_setequal(c(lk$a, lk$b), c("R01", "R03", "NW", "NE"))
 
   # naming one level is still honoured, and still says what it dropped
   expect_warning(p1 <- plot_trade_network(tr, map = gs, level = "region"),

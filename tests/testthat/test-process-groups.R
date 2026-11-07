@@ -12,7 +12,7 @@ skip_if_no_clustering <- function() {
 # Four regions over two zones: W1+W2 (WEST) and C1+C2 (CENTRAL), each pair
 # adjacent on the honeycomb layout. Two archetypes per zone, so k = 2 collapses
 # each zone to one and k = 4 keeps them all.
-cr_regions <- c("W1", "W2", "C1", "C2")
+cr_regions <- c("R01", "R03", "R08", "R09")
 cr_par <- data.frame(region = cr_regions,
                      eff = c(0.42, 0.33, 0.41, 0.34),
                      invcost = c(1000, 1500, 1020, 1480))
@@ -22,12 +22,13 @@ cr_geoscale <- function() {
 }
 
 cr_model <- function(with_trade = TRUE) {
-  cal <- topia$modules$calendars$topia_seasons
-  # `topia$demand` carries one shape PER REGION since 0.92, so a calendar
-  # filter alone returns eleven of them and every timeslice repeats. This
-  # fixture wants a single reference shape to scale by `lvl`.
-  shape <- topia$demand[topia$demand$calendar == "topia_seasons" &
-                          topia$demand$region == "C1", ]
+  # A 12-slice CATALOGUE calendar, so the fixture is small and independent of
+  # what TOPIA ships (which is `s4_h24` and `d365_h24` only). The shape is
+  # built here rather than borrowed, for the same reason.
+  cal <- energyRt::calendars$s4_hp3
+  shape <- topia_profile("sine", calendar = cal)
+  names(shape)[names(shape) == "value"] <- "load"
+  shape$load <- 0.6 + 0.8 * shape$load
   tt <- as.data.frame(cal@timetable)
   shape$share <- tt$share[match(shape$timeslice, tt$timeslice)]
   shape$w <- shape$load * shape$share
@@ -63,7 +64,7 @@ cr_model <- function(with_trade = TRUE) {
   })
   # ample, lossless links INSIDE each zone: that is what makes the fine model
   # already pooled, and the 1:1 invariant a test of the parameter carry-over
-  trades <- if (with_trade) lapply(list(c("W1", "W2"), c("C1", "C2")), function(p)
+  trades <- if (with_trade) lapply(list(c("R01", "R03"), c("R08", "R09")), function(p)
     newTrade(paste0("TBD_", p[1], "_", p[2]), commodity = "ELC",
              routes = data.frame(src = p, dst = rev(p)),
              trade = data.frame(src = p, dst = rev(p), teff = 1),
@@ -100,7 +101,7 @@ cr_graded <- function() {
     af = data.frame(cluster = c("GOOD", "POOR"), af.up = c(0.45, 0.25)),
     olife = data.frame(olife = 25))
   mod <- newModel("CRG", region = cr_regions,
-                  calendar = topia$modules$calendars$topia_seasons,
+                  calendar = energyRt::calendars$s4_hp3,
                   horizon = newHorizon(2025), discount = 0.05,
                   data = newRepository("crg", list(
                     newCommodity("WIN", unit = "PJ"),
@@ -129,7 +130,7 @@ test_that("groups are formed by STRUCTURE, not by name", {
   # a gas plant has a different input, so it is a different family however
   # similar its costs -- a cluster is a variant of the SAME process
   gas <- newTechnology("EGAS_W1", input = list(comm = "GAS", unit = "PJ"),
-                       output = list(comm = "ELC", unit = "PJ"), region = "W1")
+                       output = list(comm = "ELC", unit = "PJ"), region = "R01")
   # `add()` appends a NEW repository rather than growing the first, so this
   # also pins that discovery reads every repository, not just `@data[[1]]`
   mod2 <- add(add(mod, newCommodity("GAS", unit = "PJ")), gas)
@@ -224,17 +225,17 @@ test_that("one cluster per coarse region is plain aggregation", {
   m <- aggregate_model_regions(mod, level = "zone", clusters = list(ECOA = 2), verbose = FALSE)
   tech <- getObject(m, name = "ECOA", drop = TRUE)
   expect_equal(nrow(tech@cluster), 2L)
-  expect_setequal(tech@cluster$region, c("WEST", "CENTRAL"))
+  expect_setequal(tech@cluster$region, c("NW", "NE"))
   # the merged object replaces the four originals
   expect_false(any(paste0("ECOA_", cr_regions) %in% names(m@data[[1]]@data)))
 
   # the efficiency of each cluster is the weighted mean of its members, and
   # with one cluster per zone that is the pair's mean
-  west <- tech@ceff$cinp2use[tech@ceff$region == "WEST"]
-  w <- vapply(c("W1", "W2"), function(r)
+  west <- tech@ceff$cinp2use[tech@ceff$region == "NW"]
+  w <- vapply(c("R01", "R03"), function(r)
     getObject(mod, name = paste0("ECOA_", r), drop = TRUE)@capacity$cap.up[1],
     numeric(1))
-  e <- cr_par$eff[match(c("W1", "W2"), cr_par$region)]
+  e <- cr_par$eff[match(c("R01", "R03"), cr_par$region)]
   expect_equal(west, sum(e * w) / sum(w), tolerance = 1e-8)
   # ... and that is NOT the unweighted mean, which is the point of weighting
   expect_false(isTRUE(all.equal(west, mean(e), tolerance = 1e-8)))
@@ -353,7 +354,7 @@ test_that("clusters = NULL never enters the clustering path", {
   # is turned into a cluster
   expect_true(all(paste0("ECOA_", cr_regions) %in% names(plain@data[[1]]@data)))
   expect_setequal(unique(getObject(plain, name = "ECOA_W1",
-                                   drop = TRUE)@invcost$region), "WEST")
+                                   drop = TRUE)@invcost$region), "NW")
 })
 
 # Covers the R API: aggregate_model_regions(clusters=), get_process_groups()
@@ -411,8 +412,8 @@ test_that("each family is clustered on its OWN parameters", {
   }
   # coal's spread is inside WEST, gas's inside CENTRAL: at k = 3 each family
   # keeps its own zone's two archetypes and merges the other zone
-  expect_equal(split_zone(cl$ECOA$crosswalk), "WEST")
-  expect_equal(split_zone(cl$EGAS$crosswalk), "CENTRAL")
+  expect_equal(split_zone(cl$ECOA$crosswalk), "NW")
+  expect_equal(split_zone(cl$EGAS$crosswalk), "NE")
 
   # and the sweeps disagree about where the structure is, which is why k is
   # named per family
@@ -445,11 +446,11 @@ test_that("a pre-existing cluster dimension composes, it is not averaged away", 
   got <- t@invcost
   expect_setequal(got$cluster,
                   paste(rep(c("GOOD", "POOR"), each = 4),
-                        c("W1", "W2", "C1", "C2"), sep = "_"))
-  expect_equal(got$invcost[match(paste0("GOOD_", c("W1", "W2", "C1", "C2")),
+                        c("R01", "R03", "R08", "R09"), sep = "_"))
+  expect_equal(got$invcost[match(paste0("GOOD_", c("R01", "R03", "R08", "R09")),
                                  got$cluster)],
                c(1200, 1500, 1250, 1240))
-  expect_equal(got$invcost[match(paste0("POOR_", c("W1", "W2", "C1", "C2")),
+  expect_equal(got$invcost[match(paste0("POOR_", c("R01", "R03", "R08", "R09")),
                                  got$cluster)],
                c(900, 1100, 950, 940))
 
@@ -502,7 +503,7 @@ test_that("as = 'objects' is the same problem in a different shape", {
   expect_true(all(paste0("ECOA_", cr_regions) %in% names(obj@data[[1]]@data)))
   w1 <- getObject(obj, name = "ECOA_W1", drop = TRUE)
   expect_equal(nrow(w1@cluster), 0L)
-  expect_equal(unique(w1@invcost$region), "WEST")
+  expect_equal(unique(w1@invcost$region), "NW")
 
   skip_if_no_solver()
   expect_equal(cr_solve(obj, "CRASOBJ"), cr_solve(cls, "CRASCLS"),
@@ -586,7 +587,7 @@ cr_graded_vintage <- function() {
     invcost = grid[, c("region", "cluster", "vintage", "invcost")])
 
   mod <- newModel("CRGV", region = cr_regions,
-                  calendar = topia$modules$calendars$topia_seasons,
+                  calendar = energyRt::calendars$s4_hp3,
                   horizon = newHorizon(2025, 2050), discount = 0.05,
                   data = newRepository("crgv", list(
                     newCommodity("WIN", unit = "PJ"),
@@ -623,7 +624,7 @@ test_that("cluster and vintage compose independently of the region grouping", {
 
   # each cluster still sits in the zone its member came from
   expect_equal(unique(got$region[startsWith(as.character(got$cluster), "GOOD_W")]),
-               "WEST")
+               "NW")
 })
 
 # Covers the R API: aggregate_model_regions(clusters=)
@@ -671,7 +672,7 @@ cr_supply_span <- function() {
                                      cost = unname(sup_cost),
                                      ava.up = unname(sup_ava)))
   mod <- newModel("CRS", region = cr_regions,
-                  calendar = topia$modules$calendars$topia_seasons,
+                  calendar = energyRt::calendars$s4_hp3,
                   horizon = newHorizon(2025), discount = 0.05,
                   data = newRepository("crs", list(
                     newCommodity("COA", unit = "PJ"),
@@ -710,9 +711,9 @@ test_that("clustering a supply keeps the tranches plain aggregation averages", {
                                              verbose = FALSE),
                      name = "SUP1", drop = TRUE)@supply
   expect_equal(nrow(plain), 2L)
-  expect_equal(plain$cost[plain$region == "WEST"],
+  expect_equal(plain$cost[plain$region == "NW"],
                (2.0 * 100 + 5.0 * 40) / 140)        # capacity-weighted
-  expect_equal(plain$ava.up[plain$region == "WEST"], 140)   # extensive: summed
+  expect_equal(plain$ava.up[plain$region == "NW"], 140)   # extensive: summed
 
   # 1:1 clusters: every tranche survives with its own cost and quantity
   o <- getObject(aggregate_model_regions(mod, level = "zone",
@@ -722,9 +723,9 @@ test_that("clustering a supply keeps the tranches plain aggregation averages", {
   expect_equal(nrow(o@cluster), 4L)
   expect_setequal(o@cluster$cluster, cr_regions)
   got <- o@supply
-  expect_equal(got$cost[match("W1", got$cluster)], 2.0)
-  expect_equal(got$cost[match("W2", got$cluster)], 5.0)
-  expect_equal(got$ava.up[match("W2", got$cluster)], 40)
+  expect_equal(got$cost[match("R01", got$cluster)], 2.0)
+  expect_equal(got$cost[match("R03", got$cluster)], 5.0)
+  expect_equal(got$ava.up[match("R03", got$cluster)], 40)
 
   # k = 2 is the plain answer again, now carried as one cluster per zone
   o2 <- getObject(aggregate_model_regions(mod, level = "zone",
@@ -747,7 +748,7 @@ test_that("a storage clusters with its part-keyed columns intact", {
                capacity = data.frame(region = r, stg.cap.up = cap[[r]]),
                seff = data.frame(region = r, stgeff = 0.9)))
   mod <- newModel("CRT", region = cr_regions,
-                  calendar = topia$modules$calendars$topia_seasons,
+                  calendar = energyRt::calendars$s4_hp3,
                   horizon = newHorizon(2025), discount = 0.05,
                   data = newRepository("crt", c(
                     list(newCommodity("ELC", unit = "PJ",
@@ -763,7 +764,7 @@ test_that("a storage clusters with its part-keyed columns intact", {
                                          verbose = FALSE),
                  name = "STG", drop = TRUE)
   expect_equal(nrow(o@cluster), 4L)
-  expect_equal(o@invcost$stg.invcost[match("W2", o@invcost$cluster)], 900)
+  expect_equal(o@invcost$stg.invcost[match("R03", o@invcost$cluster)], 900)
 
   # at k = 2 the part-prefixed columns obey their own kind: a capacity SUMS,
   # a cost takes the capacity-weighted mean

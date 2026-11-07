@@ -118,10 +118,10 @@ test_that("family tax-subsidy: a levy charges each flow once, at its own level",
   m <- as.data.frame(get_data_slot(scen@modInp@parameters$mTaxCost))
   reg <- function(l) sort(unique(as.character(m$region[m$levy == l])))
   # CO2 is balanced at the regions, COA at the zones; ECOA runs in the regions
-  expect_identical(reg("TCO2"), c("C1", "W1", "W2"))
-  expect_identical(reg("TCOA"), c("CENTRAL", "WEST"))
-  expect_identical(reg("TP"), c("C1", "W1", "W2"))
+  expect_identical(reg("TCO2"), c("R08", "R01", "R03"))
+  expect_identical(reg("TCOA"), c("NE", "NW"))
+  expect_identical(reg("TP"), c("R08", "R01", "R03"))
   expect_error(suppressMessages(suppressWarnings(interpolate_model(mod,
-    newTax("TX", comm = "COA", region = "W1", tax = data.frame(inp = 1)),
+    newTax("TX", comm = "COA", region = "R01", tax = data.frame(inp = 1)),
     name = "ts_off", verbose = FALSE))), "balanced at")
 })

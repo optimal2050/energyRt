@@ -205,14 +205,14 @@ test_that("topia ships one Geoscale per layout, sharing one hierarchy", {
   g0 <- topia$geoscales$honeycomb
   expect_equal(geoscales::geoscale_geoframes(g0), c("nation", "zone", "region"))
   expect_setequal(geoscales::geoscale_regions(g0, "region"),
-                  c("W1", "W2", paste0("C", 1:6), paste0("E", 1:3)))
-  # zone-prefixed codes: the zone is readable from the name alone
-  expect_equal(geoscales::geoscale_children(g0, "zone", "WEST"),
-               c("W1", "W2"))
-  expect_equal(geoscales::geoscale_children(g0, "zone", "EAST"),
-               c("E1", "E2", "E3"))
+                  sprintf("R%02d", 1:12))
+  # four zones of three, in the canonical order
+  expect_equal(geoscales::geoscale_children(g0, "zone", "NW"),
+               c("R01", "R02", "R03"))
+  expect_equal(geoscales::geoscale_children(g0, "zone", "SE"),
+               c("R10", "R11", "R12"))
   expect_equal(geoscales::geoscale_weights(g0), "area")
-  expect_equal(nrow(geoscales::geoscale_geometry(g0, "zone")), 3L)
+  expect_equal(nrow(geoscales::geoscale_geometry(g0, "zone")), 4L)
 
   # The four layouts differ ONLY in the polygons they carry. `area` is measured
   # from those, so compare the hierarchy columns and leave it out.
@@ -223,7 +223,7 @@ test_that("topia ships one Geoscale per layout, sharing one hierarchy", {
     expect_s3_class(gs, "geoscales::GeoScale")
     expect_equal(geoscales::geoscale_leaftable(gs)[, cols], ref,
                  label = paste0("hierarchy of ", nm))
-    expect_equal(length(geoscales::geoscale_geometry(gs, "region")$region), 11L,
+    expect_equal(length(geoscales::geoscale_geometry(gs, "region")$region), 12L,
                  label = paste0("features in ", nm))
   }
 })
@@ -292,16 +292,15 @@ test_that("a shipped geoscale subsets to a model's regions", {
   # `topia_geoscale(region =)` was removed in 0.91; subsetting is now the
   # geoscales verb, which keeps the geometry and the `area` weight
   full <- topia$geoscales$honeycomb
-  # the kits are PREFIXES of the west-to-east order, so a 3-region model
-  # spans WEST and the first CENTRAL region
-  gs <- geoscales::filter_geoscale(full, "region", c("W1", "W2", "C1"))
-  expect_setequal(geoscales::geoscale_regions(gs, "region"), c("W1", "W2", "C1"))
-  expect_setequal(geoscales::geoscale_regions(gs, "zone"), c("WEST", "CENTRAL"))
+  # a subset that spans two zones: the whole NW plus one SW region
+  gs <- geoscales::filter_geoscale(full, "region", c("R01", "R03", "R08"))
+  expect_setequal(geoscales::geoscale_regions(gs, "region"), c("R01", "R03", "R08"))
+  expect_setequal(geoscales::geoscale_regions(gs, "zone"), c("NW", "SW"))
   expect_equal(geoscales::geoscale_weights(gs), "area")
   expect_equal(length(geoscales::geoscale_geometry(gs, "region")$region), 3L)
 
-  gsw <- geoscales::filter_geoscale(full, "region", c("W1", "W2"))
-  expect_equal(geoscales::geoscale_regions(gsw, "zone"), "WEST")
+  gsw <- geoscales::filter_geoscale(full, "region", c("R01", "R03"))
+  expect_equal(geoscales::geoscale_regions(gsw, "zone"), "NW")
   expect_error(geoscales::filter_geoscale(full, "region", "R99"))
 })
 
@@ -317,7 +316,7 @@ test_that("plot_map delegates drawing to geoscales::geoscale_plot", {
   skip_if(!("palette" %in% names(formals(geoscales::geoscale_plot))),
           "installed geoscales predates the geoscale_plot() enrichment")
 
-  regs <- c("W1", "W2")
+  regs <- c("R01", "R03")
   mod <- setGeoscale(vt_model(name = "gm", regions = regs),
                      geoscales::filter_geoscale(topia$geoscales$honeycomb,
                                                 "region", regs))
@@ -347,8 +346,8 @@ test_that("plot_trade_map keeps working on a CRS-less map", {
   skip_if_not_installed("sf")
   skip_if_not_installed("ggplot2")
   trd <- newTrade("TRD", commodity = "ELC",
-                  routes = data.frame(src = c("W1", "W2"),
-                                      dst = c("W2", "C5")))
+                  routes = data.frame(src = c("R01", "R03"),
+                                      dst = c("R03", "R06")))
   # a plain `sf` straight out of the geoscale: no `x`/`y` columns, so this
   # also pins that plot_trade_map() derives the label anchors itself
   m <- geoscales::geoscale_geometry(topia$geoscales$honeycomb, "region")
@@ -364,8 +363,8 @@ test_that("plot_trade_map draws sf layers when the map has a CRS", {
   skip_if_not_installed("sf")
   skip_if_not_installed("ggplot2")
   trd <- newTrade("TRD", commodity = "ELC",
-                  routes = data.frame(src = c("W1", "W2"),
-                                      dst = c("W2", "C5")))
+                  routes = data.frame(src = c("R01", "R03"),
+                                      dst = c("R03", "R06")))
   m <- geoscales::geoscale_geometry(topia$geoscales$honeycomb, "region")
   sf::st_crs(m) <- 4326
   p <- plot_trade_map(trd, map = m)
@@ -381,16 +380,16 @@ test_that("plot_trade_map accepts a Geoscale and a coarser level", {
   skip_if_not_installed("ggplot2")
   gs <- topia$geoscales$honeycomb
   trd <- newTrade("TRD", commodity = "ELC",
-                  routes = data.frame(src = c("W1", "C4"),
-                                      dst = c("W2", "E2")))
+                  routes = data.frame(src = c("R01", "R05"),
+                                      dst = c("R03", "R12")))
   expect_s3_class(plot_trade_map(trd, map = gs), "ggplot")
 
-  # W1->W2 is inside WEST and drops out; C4->E2 crosses CENTRAL -> EAST
+  # R01->R03 is inside NW and drops out; R05->R12 crosses NE -> SE
   p <- plot_trade_map(trd, map = gs, level = "zone")
   expect_s3_class(p, "ggplot")
 
   only_internal <- newTrade("TRD2", commodity = "ELC",
-                            routes = data.frame(src = "W1", dst = "W2"))
+                            routes = data.frame(src = "R01", dst = "R03"))
   expect_message(plot_trade_map(only_internal, map = gs, level = "zone"),
                  "cross a boundary")
 })

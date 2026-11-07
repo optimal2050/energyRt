@@ -46,8 +46,13 @@ set_default_solver(solver_options$julia_highs)
 Two calls run every scenario in this vignette: `interpolate_model()` expands
 the model over regions, years and timeslices; `solve_scenario()` writes the solver
 files, runs the default solver (set once above) and reads the solution.
-`echo = FALSE` keeps the solver log out of the page — drop it to watch GLPK
-work.
+`echo = FALSE` keeps the solver log out of the page — drop it to watch the
+solver work.
+
+The horizon marks 2025 as its base year, so each scenario is **two** solves and
+not one: the base year on its own, then the projection that starts from it.
+`solve_base_year()` does the first, and `base_year_scenario =` hands its result
+to the second.
 
 # The TOPIA model
 
@@ -72,10 +77,40 @@ mod <- newModel("TOPIA", data = topia_elc$repo,
                 region = topia_elc$regions,
                 horizon = horizon_BY2025_50_by10, discount = 0.05)
 mod <- setGeoscale(mod, topia_elc$geoscale)
-scen_BASE <- interpolate_model(mod, name = "BASE", verbose = TRUE, check = TRUE)
+```
+
+## The base year
+
+2025 is given, not chosen, so it is solved by itself. `solve_base_year()`
+slices the base year out of the horizon, switches endogenous retirement off --
+an observed retirement is data -- and returns the solved scenario together
+with the ledger of what it decided.
+
+A well-stated base year builds nothing: every generator standing in 2025 is
+already in the fleet. New capacity here means the input data understates the
+system, and capacity left idle means it overstates it.
+
+```{r base-year}
+by <- solve_base_year(mod, name = "BY2025", echo = FALSE)
+getData(by, "vObjective", merge = TRUE)   # the base year's own cost, MUSD
+
+# nothing should appear here
+new_by <- getData(by, "vTechNewCap", merge = TRUE)
+new_by[new_by$value > 1e-6, ]
+```
+
+## The projection
+
+`base_year_scenario =` carries the base year forward: what it decided becomes
+exogenous stock, and the solved years are 2030, 2040 and 2050.
+
+```{r projection}
+scen_BASE <- interpolate_model(mod, name = "BASE", base_year_scenario = by,
+                               verbose = TRUE, check = TRUE)
+scen_BASE@modInp@sets$year                # 2030, 2040, 2050
 
 scen_BASE <- solve_scenario(scen_BASE, echo = TRUE)
-getData(scen_BASE, "vObjective", merge = TRUE) # total system cost, MUSD
+getData(scen_BASE, "vObjective", merge = TRUE) # projection cost, MUSD
 ```
 
 The regions are wired west to east with bi-directional transmission links
@@ -275,20 +310,26 @@ autoplot(scen_BASE, "generation", timeslice = "^SUM_")
 # Scenarios: layering the levers
 
 Each scenario adds a pre-built lever to the base model. The pattern is always
-`interpolate_model(mod, name, LEVER)` then `solve_scenario()`:
+`interpolate_model(mod, name, LEVER, base_year_scenario = by)` then
+`solve_scenario()`. Every scenario starts from the same base year: 2025 is an
+observation, so a lever cannot change it.
 
 ```{r scenarios}
 # emissions cap
-scen_CO2CAP <- interpolate_model(mod, "CO2CAP", topia_elc$CO2_CAP) |>
+scen_CO2CAP <- interpolate_model(mod, "CO2CAP", topia_elc$CO2_CAP,
+                                 base_year_scenario = by) |>
   solve_scenario(echo = FALSE)
 # carbon tax
-scen_CTAX <- interpolate_model(mod, "CARBONTAX", topia_elc$CT_CO2) |>
+scen_CTAX <- interpolate_model(mod, "CARBONTAX", topia_elc$CT_CO2,
+                               base_year_scenario = by) |>
   solve_scenario(echo = FALSE)
 # early fossil retirement
-scen_ERET <- interpolate_model(mod, "EARLY_RET", topia_elc$EARLY_RET) |>
+scen_ERET <- interpolate_model(mod, "EARLY_RET", topia_elc$EARLY_RET,
+                               base_year_scenario = by) |>
   solve_scenario(echo = FALSE)
 # renewable-backed hydrogen
-scen_GRN <- interpolate_model(mod, "GREEN_H2", topia_elc$GREEN_H2) |>
+scen_GRN <- interpolate_model(mod, "GREEN_H2", topia_elc$GREEN_H2,
+                              base_year_scenario = by) |>
   solve_scenario(echo = FALSE)
 ```
 

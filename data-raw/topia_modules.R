@@ -34,28 +34,15 @@ res_share_lever <- function(years, growth, annual_demand, nreg,
 
 # Assemble a complete TOPIA electricity kit for `regions` on `calendar`.
 # ── TOPIA's own calendars ────────────────────────────────────────────────────
-# energyRt ships GENERIC calendars only (data-raw/calendars.R). These two are
-# TOPIA's, so they travel with the model instead: `topia_seasons` in
-# `$calendars`, the symmetric unit calendars in `$unit$calendars`.
+# energyRt ships GENERIC calendars only (data-raw/calendars.R); the symmetric
+# unit calendars below are TOPIA's and travel with the model.
 #
-# `topia_seasons` is a STYLISED teaching structure, not a catalog calendar: its
-# seasons are equal quarters rather than real day counts, and the daypart split
-# varies by season (long winter nights, long summer days), which encodes a
-# latitude. The catalog's `s4_hp3` is the regular twin -- day-proportional
-# seasons, a uniform 12/8/4 split -- and carries no such assumption.
-topia_seasons <- newCalendar(
-  make_timetable(list(
-    SEASON = list(
-      WIN = list(1 / 4, HOUR = list(DAY =  9 / 24, NGT = 12 / 24, PK = 3 / 24)),
-      SPR = list(1 / 4, HOUR = list(DAY = 11 / 24, NGT = 11 / 24, PK = 2 / 24)),
-      SUM = list(1 / 4, HOUR = list(DAY = 12 / 24, NGT =  9 / 24, PK = 3 / 24)),
-      FAL = list(1 / 4, HOUR = list(DAY = 11 / 24, NGT = 11 / 24, PK = 2 / 24))
-    )
-  )),
-  name = "topia_seasons",
-  desc = "TOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK), 12 timeslices"
-)
-
+# TOPIA runs on TWO calendars: `s4_h24`, which the kits and the shipped model
+# use, and `d365_h24`, which the measured sample profiles are served at. The
+# stylised `topia_seasons` was retired to `drafts/topia_seasons_calendar.R` --
+# it had no HOUR level, and `ELC` is declared at `HOUR`, so nothing could run
+# on it -- and `m12_h24` left with it, hourly-capable but unused.
+#
 # Every share is a power of 1/4, so weights are exactly 4 (and 16) and the unit
 # kits' objectives come out as small integers. No catalog entry can serve this:
 # timescales' `s4` is day-proportional (0.2466/0.2521/0.2521/0.2493).
@@ -76,9 +63,7 @@ unit_calendars <- list(
 )
 
 # name -> object for the builders below: the shipped generic list plus TOPIA's
-topia_calendars <- c(calendars,
-                     list(topia_seasons = topia_seasons),
-                     unit_calendars)
+topia_calendars <- c(calendars, unit_calendars)
 
 # ── resource geography ───────────────────────────────────────────────────────
 # Each resource is CONCENTRATED rather than spread evenly: one zone dominates
@@ -92,23 +77,38 @@ topia_calendars <- c(calendars,
 # the commodity's own level. Hydro is an hourly region-level resource, and
 # nuclear is restricted by the plant's own `@region`.
 #
-# Caps are per region OF THE ZONE, so a layout that reaches further east gets a
-# proportionally larger pool; costs are USD/GJ, the same unit as the fuels'
-# import prices.
-.TOPIA_COAL      <- c(WEST = 150, CENTRAL = 40)     # PJ/yr per region of zone
-.TOPIA_COAL_COST <- c(WEST = 1.8, CENTRAL = 2.8)    # USD/GJ
-.TOPIA_GAS       <- c(EAST = 120, WEST = 25)
-.TOPIA_GAS_COST  <- c(EAST = 4.0, WEST = 6.0)
+# Caps are per region OF THE ZONE, so a layout that reaches further into a zone
+# gets a proportionally larger pool; costs are USD/GJ, the same unit as the
+# fuels' import prices.
+#
+# The endowment follows the twelve-region design: the lignite basin is `R08`
+# in `SW`, so coal is cheapest there; domestic gas is `R03`'s shale in `NW`.
+# Because gas is pooled at the ZONE, `R01` -- which carries no transmission at
+# all -- can draw fuel from the `NW` pool even though no wire reaches it, and
+# must then convert it locally. That is the one import an island can have.
+.TOPIA_COAL      <- c(SW = 150, NE = 40)            # PJ/yr per region of zone
+.TOPIA_COAL_COST <- c(SW = 1.8, NE = 2.8)           # USD/GJ
+.TOPIA_GAS       <- c(NW = 120, SE = 25)
+.TOPIA_GAS_COST  <- c(NW = 4.0, SE = 6.0)
 
 # Where the dispatchable fleets and the free resources sit. A region absent
 # from a table gets `base` (thermal) or nothing at all (hydro, nuclear).
-.TOPIA_NUC_REGIONS <- "C1"
-.TOPIA_NUC_GW      <- c(C1 = 4)                     # base-year nuclear, GW
-.TOPIA_HYD_GW      <- c(C4 = 12, E1 = 6, C1 = 3)    # legacy reservoir hydro
-# C4 dominates the hydro; the small C1 plant is what keeps the three-region
-# layout (and the vignette built on it) able to show an hourly resource
-.TOPIA_COAL_GW     <- c(W1 = 8, W2 = 4, C5 = 3)     # elsewhere 1 GW
-.TOPIA_GAS_GW      <- c(E2 = 6, E3 = 4, E1 = 2, C6 = 2, W2 = 2)
+.TOPIA_NUC_REGIONS <- "R04"
+.TOPIA_NUC_GW      <- c(R04 = 4)                    # base-year nuclear, GW
+# Reservoir inflow: `R05` is the mountain reservoir, `R07` the run-of-river
+# valley. `R01` has no inflow -- its hydro is a PUMPED store, which is a
+# storage object and not a resource.
+.TOPIA_HYD_GW      <- c(R05 = 12, R07 = 6)          # legacy reservoir hydro
+.TOPIA_COAL_GW     <- c(R08 = 8, R09 = 4, R06 = 3)  # elsewhere 1 GW
+# Sized against the base-year solve: a plant that runs no hour in 2025 is an
+# assumption, not a fleet, so the coal, hydro and import regions carry none.
+.TOPIA_GAS_GW      <- c(R03 = 6, R01 = 4, R02 = 2, R11 = 1, R12 = 1,
+                        R04 = 1, R05 = 1, R06 = 1,
+                        R07 = 0, R08 = 0, R09 = 0, R10 = 0)
+
+# Pumped storage sits where there is head: the mountain reservoir, and the
+# island that has to ride through a night on its own.
+.TOPIA_PSP_GW      <- c(R05 = 4, R01 = 2)
 
 build_topia <- function(regions = .topia_regions[1:3],
                          calendar = "s4_h24",
@@ -332,13 +332,28 @@ build_topia <- function(regions = .topia_regions[1:3],
     seff = data.frame(inpeff = 0.95, outeff = 0.95))
 
   # ---- trade: electricity at the finest level, fuels at the mid level -------
-  # ELC moves region to region along the canonical west-to-east chain; COA and
-  # GAS move ZONE to zone, because that is where they are balanced. A corridor
-  # inside one zone would be a no-op: both ends would be the same balance.
+  # ELC moves region to region along the SHIPPED corridors (`topia$links`),
+  # narrowed to the regions this layout carries; COA and GAS move ZONE to
+  # zone, because that is where they are balanced. A corridor inside one zone
+  # would be a no-op: both ends would be the same balance.
+  #
+  # The corridors are read off the frozen network rather than drawn between
+  # consecutive codes. A chain over `R01`-`R12` would hand `R01` a line, and
+  # `R01` is the remote region: it has no transmission on any layout and has
+  # to meet its demand locally in every hour.
+  .pairs <- local({
+    lk <- topia_links[intersect(regions, rownames(topia_links)),
+                      intersect(regions, colnames(topia_links)),
+                      drop = FALSE]
+    w <- which(lk & upper.tri(lk), arr.ind = TRUE)
+    if (!nrow(w)) return(list())
+    lapply(seq_len(nrow(w)), function(k)
+      c(rownames(lk)[w[k, 1]], colnames(lk)[w[k, 2]]))
+  })
   trades <- list()
-  if (length(regions) > 1) {
-    for (i in seq_len(length(regions) - 1)) {
-      r1 <- regions[i]; r2 <- regions[i + 1]
+  if (length(.pairs)) {
+    for (.pr in .pairs) {
+      r1 <- .pr[1]; r2 <- .pr[2]
       trades[[length(trades) + 1L]] <- newTrade(
         name = paste("TBD_ELC", r1, r2, sep = "_"),
         desc = paste("Bidirectional transmission line", r1, "-", r2),
@@ -360,7 +375,7 @@ build_topia <- function(regions = .topia_regions[1:3],
         olife = list(olife = 50))
     }
   }
-  zchain <- intersect(c("WEST", "CENTRAL", "EAST"), zones)
+  zchain <- intersect(c("NW", "NE", "SW", "SE"), zones)
   for (i in seq_len(max(0, length(zchain) - 1))) {
     z1 <- zchain[i]; z2 <- zchain[i + 1]
     trades[[length(trades) + 1L]] <- newTrade(
@@ -619,8 +634,11 @@ build_unit <- function(regions = .topia_regions[1], calendar = "unit_s4") {
 # Horizons are named for their MILESTONES, not the period end: the `by10`
 # intervals run to 2055, but 2050 is the last year the model decides. `BY`
 # marks a one-year base year at the front.
+# `base_year = 2025` marks the first milestone as GIVEN rather than decided:
+# it is solved on its own by `solve_base_year()` and what it holds crosses into
+# the projection as stock. The projection then optimises 2030/2040/2050.
 horizon_BY2025_50_by10 <- newHorizon(
-  period = 2025:2055, intervals = c(1, 10, 10, 10),
+  period = 2025:2055, intervals = c(1, 10, 10, 10), base_year = 2025,
   name = "BY2025_50_by10",
   desc = "base year 2025, then 10-year intervals; milestones 2025/2030/2040/2050")
 horizon_BY2025 <- newHorizon(
@@ -639,19 +657,21 @@ topia_modules <- list(
   # the calendars this model uses: the generic ones it borrows, plus its own.
   # `d365_h24` is here because the measured `sample` profiles are hourly and
   # are served at no other resolution.
-  calendars = c(calendars[c("annual", "s4_h24", "m12_h24", "d365_h24")],
-                list(topia_seasons = topia_seasons)),
+  # the two calendars TOPIA runs on, and nothing else
+  calendars = calendars[c("s4_h24", "d365_h24")],
   horizons  = list(BY2025_50_by10 = horizon_BY2025_50_by10,
                    BY2025         = horizon_BY2025),
-  # Keyed `R<n>` for an n-region layout. `R11` covers the whole map; the
-  # smaller kits are PREFIXES of the canonical west-to-east order, so `R1` is
-  # the westernmost region and `R3` reaches the first CENTRAL one. (The kit
-  # KEYS stay `R<n>` -- they name a size, not a region.)
+  # Keyed `R<n>` for an n-region layout. `R12` covers the whole map; the
+  # smaller kits are PREFIXES of the canonical order, which since the
+  # twelve-region freeze means they fill up zone by zone: `R1` is the remote
+  # region alone, `R3` is the whole `NW` zone, `R7` adds `NE` and reaches the
+  # first `SW` region. (The kit KEYS stay `R<n>` -- they name a size, not a
+  # region.)
   electricity = list(
     R1  = build_topia(.topia_regions[1],     calendar = "s4_h24"),
     R3  = build_topia(.topia_regions[1:3],   calendar = "s4_h24"),
     R7  = build_topia(.topia_regions[1:7],   calendar = "s4_h24"),
-    R11 = build_topia(.topia_regions[1:11],  calendar = "s4_h24")
+    R12 = build_topia(.topia_regions[1:12],  calendar = "s4_h24")
   ),
   # Unit kits: `U<n>` layouts on the symmetric unit calendar; use with
   # `$horizons$BY2025` and `discount = 0` so the objective stays an integer.
@@ -672,10 +692,11 @@ for (cfg in names(topia_modules$electricity)) {
                   "EARLY_RET") %in% names(k)),
             methods::is(k$EWIN_SITES, "repository"),
             inherits(k$geoscale, "geoscales::GeoScale"),
-            # nuclear sits in C1 alone, so the nuclear objects exist from R3 up
-            cfg == "R1" || methods::is(k$ENUC, "technology"),
-            cfg == "R1" || methods::is(k$ENUC_VINT, "technology"),
-            # every layout spans a zone with a gas endowment (WEST or EAST)
+            # nuclear sits in R04 alone, so the nuclear objects appear at R7
+            !(cfg %in% c("R7", "R12")) || methods::is(k$ENUC, "technology"),
+            !(cfg %in% c("R7", "R12")) ||
+              methods::is(k$ENUC_VINT, "technology"),
+            # every layout spans a zone with a gas endowment (NW or SE)
             methods::is(k$GAS_CURVE, "supply"))
 }
 # `unit` also carries its own `calendars` entry, which is not a kit.

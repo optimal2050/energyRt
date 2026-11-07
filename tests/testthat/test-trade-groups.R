@@ -14,7 +14,7 @@ skip_if_no_grouping <- function() {
   testthat::skip_if_not_installed("sf")
 }
 
-tg_regions <- c("W1", "W2", "C1", "C2")
+tg_regions <- c("R01", "R03", "R08", "R09")
 
 tg_geoscale <- function() {
   geoscales::filter_geoscale(topia$geoscales$honeycomb, "region", tg_regions)
@@ -35,7 +35,7 @@ tg_corridor <- function(nm, s, d, cap, teff, react = NA_real_) {
 # chooses between them; demand sits in CENTRAL and the cheap supply in WEST,
 # so everything must cross.
 tg_model <- function(dem = 50, react = NA_real_) {
-  cal <- topia$modules$calendars$topia_seasons
+  cal <- energyRt::calendars$s4_hp3
   tt <- as.data.frame(cal@timetable)
   sh <- tt$share / sum(tt$share)
   newModel(
@@ -43,12 +43,12 @@ tg_model <- function(dem = 50, react = NA_real_) {
     discount = 0, data = newRepository("tg", list(
       newCommodity("ELC", unit = "PJ", timeframe = "HOUR"),
       newSupply("SUP", commodity = "ELC", unit = "PJ",
-                supply = data.frame(region = c("W1", "W2"), cost = 1)),
+                supply = data.frame(region = c("R01", "R03"), cost = 1)),
       newDemand("DEM", commodity = "ELC",
-                demand = data.frame(region = "C1", timeslice = tt$timeslice,
+                demand = data.frame(region = "R08", timeslice = tt$timeslice,
                                     demand = dem * sh)),
-      tg_corridor("TRD_ELC_W1__C1", "W1", "C1", 100, 0.99, react),
-      tg_corridor("TRD_ELC_W2__C1", "W2", "C1", 20, 0.90, react)))) |>
+      tg_corridor("TRD_ELC_W1__C1", "R01", "R08", 100, 0.99, react),
+      tg_corridor("TRD_ELC_W2__C1", "R03", "R08", 20, 0.90, react)))) |>
     setGeoscale(tg_geoscale())
 }
 

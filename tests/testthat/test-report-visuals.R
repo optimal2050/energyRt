@@ -114,7 +114,7 @@ test_that(".report_call_params dispatches by closure arity", {
   sol <- NULL
   function() {
     if (is.null(sol)) {
-      regs <- c("W1", "W2")
+      regs <- c("R01", "R03")
       mod <- setGeoscale(vt_model(name = "rvgeo", regions = regs),
                         geoscales::filter_geoscale(
                           topia$geoscales$honeycomb, "region", regs))
@@ -218,7 +218,7 @@ test_that("the full scenario template renders its pages", {
   skip_if_no_geoscales()
   skip_if_not_installed("sf")
   skip_if_not_installed("ggplot2")
-  regs <- c("W1", "W2")
+  regs <- c("R01", "R03")
   mod <- setGeoscale(vt_model(name = "rvfull", regions = regs),
                      geoscales::filter_geoscale(
                           topia$geoscales$honeycomb, "region", regs))
@@ -249,7 +249,7 @@ test_that("the full scenario template renders its pages", {
 test_that("the full template degrades without a geoscale", {
   .rv_skip_if_no_pandoc()
   skip_if_no_solver()
-  regs <- "W1"
+  regs <- "R01"
   sol <- vt_solve(vt_interp(vt_model(name = "rvdeg", regions = regs),
                             "rvdeg"))
   f <- suppressMessages(suppressWarnings(report(
@@ -293,7 +293,7 @@ test_that("plot_geoscale draws map, icicle, and stack", {
   skip_if_no_geoscales()
   skip_if_not_installed("ggplot2")
   gs <- geoscales::filter_geoscale(topia$geoscales$honeycomb, "region",
-                                   c("W1", "W2", "C1"))
+                                   c("R01", "R03", "R08"))
   pi_ <- plot_geoscale(gs, type = "icicle")
   expect_s3_class(pi_, "ggplot")
   skip_if_not_installed("sf")

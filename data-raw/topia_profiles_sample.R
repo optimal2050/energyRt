@@ -5,23 +5,32 @@
 #   inflow       GloFAS avg_dis, daily, five largest rivers per territory
 #   load         reneuro load_base_2025 per country, hourly
 #
-# Geography: eleven sites on a land transect from the Black Sea coast to the
-# Irish Sea. Each site owns the cells nearest it (Voronoi, 2.2 deg cap); its
-# wind and solar series are the mean of the twelve best cells in that
-# territory. One continental clock (UTC) is kept, so the 28.5 deg of longitude
-# appear as a ~1.9 h solar phase shift between the ends of the chain.
+# Geography: twelve sites. Eleven lie on a land transect from the Black Sea
+# coast to the Irish Sea; the twelfth sits well to the south-west of them, the
+# arid end of the set, and is far enough from the transect that it shares no
+# cell with it. Each site owns the cells nearest it (Voronoi, 2.2 deg cap);
+# its wind and solar series are the mean of the twelve best cells in that
+# territory -- one rule for every site, which is what keeps the resource
+# levels comparable across regions. One continental clock (UTC) is kept, so
+# longitude appears as a real solar phase shift along the chain.
+#
+# Sites are keyed by the MODEL's region codes, assigned so that each frozen
+# zone is a coherent group of archetypes: `R01`-`R03` the arid west,
+# `R04`-`R06` firm and industrial, `R07`-`R09` the resource belt, `R10`-`R12`
+# the windy end. `R01` is the remote region and carries no transmission.
 
 CFDIR <- "C:/Users/admin/Documents/R/reneuro/data-raw/cf-workflow/outputs"
 GFDIR <- "C:/Users/admin/Documents/R/reneuro/data-raw/glofas"
 LDDIR <- "C:/Users/admin/Documents/R/reneuro/projects/countries/inputs"
 
-REG <- c("W1", "W2", "C1", "C2", "C3", "C4", "C5", "C6", "E1", "E2", "E3")
+REG <- sprintf("R%02d", 1:12)
 SITE <- data.frame(
   region = REG,
-  lon = c(25.6, 22.8, 20.5, 18.0, 15.5, 13.0, 10.5, 6.0, 4.5, 0.5, -7.0),
-  lat = c(40.9, 42.7, 44.3, 45.5, 46.8, 48.0, 49.3, 50.4, 51.8, 52.4, 53.3),
-  cc = c("GR", "BG", "RS", "HR", "SI", "AT", "DE", "BE", "NL", "GB", "IE"),
+  lon = c(25.6, -4.5, 22.8,  6.0, 13.0, 10.5, 15.5, 20.5, 18.0, -7.0,  4.5,  0.5),
+  lat = c(40.9, 38.0, 42.7, 50.4, 48.0, 49.3, 46.8, 44.3, 45.5, 53.3, 51.8, 52.4),
+  cc = c("GR", "ES", "BG", "BE", "AT", "DE", "SI", "RS", "HR", "IE", "NL", "GB"),
   stringsAsFactors = FALSE)
+stopifnot(nrow(SITE) == 12L, !anyDuplicated(SITE$cc))
 MAXD <- 2.2   # deg, cap on a territory's radius
 NTOP <- 12    # best cells per territory, per resource
 NRIV <- 5     # rivers per territory
@@ -206,7 +215,7 @@ HOUR <- as.integer(format(HOURS, "%H"))
 }
 
 topia_real_profiles <- function(
-    calendars = c("d365_h24", "s4_h24", "m12_h24", "topia_seasons")) {
+    calendars = "d365_h24") {
   maps <- .cf_sites()
   W <- .cf_series("onwind", maps$onwind)
   S <- .cf_series("solar", maps$solar)

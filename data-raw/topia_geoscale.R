@@ -1,102 +1,89 @@
 # topia$geoscales + per-layout region codes ##################################
 #
-# TOPIA's hierarchy is `nation TOPIA -> zone {WEST, CENTRAL, EAST} -> region`,
-# with zone-prefixed region codes: W1-W2, C1-C6, E1-E3.
+# TOPIA's hierarchy is `nation TOPIA -> zone {NW, NE, SW, SE} -> region`, with
+# twelve regions coded `R01`-`R12`, three to a zone.
 #
-# THE POINT OF THE CODES. Every zone is a single CONTIGUOUS block on every
-# layout. The four layouts are different pictures of the same
-# model, and they draw the regions in different places, so each one carries its
-# OWN assignment of the eleven codes to its eleven polygons -- chosen so the
-# zones come out contiguous there. The model never sees the difference: it
-# knows only the codes, and `W1` is in WEST whichever layout you draw it on.
+# THE POINT OF THE CODES. Every zone is a compact group of touching
+# neighbours on every layout, never a slice of the map. The four layouts are
+# different pictures of the same model and they draw the regions in different
+# places, so each one carries its own assignment of the twelve codes to its
+# twelve polygons -- chosen so the zones come out contiguous there. The model
+# never sees the difference: it knows only the codes, and `R01` is in `NW`
+# whichever layout you draw it on.
 #
-# This replaces the pre-0.91 arrangement, where the codes were `R1`..`R11`
-# placed arbitrarily per layout and the zones were slices of the number line
-# (WEST = R1-R3, ...). Those zones were contiguous on NO layout -- 7 of the 12
-# zone x layout cells dissolved into multipolygons, which is why zone shapes
-# and `plot_trade_map(level = "zone")` label placement were fragile.
+# `R01` is the remote region. It is north-west on all four layouts, detached on
+# `squares` and `island`, and it carries no transmission at all, so its
+# endowment has to balance locally in every hour.
 #
-# HOW THE ASSIGNMENT WAS CHOSEN (frozen below; see data-raw/topia_zones.R for
-# the search that produced it):
-#   * each zone is one connected block under shared-boundary adjacency, plus
-#     one explicit sea link per layout for a region drawn offshore;
-#   * WEST sits in the western third of the map, EAST in the eastern third,
-#     and neither interleaves across CENTRAL;
-#   * blocks are as compact as possible;
-#   * CENTRAL is numbered in rows from the SOUTH, west to east inside a row,
-#     so C1 is the south-west region on every layout. A tall narrow zone
-#     (continent's EAST) is numbered north to south instead.
+# The assignment is NOT chosen here. It arrives with the polygons in
+# `data-raw/topia_geom12.rds` (`region`, `cell`, `zone`), which is the frozen
+# twelve-region geometry; `drafts/topia-v1/FROZEN.md` is its record. This
+# replaces the eleven-region arrangement with zone-prefixed codes
+# (`W1`-`W2`, `C1`-`C6`, `E1`-`E3`) and, before that, zones that were slices
+# of the number line and contiguous on no layout at all.
+#
+# NAMES ARE DEFERRED. The labels are placeholders: naming the regions is a
+# separate decision, and `drafts/topia_regions.csv` holds the proposals.
 #
 # WHAT THIS FILE SHIPS. One `geoscales::GeoScale` per layout, in
 # `topia$geoscales`. Each carries the hierarchy AND that layout's polygons, so
 # the dataset holds exactly one copy of the geometry -- there is no separate
-# `topia$map` or `topia$geo` any more (0.91 hard break).
+# `topia$map` or `topia$geo`.
 #
 # Run: pkgload::load_all(".") ; source("data-raw/topia_assemble.R")
-#      (this file is sourced by the assembler, after topia_maps.R, and uses
-#       the `map` list that file leaves behind)
+#      (sourced by the assembler, after topia_maps.R, and uses the `map` list
+#       that file leaves behind)
 
 library(sf)
 
 # -- the hierarchy ------------------------------------------------------------
-# Canonical region ORDER, west to east. It is load-bearing twice over: the
-# model kits are PREFIXES of it (`R3` = the first three), and the reference
-# transmission chain links consecutive pairs.
-.topia_regions <- c("W1", "W2", "C1", "C2", "C3", "C4", "C5", "C6",
-                    "E1", "E2", "E3")
+# Canonical region ORDER. It is load-bearing twice over: the model kits are
+# PREFIXES of it (`R3` = the first three, which is now one whole zone), and
+# the reference transmission chain links consecutive pairs.
+.topia_regions <- sprintf("R%02d", 1:12)
 
-# Human labels. Assigned to the CODES, not to a layout: the layouts disagree
-# about which polygon is which code, so a name lifted from one layout's
-# `states` column would contradict the others.
-.topia_names <- c(
-  W1 = "Oswestia", W2 = "Antidia",
-  C1 = "Kopalia",  C2 = "Kalgia", C3 = "Robatia", C4 = "Ramia",
-  C5 = "Nishi",    C6 = "Masland",
-  E1 = "Sind",     E2 = "Kumalia", E3 = "Neutrals")
+.topia_zones <- c("NW", "NE", "SW", "SE")
+
+# Zone membership is a property of the CODE, identical on every layout; the
+# geometry file states it per layout and the agreement is checked below.
+.topia_zone_of <- rep(.topia_zones, each = 3L)
+names(.topia_zone_of) <- .topia_regions
+
+# Placeholder labels -- see "NAMES ARE DEFERRED" above.
+.topia_names <- stats::setNames(
+  paste("Region", substr(.topia_regions, 2, 3)), .topia_regions)
 
 geo <- data.frame(
   nation = "TOPIA",
-  zone   = c("WEST", "CENTRAL", "EAST")[
-              match(substr(.topia_regions, 1, 1), c("W", "C", "E"))],
+  zone   = unname(.topia_zone_of[.topia_regions]),
   region = .topia_regions,
   name   = unname(.topia_names[.topia_regions]),
   stringsAsFactors = FALSE
 )
 
-# -- per-layout code assignment ----------------------------------------------
-# old `R<n>` code -> new zone-prefixed code, one column per layout.
-.topia_recode <- list(
-  squares   = c(R1 = "W2", R2 = "C1", R3 = "C2", R4 = "E1", R5 = "E2",
-                R6 = "E3", R7 = "C3", R8 = "C4", R9 = "C5", R10 = "W1",
-                R11 = "C6"),
-  honeycomb = c(R1 = "C1", R2 = "C2", R3 = "C3", R4 = "C4", R5 = "E2",
-                R6 = "W1", R7 = "W2", R8 = "C5", R9 = "E1", R10 = "E3",
-                R11 = "C6"),
-  island    = c(R1 = "C3", R2 = "C4", R3 = "C5", R4 = "E1", R5 = "W2",
-                R6 = "C1", R7 = "C2", R8 = "E2", R9 = "C6", R10 = "W1",
-                R11 = "E3"),
-  continent = c(R1 = "C1", R2 = "C2", R3 = "C3", R4 = "C5", R5 = "E2",
-                R6 = "E1", R7 = "C4", R8 = "C6", R9 = "W2", R10 = "W1",
-                R11 = "E3")
+stopifnot(
+  nrow(geo) == 12L, !anyDuplicated(geo$region), !anyNA(geo$name),
+  identical(geo$region, .topia_regions),
+  identical(sort(unique(geo$zone)), sort(.topia_zones)),
+  all(table(geo$zone) == 3L)
 )
 
-stopifnot(identical(sort(names(.topia_recode)), sort(names(map))))
-
+# -- the geometry agrees with the hierarchy ----------------------------------
 for (nm in names(map)) {
   m <- map[[nm]]
-  cur <- as.character(m$region)
-  key <- .topia_recode[[nm]]
-  # already recoded (a re-run on a rebuilt dataset) -- leave it alone
-  if (all(cur %in% .topia_regions)) next
-  stopifnot(setequal(cur, names(key)))
-  m$region <- unname(key[cur])
-  # the `states` column, where a layout has one, must follow the code
-  if ("states" %in% names(m)) m$states <- unname(.topia_names[m$region])
-  map[[nm]] <- m
+  stopifnot(
+    setequal(as.character(m$region), .topia_regions),
+    identical(unname(.topia_zone_of[as.character(m$region)]),
+              as.character(m$zone))
+  )
 }
 
-# -- verification: every zone is ONE block on EVERY layout --------------------
-.sea_link <- function(x, nbl) {           # an offshore region joins its nearest
+# -- verification: every zone is ONE block on EVERY layout -------------------
+# `R01` is alone in no zone, so a detached `R01` would split `NW`: it is
+# joined to the nearest region for THIS check only. The check is about the
+# picture being readable, not about what the model may ship, and the model
+# ships no link to `R01` at all.
+.sea_link <- function(x, nbl) {
   reg <- as.character(x$region)
   d <- st_distance(x); units(d) <- NULL
   for (i in which(lengths(nbl) == 0)) {
@@ -116,8 +103,10 @@ for (nm in names(map)) {
 }
 for (nm in names(map)) {
   x <- map[[nm]]; reg <- as.character(x$region)
-  stopifnot(setequal(reg, .topia_regions))
-  nbl <- .sea_link(x, setNames(lapply(st_touches(x), function(i) reg[i]), reg))
+  nb <- suppressMessages(suppressWarnings(
+    st_relate(x, x, pattern = "F***1****")))
+  nbl <- stats::setNames(lapply(nb, function(i) reg[i]), reg)
+  nbl <- suppressMessages(.sea_link(x, nbl))
   split_zones <- names(which(!vapply(
     split(reg, geo$zone[match(reg, geo$region)]),
     .connected, logical(1), nbl = nbl)))
@@ -126,11 +115,6 @@ for (nm in names(map)) {
       else "all contiguous"))
   stopifnot(length(split_zones) == 0L)
 }
-
-stopifnot(
-  nrow(geo) == 11L, !anyDuplicated(geo$region), !anyNA(geo$name),
-  identical(geo$region, .topia_regions)
-)
 
 # -- the shipped objects: one Geoscale per layout ----------------------------
 # The hierarchy is identical in all four; only the attached polygons differ.
@@ -147,7 +131,8 @@ topia_geoscales <- lapply(stats::setNames(nm = names(map)), function(nm) {
                   " layout), nested nation -> zone -> region"),
     labels = "name"
   )
-  gs <- geoscales::attach_geometry_geoscale(gs, map[[nm]], by = "region",
+  gs <- geoscales::attach_geometry_geoscale(gs, map[[nm]][, "region"],
+                                            by = "region",
                                             geoframe = "region")
   withCallingHandlers(
     gs <- geoscales::add_area_geoscale(gs, name = "area"),
@@ -165,14 +150,15 @@ for (nm in names(topia_geoscales)) {
     identical(geoscales::geoscale_geoframes(gs),
               c("nation", "zone", "region")),
     setequal(geoscales::geoscale_regions(gs, "region"), .topia_regions),
-    nrow(geoscales::geoscale_geometry(gs, "zone")) == 3L
+    nrow(geoscales::geoscale_geometry(gs, "zone")) == 4L
   )
 }
+
 # -- the hierarchy a MODEL is solved on --------------------------------------
-# The same nation -> zone -> region table with NO geometry: `setGeoscale()` only
-# needs the membership, and the kits narrow this to their own regions. Keeping
-# it separate means a model carries no polygons, and the four layouts' maps
-# stay the dataset's single copy of the geometry.
+# The same nation -> zone -> region table with NO geometry: `setGeoscale()`
+# only needs the membership, and the kits narrow this to their own regions.
+# Keeping it separate means a model carries no polygons, and the four layouts'
+# maps stay the dataset's single copy of the geometry.
 topia_model_geoscale <- geoscales::geoscale_from_leaftable(
   geo,
   geoframes = c("nation", "zone", "region"),

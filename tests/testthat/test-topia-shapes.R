@@ -97,10 +97,11 @@ test_that("calendar argument accepts a name, an object, or a timetable", {
 })
 
 test_that("unequal shares position the shape by cumulative share midpoints", {
-  # topia_seasons: DAY/NGT/PK shares are unequal within a season --
-  # positions must follow cumulative-share midpoints, not slice counts
-  p <- topia_profile("sine", calendar = topia$modules$calendars$topia_seasons)
-  shr <- as.data.frame(energyRt::topia$modules$calendars$topia_seasons@timeslice_share)
+  # `s4_hp3` splits each season into unequal dayparts (12/8/4 hours), so
+  # positions must follow cumulative-share midpoints, not slice counts. It is a
+  # catalogue calendar: TOPIA itself ships only `s4_h24` and `d365_h24`.
+  p <- topia_profile("sine", calendar = energyRt::calendars$s4_hp3)
+  shr <- as.data.frame(energyRt::calendars$s4_hp3@timeslice_share)
   sh <- shr$share[match(p$timeslice, shr$timeslice)]
   x <- (cumsum(sh) - sh / 2) / sum(sh)
   expect_equal(p$value, (1 + sin(2 * pi * x)) / 2)

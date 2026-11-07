@@ -66,7 +66,7 @@ topia$modules <- .e$topia_modules
 topia$modules$electricity <- .e$topia_model
 
 .fixture <- "tests/testthat/fixtures/topia_golden.rds"
-stopifnot(setequal(names(.golden), c("R1", "R3", "R7", "R11")))
+stopifnot(setequal(names(.golden), c("R1", "R3", "R7", "R12")))
 dir.create(dirname(.fixture), recursive = TRUE, showWarnings = FALSE)
 saveRDS(.golden, .fixture, compress = "xz")
 cat("golden kits written to", .fixture, "-",
@@ -78,7 +78,7 @@ stopifnot(
             c("geoscales", "links", "weather", "demand", "stock", "modules")),
   # one model, not a list of layouts
   methods::is(topia$modules$electricity$repo, "repository"),
-  length(topia$modules$electricity$regions) == 11L,
+  length(topia$modules$electricity$regions) == 12L,
   # the retiring kits are a test fixture now, not part of the dataset
   is.null(topia$modules$golden),
   all(vapply(topia$geoscales, inherits, logical(1), "geoscales::GeoScale")),

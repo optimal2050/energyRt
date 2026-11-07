@@ -23,7 +23,7 @@ ut_golden_kits <- local({
   }
 })
 
-ut_build <- function(layout = "R3", calendar = "topia_seasons", lever = NULL) {
+ut_build <- function(layout = "R3", calendar = "s4_h24", lever = NULL) {
   um <- ut_golden_kits()[[layout]]
   stopifnot(!is.null(um))
   mod <- newModel(paste0("UT_", layout),
@@ -65,7 +65,7 @@ ut_entries <- function() list(
 # frozen with make_goldens.R --suite=topia_full.
 ut_full_entries <- function() list(
   base_R7  = list(layout = "R7", calendar = "s4_h24"),
-  base_R11 = list(layout = "R11", calendar = "s4_h24")
+  base_R12 = list(layout = "R12", calendar = "s4_h24")
 )
 
 # -- unit kits (topia$modules$unit): all-unit inputs, integer objectives ---- #

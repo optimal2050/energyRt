@@ -224,7 +224,7 @@ test_that("a bound declared per region and one for all regions both bind", {
   stg <- repo@data$STG_ELC
   stg@name <- "STG_REG"
   stg@duration <- data.frame(vintage = NA_character_, cluster = NA_character_,
-                             region = c("W1", "W2", "C1"), year = NA_integer_,
+                             region = c("R01", "R03", "R08"), year = NA_integer_,
                              duration = NA_real_, duration.lo = NA_real_,
                              duration.up = NA_real_, duration.fx = 0.0144)
   scen <- .ib_quiet(interpolate_model(add(ut_build("R3", "s4_h24"), stg),

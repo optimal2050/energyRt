@@ -7,24 +7,63 @@
 #
 # Three mechanisms carry the spatial structure, each of which genuinely
 # decorrelates:
-#   solar   one bell per region, shifted along the chain (a continental clock
-#           over 11 regions spans ~2.3 h of solar time)
-#   wind    a blend of two endpoint day shapes, calm sun-following at one end,
-#           nocturnal at the other
+#   solar   one bell per region, shifted to that region's own measured peak
+#           hour (the continental clock spans ~2.3 h of solar time)
+#   wind    a blend of two endpoint day shapes, calm sun-following at the calm
+#           end, nocturnal at the windy one
 #   load    a residential/industrial mix by zone, tilted by position
+#
+# LEVELS ARE CALIBRATED PER REGION against the committed sample: each region's
+# simulated annual mean, solar peak hour and load peak-to-mean are read from
+# `data-raw/topia_profiles_sample.rds` rather than interpolated along the code
+# order. The codes are not ordered by resource -- a zone is a compact group on
+# the map, not a step along the gradient -- so a linear chain over `R01`-`R12`
+# would put the windy end in the middle of the list.
 # Scaling a shared shape does not decorrelate it, which is why none of the
 # three is a scaled copy.
 #
 # Every diurnal curve is an explicit 24-value vector with distinct values: ties
 # make the LP degenerate and GLPK cycles on them.
 
-REG_SIM <- c("W1", "W2", "C1", "C2", "C3", "C4", "C5", "C6", "E1", "E2", "E3")
+REG_SIM <- sprintf("R%02d", 1:12)
 
-# targets, chain start -> chain end
-SOL_CF <- c(0.171, 0.121)   # annual mean solar capacity factor
-WIN_CF <- c(0.140, 0.570)   # annual mean wind capacity factor
 HYD_CF <- 0.354             # annual mean inflow factor
-SOL_PEAK <- c(9.8, 12.1)    # clock hour of the solar maximum
+SOL_PEAK <- c(9.8, 12.1)    # clock hours the solar maximum spans
+
+# Per-region calibration from the measured sample: annual mean solar and wind
+# capacity factor, the clock hour of the solar maximum, and the peak-to-mean of
+# the reduced load shape.
+.sim_calibration <- function(
+    rds = "data-raw/topia_profiles_sample.rds") {
+  if (!file.exists(rds)) {
+    stop("missing ", rds, ": the simulated profiles are calibrated against ",
+         "the sample, so run data-raw/topia_profiles_sample.R with ",
+         "ENERGYRT_TOPIA_SAMPLE=refresh first.", call. = FALSE)
+  }
+  smp <- readRDS(rds)
+  w <- as.data.frame(smp$weather)
+  d <- as.data.frame(smp$demand)
+  w$region <- as.character(w$region)
+  d$region <- as.character(d$region)
+  stopifnot(setequal(w$region, REG_SIM), setequal(d$region, REG_SIM))
+  hour <- function(ts) as.integer(sub("^d[0-9]+_h", "", as.character(ts)))
+  cf <- function(res) {
+    v <- w[w$resource == res, ]
+    vapply(REG_SIM, function(r) mean(v$wval[v$region == r]), numeric(1))
+  }
+  sol <- w[w$resource == "WSOL", ]
+  sol$h <- hour(sol$timeslice)
+  peak <- vapply(REG_SIM, function(r) {
+    z <- sol[sol$region == r, ]
+    as.numeric(names(which.max(tapply(z$wval, z$h, mean)))) + 0.5
+  }, numeric(1))
+  pk <- vapply(REG_SIM, function(r) {
+    v <- d$load[d$region == r]
+    max(v) / mean(v)
+  }, numeric(1))
+  list(sol_cf = cf("WSOL"), win_cf = cf("WWIN"), sol_peak = peak,
+       load_peak = pk)
+}
 
 # seasonal multipliers, normalised to mean 1 inside the generator
 M_SOL <- c(0.42, 0.62, 0.95, 1.28, 1.52, 1.62,
@@ -60,16 +99,12 @@ M_RES <- c(1.22, 1.16, 1.02, 0.90, 0.86, 0.92,
            1.02, 1.02, 0.92, 0.94, 1.06, 1.24)
 M_IND <- c(1.04, 1.03, 1.00, 0.98, 0.97, 1.00,
            1.01, 1.01, 0.99, 0.98, 1.00, 1.05)
-W_RES <- c(WEST = 0.85, CENTRAL = 0.25, EAST = 0.55)
-# assumed residential share, as an offset on the zone's, so no two regions of
-# one zone share a load shape
-W_RES_OFF <- c(W1 = 0.06, W2 = -0.07, C1 = 0.09, C2 = -0.04, C3 = 0.13,
-               C4 = -0.09, C5 = 0.04, C6 = -0.12, E1 = 0.08, E2 = -0.06,
-               E3 = 0.11)
-# peak-to-mean of the reduced load shape, the range the measured series shows
-LOAD_PEAK <- c(W1 = 1.43, W2 = 1.33, C1 = 1.29, C2 = 1.25, C3 = 1.31,
-               C4 = 1.24, C5 = 1.27, C6 = 1.26, E1 = 1.34, E2 = 1.39,
-               E3 = 1.45)
+# Residential share of load by zone: the arid west is residential, the firm
+# and industrial north-east is not, the resource belt is mixed, and the windy
+# end holds the load centre.
+W_RES <- c(NW = 0.80, NE = 0.25, SW = 0.45, SE = 0.60)
+# an offset on the zone's share, so no two regions of one zone share a shape
+W_RES_OFF <- stats::setNames(rep(c(0.06, 0, -0.06), times = 4L), REG_SIM)
 WVAL_MAX <- 1          # a capacity factor cannot exceed nameplate
 
 .lin <- function(ends, x) ends[1] + (ends[2] - ends[1]) * x
@@ -105,17 +140,19 @@ WVAL_MAX <- 1          # a capacity factor cannot exceed nameplate
   pmax(v, 0)
 }
 
-# One region's (month, hour) field for every resource and for load.
-.sim_fields <- function(x, zone, region) {
+# One region's (month, hour) field for every resource and for load. `x` places
+# the region on the calm-to-windy axis (shapes); the annual means and the solar
+# peak hour come from that region's own calibration.
+.sim_fields <- function(x, zone, region, sol_cf, win_cf, sol_peak) {
   sol_m <- M_SOL / mean(M_SOL)
   win_m <- M_WIN / mean(M_WIN)
   hyd_m <- .lin(c(1, 0), x) * M_HYD_A + .lin(c(0, 1), x) * M_HYD_B
   hyd_m <- hyd_m / mean(hyd_m)
-  sol_h <- .sol_day(.lin(SOL_PEAK, x))
+  sol_h <- .sol_day(sol_peak)
   win_h <- .lin(c(1, 0), x) * H_WIN_A + .lin(c(0, 1), x) * H_WIN_B
   wr <- min(0.95, max(0.05, W_RES[[zone]] + W_RES_OFF[[region]]))
   load_h <- .shift_day(wr * H_RES + (1 - wr) * H_IND,
-                       .lin(SOL_PEAK, x) - SOL_PEAK[1])
+                       sol_peak - SOL_PEAK[1])
   load_m <- wr * M_RES + (1 - wr) * M_IND
   # outer(hour, month): scale each field to its target annual mean
   f <- function(hv, mv, target) {
@@ -123,8 +160,8 @@ WVAL_MAX <- 1          # a capacity factor cannot exceed nameplate
     z * (target / mean(z))
   }
   list(
-    WSOL = .squash(f(sol_h, sol_m, .lin(SOL_CF, x)), WVAL_MAX),
-    WWIN = .squash(f(win_h, win_m, .lin(WIN_CF, x)), WVAL_MAX),
+    WSOL = .squash(f(sol_h, sol_m, sol_cf), WVAL_MAX),
+    WWIN = .squash(f(win_h, win_m, win_cf), WVAL_MAX),
     WHYD = .squash(f(rep(1, 24), hyd_m, HYD_CF), WVAL_MAX),
     load = f(load_h, load_m / mean(load_m), 1))
 }
@@ -147,15 +184,23 @@ DPM <- c(31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
 }
 
 topia_sim_profiles <- function(
-    zones = c(W1 = "WEST", W2 = "WEST", C1 = "CENTRAL", C2 = "CENTRAL",
-              C3 = "CENTRAL", C4 = "CENTRAL", C5 = "CENTRAL", C6 = "CENTRAL",
-              E1 = "EAST", E2 = "EAST", E3 = "EAST"),
-    calendars = c("s4_h24", "m12_h24", "topia_seasons")) {
+    zones = stats::setNames(rep(c("NW", "NE", "SW", "SE"), each = 3L),
+                            REG_SIM),
+    calendars = "s4_h24",
+    calibration = .sim_calibration()) {
+  cal_ <- calibration
+  stopifnot(all(REG_SIM %in% names(cal_$win_cf)))
+  # position on the calm-to-windy axis, from the measured wind level
+  wr_ <- cal_$win_cf[REG_SIM]
+  xpos <- stats::setNames(
+    (wr_ - min(wr_)) / (max(wr_) - min(wr_)), REG_SIM)
   wx <- list()
   dx <- list()
   for (i in seq_along(REG_SIM)) {
     r <- REG_SIM[i]
-    fl <- .sim_fields((i - 1) / (length(REG_SIM) - 1), zones[[r]], r)
+    fl <- .sim_fields(xpos[[r]], zones[[r]], r,
+                      sol_cf = cal_$sol_cf[[r]], win_cf = cal_$win_cf[[r]],
+                      sol_peak = cal_$sol_peak[[r]])
     for (cal in calendars) {
       for (res in c("WSOL", "WWIN", "WHYD")) {
         v <- .sim_reduce(fl[[res]], cal)
@@ -166,7 +211,7 @@ topia_sim_profiles <- function(
       # peak-to-mean is a property of the reduced shape, so it is set here
       v <- .sim_reduce(fl$load, cal)
       dx[[length(dx) + 1L]] <- data.frame(calendar = cal, region = r,
-        timeslice = v$timeslice, load = .squash(v$value, LOAD_PEAK[[r]]),
+        timeslice = v$timeslice, load = .squash(v$value, cal_$load_peak[[r]]),
         stringsAsFactors = FALSE)
     }
   }

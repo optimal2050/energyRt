@@ -265,7 +265,7 @@ test_that("an activity share must be a fraction", {
 })
 
 # -- demand clusters: a sub-regional share ----------------------------------
-dr_regions <- c("W1", "W2", "C1", "C2")
+dr_regions <- c("R01", "R03", "R08", "R09")
 
 dr_geoscale <- function() {
   geoscales::filter_geoscale(topia$geoscales$honeycomb, "region", dr_regions)
@@ -286,12 +286,12 @@ skip_if_no_geo <- function() {
 # Only `dem.share.fx` exists. A `lo`/`up` split would need the LP to choose
 # where load sits, and nothing indexed by `dem` is a variable -- `pDemand` is
 # on the right-hand side of an equality.
-dc_clustered <- function(shares = c(0.6, 0.4), region = c("W1", "W2")) {
+dc_clustered <- function(shares = c(0.6, 0.4), region = c("R01", "R03")) {
   newDemand(
     "DEM_ELC", commodity = "ELC",
-    cluster = data.frame(cluster = c("W1", "W2"), region = region,
+    cluster = data.frame(cluster = c("R01", "R03"), region = region,
                          dem.share.fx = shares, order = 1:2),
-    demand = data.frame(region = "WEST", timeslice = c("WIN", "SUM"),
+    demand = data.frame(region = "NW", timeslice = c("WIN", "SUM"),
                         demand = c(100, 50)))
 }
 
@@ -299,12 +299,12 @@ dc_model <- function(dem) {
   cal <- newCalendar(timetable = make_timetable(
     struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
     name = "dc_cal")
-  newModel("DC", region = c("W1", "W2"), calendar = cal,
+  newModel("DC", region = c("R01", "R03"), calendar = cal,
            horizon = newHorizon(2025), discount = 0,
            data = newRepository("dc", list(
              newCommodity("ELC", unit = "PJ", timeframe = "SEASON"),
              newSupply("SUP", commodity = "ELC", unit = "PJ",
-                       supply = data.frame(region = c("W1", "W2"), cost = 2)),
+                       supply = data.frame(region = c("R01", "R03"), cost = 2)),
              dem))) |>
     setGeoscale(dr_geoscale())
 }
@@ -327,11 +327,11 @@ test_that("a coarse total is scaled and relocated by its clusters", {
   pd <- as.data.frame(get_data_slot(s@modInp@parameters[["pDemand"]]))
   # scaled by the share AND moved to the cluster's own region -- the ordinary
   # per-variant step only filters, it does neither
-  expect_equal(pd$value[pd$region == "W1" & pd$timeslice == "WIN"], 60)
-  expect_equal(pd$value[pd$region == "W2" & pd$timeslice == "WIN"], 40)
-  expect_equal(pd$value[pd$region == "W1" & pd$timeslice == "SUM"], 30)
-  expect_equal(pd$value[pd$region == "W2" & pd$timeslice == "SUM"], 20)
-  expect_false("WEST" %in% pd$region)
+  expect_equal(pd$value[pd$region == "R01" & pd$timeslice == "WIN"], 60)
+  expect_equal(pd$value[pd$region == "R03" & pd$timeslice == "WIN"], 40)
+  expect_equal(pd$value[pd$region == "R01" & pd$timeslice == "SUM"], 30)
+  expect_equal(pd$value[pd$region == "R03" & pd$timeslice == "SUM"], 20)
+  expect_false("NW" %in% pd$region)
   # the promise: the coarse total survives
   expect_equal(sum(pd$value), 150)
 })
@@ -358,6 +358,6 @@ test_that("a split that would change the demand is refused", {
     "greater than zero")
   # a cluster with no region has nowhere to put its share
   expect_error(
-    energyRt:::.variant_validate(dc_clustered(region = c("W1", NA))),
+    energyRt:::.variant_validate(dc_clustered(region = c("R01", NA))),
     "needs a `region`")
 })

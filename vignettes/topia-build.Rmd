@@ -32,7 +32,7 @@ have_sf <- requireNamespace("sf", quietly = TRUE)
 
 TOPIA is a teaching model for energy-system optimization. Its **Reference
 Energy System (RES)** links primary resources, conversion technologies,
-storage, trade, and electricity demand across up to eleven regions.
+storage, trade, and electricity demand across up to twelve regions.
 
 The complete model is packaged as `topia$modules$electricity`. Smaller cases
 are cut from it with `subset_model_regions()` rather than kept as separate
@@ -95,9 +95,14 @@ convert("GW*year", "GWh", 1) # 8760     -- cap2act for electricity
 
 # Regions and the map
 
-TOPIA has eleven regions ordered from west to east: `W1`, `W2`, `C1`--`C6`,
-and `E1`--`E3`. The `squares`, `honeycomb`, `island`, and `continent` layouts
-in `topia$geoscales` share these region names.
+TOPIA has twelve regions, `R01`--`R12`. The `squares`, `honeycomb`, `island`,
+and `continent` layouts in `topia$geoscales` share these region names: each
+layout draws them in different places, chosen so that every zone comes out as
+one compact group of neighbours, and the model sees only the codes.
+
+`R01` is the remote region. It is detached on two of the four layouts and
+carries no transmission at all, so it has to meet its own demand in every hour
+from what it holds locally.
 
 ```{r regions}
 gs <- topia$geoscales$honeycomb
@@ -111,8 +116,8 @@ plot_geoscale(gs, type = "map")
 
 ## Zones: the region hierarchy
 
-The regions nest into three zones and one nation. `geoscale_leaftable()`
-returns this hierarchy.
+The regions nest into four zones of three and one nation.
+`geoscale_leaftable()` returns this hierarchy.
 
 ```{r geoscale}
 geo <- as.data.frame(geoscale_leaftable(gs))
@@ -124,9 +129,18 @@ Fuel balances and regional archetypes are defined by zone:
 
 | zone | regions | resource | load |
 |---|---|---|---|
-| `WEST` | `W1`, `W2` | sunny, little wind | moderate, sharp evening peak |
-| `CENTRAL` | `C1`...`C6` | poor on both counts | large, flat, industrial |
-| `EAST` | `E1`, `E2`, `E3` | windy at night, in winter | small |
+| `NW` | `R01`--`R03` | the arid end: the best sun, the weakest wind, the domestic gas | moderate, evening peak |
+| `NE` | `R04`--`R06` | the firm end: the nuclear station, the mountain reservoir | large and flat, industrial |
+| `SW` | `R07`--`R09` | the resource belt: run-of-river, the lignite basin, forestry | mixed |
+| `SE` | `R10`--`R12` | the windy end, onshore and offshore | small where the wind is, dense at the load centre |
+
+Each region is endowed differently, and the endowment is what the model is
+about: `R01` an island with no wire, `R02` the solar potential, `R03` domestic
+gas, `R04` the nuclear incumbent, `R05` the reservoir, `R06` industry, `R07`
+run-of-river, `R08` the lignite basin, `R09` forestry, `R10` the onshore wind
+peak, `R11` the load centre, `R12` the offshore wind. Solar and wind are
+available everywhere -- what differs is how much land each region can give
+them, and the capacity factor its own weather delivers.
 
 ```{r geoscale-stack, eval = have_sf, fig.height = 5.2, fig.cap = "The spatial hierarchy in a 3D stack."}
 geoscale_autoplot(gs,
@@ -147,10 +161,24 @@ autoplot(calendar)
 
 # Horizon
 
-The horizon contains four milestone years: 2025, 2030, 2040, and 2050.
+The horizon contains four milestone years: 2025, 2030, 2040, and 2050. The
+first of them is one year wide and the rest stand for ten, with the milestone
+in the MIDDLE of its period -- so costs are discounted from the middle of the
+decade they represent rather than from its end.
+
+2025 is the **base year**, declared with `base_year =`. A base year is given
+rather than decided: it is solved on its own by `solve_base_year()`, and what
+it holds crosses into the projection as stock. The projection then optimises
+2030, 2040 and 2050. *TOPIA II: running scenarios* runs both halves.
+
+Marking it also disciplines the input data. Everything standing in 2025 has to
+be stated as capacity, because the base-year solve will otherwise build
+whatever the fleet is short of -- and any capacity it builds, or leaves idle,
+is a statement about the assumptions rather than about the system.
 
 ```{r horizon, fig.height=1}
 horizon <- topia$modules$horizons$BY2025_50_by10
+horizon@base_year
 horizon@intervals
 autoplot(horizon)
 ```
@@ -280,12 +308,15 @@ repo_commodities <- newRepository(
 
 # Supply and resources
 
-Each fossil fuel comes from one zone and one only: coal from `WEST`, gas from
-`EAST`. `CENTRAL` has neither, so everything it burns arrives over a corridor
-or from the rest of the world -- which is what gives the map a direction and
-the corridors something to carry. Biomass is available in each region, and
-nuclear fuel is supplied in `C1`. For zone-pooled fuels, `ava.up` applies to
-the entire zone.
+Each fossil fuel comes from one zone and one only: coal from `SW`, where the
+lignite basin is, gas from `NW`, where the shale is. The other zones have
+neither, so everything they burn arrives over a corridor or from the rest of
+the world -- which is what gives the map a direction and the corridors
+something to carry. Because gas is pooled across its zone, `R01` can draw fuel
+from the `NW` pool although no wire reaches it: fuel can cross water, and
+electricity here cannot. Biomass is available in each region, and nuclear fuel
+is supplied in `R04`. For zone-pooled fuels, `ava.up` applies to the entire
+zone.
 
 None of the three is a single price. A resource gets dearer as it is used up
 -- the accessible seam first, then the deep one -- and that is a **supply
@@ -320,12 +351,12 @@ fuel_path <- tibble::tribble(
 # carry a trajectory, and the steps are written out instead.
 fuel_base <- tibble::tribble(
   ~fuel, ~region,   ~cluster, ~price0, ~ava0,
-  "COA",  "WEST",    "S1",       1.4,    100,
-  "COA",  "WEST",    "S2",       1.8,    100,
-  "COA",  "WEST",    "S3",       2.6,    100,
-  "GAS",  "EAST",    "S1",       3.2,    120,
-  "GAS",  "EAST",    "S2",       4.0,    120,
-  "GAS",  "EAST",    "S3",       5.6,    120
+  "COA",  "SW",      "S1",       1.4,    100,
+  "COA",  "SW",      "S2",       1.8,    100,
+  "COA",  "SW",      "S3",       2.6,    100,
+  "GAS",  "NW",      "S1",       3.2,    120,
+  "GAS",  "NW",      "S2",       4.0,    120,
+  "GAS",  "NW",      "S3",       5.6,    120
 )
 
 # every step meets every year, which is the expansion wanted here -- said
@@ -354,7 +385,7 @@ SUP_COA <- newSupply(
   ),
   commodity = "COA",
   unit = "PJ",
-  region = "WEST",
+  region = "SW",
   cluster = fuel_steps |>
     mutate(desc = c("open cast", "shallow seam", "deep seam")),
   supply = coa_supply
@@ -369,7 +400,7 @@ SUP_GAS <- newSupply(
   ),
   commodity = "GAS",
   unit = "PJ",
-  region = "EAST",
+  region = "NW",
   cluster = fuel_steps |>
     mutate(desc = c("associated gas", "conventional", "tight")),
   supply = gas_supply
@@ -377,23 +408,24 @@ SUP_GAS <- newSupply(
 autoplot(SUP_GAS, style = "map", map = gs)
 
 
-# Biomass is an agricultural residue, so it follows the land rather than the
-# geology: plentiful and cheap across the central belt, thin and dear at
-# either end. Three steps per region -- the easy quarter, the bulk, and the
-# tail that has to be collected from far away.
+# Biomass follows the land rather than the geology: the forestry region is
+# plentiful and cheap, the arid west and the load centre thin and dear. Three
+# steps per region -- the easy quarter, the bulk, and the tail that has to be
+# collected from far away.
 bio <- tibble::tribble(
   ~region, ~bio_PJ, ~bio_cost,
-  "W1",       25,       7.5,
-  "W2",       30,       7.0,
-  "C1",       55,       5.5,
-  "C2",       60,       5.0,
-  "C3",       55,       5.5,
-  "C4",       45,       6.0,
-  "C5",       40,       6.5,
-  "C6",       35,       7.0,
-  "E1",       20,       8.0,
-  "E2",       18,       8.5,
-  "E3",       15,       9.0
+  "R01",      10,       9.5,
+  "R02",      12,       9.0,
+  "R03",      18,       8.0,
+  "R04",      35,       7.0,
+  "R05",      40,       6.5,
+  "R06",      35,       7.0,
+  "R07",      50,       5.5,
+  "R08",      45,       6.0,
+  "R09",      65,       4.8,
+  "R10",      25,       7.5,
+  "R11",      15,       9.0,
+  "R12",      20,       8.5
 )
 
 bio_steps <- data.frame(
@@ -448,34 +480,39 @@ SUP_NUC <- newSupply(
   ),
   commodity = "NUC",
   unit = "PJ",
-  region = "C1",
-  supply = data.frame(region = "C1", cost = 0.9)
+  region = "R04",
+  supply = data.frame(region = "R04", cost = 0.9)
 )
 autoplot(SUP_NUC, style = "map", map = gs)
 
 ```
 
-Hydro inflow is available in `C1`, `C4`, and `E1` at zero cost. Solar and wind
-draw no fuel, but both occupy land, and a land pool replaces their former
-build limits. The pools are separate because the terrain is: `RES_LANDS` is
+Hydro inflow is available in `R05`, the mountain reservoir, and `R07`, the
+run-of-river valley, at zero cost. Solar and wind draw no fuel, but both
+occupy land, and a land pool replaces their former build limits. The pools are separate because the terrain is: `RES_LANDS` is
 the open ground a photovoltaic field can take, `RES_LANDW` the exposed terrain
 a wind farm needs. Each region's budget is the land its former cap would have
 occupied, at 20 km2 per GW of solar and 100 per GW of wind.
 
 ```{r siting}
+# Potential, not weather: every region can build both, and these are the
+# ceilings its land imposes. `R02` is the solar one, `R10` and `R12` the wind
+# ones, and `R11` -- the load centre -- is the region that cannot build its
+# way out of its own demand.
 siting <- tibble::tribble(
   ~region, ~sol_GW, ~win_GW,
-  "W1",        6.0,     1.2,
-  "W2",        6.0,     1.2,
-  "C1",        2.0,     2.5,
-  "C2",        2.0,     2.5,
-  "C3",        2.0,     2.5,
-  "C4",        2.0,     2.5,
-  "C5",        2.0,     2.5,
-  "C6",        2.0,     2.5,
-  "E1",        1.5,    12.0,
-  "E2",        1.5,    12.0,
-  "E3",        1.5,    12.0
+  "R01",       5.0,     1.0,
+  "R02",      12.0,     2.0,
+  "R03",       6.0,     1.0,
+  "R04",       2.0,     2.0,
+  "R05",       2.0,     1.5,
+  "R06",       2.5,     2.5,
+  "R07",       2.0,     2.0,
+  "R08",       2.5,     2.0,
+  "R09",       2.0,     2.0,
+  "R10",       1.5,    14.0,
+  "R11",       1.0,     3.0,
+  "R12",       1.5,    10.0
 )
 
 knitr::kable(
@@ -531,9 +568,9 @@ RES_HYD <- newSupply(
   ),
   commodity = "HYD",
   unit = "GWh",
-  region = c("C1", "C4", "E1"),
+  region = c("R05", "R07"),
   supply = data.frame(
-    region = c("C1", "C4", "E1"),
+    region = c("R05", "R07"),
     cost = 0
   )
 )
@@ -554,9 +591,9 @@ IMP_COA <- newImport(
   desc = "Coal import from the rest of the world",
   commodity = "COA",
   unit = "PJ",
-  region = c("WEST", "CENTRAL", "EAST"),
+  region = c("NW", "NE", "SW", "SE"),
   import = data.frame(
-    region = c("WEST", "CENTRAL", "EAST"),
+    region = c("NW", "NE", "SW", "SE"),
     price = 3.5
   )
 )
@@ -568,9 +605,9 @@ IMP_GAS <- newImport(
   desc = "LNG import from the rest of the world",
   commodity = "GAS",
   unit = "PJ",
-  region = c("WEST", "CENTRAL", "EAST"),
+  region = c("NW", "NE", "SW", "SE"),
   import = data.frame(
-    region = c("WEST", "CENTRAL", "EAST"),
+    region = c("NW", "NE", "SW", "SE"),
     price = 9.0
   )
 )
@@ -635,7 +672,7 @@ WSOL <- newWeather(
   weather = wsol
 )
 
-# autoplot(WSOL, region = "C1")
+# autoplot(WSOL, region = "R02")
 
 WWIN <- newWeather(
   name = "WWIN",
@@ -677,30 +714,32 @@ knitr::kable(cf_summary, digits = 3, caption = "Annual mean capacity factor by r
 ```
 
 ```{r weather-plot, fig.height = 4.5}
-autoplot(WSOL, calendar = calendar, region = c("C1", "W2"))
+autoplot(WSOL, calendar = calendar, region = c("R02", "R10"))
 ```
 
 # Demand
 
-`DEM_ELC` defines hourly electricity demand for eleven regions and four
-milestone years. Western profiles have an evening peak; central profiles are
-flatter and more industrial. The central regions are the industrial load
-centre, the eastern ones the lightest.
+`DEM_ELC` defines hourly electricity demand for twelve regions and four
+milestone years. The arid west peaks in the evening; the firm and industrial
+north-east is flatter. `R11` is the load centre and `R06` the industrial one,
+between them a third of the system's demand; `R01`, the island, is the
+smallest, and `R10`, where the wind is, is land-rich and lightly loaded.
 
 ```{r demand-levels}
 levels <- tibble::tribble(
   ~region, ~annual_GWh,
-  "W1", 22000,
-  "W2", 22000,
-  "C1", 39000,
-  "C2", 39000,
-  "C3", 39000,
-  "C4", 39000,
-  "C5", 39000,
-  "C6", 39000,
-  "E1", 17000,
-  "E2", 17000,
-  "E3", 17000
+  "R01", 10000,
+  "R02", 18000,
+  "R03", 20000,
+  "R04", 32000,
+  "R05", 28000,
+  "R06", 46000,
+  "R07", 26000,
+  "R08", 32000,
+  "R09", 24000,
+  "R10", 16000,
+  "R11", 48000,
+  "R12", 22000
 )
 
 knitr::kable(
@@ -759,10 +798,10 @@ autoplot(DEM_ELC, style = "area")
 Sub-annual profiles can be displayed by changing the style to `"line"` or `"heatmap"`, filtered by region and year.
 ```{r demand-plot, fig.height = 3.5}
 autoplot(DEM_ELC, calendar = calendar, style = "line", 
-         region = c("C1", "E2"), year = 2025)
+         region = c("R06", "R11"), year = 2025)
 
 autoplot(DEM_ELC, calendar = calendar, style = "heatmap", 
-         region = c("C1"), year = 2025)
+         region = c("R11"), year = 2025)
 ```
 
 
@@ -774,25 +813,28 @@ of input to GWh of output.
 
 ## Coal
 
-`ECOA` is a 35%-efficient subcritical coal plant. Its existing regional fleet
-declines to 30% of 2025 capacity by 2050, may retire early, and cannot be built
-after 2030.
+`ECOA` is a 35%-efficient subcritical coal plant. The fleet sits on the
+lignite basin -- `R08` has eight of its gigawatts and neighbouring `R09` four,
+against one apiece elsewhere -- which is what gives the coal corridors a
+direction to carry. It declines to 30% of 2025 capacity by 2050, may retire
+early, and cannot be built after 2030.
 
 ```{r fleet-coal}
 # Capacity fleat: (arbitrary) assignment by region
 coal_fleet <- tibble::tribble(
   ~region, ~GW,
-  "W1",      8,
-  "W2",      4,
-  "C1",      1,
-  "C2",      1,
-  "C3",      1,
-  "C4",      1,
-  "C5",      3,
-  "C6",      1,
-  "E1",      1,
-  "E2",      1,
-  "E3",      1
+  "R01",     1,
+  "R02",     1,
+  "R03",     1,
+  "R04",     1,
+  "R05",     1,
+  "R06",     3,
+  "R07",     1,
+  "R08",     8,
+  "R09",     4,
+  "R10",     1,
+  "R11",     1,
+  "R12",     1
 )
 
 # Explicit retirement of existing capacity is set by defining the stock by year
@@ -847,24 +889,28 @@ draw(ECOA)
 
 ## Gas
 
-`EGAS` is a 58%-efficient combined-cycle gas plant. Its existing fleet declines
-to 60% of 2025 capacity by 2050, may retire early, and remains available for
-new construction throughout the horizon.
+`EGAS` is a 58%-efficient combined-cycle gas plant. The fleet follows the
+domestic gas: `R03` sits on the field, and `R01` -- which has no wire and must
+convert its imported fuel itself -- carries four gigawatts of it. The fleet
+declines to 60% of 2025 capacity by 2050, may retire early, and remains
+available for new construction throughout the horizon.
 
 ```{r fleet-gas}
+# Gas sits where the gas is, plus a peaker at the load centre. The base-year
+# solve is what sized this: a plant that runs no hour in 2025 is not a fleet,
+# it is an assumption, so the regions whose gas never started -- the lignite
+# basin, the forestry belt and the run-of-river valley, which have coal, hydro
+# and imports -- carry none.
 gas_fleet <- tibble::tribble(
   ~region, ~GW,
-  "W1",      1,
-  "W2",      2,
-  "C1",      1,
-  "C2",      1,
-  "C3",      1,
-  "C4",      1,
-  "C5",      1,
-  "C6",      2,
-  "E1",      2,
-  "E2",      6,
-  "E3",      4
+  "R01",     4,
+  "R02",     2,
+  "R03",     6,
+  "R04",     1,
+  "R05",     1,
+  "R06",     1,
+  "R11",     1,
+  "R12",     1
 )
 
 gas_cap <- bind_rows(
@@ -909,8 +955,9 @@ EGAS <- newTechnology(
 
 ## Nuclear
 
-`ENUC` is a 4 GW station in `C1` with 35% conversion efficiency, a 70% minimum
-availability factor, a 50-year life, and new builds allowed from 2030.
+`ENUC` is a 4 GW station in `R04`, the region that inherited the fleet, with
+35% conversion efficiency, a 70% minimum availability factor, a 50-year life,
+and new builds allowed from 2030.
 
 ```{r tech-nuclear}
 ENUC <- newTechnology(
@@ -921,7 +968,7 @@ ENUC <- newTechnology(
     activity = "GWh",
     costs = "MUSD"
   ),
-  region = "C1",
+  region = "R04",
   input = list(comm = "NUC", unit = "PJ"),
   output = list(comm = "ELC", unit = "GWh"),
   ceff = data.frame(
@@ -942,7 +989,7 @@ ENUC <- newTechnology(
     olife = 50L
   ),
   capacity = data.frame(
-    region = "C1",
+    region = "R04",
     year = c(2025, 2050),
     stock = c(4, 4)
   )
@@ -1000,7 +1047,11 @@ ESOL <- newTechnology(
   vintage = data.frame(
     vintage = c("2015", "2030", "2045"),
     start = c(2015L, 2030L, 2045L),
-    end = c(2025L, 2040L, 2050L),
+    # The legacy vintage closes to investment BEFORE the base year: 2025 is
+    # observed, so what stands in it is stock and not a decision. Left open to
+    # 2025 the base-year solve bought legacy turbines at legacy prices, up to
+    # the land ceiling.
+    end = c(2020L, 2040L, 2050L),
     olife = c(25L, 30L, 30L)
   ),
   invcost = data.frame(
@@ -1025,19 +1076,31 @@ ESOL <- newTechnology(
 
 draw(ESOL)
 
-# The legacy fleet goes on `LO`. A clustered technology cannot broadcast one
-# stock across its clusters, so the grade has to be named -- and 1 GW of
-# inherited turbines is not all on the best ridges. It also has to FIT: `HI`
-# land is 30 km2 per GW of former cap, and an `HI` farm takes 120 km2 per GW,
-# so putting the legacy fleet there would demand land that does not exist and
-# the model would be infeasible in its first year. `check_feasibility()` says
-# so without a solver.
-win_cap <- data.frame(
-  vintage = "2015",
-  cluster = "LO",
-  region = rep(regions, times = 2),
-  year = rep(c(2025, 2050), each = length(regions)),
-  stock = rep(c(1, 0), each = length(regions))
+# A clustered technology cannot broadcast one stock across its clusters, so
+# each grade is named. Every region inherits 1 GW of inland (`LO`) turbines;
+# the three windy regions also inherit a fleet on the exposed ridges and coast,
+# which is where turbines were actually built first.
+#
+# The `HI` fleet has to FIT: `HI` land is 30 km2 per GW of the region's wind
+# siting budget and an `HI` farm takes 120 km2 per GW, so the ceiling is a
+# quarter of that budget -- 3.5 GW in `R10`, 2.5 in `R12`, 0.75 in `R11`. The
+# inherited fleet is set below each ceiling so the later vintages have room to
+# build; filling it would leave the exposed grade nowhere to grow.
+win_cap <- bind_rows(
+  data.frame(
+    vintage = "2015",
+    cluster = "LO",
+    region = rep(regions, times = 2),
+    year = rep(c(2025, 2050), each = length(regions)),
+    stock = rep(c(1, 0), each = length(regions))
+  ),
+  data.frame(
+    vintage = "2015",
+    cluster = "HI",
+    region = rep(c("R10", "R11", "R12"), times = 2),
+    year = rep(c(2025, 2050), each = 3),
+    stock = c(3.0, 0.5, 2.0, 0, 0, 0)
+  )
 )
 
 EWIN <- newTechnology(
@@ -1054,7 +1117,11 @@ EWIN <- newTechnology(
   vintage = data.frame(
     vintage = c("2015", "2030", "2045"),
     start = c(2015L, 2030L, 2045L),
-    end = c(2025L, 2040L, 2050L),
+    # The legacy vintage closes to investment BEFORE the base year: 2025 is
+    # observed, so what stands in it is stock and not a decision. Left open to
+    # 2025 the base-year solve bought legacy turbines at legacy prices, up to
+    # the land ceiling.
+    end = c(2020L, 2040L, 2050L),
     olife = c(25L, 30L, 30L)
   ),
   invcost = data.frame(
@@ -1088,9 +1155,9 @@ draw(EWIN)
 
 ## Hydro
 
-`EHYD` represents fixed reservoir hydropower capacity of 3 GW in `C1`, 12 GW
-in `C4`, and 6 GW in `E1`. The inherited plants have a 60-year life and cannot
-be expanded.
+`EHYD` represents fixed reservoir hydropower capacity: 12 GW at the mountain
+reservoir in `R05` and 6 GW in the run-of-river valley `R07`. The inherited
+plants have a 60-year life and cannot be expanded.
 
 ```{r tech-hydro}
 EHYD <- newTechnology(
@@ -1101,7 +1168,7 @@ EHYD <- newTechnology(
     activity = "GWh",
     costs = "MUSD"
   ),
-  region = c("C1", "C4", "E1"),
+  region = c("R05", "R07"),
   input = list(
     comm = "HYD", 
     unit = "GWh"),
@@ -1126,9 +1193,9 @@ EHYD <- newTechnology(
     olife = 60L
   ),
   capacity = data.frame(
-    region = rep(c("C1", "C4", "E1"), times = 2),
-    year = rep(c(2025, 2050), each = 3),
-    stock = rep(c(3, 12, 6), times = 2)
+    region = rep(c("R05", "R07"), times = 2),
+    year = rep(c(2025, 2050), each = 2),
+    stock = rep(c(12, 6), times = 2)
   )
 )
 autoplot(EHYD, map = gs, style = "map")
@@ -1297,11 +1364,12 @@ repo_hydrogen <- newRepository(
 
 # Inter-regional trade
 
-`topia$links` is the transmission network, a symmetric region-by-region matrix
-read off the four map layouts in `topia$geoscales`: two regions are linked
-when they share a border on most of them, so a link never crosses another on
-the map it was taken from. `W1` is the one exception -- it is a detached
-island on two layouts and is joined to `W2` so that no region is stranded.
+`topia$links` is the transmission network, a symmetric region-by-region
+matrix settled with the geometry: two regions are linked when they share a
+border on most of the four layouts, and a link never crosses another on the
+map it was taken from. `R01` is the exception that is not an exception -- it
+has no link at all. It is the remote region, and a model in which it balances
+locally is the point of it rather than an oversight.
 
 ```{r links}
 links <- topia$links[regions, regions]
@@ -1372,18 +1440,20 @@ written out rather than looped because they live at a different geoframe:
 are not in the region matrix.
 
 The two fuels move differently, which is the point of separating them. Coal
-runs on **two** corridors and in **both** directions on each, so a surplus can
-travel either way along `WEST - CENTRAL - EAST`. Gas has **one** pipe and it
-runs **one way**, `EAST` to `CENTRAL`: a pipeline is built to deliver from a
-field to a market, and declaring a single `routes` row is how that is said --
-the model then cannot send gas back, whatever the prices do. Coal corridors
+leaves the basin in `SW` on **two** corridors, to `NE` and to `SE`, and runs
+in **both** directions on each, so a surplus can travel either way. Gas has
+**one** pipe and it runs **one way**, `NW` to `NE`: a pipeline is built to
+deliver from a field to a market, and declaring a single `routes` row is how
+that is said -- the model then cannot send gas back, whatever the prices do.
+Neither fuel reaches `NW` by rail or `SE` by pipe: those zones buy from the
+rest of the world instead, which is what the import objects are for. Coal corridors
 carry 60 PJ/year at 99% efficiency, the gas pipe 40 PJ/year at 98%. Their
 capacity unit is PJ/year, so `cap2act = 1`.
 
 ```{r trade-fuels}
-TBD_COA_WEST_CENTRAL <- newTrade(
-  name = "TBD_COA_WEST_CENTRAL",
-  desc = "Coal rail corridor WEST - CENTRAL",
+TBD_COA_SW_NE <- newTrade(
+  name = "TBD_COA_SW_NE",
+  desc = "Coal rail corridor SW - NE",
   units = data.frame(
     capacity = "PJ/year",
     activity = "PJ",
@@ -1391,31 +1461,31 @@ TBD_COA_WEST_CENTRAL <- newTrade(
   ),
   commodity = "COA",
   routes = data.frame(
-    src = c("WEST", "CENTRAL"),
-    dst = c("CENTRAL", "WEST")
+    src = c("SW", "NE"),
+    dst = c("NE", "SW")
   ),
   trade = data.frame(
-    src = c("WEST", "CENTRAL"),
-    dst = c("CENTRAL", "WEST"),
+    src = c("SW", "NE"),
+    dst = c("NE", "SW"),
     teff = 0.99
   ),
   cap2act = 1, # capacity in PJ/yr
   capacity = data.frame(stock = 60),
   invcost = data.frame(
-    region = c("WEST", "CENTRAL"),
+    region = c("SW", "NE"),
     invcost = 20
   ),
   varom = data.frame(
-    src = c("WEST", "CENTRAL"),
-    dst = c("CENTRAL", "WEST"),
+    src = c("SW", "NE"),
+    dst = c("NE", "SW"),
     varom = 0.3
   ),
   vintage = data.frame(olife = 40L)
 )
 
-TBD_COA_CENTRAL_EAST <- newTrade(
-  name = "TBD_COA_CENTRAL_EAST",
-  desc = "Coal rail corridor CENTRAL - EAST",
+TBD_COA_SW_SE <- newTrade(
+  name = "TBD_COA_SW_SE",
+  desc = "Coal rail corridor SW - SE",
   units = data.frame(
     capacity = "PJ/year",
     activity = "PJ",
@@ -1423,31 +1493,31 @@ TBD_COA_CENTRAL_EAST <- newTrade(
   ),
   commodity = "COA",
   routes = data.frame(
-    src = c("CENTRAL", "EAST"),
-    dst = c("EAST", "CENTRAL")
+    src = c("SW", "SE"),
+    dst = c("SE", "SW")
   ),
   trade = data.frame(
-    src = c("CENTRAL", "EAST"),
-    dst = c("EAST", "CENTRAL"),
+    src = c("SW", "SE"),
+    dst = c("SE", "SW"),
     teff = 0.99
   ),
   cap2act = 1,
   capacity = data.frame(stock = 60),
   invcost = data.frame(
-    region = c("CENTRAL", "EAST"),
+    region = c("SW", "SE"),
     invcost = 20
   ),
   varom = data.frame(
-    src = c("CENTRAL", "EAST"),
-    dst = c("EAST", "CENTRAL"),
+    src = c("SW", "SE"),
+    dst = c("SE", "SW"),
     varom = 0.3
   ),
   vintage = data.frame(olife = 40L)
 )
 
-TBD_GAS_EAST_CENTRAL <- newTrade(
-  name = "TBD_GAS_EAST_CENTRAL",
-  desc = "Gas pipeline EAST - CENTRAL, one way",
+TBD_GAS_NW_NE <- newTrade(
+  name = "TBD_GAS_NW_NE",
+  desc = "Gas pipeline NW - NE, one way",
   units = data.frame(
     capacity = "PJ/year",
     activity = "PJ",
@@ -1456,23 +1526,23 @@ TBD_GAS_EAST_CENTRAL <- newTrade(
   commodity = "GAS",
   # one row, so the pipe runs one way only: gas leaves the producing zone
   routes = data.frame(
-    src = "EAST",
-    dst = "CENTRAL"
+    src = "NW",
+    dst = "NE"
   ),
   trade = data.frame(
-    src = "EAST",
-    dst = "CENTRAL",
+    src = "NW",
+    dst = "NE",
     teff = 0.98
   ),
   cap2act = 1,
   capacity = data.frame(stock = 40),
   invcost = data.frame(
-    region = c("EAST", "CENTRAL"),
+    region = c("NW", "NE"),
     invcost = 60
   ),
   varom = data.frame(
-    src = "EAST",
-    dst = "CENTRAL",
+    src = "NW",
+    dst = "NE",
     varom = 0.2
   ),
   vintage = data.frame(olife = 40L)
@@ -1480,8 +1550,8 @@ TBD_GAS_EAST_CENTRAL <- newTrade(
 
 repo_fuel_trade <- newRepository(
   name = "topia_fuel_trade",
-  TBD_COA_WEST_CENTRAL, TBD_COA_CENTRAL_EAST,
-  TBD_GAS_EAST_CENTRAL
+  TBD_COA_SW_NE, TBD_COA_SW_SE,
+  TBD_GAS_NW_NE
 )
 
 names(repo_fuel_trade)

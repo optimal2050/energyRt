@@ -5,8 +5,8 @@
 ##   topia_demand  - dataset/calendar/region/timeslice/load
 ##   topia_stock   - tech/gw
 ##
-##   "simulated"  closed-form shapes on the small calendars (s4_h24, m12_h24,
-##                topia_seasons), built here by topia_profiles_sim.R. A
+##   "simulated"  closed-form shapes on the coarse calendar (s4_h24), built
+##                here by topia_profiles_sim.R. A
 ##                demonstration set: it carries a spatial gradient and a
 ##                diurnal structure, and is not a resource estimate.
 ##   "sample"     a measured hourly set on d365_h24, read from
