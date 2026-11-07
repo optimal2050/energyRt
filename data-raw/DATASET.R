@@ -46,6 +46,10 @@ readr::write_lines(c(
 )
 styler::style_file("R/defaults.R")
 
+# The recast contract: R/recast-rules.R from the `recast:` blocks of
+# classes.yml. Kept separate so it can be regenerated on its own.
+source("data-raw/recast_rules.R")
+
 # all names of sets used in parameter@dimSet and variable@dimSets
 .dimSets <- c(
   "horizon", # test

@@ -37,6 +37,49 @@ NULL
 # but integer in some user models, so it is guarded too.
 .recast_id_cols <- c("year", "vintage", "cluster")
 
+# -- the declared recast contract -------------------------------------------- #
+# `.defRecast` (generated from the `recast:` blocks of data-raw/classes.yml by
+# data-raw/recast_rules.R) says how each column of each slot behaves on each
+# axis. One entry covers both directions, because every rule in the engine is
+# defined both ways: `sum` sums going up and splits by weight going down.
+
+#' Build the recast table from row-wise entries
+#'
+#' Five values a row -- class, slot, column, space rule, time rule -- so a
+#' rule can be read off the generated file at a glance instead of counting
+#' positions across five parallel vectors.
+#' @noRd
+.recast_rules <- function(...) {
+  v <- c(...)
+  stopifnot(length(v) %% 5L == 0L)
+  m <- matrix(v, ncol = 5L, byrow = TRUE)
+  data.frame(class = m[, 1L], slot = m[, 2L], column = m[, 3L],
+             space = m[, 4L], time = m[, 5L], stringsAsFactors = FALSE)
+}
+
+#' The declared recast rule for one or more columns of a slot
+#'
+#' @param class,slot The object class and slot the columns belong to.
+#' @param column Character vector of column names.
+#' @param axis `"space"` or `"time"`.
+#' @return A named character vector, one entry per `column`. `NA` where the
+#'   column is not indexed on that axis, or where nothing is declared for it --
+#'   `.recast_undeclared()` tells the two apart.
+#' @noRd
+.get_recast_rule <- function(class, slot, column, axis = c("space", "time")) {
+  axis <- match.arg(axis)
+  ref <- paste(.defRecast$class, .defRecast$slot, .defRecast$column, sep = "")
+  i <- match(paste(class, slot, column, sep = ""), ref)
+  stats::setNames(.defRecast[[axis]][i], column)
+}
+
+#' Columns of a slot carrying no declaration at all
+#' @noRd
+.recast_undeclared <- function(class, slot, column) {
+  ref <- paste(.defRecast$class, .defRecast$slot, .defRecast$column, sep = "")
+  column[is.na(match(paste(class, slot, column, sep = ""), ref))]
+}
+
 #' Recast a model onto another calendar
 #'
 #' Moves a model's time-varying data from the calendar it was written against

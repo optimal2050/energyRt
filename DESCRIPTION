@@ -146,6 +146,7 @@ Collate:
     'read_sequence.R'
     'timeslices.R'
     'recast.R'
+    'recast-rules.R'
     'registry.R'
     'report_cache.R'
     'report_elements.R'
