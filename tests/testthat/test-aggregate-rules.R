@@ -159,3 +159,29 @@ test_that("cluster is an identifier when recasting a calendar", {
   skip_if_no_geoscales()
   expect_true("cluster" %in% energyRt:::.recast_id_cols)
 })
+
+test_that("a ramp time is copied, and a conflict is refused", {
+  skip_if_no_geoscales()
+  mk <- function(r) {
+    objs <- ar_base()
+    objs[[2]]@af <- data.frame(region = c("R1", "R2"), rampup = r)
+    objs
+  }
+  # a ramp time is a property of the technology, not of the region
+  agg <- ar_agg(mk(c(4, 4)))
+  expect_equal(unique(agg@data[[1]]@data$ETEC@af$rampup), 4)
+  # averaging a divisor is wrong, so a genuine difference stops instead
+  expect_error(ar_agg(mk(c(4, 8))), "rampup")
+})
+
+test_that("a storage self-discharge is copied, not averaged", {
+  skip_if_no_geoscales()
+  mk <- function(e) newStorage(
+    "STG", commodity = "ELC",
+    capacity = data.frame(region = c("R1", "R2"), out.stock = c(300, 100)),
+    seff = data.frame(region = c("R1", "R2"), stgeff = e))
+  agg <- ar_agg(c(ar_base(), list(mk(c(0.99, 0.99)))))
+  expect_equal(unique(agg@data[[1]]@data$STG@seff$stgeff), 0.99)
+  # it is raised to the slice duration, so the honest merge is geometric
+  expect_error(ar_agg(c(ar_base(), list(mk(c(0.99, 0.90))))), "stgeff")
+})

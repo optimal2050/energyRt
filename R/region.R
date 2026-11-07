@@ -849,13 +849,26 @@ NULL
 
 #' Aggregation rule for each value column
 #' @noRd
-.agg_rules <- function(cols, cls = NULL) {
-  if (length(cls) && cls[1] %in% .AGG_LEVY_CLASSES)
-    return(stats::setNames(rep("copy", length(cols)), cols))
-  ext <- cols %in% .AGG_EXTENSIVE_COLS | grepl(.AGG_EXTENSIVE_RE, cols)
-  cpy <- cols %in% .AGG_COPY_COLS | grepl(.AGG_COPY_RE, cols)
-  r <- ifelse(cpy, "copy", ifelse(ext, "sum", "weighted_mean"))
-  stats::setNames(r, cols)
+.agg_rules <- function(cols, cls = NULL, slot = NULL) {
+  # The declared contract wins where it reaches. Columns it does not cover --
+  # a slot whose name the caller could not supply, a column added since the
+  # last build -- fall back to the inference the contract was seeded from.
+  r <- stats::setNames(rep(NA_character_, length(cols)), cols)
+  if (length(cls) && length(slot)) {
+    r[] <- unname(.get_recast_rule(cls[1], slot[1], cols, "space"))
+  }
+  todo <- is.na(r)
+  if (any(todo)) {
+    cl <- cols[todo]
+    if (length(cls) && cls[1] %in% .AGG_LEVY_CLASSES) {
+      r[todo] <- "copy"
+    } else {
+      ext <- cl %in% .AGG_EXTENSIVE_COLS | grepl(.AGG_EXTENSIVE_RE, cl)
+      cpy <- cl %in% .AGG_COPY_COLS | grepl(.AGG_COPY_RE, cl)
+      r[todo] <- ifelse(cpy, "copy", ifelse(ext, "sum", "weighted_mean"))
+    }
+  }
+  r
 }
 
 #' Normalise `resolve_conflicts` to one of "stop", "force", "drop"
@@ -983,11 +996,11 @@ NULL
 
 #' Recast one region-keyed slot onto the coarser geoframe
 #' @noRd
-.agg_slot <- function(df, gs, level, w, regions, cls = NULL,
+.agg_slot <- function(df, gs, level, w, regions, cls = NULL, slot = NULL,
                       resolve = FALSE, what = "this object") {
   if (!is.data.frame(df) || !nrow(df)) return(df)
   vals <- .agg_values(df)
-  rules <- .agg_rules(vals, cls)
+  rules <- .agg_rules(vals, cls, slot)
 
   cf <- .agg_conflicts(df, gs, level, vals[rules == "copy"])
   if (!is.null(cf)) {
@@ -1567,7 +1580,7 @@ Aggregating between two non-atom levels needs a level-aware ",
     for (sl in methods::slotNames(o)) {
       v <- methods::slot(o, sl)
       if (is.data.frame(v) && nrow(v) && "region" %in% names(v)) {
-        v2 <- .agg_slot(v, gs, level, w, regions, cls = cl1,
+        v2 <- .agg_slot(v, gs, level, w, regions, cls = cl1, slot = sl,
                         resolve = resolve_conflicts,
                         what = paste0(cl1, " '", o@name, "' @", sl))
         cf <- attr(v2, "agg_conflicts")
@@ -2510,7 +2523,7 @@ NULL
   # a cell with existing capacity is capacity that cannot run: stop, unless
   # the caller asked for the drop
   ex <- .gap_existing(scen, g)
-  if (any(ex) && identical(getOption("energyRt.on_missing_input", "stop"), "stop")) {
+  if (any(ex) && identical(options::opt("on_missing_input"), "stop")) {
     e <- g[ex, , drop = FALSE]
     stop(
       nrow(e), " process-region cell", if (nrow(e) > 1) "s have" else " has",

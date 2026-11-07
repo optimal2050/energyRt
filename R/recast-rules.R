@@ -1,6 +1,9 @@
 # Auto-created from the `recast:` blocks of data-raw/classes.yml;
 # see data-raw/recast_rules.R. Do not edit by hand.
 
+#' @include recast.R
+NULL
+
 #' Declared recast rule per class, slot and column
 #' @noRd
 .defRecast <- .recast_rules(
@@ -125,7 +128,7 @@
   "storage",    "invcost",    "stg.wacc",      "weighted_mean", NA,
   "storage",    "seff",       "inpeff",        "weighted_mean", "weighted_mean",
   "storage",    "seff",       "outeff",        "weighted_mean", "weighted_mean",
-  "storage",    "seff",       "stgeff",        "weighted_mean", "weighted_mean",
+  "storage",    "seff",       "stgeff",        "copy",          "copy",
   "storage",    "startLevel", "startLevel",    "sum",           NA,
   "storage",    "varom",      "inpcost",       "weighted_mean", "weighted_mean",
   "storage",    "varom",      "outcost",       "weighted_mean", "weighted_mean",
@@ -187,8 +190,8 @@
   "technology", "af",         "af.fx",         "weighted_mean", "weighted_mean",
   "technology", "af",         "af.lo",         "weighted_mean", "weighted_mean",
   "technology", "af",         "af.up",         "weighted_mean", "weighted_mean",
-  "technology", "af",         "rampdown",      "weighted_mean", "weighted_mean",
-  "technology", "af",         "rampup",        "weighted_mean", "weighted_mean",
+  "technology", "af",         "rampdown",      "copy",          "copy",
+  "technology", "af",         "rampup",        "copy",          "copy",
   "technology", "afs",        "afs.fx",        "weighted_mean", "weighted_mean",
   "technology", "afs",        "afs.lo",        "weighted_mean", "weighted_mean",
   "technology", "afs",        "afs.up",        "weighted_mean", "weighted_mean",
@@ -249,8 +252,8 @@
   "trade",      "trade",      "ava.fx",        "sum",           "weighted_mean",
   "trade",      "trade",      "ava.lo",        "sum",           "weighted_mean",
   "trade",      "trade",      "ava.up",        "sum",           "weighted_mean",
-  "trade",      "trade",      "reactance",     "weighted_mean", "weighted_mean",
-  "trade",      "trade",      "resistance",    "weighted_mean", "weighted_mean",
+  "trade",      "trade",      "reactance",     "copy",          "copy",
+  "trade",      "trade",      "resistance",    "copy",          "copy",
   "trade",      "trade",      "teff",          "weighted_mean", "weighted_mean",
   "trade",      "varom",      "markup",        "weighted_mean", "weighted_mean",
   "trade",      "varom",      "varom",         "weighted_mean", "weighted_mean",

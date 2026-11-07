@@ -866,11 +866,11 @@ class:
           description: Fixed availability factor, ignored if NA. This parameter overrides `af.lo` and `af.up`.
         rampup:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
+          recast: {space: copy, time: copy}
           description: Ramping-up time constraint RHS value, ignored if NA. Depends on the technology timeframe.
         rampdown:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
+          recast: {space: copy, time: copy}
           description: Ramping-down time constraint RHS value, ignored if NA. Depends on the technology timeframe.
     afs:
       type: data.frame
@@ -1561,7 +1561,7 @@ class:
           description: Time timeslice to apply the parameter, NA for every timeslice.
         stgeff:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
+          recast: {space: copy, time: copy}
           description: Storage decay annual rate.
         inpeff:
           type: numeric
@@ -2468,7 +2468,7 @@ class:
             delivered to `dst` (1 = lossless).
         reactance:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
+          recast: {space: copy, time: copy}
           description: >
             Series reactance `x` of the line, in the model's own impedance
             units. Carried for AC lines and used by nothing unless the model is
@@ -2483,7 +2483,7 @@ class:
             `1/x_eq = sum(1/x_i)`, not any one circuit's.
         resistance:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
+          recast: {space: copy, time: copy}
           description: >
             Series resistance `r` of the line, same units and same symmetry
             requirement as `reactance`. Recorded so a line keeps both

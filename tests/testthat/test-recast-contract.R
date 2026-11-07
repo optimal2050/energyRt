@@ -7,14 +7,22 @@
 # from it is then a deliberate, tested decision rather than a side effect.
 # =========================================================================== #
 
-test_that("the contract reproduces the rule the code infers today", {
+# Deliberate departures from the inference the contract was seeded from.
+# Each has its own test below; the list exists so that a new departure cannot
+# appear unnoticed, and so that a stale entry is caught too.
+rc_departures <- c("technologyaframpup", "technologyaframpdown",
+                   "storageseffstgeff", "tradetradereactance",
+                   "tradetraderesistance")
+
+test_that("the contract reproduces the inference apart from pinned departures", {
   d <- energyRt:::.defRecast
   mismatch <- NULL
   for (k in unique(paste(d$class, d$slot, sep = "\r"))) {
     p <- strsplit(k, "\r", fixed = TRUE)[[1]]
     rows <- d[d$class == p[1] & d$slot == p[2], ]
     inferred <- energyRt:::.agg_rules(rows$column, p[1])
-    bad <- which(unname(inferred) != rows$space)
+    key <- paste(rows$class, rows$slot, rows$column, sep = "")
+    bad <- which(unname(inferred) != rows$space & !(key %in% rc_departures))
     if (length(bad)) {
       mismatch <- rbind(mismatch, data.frame(
         class = p[1], slot = p[2], column = rows$column[bad],
@@ -22,6 +30,20 @@ test_that("the contract reproduces the rule the code infers today", {
     }
   }
   expect_null(mismatch)
+})
+
+test_that("every pinned departure really does depart", {
+  d <- energyRt:::.defRecast
+  key <- paste(d$class, d$slot, d$column, sep = "")
+  for (k in rc_departures) {
+    i <- match(k, key)
+    expect_false(is.na(i), label = paste("pinned but not declared:", k))
+    p <- strsplit(k, "", fixed = TRUE)[[1]]
+    # the inference must still disagree, or the pin is stale
+    expect_false(identical(
+      unname(energyRt:::.agg_rules(p[3], p[1])), d$space[i]),
+      label = paste("pin is stale:", k))
+  }
 })
 
 test_that("every column on an axis carries a declaration", {
