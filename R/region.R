@@ -1574,32 +1574,10 @@ Aggregating between two non-atom levels needs a level-aware ",
       out[[o@name]] <- o
       next
     }
-    cl1 <- class(o)[1]
-    w <- .agg_weight(o)
-    cfs <- list()
-    for (sl in methods::slotNames(o)) {
-      v <- methods::slot(o, sl)
-      if (is.data.frame(v) && nrow(v) && "region" %in% names(v)) {
-        v2 <- .agg_slot(v, gs, level, w, regions, cls = cl1, slot = sl,
-                        resolve = resolve_conflicts,
-                        what = paste0(cl1, " '", o@name, "' @", sl))
-        cf <- attr(v2, "agg_conflicts")
-        attr(v2, "agg_conflicts") <- NULL
-        if (!is.null(cf)) {
-          cf$slot <- sl
-          cfs[[length(cfs) + 1L]] <- cf
-        }
-        methods::slot(o, sl) <- v2
-      }
-    }
-    o <- .agg_record(o, level, cfs)
-    if (.hasSlot(o, "region")) {
-      r <- methods::slot(o, "region")
-      if (is.character(r) && length(r)) {
-        methods::slot(o, "region") <-
-          unique(stats::na.omit(.agg_map_codes(r, gs, level)))
-      }
-    }
+    # one object, one scale: the per-class method owns the rest
+    o <- recast_object(o, scale = gs, target = level, as = "merge",
+                       regions = regions,
+                       resolve_conflicts = resolve_conflicts)
     out[[o@name]] <- o
   }
 
