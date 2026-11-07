@@ -208,7 +208,7 @@ NULL
 #' @return The run record, invisibly.
 #' @seealso [scenario_runs()], [get_status()], [drop_scenario_run()]
 #' @export
-clear_run <- function(object, run, verbose = TRUE) {
+clear_run <- function(object, run, verbose = isVerbose()) {
   object <- .as_run_locator(object)
   id <- .parse_run_id(run, object)
   ry <- fp(.run_dir(object, id$variant, id$solve), "run.yml")
@@ -219,7 +219,7 @@ clear_run <- function(object, run, verbose = TRUE) {
   rec <- yaml::read_yaml(ry)
   if (!identical(as.character(rec$status %||% ""), "running")) {
     if (isTRUE(verbose)) {
-      message("Run '", run, "' is not marked running (status: ",
+      .say("Run '", run, "' is not marked running (status: ",
               rec$status %||% "unknown", "); nothing to clear.")
     }
     return(invisible(rec))
@@ -239,7 +239,7 @@ clear_run <- function(object, run, verbose = TRUE) {
   # listing that still says `running` is the whole reason this verb was needed
   .registry_sync_run(dirname(ry), object@name)
   if (isTRUE(verbose)) {
-    message("Run '", run, "' of scenario '", object@name,
+    .say("Run '", run, "' of scenario '", object@name,
             "' marked abandoned (was running on ", rec$hostname %||% "?", ").")
   }
   invisible(rec)

@@ -141,7 +141,7 @@
 
 # Materialise every densifiable parameter (finite non-zero defVal). Runs only on
 # the `sparse = FALSE` path, after interpolation + maps, before writing.
-expand_default_values <- function(scen, verbose = FALSE) {
+expand_default_values <- function(scen, verbose = isVerbose(2)) {
   pool <- .densify_map_pool(scen)
   for (pn in names(scen@modInp@parameters)) {
     p <- scen@modInp@parameters[[pn]]
@@ -152,7 +152,7 @@ expand_default_values <- function(scen, verbose = FALSE) {
     scen <- .densify_one(scen, pn, pool)
     if (isTRUE(verbose)) {
       after <- nrow(as.data.frame(get_data_slot(scen@modInp@parameters[[pn]])))
-      if (after != before) message("densify '", pn, "': ", before, " -> ", after)
+      if (after != before) .say("densify '", pn, "': ", before, " -> ", after)
     }
   }
   scen

@@ -592,7 +592,7 @@ unfold_parameter <- function(param, member_sets = list(), value_col = "value") {
 # Used during interpolation (interp_mod). Returns the updated scenario.
 # -----------------------------------------------------------------------------#
 fold_parameters <- function(scen, dims = c("region", "timeslice"),
-                                     tol = 1e-10, verbose = FALSE, params = NULL) {
+                                     tol = 1e-10, verbose = isVerbose(2), params = NULL) {
   dims <- .rename_slice_compat(dims, "dims")
   pnames <- .param_subset(scen, params)
   for (pn in pnames) {
@@ -615,7 +615,7 @@ fold_parameters <- function(scen, dims = c("region", "timeslice"),
     if (verbose) {
       after <- nrow(get_data_slot(p2))
       if (after < before) {
-        message(sprintf(
+        .say(sprintf(
           "  fold %-20s %d -> %d rows [%s]", pn, before, after,
           paste(p2@misc$fold_info$wildcard_dims, collapse = ", ")
         ))
@@ -652,7 +652,7 @@ unfold_scenario_parameter <- function(scen, param,
 # -----------------------------------------------------------------------------#
 unfold_parameters <- function(scen, dims = .foldable_dims,
                                        types = c("numpar", "bounds", "map"),
-                                       verbose = FALSE, params = NULL) {
+                                       verbose = isVerbose(2), params = NULL) {
   dims <- .rename_slice_compat(dims, "dims")
   pnames <- .param_subset(scen, params)
   for (pn in pnames) {
@@ -702,7 +702,7 @@ unfold_parameters <- function(scen, dims = .foldable_dims,
 # unmaterialised wildcard would silently resolve to the solver default.
 # Returns the updated scenario.
 # -----------------------------------------------------------------------------#
-unfold_trade_routes <- function(scen, verbose = FALSE) {
+unfold_trade_routes <- function(scen, verbose = isVerbose(2)) {
   routes <- .read_map(scen, "mTradeRoutes")
   if (is.null(routes) || !all(c("trade", "src", "dst") %in% names(routes))) {
     return(scen)

@@ -290,7 +290,7 @@
           defVal = defVal, arg = arg
         )
       ), globalenv())
-      message(
+      .say(
         "\nInterpolation error, more information in",
         ' "interpolation_message" object\n'
       )
@@ -1127,7 +1127,7 @@ merge0 <- function(x, y,
     # done text is always longer than `> msg`, so it fully overwrites it.
     cat("\r", cli::col_green(cli::symbol$tick), " ", done, "\n", sep = "")
   } else {
-    cli::cli_alert_success(done, .envir = emptyenv())
+    .alert_success(done, .envir = emptyenv())
   }
   .interp_clock$open <- FALSE
   .interp_clock$msg <- NULL
@@ -1252,7 +1252,7 @@ merge0 <- function(x, y,
     utils::flush.console()
     .interp_clock$open <- TRUE
   } else {
-    cli::cli_alert_info(msg, .envir = emptyenv())
+    .alert_info(msg, .envir = emptyenv())
     .interp_clock$open <- FALSE
   }
   invisible()

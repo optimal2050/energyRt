@@ -890,7 +890,7 @@ recipe_value <- function(scen, names, fmp) {
   pending <- setdiff(unique(names),
                      c(.value_maps_built_in_filter, .value_maps_unsupported))
   if (length(pending) > 0) {
-    message("recipe 'value': ", length(pending),
+    .say("recipe 'value': ", length(pending),
             " mapping(s) pending engine implementation: ",
             paste(pending, collapse = ", "))
   }
@@ -1766,7 +1766,7 @@ recipe_constraint <- function(scen, names, fmp) {
   )
   pending <- setdiff(names, handled)
   if (length(pending) > 0) {
-    message("recipe 'constraint': ", length(pending),
+    .say("recipe 'constraint': ", length(pending),
             " mapping(s) pending engine implementation: ",
             paste(pending, collapse = ", "))
   }
@@ -1832,7 +1832,7 @@ build_mappings <- function(scen, fmp = NULL,
       # The remaining recipes are implemented incrementally; until each is
       # wired in, report the pending mappings rather than failing the pipeline.
       {
-        message("recipe '", rc, "': ", length(nms),
+        .say("recipe '", rc, "': ", length(nms),
                 " mapping(s) pending engine implementation")
         scen
       }

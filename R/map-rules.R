@@ -207,7 +207,7 @@
     scen@modInp@parameters[[nm]] <- p
   }
   if (isTRUE(verbose) && length(nms)) {
-    message("Map rules: ", paste(nms, collapse = ", "), " kept as rules, tables dropped")
+    .say("Map rules: ", paste(nms, collapse = ", "), " kept as rules, tables dropped")
   }
   scen
 }

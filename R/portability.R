@@ -325,7 +325,7 @@ scenario_artifacts <- function(object) {
 #' drop_solver_outputs(scen, dry_run = FALSE)
 #' }
 drop_solver_outputs <- function(object, runs = NULL, dry_run = TRUE,
-                                verbose = TRUE) {
+                                verbose = isVerbose()) {
   stopifnot(is(object, "scenario"))
   # a RUN cleaner: the scenario-level derived tiers have their own removers
   art <- scenario_artifacts(object)
@@ -382,7 +382,7 @@ drop_solver_outputs <- function(object, runs = NULL, dry_run = TRUE,
               round(sum(sel$freed_mb[sel$action == "would_delete"]), 2),
               " MB; drop_solver_outputs(dry_run = FALSE) to remove.")
     } else {
-      message("Freed ", round(sum(sel$freed_mb[sel$action == "deleted"]), 2),
+      .say("Freed ", round(sum(sel$freed_mb[sel$action == "deleted"]), 2),
               " MB from ", sum(sel$action == "deleted"), " run(s).")
     }
   }
@@ -670,7 +670,7 @@ drop_solver_outputs <- function(object, runs = NULL, dry_run = TRUE,
 #' }
 strip_user_info <- function(object, path = NULL, scope = c("share", "store"),
                             keep_solver = FALSE, confirm = FALSE,
-                            verbose = TRUE) {
+                            verbose = isVerbose()) {
   from <- if (is(object, "scenario")) object@path else as.character(object)
   stopifnot(length(from) == 1L, nzchar(from))
   scope <- match.arg(scope)
@@ -715,7 +715,7 @@ strip_user_info <- function(object, path = NULL, scope = c("share", "store"),
     message("Stripped '", out, "' (scope = ", scope, "): ",
             n_run, " run record(s), ", n_csv, " solver file(s).")
     if (length(remaining)) {
-      message("  Still carrying the home directory or user name:
+      .say("  Still carrying the home directory or user name:
    ",
               paste(utils::head(remaining, 5), collapse = "
    "),
@@ -780,7 +780,7 @@ strip_user_info <- function(object, path = NULL, scope = c("share", "store"),
 #' }
 prepare_for_sharing <- function(object, path, scope = c("share", "store"),
                                 keep_runs = FALSE, keep_reports = FALSE,
-                                keep_solver = FALSE, verbose = TRUE) {
+                                keep_solver = FALSE, verbose = isVerbose()) {
   scope <- match.arg(scope)
   if (missing(path) || is.null(path) || !nzchar(path)) {
     stop("`path` is required: prepare_for_sharing() writes a copy and never ",
@@ -854,11 +854,11 @@ prepare_for_sharing <- function(object, path, scope = c("share", "store"),
     message("Prepared '", out, "' for sharing (scope = ", scope, "): ",
             round(mb_before, 2), " MB -> ", round(mb_after, 2), " MB.")
     if (length(r$remaining)) {
-      message("  WARNING - still carries the home directory or user name:\n   ",
+      .say("  WARNING - still carries the home directory or user name:\n   ",
               paste(utils::head(r$remaining, 5), collapse = "\n   "))
     }
     if (length(unresolved)) {
-      message("  NOT self-contained - these are referenced, not embedded, ",
+      .say("  NOT self-contained - these are referenced, not embedded, ",
               "and will not travel:\n   ",
               paste(unresolved, collapse = "\n   "),
               "\n  Re-save with embed_model = TRUE / embed_datasets = TRUE ",

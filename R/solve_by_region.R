@@ -115,7 +115,7 @@ solve_by_region <- function(object, name = NULL, ...,
                             solver = NULL,
                             on_error = c("stop", "continue"),
                             overwrite = FALSE,
-                            keep_scenarios = TRUE, verbose = TRUE) {
+                            keep_scenarios = TRUE, verbose = isVerbose()) {
   stopifnot(is(object, "model"))
   trade <- match.arg(trade)
   on_error <- match.arg(on_error)

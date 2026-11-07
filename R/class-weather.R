@@ -367,7 +367,7 @@ materialize_weather <- function(weather, transform, ...) {
 # after `expand_variants()` (each variant owns its link rows) and before
 # `sets$weather` is collected, so the derived objects join the set like any
 # declared weather. Non-destructive: the caller's model is untouched.
-materialize_weather_transforms <- function(mod, verbose = FALSE) {
+materialize_weather_transforms <- function(mod, verbose = isVerbose(2)) {
   state <- new.env(parent = emptyenv())
   state$wobjs <- list()
   state$pending <- list()
@@ -431,7 +431,7 @@ materialize_weather_transforms <- function(mod, verbose = FALSE) {
 # Readable post-expansion because `.variant_timeslice()` STAMPS each variant's
 # cluster into its filtered link rows (R/variants.R) rather than blanking them,
 # so `EWIN_CLT3@weather` arrives carrying `cluster = "T3"`.
-materialize_weather_clusters <- function(mod, verbose = FALSE,
+materialize_weather_clusters <- function(mod, verbose = isVerbose(2),
                                          prefix = .variant_prefix_default()) {
   wobjs <- list()
   taken <- character()

@@ -4,7 +4,7 @@
 \alias{drop_solver_outputs}
 \title{Delete the regenerable part of a solve}
 \usage{
-drop_solver_outputs(object, runs = NULL, dry_run = TRUE, verbose = TRUE)
+drop_solver_outputs(object, runs = NULL, dry_run = TRUE, verbose = isVerbose())
 }
 \arguments{
 \item{object}{a scenario object.}

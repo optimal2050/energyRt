@@ -14,7 +14,7 @@ save_scenario(
   overwrite = TRUE,
   clean_start = FALSE,
   write_log = TRUE,
-  verbose = TRUE
+  verbose = isVerbose()
 )
 }
 \arguments{

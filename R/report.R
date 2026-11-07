@@ -666,7 +666,7 @@ setMethod(
     }
     if (all(current)) {
       out_files <- paste0(file_base, ".", format)
-      message("Report up to date: ", paste(out_files, collapse = ", "),
+      .say("Report up to date: ", paste(out_files, collapse = ", "),
               " (force = TRUE to re-render)")
       .report_open(out_files, open)
       return(invisible(if (length(out_files) == 1L) out_files[1L] else
@@ -932,7 +932,7 @@ setMethod(
         ))
       )
 
-      message("Report written to: ", fout)
+      .say("Report written to: ", fout)
       out_files <- c(out_files, fout)
     }
 
@@ -1035,7 +1035,7 @@ Levelized cost section will be omitted.")
              logical(1))
     if (all(current)) {
       out_files <- paste0(file_base, ".", format)
-      message("Report up to date: ", paste(out_files, collapse = ", "),
+      .say("Report up to date: ", paste(out_files, collapse = ", "),
               " (force = TRUE to re-render)")
       .report_open(out_files, open)
       return(invisible(if (length(out_files) == 1L) out_files[1L] else
@@ -1176,7 +1176,7 @@ Levelized cost section will be omitted.")
           render_dots
         ))
       )
-      message("Report written to: ", fout)
+      .say("Report written to: ", fout)
       out_files <- c(out_files, fout)
     }
 
@@ -1260,7 +1260,7 @@ Levelized cost section will be omitted.")
     if (!is.null(own)) reports_path <- fp(own, "reports")
   }
   if (is.null(name) || !nzchar(name)) {
-    message("report(): give the element `name = ` to report.")
+    .say("report(): give the element `name = ` to report.")
     return(invisible(NULL))
   }
   # element lookup across ALL classes (was technology-only via
@@ -1271,7 +1271,7 @@ Levelized cost section will be omitted.")
     getObject(tech_source, name = name, class = cls_flt),
     error = function(e) list())
   if (length(found) == 0) {
-    message("report(): element '", name, "' not found in the ",
+    .say("report(): element '", name, "' not found in the ",
             class(container)[1], ".")
     return(invisible(NULL))
   }
@@ -1281,7 +1281,7 @@ Levelized cost section will be omitted.")
     cl1 <- vapply(found, function(o) class(o)[1], character(1))
     pri <- c(.LEVCOST_CLASSES, setdiff(sort(unique(cl1)), .LEVCOST_CLASSES))
     pick <- order(match(cl1, pri))[1]
-    message("report(): '", name, "' matches several classes (",
+    .say("report(): '", name, "' matches several classes (",
             paste(sort(unique(cl1)), collapse = ", "), "); reporting the ",
             cl1[pick], ". Pass `class = ` to choose another.")
     found <- found[pick]
@@ -1304,7 +1304,7 @@ Levelized cost section will be omitted.")
           NULL
         })
       if (is.null(levcost)) {
-        message("report(): could not compute levelized cost for '", name,
+        .say("report(): could not compute levelized cost for '", name,
                 "'.")
         return(invisible(NULL))
       }
@@ -1375,7 +1375,7 @@ Levelized cost section will be omitted.")
              logical(1))
     if (all(current)) {
       out_files <- paste0(file_base, ".", format)
-      message("Report up to date: ", paste(out_files, collapse = ", "),
+      .say("Report up to date: ", paste(out_files, collapse = ", "),
               " (force = TRUE to re-render)")
       .report_open(out_files, open)
       return(invisible(if (length(out_files) == 1L) out_files[1L] else
@@ -1414,7 +1414,7 @@ Levelized cost section will be omitted.")
              intermediates_dir = tempfile("report_int_"), quiet = TRUE),
         render_dots))
     )
-    message("Report written to: ", fout)
+    .say("Report written to: ", fout)
     out_files <- c(out_files, fout)
   }
   if (!is.null(key)) {

@@ -420,7 +420,7 @@ print.carry_ledger <- function(x, ...) {
 #' @keywords internal
 apply_ledger <- function(mod, ledger, horizon,
                                carry = c("capacity", "budgets"),
-                               tolerance = 1e-6, verbose = FALSE) {
+                               tolerance = 1e-6, verbose = isVerbose(2)) {
   stopifnot(is(mod, "model"), inherits(ledger, "carry_ledger"),
             is(horizon, "horizon"))
   mids <- as.integer(horizon@intervals$mid)

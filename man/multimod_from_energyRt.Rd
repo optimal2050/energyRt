@@ -9,7 +9,7 @@ multimod_from_energyRt(
   gms = NULL,
   prefer = c("spec", "hint"),
   inMemory = TRUE,
-  verbose = TRUE
+  verbose = isVerbose()
 )
 }
 \arguments{

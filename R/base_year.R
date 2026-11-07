@@ -100,7 +100,7 @@ NULL
   # One line, always: a declared milestone leaving the model must be said out
   # loud, and so must the fact that its data is still read.
   if (length(history)) {
-    message("base year ", by, ": ", length(history),
+    .say("base year ", by, ": ", length(history),
             " milestone(s) before it (", paste(history, collapse = ", "),
             ") are historical and enter no LP; their data still anchors ",
             "interpolation")
@@ -205,7 +205,7 @@ NULL
 solve_base_year <- function(object, name = NULL, solver = NULL,
                             optimize_retirement = FALSE, variant = "by",
                             save = TRUE, ...,
-                            verbose = TRUE) {
+                            verbose = isVerbose()) {
   mod <- if (is(object, "scenario")) object@model else object
   if (!is(mod, "model")) {
     stop("`solve_base_year()` expects a model or an interpolated scenario; ",
@@ -223,7 +223,7 @@ solve_base_year <- function(object, name = NULL, solver = NULL,
     mod <- .by_freeze_retirement(mod)
     nfz <- attr(mod, "n_frozen") %||% 0L
     if (isTRUE(verbose) && nfz > 0L) {
-      message("Base year: endogenous retirement switched off for ", nfz,
+      .say("Base year: endogenous retirement switched off for ", nfz,
               " process(es) (observed retirements are data, not decisions).")
     }
   }
@@ -268,7 +268,7 @@ solve_base_year <- function(object, name = NULL, solver = NULL,
                              verbose = TRUE) {
   if (is.null(ledger) || is.null(ledger$newcap) || !nrow(ledger$newcap)) {
     if (isTRUE(verbose)) {
-      message("Base year: nothing was built, so the projection's stock is ",
+      .say("Base year: nothing was built, so the projection's stock is ",
               "unchanged.")
     }
     return(mod)
@@ -314,7 +314,7 @@ solve_base_year <- function(object, name = NULL, solver = NULL,
     touched <- touched + 1L
   }
   if (isTRUE(verbose)) {
-    message("Base year carried into the projection: ", touched,
+    .say("Base year carried into the projection: ", touched,
             " process(es) gained decided capacity as stock; every other ",
             "declared stock row is untouched.")
   }

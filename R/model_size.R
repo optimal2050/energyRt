@@ -233,7 +233,7 @@ compare_interp_settings <- function(object, settings = NULL, ...,
   for (k in seq_along(settings)) {
     nm  <- names(settings)[k]
     arg <- settings[[k]]
-    if (isTRUE(verbose)) message("interp [", nm, "] ...")
+    if (isTRUE(verbose)) .say("interp [", nm, "] ...")
     t0  <- Sys.time()
     scen <- tryCatch(
       do.call(interpolate_model, c(
@@ -358,7 +358,7 @@ compare_solve_settings <- function(object, settings = NULL, solvers, ...,
     for (i in seq_along(solvers)) {
       sv <- solvers[[i]]
       sl <- snames[i]
-      if (isTRUE(verbose)) message("solve [", st, " x ", sl, "] ...")
+      if (isTRUE(verbose)) .say("solve [", st, " x ", sl, "] ...")
       t0 <- Sys.time()
       res <- tryCatch(
         solve_scenario(scen, solver = sv, force = TRUE, solver.dir = solver.dir),

@@ -666,7 +666,7 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
   if (is.null(name) || !nzchar(name)) {
     procs <- .levcost_processes(container, classes)
     if (!length(procs)) {
-      message("levcost(): the ", class(container)[1], " holds no ",
+      .say("levcost(): the ", class(container)[1], " holds no ",
               "technology, storage or trade to price.")
       return(invisible(NULL))
     }
@@ -705,7 +705,7 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
   }
   proc <- .levcost_find_process(container, name, classes)
   if (is.null(proc)) {
-    message("levcost(): process '", name, "' not found in the ",
+    .say("levcost(): process '", name, "' not found in the ",
             class(container)[1], ".")
     return(invisible(NULL))
   }
@@ -725,7 +725,7 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
   covered  <- unique(c(.levcost_supplied_comms(container), names(fuel_costs)))
   missing  <- setdiff(in_comms, covered)
   if (length(missing) > 0 && !isTRUE(autocomplete)) {
-    message("levcost(): technology '", name, "' consumes commodity(ies) with no ",
+    .say("levcost(): technology '", name, "' consumes commodity(ies) with no ",
             "supply in the ", class(container)[1], ": ",
             paste(missing, collapse = ", "), ".\n",
             "  Set autocomplete = TRUE to add zero-cost supplies, or pass e.g. ",
@@ -979,7 +979,7 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
 .levcost_scenario <- function(scen, name, comm = NULL, discount = NULL,
                               base_year = NULL, verbose = TRUE, ...) {
   if (is.null(name) || !length(name) || !any(nzchar(as.character(name)))) {
-    message("levcost(): please give the process `name = ` to price."); return(invisible(NULL))
+    .say("levcost(): please give the process `name = ` to price."); return(invisible(NULL))
   }
 
   # One call may name several processes, or one base that expands into many.
@@ -997,7 +997,7 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
     per_variant <- Filter(function(x) inherits(x, "levcost"), per_variant)
     skipped <- setdiff(nms, names(per_variant))
     if (length(skipped) && isTRUE(verbose)) {
-      message("levcost(): ", length(skipped), " of ", length(nms),
+      .say("levcost(): ", length(skipped), " of ", length(nms),
               " variant(s) were not priced -- no output in the solved ",
               "scenario: ", paste(utils::head(skipped, 5), collapse = ", "),
               if (length(skipped) > 5) ", ..." else "")
@@ -1022,17 +1022,17 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
   if (!isTRUE(scen@status$interpolated) ||
       is.null(tryCatch(scen@modOut, error = function(e) NULL)) ||
       !identical(scen@modOut@stage, "solved")) {
-    message("levcost(): the scenario is not solved -- solve it first."); return(invisible(NULL))
+    .say("levcost(): the scenario is not solved -- solve it first."); return(invisible(NULL))
   }
   cls <- .levcost_scen_class(scen, name)
   if (is.null(cls)) {
-    message("levcost(): process '", name, "' is not a technology, storage or ",
+    .say("levcost(): process '", name, "' is not a technology, storage or ",
             "trade in the scenario's model."); return(invisible(NULL))
   }
   vars <- .LEVCOST_SCEN_VARS[[cls]]
   out_all <- .levcost_scen_get(scen, vars$out, vars$index, name)
   if (is.null(out_all) || !nrow(out_all)) {
-    message("levcost(): process '", name, "' has no output in the solved scenario."); return(invisible(NULL))
+    .say("levcost(): process '", name, "' has no output in the solved scenario."); return(invisible(NULL))
   }
   # `vTradeIr` is what LEAVES the sending region; what arrives -- the thing a
   # levelized cost is per unit OF -- is that times the route's efficiency.
@@ -1250,7 +1250,7 @@ levcost_chain_ <- function(
     calendar    = NULL,
     region      = NULL,
     solver      = solver_options$glpk,
-    verbose     = TRUE,
+    verbose     = isVerbose(),
     ...
 ) {
   if (length(object) == 0) stop("`object` is an empty list.")
@@ -1274,8 +1274,8 @@ levcost_chain_ <- function(
   if (verbose) {
     message("Chain: ", chain_name)
     if (length(intermediate)  > 0) message("  Intermediate:    ", paste(intermediate,  collapse = ", "))
-    if (length(external_inps) > 0) message("  External inputs: ", paste(external_inps, collapse = ", "))
-    if (length(terminal_outs) > 0) message("  Terminal outputs: ", paste(terminal_outs, collapse = ", "))
+    if (length(external_inps) > 0) .say("  External inputs: ", paste(external_inps, collapse = ", "))
+    if (length(terminal_outs) > 0) .say("  Terminal outputs: ", paste(terminal_outs, collapse = ", "))
   }
 
   # ── 2. Resolve terminal output (normaliser) ───────────────────────────────
@@ -1941,7 +1941,7 @@ levcost_technology_ <- function(
     run            = c("single", "sequential"),
     max_failures   = 10L,
     as_scenario    = FALSE,
-    verbose        = TRUE,
+    verbose        = isVerbose(),
     ...
 ) {
   run    <- match.arg(run)
@@ -3997,7 +3997,7 @@ plot.levcost_list <- function(x, y, ...) {
   res <- tryCatch(readRDS(rds), error = function(e) NULL)
   if (is.null(res)) return(NULL)
   if (isTRUE(verbose)) {
-    message("levcost: cached result is current: ", rds,
+    .say("levcost: cached result is current: ", rds,
             " (force = TRUE to recompute)")
   }
   res

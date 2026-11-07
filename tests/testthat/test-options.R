@@ -85,7 +85,10 @@ test_that("declared defaults are what the getters return", {
     expect_identical(get_default_solver(), list(name = "glpk", lang = "GLPK"))
     expect_identical(get_registry_file(), "energyRt_registry.csv")
     expect_identical(get_models_path(), "models/")
-    expect_false(isVerbose())
+    # the declared default is level 1: an action reports itself once, and the
+    # per-object detail at level 2 stays off
+    expect_true(isVerbose())
+    expect_false(isVerbose(2))
     expect_false(isDebug())
   })
 })
@@ -214,12 +217,15 @@ test_that("options(energyRt.verbose) is no longer honoured", {
     old <- getOption("energyRt.verbose")
     on.exit(options(energyRt.verbose = old), add = TRUE)
 
-    options(en.verbose = NULL, energyRt.verbose = TRUE)
-    expect_silent(res <- isVerbose())
+    # level 2 under the legacy name, which would be observable if it were
+    # honoured; the declared default (level 1) stands instead
+    options(en.verbose = NULL, energyRt.verbose = 2)
+    expect_silent(res <- isVerbose(2))
     expect_false(res)
-
-    options(en.verbose = 1)
     expect_true(isVerbose())
+
+    options(en.verbose = 2)
+    expect_true(isVerbose(2))
   })
 })
 

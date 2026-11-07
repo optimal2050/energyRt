@@ -175,7 +175,7 @@
 #' clear_report_cache(scen, dry_run = FALSE)   # remove them
 #' }
 #' @export
-clear_report_cache <- function(x = NULL, dry_run = TRUE, verbose = TRUE) {
+clear_report_cache <- function(x = NULL, dry_run = TRUE, verbose = isVerbose()) {
   empty <- tibble(report = character(0), formats = character(0),
                   size_mb = numeric(0), created = character(0),
                   action = character(0), path = character(0))
@@ -198,14 +198,14 @@ clear_report_cache <- function(x = NULL, dry_run = TRUE, verbose = TRUE) {
     }
   }
   if (is.null(dir) || !dir.exists(dir)) {
-    if (isTRUE(verbose)) message("No reports in '", dir %||% "?", "'.")
+    if (isTRUE(verbose)) .say("No reports in '", dir %||% "?", "'.")
     return(if (dry_run) empty else invisible(empty))
   }
 
   grp <- .report_groups(dir)
   out <- if (length(grp)) bind_rows(grp) else empty
   if (!nrow(out)) {
-    if (isTRUE(verbose)) message("No reports in '", dir, "'.")
+    if (isTRUE(verbose)) .say("No reports in '", dir, "'.")
     return(if (dry_run) empty else invisible(empty))
   }
   out$action <- if (dry_run) "would_delete" else "deleted"
@@ -222,11 +222,11 @@ clear_report_cache <- function(x = NULL, dry_run = TRUE, verbose = TRUE) {
   if (isTRUE(verbose)) {
     mb <- round(sum(out$size_mb, na.rm = TRUE), 2)
     if (dry_run) {
-      message("Dry run - nothing deleted. ", nrow(out), " report group",
+      .say("Dry run - nothing deleted. ", nrow(out), " report group",
               if (nrow(out) == 1L) "" else "s", " in '", dir, "' (", mb,
               " MB); clear_report_cache(dry_run = FALSE) to remove.")
     } else {
-      message("Removed ", nrow(out), " report group",
+      .say("Removed ", nrow(out), " report group",
               if (nrow(out) == 1L) "" else "s", " (", mb, " MB) from '",
               dir, "'.")
     }

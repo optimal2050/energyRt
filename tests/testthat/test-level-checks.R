@@ -258,7 +258,9 @@ test_that("summand@geoframe needs a geoscale and a region dimension", {
 })
 
 test_that("the check is inert for a flat model with matched levels", {
-  # No geoscale, every level matched: nothing to report.
-  expect_silent(energyRt:::.check_process_levels(lc_interp(lc_model(name = "t7"),
-                                                           "t7")))
+  # No geoscale, every level matched: nothing to report. The scenario is built
+  # outside the expectation -- interpolation narrates at the default verbosity,
+  # and what is under test is the check's own silence.
+  scen <- lc_interp(lc_model(name = "t7"), "t7")
+  expect_silent(energyRt:::.check_process_levels(scen))
 })

@@ -138,7 +138,7 @@ recast_model_calendar <- function(object, calendar, rules = NULL, year = NULL,
   n_tgt <- nrow(calendar@timetable)
   if (identical(n_src, n_tgt) && setequal(src_leaves,
                                           as.character(calendar@timetable$timeslice))) {
-    message("recast: the model already carries this calendar; nothing to do.")
+    .say("recast: the model already carries this calendar; nothing to do.")
     return(object)
   }
   rule_default <- if (n_tgt < n_src) "weighted_mean" else "copy"
@@ -169,7 +169,7 @@ recast_model_calendar <- function(object, calendar, rules = NULL, year = NULL,
           st$kept <<- st$kept + r$kept
           if (length(r$dropped)) st$dropped <<- c(st$dropped, r$dropped)
           if (isTRUE(verbose)) {
-            message(sprintf("  %-28s %6d -> %6d row(s)%s",
+            .say(sprintf("  %-28s %6d -> %6d row(s)%s",
                             paste0(nm_el, "@", sn), nrow(v), nrow(r$data),
                             if (r$kept) paste0(" (", r$kept, " kept as declared)")
                             else ""))
@@ -201,7 +201,7 @@ recast_model_calendar <- function(object, calendar, rules = NULL, year = NULL,
   # would let it overwrite the source model's entry while claiming to be it.
   object@misc$hash <- NULL
 
-  message("recast onto calendar '", calendar@name, "' (", n_src, " -> ", n_tgt,
+  .say("recast onto calendar '", calendar@name, "' (", n_src, " -> ", n_tgt,
           " timeslices): ", st$tables, " table(s), ",
           format(st$rows_in, big.mark = ","), " -> ",
           format(st$rows_out, big.mark = ","), " row(s)",

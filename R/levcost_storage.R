@@ -447,7 +447,7 @@ levcost_storage_ <- function(
     region     = NULL,
     solver     = solver_options$glpk,
     method     = c("auto", "analytic", "solve"),
-    verbose    = TRUE,
+    verbose    = isVerbose(),
     ...
 ) {
   method <- match.arg(method)

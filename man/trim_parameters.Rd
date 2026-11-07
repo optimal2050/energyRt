@@ -4,7 +4,7 @@
 \alias{trim_parameters}
 \title{Trim numeric/bounds parameters to the domain of the maps that index them}
 \usage{
-trim_parameters(object, verbose = FALSE)
+trim_parameters(object, verbose = isVerbose(2))
 }
 \arguments{
 \item{object}{scenario.}

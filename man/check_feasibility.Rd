@@ -4,7 +4,7 @@
 \alias{check_feasibility}
 \title{Check a model for contradictions that need no solver}
 \usage{
-check_feasibility(object, years = NULL, verbose = TRUE)
+check_feasibility(object, years = NULL, verbose = isVerbose())
 }
 \arguments{
 \item{object}{a \code{model}, \code{scenario} or \code{repository}.}

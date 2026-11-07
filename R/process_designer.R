@@ -18,7 +18,7 @@
   ns <- asNamespace("shiny")
   if (exists("clearCurrentAppState", envir = ns, inherits = FALSE)) {
     get("clearCurrentAppState", envir = ns)()
-    message("Cleared stale shiny app state left by an interrupted run.")
+    .say("Cleared stale shiny app state left by an interrupted run.")
     return(invisible(TRUE))
   }
   invisible(FALSE)

@@ -11,7 +11,7 @@ prepare_for_sharing(
   keep_runs = FALSE,
   keep_reports = FALSE,
   keep_solver = FALSE,
-  verbose = TRUE
+  verbose = isVerbose()
 )
 }
 \arguments{

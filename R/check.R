@@ -535,10 +535,10 @@ en_check_dependencies <- function(solver_pkgs = FALSE, solve = FALSE) {
   backends <- c("GLPK (glpsol)", "Julia", "Python", "GAMS")
   have <- tab$found[match(backends, tab$component)]
   if (any(have, na.rm = TRUE)) {
-    cli::cli_alert_success(
+    .alert_success(
       "At least one solver backend is available ({paste(backends[which(have)], collapse = ', ')}).")
   } else {
-    cli::cli_alert_danger("No solver backend found. Install at least one:")
+    .alert_danger("No solver backend found. Install at least one:")
     cli::cli_ul(c(
       "GLPK   - open-source; https://www.gnu.org/software/glpk/ then set_glpk_path()",
       "Julia  - https://github.com/JuliaLang/juliaup then en_install_julia_pkgs()",
@@ -546,7 +546,7 @@ en_check_dependencies <- function(solver_pkgs = FALSE, solve = FALSE) {
       "GAMS   - proprietary; https://www.gams.com/ then set_gams_path()"
     ))
   }
-  cli::cli_alert_info("Auto-install the library layer with en_install_deps().")
+  .alert_info("Auto-install the library layer with en_install_deps().")
 
   invisible(tab)
 }
@@ -653,12 +653,12 @@ en_check_packages <- function(extras = NULL, external = TRUE) {
   miss_req <- tab$component[tab$required & !tab$found]
   miss_opt <- tab$component[!tab$required & !tab$found]
   if (length(miss_req)) {
-    cli::cli_alert_danger("Missing required packages: {paste(miss_req, collapse = ', ')}.")
+    .alert_danger("Missing required packages: {paste(miss_req, collapse = ', ')}.")
   } else {
-    cli::cli_alert_success("All required energyRt packages are installed.")
+    .alert_success("All required energyRt packages are installed.")
   }
   if (length(miss_opt)) {
-    cli::cli_alert_info(
+    .alert_info(
       "Optional / training items missing: {paste(miss_opt, collapse = ', ')}.")
   }
 

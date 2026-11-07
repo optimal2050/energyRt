@@ -227,7 +227,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
       tryCatch(getHorizon(object), error = function(e) NULL))) ||
       identical(base_year_scenario, base)
     if (!.by_reusable && verbose) {
-      message("Interpolating in full: `base_year_scenario` differs from the ",
+      .say("Interpolating in full: `base_year_scenario` differs from the ",
               "base, so the base's tables are not the ones this call needs.")
     }
     .derived <- if (.by_reusable) {
@@ -456,7 +456,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
       # regions yields a smaller solve -- a different answer from the full
       # model's -- with nothing said. The coverage breakdown is detail and
       # stays behind `verbose`.
-      message("spatial sample: sub-territory solve on ",
+      .say("spatial sample: sub-territory solve on ",
               length(scen@settings@region), " of ", length(.r), " regions",
               if (isTRUE(verbose)) {
                 paste0(" (", scen@settings@geoscale |>
@@ -606,7 +606,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
     .by_src <- .by_source(base_year_scenario %||% .scen_by_link$scenario,
                           .by_mark)
     if (is.null(.by_src)) {
-      message("base year ", .by_mark, ": not optimised, and no base-year ",
+      .say("base year ", .by_mark, ": not optimised, and no base-year ",
               "solution was given -- the projection starts from the model's ",
               "own @stock (base_year_scenario = carries one forward)")
     } else {
@@ -619,7 +619,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
       scen@misc$base_year$scenario <- .by_src$scenario
       scen@misc$base_year$run <- .by_src$run
       scen@misc$base_year$hash <- .by_src$hash
-      message("base year ", .by_mark, ": not optimised; ", .n_carry,
+      .say("base year ", .by_mark, ": not optimised; ", .n_carry,
               " capacity vintage(s) carried forward as stock",
               if (!is.na(.by_src$scenario))
                 paste0(" from '", .by_src$scenario, "'") else "")
@@ -2760,7 +2760,7 @@ interpolate_bounds <- function(
 #' model_size(scen)
 #' model_size(trim_parameters(scen))
 #' }
-trim_parameters <- function(object, verbose = FALSE) {
+trim_parameters <- function(object, verbose = isVerbose(2)) {
   reg <- .param_value_maps()
   for (pn in names(reg)) {
     param <- object@modInp@parameters[[pn]]
@@ -2801,7 +2801,7 @@ trim_parameters <- function(object, verbose = FALSE) {
       (\(d) d[, colnames(param@data), drop = FALSE])()
 
     if (isTRUE(verbose)) {
-      message("trim '", pn, "': ", nrow(pdata), " -> ", nrow(new_data),
+      .say2("trim '", pn, "': ", nrow(pdata), " -> ", nrow(new_data),
               " rows")
     }
     object <- .interp_write_param(object, pn, new_data)
@@ -2839,7 +2839,7 @@ trim_parameters <- function(object, verbose = FALSE) {
     if (all(keep)) next
     new_data <- as.data.frame(pdata)[keep, , drop = FALSE]
     if (isTRUE(verbose)) {
-      message("cal-filter '", pn, "': ", nrow(pdata), " -> ", nrow(new_data), " rows")
+      .say2("cal-filter '", pn, "': ", nrow(pdata), " -> ", nrow(new_data), " rows")
     }
     scen <- .interp_write_param(scen, pn, new_data)
   }
@@ -3347,7 +3347,7 @@ validate_scenario_parameters <- function(object, fold = TRUE,
   # wrapped in suppressWarnings() around a solve, which is how a correct
   # diagnosis of this exact failure went unseen for a day.
   if (nrow(res) > 0) {
-    message("validate_scenario_parameters: ", nrow(res), " issue(s) (",
+    .say("validate_scenario_parameters: ", nrow(res), " issue(s) (",
             nrow(.structural), " structural, ", nrow(.advisory),
             " advisory)")
   }
@@ -4057,7 +4057,7 @@ get_process_inputs <- function(object, process = NULL, classes = NULL) {
   # times over. There is no way to tell a deliberate weather-driven generator
   # from a forgotten `@input`, so this informs rather than warns.
   if (isTRUE(isVerbose()) && length(.no_input_processes)) {
-    message("Processes with no input commodity (output is bounded, not fuelled): ",
+    .say("Processes with no input commodity (output is bounded, not fuelled): ",
             paste(sort(unique(.no_input_processes)), collapse = ", "))
   }
   if (!is.null(process)) ll <- ll[names(ll) %in% process]
@@ -5489,7 +5489,7 @@ setMethod("interpolate", signature(object = "scenario"),
   }
   if (inherits(object, "scenario")) {
     if (!identical(object@name, base@name)) {
-      message("base = '", base@name, "': `object` is another scenario; ",
+      .say("base = '", base@name, "': `object` is another scenario; ",
               "interpolating in full.")
       return(NULL)
     }
@@ -5500,7 +5500,7 @@ setMethod("interpolate", signature(object = "scenario"),
                        check_model = !is.null(object),
                        name = name %||% paste0("scen_", base@model@name))
   if (!is.null(why)) {
-    message("base = '", base@name, "': ", why, "; interpolating in full.")
+    .say("base = '", base@name, "': ", why, "; interpolating in full.")
     return(NULL)
   }
   if (is.null(name)) {
@@ -6001,7 +6001,7 @@ setMethod("interpolate", signature(object = "scenario"),
          boundary_prices = boundary_prices,
          validate = validate, verbose = verbose, .reuse = base))),
     energyRt_reuse_mismatch = function(e) {
-      message("base = '", base@name, "': ", conditionMessage(e),
+      .say("base = '", base@name, "': ", conditionMessage(e),
               "; interpolating in full.")
       NULL
     })

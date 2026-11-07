@@ -165,7 +165,7 @@ Exchange compression level (codec-dependent; ZSTD supports 1-22). Ignored for lz
 }}
 
 \item{verbose}{\describe{
-Verbosity level: \code{0} silent, \code{1} progress messages, \code{2} and above for increasingly detailed reporting. \code{TRUE}/\code{FALSE} are accepted and read as \code{1}/\code{0}. Test with \code{isVerbose(level)}.\item{default: }{\preformatted{0}}
+Verbosity level, logical or integer: \code{0}/\code{FALSE} silent, \code{1}/\code{TRUE} reports each ACTION once -- what was written, loaded or solved, and where -- and \code{2} and above add per-object and per-parameter detail. Test with \code{isVerbose(level)}. This option is the single control: a function's own \code{verbose} argument defaults to it, and passing one overrides it for that call.\item{default: }{\preformatted{1}}
 \item{option: }{en.verbose}
 \item{envvar: }{ENERGYRT_VERBOSE (evaluated if possible, raw string otherwise)}
 }}

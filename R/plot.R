@@ -427,7 +427,7 @@ plot_commodity <- function(object, ..., palette = "D") {
   df <- do.call(rbind, rows)
 
   if (is.null(df) || nrow(df) == 0) {
-    message("None of the supplied commodit",
+    .say("None of the supplied commodit",
             if (length(comms) > 1) "ies have" else "y has",
             " emission factors (`@emis`) to plot.")
     return(invisible(NULL))
@@ -562,7 +562,7 @@ plot_process_year <- function(object, year = NULL, interpolate = TRUE,
   # getData() call #1: raw given data -> points.
   raw <- .obj_long_get(object, nm_arg, FALSE, NULL, ...)
   if (is.null(raw) || nrow(raw) == 0 || !("year" %in% names(raw))) {
-    message("No year-indexed data to plot for '", obj_name, "'.")
+    .say("No year-indexed data to plot for '", obj_name, "'.")
     return(invisible(NULL))
   }
   raw <- raw[!is.na(raw$value), , drop = FALSE]
@@ -827,7 +827,7 @@ plot_supply_bar <- function(object, param = .supply_params,
   obj_name <- tryCatch(object@name, error = function(e) "")
   d <- .supply_long(object, year = year, interpolate = interpolate, ...)
   if (is.null(d)) {
-    message("No supply data to plot for '", obj_name, "'.")
+    .say("No supply data to plot for '", obj_name, "'.")
     return(invisible(NULL))
   }
   d <- .supply_cluster_levels(object, d)
@@ -840,7 +840,7 @@ plot_supply_bar <- function(object, param = .supply_params,
     a <- .supply_ava_bound(d, which = if (identical(param, "availability"))
       NULL else param)
     if (is.null(a) || nrow(a) == 0) {
-      message("No finite availability (ava.up/ava.fx) for '", obj_name,
+      .say("No finite availability (ava.up/ava.fx) for '", obj_name,
               "': supply is uncapped.")
       return(invisible(NULL))
     }
@@ -873,7 +873,7 @@ plot_supply_bar <- function(object, param = .supply_params,
   } else {
     co <- d[d$param == "cost" & !is.na(d$value), , drop = FALSE]
     if (nrow(co) == 0) {
-      message("No supply cost to plot for '", obj_name, "'.")
+      .say("No supply cost to plot for '", obj_name, "'.")
       return(invisible(NULL))
     }
     kc <- intersect(c("region", "cluster", "year"), names(co))
@@ -967,7 +967,7 @@ plot_supply_bar <- function(object, param = .supply_params,
   obj_name <- tryCatch(object@name, error = function(e) "")
   d <- .supply_long(object, year = NULL, interpolate = interpolate, ...)
   if (is.null(d)) {
-    message("No supply data to plot for '", obj_name, "'.")
+    .say("No supply data to plot for '", obj_name, "'.")
     return(NULL)
   }
   # display year: the requested one, else the latest with data
@@ -1010,7 +1010,7 @@ plot_supply_bar <- function(object, param = .supply_params,
       cost[] <- ifelse(is.na(cost), per_reg[["(all)"]], cost)
   }
   if (all(is.na(ava)) && all(is.na(cost)) && all(is.na(one("ava.lo")))) {
-    message("No availability or cost data to plot for '", obj_name, "'.")
+    .say("No availability or cost data to plot for '", obj_name, "'.")
     return(NULL)
   }
   out <- data.frame(region = regions, availability = unname(ava),
@@ -1148,7 +1148,7 @@ plot_supply_map <- function(object, param = NULL,
   v <- v[, c("region", "value"), drop = FALSE]
   attr(v, "year") <- yr_v
   if (nrow(v) == 0) {
-    message("'", obj_name, "' declares no ", type,
+    .say("'", obj_name, "' declares no ", type,
             if (type %in% c("availability", "ava.up", "ava.fx"))
               "; it is unlimited wherever it exists" else "", ".")
     return(invisible(NULL))
@@ -1233,12 +1233,12 @@ plot_supply_map <- function(object, param = NULL,
   }
   d <- .obj_long_get(object, slots, interpolate, NULL, ...)
   if (is.null(d) || !nrow(d) || !("region" %in% names(d))) {
-    message("No region-indexed data to map for '", nm, "'.")
+    .say("No region-indexed data to map for '", nm, "'.")
     return(NULL)
   }
   d <- d[!is.na(d$region) & d$region != "(all)", , drop = FALSE]
   if (!nrow(d)) {
-    message("'", nm, "' declares nothing per region.")
+    .say("'", nm, "' declares nothing per region.")
     return(NULL)
   }
   yrs <- sort(unique(stats::na.omit(as.integer(d$year))))
@@ -1260,7 +1260,7 @@ plot_supply_map <- function(object, param = NULL,
   out <- do.call(rbind, parts)
   out <- out[is.finite(out$value), , drop = FALSE]
   if (!nrow(out)) {
-    message("Nothing finite to map for '", nm, "'.")
+    .say("Nothing finite to map for '", nm, "'.")
     return(NULL)
   }
   attr(out, "year") <- yr
@@ -1310,7 +1310,7 @@ plot_object_map <- function(object, param = NULL, year = NULL,
   }
   param <- intersect(param, have)
   if (!length(param)) {
-    message("'", nm, "' declares none of the requested parameter(s); it has: ",
+    .say("'", nm, "' declares none of the requested parameter(s); it has: ",
             paste(have, collapse = ", "), ".")
     return(invisible(NULL))
   }
@@ -1416,7 +1416,7 @@ plot_object_map <- function(object, param = NULL, year = NULL,
   }
   keep <- intersect(keep, have)
   if (!length(keep)) {
-    message("No ", what, " left after the `region` filter for '", nm, "'.")
+    .say("No ", what, " left after the `region` filter for '", nm, "'.")
     return(d[0, , drop = FALSE])
   }
   d[as.character(d$region) %in% keep, , drop = FALSE]
@@ -1473,7 +1473,7 @@ plot_demand <- function(object, style = c("area", "line", "heatmap"),
   raw <- as.data.frame(object@demand)
   raw <- raw[!is.na(raw$demand), , drop = FALSE]
   if (nrow(raw) == 0) {
-    message("No demand data to plot for '", obj_name, "'.")
+    .say("No demand data to plot for '", obj_name, "'.")
     return(invisible(NULL))
   }
   if (!"region" %in% names(raw)) raw$region <- "(all)"
@@ -1491,7 +1491,7 @@ plot_demand <- function(object, style = c("area", "line", "heatmap"),
       d <- d[d$year %in% year, , drop = FALSE]
     }
     if (nrow(d) == 0) {
-      message("No timeslice-resolved demand to draw for '", obj_name, "'.")
+      .say("No timeslice-resolved demand to draw for '", obj_name, "'.")
       return(invisible(NULL))
     }
     d$wval <- d$demand
@@ -1513,7 +1513,7 @@ plot_demand <- function(object, style = c("area", "line", "heatmap"),
     # A value given for no year applies to every year, so an object that names
     # none carries no window of its own to lay on an annual axis.
     if (!length(year_target)) {
-      message("'", obj_name, "' names no year: pass `year =` for an annual ",
+      .say("'", obj_name, "' names no year: pass `year =` for an annual ",
               "axis, or style = \"line\"/\"heatmap\" to read its shape.")
       return(invisible(NULL))
     }
@@ -1703,7 +1703,7 @@ plot_lever_year <- function(object, year = NULL, interpolate = TRUE, ...) {
   nm <- tryCatch(object@name, error = function(e) "")
   d  <- tryCatch(as.data.frame(methods::slot(object, spec$slot)), error = function(e) NULL)
   .none <- function() {
-    message("No year-indexed data to plot for '", nm, "'.")
+    .say("No year-indexed data to plot for '", nm, "'.")
     invisible(NULL)
   }
   if (is.null(d) || nrow(d) == 0 || !("year" %in% names(d))) return(.none())
@@ -2042,7 +2042,7 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
   nm   <- tryCatch(object@name, error = function(e) "")
   d    <- as.data.frame(object@weather)
   if (is.null(d) || nrow(d) == 0 || !("wval" %in% names(d))) {
-    message("No weather data to plot for '", nm, "'.")
+    .say("No weather data to plot for '", nm, "'.")
     return(invisible(NULL))
   }
   d <- d[!is.na(d$wval), , drop = FALSE]
@@ -2103,7 +2103,7 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
       fine  <- ".fine";   coarse <- ".coarse"
     } else {
       if (is.null(calendar))
-        message("Could not resolve a sub-annual layout from timeslice names; ",
+        .say("Could not resolve a sub-annual layout from timeslice names; ",
                 "pass `calendar =` for a structured view. Showing timeslices in order.")
       d$timeslice <- factor(sl, levels = unique(sl))
       x_col <- "timeslice"; fine <- "timeslice"; coarse <- NULL
@@ -2443,7 +2443,7 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
 
   trades <- .filter_trade_comm(.as_trade_list(object), comm)
   if (length(trades) == 0) {
-    message("No trade objects to plot."); return(invisible(NULL))
+    .say("No trade objects to plot."); return(invisible(NULL))
   }
   routes <- do.call(rbind, lapply(trades, function(t) {
     r <- as.data.frame(t@routes)
@@ -2452,11 +2452,11 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
                stringsAsFactors = FALSE)
   }))
   if (is.null(routes) || nrow(routes) == 0) {
-    message("No routes to plot."); return(invisible(NULL))
+    .say("No routes to plot."); return(invisible(NULL))
   }
   routes <- .routes_to_level(routes, route_gs, level)
   if (nrow(routes) == 0) {
-    message("No routes cross a boundary at this level."); return(invisible(NULL))
+    .say("No routes cross a boundary at this level."); return(invisible(NULL))
   }
 
   # Collapse each unordered {src,dst} pair; a pair is bidirectional when both
@@ -2480,7 +2480,7 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
     seg <- seg[!miss, , drop = FALSE]
   }
   if (nrow(seg) == 0) {
-    message("No routes overlap the map."); return(invisible(NULL))
+    .say("No routes overlap the map."); return(invisible(NULL))
   }
   # Nodes belong to the levels that were actually drawn. The centre table
   # holds every level so a route can be placed wherever its endpoints live,
@@ -2542,7 +2542,7 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
     p <- p + ggplot2::geom_sf(data = map, fill = "grey92", colour = "white",
                               linewidth = 0.4)
   } else {
-    message("Package 'sf' not available: drawing centroids and routes only, ",
+    .say("Package 'sf' not available: drawing centroids and routes only, ",
             "without region shapes.")
   }
   if (nrow(un) > 0) p <- p + seg_layer(un, "last")

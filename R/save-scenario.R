@@ -432,7 +432,7 @@ drop_scenario_run <- function(object, run, force = FALSE) {
   if (unlink(run_dir, recursive = TRUE, force = TRUE) != 0) {
     stop("Could not delete '", run_dir, "'")
   }
-  message("Dropped run '", .run_id(id$variant, id$solve), "'")
+  .say("Dropped run '", .run_id(id$variant, id$solve), "'")
   invisible(run_dir)
 }
 
@@ -1128,7 +1128,7 @@ scenario_solutions <- function(object, peek = TRUE) {
 #' }
 import_solution <- function(object, run, ..., restore_solver = TRUE,
                             save = TRUE, promote = FALSE, cleanup = FALSE,
-                            verbose = TRUE) {
+                            verbose = isVerbose()) {
   stopifnot(is(object, "scenario"))
   if (missing(run) || !length(run) || !nzchar(run[1])) {
     stop("`run` is required: name the run to import.\n  Available runs:\n",
@@ -1188,7 +1188,7 @@ import_solution <- function(object, run, ..., restore_solver = TRUE,
   if (isTRUE(verbose)) {
     obj <- tryCatch(get_variable(out, "vObjective")$value[1],
                     error = function(e) NA_real_)
-    message("Imported run '", run, "' of '", out@name, "': ", nfilled,
+    .say("Imported run '", run, "' of '", out@name, "': ", nfilled,
             " variables", if (!is.na(obj)) paste0(", objective ",
                                                   format(obj, digits = 10)),
             if (isTRUE(save)) "; saved." else
@@ -1345,7 +1345,7 @@ NULL
 #' drop_scenario_run(scen, "glpk", force = TRUE)   # the run is now scratch
 #' }
 #' @export
-promote_solution <- function(object, run = NULL, save = TRUE, verbose = TRUE) {
+promote_solution <- function(object, run = NULL, save = TRUE, verbose = isVerbose()) {
   stopifnot(is(object, "scenario"))
   # `@misc$run` is the SOLVE label only; the variant lives beside it, so
   # defaulting from the active run has to rejoin the two or a variant-active
@@ -1404,7 +1404,7 @@ promote_solution <- function(object, run = NULL, save = TRUE, verbose = TRUE) {
 
   if (isTRUE(save)) object <- save_scenario(object, verbose = FALSE)
   if (isTRUE(verbose)) {
-    message("Promoted run '", run, "' to '", final, "'. The runs/ tree is now ",
+    .say("Promoted run '", run, "' to '", final, "'. The runs/ tree is now ",
             "scratch: drop_scenario_run() or drop_solver_outputs() reclaim it.")
   }
   invisible(object)
@@ -1509,7 +1509,7 @@ promote_solution <- function(object, run = NULL, save = TRUE, verbose = TRUE) {
 #' # runs/<variant>/<solve>/ layout
 #' upgrade_scenario_layout("scenarios/BASE-TOPIA-s4_h24-BY2025_50_by10")
 #' }
-upgrade_scenario_layout <- function(path, verbose = TRUE) {
+upgrade_scenario_layout <- function(path, verbose = isVerbose()) {
   path <- gsub("[\\/]+", "/", path)
   if (!dir.exists(path) || !file.exists(fp(path, "scen.RData"))) {
     stop("'", path, "' is not a saved scenario directory (no scen.RData)")
@@ -1796,7 +1796,7 @@ upgrade_scenario_layout <- function(path, verbose = TRUE) {
   if (!interactive()) return(FALSE)
   who <- paste0(deps$type, " '", deps$name, "'")
   shown <- utils::head(who, 3)
-  message(type, " '", name, "' is referenced by ", nrow(deps), " entr",
+  .say(type, " '", name, "' is referenced by ", nrow(deps), " entr",
           if (nrow(deps) == 1L) "y" else "ies", ":\n  ",
           paste(shown, collapse = ", "),
           if (nrow(deps) > 3L) {

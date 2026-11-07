@@ -18,7 +18,7 @@ solve_recursive(
   overwrite = FALSE,
   keep_scenarios = TRUE,
   on_error = c("stop", "return"),
-  verbose = TRUE
+  verbose = isVerbose()
 )
 }
 \arguments{

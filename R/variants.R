@@ -602,7 +602,7 @@ The roster is the authoritative set: a label that appears only in a data slot ',
         }
         if ("vintage" %in% names(st) &&
             any(is.na(st$vintage)) && length(.variant_levels(tech, "vintage")) > 0L) {
-          message("Technology '", nm, "': `stock` rows without a `vintage` are ",
+          .say("Technology '", nm, "': `stock` rows without a `vintage` are ",
                   "assigned to the earliest vintage.")
         }
       }
@@ -1813,7 +1813,7 @@ expand_variants <- function(mod, prefix = .variant_prefix(mod),
       # `desc` and `misc$.variant_source` for each.
       n_share <- sum(startsWith(names(cns), .VARIANT_SHARE_PREFIX))
       n_group <- length(cns) - n_share
-      message("Added ", length(cns), " generated constraint(s): ",
+      .say("Added ", length(cns), " generated constraint(s): ",
               n_group, " group bound(s), ", n_share, " capacity-share tie(s).")
     }
   }

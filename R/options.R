@@ -300,11 +300,14 @@ options::define_option(
 options::define_option(
   "verbose",
   desc = paste(
-    "Verbosity level: `0` silent, `1` progress messages, `2` and above for",
-    "increasingly detailed reporting. `TRUE`/`FALSE` are accepted and read as",
-    "`1`/`0`. Test with `isVerbose(level)`."
+    "Verbosity level, logical or integer: `0`/`FALSE` silent, `1`/`TRUE`",
+    "reports each ACTION once -- what was written, loaded or solved, and",
+    "where -- and `2` and above add per-object and per-parameter detail.",
+    "Test with `isVerbose(level)`. This option is the single control: a",
+    "function's own `verbose` argument defaults to it, and passing one",
+    "overrides it for that call."
   ),
-  default = 0
+  default = 1
 )
 
 options::define_option(

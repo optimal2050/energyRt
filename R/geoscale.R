@@ -260,7 +260,7 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
   }
   if (length(selfish)) {
     selfish <- unique(selfish)
-    message("Geoscale: ", length(selfish), " region(s) carry the same code at ",
+    .say("Geoscale: ", length(selfish), " region(s) carry the same code at ",
             "two adjacent geoframes (", paste(utils::head(selfish, 5),
                                               collapse = ", "),
             if (length(selfish) > 5) ", ..." else "",

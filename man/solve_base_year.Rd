@@ -12,7 +12,7 @@ solve_base_year(
   variant = "by",
   save = TRUE,
   ...,
-  verbose = TRUE
+  verbose = isVerbose()
 )
 }
 \arguments{

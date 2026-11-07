@@ -167,6 +167,7 @@ Collate:
     'trade_kvl.R'
     'units.R'
     'variants.R'
+    'verbosity.R'
     'verify_solution.R'
     'vintage.R'
     'vre-data.R'

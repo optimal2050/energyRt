@@ -559,7 +559,7 @@ newDCLink <- function(name, commodity, from, to, resistance = NA_real_,
   has <- length(cy) > 0
   if (is.null(kvl)) {
     if (has) {
-      message("Kirchhoff voltage law is ENGAGED on this scenario (",
+      .say("Kirchhoff voltage law is ENGAGED on this scenario (",
               length(cy), " cycle constraint(s)); flows are set by reactance, ",
               "not chosen.")
     }

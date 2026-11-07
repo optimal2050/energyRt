@@ -258,7 +258,7 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
   for (i in seq_along(mod@data)) mod@data[[i]] <- prune(mod@data[[i]])
 
   if (n_refs > 0L) {
-    message("spatial sample: dropped ", n_refs, " weather reference(s) to ",
+    .say("spatial sample: dropped ", n_refs, " weather reference(s) to ",
             length(unique(dropped_names)), " object(s) outside the sample",
             if (isTRUE(verbose))
               paste0(": ", paste(unique(dropped_names), collapse = ", "))
@@ -353,7 +353,7 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
       stub <- .boundary_stub(el, s, d, keep, boundary_prices)
       if (!is.null(stub)) stubs[[length(stubs) + 1L]] <<- stub
       n_routes_dropped <<- n_routes_dropped + 1L
-      if (isTRUE(verbose)) message(
+      if (isTRUE(verbose)) .say(
         "spatial sample: dropping trade route ", el@name, ": ",
               s, " -> ", d,
               if (!is.null(stub)) paste0(" (", stub@name, " stub added)")
@@ -385,7 +385,7 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
           keep_region_rows(methods::slot(el, sl))
     }
     if (isTRUE(verbose) && nrow(el@capacity %||% data.frame()) > 0L) {
-      message("spatial sample: trade ", el@name, " keeps its OBJECT-level ",
+      .say("spatial sample: trade ", el@name, " keeps its OBJECT-level ",
               "capacity bound while losing route(s); review @capacity")
     }
     el
@@ -402,7 +402,7 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
         if (is.null(res)) {
           n_objs_dropped <<- n_objs_dropped + 1L
           if (isTRUE(verbose)) {
-            message("spatial sample: removing ", class(el)[1], " ", nm,
+            .say("spatial sample: removing ", class(el)[1], " ", nm,
                     if (methods::is(el, "trade")) " (no route inside the sample)"
                     else " (declared in no sampled region)")
           }
@@ -422,7 +422,7 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
   # One line, always: what left the model. `verbose = TRUE` names each item.
   if (n_objs_dropped > 0L || n_routes_dropped > 0L) {
     # `keep` carries the covered coarse codes too; the count is of regions.
-    message("spatial sample: kept ", length(setdiff(keep, keep_up)),
+    .say("spatial sample: kept ", length(setdiff(keep, keep_up)),
             " region(s)",
             if (length(keep_up))
               paste0(" (whole: ", paste(keep_up, collapse = ", "), ")") else "",
@@ -476,12 +476,12 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
       if (kind == "imp" && "teff" %in% names(route_rows) &&
           any(is.finite(route_rows$teff))) {
         bound <- bound * max(route_rows$teff, na.rm = TRUE)
-        message("boundary stub ", src, "->", dst,
+        .say("boundary stub ", src, "->", dst,
                 ": import bound scaled by route teff")
       }
       rows[[up_col]] <- bound
     } else {
-      message("boundary stub ", src, "->", dst, ": no cap.up and no route ",
+      .say("boundary stub ", src, "->", dst, ": no cap.up and no route ",
               "ava.up -- the stub is priced but UNBOUNDED")
     }
     # the lower side of the window: a minimum contracted flow
@@ -555,7 +555,7 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
     if (all(keep)) next
     new_data <- as.data.frame(pdata)[keep, , drop = FALSE]
     if (isTRUE(verbose)) {
-      message("region-filter '", pn, "': ", nrow(pdata), " -> ",
+      .say("region-filter '", pn, "': ", nrow(pdata), " -> ",
               nrow(new_data), " rows")
     }
     scen <- .interp_write_param(scen, pn, new_data)
@@ -1370,7 +1370,7 @@ aggregate_model_regions <- function(object, geoscale = NULL, level,
 
   coarse <- unique(stats::na.omit(.agg_map_codes(regions, gs, level)))
   if (isTRUE(verbose)) {
-    message("Aggregating ", length(regions), " region(s) to ", length(coarse),
+    .say("Aggregating ", length(regions), " region(s) to ", length(coarse),
             " at `", level, "`")
   }
 
@@ -1492,7 +1492,7 @@ Aggregating between two non-atom levels needs a level-aware ",
       nms[i] <- paste0(n, "_", seq_along(i))
     }
     if (isTRUE(verbose)) {
-      message("Trade: ", sum(dup), " corridor(s) shared a coarse name and ",
+      .say("Trade: ", sum(dup), " corridor(s) shared a coarse name and ",
               "were suffixed; they differ in commodity or tranche structure")
     }
   }
@@ -1501,7 +1501,7 @@ Aggregating between two non-atom levels needs a level-aware ",
     out[[nms[i]]] <- merged[[i]]
   }
   if (isTRUE(verbose)) {
-    message("Trade: ", length(tr), " corridor(s) -> ",
+    .say("Trade: ", length(tr), " corridor(s) -> ",
             sum(!is.na(unique(keys))), " (", sum(internal),
             " became internal, ", n_merged, " merged)")
   }
@@ -1973,7 +1973,7 @@ Declare commodities with `newCommodity()` and add them to the model; ",
   }
 
   if (length(coarse_hits)) {
-    message(
+    .say(
       "Cost declared at a coarse geoscale level:\n  ",
       paste(unlist(coarse_hits), collapse = "\n  "),
       "\nThe cost is charged ONCE at that cell rather than at each ",
@@ -1982,7 +1982,7 @@ Declare commodities with `newCommodity()` and add them to the model; ",
       "a different number from naming the children individually.")
   }
   if (length(broadcast)) {
-    message(
+    .say(
       "Trade cost with no `region` on a multi-endpoint route:\n  ",
       paste(sort(unique(broadcast)), collapse = "\n  "),
       "\nTrade costs are a rate borne by EACH endpoint, so an unregioned ",

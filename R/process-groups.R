@@ -1039,7 +1039,7 @@ model_clusters <- function(object) {
       # a family sits on the same coarse pair
       geoscale = NULL)
     if (isTRUE(verbose)) {
-      message("  ", gname, ": ", length(tobjs), " corridor(s) -> ",
+      .say("  ", gname, ": ", length(tobjs), " corridor(s) -> ",
               length(unique(part)), " part(s)")
     }
   }
@@ -1108,7 +1108,7 @@ model_clusters <- function(object) {
       geoscale = tryCatch(.cl_cluster_geoscale(gs, level, xw, gname),
                           error = function(e) NULL))
     if (isTRUE(verbose)) {
-      message("  ", gname, ": ", length(regs), " regions -> ", kk,
+      .say("  ", gname, ": ", length(regs), " regions -> ", kk,
               " cluster(s)")
     }
   }

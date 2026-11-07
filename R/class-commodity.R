@@ -629,7 +629,7 @@ object_image <- function(object, which = c("image", "icon")) {
   v
 }
 
-materialize_commodity_clusters <- function(mod, verbose = FALSE,
+materialize_commodity_clusters <- function(mod, verbose = isVerbose(2),
                                            prefix = .variant_prefix_default()) {
   cobjs <- list()
   taken <- character()

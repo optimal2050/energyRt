@@ -344,7 +344,7 @@ solve_by_sample <- function(object, name = NULL, ...,
                             ncap_floor = 0, ncap_stat = c("mean", "median"),
                             on_error = c("stop", "continue"),
                             overwrite = FALSE,
-                            keep_scenarios = TRUE, verbose = TRUE) {
+                            keep_scenarios = TRUE, verbose = isVerbose()) {
   # A SCENARIO names the full problem the samples are drawn from: its model
   # drives the sequence and the scenario itself becomes the base, so each
   # sample's tables are stored as a row filter over it rather than as a copy.
@@ -661,7 +661,7 @@ sample_summary <- function(x, name, probs = c(0.05, 0.5, 0.95), by = NULL,
     if (!anyNA(cand) && any(cand > 0, na.rm = TRUE)) wv <- cand
   }
   if (!is.null(wv) && length(unique(signif(yf, 12))) > 1L) {
-    message("Samples cover unequal shares of the year (year_fraction ",
+    .say("Samples cover unequal shares of the year (year_fraction ",
             paste(format(range(yf), digits = 4), collapse = " to "),
             "); `mean` is weighted by coverage, the quantiles are not.")
   }

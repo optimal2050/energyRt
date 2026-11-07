@@ -11,10 +11,10 @@ load_scenario(
   env = .scen,
   overwrite = FALSE,
   ignore_errors = FALSE,
-  verbose = TRUE
+  verbose = isVerbose()
 )
 
-load_scenarios(names = NULL, run = NULL, env = NULL, verbose = TRUE)
+load_scenarios(names = NULL, run = NULL, env = NULL, verbose = isVerbose())
 }
 \arguments{
 \item{path}{character. Path to saved with function \code{save_scenario} scenario directory.}

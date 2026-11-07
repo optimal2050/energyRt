@@ -67,7 +67,7 @@ plot_trade_network <- function(object, map = NULL,
   value <- match.arg(value)
   trades <- .filter_trade_comm(.as_trade_list(object), comm)
   if (!length(trades)) {
-    message("No trade objects to plot.")
+    .say("No trade objects to plot.")
     return(invisible(NULL))
   }
   if (value != "input" && !methods::is(object, "scenario")) {
@@ -83,7 +83,7 @@ plot_trade_network <- function(object, map = NULL,
                dst = as.character(r$dst), stringsAsFactors = FALSE)
   }))
   if (is.null(routes) || !nrow(routes)) {
-    message("No routes to plot.")
+    .say("No routes to plot.")
     return(invisible(NULL))
   }
   if (is.null(map)) map <- tryCatch(getGeoscale(object), error = function(e) NULL)
@@ -96,7 +96,7 @@ plot_trade_network <- function(object, map = NULL,
     flow = .tn_flow(object, routes, year, timeslice))
   links <- links[is.finite(links$value) & links$value > 0, , drop = FALSE]
   if (!nrow(links)) {
-    message("No positive ", value, " to plot.")
+    .say("No positive ", value, " to plot.")
     return(invisible(NULL))
   }
 

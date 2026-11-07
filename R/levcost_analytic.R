@@ -897,7 +897,7 @@
               c(ifr_res, list(primary_comm = prim_out,
                               primary_input = prim_inp, dem_vals = dem_ifr))
             if (ctx$verbose)
-              message("Input frontier: max_", prim_out, "_max_", prim_inp)
+              .say("Input frontier: max_", prim_out, "_max_", prim_inp)
           }
         }
       }

@@ -316,7 +316,7 @@
       off <- sort(unique(tot[!vapply(tot, function(x) isTRUE(all.equal(x, v)),
                                      logical(1))]))
       if (length(off)) {
-        message("payback = ", v, " does not land on a milestone boundary; ",
+        .say("payback = ", v, " does not land on a milestone boundary; ",
                 "the annuity is charged over ", paste(off, collapse = "/"),
                 " years depending on the vintage.")
       }

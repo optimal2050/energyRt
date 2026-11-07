@@ -10,7 +10,7 @@ apply_ledger(
   horizon,
   carry = c("capacity", "budgets"),
   tolerance = 1e-06,
-  verbose = FALSE
+  verbose = isVerbose(2)
 )
 }
 \arguments{

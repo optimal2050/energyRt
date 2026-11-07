@@ -139,7 +139,7 @@ setMethod("initialize", signature = "parameter",
              !is_null(colName) && any(colName != ""))) {
       # add the record
       if (nrow(.Object@inClass) > 0)
-        message("multiple records in parameter ", name, "@inClass")
+        .say("multiple records in parameter ", name, "@inClass")
       if (!is.null(inClass)) {
         .Object@inClass <- bind_rows(.Object@inClass, inClass)
       } else {
@@ -250,7 +250,7 @@ setMethod(
   ".dat2par", signature(obj = "parameter", data = "character"),
   function(obj, data) {
     if (obj@type != "set") {
-      message("Error: ", obj@name, " parameter:")
+      .say("Error: ", obj@name, " parameter:")
       print(head(data))
       stop("Set type of parameter is expected for the character data. \n",
            "Parameter: ", obj@name, ", data: ", head(data), "...")

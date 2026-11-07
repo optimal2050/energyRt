@@ -204,7 +204,7 @@ save_model <- function(
     format = get_storage_format(),
     overwrite = FALSE,
     rehash = TRUE,
-    verbose = TRUE) {
+    verbose = isVerbose()) {
   stopifnot(is(object, "model"))
   if (!nzchar(object@name)) stop("The model must have a non-empty @name")
   if (identical(.save_mode(mode), "full")) {
@@ -875,7 +875,7 @@ list_versions <- function(x = NULL, type = c("model", "repository", "dataset"),
   for (h in hs) mf$versions[[h]][names(fields)] <- fields
   yaml::write_yaml(mf, mf_path)
   if (isTRUE(verbose)) {
-    message(type, " '", name, "': ", length(hs), " version", if (length(hs) == 1L) "" else "s",
+    .say(type, " '", name, "': ", length(hs), " version", if (length(hs) == 1L) "" else "s",
             " ", what, if (length(hs)) paste0(" (", paste(substr(hs, 1, 8), collapse = ", "), ")"))
   }
   invisible(hs)
@@ -982,7 +982,7 @@ list_dependents <- function(x, type = NULL, version = NULL, recursive = FALSE,
       stop(msg, "\nunseal_", type, "(force = TRUE) releases the name; the ",
            "sealed version stays for them.", call. = FALSE)
     }
-    if (isTRUE(verbose)) message(msg)
+    if (isTRUE(verbose)) .say(msg)
   }
   .seal_set(type, x, FALSE, verbose)
   invisible(r)
@@ -1088,7 +1088,7 @@ list_dependents <- function(x, type = NULL, version = NULL, recursive = FALSE,
 #' @rdname model_store
 #' @export
 load_model <- function(name, hash = NULL, path = NULL, env = NULL,
-                       verbose = TRUE) {
+                       verbose = isVerbose()) {
   if (is.null(path)) {
     if (dir.exists(name) && file.exists(fp(name, "model.yml"))) {
       path <- name
@@ -1321,7 +1321,7 @@ save_repository <- function(
     format = get_storage_format(),
     overwrite = FALSE,
     rehash = TRUE,
-    verbose = TRUE) {
+    verbose = isVerbose()) {
   stopifnot(is(repo, "repository"))
   if (!nzchar(repo@name)) stop("The repository must have a non-empty @name")
   format <- if (tolower(format) %in% c("feather", "arrow", "ipc")) {
@@ -1461,7 +1461,7 @@ save_repository <- function(
 #' @rdname repo_store
 #' @export
 load_repository <- function(name, hash = NULL, path = NULL, env = NULL,
-                            verbose = TRUE) {
+                            verbose = isVerbose()) {
   if (is.null(path)) {
     if (dir.exists(name) && file.exists(fp(name, "repository.yml"))) {
       path <- name
@@ -1836,7 +1836,7 @@ save_dataset <- function(
     rehash = TRUE,
     memo = "",
     hash = NULL,
-    verbose = TRUE) {
+    verbose = isVerbose()) {
   stopifnot(is.character(name), length(name) == 1L, nzchar(name))
   # "arrow" and "ipc" are aliases for feather, as in save_scenario(). These
   # stores used to pin parquet here for hash stability; they no longer do.
@@ -2063,7 +2063,7 @@ save_dataset <- function(
     if (!requireNamespace(parts[1], quietly = TRUE)) {
       if (has_snapshot) {
         if (isTRUE(verbose)) {
-          message("Package '", parts[1], "' is not installed; using the ",
+          .say("Package '", parts[1], "' is not installed; using the ",
                   "stored snapshot of dataset '", mf$name, "'.")
         }
         return(.dataset_read_payload(path, mf))
@@ -2092,7 +2092,7 @@ save_dataset <- function(
 #' @rdname dataset_store
 #' @export
 load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
-                         strict = FALSE, verbose = TRUE) {
+                         strict = FALSE, verbose = isVerbose()) {
   # `name@hash` names a version
   if (is.null(path) && grepl("@", name, fixed = TRUE)) {
     parts <- strsplit(name, "@", fixed = TRUE)[[1]]
@@ -2185,7 +2185,7 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
   entry <- c(list(object = id, slot = slot_name),
              obj@misc$dataset_ref[[slot_name]])
   if (isTRUE(verbose)) {
-    message("Dataset ref: '", entry$object, "' @", slot_name, " -> ",
+    .say("Dataset ref: '", entry$object, "' @", slot_name, " -> ",
             hit$name, "@", substr(h, 1, 8))
   }
   list(obj = obj, entry = entry, full = full)
@@ -2367,7 +2367,7 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
 .mark_notice <- function(type, path, name) {
   mf <- .entry_manifest(type, path)
   if (!is.null(mf) && isTRUE(mf$marked_delete)) {
-    message(type, " '", name, "' is marked for deletion (importance ",
+    .say(type, " '", name, "' is marked for deletion (importance ",
             mf$delete_importance %||% 0, "); unmark_delete() to keep it.")
   }
   invisible(NULL)
@@ -2427,10 +2427,10 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
   .registry_sync_entry(type, e$path, e$name)
   if (isTRUE(verbose)) {
     if (sealed) {
-      message(type, " '", e$name, "' sealed — modification refused until ",
+      .say(type, " '", e$name, "' sealed — modification refused until ",
               "unseal_", type, "()")
     } else {
-      message(type, " '", e$name, "' unsealed — editable again")
+      .say(type, " '", e$name, "' unsealed — editable again")
     }
   }
   invisible(e$path)
@@ -2489,7 +2489,7 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
 #' delete_marked(dry_run = FALSE)
 #' unmark_delete("my_repo", type = "repository")
 #' }
-seal_model <- function(x, verbose = TRUE) .seal_set("model", x, TRUE, verbose)
+seal_model <- function(x, verbose = isVerbose()) .seal_set("model", x, TRUE, verbose)
 
 #' @rdname seal
 #' @export
@@ -2499,25 +2499,25 @@ unseal_model <- function(x, force = FALSE, verbose = TRUE) {
 
 #' @rdname seal
 #' @export
-seal_repository <- function(x, verbose = TRUE) {
+seal_repository <- function(x, verbose = isVerbose()) {
   .seal_set("repository", x, TRUE, verbose)
 }
 
 #' @rdname seal
 #' @export
-unseal_repository <- function(x, force = FALSE, verbose = TRUE) {
+unseal_repository <- function(x, force = FALSE, verbose = isVerbose()) {
   .unseal("repository", x, force, verbose)
 }
 
 #' @rdname seal
 #' @export
-seal_dataset <- function(x, verbose = TRUE) {
+seal_dataset <- function(x, verbose = isVerbose()) {
   .seal_set("dataset", x, TRUE, verbose)
 }
 
 #' @rdname seal
 #' @export
-unseal_dataset <- function(x, verbose = TRUE) {
+unseal_dataset <- function(x, verbose = isVerbose()) {
   .seal_set("dataset", x, FALSE, verbose)
 }
 
@@ -2528,7 +2528,7 @@ unseal_dataset <- function(x, verbose = TRUE) {
 #'   parameters; the outputs are its runs. Outputs are sealed only with the
 #'   inputs, and unsealing the inputs opens the outputs too.
 #' @export
-seal_scenario <- function(x, inputs = TRUE, outputs = FALSE, verbose = TRUE) {
+seal_scenario <- function(x, inputs = TRUE, outputs = FALSE, verbose = isVerbose()) {
   e <- .entry_resolve("scenario", x)
   st <- .scenario_seal_state(.entry_manifest("scenario", e$path))
   if (isTRUE(outputs) && !isTRUE(inputs) && !st$inputs) {
@@ -2552,7 +2552,7 @@ seal_scenario <- function(x, inputs = TRUE, outputs = FALSE, verbose = TRUE) {
   .entry_manifest_update("scenario", e$path, list(outputs_sealed = out))
   .registry_sync_entry("scenario", e$path, e$name)
   if (isTRUE(verbose)) {
-    message("scenario '", e$name, "': inputs sealed, outputs ",
+    .say("scenario '", e$name, "': inputs sealed, outputs ",
             if (out) "sealed" else "open (runs can be added and dropped)")
   }
   invisible(e$path)
@@ -2561,7 +2561,7 @@ seal_scenario <- function(x, inputs = TRUE, outputs = FALSE, verbose = TRUE) {
 #' @rdname seal
 #' @export
 unseal_scenario <- function(x, inputs = TRUE, outputs = TRUE, force = FALSE,
-                            verbose = TRUE) {
+                            verbose = isVerbose()) {
   e <- .entry_resolve("scenario", x)
   if (isTRUE(inputs)) {
     # scenarios built on this one read its tables in place
@@ -2579,11 +2579,11 @@ unseal_scenario <- function(x, inputs = TRUE, outputs = TRUE, force = FALSE,
     }
     .seal_set("scenario", x, FALSE, verbose = FALSE)
     .entry_manifest_update("scenario", e$path, list(outputs_sealed = FALSE))
-    if (isTRUE(verbose)) message("scenario '", e$name, "' unsealed: inputs and outputs")
+    if (isTRUE(verbose)) .say("scenario '", e$name, "' unsealed: inputs and outputs")
   } else if (isTRUE(outputs)) {
     .entry_manifest_update("scenario", e$path, list(outputs_sealed = FALSE))
     if (isTRUE(verbose)) {
-      message("scenario '", e$name, "': outputs open (runs can be added and ",
+      .say("scenario '", e$name, "': outputs open (runs can be added and ",
               "dropped); inputs stay as they were")
     }
   }
@@ -2612,7 +2612,7 @@ unseal_scenario <- function(x, inputs = TRUE, outputs = TRUE, force = FALSE,
   # at the next refresh_registry()
   .registry_sync_entry(type, e$path, e$name)
   if (isTRUE(verbose)) {
-    message(type, " '", e$name, "' ", what)
+    .say(type, " '", e$name, "' ", what)
   }
   invisible(e$path)
 }
@@ -2628,7 +2628,7 @@ unseal_scenario <- function(x, inputs = TRUE, outputs = TRUE, force = FALSE,
 #' @param type character, the entry type when `x` is a bare name.
 #' @rdname seal
 #' @export
-mark_delete <- function(x, importance = 0, type = NULL, verbose = TRUE,
+mark_delete <- function(x, importance = 0, type = NULL, verbose = isVerbose(),
                         version = NULL) {
   if (!is.null(version)) {
     tp <- .entry_type_of(x, type)
@@ -2651,7 +2651,7 @@ mark_delete <- function(x, importance = 0, type = NULL, verbose = TRUE,
   if (isTRUE(verbose)) {
     deps <- tryCatch(list_dependents(x, type), error = function(e) NULL)
     if (!is.null(deps) && nrow(deps)) {
-      message("  ", nrow(deps), " entr", if (nrow(deps) == 1L) "y" else "ies",
+      .say("  ", nrow(deps), " entr", if (nrow(deps) == 1L) "y" else "ies",
               " reference it; delete_marked() will skip it unless ",
               "ignore_refs = TRUE. list_dependents() lists them.")
     }
@@ -2661,7 +2661,7 @@ mark_delete <- function(x, importance = 0, type = NULL, verbose = TRUE,
 
 #' @rdname seal
 #' @export
-unmark_delete <- function(x, type = NULL, verbose = TRUE, version = NULL) {
+unmark_delete <- function(x, type = NULL, verbose = isVerbose(), version = NULL) {
   # Clearing `delete_importance` and `marked_at` rather than leaving them is
   # what keeps a manifest readable on its own: an entry with no mark and an
   # importance beside it reads as marked-at-some-tier to anything that does
@@ -2714,7 +2714,7 @@ unmark_delete <- function(x, type = NULL, verbose = TRUE, version = NULL) {
 #' @rdname seal
 #' @export
 delete_marked <- function(types = NULL, max_importance = 0, dry_run = TRUE,
-                          ignore_refs = FALSE, verbose = TRUE) {
+                          ignore_refs = FALSE, verbose = isVerbose()) {
   kinds <- .entry_kinds()
   types <- if (is.null(types)) names(kinds) else
     match.arg(types, names(kinds), several.ok = TRUE)
@@ -2791,22 +2791,22 @@ delete_marked <- function(types = NULL, max_importance = 0, dry_run = TRUE,
   }
   if (isTRUE(verbose)) {
     if (!nrow(out)) {
-      message("No entries are marked for deletion.")
+      .say("No entries are marked for deletion.")
     } else if (dry_run) {
-      message("Dry run — nothing deleted. ",
+      .say("Dry run — nothing deleted. ",
               sum(out$action == "would_delete"), " of ", nrow(out),
               " marked entr", if (nrow(out) == 1L) "y" else "ies",
               " within max_importance = ", max_importance,
               "; delete_marked(dry_run = FALSE) to delete.")
       print(out[, c("action", "type", "name", "version", "importance", "dependents")])
     } else {
-      message(sum(out$action == "deleted"), " entr",
+      .say(sum(out$action == "deleted"), " entr",
               if (sum(out$action == "deleted") == 1L) "y" else "ies",
               " deleted.")
     }
     nref <- sum(out$action == "skipped_referenced")
     if (nref > 0L) {
-      message("  ", nref, " kept because ", if (nref == 1L) "it is" else
+      .say("  ", nref, " kept because ", if (nref == 1L) "it is" else
               "they are", " still referenced; list_dependents() lists what ",
               "points at ", if (nref == 1L) "it" else "them",
               ", ignore_refs = TRUE deletes anyway.")

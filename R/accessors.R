@@ -195,7 +195,7 @@ getDataset <- function(name, hash = NULL, verbose = FALSE) {
 
 #' @rdname accessors
 #' @export
-open_project <- function(path = ".", verbose = TRUE) {
+open_project <- function(path = ".", verbose = isVerbose()) {
   path <- gsub("[\\/]+", "/",
                normalizePath(path, winslash = "/", mustWork = TRUE))
   # The settings in force BEFORE this call, so a caller can put them back the
@@ -224,7 +224,7 @@ open_project <- function(path = ".", verbose = TRUE) {
     n_scen <- tryCatch(
       nrow(find_in_registry(.registry_open(), type = "scenario")),
       error = function(e) 0L)
-    message("energyRt project: ", path,
+    .say("energyRt project: ", path,
             " (", n_scen, " registered scenario",
             if (n_scen == 1L) "" else "s", ")")
   }

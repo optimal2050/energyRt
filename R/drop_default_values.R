@@ -16,7 +16,7 @@
 # =========================================================================== #
 
 # Drop `value == prune$value` rows from every parameter flagged in modInp.yml.
-drop_default_values <- function(scen, verbose = FALSE, params = NULL) {
+drop_default_values <- function(scen, verbose = isVerbose(2), params = NULL) {
   for (pn in .param_subset(scen, params)) {
     param <- scen@modInp@parameters[[pn]]
     pr <- param@misc$prune
@@ -27,7 +27,7 @@ drop_default_values <- function(scen, verbose = FALSE, params = NULL) {
     keep <- d[d$value != pv, , drop = FALSE]
     if (nrow(keep) == nrow(d)) next
     if (isTRUE(verbose)) {
-      message("prune '", pn, "': ", nrow(d), " -> ", nrow(keep),
+      .say("prune '", pn, "': ", nrow(d), " -> ", nrow(keep),
               " rows (dropped value == ", pv, ")")
     }
     scen@modInp@parameters[[pn]] <- .fold_write_back(param, keep)

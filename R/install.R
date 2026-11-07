@@ -60,7 +60,7 @@ en_install_julia_pkgs <- function(pkgs = NULL, update = FALSE) {
          call. = FALSE)
   }
 
-  message("Using Julia at ", jp, "\n")
+  .say("Using Julia at ", jp, "\n")
   
   # create a temporary file to install Julia packages
   tmp_file <- tempfile("julia_install_", fileext = ".jl")
@@ -182,10 +182,10 @@ en_install_deps <- function(julia = TRUE, python = TRUE, r = TRUE, recheck = TRU
     # gdxtools is not on CRAN (GAMS GDX bridge); others are optional Suggests.
     if (!requireNamespace("gdxtools", quietly = TRUE)) {
       if (requireNamespace("pak", quietly = TRUE)) {
-        message("Installing gdxtools (GDX bridge) ...")
+        .say("Installing gdxtools (GDX bridge) ...")
         try(pak::pkg_install("lolow/gdxtools"), silent = TRUE)
       } else {
-        cli::cli_alert_info(
+        .alert_info(
           "gdxtools missing; install pak then pak::pkg_install('lolow/gdxtools').")
       }
     }
@@ -201,14 +201,14 @@ en_install_deps <- function(julia = TRUE, python = TRUE, r = TRUE, recheck = TRU
                             .en_sibling_pkgs()))
     r_missing <- r_opt[!vapply(r_opt, requireNamespace, logical(1), quietly = TRUE)]
     if (length(r_missing)) {
-      message("Installing optional R packages: ", paste(r_missing, collapse = ", "))
+      .say("Installing optional R packages: ", paste(r_missing, collapse = ", "))
       tryCatch(utils::install.packages(r_missing),
-               error = function(e) message("  failed: ", conditionMessage(e)))
+               error = function(e) .say("  failed: ", conditionMessage(e)))
       # requireNamespace() is the verdict, not install.packages()' own return:
       # it warns rather than errors for a package it cannot reach.
       still <- r_missing[!vapply(r_missing, requireNamespace, logical(1), quietly = TRUE)]
       if (length(still)) {
-        cli::cli_alert_warning(
+        .alert_warning(
           "Still missing after install: {paste(still, collapse = ', ')}")
       }
     }
@@ -218,23 +218,23 @@ en_install_deps <- function(julia = TRUE, python = TRUE, r = TRUE, recheck = TRU
       nm <- sub(".*/", "", sib)
       if (requireNamespace(nm, quietly = TRUE)) next
       if (!requireNamespace("pak", quietly = TRUE)) {
-        cli::cli_alert_info(
+        .alert_info(
           "{nm} missing; install pak then pak::pkg_install('{sib}').")
         next
       }
-      message("Installing ", nm, " ...")
+      .say("Installing ", nm, " ...")
       tryCatch(pak::pkg_install(sib),
                error = function(e)
-                 cli::cli_alert_warning("{nm}: {conditionMessage(e)}"))
+                 .alert_warning("{nm}: {conditionMessage(e)}"))
     }
   }
 
   if (julia) {
     if (!is.na(.en_which("julia", get_julia_path()))) {
-      message("Installing Julia packages ...")
+      .say("Installing Julia packages ...")
       en_install_julia_pkgs()
     } else {
-      cli::cli_alert_warning(
+      .alert_warning(
         "Julia not found; skipping Julia packages. Install Julia (juliaup) first.")
     }
   }
@@ -244,16 +244,16 @@ en_install_deps <- function(julia = TRUE, python = TRUE, r = TRUE, recheck = TRU
       !is.na(.en_which("python3", get_python_path()))
     has_conda <- !is.na(.en_which("mamba")) || !is.na(.en_which("conda"))
     if (!requireNamespace("multimod", quietly = TRUE)) {
-      cli::cli_alert_warning(paste(
+      .alert_warning(paste(
         "Python setup is owned by multimod, which is not installed; skipping.",
         "Install it with pak::pkg_install('optimal2050/multimod')."))
     } else if (has_py || has_conda) {
-      message("Installing Python/Pyomo dependencies ...")
+      .say("Installing Python/Pyomo dependencies ...")
       tryCatch(multimod::mm_setup_python(),
                error = function(e)
-                 cli::cli_alert_warning("mm_setup_python(): {conditionMessage(e)}"))
+                 .alert_warning("mm_setup_python(): {conditionMessage(e)}"))
     } else {
-      cli::cli_alert_warning(
+      .alert_warning(
         "Python/conda not found; skipping. Install miniforge first.")
     }
   }
@@ -295,7 +295,7 @@ en_install_deps <- function(julia = TRUE, python = TRUE, r = TRUE, recheck = TRU
 en_setup <- function(ref = "optimal2050/energyRt") {
   os <- .en_os()
   cli::cli_h2("energyRt setup")
-  cli::cli_alert_info("Operating system: {os}")
+  .alert_info("Operating system: {os}")
 
   # System libraries: report only --- never run sudo on the user's behalf.
   if (os == "linux") {
@@ -304,19 +304,19 @@ en_setup <- function(ref = "optimal2050/energyRt") {
       cmds <- if (!is.null(sq)) c(sq$pre_install, sq$install_scripts) else character(0)
       cmds <- cmds[nzchar(cmds)]
       if (length(cmds)) {
-        cli::cli_alert_info(paste0(
+        .alert_info(paste0(
           "System libraries may be required. Run these commands in a terminal ",
           "(you will be prompted for your password):"))
         cli::cli_code(paste("sudo", cmds))
       } else {
-        cli::cli_alert_success("No additional system libraries reported.")
+        .alert_success("No additional system libraries reported.")
       }
     } else {
-      cli::cli_alert_info(
+      .alert_info(
         'Install {.pkg pak} to list required system libraries: install.packages("pak")')
     }
   } else {
-    cli::cli_alert_success(
+    .alert_success(
       "No system libraries to install on {os} (GLPK comes with the glpsol package; on Windows it also ships with Rtools).")
   }
 
@@ -324,7 +324,7 @@ en_setup <- function(ref = "optimal2050/energyRt") {
   deps <- en_check_dependencies()
   pkgs <- en_check_packages()
 
-  cli::cli_alert_info(
+  .alert_info(
     "Next: install a solver backend (see the Installation article), or run {.code en_install_deps()} for the solver library layer.")
 
   invisible(list(os = os, deps = deps, packages = pkgs))

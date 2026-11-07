@@ -869,7 +869,7 @@ NULL
 #' }
 #' @family check
 #' @export
-check_feasibility <- function(object, years = NULL, verbose = TRUE) {
+check_feasibility <- function(object, years = NULL, verbose = isVerbose()) {
   # A scenario that has been interpolated carries the tables the solver will
   # actually read; check those, since they answer the stronger question.
   mi <- tryCatch(object@modInp, error = function(e) NULL)
@@ -1002,13 +1002,13 @@ check_feasibility <- function(object, years = NULL, verbose = TRUE) {
     ""
   }
   if (!nrow(out)) {
-    message("check_feasibility() [", where, "]: no contradiction found.\n",
+    .say("check_feasibility() [", where, "]: no contradiction found.\n",
             "  This is NOT a feasibility guarantee -- only the solver can ",
             "say whether a solution exists.\n", ret_line, ab_line)
     return(invisible(out))
   }
   n_live <- sum(out$retirement == ra)
-  message("check_feasibility() [", where, "]: ", n_live,
+  .say("check_feasibility() [", where, "]: ", n_live,
           " contradiction(s) under the model's own setting (retirement = ",
           ra, "); ", nrow(out) - n_live, " under the other.\n",
           "  A forced requirement exceeds a ceiling that cannot be raised, ",

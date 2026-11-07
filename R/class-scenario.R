@@ -89,7 +89,7 @@ newScenario <- function(
     replace = NULL
 ) {
   if (!is.null(env_name) || !is.null(registry) || !is.null(replace)) {
-    message("newScenario(): the `env_name`, `registry`, and `replace` ",
+    .say("newScenario(): the `env_name`, `registry`, and `replace` ",
             "arguments are deprecated and ignored; scenarios are registered ",
             "in the project registry on save_scenario().")
   }

@@ -147,7 +147,7 @@
     mi@parameters[[pname]] <- p
     entries[[length(entries) + 1L]] <- .param_ref_entry(pname, ref)
     if (isTRUE(verbose)) {
-      message("Parameter ref: '", pname, "' -> ",
+      .say("Parameter ref: '", pname, "' -> ",
               if (identical(ref$source, "scenario")) "scenario " else "dataset ",
               ref$scenario %||% ref$name, " (", format(nrow(tbl), big.mark = ","),
               " rows)")
@@ -216,7 +216,7 @@
   if (is.null(mf)) return(NULL)
   if (!isTRUE(mf$sealed)) {
     if (isTRUE(verbose)) {
-      message("Base scenario '", b$name, "' is not sealed: its tables are ",
+      .say("Base scenario '", b$name, "' is not sealed: its tables are ",
               "copied, not referenced. seal_scenario() it to share them.")
     }
     return(NULL)

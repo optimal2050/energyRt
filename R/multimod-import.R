@@ -371,7 +371,7 @@ populate_defvals <- function(model) {
       }
     }
 
-    message("Populated default values for ", updated_count,
+    .say("Populated default values for ", updated_count,
             " parameters from energyRt modInp")
   }
 
@@ -1386,7 +1386,7 @@ print_import_summary <- function(import_log) {
 #' }
 multimod_import_log <- function(model) {
   if (is.null(model$misc$data_import_log)) {
-    message("No import log found. Run multimod_import_data() to create one.")
+    .say("No import log found. Run multimod_import_data() to create one.")
     return(NULL)
   }
   model$misc$data_import_log
@@ -1417,7 +1417,7 @@ multimod_import_log <- function(model) {
 multimod_unmatched <- function(model) {
   log <- multimod_import_log(model)
   if (is.null(log) || is.null(log$unmatched)) {
-    message("No unmatched elements information found")
+    .say("No unmatched elements information found")
     return(NULL)
   }
   
@@ -1516,7 +1516,7 @@ multimod_unmatched <- function(model) {
 #' @keywords internal
 #' @noRd
 fill_variable_domains <- function(model, prefer = c("spec", "hint"),
-                                  scalars = "vObjective", verbose = TRUE) {
+                                  scalars = "vObjective", verbose = isVerbose()) {
   .stop_not_multimod(model)
   prefer <- match.arg(prefer)
   inv <- .energyrt_gates_var()
@@ -1541,11 +1541,11 @@ fill_variable_domains <- function(model, prefer = c("spec", "hint"),
     message("fill_variable_domains(prefer = '", prefer, "'):")
     message("  filled from .mapping_spec: ", length(filled))
     if (length(conflicts)) {
-      message("  hint/spec conflicts (", prefer, " wins): ", length(conflicts))
-      for (x in conflicts) message("    ", x)
+      .say("  hint/spec conflicts (", prefer, " wins): ", length(conflicts))
+      for (x in conflicts) .say("    ", x)
     }
     if (length(unresolved)) {
-      message("  UNRESOLVED: ", paste(unresolved, collapse = ", "))
+      .say("  UNRESOLVED: ", paste(unresolved, collapse = ", "))
     }
   }
 
@@ -1630,7 +1630,7 @@ fill_variable_domains <- function(model, prefer = c("spec", "hint"),
 #' }
 #' @export
 multimod_from_energyRt <- function(object, gms = NULL, prefer = c("spec", "hint"),
-                                   inMemory = TRUE, verbose = TRUE) {
+                                   inMemory = TRUE, verbose = isVerbose()) {
   .need_multimod("multimod_from_energyRt()")
   if (!inherits(object, "scenario")) {
     stop("`scen` must be an energyRt scenario object.", call. = FALSE)

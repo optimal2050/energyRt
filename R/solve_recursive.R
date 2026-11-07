@@ -198,7 +198,7 @@ solve_recursive <- function(object, name = NULL, ...,
                          overwrite = FALSE,
                          keep_scenarios = TRUE,
                          on_error = c("stop", "return"),
-                         verbose = TRUE) {
+                         verbose = isVerbose()) {
   .log_t0 <- Sys.time()
   stopifnot(is(object, "model"))
   store <- match.arg(store)
@@ -359,7 +359,7 @@ getData.recursive <- function(object, name = NULL, ..., merge = TRUE) {
          "(keep_scenarios = FALSE); re-run with keep_scenarios = TRUE.")
   }
   if (!is.null(name) && "vObjective" %in% name) {
-    message("vObjective is per-step and discounted to each step's own base ",
+    .say("vObjective is per-step and discounted to each step's own base ",
             "year; it is not merged. Use recursive_objective().")
     name <- setdiff(name, "vObjective")
     if (length(name) == 0) return(invisible(NULL))

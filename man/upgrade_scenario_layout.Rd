@@ -4,7 +4,7 @@
 \alias{upgrade_scenario_layout}
 \title{Upgrade a scenario folder to the current on-disk layout}
 \usage{
-upgrade_scenario_layout(path, verbose = TRUE)
+upgrade_scenario_layout(path, verbose = isVerbose())
 }
 \arguments{
 \item{path}{character, the scenario directory.}

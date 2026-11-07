@@ -187,7 +187,7 @@ en_config_write <- function(config = NULL, global = TRUE, backup = TRUE) {
     dir.create(dir, recursive = TRUE)
   }
   yaml::write_yaml(config, path)
-  cli::cli_alert_success("Wrote {length(config)} option{?s} to {.path {path}}.")
+  .alert_success("Wrote {length(config)} option{?s} to {.path {path}}.")
   # Only once the new file is safely on disk.
   if (isTRUE(global) && isTRUE(backup)) .en_backup_legacy()
   invisible(config)
@@ -205,7 +205,7 @@ en_config_write <- function(config = NULL, global = TRUE, backup = TRUE) {
       bak <- paste0(p, ".bak", i)
     }
     if (isTRUE(file.rename(p, bak))) {
-      cli::cli_alert_info("Moved legacy {.path {p}} to {.path {bak}}.")
+      .alert_info("Moved legacy {.path {p}} to {.path {bak}}.")
     } else {
       cli::cli_warn(c(
         "Could not move legacy {.path {p}}.",
@@ -358,7 +358,7 @@ en_config_show <- function() {
     ))
   }
   cli::cli_text("")
-  cli::cli_alert_info(
+  .alert_info(
     "Priority: R option > env var > {.path ./.energyRt.yml} > {.path {en_config_path(global = TRUE)}} > default"
   )
   invisible(res)

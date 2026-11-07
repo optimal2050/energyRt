@@ -17,7 +17,7 @@ levcost_storage_(
   region = NULL,
   solver = solver_options$glpk,
   method = c("auto", "analytic", "solve"),
-  verbose = TRUE,
+  verbose = isVerbose(),
   ...
 )
 }

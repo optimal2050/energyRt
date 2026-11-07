@@ -4,7 +4,7 @@
 \alias{clear_report_cache}
 \title{Delete rendered reports}
 \usage{
-clear_report_cache(x = NULL, dry_run = TRUE, verbose = TRUE)
+clear_report_cache(x = NULL, dry_run = TRUE, verbose = isVerbose())
 }
 \arguments{
 \item{x}{an energyRt object whose reports should be removed, or a character

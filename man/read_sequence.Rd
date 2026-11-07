@@ -4,7 +4,7 @@
 \alias{read_sequence}
 \title{Rebuild a solve sequence from the variants on disk}
 \usage{
-read_sequence(object, sequence = NULL, type = NULL, verbose = TRUE)
+read_sequence(object, sequence = NULL, type = NULL, verbose = isVerbose())
 }
 \arguments{
 \item{object}{a scenario object, or the name of a stored scenario.}

@@ -347,7 +347,7 @@ plot_map <- function(object,
                                         name = level, na.value = "grey92") +
           ggplot2::labs(title = title))
     }
-    message("plot_map(): could not build a year-faceted map (no attached ",
+    .say("plot_map(): could not build a year-faceted map (no attached ",
             "geometry?); summing over years instead.")
     grp <- setdiff(names(d), c("year", "value"))
     d <- stats::aggregate(d["value"], by = d[grp], FUN = sum)
@@ -420,7 +420,7 @@ plot_geoscale <- function(object, type = c("map", "stack", "icicle"),
     fa <- tryCatch(names(formals(geoscales::geoscale_autoplot)),
                    error = function(e) character(0))
     if (!all(c("view", "direction") %in% fa)) {
-      message("plot_geoscale(): this geoscales version has no stack view; ",
+      .say("plot_geoscale(): this geoscales version has no stack view; ",
               "drawing the icicle instead.")
       return(geoscales::geoscale_autoplot(gs, type = "icicle", ...))
     }

@@ -31,7 +31,7 @@ countdown_timer <- function(
   }
 
   if (!is.null(warn_message)) {
-    message(warn_message)
+    .say(warn_message)
   }
 
   # message("Press Ctrl+C to interrupt the countdown.")

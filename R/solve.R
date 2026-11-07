@@ -806,7 +806,7 @@ solve_scenario <- function(object, name = object@name, solver = NULL, solver.dir
   # the transport relaxation and reports nothing unusual.
   .kvl_guard(object, kvl)
   if (isTRUE(object@status$optimal) && !isTRUE(force)) {
-    message("The scenario is already solved to optimal.\n",
+    .say("The scenario is already solved to optimal.\n",
             "Use 'force = TRUE' to solve it again.")
     return(object)
   }

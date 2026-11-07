@@ -57,7 +57,7 @@ save_scenario <- function(
     overwrite = TRUE,
     clean_start = FALSE,
     write_log = TRUE,
-    verbose = TRUE) {
+    verbose = isVerbose()) {
   # On-disk STORAGE format. feather/IPC and parquet are both compressible and
   # both support lazy, filtered reads through open_dataset(); they trade off
   # differently -- parquet is smaller, feather reads faster. "arrow" and "ipc"
@@ -70,7 +70,7 @@ save_scenario <- function(
   # identify directories
   if (is.null(path)) {
     object@path <- fp(get_scenarios_path(), object@name)
-    message("Scenarios directory: ", object@path)
+    .say("Scenarios directory: ", object@path)
   } else {
     object@path <- path
   }
@@ -1234,7 +1234,7 @@ load_scenario <- function(
     env = .scen,
     overwrite = FALSE,
     ignore_errors = FALSE,
-    verbose = TRUE) {
+    verbose = isVerbose()) {
   # A `path` that is not an existing file/directory is resolved as a
   # scenario NAME: registry first, then a scan of the scenarios store
   # (see .scenario_resolve).
@@ -1531,7 +1531,7 @@ load_scenario <- function(
 #' @rdname load_scenario
 #' @export
 load_scenarios <- function(names = NULL, run = NULL, env = NULL,
-                           verbose = TRUE) {
+                           verbose = isVerbose()) {
   if (is.null(names)) {
     reg <- .registry_open()
     names <- find_in_registry(reg, type = "scenario")$name

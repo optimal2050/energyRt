@@ -142,7 +142,7 @@ NULL
 #' recursive_objective(seq)
 #' }
 #' @export
-read_sequence <- function(object, sequence = NULL, type = NULL, verbose = TRUE) {
+read_sequence <- function(object, sequence = NULL, type = NULL, verbose = isVerbose()) {
   if (is.character(object)) object <- getScenario(object, verbose = FALSE)
   stopifnot(is(object, "scenario"))
   vs <- .seq_variants(object)

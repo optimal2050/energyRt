@@ -13,10 +13,16 @@ save_repository(
   format = get_storage_format(),
   overwrite = FALSE,
   rehash = TRUE,
-  verbose = TRUE
+  verbose = isVerbose()
 )
 
-load_repository(name, hash = NULL, path = NULL, env = NULL, verbose = TRUE)
+load_repository(
+  name,
+  hash = NULL,
+  path = NULL,
+  env = NULL,
+  verbose = isVerbose()
+)
 }
 \arguments{
 \item{repo}{a repository object.}

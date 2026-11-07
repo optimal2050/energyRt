@@ -301,7 +301,7 @@ getData.scenario <- function(
   } else {
     ii <- sapply(object, class) == "scenario"
     if (sum(ii) == 0) {
-      message("Scenario object is not found")
+      .say("Scenario object is not found")
       return(.getdata_empty(merge, asTibble))
     }
     object <- object[ii] # keep scenarios only
@@ -474,7 +474,7 @@ getData.scenario <- function(
                 "\" — returning the stored solution anyway; treat the ",
                 "values as not proven optimal.", call. = FALSE)
       } else if (touches && !has_rows_s) {
-        message("Scenario '", sc, "' carries no solution values (stage: \"",
+        .say("Scenario '", sc, "' carries no solution values (stage: \"",
                 stage_s, "\").")
       }
     }

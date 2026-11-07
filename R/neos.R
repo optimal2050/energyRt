@@ -194,7 +194,7 @@ NULL
 neos_ping <- function(timeout = 30) {
   msg <- .neos_call("ping", timeout = timeout)
   alive <- grepl("alive", msg, ignore.case = TRUE)
-  if (alive) message("NEOS: ", trimws(msg)) else
+  if (alive) .say("NEOS: ", trimws(msg)) else
     warning("NEOS ping unexpected response: ", msg)
   invisible(alive)
 }
@@ -423,7 +423,7 @@ neos_get_output_file <- function(job, pw, fileName, timeout = 120) {
 
 #' @rdname neos_job
 #' @keywords internal
-neos_wait <- function(job, pw, poll = 5, max_wait = 600, verbose = TRUE) {
+neos_wait <- function(job, pw, poll = 5, max_wait = 600, verbose = isVerbose()) {
   waited <- 0
   repeat {
     st <- neos_job_status(job, pw)

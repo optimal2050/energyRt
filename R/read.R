@@ -322,7 +322,7 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
     att <- .modout_attach(scen, arg$solver.dir)
     if (!is.null(att)) {
       if (arg$echo) {
-        message("Run '", scen@misc$run %||% "?", "': no readable solver ",
+        .say("Run '", scen@misc$run %||% "?", "': no readable solver ",
                 "output; reading its imported modOut/ store instead.")
       }
       return(invisible(att))
@@ -340,7 +340,7 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
     if (is.null(arg$stop_on_error) || !identical(arg$stop_on_error, FALSE)) {
       stop(msg, call. = FALSE)
     }
-    message(msg)
+    .say(msg)
     return(invisible(object))
   }
   if (file.exists(paste(arg$solver.dir, "/output/variable_list2.csv", sep = ""))) {
@@ -417,7 +417,7 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
         error = function(e) NULL)
     }
     if (is.null(.stream_final)) {
-      message("read_solution(ondisk = TRUE): no run folder to stream into ",
+      .say("read_solution(ondisk = TRUE): no run folder to stream into ",
               "(external or transient solve); reading into memory instead.")
     } else {
       .stream_path <- paste0(.stream_final, ".incoming")
@@ -458,7 +458,7 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
       # if (i == "vOutTot") browser() # debug
       vr <- try(gd[i])
       if (inherits(vr, "try-error")) {
-        message(paste0("Error reading ", i, " from output.gdx"))
+        .say(paste0("Error reading ", i, " from output.gdx"))
         next
       }
       if (is.null(vr)) next
@@ -756,7 +756,7 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
     scen@modOut <- setObjPath(scen@modOut, path = .stream_final)
     scen@modOut <- mark_ondisk(scen@modOut)
     if (arg$echo) {
-      message("Solution written to '", .stream_final, "'. The scenario shell ",
+      .say("Solution written to '", .stream_final, "'. The scenario shell ",
               "still has to be saved: save_scenario() records it, and until ",
               "then a reload will not see the solution.")
     }

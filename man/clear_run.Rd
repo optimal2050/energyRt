@@ -4,7 +4,7 @@
 \alias{clear_run}
 \title{Release a run that is marked running}
 \usage{
-clear_run(object, run, verbose = TRUE)
+clear_run(object, run, verbose = isVerbose())
 }
 \arguments{
 \item{object}{a scenario, or the PATH to a saved scenario directory. A

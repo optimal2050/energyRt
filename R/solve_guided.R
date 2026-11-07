@@ -260,7 +260,7 @@ solve_guided <- function(object, name = NULL, ...,
                          on_infeasible = c("relax", "stop"),
                          overwrite = FALSE,
                          keep_scenarios = TRUE,
-                         verbose = TRUE) {
+                         verbose = isVerbose()) {
   stopifnot(is(object, "model"))
   basis <- match.arg(basis)
   mode <- match.arg(mode)

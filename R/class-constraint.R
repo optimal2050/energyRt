@@ -1199,7 +1199,7 @@ addSummand <- function(
           .cns_rows_label(stm@for.each[bad, , drop = FALSE]), ")."))
       }
       if (any(empty)) {
-        message("Constraint '", stm@name, "': ", sum(empty),
+        .say("Constraint '", stm@name, "': ", sum(empty),
                 " row(s) dropped, no term exists there (",
                 .cns_rows_label(stm@for.each[empty, , drop = FALSE]), ").")
         stm@for.each <- stm@for.each[!empty, , drop = FALSE]

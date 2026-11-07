@@ -223,7 +223,7 @@ setMethod(
     }
 
     if (obj@type != "set") {
-      message("Error: ", obj@name, " parameter:")
+      .say("Error: ", obj@name, " parameter:")
       print(head(data))
       stop(
         "Set type of parameter is expected for the character data. \n",

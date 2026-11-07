@@ -4,7 +4,7 @@
 \alias{promote_solution}
 \title{Make a run's solution the scenario's own}
 \usage{
-promote_solution(object, run = NULL, save = TRUE, verbose = TRUE)
+promote_solution(object, run = NULL, save = TRUE, verbose = isVerbose())
 }
 \arguments{
 \item{object}{a scenario object.}
