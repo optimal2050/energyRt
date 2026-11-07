@@ -198,6 +198,11 @@ newHorizon <- function(
       if (mid_is_end) intervals$mid <- intervals$end
       if (mid_is_start) intervals$mid <- intervals$start
       h@intervals <- .fill_interval_labels(intervals)
+      # `base_year` is applied on EVERY return path: this branch used to
+      # return before the assignment at the end of the function, so a
+      # base year declared with a numeric `intervals` was discarded in
+      # silence -- which is how TOPIA's horizon lost its own.
+      if (!is.null(base_year)) h@base_year <- .check_base_year(base_year, h)
       return(h)
     }
   } else if (!is.null(period)) { # intervals == NULL
@@ -210,8 +215,12 @@ newHorizon <- function(
     if (mid_is_end) intervals$mid <- intervals$end
     if (mid_is_start) intervals$mid <- intervals$start
     h@intervals <- .fill_interval_labels(intervals)
+    if (!is.null(base_year)) h@base_year <- .check_base_year(base_year, h)
     return(h) # one year steps
   } else if (is.null(period)) { # no data
+    # a base year on an empty horizon has nothing to mark: `.check_base_year()`
+    # says so rather than dropping it
+    if (!is.null(base_year)) h@base_year <- .check_base_year(base_year, h)
     return(h) # empty
   }
 
