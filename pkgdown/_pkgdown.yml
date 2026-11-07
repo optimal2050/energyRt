@@ -64,6 +64,8 @@ navbar:
         href: articles/model-bricks.html
       - text: Units
         href: articles/units.html
+      - text: Changing resolution
+        href: articles/resolution.html
       - text: Time resolution
         href: articles/time-resolution.html
       - text: Space resolution

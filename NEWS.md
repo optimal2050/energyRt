@@ -27,6 +27,14 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* `aggregate_model_regions(resolve_conflicts = )` decides what happens to a
+  value with no merged form, such as a lifetime or a levy rate. The default
+  stops and names the object, the column and the regions that disagree;
+  `"force"` takes their mean and `"drop"` leaves the value unset, so the
+  parameter falls back to its default rather than to a fabricated number. Both
+  warn and record what was resolved in each object's `@misc$aggregation`,
+  which also records the level every object was aggregated to.
+
 * `newHorizon(base_year = )` marks one milestone as GIVEN rather than decided.
   The marked year is interpolated as any other but never reaches the solver,
   and the milestones before it are historical and enter no LP at all; both
@@ -387,6 +395,23 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   `mmcloud::get_hf_token()` and `mmcloud::set_hf_token()`.
 
 ## Bug fixes
+
+* **An object with no size of its own is weighted by the scale.** Aggregating
+  regions took a plain mean wherever the object carried no capacity to weight
+  by -- a weather profile has none -- so every region counted equally,
+  although the documentation promised a size-weighted mean. The weight now
+  comes from the geoscale (area, or whatever weight it declares), which a
+  profile cannot supply for itself.
+
+* **Values that add are no longer averaged.** A storage start level is energy,
+  like `stg.stock`, and a per-region constraint right-hand side is the budget
+  of the rows being merged; both were averaged across regions. `payback` is a
+  lifetime, like `olife`, and is now copied rather than averaged, including
+  storage's `out.`, `inp.` and `stg.` forms, which an exact-name lookup had
+  missed.
+
+* **`recast_model_calendar()` treats `cluster` as an identifier**, not as a
+  value to recast.
 
 * **A wildcard row beside named rows is no longer ignored.** An NA in a key
   column means "every member of that dimension", but interpolation treated the

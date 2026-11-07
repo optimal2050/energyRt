@@ -833,12 +833,92 @@ NULL
 # an error rather than something to average.
 .AGG_COPY_COLS <- c("start", "end", "olife", "order")
 
+# Extensive quantities named in full rather than matched: a storage start
+# level is energy, like `stg.stock`; a constraint right-hand side is the
+# budget of the rows being merged.
+.AGG_EXTENSIVE_COLS <- c("startLevel", "rhs")
+
+# `payback` is a lifetime in years, like `olife`, and storage carries one per
+# part (`out.payback`, `inp.payback`, `stg.payback`), so it is matched.
+.AGG_COPY_RE <- "(^|[.])payback$"
+
+# A levy's columns are prices per unit of a flow or of capacity. Weighting two
+# regions' rates needs the quantity each would be charged on, which the levy
+# does not carry, so the common value is kept and a difference is reported.
+.AGG_LEVY_CLASSES <- c("tax", "subsidy")
+
 #' Aggregation rule for each value column
 #' @noRd
-.agg_rules <- function(cols) {
-  r <- ifelse(cols %in% .AGG_COPY_COLS, "copy",
-              ifelse(grepl(.AGG_EXTENSIVE_RE, cols), "sum", "weighted_mean"))
+.agg_rules <- function(cols, cls = NULL) {
+  if (length(cls) && cls[1] %in% .AGG_LEVY_CLASSES)
+    return(stats::setNames(rep("copy", length(cols)), cols))
+  ext <- cols %in% .AGG_EXTENSIVE_COLS | grepl(.AGG_EXTENSIVE_RE, cols)
+  cpy <- cols %in% .AGG_COPY_COLS | grepl(.AGG_COPY_RE, cols)
+  r <- ifelse(cpy, "copy", ifelse(ext, "sum", "weighted_mean"))
   stats::setNames(r, cols)
+}
+
+#' Normalise `resolve_conflicts` to one of "stop", "force", "drop"
+#' @noRd
+.agg_resolve_mode <- function(x) {
+  if (is.logical(x)) {
+    if (length(x) != 1L || is.na(x))
+      stop("`resolve_conflicts` must be TRUE, FALSE, \"force\" or \"drop\".",
+           call. = FALSE)
+    return(if (x) "force" else "stop")
+  }
+  x <- as.character(x)
+  if (length(x) != 1L || !x %in% c("stop", "force", "drop"))
+    stop("`resolve_conflicts` must be TRUE, FALSE, \"force\" or \"drop\".",
+         call. = FALSE)
+  x
+}
+
+#' Columns ruled `copy` whose values differ inside a target group
+#'
+#' The recast engine refuses a non-constant `copy` column in its own
+#' vocabulary. Finding the conflict here first lets the object, the slot and
+#' the regions be named, and lets `resolve_conflicts` take a mean instead.
+#' @noRd
+.agg_conflicts <- function(df, gs, level, cols) {
+  if (!length(cols) || !"region" %in% names(df)) return(NULL)
+  tgt <- .agg_map_codes(df$region, gs, level)
+  out <- list()
+  for (cn in cols) {
+    v <- df[[cn]]
+    ok <- !is.na(v) & !is.na(tgt)
+    if (!any(ok)) next
+    sp <- split(data.frame(region = as.character(df$region[ok]),
+                           value = v[ok], stringsAsFactors = FALSE), tgt[ok])
+    for (g in names(sp)) {
+      u <- unique(sp[[g]]$value)
+      if (length(u) > 1L)
+        out[[length(out) + 1L]] <- data.frame(
+          column = cn, target = g,
+          regions = paste(unique(sp[[g]]$region), collapse = ", "),
+          values = paste(format(u, trim = TRUE), collapse = ", "),
+          stringsAsFactors = FALSE)
+    }
+  }
+  if (!length(out)) NULL else do.call(rbind, out)
+}
+
+#' Record what an aggregation did, on the object it did it to
+#'
+#' `@misc` is the one slot every aggregation traversal skips, so provenance
+#' written there survives the rest of the pass.
+#' @noRd
+.agg_record <- function(obj, level, conflicts = list()) {
+  if (!.hasSlot(obj, "misc")) return(obj)
+  cf <- if (length(conflicts)) do.call(rbind, conflicts) else
+    data.frame(slot = character(), column = character(), target = character(),
+               regions = character(), values = character(),
+               stringsAsFactors = FALSE)
+  m <- obj@misc
+  if (!is.list(m)) m <- list()
+  m$aggregation <- list(level = level, conflicts = cf)
+  obj@misc <- m
+  obj
 }
 
 #' Value columns of a slot: numeric, and not an identifier
@@ -903,10 +983,33 @@ NULL
 
 #' Recast one region-keyed slot onto the coarser geoframe
 #' @noRd
-.agg_slot <- function(df, gs, level, w, regions) {
+.agg_slot <- function(df, gs, level, w, regions, cls = NULL,
+                      resolve = FALSE, what = "this object") {
   if (!is.data.frame(df) || !nrow(df)) return(df)
   vals <- .agg_values(df)
-  rules <- .agg_rules(vals)
+  rules <- .agg_rules(vals, cls)
+
+  cf <- .agg_conflicts(df, gs, level, vals[rules == "copy"])
+  if (!is.null(cf)) {
+    msg <- paste0(
+      what, ": ", paste0(cf$column, " differs across the regions merged into '",
+                         cf$target, "' (", cf$regions, " = ", cf$values, ")",
+                         collapse = "; "))
+    mode <- .agg_resolve_mode(resolve)
+    if (identical(mode, "stop"))
+      stop(msg, ".
+These values have no merged form. Declare one value for ",
+           "the group, or pass `resolve_conflicts = \"force\"` to take their ",
+           "mean, or `\"drop\"` to leave them unset.", call. = FALSE)
+    warning(msg, ".
+",
+            if (identical(mode, "drop"))
+              "Dropped, leaving them unset; see `@misc$aggregation`."
+            else "Resolved by taking the mean; see `@misc$aggregation`.",
+            call. = FALSE)
+    cf$resolution <- mode
+    rules[unique(cf$column)] <- "mean"
+  }
 
   # A slot with nothing to measure -- @routes -- is a set of keys: remap and
   # take the distinct rows.
@@ -920,13 +1023,20 @@ NULL
   df <- df[!is.na(df$region), , drop = FALSE]
   if (!nrow(df)) return(wild)
 
-  df$.agg_w <- if (is.null(w)) 1 else
-    w$.agg_w[match(df$region, w$region)]
-  df$.agg_w[is.na(df$.agg_w)] <- 0
+  # An object carrying no size of its own -- a weather profile has none --
+  # defers to the weight the SCALE declares (area, population, ...). Forcing 1
+  # here would silently decide that every region matters equally.
+  if (is.null(w)) {
+    wcol <- NULL
+  } else {
+    wcol <- ".agg_w"
+    df$.agg_w <- w$.agg_w[match(df$region, w$region)]
+    df$.agg_w[is.na(df$.agg_w)] <- 0
+  }
 
   out <- geoscales::recast_from_geoatoms(
-    df, gs, to = level, key = "region", values = vals, rule = rules,
-    weight = ".agg_w", na_rm = TRUE, na_action = "drop")
+    df, gs, target = level, key = "region", values = vals, rule = rules,
+    weight = wcol, na_rm = TRUE, na_action = "drop")
   out <- as.data.frame(out)
   names(out)[names(out) == level] <- "region"
   out <- out[, intersect(names(df), names(out)), drop = FALSE]
@@ -936,6 +1046,12 @@ NULL
     out <- rbind(out[, names(wild), drop = FALSE], wild)
   }
   rownames(out) <- NULL
+  # "drop" declines to invent a number: the merged cell is left unset, so the
+  # parameter falls back to its default rather than to a fabricated mean.
+  if (!is.null(cf) && identical(cf$resolution[1], "drop"))
+    for (i in seq_len(nrow(cf)))
+      out[[cf$column[i]]][as.character(out$region) == cf$target[i]] <- NA
+  attr(out, "agg_conflicts") <- cf
   out
 }
 
@@ -1224,11 +1340,17 @@ NULL
 #' Every region-keyed slot is recast. Extensive quantities -- capacities,
 #' demand, supply availability, import and export limits -- are summed over the
 #' regions of each parent. Intensive ones -- efficiencies, availability
-#' factors, costs, weather values -- take a mean weighted by the object's own
-#' size in each region, so an aggregated value stays within the range of the
-#' values it came from. When the weights of a group are all zero the mean is
-#' unweighted, which keeps a group of empty regions at their common value
-#' rather than undefined.
+#' factors, costs, weather values -- take a weighted mean, so an aggregated
+#' value stays within the range of the values it came from. The weight is the
+#' object's own size in each region where it carries one; an object that does
+#' not -- a weather profile has no size -- is weighted by the geoscale instead,
+#' by area or whatever weight it declares. When the weights of a group are all
+#' zero the mean is unweighted, which keeps a group of empty regions at their
+#' common value rather than undefined.
+#'
+#' Values with no merged form at all, such as a lifetime or a levy rate, are
+#' copied, and a difference between regions stops the aggregation unless
+#' `resolve_conflicts` says otherwise.
 #'
 #' Trade is different: a trade object is one region pair, so corridors that
 #' land inside a single parent region become internal and are dropped, and the
@@ -1253,6 +1375,12 @@ NULL
 #'   results are keyed.
 #' @param name Name for the aggregated model. `NULL` (default) appends
 #'   `level` to the source model's name.
+#' @param resolve_conflicts What to do with a value that has no merged form,
+#'   such as a lifetime or a levy rate. `FALSE` (default) stops, naming the
+#'   object, the column and the regions that disagree. `"force"` (or `TRUE`)
+#'   takes their mean; `"drop"` leaves the merged value unset, so the parameter
+#'   falls back to its default rather than to a fabricated number. Both warn
+#'   and record what was resolved in each object's `@misc$aggregation`.
 #' @param verbose Report what was aggregated, merged and dropped.
 #' @param .trade_parts internal; a named vector mapping trade names to a part
 #'   label, appended to the merge key so corridors in different parts stay
@@ -1324,9 +1452,13 @@ NULL
 aggregate_model_regions <- function(object, geoscale = NULL, level,
                                     clusters = NULL,
                                     as = c("clusters", "objects"),
-                                    name = NULL, verbose = isVerbose(),
+                                    name = NULL,
+                                    resolve_conflicts = FALSE,
+                                    verbose = isVerbose(),
                                     .trade_parts = NULL) {
   stopifnot(inherits(object, "model"))
+  # validated here so a bad value is refused even when nothing conflicts
+  resolve_conflicts <- .agg_resolve_mode(resolve_conflicts)
   as <- match.arg(as)
   if (!is.null(clusters)) {
     return(.cl_cluster_model(object, geoscale = geoscale, level = level,
@@ -1429,13 +1561,25 @@ Aggregating between two non-atom levels needs a level-aware ",
       out[[o@name]] <- o
       next
     }
+    cl1 <- class(o)[1]
     w <- .agg_weight(o)
+    cfs <- list()
     for (sl in methods::slotNames(o)) {
       v <- methods::slot(o, sl)
       if (is.data.frame(v) && nrow(v) && "region" %in% names(v)) {
-        methods::slot(o, sl) <- .agg_slot(v, gs, level, w, regions)
+        v2 <- .agg_slot(v, gs, level, w, regions, cls = cl1,
+                        resolve = resolve_conflicts,
+                        what = paste0(cl1, " '", o@name, "' @", sl))
+        cf <- attr(v2, "agg_conflicts")
+        attr(v2, "agg_conflicts") <- NULL
+        if (!is.null(cf)) {
+          cf$slot <- sl
+          cfs[[length(cfs) + 1L]] <- cf
+        }
+        methods::slot(o, sl) <- v2
       }
     }
+    o <- .agg_record(o, level, cfs)
     if (.hasSlot(o, "region")) {
       r <- methods::slot(o, "region")
       if (is.character(r) && length(r)) {

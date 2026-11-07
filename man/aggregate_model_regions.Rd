@@ -11,6 +11,7 @@ aggregate_model_regions(
   clusters = NULL,
   as = c("clusters", "objects"),
   name = NULL,
+  resolve_conflicts = FALSE,
   verbose = isVerbose(),
   .trade_parts = NULL
 )
@@ -39,6 +40,13 @@ results are keyed.}
 \item{name}{Name for the aggregated model. \code{NULL} (default) appends
 \code{level} to the source model's name.}
 
+\item{resolve_conflicts}{What to do with a value that has no merged form,
+such as a lifetime or a levy rate. \code{FALSE} (default) stops, naming the
+object, the column and the regions that disagree. \code{"force"} (or \code{TRUE})
+takes their mean; \code{"drop"} leaves the merged value unset, so the parameter
+falls back to its default rather than to a fabricated number. Both warn
+and record what was resolved in each object's \verb{@misc$aggregation}.}
+
 \item{verbose}{Report what was aggregated, merged and dropped.}
 
 \item{.trade_parts}{internal; a named vector mapping trade names to a part
@@ -59,11 +67,17 @@ own right: it can be interpolated, solved and reported like any other.
 Every region-keyed slot is recast. Extensive quantities -- capacities,
 demand, supply availability, import and export limits -- are summed over the
 regions of each parent. Intensive ones -- efficiencies, availability
-factors, costs, weather values -- take a mean weighted by the object's own
-size in each region, so an aggregated value stays within the range of the
-values it came from. When the weights of a group are all zero the mean is
-unweighted, which keeps a group of empty regions at their common value
-rather than undefined.
+factors, costs, weather values -- take a weighted mean, so an aggregated
+value stays within the range of the values it came from. The weight is the
+object's own size in each region where it carries one; an object that does
+not -- a weather profile has no size -- is weighted by the geoscale instead,
+by area or whatever weight it declares. When the weights of a group are all
+zero the mean is unweighted, which keeps a group of empty regions at their
+common value rather than undefined.
+
+Values with no merged form at all, such as a lifetime or a levy rate, are
+copied, and a difference between regions stops the aggregation unless
+\code{resolve_conflicts} says otherwise.
 
 Trade is different: a trade object is one region pair, so corridors that
 land inside a single parent region become internal and are dropped, and the

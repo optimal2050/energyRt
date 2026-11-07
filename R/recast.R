@@ -35,7 +35,7 @@ NULL
 # Numeric columns that index rather than measure, and so are never recast.
 # `year` is the only one in the shipped objects; `vintage` is character there
 # but integer in some user models, so it is guarded too.
-.recast_id_cols <- c("year", "vintage")
+.recast_id_cols <- c("year", "vintage", "cluster")
 
 #' Recast a model onto another calendar
 #'
