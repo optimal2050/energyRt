@@ -221,9 +221,7 @@ su_scen <- function(name) {
 }
 
 su_obj <- function(dir) {
-  e <- new.env(parent = emptyenv())
-  nm <- load(file.path(dir, "scen.RData"), envir = e)
-  get(nm[1], envir = e)
+  energyRt:::.scen_file_read(energyRt:::.scen_file_find(dir))
 }
 
 su_run_yml <- function(dir) {

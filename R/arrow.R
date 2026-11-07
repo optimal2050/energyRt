@@ -412,18 +412,17 @@ save_scenario <- function(
   scen_file <- .scen_file_path(object@path)
   if (!nzchar(.run_variant(object))) {
     object@misc$has_base <- TRUE
-    save(object, file = scen_file)
+    saveRDS(object, scen_file)
     .check_scen_file_size(object, scen_file)
   } else if (!file.exists(scen_file)) {
-    e_born <- new.env(parent = emptyenv())
-    e_born$scen <- object
-    e_born$scen@misc$variant <- NULL
-    e_born$scen@misc$run <- NULL
-    e_born$scen@misc$has_base <- FALSE
-    e_born$scen@modInp <- new("modInp")
-    e_born$scen@modOut <- new("modOut")
-    save(list = "scen", envir = e_born, file = scen_file)
-    rm(e_born)
+    born <- object
+    born@misc$variant <- NULL
+    born@misc$run <- NULL
+    born@misc$has_base <- FALSE
+    born@modInp <- new("modInp")
+    born@modOut <- new("modOut")
+    saveRDS(born, scen_file)
+    rm(born)
   }
   mf_model <- model_ref %||% list(
     name = object@model@name %||% "",
@@ -1288,7 +1287,7 @@ load_scenario <- function(
       )
     }
     scen_root <- path # the directory actually being loaded (for path rebase)
-    path <- .scen_file_path(path)
+    path <- .scen_file_find(path)
     if (!file.exists(path)) {
       msg <- paste0("Scenario file '", path, "' has not been found.")
       if (!ignore_errors) stop(msg)
@@ -1298,31 +1297,20 @@ load_scenario <- function(
   } else {
     scen_root <- dirname(path)
   }
-  if (!(exists(".en_tmp") && is.environment(.en_tmp))) {
-    .en_tmp <- new.env(parent = .GlobalEnv)
-  }
-  # on.exit(rm(.en_tmp))
-  nm <- load(path, envir = .en_tmp)
-  if (length(nm) != 1) {
-    msg <- paste0(
-      "Scenario file '", path,
-      "' must contain only one (scenario) object",
-      ", actual number of objects: ", length(nm)
-    )
+  scen_obj <- .scen_file_read(path)
+  if (is.null(scen_obj)) {
+    msg <- paste0("Scenario file '", path, "' could not be read.")
     if (!ignore_errors) stop(msg)
     if (verbose) message(msg)
     return(invisible(FALSE))
   }
-  if (!inherits(get(nm, envir = .en_tmp), "scenario")) {
-    msg <- paste0(
-      path, " must contain a 'scenario' object; actual class: ",
-      class(get(nm, envir = .en_tmp))
-    )
+  if (!inherits(scen_obj, "scenario")) {
+    msg <- paste0(path, " must contain a 'scenario' object; actual class: ",
+                  class(scen_obj)[1])
     if (!ignore_errors) stop(msg)
     if (verbose) message(msg)
     return(invisible(FALSE))
   }
-  scen_obj <- get(nm, envir = .en_tmp)
 
   # migrate modInp objects saved before the 2026-08 slot cleanup
   # (set -> sets; gams.equation/costs.equation -> user_constraints/user_costs)
@@ -1473,13 +1461,8 @@ load_scenario <- function(
       })
     if (!is.null(scen_act)) scen_obj <- scen_act
   }
-  assign(nm, scen_obj, envir = .en_tmp)
-
-  if (is.null(name)) name <- get(nm, envir = .en_tmp)@name
-  if (is.null(env)) {
-    scen <- get(nm, envir = .en_tmp)
-    return(scen)
-  }
+  if (is.null(name)) name <- scen_obj@name
+  if (is.null(env)) return(scen_obj)
   if (exists(name, envir = env) & !overwrite) {
     msg <- paste0(
       "Scenario '", name,
@@ -1491,15 +1474,9 @@ load_scenario <- function(
     return(invisible(FALSE))
   }
   if (!exists(name, envir = env) | overwrite) {
-    assign(name, get(nm, envir = .en_tmp), envir = env)
-    assign(nm, NULL, envir = .en_tmp)
+    assign(name, scen_obj, envir = env)
     return(invisible(TRUE))
   }
-  # assign(name, get(nm, envir = .en_tmp), envir = env)
-  # assign(nm, NULL, envir = .en_tmp)
-  # return(invisible(TRUE))
-  # return(get(name, envir = env))
-  # return(nm)
   return(invisible(FALSE))
 }
 

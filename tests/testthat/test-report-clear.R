@@ -81,7 +81,7 @@ test_that("dry_run = FALSE removes the files and their sidecars", {
   expect_false(file.exists(file.path(s@path, "reports", "report_a.html")))
   expect_false(file.exists(file.path(s@path, "reports", "report_a.report.yml")))
   # the scenario itself is untouched
-  expect_true(file.exists(file.path(s@path, "scen.RData")))
+  expect_true(file.exists(energyRt:::.scen_file_path(s@path)))
 })
 
 test_that("a sealed owner refuses", {

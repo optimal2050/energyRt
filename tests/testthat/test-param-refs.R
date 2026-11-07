@@ -199,9 +199,7 @@ test_that("tables persisted on disk or in a base scenario are shed from memory a
                    dataset_hash(force_cols_classes(full)))
   # the scenario shell written over a stored scenario carries no such table
   suppressMessages(save_scenario(ld, verbose = FALSE))
-  e <- new.env()
-  load(fp(saved@path, "scen.RData"), envir = e)
-  sh <- get(ls(e)[1], envir = e)
+  sh <- energyRt:::.scen_file_read(energyRt:::.scen_file_find(saved@path))
   expect_equal(NROW(sh@modInp@parameters[["pWeather"]]@data), 0L)
   # a table that is nowhere else stays
   mem <- pr_scen(pTechAf = pr_param("pTechAf", pr_af()))

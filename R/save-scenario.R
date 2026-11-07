@@ -654,11 +654,9 @@ drop_scenario_run <- function(object, run, force = FALSE) {
       vdata <- get(nm[1], envir = e)
     }
   } else {
-    scen_file <- .scen_file_path(scen@path)
+    scen_file <- .scen_file_find(scen@path)
     if (file.exists(scen_file)) {
-      e <- new.env(parent = emptyenv())
-      nm <- load(scen_file, envir = e)
-      sh <- get(nm[1], envir = e)
+      sh <- .scen_file_read(scen_file)
       # a LEGACY file saved while a variant was active (old semantics)
       # carries that variant's problem, not the base's — skip to the
       # problem.RData fallback in that case
@@ -1511,8 +1509,8 @@ promote_solution <- function(object, run = NULL, save = TRUE, verbose = isVerbos
 #' }
 upgrade_scenario_layout <- function(path, verbose = isVerbose()) {
   path <- gsub("[\\/]+", "/", path)
-  if (!dir.exists(path) || !file.exists(.scen_file_path(path))) {
-    stop("'", path, "' is not a saved scenario directory (no scen.RData)")
+  if (!dir.exists(path) || !file.exists(.scen_file_find(path))) {
+    stop("'", path, "' is not a saved scenario directory")
   }
   say <- function(...) if (verbose) message(...)
 
@@ -1663,25 +1661,32 @@ upgrade_scenario_layout <- function(path, verbose = isVerbose()) {
   scen <- .scenario_rebase_paths(scen, path)
   scen <- suppressMessages(save_scenario(scen, path = path, verbose = FALSE))
 
-  # -- fold a legacy problem.RData into scen.RData (its one home now): the
-  # file takes the base problem's files and the separate cartridge goes
+  # -- fold a legacy problem.RData into the scenario file (its one home now)
   legacy <- fp(path, "problem.RData")
   if (file.exists(legacy)) {
-    say("Folding problem.RData into scen.RData")
+    say("Folding problem.RData into ", basename(.scen_file_path(path)))
     e <- new.env(parent = emptyenv())
     vdata <- get(load(legacy, envir = e)[1], envir = e)
-    es <- new.env(parent = emptyenv())
-    sh <- get(load(.scen_file_path(path), envir = es)[1], envir = es)
+    sh <- .scen_file_read(.scen_file_find(path))
     sh@settings <- vdata$settings
     sh@misc$sourceCode_default <- vdata$sourceCode_default %||% character(0)
     sh@modInp <- vdata$modInp
     sh@misc$variant <- NULL
     sh@misc$run <- NULL
     sh@misc$has_base <- TRUE
-    es2 <- new.env(parent = emptyenv())
-    es2$scen <- sh
-    save(list = "scen", envir = es2, file = .scen_file_path(path))
+    saveRDS(sh, .scen_file_path(path))
     unlink(legacy)
+  }
+
+  # -- scen.RData -> scen.rds. Read until 0.95, rewritten on first upgrade.
+  old_file <- .scen_file_legacy(path)
+  if (file.exists(old_file)) {
+    obj <- .scen_file_read(old_file)
+    if (!is.null(obj)) {
+      saveRDS(obj, .scen_file_path(path))
+      unlink(old_file)
+      say("scen.RData -> ", basename(.scen_file_path(path)))
+    }
   }
 
   say("Scenario '", scen@name, "' upgraded to layout ", .SCENARIO_LAYOUT)

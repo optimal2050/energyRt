@@ -31,7 +31,7 @@
     up <- tryCatch(yaml::read_yaml(mf)$updated, error = function(e) NULL)
     if (!is.null(up) && nzchar(up)) return(up)
   }
-  rd <- .scen_file_path(path)
+  rd <- .scen_file_find(path)
   if (file.exists(rd)) return(as.character(file.mtime(rd)))
   ""
 }

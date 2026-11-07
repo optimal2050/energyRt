@@ -195,14 +195,15 @@ test_that("sealed inputs take new runs; scenarios built on them read the same ta
     name = "slo_dep", verbose = FALSE)))
   dep <- suppressMessages(save_scenario(dep, verbose = FALSE))
   mf0 <- yaml::read_yaml(fp(sc@path, "scenario.yml"))
-  shell0 <- unname(tools::md5sum(fp(sc@path, "scen.RData")))
+  scen0 <- unname(tools::md5sum(energyRt:::.scen_file_path(sc@path)))
 
   # an unsolved re-save would rewrite the inputs
   expect_error(suppressMessages(save_scenario(sc, verbose = FALSE)), "only a run")
   s1 <- suppressMessages(solve_scenario(sc, solver = solver_options$glpk))
   s1 <- suppressMessages(save_scenario(s1, verbose = FALSE))
   mf1 <- yaml::read_yaml(fp(sc@path, "scenario.yml"))
-  expect_identical(unname(tools::md5sum(fp(sc@path, "scen.RData"))), shell0)
+  expect_identical(unname(tools::md5sum(energyRt:::.scen_file_path(sc@path))),
+                   scen0)
   expect_identical(mf1$tables, mf0$tables)
   expect_identical(mf1$sealed_hash, mf0$sealed_hash)
   expect_identical(mf1$default, s1@misc$run)

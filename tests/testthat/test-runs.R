@@ -193,7 +193,7 @@ test_that("save_scenario on an ondisk-interpolated scenario is not a no-op", {
   sol <- solve_scenario(sc)
   saved <- save_scenario(sol, verbose = FALSE)
   # the trap was: early return -> no scen.RData -> load_scenario fails
-  expect_true(file.exists(file.path(saved@path, "scen.RData")))
+  expect_true(file.exists(energyRt:::.scen_file_path(saved@path)))
   expect_true(file.exists(file.path(saved@path, "scenario.yml")))
   back <- load_scenario(saved@path, env = NULL, verbose = FALSE)
   expect_s4_class(back, "scenario")

@@ -44,15 +44,15 @@ ul_make_layout2 <- function(name) {
   unlink(file.path(p, "scenario.yml"))
   write("2", file.path(p, "layout"), append = FALSE)
 
-  # rewrite scen.RData the way an old version would have left it
-  e <- new.env()
-  nm <- load(file.path(p, "scen.RData"), envir = e)
-  scen <- get(nm, envir = e)
+  # leave the scenario file as an old version would: a save() scen.RData
+  # and no scen.rds
+  scen <- energyRt:::.scen_file_read(energyRt:::.scen_file_find(p))
   scen@misc$run <- NULL
   scen@misc$variant <- NULL
   scen@misc$solver.dir <- NULL
   scen@misc$tmp.dir <- gsub("[\\/]+", "/", file.path(p, "script", lbl))
   save(scen, file = file.path(p, "scen.RData"))
+  unlink(energyRt:::.scen_file_path(p))
   list(path = p, label = lbl)
 }
 
@@ -115,11 +115,10 @@ test_that("an interim runs/default/<solve>/script tree is flattened and renamed"
   dir.create(dirname(new_dir), recursive = TRUE)
   stopifnot(file.rename(old_dir, new_dir))
   ul_move_solver(new_dir, file.path(new_dir, "script"))
-  e <- new.env()
-  nm <- load(file.path(p, "scen.RData"), envir = e)
-  scen <- get(nm, envir = e)
+  scen <- energyRt:::.scen_file_read(energyRt:::.scen_file_find(p))
   scen@misc$variant <- "default"
   save(scen, file = file.path(p, "scen.RData"))
+  unlink(energyRt:::.scen_file_path(p))
 
   up <- suppressWarnings(suppressMessages(
     upgrade_scenario_layout(p, verbose = FALSE)))

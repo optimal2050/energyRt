@@ -489,13 +489,10 @@ drop_solver_outputs <- function(object, runs = NULL, dry_run = TRUE,
 # machine paths. Blanking the paths is safe because
 # `.scenario_rebase_paths()` rebuilds each of them from the folder being read.
 .sui_scrub_rdata <- function(dir, scope = "share", keep_solver = FALSE) {
-  f <- .scen_file_path(dir)
+  f <- .scen_file_find(dir)
   if (!file.exists(f)) return(FALSE)
-  e <- new.env(parent = emptyenv())
-  nm <- tryCatch(load(f, envir = e), error = function(err) NULL)
-  if (is.null(nm) || !length(nm)) return(FALSE)
-  obj <- get(nm[1], envir = e)
-  if (!is(obj, "scenario")) return(FALSE)
+  obj <- .scen_file_read(f)
+  if (is.null(obj) || !is(obj, "scenario")) return(FALSE)
 
   obj <- .sui_strip_object(obj, scope, keep_solver)
   obj@path <- ""
@@ -517,8 +514,10 @@ drop_solver_outputs <- function(object, runs = NULL, dry_run = TRUE,
   }
   if (isS4(obj@model)) obj@model <- blank(obj@model)
 
-  assign(nm[1], obj, envir = e)
-  save(list = nm[1], file = f, envir = e, compress = "xz")
+  # scrubbed in place, in the current format: a legacy .RData read here is
+  # rewritten as .rds and the old file removed
+  saveRDS(obj, .scen_file_path(dir), compress = "xz")
+  if (!identical(f, .scen_file_path(dir))) unlink(f)
   TRUE
 }
 
@@ -803,10 +802,7 @@ prepare_for_sharing <- function(object, path, scope = c("share", "store"),
     # active-run fields, so a rebased copy of the object is enough.
     obj <- if (is(object, "scenario")) object else NULL
     if (is.null(obj)) {
-      e <- new.env(parent = emptyenv())
-      nm <- tryCatch(load(.scen_file_path(out), envir = e),
-                     error = function(err) NULL)
-      if (!is.null(nm) && length(nm)) obj <- get(nm[1], envir = e)
+      obj <- .scen_file_read(.scen_file_find(out))
     }
     if (is(obj, "scenario")) {
       obj@path <- out

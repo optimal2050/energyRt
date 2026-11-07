@@ -304,10 +304,8 @@ test_that("a scenario on a sealed model keeps only the repositories it adds", {
   expect_identical(mf$model$source, "ref")
   expect_identical(mf$model$hash, h)
   expect_identical(unlist(mf$model$added), sc@misc$added)
-  # the shell holds the scenario's repository only
-  e <- new.env()
-  load(fp(saved@path, "scen.RData"), envir = e)
-  raw <- get(ls(e)[1], envir = e)
+  # the saved scenario holds its repository only
+  raw <- energyRt:::.scen_file_read(energyRt:::.scen_file_find(saved@path))
   expect_identical(names(raw@model@data), sc@misc$added)
 
   back <- suppressMessages(load_scenario(saved@path, env = NULL, verbose = FALSE))

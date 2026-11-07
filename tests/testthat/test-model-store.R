@@ -127,9 +127,7 @@ test_that("a sealed model is referenced, not embedded; load resolves it", {
   expect_true(nzchar(mf$model$hash))
 
   # the SAVED copy holds a stub...
-  e <- new.env()
-  load(file.path(saved@path, "scen.RData"), envir = e)
-  raw <- get(ls(e)[1], envir = e)
+  raw <- energyRt:::.scen_file_read(energyRt:::.scen_file_find(saved@path))
   expect_false(is.null(raw@model@misc$model_ref))
   expect_identical(length(raw@model@data), 0L)
   # ...while the returned object keeps the full model
@@ -245,9 +243,7 @@ test_that("embed_model = TRUE embeds even when the store has the model", {
                                           verbose = FALSE))
   mf <- yaml::read_yaml(file.path(saved@path, "scenario.yml"))
   expect_identical(mf$model$source, "embedded")
-  e <- new.env()
-  load(file.path(saved@path, "scen.RData"), envir = e)
-  raw <- get(ls(e)[1], envir = e)
+  raw <- energyRt:::.scen_file_read(energyRt:::.scen_file_find(saved@path))
   expect_null(raw@model@misc$model_ref)
   # loads without any store
   unlink(ms_root("models"), recursive = TRUE)
@@ -282,9 +278,7 @@ test_that("default sourceCode blocks are dropped on save and restored on load", 
     c("* custom override", sol@settings@sourceCode[["GAMS"]])
   saved <- suppressMessages(save_scenario(sol, verbose = FALSE))
 
-  e <- new.env()
-  load(file.path(saved@path, "scen.RData"), envir = e)
-  raw <- get(ls(e)[1], envir = e)
+  raw <- energyRt:::.scen_file_read(energyRt:::.scen_file_find(saved@path))
   # the saved copy dropped the default blocks and kept the override
   expect_true("GLPK" %in% raw@misc$sourceCode_default)
   expect_null(raw@settings@sourceCode[["GLPK"]])

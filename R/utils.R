@@ -163,8 +163,42 @@ dir_size <- function(path, missing = c("error", "zero")) {
 }
 
 # The file holding the saved scenario object, inside its directory.
+#
+# `.rds` since 0.93: the file holds ONE object, which is what `readRDS()`
+# returns. `save()`/`load()` bind by NAME, and the two writer branches used
+# different ones (`object` and `scen`), so every reader had to take whatever
+# name came back.
+#
+# `scen.RData` is still read, until 0.95.
 #' @noRd
-.scen_file_path <- function(path) fp(path, "scen.RData")
+.scen_file_path <- function(path) fp(path, "scen.rds")
+
+#' @noRd
+.scen_file_legacy <- function(path) fp(path, "scen.RData")
+
+# The scenario file to READ: the current format, else the legacy one. Returns
+# the current path when neither exists, so a message names the current format.
+#' @noRd
+.scen_file_find <- function(path) {
+  f <- .scen_file_path(path)
+  if (file.exists(f)) return(f)
+  old <- .scen_file_legacy(path)
+  if (file.exists(old)) return(old)
+  f
+}
+
+# Read a saved scenario in either format, or NULL.
+#' @noRd
+.scen_file_read <- function(file) {
+  if (!length(file) || !file.exists(file)) return(NULL)
+  if (grepl("[.]rds$", file, ignore.case = TRUE)) {
+    return(tryCatch(readRDS(file), error = function(e) NULL))
+  }
+  e <- new.env(parent = emptyenv())
+  nm <- tryCatch(load(file, envir = e), error = function(err) NULL)
+  if (is.null(nm) || !length(nm)) return(NULL)
+  get(nm[1], envir = e)
+}
 
 fp <- function(...) {
   file.path(...) |> .fix_path()
