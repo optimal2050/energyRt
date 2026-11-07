@@ -169,7 +169,7 @@ recast_model_calendar <- function(object, calendar, rules = NULL, year = NULL,
           st$kept <<- st$kept + r$kept
           if (length(r$dropped)) st$dropped <<- c(st$dropped, r$dropped)
           if (isTRUE(verbose)) {
-            .say(sprintf("  %-28s %6d -> %6d row(s)%s",
+            .say2(sprintf("  %-28s %6d -> %6d row(s)%s",
                             paste0(nm_el, "@", sn), nrow(v), nrow(r$data),
                             if (r$kept) paste0(" (", r$kept, " kept as declared)")
                             else ""))

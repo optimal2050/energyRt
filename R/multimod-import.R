@@ -1542,7 +1542,7 @@ fill_variable_domains <- function(model, prefer = c("spec", "hint"),
     message("  filled from .mapping_spec: ", length(filled))
     if (length(conflicts)) {
       .say("  hint/spec conflicts (", prefer, " wins): ", length(conflicts))
-      for (x in conflicts) .say("    ", x)
+      for (x in conflicts) .say2("    ", x)
     }
     if (length(unresolved)) {
       .say("  UNRESOLVED: ", paste(unresolved, collapse = ", "))

@@ -385,7 +385,7 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
           keep_region_rows(methods::slot(el, sl))
     }
     if (isTRUE(verbose) && nrow(el@capacity %||% data.frame()) > 0L) {
-      .say("spatial sample: trade ", el@name, " keeps its OBJECT-level ",
+      .say2("spatial sample: trade ", el@name, " keeps its OBJECT-level ",
               "capacity bound while losing route(s); review @capacity")
     }
     el
@@ -402,7 +402,7 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
         if (is.null(res)) {
           n_objs_dropped <<- n_objs_dropped + 1L
           if (isTRUE(verbose)) {
-            .say("spatial sample: removing ", class(el)[1], " ", nm,
+            .say2("spatial sample: removing ", class(el)[1], " ", nm,
                     if (methods::is(el, "trade")) " (no route inside the sample)"
                     else " (declared in no sampled region)")
           }
@@ -476,12 +476,12 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
       if (kind == "imp" && "teff" %in% names(route_rows) &&
           any(is.finite(route_rows$teff))) {
         bound <- bound * max(route_rows$teff, na.rm = TRUE)
-        .say("boundary stub ", src, "->", dst,
+        .say2("boundary stub ", src, "->", dst,
                 ": import bound scaled by route teff")
       }
       rows[[up_col]] <- bound
     } else {
-      .say("boundary stub ", src, "->", dst, ": no cap.up and no route ",
+      .say2("boundary stub ", src, "->", dst, ": no cap.up and no route ",
               "ava.up -- the stub is priced but UNBOUNDED")
     }
     # the lower side of the window: a minimum contracted flow

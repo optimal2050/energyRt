@@ -2327,11 +2327,11 @@ en_obj2df <- function(object, sets = NULL, verbose = FALSE) {
         pivot_by_type(sets = sets, slot_name = s)
     } else if (inherits(slot(object, s), "list")) {
       if (length(slot(object, s)) > 0) {
-        .say("Skipping list slot: ", s)
+        .say2("Skipping list slot: ", s)
       }
       # ll2 <-
     } else {
-      .say("Skipping slot: ", s, " of class: ", class(slot(object, s)))
+      .say2("Skipping slot: ", s, " of class: ", class(slot(object, s)))
     }
   }
   ll |>
