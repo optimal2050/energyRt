@@ -231,7 +231,7 @@ How a saved scenario carries its model: "ref" references the model in its own st
 }}
 
 \item{ondisk_min_rows}{\describe{
-Smallest table that is written to its own file when a scenario is saved on disk; anything shorter stays in the scenario shell.\item{default: }{\preformatted{1e+05}}
+Smallest table that is written to its own file when a scenario is saved on disk; anything shorter stays in the saved scenario.\item{default: }{\preformatted{1e+05}}
 \item{option: }{energyRt.ondisk_min_rows}
 \item{envvar: }{ENERGYRT_ONDISK_MIN_ROWS (evaluated if possible, raw string otherwise)}
 }}
@@ -242,10 +242,10 @@ Smallest parameter table that is referenced from a base scenario rather than cop
 \item{envvar: }{ENERGYRT_PARAM_REF_MIN_ROWS (evaluated if possible, raw string otherwise)}
 }}
 
-\item{shell_max_mb}{\describe{
-Size at which a scenario shell is reported as carrying data it should have written to disk. Megabytes.\item{default: }{\preformatted{256}}
-\item{option: }{energyRt.shell_max_mb}
-\item{envvar: }{ENERGYRT_SHELL_MAX_MB (evaluated if possible, raw string otherwise)}
+\item{scen_file_mb_limit}{\describe{
+Size at which the saved scenario file (\code{scen.RData}) is reported as carrying tables that belong in the stores. Megabytes.\item{default: }{\preformatted{256}}
+\item{option: }{energyRt.scen_file_mb_limit}
+\item{envvar: }{ENERGYRT_SCEN_FILE_MB_LIMIT (evaluated if possible, raw string otherwise)}
 }}
 
 \item{lazy_hash}{\describe{

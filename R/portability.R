@@ -393,11 +393,9 @@ drop_solver_outputs <- function(object, runs = NULL, dry_run = TRUE,
 
 # Copy a scenario folder.
 #
-# Not `save_scenario(path = )`: for a scenario whose data is already on disk
-# that writes only the six-file shell and leaves the parquet stores behind
-# (`arrow.R:281`, "The data walk is skipped"), so the result looks like a
-# scenario and has no data. A file-level copy is also faster and preserves
-# exactly what is there.
+# Not `save_scenario(path = )`: for data already on disk that writes only
+# scen.RData and the manifest, leaving the stores behind, so the copy looks
+# like a scenario and has no data. A file-level copy is faster anyway.
 .sui_copy_tree <- function(from, to) {
   if (!dir.exists(from)) {
     stop("Scenario directory '", from, "' does not exist.", call. = FALSE)
@@ -491,7 +489,7 @@ drop_solver_outputs <- function(object, runs = NULL, dry_run = TRUE,
 # machine paths. Blanking the paths is safe because
 # `.scenario_rebase_paths()` rebuilds each of them from the folder being read.
 .sui_scrub_rdata <- function(dir, scope = "share", keep_solver = FALSE) {
-  f <- fp(dir, "scen.RData")
+  f <- .scen_file_path(dir)
   if (!file.exists(f)) return(FALSE)
   e <- new.env(parent = emptyenv())
   nm <- tryCatch(load(f, envir = e), error = function(err) NULL)
@@ -743,7 +741,7 @@ strip_user_info <- function(object, path = NULL, scope = c("share", "store"),
 #' Two things it does **not** do, deliberately. It will not write in place:
 #' the point is an artifact beside the working original. And it does not
 #' re-save through `save_scenario(path = )`, which for an already-stored
-#' scenario writes only the shell and leaves the data behind.
+#' scenario writes only the scenario object and leaves the data behind.
 #'
 #' A scenario that *references* a model or dataset store rather than embedding
 #' it cannot be made self-contained by copying alone; those references are
@@ -806,7 +804,7 @@ prepare_for_sharing <- function(object, path, scope = c("share", "store"),
     obj <- if (is(object, "scenario")) object else NULL
     if (is.null(obj)) {
       e <- new.env(parent = emptyenv())
-      nm <- tryCatch(load(fp(out, "scen.RData"), envir = e),
+      nm <- tryCatch(load(.scen_file_path(out), envir = e),
                      error = function(err) NULL)
       if (!is.null(nm) && length(nm)) obj <- get(nm[1], envir = e)
     }

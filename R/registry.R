@@ -403,16 +403,14 @@ find_in_registry <- function(reg, type = NULL, name = NULL, hash = NULL,
   grepl("^[A-Za-z]:", p) | startsWith(p, "/") | startsWith(p, bs)
 }
 
-# The store setting as DECLARED, before the project root is applied. The
-# registry roots it at its own `root` argument instead, which is what lets a
-# scan be pointed at an arbitrary project tree.
+# The store setting as DECLARED: the registry roots it at its own `root`, so a
+# scan can be pointed at any project tree.
 #' @noRd
 .registry_store <- function(name) options::opt(name, env = "energyRt")
 
 # Store roots from the options may be absolute (e.g. redirected to a temp
 # dir); only prefix `root` onto relative ones. `root` is where the registry
-# LOOKS for manifests, not where it writes: the registry file itself is
-# `file = get_registry_file()`.
+# LOOKS, not where it writes (that is `file = get_registry_file()`).
 .registry_root_join <- function(p, root = get_project_root()) {
   if (.registry_is_abs(p)) gsub("[/]+", "/", chartr("\\", "/", p)) else fp(root, p)
 }

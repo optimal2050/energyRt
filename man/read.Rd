@@ -25,7 +25,7 @@ the run resolution; \code{tmp.dir} is the deprecated alias)}
 \verb{modOut/} store as it is read, instead of returning the whole solution in
 memory; the returned \verb{@modOut} is then an on-disk object read lazily.
 Defaults to \code{!isInMemory(obj)}. Needs a run folder, so an external
-\code{solver.dir} falls back to memory. The scenario shell still has to be
+\code{solver.dir} falls back to memory. The saved scenario still has to be
 saved: \code{\link[=save_scenario]{save_scenario()}} records the store, and skips rewriting it.}
 }
 \value{

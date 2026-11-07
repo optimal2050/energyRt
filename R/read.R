@@ -5,7 +5,7 @@
 #
 # Returns the scenario with `@modOut` pointing at the store, or NULL when the
 # run has none.
-# Build a `modOut` by SCANNING a store directory rather than from the shell's
+# Build a `modOut` by SCANNING a store directory rather than from the saved scenario's
 # bookkeeping. The class supplies the schema: each directory name is looked up
 # in the baked variable spec, and a name the spec does not know is accepted
 # untyped rather than dropped.
@@ -200,7 +200,7 @@
 #'   `modOut/` store as it is read, instead of returning the whole solution in
 #'   memory; the returned `@modOut` is then an on-disk object read lazily.
 #'   Defaults to `!isInMemory(obj)`. Needs a run folder, so an external
-#'   `solver.dir` falls back to memory. The scenario shell still has to be
+#'   `solver.dir` falls back to memory. The saved scenario still has to be
 #'   saved: [save_scenario()] records the store, and skips rewriting it.
 #'
 #' @section The solver's `output/` is never modified:
@@ -757,7 +757,7 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
     scen@modOut <- mark_ondisk(scen@modOut)
     if (arg$verbose) {
       .say_written("Solution", .stream_final)
-      .say("The scenario shell still has to be saved: save_scenario() ",
+      .say("The scenario still has to be saved: save_scenario() ",
            "records it, and until then a reload will not see the solution.")
     }
   }

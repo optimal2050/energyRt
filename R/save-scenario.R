@@ -416,7 +416,7 @@ drop_scenario_run <- function(object, run, force = FALSE) {
   if (is_active && !force) {
     msg <- paste0("Run '", .run_id(id$variant, id$solve),
                   "' is the scenario's active run. ")
-    # The dangerous case, worth saying out loud: the shell points at this
+    # The dangerous case, worth saying out loud: the file points at this
     # run's store, so dropping it leaves every read failing with "On-disk
     # data expected but not found". Promotion is what makes a run droppable.
     if (dir.exists(fp(run_dir, "modOut", "variables")) &&
@@ -451,7 +451,7 @@ drop_scenario_run <- function(object, run, force = FALSE) {
 #                                 settings snapshot
 # The BASE problem gets the symmetric swap file <scen>/problem.RData at save
 # time, so read_solution(run=) can switch the in-memory problem in both
-# directions without re-loading the scenario shell.
+# directions without re-loading the saved scenario.
 
 # Drop settings@sourceCode blocks identical to the package templates (the
 # save_scenario dedup, reused for swap snapshots). Returns the thinned
@@ -618,7 +618,7 @@ drop_scenario_run <- function(object, run, force = FALSE) {
 # target problem was never saved.
 # The spatial sample belonging to the problem being switched to.
 #
-# Cartridges written before `spatial` was stored carry none, and the shell's
+# Cartridges written before `spatial` was stored carry none, and the saved scenario's
 # copy is the LAST unit of work's -- so falling back to it would restore one
 # variant's regions onto another. `settings@region` is per-problem and was
 # always correct, so a strict subset of the model's regions is reconstructed
@@ -654,12 +654,12 @@ drop_scenario_run <- function(object, run, force = FALSE) {
       vdata <- get(nm[1], envir = e)
     }
   } else {
-    shell_file <- fp(scen@path, "scen.RData")
-    if (file.exists(shell_file)) {
+    scen_file <- .scen_file_path(scen@path)
+    if (file.exists(scen_file)) {
       e <- new.env(parent = emptyenv())
-      nm <- load(shell_file, envir = e)
+      nm <- load(scen_file, envir = e)
       sh <- get(nm[1], envir = e)
-      # a LEGACY shell saved while a variant was active (old semantics)
+      # a LEGACY file saved while a variant was active (old semantics)
       # carries that variant's problem, not the base's — skip to the
       # problem.RData fallback in that case
       sh_variant <- sh@misc[["variant"]] %||% ""
@@ -719,8 +719,8 @@ drop_scenario_run <- function(object, run, force = FALSE) {
   # the swap must remember EVERY dropped block to restore on switch
   dropped <- union(thin$dropped,
                    scen@misc$sourceCode_default %||% character(0))
-  # `spatial` describes the PROBLEM but lives in `@misc`, which the shell owns,
-  # and a driver saves the shell once per unit of work -- so without it here the
+  # `spatial` describes the PROBLEM but lives in `@misc`, which the saved scenario owns,
+  # and a driver saves the scenario once per unit of work -- so without it here the
   # folder keeps only the last variant's region set and a switch back re-cuts
   # the model with the wrong regions.
   vdata <- list(settings = thin$settings,
@@ -799,7 +799,7 @@ drop_scenario_run <- function(object, run, force = FALSE) {
 
 # A scenario with sealed inputs and open outputs: only the active run is
 # written -- its solution store and, for an own-problem variant not stored
-# yet, its problem -- and the manifest's default run. The shell, the
+# yet, its problem -- and the manifest's default run. The saved scenario, the
 # parameter store and the table hashes stay as they are.
 .save_scenario_outputs <- function(object, format, verbose = TRUE) {
   run <- object@misc$run %||% ""
@@ -1206,7 +1206,7 @@ import_solution <- function(object, run, ..., restore_solver = TRUE,
 # promote_solution.R -- the scenario's chosen solution, stored beside modInp.
 #
 # A solution lives in the run that produced it,
-# `runs/[<variant>/]<solve>/modOut/`, and the shell's `@modOut` points there.
+# `runs/[<variant>/]<solve>/modOut/`, and the saved scenario's `@modOut` points there.
 # Deleting `runs/` therefore BRICKS the scenario: the paths survive the rebase
 # and every read fails with "On-disk data expected but not found".
 #
@@ -1332,7 +1332,7 @@ NULL
 #' @param object a scenario object.
 #' @param run character, the run to promote (`"<solve>"`). `NULL` (default)
 #'   takes the scenario's active run.
-#' @param save logical; write the scenario shell afterwards, so a reload
+#' @param save logical; write the saved scenario afterwards, so a reload
 #'   resolves to the promoted store. On by default — without it the store
 #'   exists and nothing points at it.
 #' @param verbose logical.
@@ -1511,7 +1511,7 @@ promote_solution <- function(object, run = NULL, save = TRUE, verbose = isVerbos
 #' }
 upgrade_scenario_layout <- function(path, verbose = isVerbose()) {
   path <- gsub("[\\/]+", "/", path)
-  if (!dir.exists(path) || !file.exists(fp(path, "scen.RData"))) {
+  if (!dir.exists(path) || !file.exists(.scen_file_path(path))) {
     stop("'", path, "' is not a saved scenario directory (no scen.RData)")
   }
   say <- function(...) if (verbose) message(...)
@@ -1657,21 +1657,21 @@ upgrade_scenario_layout <- function(path, verbose = isVerbose()) {
     }
   }
 
-  # -- finalize: rebase paths, then re-save the shell through save_scenario()
+  # -- finalize: rebase paths, then re-save it through save_scenario()
   # (which re-applies the sourceCode dedup and model-ref logic that loading
   # undid, and writes layout marker + manifest + registry rows)
   scen <- .scenario_rebase_paths(scen, path)
   scen <- suppressMessages(save_scenario(scen, path = path, verbose = FALSE))
 
   # -- fold a legacy problem.RData into scen.RData (its one home now): the
-  # shell takes the base problem's shells and the separate cartridge goes
+  # file takes the base problem's files and the separate cartridge goes
   legacy <- fp(path, "problem.RData")
   if (file.exists(legacy)) {
     say("Folding problem.RData into scen.RData")
     e <- new.env(parent = emptyenv())
     vdata <- get(load(legacy, envir = e)[1], envir = e)
     es <- new.env(parent = emptyenv())
-    sh <- get(load(fp(path, "scen.RData"), envir = es)[1], envir = es)
+    sh <- get(load(.scen_file_path(path), envir = es)[1], envir = es)
     sh@settings <- vdata$settings
     sh@misc$sourceCode_default <- vdata$sourceCode_default %||% character(0)
     sh@modInp <- vdata$modInp
@@ -1680,7 +1680,7 @@ upgrade_scenario_layout <- function(path, verbose = isVerbose()) {
     sh@misc$has_base <- TRUE
     es2 <- new.env(parent = emptyenv())
     es2$scen <- sh
-    save(list = "scen", envir = es2, file = fp(path, "scen.RData"))
+    save(list = "scen", envir = es2, file = .scen_file_path(path))
     unlink(legacy)
   }
 

@@ -162,6 +162,10 @@ dir_size <- function(path, missing = c("error", "zero")) {
   gsub("[\\/]+", "/", x)
 }
 
+# The file holding the saved scenario object, inside its directory.
+#' @noRd
+.scen_file_path <- function(path) fp(path, "scen.RData")
+
 fp <- function(...) {
   file.path(...) |> .fix_path()
     # normalizePath(winslash = "/", mustWork = FALSE)

@@ -592,9 +592,9 @@ autoplot.guided <- function(object, type = c("coverage"), ...) {
 
   one <- function(scens, pass) {
     if (!length(scens)) return(NULL)
-    shell <- object
-    shell$scenarios <- scens
-    d <- suppressMessages(getData(shell, var, ..., merge = TRUE))
+    probe <- object
+    probe$scenarios <- scens
+    d <- suppressMessages(getData(probe, var, ..., merge = TRUE))
     if (is.null(d) || !nrow(d)) return(NULL)
     d <- as.data.frame(d)
     keys <- by %||% setdiff(names(d), c("sample", "value", "scenario", "name"))

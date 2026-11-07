@@ -78,7 +78,7 @@ way \code{options()} and \code{par()} allow.
 The short, name-first accessors over the project stores (see the
 scenario-management article). \code{getScenario("base")} resolves the name
 through the registry (falling back to a scan of the scenarios store),
-loads the thin on-disk shell, and CACHES it in the session bank \code{.scen} —
+loads the thin on-disk scenario object, and CACHES it in the session bank \code{.scen} —
 a second call is free, and a scenario re-saved on disk is reloaded
 automatically (the cache is stamped with the folder manifest's \code{updated}
 field). \code{\link[=getData]{getData()}} accepts names directly and uses this cache:

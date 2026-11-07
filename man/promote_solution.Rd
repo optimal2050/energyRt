@@ -12,7 +12,7 @@ promote_solution(object, run = NULL, save = TRUE, verbose = isVerbose())
 \item{run}{character, the run to promote (\code{"<solve>"}). \code{NULL} (default)
 takes the scenario's active run.}
 
-\item{save}{logical; write the scenario shell afterwards, so a reload
+\item{save}{logical; write the saved scenario afterwards, so a reload
 resolves to the promoted store. On by default — without it the store
 exists and nothing points at it.}
 

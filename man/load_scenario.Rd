@@ -48,7 +48,7 @@ invisibly.
 \description{
 The batch companion of \code{\link[=load_scenario]{load_scenario()}}: resolves scenario NAMES through
 the project registry (all registered scenarios by default) and loads each
-as a thin on-disk shell. The result — a named list, or a filled
+as a thin on-disk scenario object. The result — a named list, or a filled
 environment — feeds \code{\link[=getData]{getData()}} directly:
 \code{getData(load_scenarios(), name = "vTechOut", merge = TRUE)}.
 

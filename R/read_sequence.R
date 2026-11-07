@@ -221,8 +221,8 @@ read_sequence <- function(object, sequence = NULL, type = NULL, verbose = isVerb
         status = vapply(vs, `[[`, "", "status"),
         objective = vapply(vs, function(v) as.numeric(v$objective), numeric(1)))
       # The driver's `calendar` is the model's FULL one -- the thing the samples
-      # were drawn from. `object@settings@calendar` is the shell's, and a
-      # variant-born scenario's shell was written at the first variant's save,
+      # were drawn from. `object@settings@calendar` is the saved scenario's, and a
+      # variant-born scenario's file was written at the first variant's save,
       # so it holds that sample's calendar instead. Read the model's own.
       # `object@model` is sound here: solve_by_sample() never copies the model.
       list(name = sq, model = object@model, runs = runs, scenarios = scens,

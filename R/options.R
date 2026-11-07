@@ -401,8 +401,8 @@ options::define_option(
 options::define_option(
   "ondisk_min_rows",
   desc = paste(
-    "Smallest table that is written to its own file when a scenario is saved",
-    "on disk; anything shorter stays in the scenario shell."
+    "Smallest table written to its own file; a shorter one stays in",
+    "scen.RData."
   ),
   default = 1e5
 )
@@ -417,10 +417,10 @@ options::define_option(
 )
 
 options::define_option(
-  "shell_max_mb",
+  "scen_file_mb_limit",
   desc = paste(
-    "Size at which a scenario shell is reported as carrying data it should",
-    "have written to disk. Megabytes."
+    "Size at which the saved scenario file (`scen.RData`) is reported as",
+    "carrying tables that belong in the stores. Megabytes."
   ),
   default = 256
 )
@@ -444,15 +444,9 @@ options::define_option(
 )
 
 # Project root ################################################################
-# Where a RELATIVE store path is rooted. The stores default to relative names
-# ("scenarios/", "models/", ...) because that is what reads well in a help
-# page, but a relative path on its own would be resolved against the working
-# directory -- so the package would write into whatever directory the session
-# happens to sit in, which CRAN's policy forbids and a user has not asked for.
-#
-# The default root is a per-session directory under `tempdir()`: a save works
-# out of the box and leaves nothing behind. `open_project()` points it (and
-# every store) at a real directory, which is how work is kept.
+# Where a RELATIVE store path is rooted. Without it the stores would resolve
+# against the working directory. The default is a per-session `tempdir()`
+# directory; `open_project()` points it at a real one.
 options::define_option(
   "project_root",
   desc = paste(
@@ -467,9 +461,8 @@ options::define_option(
 #' @rdname project_root
 #' @export
 get_project_root <- function() {
-  # The default is an EXPRESSION, evaluated here rather than at load: baking
-  # `tempdir()` into the declaration would freeze the temp directory of
-  # whatever session installed the package into every later one.
+  # Evaluated here, not at load: baking `tempdir()` into the declaration would
+  # freeze the installing session's temp directory.
   p <- options::opt("project_root")
   if (is.language(p)) p <- eval(p)
   .fix_path(p)

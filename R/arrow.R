@@ -84,12 +84,10 @@ save_scenario <- function(
                                             verbose = verbose)))
   }
 
-  # An on-disk scenario (interpolate_model(ondisk = TRUE)) already has its
-  # parameter stores in place, in whatever codec `storage_format` was when they
-  # were written — but the thin object, the layout markers, the manifest, and
-  # the registry row still need writing, otherwise the folder has data and no
-  # `object.RData` and load_scenario() fails. So an on-disk scenario skips only
-  # the obj2disk() data walk below, never the shell.
+  # An on-disk scenario already holds its parameter tables, so it skips the
+  # obj2disk() pass that writes them -- but never scen.RData, the markers, the
+  # manifest and the registry row, without which the folder has data that
+  # load_scenario() cannot open.
   ondisk_data <- isOnDisk(object)
 
   # Model reference vs embedding. `embed_model = NULL` (auto): reference the
@@ -362,12 +360,11 @@ save_scenario <- function(
     .write_problem_swap(object, object@modInp)
   } else {
     if (verbose) {
-      .cat("Scenario data already on disk; refreshing the scenario shell ",
+      .cat("Scenario data already on disk; updating the saved scenario ",
           "(scen.RData, manifest, registry)\n", sep = "")
     }
-    # The data walk is skipped, but a solve AFTER an ondisk interpolation
-    # leaves the solution in memory — park it into its run store so the thin
-    # object.RData stays thin.
+    # A solve after an ondisk interpolation leaves the solution in memory:
+    # park it in its run store so scen.RData stays thin.
     if (nzchar(.run_variant(object))) {
       # A re-save of an already-stored variant is fine (its modInp store sits
       # under the variant dir). What is NOT supported is a variant problem
@@ -383,7 +380,7 @@ save_scenario <- function(
       }
     }
     # tables read back into memory that are persisted (the scenario's store
-    # or a referenced dataset version) stay out of the shell
+    # or a referenced dataset version) stay out of the saved scenario
     object <- .shed_persisted_tables(object)
     # interpolate_model(ondisk = TRUE) leaves @modOut NULL (prototype);
     # only a materialized in-memory solution needs parking
@@ -404,20 +401,20 @@ save_scenario <- function(
     }
     .write_problem_swap(object, object@modInp)
   }
-  # object.RData is the BASE problem's one and only home (problem.RData is
-  # retired): with the base problem active the shell is (re)written from
-  # the in-memory object; with a VARIANT active the existing shell is left
+  # scen.RData is the BASE problem's one and only home (problem.RData is
+  # retired): with the base problem active the file is (re)written from
+  # the in-memory object; with a VARIANT active the existing file is left
   # untouched — the variant's problem lives in its own variant.RData, and
-  # the base shells must never be overwritten by a variant's. A
+  # the base files must never be overwritten by a variant's. A
   # variant-born scenario (no base problem ever materialized) writes a
-  # shell flagged `misc$has_base = FALSE`, so a later swap to base errors
+  # file flagged `misc$has_base = FALSE`, so a later swap to base errors
   # informatively instead of restoring garbage.
-  scen_shell_path <- fp(object@path, "scen.RData")
+  scen_file <- .scen_file_path(object@path)
   if (!nzchar(.run_variant(object))) {
     object@misc$has_base <- TRUE
-    save(object, file = scen_shell_path)
-    .check_shell_size(object, scen_shell_path)
-  } else if (!file.exists(scen_shell_path)) {
+    save(object, file = scen_file)
+    .check_scen_file_size(object, scen_file)
+  } else if (!file.exists(scen_file)) {
     e_born <- new.env(parent = emptyenv())
     e_born$scen <- object
     e_born$scen@misc$variant <- NULL
@@ -425,7 +422,7 @@ save_scenario <- function(
     e_born$scen@misc$has_base <- FALSE
     e_born$scen@modInp <- new("modInp")
     e_born$scen@modOut <- new("modOut")
-    save(list = "scen", envir = e_born, file = scen_shell_path)
+    save(list = "scen", envir = e_born, file = scen_file)
     rm(e_born)
   }
   mf_model <- model_ref %||% list(
@@ -1291,7 +1288,7 @@ load_scenario <- function(
       )
     }
     scen_root <- path # the directory actually being loaded (for path rebase)
-    path <- fp(path, "scen.RData")
+    path <- .scen_file_path(path)
     if (!file.exists(path)) {
       msg <- paste0("Scenario file '", path, "' has not been found.")
       if (!ignore_errors) stop(msg)
@@ -1455,7 +1452,7 @@ load_scenario <- function(
   # loaded object then matches what was last saved, exactly as before the
   # problem.RData retirement.
   # A run added to a scenario with sealed inputs is recorded in the manifest
-  # only (the shell is not rewritten): activated the same way.
+  # only (the file is not rewritten): activated the same way.
   def <- tryCatch(.scenario_default_run(scen_obj), error = function(e) NULL)
   other_run <- !is.null(def) && (
     (nzchar(def$variant %||% "") &&
@@ -1511,7 +1508,7 @@ load_scenario <- function(
 #' @description
 #' The batch companion of [load_scenario()]: resolves scenario NAMES through
 #' the project registry (all registered scenarios by default) and loads each
-#' as a thin on-disk shell. The result — a named list, or a filled
+#' as a thin on-disk scenario object. The result — a named list, or a filled
 #' environment — feeds [getData()] directly:
 #' `getData(load_scenarios(), name = "vTechOut", merge = TRUE)`.
 #'
@@ -1685,16 +1682,16 @@ obj2mem <- function(object, verbose = isVerbose()) {
   out
 }
 
-#' Warn when a scenario shell carries data it should reference
+#' Warn when the saved scenario file carries data it should reference
 #'
-#' The shell (`scen.RData`) is meant to hold the scenario's settings and the
-#' bookkeeping of its stores; tables live in the stores. A shell larger than
-#' `getOption("energyRt.shell_max_mb", 256)` megabytes means something was
-#' written into it: the warning names the largest slots.
+#' `scen.RData` is meant to hold the scenario's settings and the bookkeeping
+#' of its stores; tables live in the stores. A file larger than the
+#' `energyRt.scen_file_mb_limit` option means tables were written into it:
+#' the warning names the largest slots.
 #' @keywords internal
 #' @noRd
-.check_shell_size <- function(object, path) {
-  lim <- suppressWarnings(as.numeric(options::opt("shell_max_mb")))
+.check_scen_file_size <- function(object, path) {
+  lim <- suppressWarnings(as.numeric(options::opt("scen_file_mb_limit")))
   if (is.na(lim) || !is.finite(lim)) return(invisible(NULL))
   mb <- file.size(path) / 2^20
   if (is.na(mb) || mb <= lim) return(invisible(NULL))
@@ -1702,7 +1699,9 @@ obj2mem <- function(object, verbose = isVerbose()) {
   parts <- c(model = sz(object@model@data), modInp = sz(object@modInp@parameters),
              modOut = sz(object@modOut), settings = sz(object@settings))
   parts <- sort(parts, decreasing = TRUE)
-  warning(sprintf("The scenario shell %s is %.0f MB (limit %.0f MB, option energyRt.shell_max_mb); in memory: %s.",
+  warning(sprintf(paste("The saved scenario %s is %.0f MB (limit %.0f MB,",
+                        "option energyRt.scen_file_mb_limit): tables that",
+                        "belong in the stores are in it. In memory: %s."),
                   path, mb, lim,
                   paste(sprintf("%s %.0f MB", names(parts), parts), collapse = ", ")),
           call. = FALSE)

@@ -1330,7 +1330,7 @@ save_repository <- function(
     tolower(format)
   }
   # rehydrate a thinned repository: hash the true content, never re-save
-  # an empty shell (see save_model)
+  # an empty object (see save_model)
   repo <- .deep_mem(repo)
   if (is.null(path)) {
     path <- .store_entry_dir(get_repositories_path(), repo@name, "",

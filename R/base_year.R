@@ -446,7 +446,7 @@ solve_base_year <- function(object, name = NULL, solver = NULL,
 # --- the recorded link ------------------------------------------------------#
 
 # The base-year link a scenario carries: from the object when it has one,
-# otherwise from `scenario.yml` (a scenario loaded as a thin shell keeps its
+# otherwise from `scenario.yml` (a scenario loaded thin keeps its
 # `@misc`, but one read straight off disk by another route may not).
 # NULL when the scenario records no base year.
 #' @noRd

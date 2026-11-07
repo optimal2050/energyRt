@@ -247,7 +247,7 @@ solve_by_region <- function(object, name = NULL, ...,
     # the cut model it was interpolated from.
     #
     # A scenario stores the model as given, and what was given here was already
-    # cut -- while `@model` lives on the shell, which save_scenario() writes
+    # cut -- while `@model` lives in the saved scenario, which save_scenario() writes
     # only on the first save. So the folder kept the FIRST unit's subset, and a
     # reloaded variant was served another unit's declarations: region R2's
     # results beside a model declaring R1, whose DEM_R2 rows are empty.

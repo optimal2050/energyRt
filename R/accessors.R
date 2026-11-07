@@ -6,7 +6,7 @@
 #            session state (load_scenario/load_model/load_repository/
 #            load_dataset all resolve registry names).
 #   get*   : name-first accessors on top. getScenario() CACHES the thin
-#            shell in the session bank `.scen` (created in .GlobalEnv at
+#            object in the session bank `.scen` (created in .GlobalEnv at
 #            attach, see start_msg.R) and reloads automatically when the
 #            folder's manifest stamp drifts — a re-saved scenario is never
 #            served stale. getModel/getRepository/getDataset are uncached
@@ -31,7 +31,7 @@
     up <- tryCatch(yaml::read_yaml(mf)$updated, error = function(e) NULL)
     if (!is.null(up) && nzchar(up)) return(up)
   }
-  rd <- fp(path, "scen.RData")
+  rd <- .scen_file_path(path)
   if (file.exists(rd)) return(as.character(file.mtime(rd)))
   ""
 }
@@ -42,7 +42,7 @@
 #' The short, name-first accessors over the project stores (see the
 #' scenario-management article). `getScenario("base")` resolves the name
 #' through the registry (falling back to a scan of the scenarios store),
-#' loads the thin on-disk shell, and CACHES it in the session bank `.scen` —
+#' loads the thin on-disk scenario object, and CACHES it in the session bank `.scen` —
 #' a second call is free, and a scenario re-saved on disk is reloaded
 #' automatically (the cache is stamped with the folder manifest's `updated`
 #' field). [getData()] accepts names directly and uses this cache:
@@ -196,8 +196,7 @@ getDataset <- function(name, hash = NULL, verbose = FALSE) {
 #' @rdname accessors
 #' @export
 open_project <- function(path, verbose = isVerbose()) {
-  # No default: `"."` made the working directory a write location, and
-  # which directory that is depends on where the session happens to sit.
+  # No default: `"."` made the working directory a write location.
   if (missing(path) || !length(path) || !nzchar(path[1])) {
     stop("`path` names the project directory and has no default. Pass a ",
          "directory to keep work in, or `tempdir()` for a throwaway one.",

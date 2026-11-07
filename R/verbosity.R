@@ -64,9 +64,8 @@
   invisible(NULL)
 }
 
-# The solve and read paths take their switches through `...` and read them off
-# a list. `echo` was that switch's name until it became `verbose`, so one
-# resolver handles both and settles the default from the option.
+# The solve and read paths take their switch through `...`; `echo` was its
+# name before `verbose`.
 #' @noRd
 .resolve_verbose_arg <- function(arg, default = isVerbose()) {
   if (!is.null(arg[["echo"]])) {

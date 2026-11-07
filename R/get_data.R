@@ -862,7 +862,7 @@ getData.list <- getData.scenario
 
 #' Scenario NAMES resolve through the registry-backed [getScenario()] cache:
 #' `getData(c("base", "policy"), name = "vTechOut", merge = TRUE)` needs no
-#' explicit loading — first use loads the thin shells into `.scen`, repeat
+#' explicit loading — first use loads the thin scenario objects into `.scen`, repeat
 #' calls are free.
 #' @rdname getData
 #' @method getData character
