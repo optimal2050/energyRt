@@ -18,8 +18,8 @@ isDebug(level = 1)
 \description{
 Test the current reporting level. \code{isVerbose()} gates user-facing progress
 messages, \code{isDebug()} gates internal consistency warnings that are silent in
-normal use. Set the levels with \code{options(en.verbose = )} /
-\code{options(en.debug = )}, or \code{set_option("verbose", )}.
+normal use. Set the levels with \code{options(energyRt.verbose = )} /
+\code{options(energyRt.debug = )}, or \code{set_option("verbose", )}.
 
 Both accept a level (\code{0}, \code{1}, \code{2}, ...) or a logical, which is read as
 \code{1}/\code{0}.

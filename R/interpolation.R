@@ -1017,7 +1017,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
 
   # Bulk mode: writes inside the loop below append O(chunk) instead of rebuilding
   # the accumulated table per write, and `.flush_pending_parameters()` collapses
-  # them afterwards. `options(en.bulk_param_write = FALSE)` forces the eager path.
+  # them afterwards. `options(energyRt.bulk_param_write = FALSE)` forces the eager path.
   #
   # Scoped to THIS loop, which is the only place that appends to the same
   # parameter once per object. Later stages (`build_mappings()`) write each
@@ -1029,9 +1029,9 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # the session in bulk mode, shipping a scenario whose parameters are still
   # parked by `d2p()` (`.pending_chunks()`): it writes out with missing data and solves
   # to OPTIMAL with objective 0, silently.
-  .bulk_prev <- getOption("en.bulk_param_write")
-  if (!identical(.bulk_prev, FALSE)) options(en.bulk_param_write = TRUE)
-  on.exit(options(en.bulk_param_write = .bulk_prev), add = TRUE)
+  .bulk_prev <- getOption("energyRt.bulk_param_write")
+  if (!identical(.bulk_prev, FALSE)) options(energyRt.bulk_param_write = TRUE)
+  on.exit(options(energyRt.bulk_param_write = .bulk_prev), add = TRUE)
 
   .n_obj <- sum(vapply(scen@model@data, function(r) length(r@data), integer(1)))
   .interp_step(verbose, paste0("ob2mi: interpolating ", .n_obj, " model objects"),
@@ -1105,7 +1105,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # MUST stay eager, so `@data` is valid for anything that reads it directly.
   # A caller who set the option TRUE does not get to hold the whole call in
   # bulk mode -- `on.exit()` above hands them their value back at the end.
-  options(en.bulk_param_write = FALSE)
+  options(energyRt.bulk_param_write = FALSE)
   scen <- .flush_pending_parameters(scen)
 
   #============================================================================#
@@ -1646,7 +1646,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
 
   # Safety net: nothing should still be parked here (the object loop flushes its
   # own chunks and leaves bulk mode), but a caller who forces
-  # `en.bulk_param_write = TRUE` for the whole call would otherwise ship a
+  # `energyRt.bulk_param_write = TRUE` for the whole call would otherwise ship a
   # scenario whose `@data` is not yet materialised.
   scen <- .flush_pending_parameters(scen)
 

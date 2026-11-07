@@ -439,7 +439,7 @@ map_mCommReg <- function(scen, fmp) {
   # `rbind()` below adds these demand pairs regardless, so the mapping is the
   # same either way. Warn and let the solver return the verdict -- an
   # unservable demand is a normal modelling state worth inspecting, not a
-  # reason to refuse to build. `options(en.model_checks_stop = TRUE)` restores
+  # reason to refuse to build. `options(energyRt.model_checks_stop = TRUE)` restores
   # the previous fail-fast behaviour.
   if (nrow(comm_region_dem_check) > 0) {
     msg <- paste0(
@@ -447,7 +447,7 @@ map_mCommReg <- function(scen, fmp) {
       paste(capture.output(print(comm_region_dem_check)), collapse = "\n   "),
       "\nThe model will be infeasible unless these commodities are supplied.\n"
     )
-    if (isTRUE(getOption("en.model_checks_stop", FALSE))) {
+    if (isTRUE(getOption("energyRt.model_checks_stop", FALSE))) {
       stop(msg, call. = FALSE)
     } else {
       warning(msg, call. = FALSE)

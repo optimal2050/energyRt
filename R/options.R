@@ -15,14 +15,16 @@ NULL
 # `options.R` is loaded early in `Collate:` and nothing before it declares an
 # option.
 #
-#   R option  ->  en.<name>            e.g. options(en.gams_path = "C:/GAMS/48")
+#   R option  ->  energyRt.<name>      e.g. options(energyRt.gams_path = "C:/GAMS/48")
 #   env var   ->  ENERGYRT_<NAME>      e.g. ENERGYRT_GAMS_PATH
 #
-# `en.` matches the package's `en_*` function family and follows R's convention
-# of dot-separated package option names. The env-var prefix is spelled out in
-# full because environment variables are global to the OS, where `EN_` would be
-# far too collision-prone.
-options::set_option_name_fn(function(package, option) paste0("en.", option))
+# The prefix is the package's own name, which is what R packages conventionally
+# use (`dplyr.summarise.inform`, `ggplot2.discrete.colour`, `readr.*`); it is
+# also what someone searching `options()` for this package will look for. The
+# env-var prefix is spelled out for the same reason, environment variables
+# being global to the OS.
+options::set_option_name_fn(function(package, option)
+  paste0("energyRt.", option))
 
 options::set_envvar_name_fn(function(package, option) {
   paste0("ENERGYRT_", toupper(gsub("[^A-Za-z0-9]", "_", option)))
@@ -464,7 +466,7 @@ get_solver_path <- function(backend) {
 
 # Reporting accessors #########################################################
 
-# Coerce whatever the user put in `en.verbose` / `en.debug` into a level.
+# Coerce whatever the user put in `energyRt.verbose` / `energyRt.debug` into a level.
 .as_report_level <- function(x) {
   if (is.null(x) || length(x) != 1L || is.na(x)) {
     return(0)
@@ -481,8 +483,8 @@ get_solver_path <- function(backend) {
 #' @description
 #' Test the current reporting level. `isVerbose()` gates user-facing progress
 #' messages, `isDebug()` gates internal consistency warnings that are silent in
-#' normal use. Set the levels with `options(en.verbose = )` /
-#' `options(en.debug = )`, or `set_option("verbose", )`.
+#' normal use. Set the levels with `options(energyRt.verbose = )` /
+#' `options(energyRt.debug = )`, or `set_option("verbose", )`.
 #'
 #' Both accept a level (`0`, `1`, `2`, ...) or a logical, which is read as
 #' `1`/`0`.
@@ -498,7 +500,7 @@ get_solver_path <- function(backend) {
 #' isVerbose()
 #' isDebug(2)
 isVerbose <- function(level = 1) {
-  # `options(energyRt.verbose)` was honoured until v0.90; `en.verbose` is the
+  # `options(energyRt.verbose)` was honoured until v0.90; `energyRt.verbose` is the
   # only name now. Silent for the same reason as the solver path variables: an
   # option set in a user's profile should not start raising errors.
   .as_report_level(options::opt("verbose", env = "energyRt")) >= level

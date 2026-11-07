@@ -5,8 +5,8 @@
 # so a test that leaks a value changes the behaviour of every test after it.
 with_clean_options <- function(code) {
   nms <- .en_option_names()
-  saved <- lapply(paste0("en.", nms), function(n) getOption(n))
-  names(saved) <- paste0("en.", nms)
+  saved <- lapply(paste0("energyRt.", nms), function(n) getOption(n))
+  names(saved) <- paste0("energyRt.", nms)
   applied <- .en_state$config_applied
   on.exit({
     do.call(options, saved)
@@ -17,12 +17,12 @@ with_clean_options <- function(code) {
 
 # Option and environment-variable names ---------------------------------------
 
-test_that("every option is read from en.<name>", {
+test_that("every option is read from energyRt.<name>", {
   nms <- .en_option_names()
   expect_gt(length(nms), 10)
   with_clean_options({
     for (n in nms) {
-      options(structure(list("SENTINEL"), names = paste0("en.", n)))
+      options(structure(list("SENTINEL"), names = paste0("energyRt.", n)))
       expect_identical(get_option(n), "SENTINEL",
                        info = paste("option name for", n))
     }
@@ -36,7 +36,7 @@ test_that("every option falls back to ENERGYRT_<NAME>", {
   with_clean_options({
     for (n in nms) {
       var <- toupper(paste0("ENERGYRT_", n))
-      options(structure(list(NULL), names = paste0("en.", n)))
+      options(structure(list(NULL), names = paste0("energyRt.", n)))
       old <- Sys.getenv(var, unset = NA)
       do.call(Sys.setenv, structure(list("SENTINEL"), names = var))
       expect_identical(get_option(n), "SENTINEL",
@@ -50,7 +50,7 @@ test_that("every option falls back to ENERGYRT_<NAME>", {
 
 test_that("neos_email reads the bare NEOS_EMAIL environment variable", {
   with_clean_options({
-    options(en.neos_email = NULL)
+    options(energyRt.neos_email = NULL)
     old <- Sys.getenv("NEOS_EMAIL", unset = NA)
     on.exit({
       if (is.na(old)) Sys.unsetenv("NEOS_EMAIL")
@@ -72,7 +72,7 @@ test_that(".en_option_names() keeps options whose value is NULL", {
 test_that("declared defaults are what the getters return", {
   with_clean_options({
     for (n in .en_option_names()) {
-      options(structure(list(NULL), names = paste0("en.", n)))
+      options(structure(list(NULL), names = paste0("energyRt.", n)))
     }
     expect_identical(get_scenarios_path(), "scenarios/")
     expect_identical(get_storage_format(), "feather")
@@ -104,7 +104,7 @@ test_that("the default solver matches the solver_options preset it names", {
 
 test_that("an R option beats an environment variable beats the default", {
   with_clean_options({
-    options(en.storage_format = NULL)
+    options(energyRt.storage_format = NULL)
     withr_env <- Sys.getenv("ENERGYRT_STORAGE_FORMAT", unset = NA)
     on.exit({
       if (is.na(withr_env)) Sys.unsetenv("ENERGYRT_STORAGE_FORMAT")
@@ -119,7 +119,7 @@ test_that("an R option beats an environment variable beats the default", {
     expect_identical(.en_opt_source("storage_format"), "envvar")
     expect_identical(get_storage_format(), "csv")
 
-    options(en.storage_format = "parquet")
+    options(energyRt.storage_format = "parquet")
     expect_identical(.en_opt_source("storage_format"), "option")
     expect_identical(get_storage_format(), "parquet")
   })
@@ -170,7 +170,7 @@ test_that("the un-prefixed path env vars are no longer read", {
   # something a user set for another program.
   dir <- normalizePath(tempdir(), winslash = "/")
   with_clean_options({
-    options(en.julia_path = NULL)
+    options(energyRt.julia_path = NULL)
     Sys.unsetenv("ENERGYRT_JULIA_PATH")
     old <- Sys.getenv("JULIA_PATH", unset = NA)
     on.exit({
@@ -192,39 +192,41 @@ test_that("the un-prefixed path env vars are no longer read", {
 
 test_that("isVerbose()/isDebug() accept levels and logicals", {
   with_clean_options({
-    options(en.verbose = 0)
+    options(energyRt.verbose = 0)
     expect_false(isVerbose())
 
-    options(en.verbose = TRUE)
+    options(energyRt.verbose = TRUE)
     expect_true(isVerbose())
     expect_false(isVerbose(2))
 
-    options(en.verbose = 2)
+    options(energyRt.verbose = 2)
     expect_true(isVerbose())
     expect_true(isVerbose(2))
     expect_false(isVerbose(3))
 
-    options(en.debug = 1)
+    options(energyRt.debug = 1)
     expect_true(isDebug())
     expect_false(isDebug(2))
   })
 })
 
-test_that("options(energyRt.verbose) is no longer honoured", {
-  # `en.verbose` is the only name in v0.90; the old option is ignored in
-  # silence, for the same reason as the path env vars.
+test_that("options(en.verbose) is no longer honoured", {
+  # The option prefix is the package's own name. `en.` was the prefix in
+  # v0.90-0.92 and is ignored in silence, for the same reason as the path env
+  # vars: an option left in a user's profile should not start raising errors.
   with_clean_options({
-    old <- getOption("energyRt.verbose")
-    on.exit(options(energyRt.verbose = old), add = TRUE)
+    old_en <- getOption("en.verbose")
+    on.exit(options(en.verbose = old_en), add = TRUE)
 
-    # level 2 under the legacy name, which would be observable if it were
+    # level 2 under the retired prefix, which would be observable if it were
     # honoured; the declared default (level 1) stands instead
-    options(en.verbose = NULL, energyRt.verbose = 2)
+    options(energyRt.verbose = NULL, en.verbose = 2)
     expect_silent(res <- isVerbose(2))
     expect_false(res)
     expect_true(isVerbose())
 
-    options(en.verbose = 2)
+    # and the current name is honoured
+    options(energyRt.verbose = 2)
     expect_true(isVerbose(2))
   })
 })
@@ -266,14 +268,14 @@ test_that("the config file fills only options the user has not set", {
     ))
 
     # nothing set -> the config supplies both
-    options(en.storage_format = NULL, en.storage_compression = NULL)
+    options(energyRt.storage_format = NULL, energyRt.storage_compression = NULL)
     Sys.unsetenv(c("ENERGYRT_STORAGE_FORMAT", "ENERGYRT_STORAGE_COMPRESSION"))
     .en_apply_config()
     expect_identical(get_storage_format(), "parquet")
     expect_identical(get_storage_compression(), "lz4")
 
     # an env var outranks the config file
-    options(en.storage_format = NULL, en.storage_compression = NULL)
+    options(energyRt.storage_format = NULL, energyRt.storage_compression = NULL)
     Sys.setenv(ENERGYRT_STORAGE_FORMAT = "csv")
     on.exit(Sys.unsetenv("ENERGYRT_STORAGE_FORMAT"), add = TRUE)
     .en_apply_config()
@@ -312,7 +314,7 @@ test_that("a malformed config file does not stop the package loading", {
 
 test_that("en_config_show() reports the source of every option", {
   with_clean_options({
-    options(en.scenarios_path = "elsewhere/")
+    options(energyRt.scenarios_path = "elsewhere/")
     res <- suppressMessages(en_config_show())
     expect_true(is.data.frame(res))
     expect_setequal(res$option, .en_option_names())

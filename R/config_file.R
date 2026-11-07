@@ -7,7 +7,7 @@
 #
 # Resolution order, highest priority first:
 #
-#   1. R option              options(en.gams_path = "...")
+#   1. R option              options(energyRt.gams_path = "...")
 #   2. environment variable  ENERGYRT_GAMS_PATH
 #   3. project config        ./.energyRt.yml
 #   4. user config           tools::R_user_dir("energyRt", "config")/config.yml

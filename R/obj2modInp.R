@@ -144,7 +144,7 @@ setMethod(
     # way in (`force_cols_classes()` above) and `get_data_slot()` normalises
     # on-disk reads. The on-disk branch keeps the eager behaviour -- it pays a
     # parquet round-trip per call anyway, so the dedup is not what costs there.
-    if (isTRUE(getOption("en.bulk_param_write", FALSE))) {
+    if (isTRUE(getOption("energyRt.bulk_param_write", FALSE))) {
       # BULK MODE (the object loop of `interpolate_model()`): park the chunk and
       # return. Appending is O(chunk) instead of O(accumulated), which is what
       # takes the loop from quadratic to linear in the number of objects.
@@ -1774,7 +1774,7 @@ make_data_param <- function(
   # duplicated.data.frame
   .dedup <- function(dat) {
     if (nrow(dat) < 2L) return(dat)
-    if (isTRUE(getOption("en.bulk_param_write", FALSE))) return(dat)
+    if (isTRUE(getOption("energyRt.bulk_param_write", FALSE))) return(dat)
     dat[!duplicated(data.table::as.data.table(dat)), , drop = FALSE]
   }
 

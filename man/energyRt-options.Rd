@@ -22,163 +22,163 @@ options::opt(x, default, env = "energyRt")
 \describe{
 \item{gams_path}{\describe{
 Path to the GAMS installation directory. Prefixed to the \code{gams} command when solving with a GAMS backend. If unset, \code{gams} is resolved on the session PATH.\item{default: }{\preformatted{NULL}}
-\item{option: }{en.gams_path}
+\item{option: }{energyRt.gams_path}
 \item{envvar: }{ENERGYRT_GAMS_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{gdxlib_path}{\describe{
 Path to the GAMS Data Exchange (GDX) library, used to read and write \verb{*.gdx} files. If unset, \code{gams_path} is used instead.\item{default: }{\preformatted{NULL}}
-\item{option: }{en.gdxlib_path}
+\item{option: }{energyRt.gdxlib_path}
 \item{envvar: }{ENERGYRT_GDXLIB_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{python_path}{\describe{
 Path to the Python installation or environment used by the Pyomo backend. Prefixed to the \code{python} command. If unset, \code{python} is resolved on the session PATH.\item{default: }{\preformatted{NULL}}
-\item{option: }{en.python_path}
+\item{option: }{energyRt.python_path}
 \item{envvar: }{ENERGYRT_PYTHON_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{julia_path}{\describe{
 Path to the Julia installation used by the JuMP backend. Prefixed to the \code{julia} command. If unset, \code{julia} is resolved on the session PATH.\item{default: }{\preformatted{NULL}}
-\item{option: }{en.julia_path}
+\item{option: }{energyRt.julia_path}
 \item{envvar: }{ENERGYRT_JULIA_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{glpk_path}{\describe{
 Path to a standalone GLPK installation containing the \code{glpsol} executable. If unset, the glpsol R package's bundled binary is used when installed, otherwise \code{glpsol} is auto-detected on the session PATH -- which on Windows finds the copy bundled with Rtools.\item{default: }{\preformatted{NULL}}
-\item{option: }{en.glpk_path}
+\item{option: }{energyRt.glpk_path}
 \item{envvar: }{ENERGYRT_GLPK_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{neos_email}{\describe{
 Email address for NEOS Server job submission (required by NEOS). Read from the \code{NEOS_EMAIL} environment variable if the option is unset.\item{default: }{\preformatted{NULL}}
-\item{option: }{en.neos_email}
+\item{option: }{energyRt.neos_email}
 \item{envvar: }{NEOS_EMAIL (evaluated if possible, raw string otherwise)}
 }}
 
 \item{neos_endpoint}{\describe{
 XML-RPC endpoint of the NEOS Server.\item{default: }{\preformatted{"https://neos-server.org:3333"}}
-\item{option: }{en.neos_endpoint}
+\item{option: }{energyRt.neos_endpoint}
 \item{envvar: }{ENERGYRT_NEOS_ENDPOINT (evaluated if possible, raw string otherwise)}
 }}
 
 \item{solver}{\describe{
 Default solver specification, used when a scenario carries none. A named list, normally one of the \code{solver_options} presets.\item{default: }{\preformatted{list(name = "glpk", lang = "GLPK")}}
-\item{option: }{en.solver}
+\item{option: }{energyRt.solver}
 \item{envvar: }{ENERGYRT_SOLVER (evaluated if possible, raw string otherwise)}
 }}
 
 \item{scenarios_path}{\describe{
 Root directory for scenario folders. Scenario paths and solver working directories are built underneath it.\item{default: }{\preformatted{"scenarios/"}}
-\item{option: }{en.scenarios_path}
+\item{option: }{energyRt.scenarios_path}
 \item{envvar: }{ENERGYRT_SCENARIOS_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{registry_file}{\describe{
 Path to the project registry CSV indexing saved models, scenarios and runs. Kept at the project root, a sibling of the scenarios/ and models/ stores, so one registry spans both.\item{default: }{\preformatted{"energyRt_registry.csv"}}
-\item{option: }{en.registry_file}
+\item{option: }{energyRt.registry_file}
 \item{envvar: }{ENERGYRT_REGISTRY_FILE (evaluated if possible, raw string otherwise)}
 }}
 
 \item{models_path}{\describe{
 Root directory for the model store, a sibling of the scenarios/ store. save_model() writes one folder per model name underneath it, updated in place; the content hash lives in the entry's model.yml. Scenarios saved with the default embed_model = NULL store their model here and reference it.\item{default: }{\preformatted{"models/"}}
-\item{option: }{en.models_path}
+\item{option: }{energyRt.models_path}
 \item{envvar: }{ENERGYRT_MODELS_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{repositories_path}{\describe{
 Root directory for the repository store. save_repository() writes one folder per repository name underneath it, updated in place; the content hash lives in the entry's repository.yml.\item{default: }{\preformatted{"repositories/"}}
-\item{option: }{en.repositories_path}
+\item{option: }{energyRt.repositories_path}
 \item{envvar: }{ENERGYRT_REPOSITORIES_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{datasets_path}{\describe{
 Root directory for the dataset store. save_dataset() writes one folder per dataset name underneath it, updated in place; the content hash lives in the entry's dataset.yml.\item{default: }{\preformatted{"datasets/"}}
-\item{option: }{en.datasets_path}
+\item{option: }{energyRt.datasets_path}
 \item{envvar: }{ENERGYRT_DATASETS_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{log_file}{\describe{
 Optional operation-log CSV. Empty (default) = logging off; a path makes interpolate_model()/solve_scenario()/solve_recursive() append one line per operation. Read it back with read_log().\item{default: }{\preformatted{""}}
-\item{option: }{en.log_file}
+\item{option: }{energyRt.log_file}
 \item{envvar: }{ENERGYRT_LOG_FILE (evaluated if possible, raw string otherwise)}
 }}
 
 \item{profile_dir}{\describe{
 Directory for the interpolation profile log (interp_runs.csv, interp_stages.csv, interp_maps.csv, interp_params.csv -- per-run timing and memory tables, appended after every interpolation). Empty (default) = fall back to the operation log's directory, then to \if{html}{\out{<project>}}/logs/ when a project registry exists; no sink = no files written.\item{default: }{\preformatted{""}}
-\item{option: }{en.profile_dir}
+\item{option: }{energyRt.profile_dir}
 \item{envvar: }{ENERGYRT_PROFILE_DIR (evaluated if possible, raw string otherwise)}
 }}
 
 \item{reports_path}{\describe{
 Default directory for rendered reports of IN-MEMORY objects (treated as temporary output). Reports of saved objects land inside the owning folder (\if{html}{\out{<scenario>}}/reports/, \if{html}{\out{<model store entry>}}/reports/) instead.\item{default: }{\preformatted{"reports/"}}
-\item{option: }{en.reports_path}
+\item{option: }{energyRt.reports_path}
 \item{envvar: }{ENERGYRT_REPORTS_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{levcost_cache_path}{\describe{
 Default directory for cached levcost results of IN-MEMORY objects (treated as temporary). Results for saved objects are cached inside the owning folder (\if{html}{\out{<owner>}}/levcost/) instead.\item{default: }{\preformatted{"levcosts/"}}
-\item{option: }{en.levcost_cache_path}
+\item{option: }{energyRt.levcost_cache_path}
 \item{envvar: }{ENERGYRT_LEVCOST_CACHE_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{path_builders}{\describe{
 Named list of user functions overriding the built-in folder-name derivations (session-local; set with set_path_builder()). Hookable kinds: scenario_dir, store_entry, run_label, slug — see ?path_builders for the contracts.\item{default: }{\preformatted{list()}}
-\item{option: }{en.path_builders}
+\item{option: }{energyRt.path_builders}
 \item{envvar: }{ENERGYRT_PATH_BUILDERS (evaluated if possible, raw string otherwise)}
 }}
 
 \item{storage_format}{\describe{
 On-disk table storage format: 'feather' (IPC), 'parquet', or 'csv'; 'arrow' and 'ipc' are aliases for feather. Both support lazy filtered reads. Size depends far more on DICTIONARY ENCODING than on the container: parquet dictionary-encodes repeated strings itself, feather only if the caller passes factors. Measured on a 543k-row table with zstd-15: plain feather 11.8 MB, parquet 1.10 MB either way, feather with factor columns 1.03 MB and 4.5x faster to read.\item{default: }{\preformatted{"feather"}}
-\item{option: }{en.storage_format}
+\item{option: }{energyRt.storage_format}
 \item{envvar: }{ENERGYRT_STORAGE_FORMAT (evaluated if possible, raw string otherwise)}
 }}
 
 \item{storage_compression}{\describe{
 Storage compression codec: 'zstd', 'lz4', or 'uncompressed'.\item{default: }{\preformatted{"zstd"}}
-\item{option: }{en.storage_compression}
+\item{option: }{energyRt.storage_compression}
 \item{envvar: }{ENERGYRT_STORAGE_COMPRESSION (evaluated if possible, raw string otherwise)}
 }}
 
 \item{storage_compression_level}{\describe{
 Storage compression level (codec-dependent; ZSTD supports 1-22).\item{default: }{\preformatted{15L}}
-\item{option: }{en.storage_compression_level}
+\item{option: }{energyRt.storage_compression_level}
 \item{envvar: }{ENERGYRT_STORAGE_COMPRESSION_LEVEL (evaluated if possible, raw string otherwise)}
 }}
 
 \item{exchange_format}{\describe{
 Data-exchange format for the JuMP/Pyomo solvers: 'feather' (IPC), 'parquet', or 'csv'. Julia's Arrow.jl reads IPC only. A solver's \code{export_format}/\code{import_format} overrides this per solve.\item{default: }{\preformatted{"feather"}}
-\item{option: }{en.exchange_format}
+\item{option: }{energyRt.exchange_format}
 \item{envvar: }{ENERGYRT_EXCHANGE_FORMAT (evaluated if possible, raw string otherwise)}
 }}
 
 \item{exchange_compression}{\describe{
 Exchange compression codec: 'zstd', 'lz4', or 'uncompressed'. Exchange files are written and read within the same solve, so the default trades size for speed.\item{default: }{\preformatted{"lz4"}}
-\item{option: }{en.exchange_compression}
+\item{option: }{energyRt.exchange_compression}
 \item{envvar: }{ENERGYRT_EXCHANGE_COMPRESSION (evaluated if possible, raw string otherwise)}
 }}
 
 \item{exchange_compression_level}{\describe{
 Exchange compression level (codec-dependent; ZSTD supports 1-22). Ignored for lz4.\item{default: }{\preformatted{15L}}
-\item{option: }{en.exchange_compression_level}
+\item{option: }{energyRt.exchange_compression_level}
 \item{envvar: }{ENERGYRT_EXCHANGE_COMPRESSION_LEVEL (evaluated if possible, raw string otherwise)}
 }}
 
 \item{verbose}{\describe{
 Verbosity level, logical or integer: \code{0}/\code{FALSE} silent, \code{1}/\code{TRUE} reports each ACTION once -- what was written, loaded or solved, and where -- and \code{2} and above add per-object and per-parameter detail. Test with \code{isVerbose(level)}. This option is the single control: a function's own \code{verbose} argument defaults to it, and passing one overrides it for that call.\item{default: }{\preformatted{1}}
-\item{option: }{en.verbose}
+\item{option: }{energyRt.verbose}
 \item{envvar: }{ENERGYRT_VERBOSE (evaluated if possible, raw string otherwise)}
 }}
 
 \item{debug}{\describe{
 Debug level, in the same 0/1/2 form as \code{verbose}. Enables internal consistency warnings that are silent in normal use. Test with \code{isDebug(level)}.\item{default: }{\preformatted{0}}
-\item{option: }{en.debug}
+\item{option: }{energyRt.debug}
 \item{envvar: }{ENERGYRT_DEBUG (evaluated if possible, raw string otherwise)}
 }}
 
 \item{progress_bar}{\describe{
 Whether long-running operations display a progress bar. Set through \code{show_progress_bar()} / \code{set_progress_bar()}.\item{default: }{\preformatted{TRUE}}
-\item{option: }{en.progress_bar}
+\item{option: }{energyRt.progress_bar}
 \item{envvar: }{ENERGYRT_PROGRESS_BAR (evaluated if possible, raw string otherwise)}
 }}
 
