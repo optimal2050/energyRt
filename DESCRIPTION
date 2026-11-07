@@ -34,7 +34,7 @@ Depends: R (>= 4.3)
 Imports: methods, grid, stats, generics, data.table, tibble, tidyr, dplyr, rlang,
         stringr, lubridate, purrr, arrow (>= 10.0.0), progressr, cli,
         options (>= 0.2.0), grDevices, utils, tools, yaml,
-        geoscales (>= 0.7.0), timescales (>= 0.7.0)
+        geoscales (>= 0.7.0), timescales (>= 0.7.2)
 Suggests: shiny, DT, pak, knitr, rmarkdown, sf, ggplot2,
         testthat (>= 3.0.0), devtools, openxlsx, jsonlite, readxl,
         httr2, xml2, base64enc, tinytex, patchwork,

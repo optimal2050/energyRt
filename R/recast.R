@@ -263,31 +263,16 @@ recast_model_calendar <- function(object, calendar, rules = NULL, year = NULL,
   src <- d[at_leaf, , drop = FALSE]
   src[["timeslice"]] <- tsl[at_leaf]
   dropped <- character(0)
-  # `recast_calendar(rule=)` takes ONE rule for the whole call, so a table
-  # whose columns need different rules is recast once per rule and joined back
-  # on its identifier columns.
-  cast <- function(vals, rl) {
-    withCallingHandlers(
-      as.data.frame(timescales::recast_calendar(
-        src[, c(setdiff(colnames(src), values), vals), drop = FALSE],
-        source = ts_src, target = ts_tgt, year = year,
-        key = "timeslice", values = vals, rule = rl)),
-      warning = function(w) {
-        if (grepl("not covered|were ignored", conditionMessage(w))) {
-          dropped <<- c(dropped, where)
-        }
-        invokeRestart("muffleWarning")
-      })
-  }
-  groups <- split(values, unname(rule[values]))
-  parts <- lapply(names(groups), function(rl) cast(groups[[rl]], rl))
-  out <- parts[[1L]]
-  if (length(parts) > 1L) {
-    for (p in parts[-1L]) {
-      on <- setdiff(intersect(colnames(out), colnames(p)), values)
-      out <- merge(out, p, by = on, all = TRUE, sort = FALSE)
-    }
-  }
+  out <- withCallingHandlers(
+    as.data.frame(timescales::recast_calendar(
+      src, source = ts_src, target = ts_tgt, year = year,
+      key = "timeslice", values = values, rule = rule[values])),
+    warning = function(w) {
+      if (grepl("not covered|were ignored", conditionMessage(w))) {
+        dropped <<- c(dropped, where)
+      }
+      invokeRestart("muffleWarning")
+    })
   # `recast_calendar()` returns the full target vocabulary, NA where the
   # target covers a slice the source never populated.
   out <- out[!is.na(out[["timeslice"]]), , drop = FALSE]
