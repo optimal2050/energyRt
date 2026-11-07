@@ -403,18 +403,26 @@ find_in_registry <- function(reg, type = NULL, name = NULL, hash = NULL,
   grepl("^[A-Za-z]:", p) | startsWith(p, "/") | startsWith(p, bs)
 }
 
+# The store setting as DECLARED, before the project root is applied. The
+# registry roots it at its own `root` argument instead, which is what lets a
+# scan be pointed at an arbitrary project tree.
+#' @noRd
+.registry_store <- function(name) options::opt(name, env = "energyRt")
+
 # Store roots from the options may be absolute (e.g. redirected to a temp
-# dir); only prefix `root` onto relative ones.
-.registry_root_join <- function(p, root = ".") {
+# dir); only prefix `root` onto relative ones. `root` is where the registry
+# LOOKS for manifests, not where it writes: the registry file itself is
+# `file = get_registry_file()`.
+.registry_root_join <- function(p, root = get_project_root()) {
   if (.registry_is_abs(p)) gsub("[/]+", "/", chartr("\\", "/", p)) else fp(root, p)
 }
 
 # Every manifest the registry is built from, as absolute paths. Directory
 # listings and globs only — no YAML is parsed, which is what keeps the
 # freshness check sub-millisecond against ~0.3 s for a full rescan.
-.registry_manifest_paths <- function(root = ".") {
+.registry_manifest_paths <- function(root = get_project_root()) {
   out <- character(0)
-  scen_root <- .registry_root_join(get_scenarios_path(), root)
+  scen_root <- .registry_root_join(.registry_store("scenarios_path"), root)
   if (dir.exists(scen_root)) {
     for (d in list.dirs(scen_root, recursive = FALSE)) {
       # dot-prefixed dirs are scratch by convention, as in the scan below
@@ -426,9 +434,9 @@ find_in_registry <- function(reg, type = NULL, name = NULL, hash = NULL,
                Sys.glob(fp(d, "runs", "*", "*", "run.yml")))
     }
   }
-  for (st in list(c(get_models_path(), "model.yml"),
-                  c(get_repositories_path(), "repository.yml"),
-                  c(get_datasets_path(), "dataset.yml"))) {
+  for (st in list(c(.registry_store("models_path"), "model.yml"),
+                  c(.registry_store("repositories_path"), "repository.yml"),
+                  c(.registry_store("datasets_path"), "dataset.yml"))) {
     r <- .registry_root_join(st[1], root)
     if (!dir.exists(r)) next
     for (d in list.dirs(r, recursive = FALSE)) {
@@ -549,7 +557,8 @@ find_in_registry <- function(reg, type = NULL, name = NULL, hash = NULL,
 # copy, cloud sync, saving from Excel). A CSV copied from another machine looks
 # newer than every manifest and so reads as fresh. Making this the default
 # would mean replacing the comparison with a stored scan fingerprint.
-.registry_is_stale <- function(file = get_registry_file(), root = ".") {
+.registry_is_stale <- function(file = get_registry_file(),
+                               root = get_project_root()) {
   if (!file.exists(file)) return(TRUE)
   mf <- .registry_manifest_paths(root)
   reg <- tryCatch(load_registry(file), error = function(e) NULL)
@@ -568,7 +577,8 @@ find_in_registry <- function(reg, type = NULL, name = NULL, hash = NULL,
 
 #' @rdname registry
 #' @export
-refresh_registry <- function(root = ".", file = get_registry_file(),
+refresh_registry <- function(root = get_project_root(),
+                             file = get_registry_file(),
                              write = TRUE, lazy = FALSE) {
   if (isTRUE(lazy) && !.registry_is_stale(file, root)) {
     if (isVerbose()) {
@@ -599,7 +609,7 @@ refresh_registry <- function(root = ".", file = get_registry_file(),
 
   # scenarios: any first-level directory in the scenarios store carrying the
   # `class` marker file (layout >= 2) or a `scenario.yml` manifest (layout 3)
-  scen_root <- root_join(get_scenarios_path())
+  scen_root <- root_join(.registry_store("scenarios_path"))
   if (dir.exists(scen_root)) {
     for (d in list.dirs(scen_root, recursive = FALSE)) {
       # dot-prefixed dirs are scratch by convention (e.g. levcost mini-models)
@@ -657,11 +667,12 @@ refresh_registry <- function(root = ".", file = get_registry_file(),
   # models and repositories: content-addressed stores of <name>@<hash8>/
   # folders, each with a manifest (layout 3)
   stores <- list(
-    list(type = "model", root = root_join(get_models_path()),
+    list(type = "model", root = root_join(.registry_store("models_path")),
          manifest = "model.yml"),
-    list(type = "repository", root = root_join(get_repositories_path()),
+    list(type = "repository",
+         root = root_join(.registry_store("repositories_path")),
          manifest = "repository.yml"),
-    list(type = "dataset", root = root_join(get_datasets_path()),
+    list(type = "dataset", root = root_join(.registry_store("datasets_path")),
          manifest = "dataset.yml")
   )
   for (st in stores) {

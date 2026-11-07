@@ -164,6 +164,108 @@ Exchange compression level (codec-dependent; ZSTD supports 1-22). Ignored for lz
 \item{envvar: }{ENERGYRT_EXCHANGE_COMPRESSION_LEVEL (evaluated if possible, raw string otherwise)}
 }}
 
+\item{fx_equ}{\describe{
+Write an \code{fx} bound as one equality row rather than a matched pair of \code{lo}/\code{up} rows.\item{default: }{\preformatted{TRUE}}
+\item{option: }{energyRt.fx_equ}
+\item{envvar: }{ENERGYRT_FX_EQU (evaluated if possible, raw string otherwise)}
+}}
+
+\item{parent_levels}{\describe{
+Keep parameters at a parent geoframe or timeframe alongside the finest level, so a coarse declaration stays readable after interpolation.\item{default: }{\preformatted{FALSE}}
+\item{option: }{energyRt.parent_levels}
+\item{envvar: }{ENERGYRT_PARENT_LEVELS (evaluated if possible, raw string otherwise)}
+}}
+
+\item{on_missing_input}{\describe{
+What interpolation does when a process names an input commodity the model does not declare: "stop", "warn" or "ignore".\item{default: }{\preformatted{"stop"}}
+\item{option: }{energyRt.on_missing_input}
+\item{envvar: }{ENERGYRT_ON_MISSING_INPUT (evaluated if possible, raw string otherwise)}
+}}
+
+\item{threads}{\describe{
+Threads for the data.table operations interpolation runs. \code{0} means data.table's own default, which is half the physical cores.\item{default: }{\preformatted{0L}}
+\item{option: }{energyRt.threads}
+\item{envvar: }{ENERGYRT_THREADS (evaluated if possible, raw string otherwise)}
+}}
+
+\item{map_rules}{\describe{
+Build mapping parameters from the declared rules rather than the hand-written builders.\item{default: }{\preformatted{TRUE}}
+\item{option: }{energyRt.map_rules}
+\item{envvar: }{ENERGYRT_MAP_RULES (evaluated if possible, raw string otherwise)}
+}}
+
+\item{map_rules_verify}{\describe{
+Diagnostic: build each mapping BOTH ways and compare, which is slow and is for checking a rule change rather than for normal use.\item{default: }{\preformatted{FALSE}}
+\item{option: }{energyRt.map_rules_verify}
+\item{envvar: }{ENERGYRT_MAP_RULES_VERIFY (evaluated if possible, raw string otherwise)}
+}}
+
+\item{base_maps}{\describe{
+Diagnostic: keep the mapping tables a base interpolation produced, so a derived scenario's maps can be compared against them.\item{default: }{\preformatted{FALSE}}
+\item{option: }{energyRt.base_maps}
+\item{envvar: }{ENERGYRT_BASE_MAPS (evaluated if possible, raw string otherwise)}
+}}
+
+\item{base_maps_verify}{\describe{
+Diagnostic: compare a derived scenario's maps against the base's.\item{default: }{\preformatted{FALSE}}
+\item{option: }{energyRt.base_maps_verify}
+\item{envvar: }{ENERGYRT_BASE_MAPS_VERIFY (evaluated if possible, raw string otherwise)}
+}}
+
+\item{model_checks_stop}{\describe{
+Treat a model consistency check as an error instead of a warning. A declaration that cannot bind is a reason to warn, not a reason to refuse to build, so this is off by default.\item{default: }{\preformatted{FALSE}}
+\item{option: }{energyRt.model_checks_stop}
+\item{envvar: }{ENERGYRT_MODEL_CHECKS_STOP (evaluated if possible, raw string otherwise)}
+}}
+
+\item{mm_keep_wildcards}{\describe{
+Keep wildcard (all-NA) key rows when importing a scenario into the matrix backend, instead of expanding them to their members.\item{default: }{\preformatted{FALSE}}
+\item{option: }{energyRt.mm_keep_wildcards}
+\item{envvar: }{ENERGYRT_MM_KEEP_WILDCARDS (evaluated if possible, raw string otherwise)}
+}}
+
+\item{save_mode}{\describe{
+How a saved scenario carries its model: "ref" references the model in its own store, "embed" writes a copy inside the scenario.\item{default: }{\preformatted{"ref"}}
+\item{option: }{energyRt.save_mode}
+\item{envvar: }{ENERGYRT_SAVE_MODE (evaluated if possible, raw string otherwise)}
+}}
+
+\item{ondisk_min_rows}{\describe{
+Smallest table that is written to its own file when a scenario is saved on disk; anything shorter stays in the scenario shell.\item{default: }{\preformatted{1e+05}}
+\item{option: }{energyRt.ondisk_min_rows}
+\item{envvar: }{ENERGYRT_ONDISK_MIN_ROWS (evaluated if possible, raw string otherwise)}
+}}
+
+\item{param_ref_min_rows}{\describe{
+Smallest parameter table that is referenced from a base scenario rather than copied into a derived one.\item{default: }{\preformatted{1e+06}}
+\item{option: }{energyRt.param_ref_min_rows}
+\item{envvar: }{ENERGYRT_PARAM_REF_MIN_ROWS (evaluated if possible, raw string otherwise)}
+}}
+
+\item{shell_max_mb}{\describe{
+Size at which a scenario shell is reported as carrying data it should have written to disk. Megabytes.\item{default: }{\preformatted{256}}
+\item{option: }{energyRt.shell_max_mb}
+\item{envvar: }{ENERGYRT_SHELL_MAX_MB (evaluated if possible, raw string otherwise)}
+}}
+
+\item{lazy_hash}{\describe{
+Hash a stored object only when its size or timestamp changed. \code{FALSE} hashes on every save.\item{default: }{\preformatted{TRUE}}
+\item{option: }{energyRt.lazy_hash}
+\item{envvar: }{ENERGYRT_LAZY_HASH (evaluated if possible, raw string otherwise)}
+}}
+
+\item{mem_gc_full}{\describe{
+Run a full garbage collection before each memory reading in the operation log. Accurate and slow; the default reads the quick probe.\item{default: }{\preformatted{FALSE}}
+\item{option: }{energyRt.mem_gc_full}
+\item{envvar: }{ENERGYRT_MEM_GC_FULL (evaluated if possible, raw string otherwise)}
+}}
+
+\item{project_root}{\describe{
+Directory a relative store path is rooted at. Defaults to a per-session directory under \code{tempdir()}, so nothing is written outside the session unless \code{open_project()} or a \verb{set_*_path()} call says where.\item{default: }{\preformatted{quote(file.path(tempdir(), "energyRt"))}}
+\item{option: }{energyRt.project_root}
+\item{envvar: }{ENERGYRT_PROJECT_ROOT (evaluated if possible, raw string otherwise)}
+}}
+
 \item{verbose}{\describe{
 Verbosity level, logical or integer: \code{0}/\code{FALSE} silent, \code{1}/\code{TRUE} reports each ACTION once -- what was written, loaded or solved, and where -- and \code{2} and above add per-object and per-parameter detail. Test with \code{isVerbose(level)}. This option is the single control: a function's own \code{verbose} argument defaults to it, and passing one overrides it for that call.\item{default: }{\preformatted{1}}
 \item{option: }{energyRt.verbose}

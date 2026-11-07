@@ -37,7 +37,7 @@ getRepository(name, hash = NULL, verbose = FALSE)
 
 getDataset(name, hash = NULL, verbose = FALSE)
 
-open_project(path = ".", verbose = isVerbose())
+open_project(path, verbose = isVerbose())
 }
 \arguments{
 \item{name}{character, the object's registered name. Scenarios accept a

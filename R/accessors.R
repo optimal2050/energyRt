@@ -195,7 +195,14 @@ getDataset <- function(name, hash = NULL, verbose = FALSE) {
 
 #' @rdname accessors
 #' @export
-open_project <- function(path = ".", verbose = isVerbose()) {
+open_project <- function(path, verbose = isVerbose()) {
+  # No default: `"."` made the working directory a write location, and
+  # which directory that is depends on where the session happens to sit.
+  if (missing(path) || !length(path) || !nzchar(path[1])) {
+    stop("`path` names the project directory and has no default. Pass a ",
+         "directory to keep work in, or `tempdir()` for a throwaway one.",
+         call. = FALSE)
+  }
   path <- gsub("[\\/]+", "/",
                normalizePath(path, winslash = "/", mustWork = TRUE))
   # The settings in force BEFORE this call, so a caller can put them back the
@@ -213,6 +220,7 @@ open_project <- function(path = ".", verbose = isVerbose()) {
     reports_path       = get_reports_path(),
     levcost_cache_path = get_levcost_cache_path()
   )
+  set_project_root(path)
   set_registry_file(fp(path, "energyRt_registry.csv"))
   set_scenarios_path(fp(path, "scenarios"))
   set_models_path(fp(path, "models"))

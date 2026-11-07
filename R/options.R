@@ -443,6 +443,54 @@ options::define_option(
   default = FALSE
 )
 
+# Project root ################################################################
+# Where a RELATIVE store path is rooted. The stores default to relative names
+# ("scenarios/", "models/", ...) because that is what reads well in a help
+# page, but a relative path on its own would be resolved against the working
+# directory -- so the package would write into whatever directory the session
+# happens to sit in, which CRAN's policy forbids and a user has not asked for.
+#
+# The default root is a per-session directory under `tempdir()`: a save works
+# out of the box and leaves nothing behind. `open_project()` points it (and
+# every store) at a real directory, which is how work is kept.
+options::define_option(
+  "project_root",
+  desc = paste(
+    "Directory a relative store path is rooted at. Defaults to a per-session",
+    "directory under `tempdir()`, so nothing is written outside the session",
+    "unless `open_project()` or a `set_*_path()` call says where."
+  ),
+  default = quote(file.path(tempdir(), "energyRt"))
+)
+
+#' @family options
+#' @rdname project_root
+#' @export
+get_project_root <- function() {
+  # The default is an EXPRESSION, evaluated here rather than at load: baking
+  # `tempdir()` into the declaration would freeze the temp directory of
+  # whatever session installed the package into every later one.
+  p <- options::opt("project_root")
+  if (is.language(p)) p <- eval(p)
+  .fix_path(p)
+}
+
+#' @family options
+#' @rdname project_root
+#' @export
+set_project_root <- function(path) {
+  options::opt_set("project_root", path)
+}
+
+# A store path as the filesystem sees it: an absolute setting is taken as
+# given, a relative one is rooted at the project.
+#' @noRd
+.store_path <- function(p) {
+  if (!length(p) || !nzchar(p[1])) return(p)
+  if (grepl("^([A-Za-z]:|[/\\]|~)", p[1])) return(p)
+  fp(get_project_root(), p)
+}
+
 # Reporting ###################################################################
 
 options::define_option(
@@ -712,7 +760,7 @@ set_scenarios_path <- function(path = NULL) {
 #' @rdname scenarios_path
 #' @export
 get_scenarios_path <- function() {
-  options::opt("scenarios_path")
+  .store_path(options::opt("scenarios_path"))
 }
 
 # Registry ####################################################################
@@ -744,7 +792,7 @@ set_registry_file <- function(path = NULL) {
 #' @rdname registry_file
 #' @export
 get_registry_file <- function() {
-  options::opt("registry_file")
+  .store_path(options::opt("registry_file"))
 }
 
 #' @family options
@@ -758,7 +806,7 @@ set_models_path <- function(path = NULL) {
 #' @rdname registry_file
 #' @export
 get_models_path <- function() {
-  options::opt("models_path")
+  .store_path(options::opt("models_path"))
 }
 
 #' @family options
@@ -772,7 +820,7 @@ set_repositories_path <- function(path = NULL) {
 #' @rdname registry_file
 #' @export
 get_repositories_path <- function() {
-  options::opt("repositories_path")
+  .store_path(options::opt("repositories_path"))
 }
 
 #' @family options
@@ -786,7 +834,7 @@ set_datasets_path <- function(path = NULL) {
 #' @rdname registry_file
 #' @export
 get_datasets_path <- function() {
-  options::opt("datasets_path")
+  .store_path(options::opt("datasets_path"))
 }
 
 
@@ -821,7 +869,7 @@ set_reports_path <- function(path = NULL) {
 #' @rdname reports_path
 #' @export
 get_reports_path <- function() {
-  options::opt("reports_path")
+  .store_path(options::opt("reports_path"))
 }
 
 #' @family options
@@ -835,7 +883,7 @@ set_levcost_cache_path <- function(path = NULL) {
 #' @rdname reports_path
 #' @export
 get_levcost_cache_path <- function() {
-  options::opt("levcost_cache_path")
+  .store_path(options::opt("levcost_cache_path"))
 }
 
 # Path builders ###############################################################

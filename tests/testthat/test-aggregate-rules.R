@@ -225,3 +225,51 @@ test_that("resolve_conflicts averages a differing coefficient", {
     "coefficient differs")
   expect_equal(agg@data[[1]]@data$CAP@lhs[[1]]@mult$value, 1.5)
 })
+
+# --- the relabel route ------------------------------------------------------
+# `as = "clusters"` recomputes nothing: each former region survives as a
+# resource tier of one object at the coarser frame. For a weather profile,
+# which has no size of its own to weight a mean by, this is the honest route.
+
+test_that("relabelling keeps every region as a cluster, inventing nothing", {
+  skip_if_no_geoscales()
+  wth <- newWeather(
+    "WSOL", timeframe = "SEASON", region = c("R1", "R2"),
+    weather = data.frame(region = rep(c("R1", "R2"), each = 2),
+                         timeslice = c("WIN", "SUM"),
+                         wval = rep(c(0.2, 0.8), each = 2)))
+  out <- energyRt:::recast_object(wth, scale = ar_geoscale(), target = "grp",
+                                  as = "clusters")
+  w <- out@weather
+  expect_equal(sort(unique(w$region)), "G1")
+  expect_equal(sort(unique(w$cluster)), c("R1", "R2"))
+  # both profiles survive unchanged -- no mean, no weight, no invention
+  expect_equal(sort(unique(w$wval)), c(0.2, 0.8))
+  expect_equal(sort(out@cluster$cluster), c("R1", "R2"))
+  expect_equal(out@region, "G1")
+})
+
+test_that("relabelling refuses to compose with clusters already declared", {
+  skip_if_no_geoscales()
+  wth <- newWeather(
+    "WSOL", timeframe = "SEASON",
+    cluster = data.frame(cluster = c("HI", "LO")),
+    weather = data.frame(region = rep(c("R1", "R2"), each = 2),
+                         cluster = "HI", timeslice = c("WIN", "SUM"),
+                         wval = 0.5))
+  expect_error(
+    energyRt:::recast_object(wth, scale = ar_geoscale(), target = "grp",
+                             as = "clusters"),
+    "already declares clusters")
+})
+
+test_that("the routes that are not built say so plainly", {
+  skip_if_no_geoscales()
+  wth <- newWeather("W", timeframe = "SEASON",
+                    weather = data.frame(region = "R1", timeslice = "WIN",
+                                         wval = 1))
+  expect_error(
+    energyRt:::recast_object(wth, scale = ar_geoscale(), target = "grp",
+                             as = "objects"),
+    "not built yet")
+})

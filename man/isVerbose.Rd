@@ -34,6 +34,7 @@ Other options:
 \code{\link[=en_config_show]{en_config_show()}},
 \code{\link[=get_default_solver]{get_default_solver()}},
 \code{\link[=get_exchange_format]{get_exchange_format()}},
+\code{\link[=get_project_root]{get_project_root()}},
 \code{\link[=get_storage_format]{get_storage_format()}},
 \code{\link[=set_log_file]{set_log_file()}},
 \code{\link[=set_option]{set_option()}},

@@ -74,7 +74,13 @@ test_that("declared defaults are what the getters return", {
     for (n in .en_option_names()) {
       options(structure(list(NULL), names = paste0("energyRt.", n)))
     }
-    expect_identical(get_scenarios_path(), "scenarios/")
+    # the DECLARED value is relative; the getter roots it at the project, so
+    # nothing is written relative to whatever directory the session sits in
+    expect_identical(options::opt("scenarios_path", env = "energyRt"),
+                     "scenarios/")
+    expect_identical(get_scenarios_path(),
+                     file.path(get_project_root(), "scenarios"))
+    expect_true(startsWith(get_project_root(), .fix_path(tempdir())))
     expect_identical(get_storage_format(), "feather")
     expect_identical(get_storage_compression(), "zstd")
     expect_identical(get_storage_compression_level(), 15L)
@@ -83,8 +89,13 @@ test_that("declared defaults are what the getters return", {
     expect_identical(get_exchange_compression(), "lz4")
     expect_identical(get_exchange_compression_level(), 15L)
     expect_identical(get_default_solver(), list(name = "glpk", lang = "GLPK"))
-    expect_identical(get_registry_file(), "energyRt_registry.csv")
-    expect_identical(get_models_path(), "models/")
+    expect_identical(options::opt("registry_file", env = "energyRt"),
+                     "energyRt_registry.csv")
+    expect_identical(get_registry_file(),
+                     file.path(get_project_root(), "energyRt_registry.csv"))
+    expect_identical(options::opt("models_path", env = "energyRt"), "models/")
+    expect_identical(get_models_path(),
+                     file.path(get_project_root(), "models"))
     # the declared default is level 1: an action reports itself once, and the
     # per-object detail at level 2 stays off
     expect_true(isVerbose())

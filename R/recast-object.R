@@ -54,9 +54,12 @@ setMethod(
            rules = NULL, weight = NULL, regions = NULL, suffix = NULL,
            resolve_conflicts = FALSE) {
     as <- match.arg(as)
+    if (identical(as, "clusters")) {
+      return(.recast_to_clusters(object, scale, target))
+    }
     if (!identical(as, "merge")) {
-      stop("`as = \"", as, "\"` is not built yet; only \"merge\" is.",
-           call. = FALSE)
+      stop("`as = \"", as, "\"` is not built yet; \"clusters\" and ",
+           "\"merge\" are.", call. = FALSE)
     }
     if (is.null(regions)) {
       regions <- as.character(geoscales::geoscale_regions(scale))
@@ -152,3 +155,60 @@ setMethod(
     }
     object
   })
+
+#' Relabel an object onto a coarser frame, keeping every unit as a cluster
+#'
+#' The relabel route: nothing is recomputed and nothing is lost. Each former
+#' unit becomes a cluster of one object at `target`, which is what a resource
+#' tier is for -- grades that must not pool. A profile with no size of its own
+#' has no defensible weighted mean, so this is usually the honest route for
+#' `weather`.
+#' @noRd
+.recast_to_clusters <- function(object, gs, level) {
+  if (.hasSlot(object, "cluster")) {
+    cd <- methods::slot(object, "cluster")
+    if (is.data.frame(cd) && nrow(cd)) {
+      stop(class(object)[1], " '", object@name, "' already declares clusters; ",
+           "composing them with a region relabel is not built yet.",
+           call. = FALSE)
+    }
+  }
+  seen <- character()
+  for (sl in methods::slotNames(object)) {
+    v <- methods::slot(object, sl)
+    if (!is.data.frame(v) || !nrow(v) || !"region" %in% names(v)) next
+    if (identical(sl, "cluster")) next
+    if (!"cluster" %in% names(v)) {
+      stop(class(object)[1], " '", object@name, "' @", sl, " is keyed by ",
+           "region but cannot carry a cluster, so relabelling would lose the ",
+           "distinction between the regions merged.", call. = FALSE)
+    }
+    keep <- !is.na(v$region)
+    # an NA region is the wildcard "every region": it stays one row, applying
+    # to every cluster, and must not become a cluster of its own
+    v$cluster[keep & is.na(v$cluster)] <- as.character(v$region[keep & is.na(v$cluster)])
+    seen <- c(seen, as.character(v$region[keep]))
+    v$region[keep] <- .agg_map_codes(v$region[keep], gs, level)
+    methods::slot(object, sl) <- v
+  }
+  seen <- unique(stats::na.omit(seen))
+  if (.hasSlot(object, "cluster") && length(seen)) {
+    proto <- methods::slot(methods::new(class(object)[1]), "cluster")
+    cd <- proto[rep(NA_integer_, length(seen)), , drop = FALSE]
+    rownames(cd) <- NULL
+    cd$cluster <- seen
+    if ("desc" %in% names(cd)) cd$desc <- paste0("was region ", seen)
+    if ("region" %in% names(cd)) {
+      cd$region <- .agg_map_codes(seen, gs, level)
+    }
+    methods::slot(object, "cluster") <- cd
+  }
+  if (.hasSlot(object, "region")) {
+    r <- methods::slot(object, "region")
+    if (is.character(r) && length(r)) {
+      methods::slot(object, "region") <-
+        unique(stats::na.omit(.agg_map_codes(r, gs, level)))
+    }
+  }
+  .agg_record(object, level, list())
+}

@@ -50,7 +50,7 @@ find_in_registry(
 )
 
 refresh_registry(
-  root = ".",
+  root = get_project_root(),
   file = get_registry_file(),
   write = TRUE,
   lazy = FALSE

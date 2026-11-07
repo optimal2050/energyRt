@@ -23,9 +23,9 @@ interpolate_model(
   kvl = FALSE,
   boundary_prices = NULL,
   .prefilter = FALSE,
-  parent_levels = getOption("energyRt.parent_levels", FALSE),
-  fx_equ = getOption("energyRt.fx_equ", TRUE),
-  on_missing_input = getOption("energyRt.on_missing_input", "stop"),
+  parent_levels = options::opt("parent_levels"),
+  fx_equ = options::opt("fx_equ"),
+  on_missing_input = options::opt("on_missing_input"),
   check = FALSE,
   verbose = isVerbose(),
   .reuse = NULL
@@ -154,8 +154,8 @@ equation to define it would be a free variable.
 \code{vOutTot} / \code{vInpTot} carry their parent rows unconditionally and are not
 affected: \code{eqOutTot} / \code{eqInpTot} are written against them.
 
-Defaults to \code{getOption("energyRt.parent_levels", FALSE)}, so a whole run or
-test suite can be switched in one place.}
+Defaults to the \code{energyRt.parent_levels} option, so a whole run or test
+suite can be switched in one place.}
 
 \item{fx_equ}{logical; write a bound whose two sides coincide (\code{.fx}, or
 \code{.lo == .up}, with the same weather factors) as one equality row
@@ -174,7 +174,7 @@ with existing capacity (stock, or a lower / fixed capacity bound) is
 declared in a region where one of its input commodities has no source.
 \code{"stop"} names the cells; \code{"warn"} drops them, as is always done for
 processes that could only be built new. Defaults to
-\code{getOption("energyRt.on_missing_input", "stop")}.}
+the \code{energyRt.on_missing_input} option.}
 
 \item{check}{run \code{\link[=check_feasibility]{check_feasibility()}} on the interpolated scenario and
 STOP when it finds a contradiction, rather than returning a scenario

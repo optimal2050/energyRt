@@ -112,14 +112,18 @@ test_that("find_in_registry filters by type, name, hash prefix, parent", {
 test_that("refresh_registry rebuilds from on-disk markers and manifests", {
   # this test builds a project tree by hand under `root`, so the store options
   # have to be the project-RELATIVE defaults: refresh_registry() ignores
-  # `root` for an absolute store root (root_join(), registry.R), and the
-  # suite redirects both stores to tempdir()
+  # `root` for an absolute store root (root_join(), registry.R).
+  #
+  # The DECLARED values are read here, not `get_*_path()`: the getters root a
+  # relative setting at the project root, which is what keeps the package from
+  # writing relative to the working directory, so joining their output onto
+  # `root` a second time would nest one absolute path inside another.
   old_sp <- set_scenarios_path("scenarios/")
   old_mp <- set_models_path("models/")
   on.exit({ set_scenarios_path(old_sp); set_models_path(old_mp) }, add = TRUE)
   root <- file.path(tempdir(), paste0("regproj", as.integer(runif(1, 1, 1e6))))
-  scen_root <- file.path(root, get_scenarios_path())
-  mod_root <- file.path(root, get_models_path())
+  scen_root <- file.path(root, options::opt("scenarios_path", env = "energyRt"))
+  mod_root <- file.path(root, options::opt("models_path", env = "energyRt"))
   reg_file <- file.path(root, "energyRt_registry.csv")
 
   # layout-2 style scenario: `class` marker only
