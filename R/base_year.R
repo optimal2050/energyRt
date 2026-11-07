@@ -134,7 +134,7 @@ NULL
 # solver run rather than to interpolation.
 .by_solve_args <- function() {
   c("solver.dir", "transient", "tmp.dir", "tmp.del", "force", "read.solution",
-    "wait", "echo", "run", "run.conflict", "n.threads", "invisible",
+    "wait", "verbose", "echo", "run", "run.conflict", "n.threads", "invisible",
     "show.output.on.console", "open.folder")
 }
 
@@ -402,7 +402,7 @@ solve_base_year <- function(object, name = NULL, solver = NULL,
   }
   run <- .by_find_run(src)
   if (is.null(run)) return(NULL)
-  s <- suppressMessages(read_solution(src, run = run, echo = FALSE,
+  s <- suppressMessages(read_solution(src, run = run, verbose = FALSE,
                                       ondisk = FALSE))
   if (!isTRUE(s@status$optimal)) return(NULL)
   mk(solution_ledger(s, years = year), src@name, run)
@@ -437,7 +437,7 @@ solve_base_year <- function(object, name = NULL, solver = NULL,
     })
   s <- get("by_src", envir = e)
   if (!is.null(run)) {
-    s <- suppressMessages(read_solution(s, run = run, echo = FALSE,
+    s <- suppressMessages(read_solution(s, run = run, verbose = FALSE,
                                         ondisk = FALSE))
   }
   s

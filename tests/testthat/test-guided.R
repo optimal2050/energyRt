@@ -71,7 +71,7 @@ test_that("solution_targets harvests standing capacity per milestone", {
   gd_local("tg")
   yrs <- 2020:2022
   mod <- my_mod(years = yrs, olife = 50L, demand = 1, name = "tg")
-  pf <- solve_scenario(interpolate_model(mod, name = "tg_pf"), echo = FALSE)
+  pf <- solve_scenario(interpolate_model(mod, name = "tg_pf"), verbose = FALSE)
 
   tg <- solution_targets(pf)
   expect_s3_class(tg, "capacity_targets")
@@ -170,7 +170,7 @@ test_that("a non-binding guide reproduces perfect foresight exactly", {
   yrs <- 2020:2024
   mod <- my_mod(years = yrs, olife = 50L, demand = 1, name = "gq")
 
-  pf <- solve_scenario(interpolate_model(mod, name = "gq_pf"), echo = FALSE)
+  pf <- solve_scenario(interpolate_model(mod, name = "gq_pf"), verbose = FALSE)
   obj_pf <- as.numeric(getData(pf, "vObjective", merge = TRUE)$value[1])
 
   g <- solve_guided(mod, name = "gq_guided", verbose = FALSE)
@@ -191,7 +191,7 @@ test_that("the guided objective is never below perfect foresight", {
   gd_local("gap")
   yrs <- 2020:2024
   mod <- my_mod(years = yrs, olife = 50L, demand = 1, name = "gp")
-  pf <- solve_scenario(interpolate_model(mod, name = "gp_pf"), echo = FALSE)
+  pf <- solve_scenario(interpolate_model(mod, name = "gp_pf"), verbose = FALSE)
   obj_pf <- as.numeric(getData(pf, "vObjective", merge = TRUE)$value[1])
 
   # slack = 0 pins the guide hard against the endpoint's answer

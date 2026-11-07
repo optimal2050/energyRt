@@ -45,7 +45,7 @@ ds_scen <- function(name) {
 
 ds_solve <- function(s, ...) {
   suppressMessages(solve_scenario(s, solver = solver_options$glpk,
-                                  echo = FALSE, ...))
+                                  verbose = FALSE, ...))
 }
 
 ds_rec <- function(s, run) {

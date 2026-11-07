@@ -230,10 +230,10 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
   # scen
   # readOutputFunction = read.csv (may use data.table::fread)
   # solver.dir - dir to read results from; default: the active run's solver/
-  # echo = TRUE - print working data
+  # verbose = TRUE - print working data
   arg <- .solver_dir_aliases(list(...))
   read_result_time <- proc.time()[3]
-  if (is.null(arg$echo)) arg$echo <- TRUE
+  arg <- .resolve_verbose_arg(arg)
   # if (is.null(arg$readOutputFunction)) arg$readOutputFunction <- read.csv
   if (is.null(arg$readOutputFunction)) {
     arg$readOutputFunction <- data.table::fread
@@ -321,7 +321,7 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
     # preferring the store would quietly serve the older solve's numbers.
     att <- .modout_attach(scen, arg$solver.dir)
     if (!is.null(att)) {
-      if (arg$echo) {
+      if (arg$verbose) {
         .say("Run '", scen@misc$run %||% "?", "': no readable solver ",
                 "output; reading its imported modOut/ store instead.")
       }
@@ -705,7 +705,7 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
         d2v(scen@modOut@variables$vUserCosts, costs_tot)
     }
   }
-  if (arg$echo) {
+  if (arg$verbose) {
     cat("Reading solution: ", round(proc.time()[3] -
       read_result_time, 2), "s\n", sep = "")
   }
@@ -755,7 +755,7 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
     scen@modOut <- set_ondisk_slots(scen@modOut)
     scen@modOut <- setObjPath(scen@modOut, path = .stream_final)
     scen@modOut <- mark_ondisk(scen@modOut)
-    if (arg$echo) {
+    if (arg$verbose) {
       .say("Solution written to '", .stream_final, "'. The scenario shell ",
               "still has to be saved: save_scenario() records it, and until ",
               "then a reload will not see the solution.")

@@ -125,7 +125,7 @@ test_that("a full-coverage sample reproduces the full-calendar solve", {
   bs_local("one")
   mod <- bs_mod()
   full <- solve_scenario(interpolate_model(mod, name = "bs_full"),
-                         echo = FALSE)
+                         verbose = FALSE)
   o_full <- as.numeric(getData(full, "vObjective", merge = TRUE)$value[1])
 
   all_slices <- data.frame(sample = "s01", timeslice = bs_leaf())
@@ -140,7 +140,7 @@ test_that("samples are replicates: the MEAN tracks the year, the sum does not", 
   skip_if_no_solver()
   bs_local("rep")
   mod <- bs_mod()
-  full <- solve_scenario(interpolate_model(mod, name = "bs_ref"), echo = FALSE)
+  full <- solve_scenario(interpolate_model(mod, name = "bs_ref"), verbose = FALSE)
   o_full <- as.numeric(getData(full, "vObjective", merge = TRUE)$value[1])
 
   ens <- solve_by_sample(mod, name = "bs_rep", sample_size = 2,

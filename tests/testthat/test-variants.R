@@ -231,7 +231,7 @@ test_that("an activity-share floor stops the merit order taking everything", {
                                              name = "ASNONE", overwrite = TRUE))
   expect_length(grep("^VA", names(none@modInp@user_constraints)), 0L)
   none <- solve_scenario(none, solver = solver_options$glpk, wait = TRUE,
-                         echo = FALSE)
+                         verbose = FALSE)
   sh <- as_shares(none)
   # winner takes all: the dear cluster never runs
   expect_equal(unname(sh[["EGEN_CLCHEAP"]]), 1)
@@ -243,7 +243,7 @@ test_that("an activity-share floor stops the merit order taking everything", {
   # solver template change, because a cluster is an ordinary set member by now
   expect_length(grep("^VA", names(flo@modInp@user_constraints)), 1L)
   flo <- solve_scenario(flo, solver = solver_options$glpk, wait = TRUE,
-                        echo = FALSE)
+                        verbose = FALSE)
   sh2 <- as_shares(flo)
   expect_equal(unname(round(sh2[["EGEN_CLDEAR"]], 6)), 0.3)
   expect_equal(unname(round(sh2[["EGEN_CLCHEAP"]], 6)), 0.7)
@@ -343,7 +343,7 @@ test_that("the clustered split solves to the coarse total", {
   s <- suppressMessages(interpolate_model(dc_model(dc_clustered()),
                                           name = "DCS", overwrite = TRUE))
   s <- solve_scenario(s, solver = solver_options$glpk, wait = TRUE,
-                      echo = FALSE)
+                      verbose = FALSE)
   # 150 PJ of demand at a supply cost of 2
   expect_equal(sum(getData(s, "vObjective", merge = TRUE)$value), 300)
 })

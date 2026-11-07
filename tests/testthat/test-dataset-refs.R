@@ -198,7 +198,7 @@ test_that("a ref-thinned model solves identically to an embedded one", {
   # alone, which the pre-solve supply heuristic does not count — harmless)
   base <- suppressWarnings(suppressMessages(solve_model(
     mod, name = "drv_base", path = dr_root("scenarios", "drv_base"),
-    echo = FALSE)))
+    verbose = FALSE)))
   obj_base <- get_variable(base, "vObjective", data = TRUE)$value[1]
 
   # referenced save -> load -> solve
@@ -208,7 +208,7 @@ test_that("a ref-thinned model solves identically to an embedded one", {
   ld <- load_model("drv", verbose = FALSE)
   sol <- suppressWarnings(suppressMessages(solve_model(
     ld, name = "drv_ref", path = dr_root("scenarios", "drv_ref"),
-    echo = FALSE)))
+    verbose = FALSE)))
   obj_ref <- get_variable(sol, "vObjective", data = TRUE)$value[1]
   expect_equal(as.numeric(obj_ref), as.numeric(obj_base), tolerance = 1e-9)
 })

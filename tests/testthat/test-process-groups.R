@@ -79,7 +79,7 @@ cr_model <- function(with_trade = TRUE) {
 cr_solve <- function(mod, nm) {
   s <- suppressMessages(interpolate_model(mod, name = nm, overwrite = TRUE))
   s <- suppressMessages(solve_scenario(s, solver = solver_options$glpk,
-                                       force = TRUE, wait = TRUE, echo = FALSE))
+                                       force = TRUE, wait = TRUE, verbose = FALSE))
   getData(s, "vObjective", merge = TRUE)$value
 }
 

@@ -44,7 +44,7 @@ af_solved <- function(name) {
                 demand = data.frame(region = "R1", year = 2020L,
                                     timeslice = "ANNUAL", demand = 2))))
   suppressMessages(suppressWarnings(
-    solve_scenario(interpolate_model(mod, name = name), echo = FALSE)))
+    solve_scenario(interpolate_model(mod, name = name), verbose = FALSE)))
 }
 
 af_save <- function(s) {
@@ -216,7 +216,7 @@ su_scen <- function(name) {
                 demand = data.frame(region = "R1", year = 2020L,
                                     timeslice = "ANNUAL", demand = 2))))
   s <- suppressMessages(suppressWarnings(
-    solve_scenario(interpolate_model(mod, name = name), echo = FALSE)))
+    solve_scenario(interpolate_model(mod, name = name), verbose = FALSE)))
   suppressMessages(suppressWarnings(save_scenario(s, verbose = FALSE)))
 }
 

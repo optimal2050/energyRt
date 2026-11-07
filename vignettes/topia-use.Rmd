@@ -46,7 +46,7 @@ set_default_solver(solver_options$julia_highs)
 Two calls run every scenario in this vignette: `interpolate_model()` expands
 the model over regions, years and timeslices; `solve_scenario()` writes the solver
 files, runs the default solver (set once above) and reads the solution.
-`echo = FALSE` keeps the solver log out of the page — drop it to watch the
+`verbose = FALSE` keeps the solver log out of the page — drop it to watch the
 solver work.
 
 The horizon marks 2025 as its base year, so each scenario is **two** solves and
@@ -91,7 +91,7 @@ already in the fleet. New capacity here means the input data understates the
 system, and capacity left idle means it overstates it.
 
 ```{r base-year}
-by <- solve_base_year(mod, name = "BY2025", echo = FALSE)
+by <- solve_base_year(mod, name = "BY2025", verbose = FALSE)
 getData(by, "vObjective", merge = TRUE)   # the base year's own cost, MUSD
 
 # nothing should appear here
@@ -109,7 +109,7 @@ scen_BASE <- interpolate_model(mod, name = "BASE", base_year_scenario = by,
                                verbose = TRUE, check = TRUE)
 scen_BASE@modInp@sets$year                # 2030, 2040, 2050
 
-scen_BASE <- solve_scenario(scen_BASE, echo = TRUE)
+scen_BASE <- solve_scenario(scen_BASE, verbose = TRUE)
 getData(scen_BASE, "vObjective", merge = TRUE) # projection cost, MUSD
 ```
 
@@ -318,19 +318,19 @@ observation, so a lever cannot change it.
 # emissions cap
 scen_CO2CAP <- interpolate_model(mod, "CO2CAP", topia_elc$CO2_CAP,
                                  base_year_scenario = by) |>
-  solve_scenario(echo = FALSE)
+  solve_scenario(verbose = FALSE)
 # carbon tax
 scen_CTAX <- interpolate_model(mod, "CARBONTAX", topia_elc$CT_CO2,
                                base_year_scenario = by) |>
-  solve_scenario(echo = FALSE)
+  solve_scenario(verbose = FALSE)
 # early fossil retirement
 scen_ERET <- interpolate_model(mod, "EARLY_RET", topia_elc$EARLY_RET,
                                base_year_scenario = by) |>
-  solve_scenario(echo = FALSE)
+  solve_scenario(verbose = FALSE)
 # renewable-backed hydrogen
 scen_GRN <- interpolate_model(mod, "GREEN_H2", topia_elc$GREEN_H2,
                               base_year_scenario = by) |>
-  solve_scenario(echo = FALSE)
+  solve_scenario(verbose = FALSE)
 ```
 
 The third lever, `EARLY_RET`, puts a declining per-region ceiling on installed

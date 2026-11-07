@@ -273,7 +273,7 @@ solve_recursive <- function(object, name = NULL, ...,
         suppressMessages(interpolate_model(
           mod_k, name = scen_name, ..., w$horizon, overwrite = TRUE))
       }
-      solve_scenario(scen_k, solver = solver, echo = FALSE, force = TRUE,
+      solve_scenario(scen_k, solver = solver, verbose = FALSE, force = TRUE,
                  variant = if (store == "variants") vlab else NULL)
     }, error = function(e) e)
 

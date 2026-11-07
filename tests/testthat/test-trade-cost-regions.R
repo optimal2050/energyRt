@@ -212,7 +212,7 @@ tcr_wide_obj <- function(inv, name) {
   sc <- suppressMessages(interpolate_model(tcr_wide_model(inv, name),
                                            name = name, overwrite = TRUE))
   sol <- suppressMessages(solve_scenario(sc, solver = solver_options$glpk,
-                                         wait = TRUE, echo = FALSE))
+                                         wait = TRUE, verbose = FALSE))
   sum(getData(sol, name = "vObjective", merge = TRUE)$value)
 }
 

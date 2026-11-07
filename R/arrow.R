@@ -1465,7 +1465,7 @@ load_scenario <- function(
   if (other_run) {
     scen_act <- tryCatch(
       read_solution(scen_obj, run = .run_id(def$variant, def$solve),
-                    echo = FALSE),
+                    verbose = FALSE),
       error = function(e) {
         if (verbose) {
           message("Could not activate the default run '",
@@ -1548,7 +1548,7 @@ load_scenarios <- function(names = NULL, run = NULL, env = NULL,
       })
     if (is.null(sc)) next
     if (!is.null(run)) {
-      sc <- tryCatch(read_solution(sc, run = run, echo = FALSE),
+      sc <- tryCatch(read_solution(sc, run = run, verbose = FALSE),
                      error = function(e) {
                        warning("Scenario '", nm, "' has no run '", run,
                                "'; keeping its default solution.",

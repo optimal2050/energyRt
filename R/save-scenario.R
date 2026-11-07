@@ -1143,7 +1143,7 @@ import_solution <- function(object, run, ..., restore_solver = TRUE,
          "  Available runs:\n", .run_list_hint(object), call. = FALSE)
   }
 
-  out <- read_solution(object, run = run, echo = FALSE, ...)
+  out <- read_solution(object, run = run, verbose = FALSE, ...)
 
   # The guard. `read_solution()` hands back the ORIGINAL object when the
   # dump cannot be read, so "no variables" is the signal that nothing was

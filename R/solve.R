@@ -217,7 +217,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   # if (is.null(arg$solver.dir)) {
   #   stop("tmp.dir is not specified")
   # }
-  if (is_empty(arg$echo)) arg$echo <- TRUE
+  arg <- .resolve_verbose_arg(arg)
   if (is_empty(arg[["solver"]])) {
     if (is_empty(scen@settings@solver)) {
       # arg[["solver"]] <- list(lang = "PYOMO")
@@ -352,8 +352,8 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
       scen <- apply_fold_artificial(scen, backends = .blk_w)
     }
     dir.create(arg$solver.dir, recursive = TRUE, showWarnings = FALSE)
-    if (arg$echo) cat("Solver directory: ", arg$solver.dir, "\n")
-    if (arg$echo) cat("Writing files: ")
+    if (arg$verbose) cat("Solver directory: ", arg$solver.dir, "\n")
+    if (arg$verbose) cat("Writing files: ")
     solver_solver_time <- proc.time()[3]
     if (any(grep("^gams$", scen@settings@solver$lang, ignore.case = TRUE))) {
       # if (is.null(arg$trim)) arg$trim <- FALSE
@@ -398,7 +398,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     # them apart. `.read_solver_meta()` still reads the old name.
     write.csv(tmp, file = fp(arg$solver.dir, "solver.csv"), row.names = FALSE)
 
-    if (arg$echo) {
+    if (arg$verbose) {
       cat(round(proc.time()[3] - solver_solver_time, 2), "s\n", sep = "")
       flush.console()
     }
@@ -429,7 +429,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     }
   }
   if (isTRUE(arg$read.solution) && isTRUE(arg[["run"]])) {
-    scen <- read_solution(scen, solver.dir = arg$solver.dir, echo = arg$echo)
+    scen <- read_solution(scen, solver.dir = arg$solver.dir, verbose = arg$verbose)
   }
   # A detached solve is not finished when this returns: the record stays
   # `running` and the process that owns it is the one that will close it, or
@@ -454,7 +454,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   if (!arg[["run"]]) {
     return()
   }
-  if (arg$echo) cat("Starting ", scen@settings@solver$lang, "\n")
+  if (arg$verbose) cat("Starting ", scen@settings@solver$lang, "\n")
   gams_run_time <- proc.time()[3]
 
   # Remote backend: submit to NEOS instead of running a local solver process.
@@ -465,7 +465,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   if (identical(scen@settings@solver$backend, "neos")) {
     rs <- .neos_call_solver(arg, scen)
     if (rs != 0) stop(paste("NEOS solve error code", rs))
-    if (arg$echo) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")
+    if (arg$verbose) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")
     return(invisible())
   }
 
@@ -477,7 +477,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   if (isTRUE(scen@settings@solver$backend %in% c("mm", "mmcloud"))) {
     rs <- .solve_matrix(arg, scen)
     if (rs != 0) stop(paste("Matrix solve error code", rs))
-    if (arg$echo) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")
+    if (arg$verbose) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")
     return(invisible())
   }
 
@@ -490,21 +490,21 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     {
       setwd(arg$solver.dir)
       if (.Platform$OS.type == "windows") {
-        if (arg$invisible || !isTRUE(arg$echo)) {
+        if (arg$invisible || !isTRUE(arg$verbose)) {
           cmd <- ""
         } else {
           cmd <- if_else(interactive(),  "cmd /k", "")
         }
         rs <- system(paste(cmd, scen@settings@solver$cmdline), #' gams energyRt.gms', arg$gamsCompileParameter),
           invisible = arg$invisible, wait = arg$wait,
-          # `echo = FALSE` silences the solver's own console output too
-          ignore.stdout = !isTRUE(arg$echo)
+          # `verbose = FALSE` silences the solver's own console output too
+          ignore.stdout = !isTRUE(arg$verbose)
         )
       } else {
         rs <- system(paste(scen@settings@solver$cmdline),
           wait = arg$wait,
-          # `echo = FALSE` silences the solver's own console output too
-          ignore.stdout = !isTRUE(arg$echo)
+          # `verbose = FALSE` silences the solver's own console output too
+          ignore.stdout = !isTRUE(arg$verbose)
         )
       }
       setwd(HOMEDIR)
@@ -521,7 +521,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     }
   )
   if (rs != 0) stop(paste("Solution error code", rs))
-  if (arg$echo) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")
+  if (arg$verbose) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")
 }
 
 # Submit a written GAMS scenario to NEOS and stage the results for read_solution.
@@ -560,13 +560,13 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     gdx = "", wantgdx = "yes", wantlst = "yes",
     comments = paste0("energyRt ", scen@name))
 
-  if (arg$echo) cat("Submitting to NEOS ...\n")
+  if (arg$verbose) cat("Submitting to NEOS ...\n")
   h <- neos_submit_job(xml, timeout = 300)
-  if (arg$echo) cat("  NEOS job ", h$job, "\n", sep = "")
+  if (arg$verbose) cat("  NEOS job ", h$job, "\n", sep = "")
   neos_wait(h$job, h$password, poll = 5,
-            max_wait = s$neos_max_wait %||% 1800, verbose = isTRUE(arg$echo))
+            max_wait = s$neos_max_wait %||% 1800, verbose = isTRUE(arg$verbose))
   cc <- neos_completion_code(h$job, h$password)
-  if (arg$echo) cat("  NEOS completion: ", cc, "\n", sep = "")
+  if (arg$verbose) cat("  NEOS completion: ", cc, "\n", sep = "")
 
   # Fetch the returned workspace zip; copy its solution CSVs into tmp.dir/output/
   # (the model wrote them flat since we flattened `output/`), which is exactly
@@ -692,9 +692,9 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 #' @param ... for `solve_model()`, arguments are routed to
 #'   [interpolate_model()] (settings / calendar / horizon / model data) or to
 #'   the solver run (`solver.dir`, `transient`, `force`, `read.solution`,
-#'   `wait`, `echo`, `run`, `run.conflict`, `n.threads`, ...). For
+#'   `wait`, `verbose`, `run`, `run.conflict`, `n.threads`, ...). For
 #'   `solve_scenario()`, arguments are passed to `.executeScenario()`. Set
-#'   `echo = FALSE` for a quiet run: it silences both the progress messages
+#'   `verbose = FALSE` for a quiet run: it silences both the progress messages
 #'   and the solver's own console output.
 #'
 #'   `run` doubles as the run label: `TRUE`/`FALSE` keeps its historical
@@ -749,10 +749,13 @@ solve_model <- function(object, name = NULL, solver = NULL,
   dots <- list(...)
   # Arguments that belong to the solver run rather than to interpolation
   # (tmp.dir/tmp.del are the deprecated aliases of solver.dir/transient).
+  # `echo` is the pre-0.93 name of `verbose` and is listed so it reaches the
+  # solver run, where `.resolve_verbose_arg()` accepts it with a warning
+  # instead of it being taken for an interpolation argument.
   solve_args <- c("solver.dir", "transient", "tmp.dir", "tmp.del", "force",
                   "read.solution", "wait",
-                  "echo", "run", "run.conflict", "n.threads", "invisible",
-                  "show.output.on.console", "open.folder")
+                  "verbose", "echo", "run", "run.conflict", "n.threads",
+                  "invisible", "show.output.on.console", "open.folder")
   is_solve <- names(dots) %in% solve_args
   iarg <- dots[!is_solve]
   sarg <- dots[is_solve]

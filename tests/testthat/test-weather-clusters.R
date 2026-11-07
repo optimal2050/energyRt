@@ -129,7 +129,7 @@ test_that("clustered weather gives the same LP as hand-named objects", {
   skip_if_no_solver()
   solve1 <- function(mod, nm) {
     s <- suppressMessages(suppressWarnings(solve_model(
-      mod, name = nm, ondisk = FALSE, overwrite = TRUE, echo = FALSE)))
+      mod, name = nm, ondisk = FALSE, overwrite = TRUE, verbose = FALSE)))
     getData(s, "vObjective", merge = TRUE)$value[1]
   }
   clustered <- wc_model(wc_weather(), wc_tech(), name = "wc_cl")

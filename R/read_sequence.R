@@ -67,7 +67,7 @@ NULL
 # caller's to report: a sequence with an unreadable member is worth saying so
 # about, not worth silently shortening.
 .seq_load <- function(scen, run) {
-  suppressMessages(read_solution(scen, run = run, echo = FALSE,
+  suppressMessages(read_solution(scen, run = run, verbose = FALSE,
                                  ondisk = FALSE))
 }
 

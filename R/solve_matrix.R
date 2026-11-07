@@ -27,10 +27,10 @@
   }
 
   r <- multimod::solve_mps(mps, sol_file = a$sol_file, control = a$control,
-                           require_optimal = FALSE, verbose = isTRUE(arg$echo),
+                           require_optimal = FALSE, verbose = isTRUE(arg$verbose),
                            solver = a$solver, where = a$where,
                            remote = a$remote)
-  if (isTRUE(arg$echo)) {
+  if (isTRUE(arg$verbose)) {
     cat("  ", a$solver, " (", a$where, "): ", r$status_message, ", objective ",
         format(r$objective, digits = 10), "\n", sep = "")
   }
@@ -38,7 +38,7 @@
   # solution by position, Pyomo's and JuMP's carry each label and place it by name
   .mm_decode_solution(arg$solver.dir, r$sol_file,
                       solver = if (identical(a$solver, "cuopt")) "cuopt" else "highs",
-                      echo = isTRUE(arg$echo))
+                      verbose = isTRUE(arg$verbose))
   # the matrix is the largest file of a run and is not read again once the
   # solution is decoded; the solution file and the index tables stay, so the
   # decode can be repeated. `keep_mps` (or `cloud_reuse_matrix`) keeps it.
@@ -182,7 +182,7 @@
   idx <- files[-1]
   .write_template_dim_names(scen, arg$solver.dir, writer)
   if (isTRUE(s$cloud_reuse_matrix) && all(file.exists(files))) {
-    if (isTRUE(arg$echo)) {
+    if (isTRUE(arg$verbose)) {
       cat(sprintf("Reusing the matrix already built (%.2f GB, %s)\n",
                   file.size(mps) / 1e9,
                   format(file.mtime(mps), "%Y-%m-%d %H:%M")))
@@ -190,11 +190,11 @@
     return(mps)
   }
   unlink(files)
-  if (isTRUE(arg$echo)) cat("Writing the matrix with", writer, "...\n")
+  if (isTRUE(arg$verbose)) cat("Writing the matrix with", writer, "...\n")
   home <- getwd()
   on.exit(setwd(home), add = TRUE)
   setwd(arg$solver.dir)
-  rs <- system(paste(s$cmdline), wait = TRUE, ignore.stdout = !isTRUE(arg$echo))
+  rs <- system(paste(s$cmdline), wait = TRUE, ignore.stdout = !isTRUE(arg$verbose))
   if (!identical(as.integer(rs), 0L)) {
     stop(writer, " could not write the matrix (exit ", rs, ").", call. = FALSE)
   }
@@ -245,12 +245,12 @@
 # place, which differ only in who produced the `.sol`.
 .mm_decode_solution <- function(solver.dir, sol, solver = c("auto", "highs",
                                                             "cuopt"),
-                                echo = FALSE) {
+                                verbose = FALSE) {
   solver <- match.arg(solver)
   if (!file.exists(sol)) {
     stop("lang = 'mm': no solution file to decode at ", sol, call. = FALSE)
   }
-  if (isTRUE(echo)) cat("Decoding solution ...\n")
+  if (isTRUE(verbose)) .cat("Decoding solution ...\n")
   # variables substituted at build time are written from their definitions
   # one at a time, never held together with the solved columns
   # a solve stopped at a limit is decoded as it stands; its status is the

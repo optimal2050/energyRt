@@ -37,6 +37,24 @@
 #' @noRd
 .cat2 <- function(...) .cat(..., level = 2L)
 
+# The solve and read paths take their switches through `...` and read them off
+# a list. `echo` was that switch's name until it became `verbose`, so one
+# resolver handles both and settles the default from the option.
+#' @noRd
+.resolve_verbose_arg <- function(arg, default = isVerbose()) {
+  if (!is.null(arg[["echo"]])) {
+    if (is.null(arg[["verbose"]])) {
+      warning("`echo` has been renamed `verbose`: pass `verbose = ` instead. ",
+              "`echo` still works and will be removed in a future release.",
+              call. = FALSE)
+      arg[["verbose"]] <- arg[["echo"]]
+    }
+    arg[["echo"]] <- NULL
+  }
+  if (length(arg[["verbose"]]) == 0L) arg[["verbose"]] <- default
+  arg
+}
+
 # cli's alerts interpolate `{...}` in the CALLING frame, so `.envir` has to be
 # forwarded or a wrapped call would look for the variables in here.
 #' @noRd

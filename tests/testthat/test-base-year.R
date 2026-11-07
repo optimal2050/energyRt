@@ -166,7 +166,7 @@ test_that("the base-year solve is the base year alone, with retirement off", {
   mod <- .by_model(newHorizon(intervals = .by_iv(), base_year = 2025,
                               name = "h25"))
   by <- suppressMessages(solve_base_year(
-    mod, name = "by_solve", solver = solver_options$glpk, echo = FALSE))
+    mod, name = "by_solve", solver = solver_options$glpk, verbose = FALSE))
 
   expect_identical(sort(as.integer(by$scenario@modInp@sets$year)), 2025L)
   expect_true(isTRUE(by$scenario@status$optimal))
@@ -191,7 +191,7 @@ test_that("the carry writes only what the base year decided", {
   mk <- function() .by_model(newHorizon(intervals = .by_iv(),
                                         base_year = 2025, name = "h25"))
   by <- suppressMessages(solve_base_year(
-    mk(), name = "by_solve", solver = solver_options$glpk, echo = FALSE))
+    mk(), name = "by_solve", solver = solver_options$glpk, verbose = FALSE))
   built <- as.data.frame(by$ledger$newcap)
   expect_true(nrow(built) >= 1L)
   expect_true("NEW" %in% built$proc)
@@ -226,7 +226,7 @@ test_that("the carry respects the operating life", {
                                         base_year = 2025, name = "h25"),
                              olife = 10)
   by <- suppressMessages(solve_base_year(
-    mk(), name = "by_solvel", solver = solver_options$glpk, echo = FALSE))
+    mk(), name = "by_solvel", solver = solver_options$glpk, verbose = FALSE))
   skip_if(is.null(by$ledger) || !nrow(as.data.frame(by$ledger$newcap)))
 
   s <- suppressMessages(interpolate_model(mk(), name = "by_prjl",
@@ -273,7 +273,7 @@ test_that("the link survives a save and names a stale source", {
   mk <- function() .by_model(newHorizon(intervals = .by_iv(),
                                         base_year = 2025, name = "h25"))
   by <- suppressMessages(solve_base_year(
-    mk(), name = "by_solves", solver = solver_options$glpk, echo = FALSE))
+    mk(), name = "by_solves", solver = solver_options$glpk, verbose = FALSE))
   s <- suppressMessages(interpolate_model(mk(), name = "by_prjs",
                                           base_year_scenario = by))
   s <- suppressMessages(save_scenario(s, verbose = FALSE))
@@ -299,12 +299,12 @@ test_that("getData(base_year = TRUE) labels its source and refuses vObjective", 
   mk <- function() .by_model(newHorizon(intervals = .by_iv(),
                                         base_year = 2025, name = "h25"))
   by <- suppressMessages(solve_base_year(
-    mk(), name = "by_solveg", solver = solver_options$glpk, echo = FALSE))
+    mk(), name = "by_solveg", solver = solver_options$glpk, verbose = FALSE))
   s <- suppressMessages(interpolate_model(mk(), name = "by_prjg",
                                           base_year_scenario = by))
   s <- suppressMessages(save_scenario(s, verbose = FALSE))
   s <- suppressMessages(solve_scenario(s, solver = solver_options$glpk,
-                                       echo = FALSE))
+                                       verbose = FALSE))
 
   own <- getData(s, "vTechCap", merge = TRUE)
   expect_false("source" %in% names(own))

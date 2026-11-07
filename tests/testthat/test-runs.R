@@ -71,7 +71,7 @@ test_that("a labeled second run coexists and read_solution(run=) switches", {
   expect_equal(scenario_run_info(sol2, "glpk-b")$objective, obj1)
 
   # switch the active run back
-  sol3 <- read_solution(sol2, run = first_lbl, echo = FALSE)
+  sol3 <- read_solution(sol2, run = first_lbl, verbose = FALSE)
   expect_identical(sol3@misc$run, first_lbl)
   expect_identical(sol3@misc$variant %||% "", "")
   expect_true(isTRUE(sol3@status$optimal))
@@ -224,6 +224,6 @@ test_that("interim S2/S3-era trees (runs/default/<solve>/script) are readable", 
   expect_identical(nrow(runs), 1L)
   expect_identical(runs$variant, "default")   # read as a variant of that name
   expect_identical(runs$run, paste0("default/", lbl))
-  sol2 <- read_solution(sol, run = paste0("default/", lbl), echo = FALSE)
+  sol2 <- read_solution(sol, run = paste0("default/", lbl), verbose = FALSE)
   expect_true(isTRUE(sol2@status$optimal))
 })

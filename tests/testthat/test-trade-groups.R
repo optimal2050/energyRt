@@ -55,7 +55,7 @@ tg_model <- function(dem = 50, react = NA_real_) {
 tg_objective <- function(mod, nm) {
   s <- suppressMessages(interpolate_model(mod, name = nm, overwrite = TRUE))
   s <- solve_scenario(s, solver = solver_options$glpk, wait = TRUE,
-                      echo = FALSE)
+                      verbose = FALSE)
   sum(getData(s, name = "vObjective", merge = TRUE)$value)
 }
 

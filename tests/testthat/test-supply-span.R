@@ -115,7 +115,7 @@ test_that("region-partitioned supply is charged, not free", {
   # 2 seasons x demand 2 = 4 units per region; R1 at 15, R2 at 20 -> 140
   mod <- ss_mod(list(list(name = "S1", region = "R1", cost = 15),
                      list(name = "S2", region = "R2", cost = 20)))
-  s <- solve_scenario(ss_interp(mod, "ss_cost"), echo = FALSE)
+  s <- solve_scenario(ss_interp(mod, "ss_cost"), verbose = FALSE)
 
   expect_true(isTRUE(s@status$optimal))
   obj <- as.numeric(getData(s, "vObjective", merge = TRUE)$value[1])

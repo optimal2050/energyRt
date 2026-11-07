@@ -36,10 +36,10 @@ gr_two <- function(name) {
   mod <- sp_tech(c(100, 100, 100), optret = FALSE, name = "gr")
   sc <- interpolate_model(mod, name = name, path = gr_root("scenarios", name))
   suppressMessages(save_scenario(suppressMessages(solve_scenario(
-    sc, solver = solver_options$glpk, run = "runA", echo = FALSE)),
+    sc, solver = solver_options$glpk, run = "runA", verbose = FALSE)),
     verbose = FALSE))
   suppressMessages(save_scenario(suppressMessages(solve_scenario(
-    sc, solver = solver_options$glpk, run = "runB", echo = FALSE)),
+    sc, solver = solver_options$glpk, run = "runB", verbose = FALSE)),
     verbose = FALSE))
 }
 

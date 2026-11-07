@@ -35,7 +35,7 @@ ro_solve <- function(name, ondisk = FALSE) {
   sc <- interpolate_model(mod, name = name, path = ro_root("scenarios", name),
                           ondisk = ondisk)
   suppressMessages(solve_scenario(sc, solver = solver_options$glpk,
-                                  echo = FALSE))
+                                  verbose = FALSE))
 }
 
 test_that("an in-memory scenario does not stream", {
@@ -102,7 +102,7 @@ test_that("a run without solver.csv still reads", {
   unlink(fp(.run_solver_dir(rd), "solver.csv"))
   unlink(fp(.run_solver_dir(rd), "solver"))
   x <- suppressMessages(read_solution(sol, run = sol@misc$run, ondisk = TRUE,
-                                      echo = FALSE))
+                                      verbose = FALSE))
   expect_gt(nrow(as.data.frame(getData(x, "vTechOut", merge = TRUE))), 0L)
 })
 
@@ -123,7 +123,7 @@ test_that("a failed streaming read leaves no store, and spares the old one", {
 
   # a previous good store must survive a failed re-read
   expect_error(suppressMessages(
-    read_solution(sol, run = sol@misc$run, ondisk = TRUE, echo = FALSE)))
+    read_solution(sol, run = sol@misc$run, ondisk = TRUE, verbose = FALSE)))
   expect_true(dir.exists(fp(rd, "modOut", "variables")))
   expect_false(dir.exists(inc))
   back <- suppressMessages(load_scenario(sol@path, env = NULL, verbose = FALSE))
@@ -133,7 +133,7 @@ test_that("a failed streaming read leaves no store, and spares the old one", {
   # and with no previous store, a failure must leave the run NOT imported
   unlink(fp(rd, "modOut"), recursive = TRUE)
   expect_error(suppressMessages(
-    read_solution(sol, run = sol@misc$run, ondisk = TRUE, echo = FALSE)))
+    read_solution(sol, run = sol@misc$run, ondisk = TRUE, verbose = FALSE)))
   expect_false(dir.exists(fp(rd, "modOut", "variables")))
   expect_false(dir.exists(inc))
   art <- scenario_artifacts(sol)
@@ -143,7 +143,7 @@ test_that("a failed streaming read leaves no store, and spares the old one", {
   # and it recovers once the cause is gone
   expect_true(file.rename(bak, lg))
   ok <- suppressMessages(read_solution(sol, run = sol@misc$run, ondisk = TRUE,
-                                       echo = FALSE))
+                                       verbose = FALSE))
   expect_identical(nrow(as.data.frame(getData(ok, "vTechOut", merge = TRUE))),
                    ref)
 })
@@ -166,11 +166,11 @@ test_that("the solver's output/ is untouched by a read, streaming or not", {
   expect_gt(nrow(before), 0L)
 
   again <- suppressMessages(
-    read_solution(sol, run = sol@misc$run, ondisk = TRUE, echo = FALSE))
+    read_solution(sol, run = sol@misc$run, ondisk = TRUE, verbose = FALSE))
   expect_identical(snap(out), before)
 
   again2 <- suppressMessages(
-    read_solution(sol, run = sol@misc$run, ondisk = FALSE, echo = FALSE))
+    read_solution(sol, run = sol@misc$run, ondisk = FALSE, verbose = FALSE))
   expect_identical(snap(out), before)
 
   # and a save does not remove it either

@@ -126,7 +126,7 @@ getScenario.character <- function(name, registry = NULL, run = NULL,
     sc@misc$.accessor_stamp <- stamp
     assign(key, sc, envir = bank)
   }
-  if (!is.null(run)) sc <- read_solution(sc, run = run, echo = FALSE)
+  if (!is.null(run)) sc <- read_solution(sc, run = run, verbose = FALSE)
   sc
 }
 

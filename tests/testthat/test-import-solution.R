@@ -36,7 +36,7 @@ is_unimported <- function(name) {
   mod <- sp_tech(c(100, 100, 100), optret = FALSE, name = "is")
   sc <- interpolate_model(mod, name = name, path = is_root("scenarios", name))
   s <- suppressMessages(solve_scenario(sc, solver = solver_options$glpk,
-                                       read.solution = FALSE, echo = FALSE))
+                                       read.solution = FALSE, verbose = FALSE))
   sv <- suppressMessages(save_scenario(s, verbose = FALSE))
   suppressMessages(load_scenario(sv@path, env = NULL, verbose = FALSE))
 }
@@ -78,7 +78,7 @@ test_that("a recorded objective is used as-is, and peek = FALSE skips output/", 
   mod <- sp_tech(c(100, 100, 100), optret = FALSE, name = "is")
   sc <- interpolate_model(mod, name = "is_rec", path = is_root("scenarios", "is_rec"))
   s <- suppressMessages(solve_scenario(sc, solver = solver_options$glpk,
-                                       echo = FALSE))
+                                       verbose = FALSE))
   t <- scenario_solutions(s)
   expect_identical(t$objective_src, "record")
   expect_equal(t$objective, 300)

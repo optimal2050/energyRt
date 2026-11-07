@@ -113,7 +113,7 @@ test_that("a scenario with no variants, or an unknown sequence, says so", {
   mod <- sp_tech(c(100, 100, 100), optret = FALSE, name = "rq")
   sc <- interpolate_model(mod, name = "rq_plain", path = rq_root("scenarios", "rq_plain"))
   s <- suppressMessages(save_scenario(suppressMessages(solve_scenario(
-    sc, solver = solver_options$glpk, echo = FALSE)), verbose = FALSE))
+    sc, solver = solver_options$glpk, verbose = FALSE)), verbose = FALSE))
   expect_error(read_sequence(s), "no own-problem variants")
 
   live <- suppressMessages(solve_recursive(my_mod(years = 2020:2021, name = "rq3"),

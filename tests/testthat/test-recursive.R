@@ -31,7 +31,7 @@ test_that("recursive reproduces the foresight capacity path (no intertemporal co
   on.exit(set_scenarios_path(old_sp), add = TRUE)
 
   mod <- my_mod(years = yrs, olife = 50L, demand = 1, name = "fe")
-  fore <- solve_scenario(interpolate_model(mod, name = "fe_fs"), echo = FALSE)
+  fore <- solve_scenario(interpolate_model(mod, name = "fe_fs"), verbose = FALSE)
   cap_fore <- my_by_year(fore, "vTechCap", yrs)
 
   res <- solve_recursive(mod, name = "fe", verbose = FALSE)
@@ -221,7 +221,7 @@ test_that("storage capacity carries across steps (three parts, no re-build)", {
   on.exit(set_scenarios_path(old_sp), add = TRUE)
 
   mod <- my_stg_mod(years = yrs, name = "sg")
-  fore <- solve_scenario(interpolate_model(mod, name = "sg_fs"), echo = FALSE)
+  fore <- solve_scenario(interpolate_model(mod, name = "sg_fs"), verbose = FALSE)
   out_fore <- my_by_year(fore, "vStorageOutCap", yrs)
   expect_gt(out_fore[["2020"]], 0) # the fixture really builds storage
 
@@ -244,7 +244,7 @@ test_that("trade capacity carries across steps (region-free family)", {
   on.exit(set_scenarios_path(old_sp), add = TRUE)
 
   mod <- my_trd_mod(years = yrs, name = "tr")
-  fore <- solve_scenario(interpolate_model(mod, name = "tr_fs"), echo = FALSE)
+  fore <- solve_scenario(interpolate_model(mod, name = "tr_fs"), verbose = FALSE)
   cap_fore <- my_by_year(fore, "vTradeCap", yrs)
   expect_gt(cap_fore[["2020"]], 0) # the fixture really builds the link
 

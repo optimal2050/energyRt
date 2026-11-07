@@ -108,7 +108,7 @@ test_that("read_solution(run=) swaps the problem across the boundary", {
   expect_identical(vr_stock(fresh), 50)
 
   # switch to the BASE run: problem (settings + modInp) swaps with it
-  to_base <- read_solution(fresh, run = st$solve_lbl, echo = FALSE)
+  to_base <- read_solution(fresh, run = st$solve_lbl, verbose = FALSE)
   expect_null(to_base@misc$variant)
   expect_equal(vr_obj(to_base), st$obj_base)
   expect_identical(vr_stock(to_base), 100)
@@ -118,7 +118,7 @@ test_that("read_solution(run=) swaps the problem across the boundary", {
 
   # and back to the variant
   to_alt <- read_solution(to_base, run = paste0("low/", st$solve_lbl),
-                          echo = FALSE)
+                          verbose = FALSE)
   expect_identical(to_alt@misc$variant, "low")
   expect_equal(vr_obj(to_alt), st$obj_alt)
   expect_identical(vr_stock(to_alt), 50)

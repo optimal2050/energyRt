@@ -113,7 +113,7 @@ test_that("the dropped process cannot generate from nothing", {
 
   # demand in R1 only -> feasible, and R2 produces nothing at all
   s <- suppressMessages(suppressWarnings(solve_scenario(
-    rg_interp(rg_mod(dem = "R1", name = "rg_s"), "rg_solve"), echo = FALSE)))
+    rg_interp(rg_mod(dem = "R1", name = "rg_s"), "rg_solve"), verbose = FALSE)))
   expect_true(isTRUE(s@status$optimal))
   out <- as.data.frame(getData(s, "vTechOut", merge = TRUE))
   expect_setequal(unique(as.character(out$region)), "R1")

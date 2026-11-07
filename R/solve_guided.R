@@ -152,7 +152,7 @@ guided_windows <- function(horizon, direction = c("backward", "forward"),
     if (!is.null(calendar)) args <- c(args, list(calendar))
     sol <- tryCatch({
       scen_k <- suppressMessages(do.call(interpolate_model, args))
-      solve_scenario(scen_k, solver = solver, echo = FALSE, force = TRUE,
+      solve_scenario(scen_k, solver = solver, verbose = FALSE, force = TRUE,
                      variant = vlab)
     }, error = function(e) e)
     ok <- !inherits(sol, "error") && isTRUE(sol@status$optimal)

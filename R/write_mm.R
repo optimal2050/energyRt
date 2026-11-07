@@ -47,7 +47,7 @@
   op <- options(energyRt.mm_keep_wildcards = .mm_reads_wildcards(),
                 multimod.data_cache_gb = sv0$data_cache_gb %||% 32)
   m <- multimod_from_energyRt(scen, inMemory = isTRUE(sv0$import_in_memory),
-                              verbose = isTRUE(arg$echo))
+                              verbose = isTRUE(arg$verbose))
   options(op)
 
   # The matrix is built block by block and streamed to the file, so the LP
@@ -68,7 +68,7 @@
   wargs <- list(m, fp(arg$solver.dir, "model.mps"),
                 index_dir = arg$solver.dir, format = "parquet",
                 stream = TRUE, presolve = isTRUE(sv$presolve %||% TRUE),
-                verbose = isTRUE(arg$echo))
+                verbose = isTRUE(arg$verbose))
   sub <- .mm_substitute(sv, m)
   if (!is.null(sub)) wargs$substitute <- sub
   do.call(multimod::write_mps, wargs)

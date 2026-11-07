@@ -58,7 +58,7 @@ test_that("a bare read_solution on a loaded scenario uses the manifest default",
   # simulate an object that lost its active-run marker
   back@misc$run <- NULL
   back@misc$variant <- NULL
-  back2 <- read_solution(back, echo = FALSE)
+  back2 <- read_solution(back, verbose = FALSE)
   expect_true(isTRUE(back2@status$optimal))
   expect_true(nzchar(back2@misc$run))
   unlink(p, recursive = TRUE)

@@ -194,7 +194,7 @@ BASE <- solve_model(
   object = HELLO,
   name = "BASE",
   solver = solver_options$glpk,
-  echo = FALSE
+  verbose = FALSE
 )
 ```
 
@@ -343,7 +343,7 @@ TOPIA_SAMPLES <- solve_by_sample(
   name = "TOPIA_SAMPLES",
   samples = SEASON_SAMPLES,
   solver = solver_options$glpk,
-  echo = FALSE,
+  verbose = FALSE,
   verbose = FALSE
 )
 sample_summary(
@@ -395,7 +395,7 @@ if (julia_ready) {
     object = HELLO,
     name = "BASE_JULIA",
     solver = solver_options$julia_highs,
-    echo = FALSE
+    verbose = FALSE
   )
 }
 
@@ -407,7 +407,7 @@ if (pyomo_ready) {
     object = HELLO,
     name = "BASE_PYOMO",
     solver = solver_options$pyomo_cbc,
-    echo = FALSE
+    verbose = FALSE
   )
 }
 ```

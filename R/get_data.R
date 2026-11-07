@@ -343,7 +343,7 @@ getData.scenario <- function(
       }
       for (rid in rids) {
         sc1 <- tryCatch(
-          suppressMessages(read_solution(sc0, run = rid, echo = FALSE,
+          suppressMessages(read_solution(sc0, run = rid, verbose = FALSE,
                                          ondisk = FALSE)),
           error = function(e) {
             stop("getData(run = ): cannot read run '", rid, "' of scenario '",
@@ -1779,14 +1779,14 @@ getObject.en_registry <- function(x, type = NULL, name = NULL, hash = NULL,
         rr <- tryCatch(scenario_runs(obj), error = function(e) NULL)
         if (is.null(rr) || !nrow(rr)) { out[[key]] <- obj; next }
         for (j in seq_len(nrow(rr))) {
-          sc <- tryCatch(read_solution(obj, run = rr$run[j], echo = FALSE),
+          sc <- tryCatch(read_solution(obj, run = rr$run[j], verbose = FALSE),
                          error = function(e) NULL)
           if (is.null(sc)) next
           out[[paste0(key, ":", rr$run[j])]] <- sc
         }
         next
       }
-      obj <- read_solution(obj, run = run, echo = FALSE)
+      obj <- read_solution(obj, run = run, verbose = FALSE)
       key <- paste0(key, ":", run)
     }
     out[[key]] <- obj

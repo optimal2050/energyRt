@@ -17,7 +17,7 @@ setClass("mm_mock_scen", representation(settings = "mm_mock_settings", name = "c
   d <- tempfile("mm_opts_")
   dir.create(d)
   writeLines("", file.path(d, "model.mps"))
-  list(solver.dir = d, echo = FALSE)
+  list(solver.dir = d, verbose = FALSE)
 }
 
 test_that("highs_options are passed to solve_mps() as its control", {

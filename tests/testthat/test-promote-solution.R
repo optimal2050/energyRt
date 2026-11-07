@@ -36,7 +36,7 @@ pr_solved <- function(name, run = "glpk") {
   mod <- sp_tech(c(100, 100, 100), optret = FALSE, name = "pr")
   sc <- interpolate_model(mod, name = name, path = pr_root("scenarios", name))
   suppressMessages(save_scenario(suppressMessages(solve_scenario(
-    sc, solver = solver_options$glpk, run = run, echo = FALSE)),
+    sc, solver = solver_options$glpk, run = run, verbose = FALSE)),
     verbose = FALSE))
 }
 
@@ -83,7 +83,7 @@ test_that("a variant run is refused, with the reason", {
   mod <- sp_tech(c(100, 100, 100), optret = FALSE, name = "pr")
   sc <- interpolate_model(mod, name = "pr_var", path = pr_root("scenarios", "pr_var"))
   s <- suppressMessages(save_scenario(suppressMessages(solve_scenario(
-    sc, solver = solver_options$glpk, variant = "low", echo = FALSE)),
+    sc, solver = solver_options$glpk, variant = "low", verbose = FALSE)),
     verbose = FALSE))
   # a variant carries its own modInp, so lifting only its solution would pair
   # variant results with the base problem's parameters
@@ -165,7 +165,7 @@ test_that("re-promoting a different run replaces the store", {
   s <- suppressMessages(save_scenario(suppressMessages(solve_scenario(
     interpolate_model(sp_tech(c(100, 100, 100), optret = FALSE, name = "pr"),
                       name = "pr_re", path = pr_root("scenarios", "pr_re")),
-    solver = solver_options$glpk, run = "runB", echo = FALSE)),
+    solver = solver_options$glpk, run = "runB", verbose = FALSE)),
     verbose = FALSE))
 
   s <- suppressMessages(promote_solution(s, run = "runA", verbose = FALSE))

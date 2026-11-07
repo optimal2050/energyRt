@@ -34,7 +34,7 @@ tw_scen <- function(name = "tw") {
                                     timeslice = leaf, demand = 2))))
   s <- suppressMessages(suppressWarnings(
     solve_scenario(interpolate_model(mod, name = name, overwrite = TRUE),
-                   echo = FALSE)))
+                   verbose = FALSE)))
   suppressMessages(suppressWarnings(save_scenario(s, verbose = FALSE)))
 }
 

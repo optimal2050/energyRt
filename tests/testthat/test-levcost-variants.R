@@ -603,7 +603,7 @@ lv_solved <- function() {
                 demand = data.frame(demand = 20))))
   suppressMessages(suppressWarnings(
     solve_model(mod, name = "lv_scen", solver = solver_options$glpk,
-                ondisk = FALSE, overwrite = TRUE, echo = FALSE)))
+                ondisk = FALSE, overwrite = TRUE, verbose = FALSE)))
 }
 
 # @covers vTechEac vTechFixom vTechOut depth=S backends=glpk

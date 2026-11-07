@@ -442,7 +442,7 @@ solve_by_sample <- function(object, name = NULL, ...,
                 list(cal_k, path = seq_path, overwrite = TRUE),
                 if (is.null(base)) list() else list(base = base))
       scen_k <- suppressMessages(do.call(interpolate_model, args))
-      solve_scenario(scen_k, solver = solver, echo = FALSE, force = TRUE,
+      solve_scenario(scen_k, solver = solver, verbose = FALSE, force = TRUE,
                      variant = vlab)
     }, error = function(e) e)
 

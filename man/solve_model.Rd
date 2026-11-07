@@ -47,9 +47,9 @@ parameters in memory and unfolded, matching the shape the writers expect.}
 \item{...}{for \code{solve_model()}, arguments are routed to
 \code{\link[=interpolate_model]{interpolate_model()}} (settings / calendar / horizon / model data) or to
 the solver run (\code{solver.dir}, \code{transient}, \code{force}, \code{read.solution},
-\code{wait}, \code{echo}, \code{run}, \code{run.conflict}, \code{n.threads}, ...). For
+\code{wait}, \code{verbose}, \code{run}, \code{run.conflict}, \code{n.threads}, ...). For
 \code{solve_scenario()}, arguments are passed to \code{.executeScenario()}. Set
-\code{echo = FALSE} for a quiet run: it silences both the progress messages
+\code{verbose = FALSE} for a quiet run: it silences both the progress messages
 and the solver's own console output.
 
 \code{run} doubles as the run label: \code{TRUE}/\code{FALSE} keeps its historical

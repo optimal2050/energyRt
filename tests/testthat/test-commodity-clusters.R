@@ -72,7 +72,7 @@ cc_interp <- function(mod, name = "cc_i") {
 
 cc_solve <- function(mod, name) {
   s <- suppressMessages(suppressWarnings(solve_model(
-    mod, name = name, ondisk = FALSE, overwrite = TRUE, echo = FALSE)))
+    mod, name = name, ondisk = FALSE, overwrite = TRUE, verbose = FALSE)))
   inp <- suppressWarnings(getData(s, "vTechInp", merge = TRUE))
   list(obj = getData(s, "vObjective", merge = TRUE)$value[1],
        draw = stats::aggregate(value ~ tech + comm, inp, sum))

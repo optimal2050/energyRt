@@ -181,7 +181,7 @@ test_that("with no trade the per-region objectives add up to the full model", {
   rw_local("add")
   mod <- rw_mod()
   full <- solve_scenario(interpolate_model(mod, name = "rw_full"),
-                         echo = FALSE)
+                         verbose = FALSE)
   o_full <- as.numeric(getData(full, "vObjective", merge = TRUE)$value[1])
 
   br <- solve_by_region(mod, name = "rw_none", verbose = FALSE)
@@ -303,13 +303,13 @@ test_that("each variant keeps its own spatial sample across a reload", {
   row <- rr[rr$variant == first, ][1, ]
   skip_if(is.na(row$run))
 
-  sw <- suppressMessages(read_solution(back, run = row$run, echo = FALSE))
+  sw <- suppressMessages(read_solution(back, run = row$run, verbose = FALSE))
   expect_setequal(as.character(sw@settings@region), br$runs$regions[[1]])
   expect_setequal(as.character(sw@misc$spatial$regions), br$runs$regions[[1]])
   second <- br$runs$region[2]
   row2 <- rr[rr$variant == second, ][1, ]
   skip_if(is.na(row2$run))
-  sw2 <- suppressMessages(read_solution(back, run = row2$run, echo = FALSE))
+  sw2 <- suppressMessages(read_solution(back, run = row2$run, verbose = FALSE))
 
   # The cut shows in each object's DATA, not in get_region():
   # `.scen_build_model()` goes through the internal `.subset_model_regions()`,

@@ -70,7 +70,7 @@ test_that("a solved scenario gives the realized level, map data and comparison",
   EWIN <- rc_tech(); mod <- rc_model(EWIN)
   scen <- suppressMessages(suppressWarnings(
     solve_model(mod, name = "rc_scen", solver = solver_options$glpk,
-                ondisk = FALSE, overwrite = TRUE, echo = FALSE)))
+                ondisk = FALSE, overwrite = TRUE, verbose = FALSE)))
   ctx <- getFromNamespace(".report_context", "energyRt")(EWIN, scenario = scen)
   expect_equal(ctx$level, "realized")
   expect_true(is_geoscale(ctx$geoscale))

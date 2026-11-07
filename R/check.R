@@ -456,7 +456,7 @@ en_check_solve <- function(backends = NULL, timeout = 180) {
   }, add = TRUE)
   setwd(dir)                       # solves land here, never in the user's project
   t0 <- Sys.time()
-  # `echo = FALSE` silences the solver's own console output; the writers print
+  # `verbose = FALSE` silences the solver's own console output; the writers print
   # a little on top of that, so swallow both streams and keep the table clean
   out <- NULL
   invisible(utils::capture.output(type = "message", suppressMessages(
@@ -467,7 +467,7 @@ en_check_solve <- function(backends = NULL, timeout = 180) {
             solve_scenario(scen, name = paste0("en_probe_", backend),
                            solver = solver_options[[preset]],
                            solver.dir = file.path(dir, "run"),
-                           transient = TRUE, wait = TRUE, echo = FALSE))),
+                           transient = TRUE, wait = TRUE, verbose = FALSE))),
           warning = function(w) invokeRestart("muffleWarning")),
         error = function(e) e)
     })))))
