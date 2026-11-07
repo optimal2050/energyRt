@@ -177,7 +177,7 @@ save_scenario <- function(
     if (length(model_ref$added)) stub@data <- object@model@data[model_ref$added]
     object@model <- stub
     if (verbose) {
-      cat("Model '", model_ref$name, "' referenced from the store (",
+      .cat("Model '", model_ref$name, "' referenced from the store (",
           substr(model_ref$hash, 1, 8), "), not embedded\n", sep = "")
     }
   }
@@ -304,7 +304,7 @@ save_scenario <- function(
 
   if (!ondisk_data) {
     if (verbose) {
-      cat("Saving large slots of scenario object",
+      .cat("Saving large slots of scenario object",
         " '", object@name, "' ", "on disk\n",
         sep = ""
       )
@@ -362,7 +362,7 @@ save_scenario <- function(
     .write_problem_swap(object, object@modInp)
   } else {
     if (verbose) {
-      cat("Scenario data already on disk; refreshing the scenario shell ",
+      .cat("Scenario data already on disk; refreshing the scenario shell ",
           "(scen.RData, manifest, registry)\n", sep = "")
     }
     # The data walk is skipped, but a solve AFTER an ondisk interpolation
@@ -461,12 +461,12 @@ save_scenario <- function(
     object@settings@misc[["dataset_ref"]] <- NULL
   }
   object@settings@sourceCode <- sourceCode_full
-  cat("Scenario '", object@name, "' saved in '", object@path, "'\n", sep = "")
+  .cat("Scenario '", object@name, "' saved in '", object@path, "'\n", sep = "")
   dirsize <- dir_size(object@path)
-  cat("Directory size: ", round(dirsize / 1024^2, 2), " MB\n", sep = "")
+  .cat2("Directory size: ", round(dirsize / 1024^2, 2), " MB\n", sep = "")
   object@misc$dirsize <- dirsize
   if (verbose) {
-    cat(sprintf("save_scenario: %.2f sec elapsed\n",
+    .cat2(sprintf("save_scenario: %.2f sec elapsed\n",
                 proc.time()[["elapsed"]] - .t_start))
   }
   return(invisible(object))

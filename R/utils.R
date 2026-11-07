@@ -35,18 +35,18 @@ countdown_timer <- function(
   }
 
   # message("Press Ctrl+C to interrupt the countdown.")
-  cat(start_message)
+  .cat(start_message)
 
   for (i in seq(seconds, 1, by = -1)) {
     # cat(sprintf("\rTime remaining: %2d seconds", i)) # Replace previous line
-    cat(sprintf(count_message, i)) # Replace previous line
+    .cat(sprintf(count_message, i)) # Replace previous line
     flush.console() # Ensure the message is printed immediately
     Sys.sleep(1)
   }
   i <- 0
   # cat("\rTime remaining:  0 seconds\nCountdown complete!\n") # Final message
   # cat(sprintf("\rTime remaining:  0 seconds\n%s\n", end_message)) # Final message
-  cat(sprintf(count_message, i), final_message) # Final message
+  .cat(sprintf(count_message, i), final_message) # Final message
 }
 
 # Example usage

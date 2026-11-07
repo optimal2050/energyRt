@@ -685,13 +685,13 @@ get_gdxlib_path <- function() {
   # the function exports named list of sets and parameters to GDX file
   # stopifnot("gdxrrw" %in% rownames(installed.packages()))
   .check_load_gdxtools()
-  cat(" data.gdx ")
+  .cat2(" data.gdx ")
   nms <- names(dat)
   max_length <- max(nchar(nms))
   x <- list()
   wipe <- ""
   for (i in nms) {
-    cat(wipe, "(", i, ")", rep(" ", max_length - nchar(i) + 1), sep = "")
+    .cat2(wipe, "(", i, ")", rep(" ", max_length - nchar(i) + 1), sep = "")
     wipe <- paste0(rep("\b", max_length + 3), collapse = "")
     .dom <- if (i %in% names(.gdx_parent_domain)) {
       unname(.gdx_parent_domain[i])
@@ -703,10 +703,10 @@ get_gdxlib_path <- function() {
   # gdxrrw::wgdx(gdxName = gdxName, x, squeeze = FALSE)
   # !!!ToDo: add check for NAs
   .gdx("wgdx")(gdxName = gdxName, x, squeeze = FALSE)
-  cat(wipe, sep = "")
-  cat(rep(" ", max_length + 3), sep = "")
-  cat(rep(" ", max_length + 3), sep = "")
-  cat(wipe, wipe, "\b, ", format(object.size(file.size(gdxName)), "auto"),
+  .cat2(wipe, sep = "")
+  .cat2(rep(" ", max_length + 3), sep = "")
+  .cat2(rep(" ", max_length + 3), sep = "")
+  .cat2(wipe, wipe, "\b, ", format(object.size(file.size(gdxName)), "auto"),
       ", ", sep = "")
 }
 
@@ -728,7 +728,7 @@ get_gdxlib_path <- function() {
 
 .write_sqlite_list <- function(dat, sqlFile = "data.db") {
   .check_sqlite()
-  cat(basename(sqlFile), " ", sep = "")
+  .cat2(basename(sqlFile), " ", sep = "")
   tStart <- Sys.time()
   if (file.exists(sqlFile)) file.remove(sqlFile)
   con <- DBI::dbConnect(RSQLite::SQLite(), sqlFile)
@@ -737,7 +737,7 @@ get_gdxlib_path <- function() {
   max_length <- max(nchar(nms))
   wipe <- ""
   for (i in nms) {
-    cat(wipe, "(", i, ")", rep(" ", max_length - nchar(i) + 1), sep = "")
+    .cat2(wipe, "(", i, ")", rep(" ", max_length - nchar(i) + 1), sep = "")
     wipe <- paste0(rep("\b", max_length + 3), collapse = "")
     # cat(wipe, i, rep(" ", 10), sep = "")
     # wipe <- paste0(rep("\b", nchar(i) + 10), collapse = "")
@@ -746,10 +746,10 @@ get_gdxlib_path <- function() {
   DBI::dbDisconnect(con)
   # finf <- file.desc(sqlFile)
   # format(finf["size"])
-  cat(wipe, sep = "")
-  cat(rep(" ", max_length + 3), sep = "")
-  cat(rep(" ", max_length + 3), sep = "")
-  cat(wipe, wipe, "\b, ", format(object.size(file.size(sqlFile)), "auto"),
+  .cat2(wipe, sep = "")
+  .cat2(rep(" ", max_length + 3), sep = "")
+  .cat2(rep(" ", max_length + 3), sep = "")
+  .cat2(wipe, wipe, "\b, ", format(object.size(file.size(sqlFile)), "auto"),
       ", ", sep = "")
   # cat(format(round(Sys.time() - tStart), 1))
 }

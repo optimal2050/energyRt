@@ -24,6 +24,19 @@
 #' @noRd
 .say2 <- function(...) .say(..., level = 2L)
 
+# Progress written to STDOUT. `cat()` and `message()` are not interchangeable:
+# `cat()` goes to stdout and is captured by `capture.output()`, `message()` to
+# stderr. Narration that was written with `cat()` keeps its stream and only
+# gains the gate, so anything capturing it still sees what it did.
+#' @noRd
+.cat <- function(..., level = 1L) {
+  if (isVerbose(level)) cat(...)
+  invisible(NULL)
+}
+
+#' @noRd
+.cat2 <- function(...) .cat(..., level = 2L)
+
 # cli's alerts interpolate `{...}` in the CALLING frame, so `.envir` has to be
 # forwarded or a wrapped call would look for the variables in here.
 #' @noRd

@@ -736,7 +736,7 @@ multimod_import_data <- function(model, scenario, inMemory = scenario@inMemory, 
          "answer without erroring.", call. = FALSE)
   }
 
-  cat("Importing energyRt scenario data...\n")
+  .cat("Importing energyRt scenario data...\n")
   
   # Initialize import log
   import_log <- list()
@@ -767,18 +767,18 @@ multimod_import_data <- function(model, scenario, inMemory = scenario@inMemory, 
   }, scenario_params))
 
   if (length(bounds_names) > 0) {
-    cat("  Processing", length(bounds_names), "bounds parameters...\n")
+    .cat2("  Processing", length(bounds_names), "bounds parameters...\n")
     bounds_result <- process_bounds_with_log(model, scenario_params, bounds_names,
                                             scenario = scenario)
     import_log$bounds <- bounds_result$log
     model <- bounds_result$model
     
     # Report bounds processing
-    cat("    Bound datasets attached:", bounds_result$attached_count, "\n")
+    .cat2("    Bound datasets attached:", bounds_result$attached_count, "\n")
     if (length(bounds_result$missing_targets) > 0) {
-      cat("    Missing target parameters for bounds:\n")
+      .cat("    Missing target parameters for bounds:\n")
       for (nm in names(bounds_result$missing_targets)) {
-        cat("      -", nm, "->", paste(bounds_result$missing_targets[[nm]], collapse = ", "), "\n")
+        .cat2("      -", nm, "->", paste(bounds_result$missing_targets[[nm]], collapse = ", "), "\n")
       }
     }
   }
@@ -794,7 +794,7 @@ multimod_import_data <- function(model, scenario, inMemory = scenario@inMemory, 
   # Export to CSV if requested
   if (!is.null(log_file)) {
     multimod::export_import_log(import_log, log_file)
-    cat("  Import log exported to:", log_file, "\n")
+    .cat("  Import log exported to:", log_file, "\n")
   }
   
   # Print summary
@@ -885,8 +885,8 @@ link_scenario_data_with_log <- function(model, scenario, inMemory = FALSE) {
     }
   }
   
-  cat("  Mappings linked: ", sum(sapply(mapping_log, function(x) x$status == "linked")), "\n")
-  cat("  Parameters linked:", sum(sapply(param_log, function(x) x$status == "linked")), "\n")
+  .cat2("  Mappings linked: ", sum(sapply(mapping_log, function(x) x$status == "linked")), "\n")
+  .cat2("  Parameters linked:", sum(sapply(param_log, function(x) x$status == "linked")), "\n")
   
   list(
     model = model,
@@ -909,7 +909,7 @@ link_scenario_data_with_log <- function(model, scenario, inMemory = FALSE) {
 #'
 #' @keywords internal
 populate_sets_with_log <- function(model, scenario) {
-  cat("Populating sets from energyRt scenario...\n")
+  .cat("Populating sets from energyRt scenario...\n")
   
   # Initialize set data storage and log
   set_members <- list()
@@ -922,7 +922,7 @@ populate_sets_with_log <- function(model, scenario) {
   
   # Scan through scenario parameters
   param_names <- names(scenario@modInp@parameters)
-  cat("  Scanning", length(param_names), "parameters...\n")
+  .cat2("  Scanning", length(param_names), "parameters...\n")
   
   for (pname in param_names) {
     en_param <- scenario@modInp@parameters[[pname]]
@@ -953,7 +953,7 @@ populate_sets_with_log <- function(model, scenario) {
       ds <- tryCatch(
         multimod::load_arrow_data(path, collect = FALSE),
         error = function(e) {
-          cat("  Warning: could not load", pname, "-", conditionMessage(e), "\n")
+          .cat("  Warning: could not load", pname, "-", conditionMessage(e), "\n")
           NULL
         }
       )
@@ -996,7 +996,7 @@ populate_sets_with_log <- function(model, scenario) {
     if (length(members) > 0) {
       model$sets[[set_name]]$data <- sort(members)
       n_populated <- n_populated + 1
-      cat("  ", set_name, ":", length(members), "members\n")
+      .cat2("  ", set_name, ":", length(members), "members\n")
     }
     
     log_entries[[set_name]] <- list(
@@ -1009,7 +1009,7 @@ populate_sets_with_log <- function(model, scenario) {
     )
   }
   
-  cat("Populated", n_populated, "of", length(model$sets), "sets\n")
+  .cat("Populated", n_populated, "of", length(model$sets), "sets\n")
   
   list(
     model = model,
