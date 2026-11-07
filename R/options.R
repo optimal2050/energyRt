@@ -297,6 +297,152 @@ options::define_option(
   default = 15L
 )
 
+# Interpolation ###############################################################
+
+options::define_option(
+  "fx_equ",
+  desc = paste(
+    "Write an `fx` bound as one equality row rather than a matched pair of",
+    "`lo`/`up` rows."
+  ),
+  default = TRUE
+)
+
+options::define_option(
+  "parent_levels",
+  desc = paste(
+    "Keep parameters at a parent geoframe or timeframe alongside the finest",
+    "level, so a coarse declaration stays readable after interpolation."
+  ),
+  default = FALSE
+)
+
+options::define_option(
+  "on_missing_input",
+  desc = paste(
+    "What interpolation does when a process names an input commodity the",
+    "model does not declare: \"stop\", \"warn\" or \"ignore\"."
+  ),
+  default = "stop"
+)
+
+options::define_option(
+  "threads",
+  desc = paste(
+    "Threads for the data.table operations interpolation runs. `0` means",
+    "data.table's own default, which is half the physical cores."
+  ),
+  default = 0L
+)
+
+options::define_option(
+  "map_rules",
+  desc = paste(
+    "Build mapping parameters from the declared rules rather than the",
+    "hand-written builders."
+  ),
+  default = TRUE
+)
+
+options::define_option(
+  "map_rules_verify",
+  desc = paste(
+    "Diagnostic: build each mapping BOTH ways and compare, which is slow and",
+    "is for checking a rule change rather than for normal use."
+  ),
+  default = FALSE
+)
+
+options::define_option(
+  "base_maps",
+  desc = paste(
+    "Diagnostic: keep the mapping tables a base interpolation produced, so a",
+    "derived scenario's maps can be compared against them."
+  ),
+  default = FALSE
+)
+
+options::define_option(
+  "base_maps_verify",
+  desc = "Diagnostic: compare a derived scenario's maps against the base's.",
+  default = FALSE
+)
+
+options::define_option(
+  "model_checks_stop",
+  desc = paste(
+    "Treat a model consistency check as an error instead of a warning.",
+    "A declaration that cannot bind is a reason to warn, not a reason to",
+    "refuse to build, so this is off by default."
+  ),
+  default = FALSE
+)
+
+options::define_option(
+  "mm_keep_wildcards",
+  desc = paste(
+    "Keep wildcard (all-NA) key rows when importing a scenario into the",
+    "matrix backend, instead of expanding them to their members."
+  ),
+  default = FALSE
+)
+
+# Stores ######################################################################
+
+options::define_option(
+  "save_mode",
+  desc = paste(
+    "How a saved scenario carries its model: \"ref\" references the model in",
+    "its own store, \"embed\" writes a copy inside the scenario."
+  ),
+  default = "ref"
+)
+
+options::define_option(
+  "ondisk_min_rows",
+  desc = paste(
+    "Smallest table that is written to its own file when a scenario is saved",
+    "on disk; anything shorter stays in the scenario shell."
+  ),
+  default = 1e5
+)
+
+options::define_option(
+  "param_ref_min_rows",
+  desc = paste(
+    "Smallest parameter table that is referenced from a base scenario rather",
+    "than copied into a derived one."
+  ),
+  default = 1e6
+)
+
+options::define_option(
+  "shell_max_mb",
+  desc = paste(
+    "Size at which a scenario shell is reported as carrying data it should",
+    "have written to disk. Megabytes."
+  ),
+  default = 256
+)
+
+options::define_option(
+  "lazy_hash",
+  desc = paste(
+    "Hash a stored object only when its size or timestamp changed. `FALSE`",
+    "hashes on every save."
+  ),
+  default = TRUE
+)
+
+options::define_option(
+  "mem_gc_full",
+  desc = paste(
+    "Run a full garbage collection before each memory reading in the",
+    "operation log. Accurate and slow; the default reads the quick probe."
+  ),
+  default = FALSE
+)
+
 # Reporting ###################################################################
 
 options::define_option(

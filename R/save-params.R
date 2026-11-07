@@ -33,8 +33,8 @@
 .param_source_classes <- c(pWeather = "weather", pDemand = "demand")
 
 .param_ref_min_rows <- function(source = FALSE) {
-  if (source) return(getOption("energyRt.ondisk_min_rows", 1e5))
-  getOption("energyRt.param_ref_min_rows", 1e6)
+  if (source) return(options::opt("ondisk_min_rows"))
+  options::opt("param_ref_min_rows")
 }
 
 #' Is a parameter's table one to reference rather than copy?

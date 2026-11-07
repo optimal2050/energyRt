@@ -83,7 +83,7 @@
 # which is dispatched as `f(scen, fmp)` and has no argument channel.
 #' @noRd
 .parent_levels_active <- function() {
-  .parent_levels_resolve(getOption("energyRt.parent_levels", FALSE))
+  .parent_levels_resolve(options::opt("parent_levels"))
 }
 
 #' Does this variable get parent rows in the interpolation in progress?

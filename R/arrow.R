@@ -335,7 +335,7 @@ save_scenario <- function(
       path = object@path,
       format = format,
       verbose = verbose,
-      min_rows = getOption("energyRt.ondisk_min_rows", 1e5)
+      min_rows = options::opt("ondisk_min_rows")
     )
     if (!is.null(mi)) {
       object@modInp <- obj2disk(
@@ -1694,7 +1694,7 @@ obj2mem <- function(object, verbose = isVerbose()) {
 #' @keywords internal
 #' @noRd
 .check_shell_size <- function(object, path) {
-  lim <- suppressWarnings(as.numeric(getOption("energyRt.shell_max_mb", 256)))
+  lim <- suppressWarnings(as.numeric(options::opt("shell_max_mb")))
   if (is.na(lim) || !is.finite(lim)) return(invisible(NULL))
   mb <- file.size(path) / 2^20
   if (is.na(mb) || mb <= lim) return(invisible(NULL))

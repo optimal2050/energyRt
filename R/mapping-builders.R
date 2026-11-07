@@ -447,7 +447,7 @@ map_mCommReg <- function(scen, fmp) {
       paste(capture.output(print(comm_region_dem_check)), collapse = "\n   "),
       "\nThe model will be infeasible unless these commodities are supplied.\n"
     )
-    if (isTRUE(getOption("energyRt.model_checks_stop", FALSE))) {
+    if (isTRUE(options::opt("model_checks_stop"))) {
       stop(msg, call. = FALSE)
     } else {
       warning(msg, call. = FALSE)
@@ -674,11 +674,11 @@ map_meqBalFx <- function(scen, fmp) .cjoin(scen, "meqBalFx", fmp)
 map_meqTechAfLo     <- function(scen, fmp) {
   .waf_timeframe_check(scen)
   scen <- .weather_lo_default(scen, "mTechWeatherAfLo", "pTechAf", "mvTechAct", "tech")
-  if (isTRUE(getOption("energyRt.fx_equ", TRUE))) return(.tech_af_fx_maps(scen, fmp))
+  if (isTRUE(options::opt("fx_equ"))) return(.tech_af_fx_maps(scen, fmp))
   .set_cells_rules(.cjoin(scen, "meqTechAfLo", fmp), "meqTechAfLo")
 }
 map_meqTechAfUp     <- function(scen, fmp) {
-  if (isTRUE(getOption("energyRt.fx_equ", TRUE))) return(scen)
+  if (isTRUE(options::opt("fx_equ"))) return(scen)
   .set_cells_rules(.cjoin(scen, "meqTechAfUp", fmp), "meqTechAfUp")
 }
 # built together with meqTechAfLo / meqTechAfUp by .tech_af_fx_maps()
@@ -697,10 +697,10 @@ map_meqTechAfFx     <- function(scen, fmp) scen
 # (which then checks the cell decision against the hourly build), the maps
 # are built per timeslice.
 .tech_af_fx_maps <- function(scen, fmp) {
-  if (isTRUE(scen@misc$cells_maps) && isTRUE(getOption("energyRt.map_rules", TRUE))) {
+  if (isTRUE(scen@misc$cells_maps) && isTRUE(options::opt("map_rules"))) {
     cm <- .tech_af_cells(scen)
     if (!is.null(cm)) {
-      if (isTRUE(getOption("energyRt.map_rules_verify", FALSE))) {
+      if (isTRUE(options::opt("map_rules_verify"))) {
         out <- .tech_af_fx_maps_hourly(scen, fmp)
         .tech_af_cells_verify(out, cm)
         return(out)
@@ -1329,7 +1329,7 @@ map_mTechAfcUp     <- function(scen, fmp) scen
 }
 
 .fx_split <- function(scen, f, fmp) {
-  if (!isTRUE(getOption("energyRt.fx_equ", TRUE))) return(scen)
+  if (!isTRUE(options::opt("fx_equ"))) return(scen)
   pl <- scen@modInp@parameters[[f$lo]]; pu <- scen@modInp@parameters[[f$up]]
   if (is.null(pl) || is.null(pu) || is.null(scen@modInp@parameters[[f$fx]])) return(scen)
   lo <- .gds(scen, f$lo); up <- .gds(scen, f$up)

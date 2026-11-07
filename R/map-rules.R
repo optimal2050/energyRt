@@ -128,8 +128,8 @@
 # Rules written without their table: on with the map rules, off in verify
 # mode, where the builders write the table too and the strip compares them.
 .rules_direct <- function() {
-  isTRUE(getOption("energyRt.map_rules", TRUE)) &&
-    !isTRUE(getOption("energyRt.map_rules_verify", FALSE))
+  isTRUE(options::opt("map_rules")) &&
+    !isTRUE(options::opt("map_rules_verify"))
 }
 
 # a map defined by its rule alone: its table holds no rows
@@ -176,10 +176,10 @@
 # keeps the tables. `maps`: only these (the largest go once their last
 # table reader is done).
 .strip_rule_tables <- function(scen, verbose = FALSE, maps = NULL) {
-  if (!isTRUE(getOption("energyRt.map_rules", TRUE))) return(scen)
+  if (!isTRUE(options::opt("map_rules"))) return(scen)
   nms <- .rule_params(scen)
   if (!is.null(maps)) nms <- intersect(nms, maps)
-  verify <- isTRUE(getOption("energyRt.map_rules_verify", FALSE))
+  verify <- isTRUE(options::opt("map_rules_verify"))
   for (nm in nms) {
     p <- scen@modInp@parameters[[nm]]
     if (verify) .verify_map_rule(p, nm)

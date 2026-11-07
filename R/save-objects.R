@@ -361,7 +361,7 @@ save_model <- function(
   dir.create(path, recursive = TRUE, showWarnings = FALSE)
   # thin the big data slots into parquet next to the manifest
   object <- obj2disk(object, path = path, format = format, verbose = verbose,
-                     min_rows = getOption("energyRt.ondisk_min_rows", 1e5))
+                     min_rows = options::opt("ondisk_min_rows"))
   object@misc$hash <- h
   # obj2disk records the path only when it wrote data slots; with everything
   # referenced there is nothing to write, so record it explicitly
@@ -508,7 +508,7 @@ save_model <- function(
 # decision needs it: saving onto a sealed entry, comparing with the sealed
 # versions of a name (reference or copy), and sealing.
 # options(energyRt.lazy_hash = FALSE) hashes every save.
-.lazy_hash <- function() isTRUE(getOption("energyRt.lazy_hash", TRUE))
+.lazy_hash <- function() isTRUE(options::opt("lazy_hash"))
 
 .save_id <- function() {
   paste0("u", format(Sys.time(), "%Y%m%d%H%M%S"),
@@ -531,7 +531,7 @@ save_model <- function(
 # SEALED version in its store, copied in otherwise; `full`: every component is
 # copied in. Project default: options(energyRt.save_mode = "ref").
 .save_mode <- function(mode = NULL) {
-  mode <- mode %||% getOption("energyRt.save_mode", "ref")
+  mode <- mode %||% options::opt("save_mode")
   match.arg(as.character(mode)[1], c("ref", "full"))
 }
 

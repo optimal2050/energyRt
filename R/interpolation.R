@@ -68,8 +68,8 @@
 #'   `vOutTot` / `vInpTot` carry their parent rows unconditionally and are not
 #'   affected: `eqOutTot` / `eqInpTot` are written against them.
 #'
-#'   Defaults to `getOption("energyRt.parent_levels", FALSE)`, so a whole run or
-#'   test suite can be switched in one place.
+#'   Defaults to the `energyRt.parent_levels` option, so a whole run or test
+#'   suite can be switched in one place.
 #' @param fx_equ logical; write a bound whose two sides coincide (`.fx`, or
 #'   `.lo == .up`, with the same weather factors) as one equality row
 #'   (`eq<Family>Fx`) instead of a pair of inequalities (`eq<Family>Lo` +
@@ -86,7 +86,7 @@
 #'   declared in a region where one of its input commodities has no source.
 #'   `"stop"` names the cells; `"warn"` drops them, as is always done for
 #'   processes that could only be built new. Defaults to
-#'   `getOption("energyRt.on_missing_input", "stop")`.
+#'   the `energyRt.on_missing_input` option.
 #' @param validate logical; run [validate_scenario_parameters()] after
 #'   interpolation (schema, duplicate keys, map/parameter coverage, missing
 #'   governing constraints, calendar chronology).
@@ -176,11 +176,9 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
                        fold = FALSE, sparse = TRUE, prune = TRUE,
                        validate = TRUE, code = NULL, kvl = FALSE,
                        boundary_prices = NULL, .prefilter = FALSE,
-                       parent_levels = getOption("energyRt.parent_levels",
-                                                 FALSE),
-                       fx_equ = getOption("energyRt.fx_equ", TRUE),
-                       on_missing_input = getOption("energyRt.on_missing_input",
-                                                    "stop"),
+                       parent_levels = options::opt("parent_levels"),
+                       fx_equ = options::opt("fx_equ"),
+                       on_missing_input = options::opt("on_missing_input"),
                        check = FALSE,
                        verbose = isVerbose(), .reuse = NULL) {
   # which build arguments the caller set (read before any is reassigned)
@@ -194,21 +192,21 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   .interp_stages_reset()
   # data.table defaults to half the logical cores; interpolation is join-heavy
   # enough to use them all. `options(energyRt.threads = n)` overrides.
-  .dt_prev <- data.table::setDTthreads(getOption("energyRt.threads", 0L))
+  .dt_prev <- data.table::setDTthreads(options::opt("threads"))
   on.exit(data.table::setDTthreads(.dt_prev), add = TRUE)
   # The mapping builders are dispatched as `f(scen, fmp)` from a registry, so
   # there is no argument channel into them. Publish the resolved setting as the
   # option they read, for this call only -- the same borrow-and-restore shape as
   # `setDTthreads()` above.
   parent_levels <- .parent_levels_resolve(parent_levels)
-  .pl_prev <- getOption("energyRt.parent_levels", FALSE)
+  .pl_prev <- options::opt("parent_levels")
   options(energyRt.parent_levels = parent_levels)
   on.exit(options(energyRt.parent_levels = .pl_prev), add = TRUE)
-  .fx_prev <- getOption("energyRt.fx_equ", TRUE)
+  .fx_prev <- options::opt("fx_equ")
   options(energyRt.fx_equ = isTRUE(fx_equ))
   on.exit(options(energyRt.fx_equ = .fx_prev), add = TRUE)
   on_missing_input <- match.arg(on_missing_input, c("stop", "warn"))
-  .mi_prev <- getOption("energyRt.on_missing_input", "stop")
+  .mi_prev <- options::opt("on_missing_input")
   options(energyRt.on_missing_input = on_missing_input)
   on.exit(options(energyRt.on_missing_input = .mi_prev), add = TRUE)
   # An interpolated scenario is its own base: its tables are reused and what
@@ -5852,7 +5850,7 @@ setMethod("interpolate", signature(object = "scenario"),
 # The new processes by class, or NULL when the base's maps cannot be reused:
 # a folded base, a sample, or another closure.
 .b2_start <- function(scen, base) {
-  if (!isTRUE(getOption("energyRt.base_maps", FALSE))) return(NULL)
+  if (!isTRUE(options::opt("base_maps"))) return(NULL)
   if (length(base@status$folded %||% character())) return(NULL)
   if (!setequal(as.character(scen@modInp@sets$timeslice),
                 as.character(base@modInp@sets$timeslice)) ||
@@ -5935,7 +5933,7 @@ setMethod("interpolate", signature(object = "scenario"),
 # also builds the recipe in full and stops on a difference.
 .b2_build <- function(scen, base, b2, recipe, fmp) {
   pm <- .b2_proc_maps(base, recipe)
-  full <- if (isTRUE(getOption("energyRt.base_maps_verify", FALSE))) {
+  full <- if (isTRUE(options::opt("base_maps_verify"))) {
     build_mappings(scen, fmp = fmp, recipes = recipe)
   }
   if (length(pm)) {

@@ -558,7 +558,7 @@ convert_parameter <- function(en_param, orig_param = NULL, inMemory = FALSE,
   # the matrix route looks numeric parameters up on their explicit columns
   # (multimod's wildcard lookup), so their folded rows are passed as they are;
   # maps, and every other multimod writer, still need them expanded
-  if (isTRUE(getOption("energyRt.mm_keep_wildcards", FALSE)) &&
+  if (isTRUE(options::opt("mm_keep_wildcards")) &&
       as.character(en_param@type) %in% c("numpar", "bounds")) {
     return(data)
   }
@@ -728,7 +728,7 @@ multimod_import_data <- function(model, scenario, inMemory = scenario@inMemory, 
   # with no scenario to resolve membership against, so it would read the
   # wildcard rows back and silently drop them on the join.
   if (!isTRUE(inMemory) && .scenario_is_folded(scenario) &&
-      !isTRUE(getOption("energyRt.mm_keep_wildcards", FALSE))) {
+      !isTRUE(options::opt("mm_keep_wildcards"))) {
     stop("This scenario was interpolated with fold = TRUE, so its parameters ",
          "carry wildcard (NA) index values that must be expanded on read.\n",
          "  Pass inMemory = TRUE to multimod_import_data(); the lazy path ",
@@ -1721,7 +1721,7 @@ as_multimod.scenario <- function(x, ...) {
 # must expand? Numeric parameters and bounds pass folded on the matrix route
 # (`energyRt.mm_keep_wildcards`); maps never carry them after interpolation.
 .has_wildcard_param <- function(en_param) {
-  if (isTRUE(getOption("energyRt.mm_keep_wildcards", FALSE)) &&
+  if (isTRUE(options::opt("mm_keep_wildcards")) &&
       as.character(en_param@type) %in% c("numpar", "bounds")) return(FALSE)
   fi <- en_param@misc$fold_info
   !is.null(fi) && length(fi) > 0

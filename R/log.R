@@ -29,7 +29,7 @@
   # `reset = TRUE` resets the heap high-water mark, so the NEXT probe's
   # `peak_mb` covers only the interval since this call (per-stage peaks).
   g <- tryCatch(gc(verbose = FALSE, reset = reset,
-                   full = isTRUE(getOption("energyRt.mem_gc_full", FALSE))),
+                   full = isTRUE(options::opt("mem_gc_full"))),
                 error = function(e) NULL)
   rss <- .en_rss()
   if (is.null(g)) {
