@@ -461,9 +461,9 @@ save_scenario <- function(
     object@settings@misc[["dataset_ref"]] <- NULL
   }
   object@settings@sourceCode <- sourceCode_full
-  .cat("Scenario '", object@name, "' saved in '", object@path, "'\n", sep = "")
   dirsize <- dir_size(object@path)
-  .cat2("Directory size: ", round(dirsize / 1024^2, 2), " MB\n", sep = "")
+  .say_written(paste0("Scenario '", object@name, "'"), object@path,
+               bytes = dirsize)
   object@misc$dirsize <- dirsize
   if (verbose) {
     .cat2(sprintf("save_scenario: %.2f sec elapsed\n",

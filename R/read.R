@@ -756,9 +756,9 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
     scen@modOut <- setObjPath(scen@modOut, path = .stream_final)
     scen@modOut <- mark_ondisk(scen@modOut)
     if (arg$verbose) {
-      .say("Solution written to '", .stream_final, "'. The scenario shell ",
-              "still has to be saved: save_scenario() records it, and until ",
-              "then a reload will not see the solution.")
+      .say_written("Solution", .stream_final)
+      .say("The scenario shell still has to be saved: save_scenario() ",
+           "records it, and until then a reload will not see the solution.")
     }
   }
   if (scen@modOut@stage == "solved") {

@@ -37,6 +37,33 @@
 #' @noRd
 .cat2 <- function(...) .cat(..., level = 2L)
 
+# An action that puts something on disk says so once, in one shape:
+#
+#   Report written to <path>
+#   Scenario 'BASE' written to <path>  (12 files, 3.4 MB)
+#
+# One emitter so the wording cannot drift between writers -- the same event was
+# announced four different ways ("saved in", "written to", "Solution written
+# to") before this. `what` names the thing and may carry its name or hash;
+# `n`/`bytes` are the optional parenthetical.
+#' @noRd
+.say_written <- function(what, path, n = NULL, bytes = NULL, level = 1L,
+                         verbose = NULL) {
+  on <- if (is.null(verbose)) isVerbose(level) else isTRUE(verbose)
+  if (!on) return(invisible(NULL))
+  extra <- character()
+  if (!is.null(n) && length(n) == 1L && !is.na(n)) {
+    extra <- c(extra, paste0(n, " file", if (!identical(as.integer(n), 1L)) "s"))
+  }
+  if (!is.null(bytes) && length(bytes) == 1L && !is.na(bytes)) {
+    extra <- c(extra, format(structure(bytes, class = "object_size"),
+                             units = "auto"))
+  }
+  message(what, " written to ", path,
+          if (length(extra)) paste0("  (", paste(extra, collapse = ", "), ")"))
+  invisible(NULL)
+}
+
 # The solve and read paths take their switches through `...` and read them off
 # a list. `echo` was that switch's name until it became `verbose`, so one
 # resolver handles both and settles the default from the option.

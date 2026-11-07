@@ -932,7 +932,7 @@ setMethod(
         ))
       )
 
-      .say("Report written to: ", fout)
+      .say_written("Report", fout)
       out_files <- c(out_files, fout)
     }
 
@@ -1176,7 +1176,7 @@ Levelized cost section will be omitted.")
           render_dots
         ))
       )
-      .say("Report written to: ", fout)
+      .say_written("Report", fout)
       out_files <- c(out_files, fout)
     }
 
@@ -1414,7 +1414,7 @@ Levelized cost section will be omitted.")
              intermediates_dir = tempfile("report_int_"), quiet = TRUE),
         render_dots))
     )
-    .say("Report written to: ", fout)
+    .say_written("Report", fout)
     out_files <- c(out_files, fout)
   }
   if (!is.null(key)) {

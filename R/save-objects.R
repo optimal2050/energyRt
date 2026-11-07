@@ -398,7 +398,7 @@ save_model <- function(
     object@config@misc[["dataset_ref"]] <- NULL
   }
   if (verbose) {
-    cat("Model '", object@name, "' (", h8, ") saved in '", path, "'\n", sep = "")
+    .say_written(paste0("Model '", object@name, "' (", h8, ")"), path)
   }
 
   if (isTRUE(registry)) {
@@ -1419,8 +1419,8 @@ save_repository <- function(
     repo@data[[ob]] <- o
   }
   if (verbose) {
-    cat("Repository '", repo@name, "' (", h8, ") saved in '", path, "'\n",
-        sep = "")
+    .say_written(paste0("Repository '", repo@name, "' (", h8, ")"),
+                 path)
   }
 
   if (isTRUE(registry)) {
@@ -1977,8 +1977,8 @@ save_dataset <- function(
     .lifecycle_carry(prev)
   ), mf_path)
   if (verbose) {
-    cat("Dataset '", name, "' (", h8, ", ", kind, ") saved in '", path,
-        "'\n", sep = "")
+    .say_written(paste0("Dataset '", name, "' (", h8, ", ", kind, ")"),
+                 path)
   }
 
   if (isTRUE(registry)) {
