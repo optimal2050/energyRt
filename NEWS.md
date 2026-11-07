@@ -396,6 +396,14 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* **A constraint's terms move with it.** `@lhs` is a list, so no slot loop
+  reached it: aggregating regions moved a constraint's row domain and its
+  right-hand side but left each term's coefficients, and the regions it sums
+  over, naming regions that had been merged away -- which then matched
+  nothing. A coefficient that differs across the merged regions is refused,
+  because the merged one would have to be weighted by the variable it
+  multiplies, which is not known before the solve.
+
 * **An object with no size of its own is weighted by the scale.** Aggregating
   regions took a plain mean wherever the object carried no capacity to weight
   by -- a weather profile has none -- so every region counted equally,

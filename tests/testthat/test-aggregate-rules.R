@@ -185,3 +185,43 @@ test_that("a storage self-discharge is copied, not averaged", {
   # it is raised to the slice duration, so the honest merge is geometric
   expect_error(ar_agg(c(ar_base(), list(mk(c(0.99, 0.90))))), "stgeff")
 })
+
+# --- constraint terms -------------------------------------------------------
+# `@lhs` is a list, so no slot loop reaches it: before the `constraint` method
+# a region-keyed coefficient survived aggregation naming regions that had been
+# merged away, and matched nothing at interpolation.
+
+ar_cns <- function(coef) {
+  newConstraint(
+    "CAP", eq = "<=",
+    for.each = data.frame(region = c("R1", "R2")),
+    rhs = data.frame(region = c("R1", "R2"), rhs = c(40, 60)), defVal = Inf,
+    term1 = list(variable = "vTechCap",
+                 for.sum = list(tech = "ETEC", region = c("R1", "R2")),
+                 mult = data.frame(region = c("R1", "R2"), value = coef)))
+}
+
+test_that("a term's coefficients and regions move with the constraint", {
+  skip_if_no_geoscales()
+  agg <- ar_agg(c(ar_base(), list(ar_cns(c(2, 2)))))
+  o <- agg@data[[1]]@data$CAP
+  expect_equal(o@rhs$rhs, 100)                      # the budget adds
+  expect_equal(o@lhs[[1]]@mult$region, "G1")        # the coefficient moves
+  expect_equal(o@lhs[[1]]@mult$value, 2)            # and is kept, not averaged
+  expect_equal(o@lhs[[1]]@for.sum$region, "G1")     # so does what it sums over
+})
+
+test_that("coefficients that differ across merged regions are refused", {
+  skip_if_no_geoscales()
+  expect_error(ar_agg(c(ar_base(), list(ar_cns(c(1, 2))))), "coefficient differs")
+})
+
+test_that("resolve_conflicts averages a differing coefficient", {
+  skip_if_no_geoscales()
+  mod <- setGeoscale(ar_model(c(ar_base(), list(ar_cns(c(1, 2))))), ar_geoscale())
+  expect_warning(
+    agg <- aggregate_model_regions(mod, level = "grp", verbose = FALSE,
+                                   resolve_conflicts = "force"),
+    "coefficient differs")
+  expect_equal(agg@data[[1]]@data$CAP@lhs[[1]]@mult$value, 1.5)
+})

@@ -88,3 +88,67 @@ setMethod(
     }
     object
   })
+
+#' Remap the key columns of a summand's `mult`, keeping its coefficients
+#'
+#' A coefficient that differs across the regions being merged has no merged
+#' form: the constraint reads `sum(m[r] * x[r])`, so the merged coefficient
+#' would have to be `m` weighted by the variable itself, which is not known
+#' before the solve. Equal coefficients pass through; a difference stops.
+#' @noRd
+.agg_summand_mult <- function(d, gs, level, resolve = "stop", what = "") {
+  keys <- intersect(c("region", "src", "dst"), names(d))
+  if (!length(keys) || !nrow(d)) return(d)
+  for (k in keys) d[[k]] <- .agg_map_codes(d[[k]], gs, level)
+  d <- d[!is.na(d[[keys[1]]]), , drop = FALSE]
+  if (!nrow(d) || !"value" %in% names(d)) return(d)
+  g <- interaction(d[keys], drop = TRUE)
+  bad <- names(which(vapply(split(d$value, g),
+                            function(z) length(unique(z)) > 1L, logical(1))))
+  if (length(bad)) {
+    msg <- paste0(what, ": the coefficient differs across the regions merged ",
+                  "into ", paste(bad, collapse = ", "))
+    if (identical(resolve, "stop")) {
+      stop(msg, ".\nA merged coefficient would have to be weighted by the ",
+           "variable it multiplies, which is not known before the solve. ",
+           "Declare one coefficient for the group, or pass ",
+           "`resolve_conflicts`.", call. = FALSE)
+    }
+    warning(msg, ".\nResolved by taking the mean.", call. = FALSE)
+  }
+  out <- stats::aggregate(list(value = d$value), by = as.list(d[keys]),
+                          FUN = function(z) mean(z, na.rm = TRUE))
+  out[, c(keys, "value"), drop = FALSE]
+}
+
+#' @noRd
+setMethod(
+  "recast_object", "constraint",
+  function(object, scale, target, source = NULL,
+           as = c("clusters", "objects", "merge", "split"),
+           rules = NULL, weight = NULL, regions = NULL, suffix = NULL,
+           resolve_conflicts = FALSE) {
+    as <- match.arg(as)
+    # `@for.each` and `@rhs` are data.frames the default method already moves
+    object <- callNextMethod()
+    mode <- .agg_resolve_mode(resolve_conflicts)
+    # `@lhs` is a LIST, so no slot loop reaches it: a term's coefficients and
+    # the regions it sums over would otherwise survive naming regions that
+    # have been merged away.
+    for (i in seq_along(object@lhs)) {
+      s <- object@lhs[[i]]
+      if (is.data.frame(s@mult) && nrow(s@mult)) {
+        s@mult <- .agg_summand_mult(
+          s@mult, scale, target, mode,
+          paste0("constraint '", object@name, "' term ", i))
+      }
+      for (d in intersect(names(s@for.sum), c("region", "src", "dst"))) {
+        v <- s@for.sum[[d]]
+        if (is.character(v) && length(v)) {
+          s@for.sum[[d]] <- unique(stats::na.omit(.agg_map_codes(v, scale, target)))
+        }
+      }
+      object@lhs[[i]] <- s
+    }
+    object
+  })
