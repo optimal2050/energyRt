@@ -30,11 +30,13 @@ source("data-raw/maps.R")
 # order, and that order sets the written matrix column order, so it must stay
 # sets -> parameters -> mappings.
 .parameters <- yaml::read_yaml("data-raw/parameters.yml")
-# `columns:` declares the data columns no parameter owns, and `recast:` is read
-# by recast_rules.R into .defRecast -- neither belongs to the model catalogue.
+# `columns:` declares the data columns no parameter owns; `recast:` is read by
+# recast_rules.R into .defRecast and `unit:` by col_param.R into .col_param.
+# None of the three belongs to the model catalogue.
 .parameters$columns <- NULL
 .parameters <- lapply(.parameters, function(e) {
   e$recast <- NULL
+  e$unit <- NULL
   e
 })
 .modInp <- c(

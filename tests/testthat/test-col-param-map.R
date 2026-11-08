@@ -200,14 +200,36 @@ test_that("every unit belongs to a column or slot that exists", {
 test_that("the unit vocabulary is closed", {
   u <- cp$unit[!is.na(cp$unit)]
   tokens <- unique(unlist(regmatches(u, gregexpr("[{][a-z]+[}]", u))))
-  expect_setequal(tokens, c("{capacity}", "{activity}", "{use}", "{costs}",
+  # `{currency}`, not `{costs}`: measured, the token is money in every formula
+  # and never stands alone, so `costs` named the quantity the formula builds
+  expect_setequal(tokens, c("{capacity}", "{activity}", "{use}", "{currency}",
                             "{comm}", "{acomm}", "{group}"))
-  # the literal (token-free) units, pinned so a new spelling is deliberate.
-  # `factor` and `fraction` both mean dimensionless, which is an inconsistency
-  # carried over from the tables and not yet ruled on.
+  expect_false(any(grepl("costs", u)))
+
+  # The literal (token-free) units, pinned so a new spelling is deliberate.
+  # `fraction` is dimensionless and bounded by 1 -- an efficiency, a share.
+  # `factor` is dimensionless and MAY EXCEED 1: a weather coefficient does,
+  # since low temperature raising conductivity puts output above nameplate.
+  # The two are not interchangeable and must not be collapsed.
   literal <- sort(unique(u[!grepl("[{]", u)]))
-  expect_setequal(literal, c("1/hours", "factor", "fraction", "hours",
-                             "year", "years"))
+  expect_setequal(literal, c("1/year", "factor", "fraction", "year", "years"))
+  expect_false(any(u %in% c("hours", "1/hours")))
+})
+
+test_that("fraction is bounded, factor is not, and rates are per year", {
+  # every `factor` is a weather coefficient or another unbounded multiplier,
+  # stated as a set so a new one is deliberate
+  fac <- cp[!is.na(cp$unit) & cp$unit == "factor", ]
+  expect_setequal(
+    unique(paste(fac$class, fac$slot, sep = "@")),
+    c("technology@weather", "storage@weather", "trade@weather",
+      "supply@weather", "calendar@timeslice_share", "commodity@agg",
+      "storage@inp2out")
+  )
+  # a rate is per year, never money and never a bare fraction
+  rates <- cp[!is.na(cp$unit) & cp$unit == "1/year", ]
+  expect_true(all(grepl("wacc|sdr", rates$column) |
+                    grepl("Wacc|Sdr", rates$parameter)))
 })
 
 test_that("a unit is one per parameter, over all its columns", {
@@ -219,12 +241,44 @@ test_that("a unit is one per parameter, over all its columns", {
 })
 
 test_that("the columns without a unit are a stated set", {
-  # Pinned by class so it shrinks deliberately. `trade` is the large hole: 39
-  # bound columns, no unit declared anywhere, and `getUnits()` has no method
-  # for the class either.
+  # Pinned so it shrinks deliberately. Three remain, each for a stated reason;
+  # `trade`'s 39 and the 24 weather coefficients were here before Part 8.
   b <- cp[!is.na(cp$parameter) & !is.na(cp$column), ]
-  n <- table(b$class[is.na(b$unit)])
-  expect_equal(as.integer(n[["trade"]]), 39L)
-  expect_true(all(c("tax", "subsidy", "commodity", "calendar", "settings",
-                    "weather") %in% names(n)))
+  expect_setequal(
+    paste(b$class, b$slot, b$column, sep = "/")[is.na(b$unit)],
+    c(
+      # the emitted commodity's unit, which `commodity` has no lookup for
+      "commodity/emis/emis",
+      # dimensionless by default; a user may declare a real measure, and then
+      # it is for reporting and the cross-check, never converted
+      "weather/weather/wval"
+    )
+  )
+  expect_equal(sum(is.na(b$unit)), 2L)
+})
+
+test_that("the storage ratios are energy per power, not hours", {
+  # `glpk/energyRt.mod` adds `pStorageDurationLo * vStorageOutCap` straight to
+  # `vStorageStgCap` with no conversion, so the quantity is energy per power --
+  # PJ/GW for an ELC store, and an h-hour store is `h * 0.0036`. The class
+  # documentation said hours in three places.
+  g <- function(sl, co) cp$unit[cp$class == "storage" & cp$slot == sl &
+                                  cp$column == co]
+  expect_equal(g("duration", "duration.up"), "{comm}/{capacity}")
+  expect_equal(g("inp2stg", "inp2stg.up"), "{capacity}/{comm}")
+  expect_equal(g("inp2out", "inp2out.up"), "factor")
+})
+
+test_that("trade carries units, where it carried none", {
+  # all 40 of its BOUND columns; the unbound cluster / vintage / network ones
+  # are in the `columns:` section with their own reasons
+  t <- cp[cp$class == "trade" & !is.na(cp$column) & !is.na(cp$parameter), ]
+  expect_equal(sum(is.na(t$unit)), 0L)
+  expect_equal(nrow(t), 39L)
+  u <- function(sl, co) t$unit[t$slot == sl & t$column == co]
+  # ruled from the class documentation rather than by analogy
+  expect_equal(u("trade", "teff"), "fraction")        # a delivered fraction
+  expect_equal(u("varom", "markup"), "{currency}/{comm}")  # per unit of flow
+  expect_equal(u("varom", "varom"), "{currency}/{comm}")   # per unit of flow
+  expect_equal(u("trade", "ava.up"), "{comm}/year")   # as supply's ava is
 })

@@ -73,7 +73,7 @@ EGAS <- newTechnology(
   name = "EGAS", desc = "Gas turbine",
   input  = data.frame(comm = "GAS", unit = "PJ"),
   output = data.frame(comm = "ELC", unit = "GWh"),
-  units  = data.frame(capacity = "GW", activity = "GWh", costs = "MEUR"),
+  units  = data.frame(capacity = "GW", activity = "GWh", currency = "MEUR"),
   invcost = data.frame(invcost = 0.9),         # MEUR per GW
   varom   = data.frame(varom = 0.003),         # MEUR per GWh
   cap2act = 8760)                              # 1 GW × 8760 h = 8760 GWh
@@ -291,7 +291,7 @@ declare it, and let interpolation do the arithmetic:
 mod <- newModel("demo", units = data.frame(costs = "MUSD2020"))
 ```
 
-Processes that declare a different currency in their own `@units$costs` are
+Processes that declare a different currency in their own `@units$currency` are
 converted to the model target during interpolation, and the conversion is
 reported rather than applied silently:
 

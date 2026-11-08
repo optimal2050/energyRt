@@ -1778,7 +1778,10 @@ levcost_chain_ <- function(
       }
       ""
     }, character(1)), out_comms)
-  list(costs = pick("costs"), activity = pick("activity"), output = output_units)
+  # `currency` was `costs` up to 0.91; try both, newest spelling first
+  cst <- pick("currency")
+  if (!nzchar(cst)) cst <- pick("costs")
+  list(costs = cst, activity = pick("activity"), output = output_units)
 }
 
 # One cell's extraction turned into an ordinary `levcost` object, so every
@@ -3370,7 +3373,9 @@ autoplot.levcost <- function(object,
     y_lbl_act  <- .cost_axis_label(cost_unit)
     y_lbl_both <- .cost_axis_label(cost_unit, cost_unit_comm)
   } else {
-    cu <- if (!is.null(object$units$costs)    && nzchar(object$units$costs))    object$units$costs    else ""
+    # `currency` was `costs` up to 0.91; newest spelling first
+    cu <- object$units$currency %||% object$units$costs %||% ""
+    if (!nzchar(cu)) cu <- ""
     au <- if (!is.null(object$units$activity) && nzchar(object$units$activity)) object$units$activity else ""
     costs_lbl  <- if (nzchar(cu) && nzchar(au)) paste0(cu, " / ", au)
                   else if (nzchar(cu)) cu else ""

@@ -46,7 +46,7 @@ shocks (weather factors).
 \item{capacity}{character. Unit of capacity}
 \item{use}{character. Unit of 'use' (grouped input) if applicable.}
 \item{activity}{character. Unit of activity variable of the technology.}
-\item{costs}{character. Currency of costs variable of the technology.}
+\item{currency}{character. Currency of costs variable of the technology.}
 }}
 
 \item{\code{group}}{data.frame. Details for commodity groups if defined in input and output slots (for reference).

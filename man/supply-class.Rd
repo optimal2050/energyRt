@@ -17,11 +17,11 @@ An S4 class to represent a supply of a commodity
 
 \item{\code{desc}}{character. Description of the supply object.}
 
-\item{\code{units}}{data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in \code{cost}/\code{invcost} and the capacity and activity columns are bare. A declared \code{costs} that disagrees with the model's \code{config@currency} is an error rather than a silent conversion; leave a column empty to claim nothing.
+\item{\code{units}}{data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in \code{cost}/\code{invcost} and the capacity and activity columns are bare. A declared \code{currency} that disagrees with the model's own is an error rather than a silent conversion; leave a column empty to claim nothing.
 
 \describe{
 \item{activity}{character. Unit of the activity variable.}
-\item{costs}{character. Currency of the cost columns.}
+\item{currency}{character. Currency of the cost columns.}
 }}
 
 \item{\code{commodity}}{character. The supplied commodity short name.}

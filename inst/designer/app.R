@@ -261,7 +261,7 @@ if (!is.null(.user_dir) && dir.exists(.user_dir)) {
 
 .blank_spec <- function() {
   list(techspec = 1L, class = "technology", name = "NEW_TECH", desc = "",
-       units = list(capacity = "GW", activity = "PJ", costs = "MUSD"),
+       units = list(capacity = "GW", activity = "PJ", currency = "MUSD"),
        inputs = list(), outputs = list(), efficiency = list(),
        vintages = list())
 }
@@ -722,7 +722,9 @@ server <- function(input, output, session) {
     updateTextInput(session, "unit_cap", value = s$units$capacity %||% "")
     updateTextInput(session, "unit_act", value = s$units$activity %||% "")
     updateTextInput(session, "unit_use", value = s$units$use %||% "")
-    updateTextInput(session, "unit_cost", value = s$units$costs %||% "")
+    # `currency` was `costs` up to 0.91; a spec written then still says costs
+    updateTextInput(session, "unit_cost",
+                    value = s$units$currency %||% s$units$costs %||% "")
     updateNumericInput(session, "cap2act", value = s$cap2act %||% NA_real_)
     updateNumericInput(session, "lc_discount",
                        value = s$levcost$discount %||% 0.05)
@@ -1389,7 +1391,7 @@ server <- function(input, output, session) {
     }
     cu <- unit_of(s$inputs, "comm")
     if (!nzchar(cu)) cu <- unit_of(s$aux, "acomm")
-    costs <- s$units$costs %||% ""
+    costs <- s$units$currency %||% s$units$costs %||% ""
     if (nzchar(costs) && nzchar(cu)) paste0(costs, "/", cu) else ""
   }
   output$lc_fuel_ui <- renderUI({

@@ -5,10 +5,10 @@
 #' Returns a data.frame describing each parameter in the object along with its
 #' inferred unit. Units are derived from the unit slots stored on the object
 #' (`@unit` for commodity, `@units` for technology) and the dimensional
-#' semantics of each parameter (e.g. investment cost is `{costs}/{capacity}`).
+#' semantics of each parameter (e.g. investment cost is `{currency}/{capacity}`).
 #'
 #' Unresolved base units are shown as placeholder tokens (`{capacity}`,
-#' `{activity}`, `{costs}`) when the corresponding `@units` slot is not set.
+#' `{activity}`, `{currency}`) when the corresponding `@units` slot is not set.
 #'
 #' @param object A `commodity` or `technology` S4 object.
 #' @param slots  Character vector of slot names to include. `NULL` (default)
@@ -20,7 +20,7 @@
 #'   parameters only).
 #' @param ...    Reserved for future use.
 #' @param units named list of base units (`capacity`, `activity`, `use`,
-#'   `costs`) for the classes that carry no `@units` slot. `NULL` (default)
+#'   `currency`) for the classes that carry no `@units` slot. `NULL` (default)
 #'   resolves what it can from the object and leaves the rest as placeholder
 #'   tokens.
 #'
@@ -50,7 +50,7 @@ NULL
 # storage `aeff.inp.*` family was filed under technology, `ceff.share.*` had
 # been renamed `grp.share.*`), and `trade` had no table at all.
 #
-# Tokens: {capacity}, {activity}, {use}, {costs}, {comm}, {acomm}, {group},
+# Tokens: {capacity}, {activity}, {use}, {currency}, {comm}, {acomm}, {group},
 # resolved against the object by `.unit_context()`.
 #
 # The shape this returns is unchanged, so the three call sites are too: a named
@@ -76,7 +76,7 @@ NULL
 
 # Base tokens + comm lookup for ANY supported class, so one resolver serves
 # technology (rich `@units`), storage (role slots) and the flow classes
-# (scalar `@unit`). `units` overrides tokens by name, e.g. c(costs = "MUSD").
+# (scalar `@unit`). `units` overrides tokens by name, e.g. c(currency = "MUSD").
 #' @noRd
 .unit_context <- function(object, units = NULL) {
   cls <- class(object)[1]
@@ -91,7 +91,7 @@ NULL
     base <- if ("units" %in% names(attributes(object)))
       .resolve_base_units(object) else
       list(capacity = "{capacity}", activity = "{activity}",
-           use = "{use}", costs = "{costs}")
+           use = "{use}", currency = "{currency}")
     comm_units <- character(0)
     u <- tryCatch(slot(object, "unit"), error = function(e) NULL)
     if (length(u) == 1 && !is.na(u) && nzchar(u)) {
@@ -110,6 +110,13 @@ NULL
   }
   if (is.null(base$comm)) base$comm <- "{comm}"
   if (!is.null(units)) {
+    # `costs` is the pre-0.92 spelling of `currency`; accepted here too, so a
+    # caller passing `units = c(costs = "MUSD")` still resolves the token
+    nms <- names(units)
+    if ("costs" %in% nms && !("currency" %in% nms)) {
+      nms[nms == "costs"] <- "currency"
+      names(units) <- nms
+    }
     for (nm in intersect(names(units), names(base))) {
       if (!is.na(units[[nm]]) && nzchar(units[[nm]])) base[[nm]] <- units[[nm]]
     }
@@ -138,12 +145,20 @@ NULL
     capacity = "{capacity}",
     activity = "{activity}",
     use      = "{use}",
-    costs    = "{costs}"
+    currency = "{currency}"
   )
   if (nrow(object@units) > 0) {
     for (nm in intersect(names(u), names(object@units))) {
       v <- object@units[[nm]][1]
       if (!is.na(v) && nzchar(v)) u[[nm]] <- v
+    }
+    # `costs` is the pre-0.92 spelling of `currency`: a saved object carries it
+    # inside a data.frame, which `.upgrade_missing_slots()` cannot rename, so
+    # it is accepted on READ. Not a second place to declare one.
+    if (identical(u$currency, "{currency}") &&
+          "costs" %in% names(object@units)) {
+      v <- object@units[["costs"]][1]
+      if (!is.na(v) && nzchar(v)) u$currency <- v
     }
   }
   # use falls back to activity if unset
@@ -185,7 +200,7 @@ NULL
   s <- gsub("\\{capacity\\}", base$capacity, s)
   s <- gsub("\\{activity\\}", base$activity, s)
   s <- gsub("\\{use\\}",      base$use,      s)
-  s <- gsub("\\{costs\\}",    base$costs,    s)
+  s <- gsub("\\{currency\\}", base$currency, s)
   if (!is.na(comm) && grepl("\\{comm\\}", s)) {
     cu <- if (comm %in% names(comm_units)) comm_units[[comm]]
           else paste0("{", comm, "}")
@@ -474,7 +489,7 @@ print.energyRtUnits <- function(x, ...) {
 # "ava [GWh/year]". `raw` supplies the parameter names behind each facet
 # base; members of a bound family (ava.lo/up/fx) share a unit, so the first
 # resolvable one speaks for the facet. Facets with no formula, or whose unit
-# is a bare placeholder, are left unlabelled rather than showing "{costs}".
+# is a bare placeholder, are left unlabelled rather than showing "{currency}".
 #' @noRd
 .unit_labeller <- function(object, raw, units = NULL) {
   slot_of <- .process_year_slot[[class(object)[1]]]

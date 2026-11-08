@@ -62,7 +62,7 @@ setClass("trade",
     units = data.frame(
       capacity = character(),
       activity = character(),
-      costs = character(),
+      currency = character(),
       stringsAsFactors = FALSE
     ),
     # `character()`, not NULL: the slot is typed "character", so a NULL

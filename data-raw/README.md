@@ -25,10 +25,15 @@ a scan happens to miss. None of `recast:`, `unit:` or `columns:` reaches
 `data-raw/recast_rules.R` read them instead.
 
 A unit is a formula over the tokens `{capacity}`, `{activity}`, `{use}`,
-`{costs}`, `{comm}`, `{acomm}` and `{group}`, which `getUnits()` resolves
-against the object's own unit slots, or a literal (`fraction`, `years`,
-`hours`). One per parameter: measured across the 41 parameters that own more
-than one column, none disagreed.
+`{currency}`, `{comm}`, `{acomm}` and `{group}`, which `getUnits()` resolves
+against the object's own `@units`, or a literal. One per parameter: measured
+across the 41 parameters that own more than one column, none disagreed.
+
+The literals are deliberate and not interchangeable. `fraction` is
+dimensionless and bounded by 1 — an efficiency, a share. `factor` is
+dimensionless and **may exceed 1**, which is why a weather coefficient is one:
+low temperature raising conductivity puts output above nameplate. `1/year` is
+a rate (`wacc`, `sdr`), `years` a lifetime, `year` a calendar year.
 
 ## What becomes what
 

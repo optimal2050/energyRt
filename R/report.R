@@ -861,7 +861,7 @@ setMethod(
     params$levcost_compare_df <- tryCatch(
       .report_levcost_compare(object, ctx, lc_dots), error = function(e) NULL)
     params$units_costs         <- if (!is.null(cost_unit) && nzchar(cost_unit)) cost_unit else
-      .slot_val_report(object@units, "costs", "")
+      .slot_val_report(object@units, "currency", "")
     params$levcost_npv         <- NULL
     if (!is.null(lc_obj)) {
       npv <- lc_obj$levcost_npv
@@ -3020,7 +3020,7 @@ report_templates <- function(class = NULL) {
 
   units_cap   <- .slot_val_report(object@units, "capacity", "")
   units_act   <- .slot_val_report(object@units, "activity", "")
-  units_costs <- .slot_val_report(object@units, "costs",    "")
+  units_costs <- .slot_val_report(object@units, "currency", "")
 
   # Key-parameter scalars are only honest when the value is unambiguous; a
   # vintaged technology carries per-vintage windows/lives, which belong in
@@ -3220,8 +3220,13 @@ report_templates <- function(class = NULL) {
 #' Extract a single value from a slot that may be a data.frame or list
 #' @noRd
 .slot_val_report <- function(x, col, default = NA) {
-  if (is.data.frame(x) && col %in% names(x) && nrow(x) > 0) return(x[[col]][1])
-  if (is.list(x)       && col %in% names(x) && length(x[[col]]) > 0) return(x[[col]][1])
+  # `currency` was `costs` up to 0.91; an object serialized then still carries
+  # the old column, which no constructor passes through the renamer
+  if (identical(col, "currency")) col <- c("currency", "costs")
+  for (cc in col) {
+    if (is.data.frame(x) && cc %in% names(x) && nrow(x) > 0) return(x[[cc]][1])
+    if (is.list(x) && cc %in% names(x) && length(x[[cc]]) > 0) return(x[[cc]][1])
+  }
   default
 }
 

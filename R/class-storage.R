@@ -74,7 +74,7 @@ setClass("storage",
     units = data.frame(
       capacity = character(),
       activity = character(),
-      costs = character(),
+      currency = character(),
       stringsAsFactors = FALSE
     ),
     # Cluster declaration -- see the `technology` class for the full rationale.
@@ -367,7 +367,11 @@ setClass("storage",
     # cluster: 1h / 4h / 8h duration classes of the same battery. The scalar
     # shorthand `duration = 4` still works via `.data2slots()`, because the slot
     # carries a column of its own name.
-    # `duration` = storing capacity / output capacity, in hours. Now a BOUND:
+    # `duration` = storing capacity / output capacity: ENERGY per POWER in
+    # the stored commodity's own units (PJ/GW for an ELC store), not hours --
+    # glpk/energyRt.mod adds `pStorageDurationLo * vStorageOutCap` straight
+    # to `vStorageStgCap` with no conversion, so an h-hour store is
+    # `h * 0.0036`. Now a BOUND:
     # `.fx` ties the two (an N-hour battery), `.lo`/`.up` let the model choose
     # the ratio. The bare `duration` column is kept as the scalar shorthand
     # (`duration = 6`) and is normalised to `duration.fx` at construction --

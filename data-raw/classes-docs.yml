@@ -215,14 +215,14 @@ class:
         it. An object moved between models is only meaningful where the units
         agree, and nothing else in the object records them: the numbers in
         `cost`/`invcost` and the capacity and activity columns are bare. A
-        declared `costs` that disagrees with the model's `config@currency` is
+        declared `currency` that disagrees with the model's own is
         an error rather than a silent conversion; leave a column empty to
         claim nothing.
       columns:
         activity:
           type: character
           description: Unit of the activity variable.
-        costs:
+        currency:
           type: character
           description: Currency of the cost columns.
     weather:
@@ -582,7 +582,7 @@ class:
         activity:
           type: character
           description: Unit of activity variable of the technology.
-        costs:
+        currency:
           type: character
           description: Currency of costs variable of the technology.
     group:
@@ -1250,7 +1250,7 @@ class:
         activity:
           type: character
           description: Unit of the activity variable.
-        costs:
+        currency:
           type: character
           description: Currency of the cost columns.
     input:
@@ -1848,8 +1848,11 @@ class:
       type: data.frame
       description: >
         How long the store can run at its rated output: the ratio of storing
-        capacity to (dis)charging capacity. `duration = 6` on an hourly calendar
-        is a 6-hour store. Renamed from `cap2stg` in v0.80; the old spelling
+        capacity to (dis)charging capacity, in ENERGY per POWER in the stored
+        commodity's own units -- PJ per GW for an ELC store, NOT hours. The
+        equations multiply it by the discharging capacity with no conversion,
+        so an h-hour store is `h * 0.0036` when energy is PJ and power GW: a
+        4-hour battery is `0.0144`. Renamed from `cap2stg` in v0.80; the old spelling
         is refused since v0.90.
         It is a BOUND on (storage, region, year): `duration.fx` ties energy to
         power, `duration.lo`/`duration.up` let the model choose the ratio -- which
@@ -1877,7 +1880,10 @@ class:
           description: Capacity-to-storage ratio (storage duration).
         duration.lo:
           type: numeric
-          description: Lower bound on the energy-to-power ratio, in hours.
+          description: >
+            Lower bound on the energy-to-power ratio, in energy per power
+            in the stored commodity's own units (PJ/GW for an ELC store),
+            not hours. See the slot description.
         duration.up:
           type: numeric
           description: Upper bound on the energy-to-power ratio, in hours.
@@ -2164,7 +2170,7 @@ class:
         activity:
           type: character
           description: Unit of the activity variable.
-        costs:
+        currency:
           type: character
           description: Currency of the cost columns.
     commodity:
@@ -3813,7 +3819,7 @@ class:
         Optional. The currency every cost in the model is stated in, and the
         unit of the objective. Unset (the default) claims nothing, which is
         how every model written before this slot behaves. Declared, it is
-        checked against each object's own `@units$costs`: an object that
+        checked against each object's own `@units$currency`: an object that
         names a different currency is an error, not a conversion, because
         there is no exchange rate in the model to convert with. The point is
         objects moving between models -- a technology priced in `MUSD` added

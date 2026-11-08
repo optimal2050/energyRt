@@ -102,7 +102,7 @@ setClass("technology",
       capacity = character(),
       use = character(),
       activity = character(),
-      costs = character(),
+      currency = character(),
       stringsAsFactors = FALSE
     ),
     group = data.frame(

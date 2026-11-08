@@ -79,7 +79,7 @@ newTechnology(
 \item{capacity}{character. Unit of capacity}
 \item{use}{character. Unit of 'use' (grouped input) if applicable.}
 \item{activity}{character. Unit of activity variable of the technology.}
-\item{costs}{character. Currency of costs variable of the technology.}
+\item{currency}{character. Currency of costs variable of the technology.}
 }}
 
 \item{cap2act}{numeric. Capacity to activity ratio. Default is 1. Specifies how much product (activity, or output commodity if identical) will be produced per unit of capacity.}

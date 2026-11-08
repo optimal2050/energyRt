@@ -37,7 +37,7 @@ setClass("supply",
     desc = "",
     units = data.frame(
       activity = character(),
-      costs = character(),
+      currency = character(),
       stringsAsFactors = FALSE
     ),
     commodity = "",

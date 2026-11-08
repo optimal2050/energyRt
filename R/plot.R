@@ -942,7 +942,7 @@ plot_supply_bar <- function(object, param = .supply_params,
     u <- tryCatch(object@unit, error = function(e) NULL)
     if (length(u) == 1 && !is.na(u) && nzchar(u)) act <- u
   }
-  cst <- .object_units(object, "costs")
+  cst <- .object_units(object, "currency")
   d <- tryCatch(as.data.frame(object@supply), error = function(e) NULL)
   has <- function(k) !is.null(d) && k %in% names(d) && any(!is.na(d[[k]]))
   ava <- if (has("ava.fx") && has("ava.up")) "ava" else
@@ -1335,7 +1335,7 @@ plot_object_map <- function(object, param = NULL, year = NULL,
   # measured in. A price needs a currency and there is none to fall back on,
   # so it stays unlabelled rather than guessed.
   base <- sub("^(inp|out|stg)[.]", "", param)   # storage names its three parts
-  u <- if (base %in% .price_params) .object_units(object, "costs") else
+  u <- if (base %in% .price_params) .object_units(object, "currency") else
     if (base %in% .capacity_params) .object_units(object, "capacity") else {
       .object_units(object, "activity") %||% {
         cu <- tryCatch(object@unit, error = function(e) NULL)

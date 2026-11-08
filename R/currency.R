@@ -12,7 +12,7 @@
 ## moved from one to the other is wrong in a way no output reveals.
 ##
 ## Two declarations close that. `config@currency` states what the model counts
-## in -- one per model, the unit of the objective. `@units$costs` on an object
+## in -- one per model, the unit of the objective. `@units$currency` on an object
 ## states what IT was priced in, and travels with it. Where both are declared
 ## and disagree, that is an error: there is no exchange rate in the model, so
 ## there is nothing to convert with.
@@ -41,10 +41,15 @@ NULL
 # classes that never had one (tax, constraint, ...), return NULL rather than
 # erroring, so callers can ask any object.
 #' @noRd
-.object_units <- function(obj, what = "costs") {
+.object_units <- function(obj, what = "currency") {
   if (!isS4(obj) || !("units" %in% names(attributes(obj)))) return(NULL)
   u <- methods::slot(obj, "units")
-  if (!is.data.frame(u) || !nrow(u) || !(what %in% names(u))) return(NULL)
+  if (!is.data.frame(u) || !nrow(u)) return(NULL)
+  # `costs` is the pre-0.92 spelling, accepted on read (see units.R)
+  if (!(what %in% names(u))) {
+    if (!identical(what, "currency") || !("costs" %in% names(u))) return(NULL)
+    what <- "costs"
+  }
   v <- as.character(u[[what]])
   v <- v[!is.na(v) & nzchar(v)]
   if (length(v)) v[1] else NULL
@@ -59,7 +64,7 @@ NULL
   if (is.null(cur)) return(invisible(NULL))
   objs <- tryCatch(getObject(mod), error = function(e) NULL)
   if (!length(objs)) return(invisible(NULL))
-  own <- vapply(objs, function(o) .object_units(o, "costs") %||% NA_character_,
+  own <- vapply(objs, function(o) .object_units(o, "currency") %||% NA_character_,
                 character(1))
   bad <- !is.na(own) & own != cur
   if (!any(bad)) return(invisible(NULL))
@@ -68,7 +73,7 @@ NULL
        "priced in another currency:\n  ",
        paste(sprintf("%s: %s", nm, own[bad]), collapse = "\n  "),
        "\nThere is no exchange rate in a model, so this is not converted. ",
-       "Restate the costs, or clear `@units$costs` to claim nothing.",
+       "Restate the costs, or clear `@units$currency` to claim nothing.",
        call. = FALSE)
 }
 

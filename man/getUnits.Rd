@@ -40,7 +40,7 @@ left as placeholder tokens otherwise. Default \code{FALSE} (populated
 parameters only).}
 
 \item{units}{named list of base units (\code{capacity}, \code{activity}, \code{use},
-\code{costs}) for the classes that carry no \verb{@units} slot. \code{NULL} (default)
+\code{currency}) for the classes that carry no \verb{@units} slot. \code{NULL} (default)
 resolves what it can from the object and leaves the rest as placeholder
 tokens.}
 }
@@ -52,10 +52,10 @@ and \code{unit}.
 Returns a data.frame describing each parameter in the object along with its
 inferred unit. Units are derived from the unit slots stored on the object
 (\verb{@unit} for commodity, \verb{@units} for technology) and the dimensional
-semantics of each parameter (e.g. investment cost is \code{{costs}/{capacity}}).
+semantics of each parameter (e.g. investment cost is \code{{currency}/{capacity}}).
 
 Unresolved base units are shown as placeholder tokens (\code{{capacity}},
-\code{{activity}}, \code{{costs}}) when the corresponding \verb{@units} slot is not set.
+\code{{activity}}, \code{{currency}}) when the corresponding \verb{@units} slot is not set.
 }
 \examples{
 \dontrun{

@@ -29,7 +29,7 @@ Create separate trade objects to optimize different parts of the trade network
 \describe{
 \item{capacity}{character. Unit of capacity.}
 \item{activity}{character. Unit of the activity variable.}
-\item{costs}{character. Currency of the cost columns.}
+\item{currency}{character. Currency of the cost columns.}
 }}
 
 \item{\code{commodity}}{character. The traded commodity short name.}

@@ -16,7 +16,7 @@ scenario settings.
 
 \item{\code{desc}}{character. Description of the configuration object for own references.}
 
-\item{\code{currency}}{character. Optional. The currency every cost in the model is stated in, and the unit of the objective. Unset (the default) claims nothing, which is how every model written before this slot behaves. Declared, it is checked against each object's own \verb{@units$costs}: an object that names a different currency is an error, not a conversion, because there is no exchange rate in the model to convert with. The point is objects moving between models -- a technology priced in \code{MUSD} added to a model counting \code{bnEUR} is a mistake that no number in the output reveals.}
+\item{\code{currency}}{character. Optional. The currency every cost in the model is stated in, and the unit of the objective. Unset (the default) claims nothing, which is how every model written before this slot behaves. Declared, it is checked against each object's own \verb{@units$currency}: an object that names a different currency is an error, not a conversion, because there is no exchange rate in the model to convert with. The point is objects moving between models -- a technology priced in \code{MUSD} added to a model counting \code{bnEUR} is a mistake that no number in the output reveals.}
 
 \item{\code{region}}{character. Coma separated string of all region names in the model. All regions used in the model-objects should be listed here.}
 

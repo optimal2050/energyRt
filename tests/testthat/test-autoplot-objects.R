@@ -314,7 +314,7 @@ test_that("supply autoplot labels facets with the commodity unit", {
   labs <- .facet_labs(ggplot2::autoplot(.units_supply()))
   expect_true(any(grepl("ava [GWh/year]", labs, fixed = TRUE)))
   # the currency is unknown on a supply, so it stays a placeholder token
-  expect_true(any(grepl("cost [{costs}/GWh]", labs, fixed = TRUE)))
+  expect_true(any(grepl("cost [{currency}/GWh]", labs, fixed = TRUE)))
 })
 
 test_that("`units =` resolves the tokens the object cannot know", {
@@ -345,7 +345,7 @@ test_that("getUnits() covers the flow classes", {
   expect_s3_class(u, "energyRtUnits")
   expect_setequal(u$parameter, c("res.up", "ava.up", "cost"))
   expect_equal(u$unit[u$parameter == "ava.up"], "GWh/year")
-  expect_equal(u$unit[u$parameter == "cost"], "{costs}/GWh")
+  expect_equal(u$unit[u$parameter == "cost"], "{currency}/GWh")
   u2 <- getUnits(.units_supply(), units = c(costs = "cr.INR"))
   expect_equal(u2$unit[u2$parameter == "cost"], "cr.INR/GWh")
 })

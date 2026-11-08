@@ -412,6 +412,28 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* **`storage@duration` and `@inp2stg` were reported in hours, which is wrong.**
+  `duration` is energy capacity per unit of power capacity in the stored
+  commodity's own units — PJ per GW for an ELC store — because the equations
+  multiply it by the discharging capacity with no conversion. A four-hour
+  battery is `4 * 0.0036 = 0.0144`, not `4`. `inp2stg` is its inverse. The
+  numbers in a model are unchanged; what `getUnits()` and the class
+  documentation claimed about them was not.
+
+* **Units now cover the classes that had none.** `trade`'s 40 parameters, the
+  24 weather coefficients, `tax`, `subsidy`, `calendar` and the discount rates
+  all report a unit where they reported nothing: 254 of 321 catalogued columns
+  carry one, against 135 before. `wacc` and `sdr` are `1/year` rather than a
+  bare fraction, and a weather coefficient is `factor` — dimensionless but
+  explicitly *not* bounded by 1, since low temperature raising conductivity can
+  put output above nameplate.
+
+* The `@units` money column is **`currency`**, not `costs`:
+  `units = data.frame(capacity = "GW", activity = "GWh", currency = "MEUR")`.
+  The token is money in every formula and never stands alone, so `costs` named
+  the quantity the formula builds by dividing. `costs` is still accepted and
+  normalised on input, so existing code keeps working.
+
 * The short interpolation-rule spellings now work. `bwd` for `back`, `int` or
   `mid` for `inter`, `fwd` (also `forw`, `frw`) for `forth`, in any
   combination: `bwd.mid.fwd` is `back.inter.forth`. They were documented as

@@ -37,6 +37,20 @@
 #' @description
 #' This function creates and adds data/parameters to `energyRt` classes. It is recommended to to use wrapper functions such as `newTechnology`, `newCommodity`, etc. with guided names of each class slots.
 #'
+# The `@units` money column was `costs` up to 0.91 and is `currency` now: the
+# token always substituted money, never a cost, so `costs` named the quantity
+# the formula builds by dividing. Accepted on input and normalised here, the
+# same device as `.rename_slice_compat()` above, so an object stores one
+# spelling. `.resolve_base_units()` also reads `costs` from an object
+# serialized before the rename, which no constructor touches.
+#' @noRd
+.rename_units_compat <- function(nms, where) {
+  i <- which(nms == "costs")
+  if (!length(i) || "currency" %in% nms) return(nms)
+  nms[i] <- "currency"
+  nms
+}
+
 #' @param class_name character, name of the class to create.
 #' @param x character or object. Character string with a name to add to the `@name` slot of the object to create, or the object of `class_name` to update.
 #' @param ... slot names with the data to add to the object's slots.
@@ -161,6 +175,10 @@
         # slots in data.frame format
         if (is.data.frame(dat)) {
           # data in the same (data.frame) format
+          if (identical(s, "units")) {
+            colnames(dat) <- .rename_units_compat(colnames(dat),
+                                                  paste0(x, "@", s))
+          }
           if ("timeslice" %in% colnames(slot(obj, s))) {
             colnames(dat) <- .rename_slice_compat(colnames(dat),
                                                   paste0(x, "@", s))
@@ -249,6 +267,10 @@
             stop("Duplicated names/parameters in the list ", x, "@", s)
           }
           # Check for unknown columns
+          if (identical(s, "units")) {
+            names(dat) <- .rename_units_compat(names(dat),
+                                               paste0(x, "@", s))
+          }
           if ("timeslice" %in% colnames(slot(obj, s))) {
             names(dat) <- .rename_slice_compat(names(dat),
                                                paste0(x, "@", s))

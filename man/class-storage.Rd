@@ -31,7 +31,7 @@ the storage cycle will be a calendar day).
 \describe{
 \item{capacity}{character. Unit of capacity.}
 \item{activity}{character. Unit of the activity variable.}
-\item{costs}{character. Currency of the cost columns.}
+\item{currency}{character. Currency of the cost columns.}
 }}
 
 \item{\code{aux}}{data.frame. Auxiliary commodities.
@@ -273,7 +273,7 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 
 \item{\code{fullYear}}{logical. Controls where the charge/discharge cycle closes. If TRUE (default), the storage operates across parent timeframes through the whole year: the preceding time-timeslice of the first time-timeslice of a group is the last time-timeslice of the PREVIOUS group, and only the last time-timeslice of the year wraps round to the first. A battery on an hourly calendar nested under days can therefore carry energy from one day into the next, and seasonal storage is representable. If FALSE, the cycle is closed within each parent timeframe: the preceding time-timeslice of the first time-timeslice of a group is the LAST time-timeslice of the SAME group, so every group is an independent loop with no energy carried between them.}
 
-\item{\code{duration}}{data.frame. How long the store can run at its rated output: the ratio of storing capacity to (dis)charging capacity. \code{duration = 6} on an hourly calendar is a 6-hour store. Renamed from \code{cap2stg} in v0.80; the old spelling is refused since v0.90. It is a BOUND on (storage, region, year): \code{duration.fx} ties energy to power, \code{duration.lo}/\code{duration.up} let the model choose the ratio -- which only bites when the storing side is priced, via \verb{@storage$invcost}. The bare \code{duration} column is the scalar shorthand and is normalised to \code{duration.fx} at construction. A ONE-SIDED range opens the other side (an \code{up} alone does not inherit the default \code{lo} of 1). Saying nothing leaves the slot empty and the parameter default of \verb{[1, 1]} ties energy to power at one hour, which is the pre-v0.84 behaviour.
+\item{\code{duration}}{data.frame. How long the store can run at its rated output: the ratio of storing capacity to (dis)charging capacity, in ENERGY per POWER in the stored commodity's own units -- PJ per GW for an ELC store, NOT hours. The equations multiply it by the discharging capacity with no conversion, so an h-hour store is \code{h * 0.0036} when energy is PJ and power GW: a 4-hour battery is \code{0.0144}. Renamed from \code{cap2stg} in v0.80; the old spelling is refused since v0.90. It is a BOUND on (storage, region, year): \code{duration.fx} ties energy to power, \code{duration.lo}/\code{duration.up} let the model choose the ratio -- which only bites when the storing side is priced, via \verb{@storage$invcost}. The bare \code{duration} column is the scalar shorthand and is normalised to \code{duration.fx} at construction. A ONE-SIDED range opens the other side (an \code{up} alone does not inherit the default \code{lo} of 1). Saying nothing leaves the slot empty and the parameter default of \verb{[1, 1]} ties energy to power at one hour, which is the pre-v0.84 behaviour.
 
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage.}
@@ -281,7 +281,8 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{duration}{numeric. Capacity-to-storage ratio (storage duration).}
-\item{duration.lo}{numeric. Lower bound on the energy-to-power ratio, in hours.}
+\item{duration.lo}{numeric. Lower bound on the energy-to-power ratio, in energy per power in the stored commodity's own units (PJ/GW for an ELC store), not hours. See the slot description.
+}
 \item{duration.up}{numeric. Upper bound on the energy-to-power ratio, in hours.}
 \item{duration.fx}{numeric. Fixed energy-to-power ratio, in hours. The scalar shorthand \code{duration = 6} normalises to this.
 }
