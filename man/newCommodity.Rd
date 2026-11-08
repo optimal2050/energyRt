@@ -11,6 +11,7 @@ newCommodity(
   timeframe = character(),
   geoframe = character(),
   unit = character(),
+  units = data.frame(),
   cluster = data.frame(),
   agg = data.frame(),
   emis = data.frame(),
@@ -31,7 +32,10 @@ newCommodity(
 
 \item{geoframe}{character. The geoscale level at which this commodity is balanced -- the spatial counterpart of \code{timeframe}. The finest level in the model is used by default, reproducing the flat, single-level behaviour. Naming a coarser level (e.g. balancing steel nationally while electricity stays state-level) asserts free, unlimited transport of the commodity within that level, so it suits goods with a genuinely integrated market and never a network-constrained carrier such as electricity. The coarse balance is the plain SUM of its children: regional quantities are extensive, so no weighting is applied. Requires a geoscale on the model config whose geoframes NEST -- adjacent levels must refine one another, or a region would be counted into two parents. Supported by all back-ends.}
 
-\item{unit}{character. The main unit of the commodity used in the model.}
+\item{unit}{character, the object's own measure, stored in \verb{@units$comm}.
+See \code{\link[=getUnit]{getUnit()}}.}
+
+\item{units}{data.frame. Units this object is measured in, for reference and for carrying them with it: an object moved between models is only meaningful where the units agree, and nothing else in the object records them. Up to version 0.91 the object's own measure was a slot of its own, \verb{@unit}.}
 
 \item{cluster}{data.frame. Declaration of the commodity's parallel grades. For a commodity a cluster is a RESOURCE TIER: the same substance in grades that must NOT pool, so tier-3 land cannot serve a tier-1 plant.
 Tiers exist because the commodity balance is keyed on \verb{(comm, region, year, timeslice)} and carries no cluster -- every producer of one commodity name writes into the same cell. Declaring tiers here expands the object into one commodity per tier (\code{LAND} tier \code{T3} -> \code{LAND_CLT3}), each with its own balance, and a reference from a clustered process resolves BY CLUSTER NAME. A commodity with no clusters is shared as before, which is why \code{ELC} needs no flag.

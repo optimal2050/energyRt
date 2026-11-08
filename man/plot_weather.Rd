@@ -70,7 +70,7 @@ with a viridis \code{"H"} gradient (continuous when numeric, e.g. day of year);
 }
 
 The value axis (fill for the heatmap, \code{y} for line/area) is labelled with the
-object's \verb{@unit} (or \code{"capacity factor"} if unset).
+object's own unit (or \code{"capacity factor"} if unset).
 }
 \examples{
 \dontrun{

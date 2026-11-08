@@ -65,7 +65,8 @@ print.commodity <- function(x, ...) {
   }
   cat("Name: ", x@name, "\n")
   if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
-  if (length(x@unit) != 0 && nzchar(x@unit[1])) cat("unit: ", x@unit, "\n")
+  .u <- tryCatch(getUnit(x), error = function(e) NA_character_)
+  if (!is.na(.u)) cat("unit: ", .u, "\n")
   if (!is.null(x@misc$color)) cat("color: ", x@misc$color, "\n")
   img <- object_image(x)
   if (!identical(img$status, "none")) {

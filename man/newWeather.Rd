@@ -9,6 +9,7 @@ newWeather(
   name = "",
   desc = "",
   unit = as.character(NA),
+  units = data.frame(),
   geoframe = character(),
   region = character(),
   timeframe = character(),
@@ -26,7 +27,10 @@ newWeather(
 
 \item{desc}{character. Description of the weather factor.}
 
-\item{unit}{character. Unit of the weather factor.}
+\item{unit}{character, the object's own measure, stored in \verb{@units$wval}.
+See \code{\link[=getUnit]{getUnit()}}.}
+
+\item{units}{data.frame. Unit of the weather series. A weather factor is DIMENSIONLESS by default and that is the common case; a unit is declared only when the series carries a real measure, and then it is used for reporting and for a cross-check against what a process expects -- never for conversion.}
 
 \item{geoframe}{character. Optional. The geoscale level this object's regions are expressed at; unset (the default) derives it from the region codes. See \code{technology@geoframe} for the full rule, including the consistency checks it turns on. A weather factor is multiplicative and balances nothing, so no commodity rule applies. This is the class where declaring the level matters most: left unset, a series whose data names no region spans every region of every level, where naming the level scopes it to that level alone.}
 

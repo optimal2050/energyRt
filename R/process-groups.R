@@ -76,7 +76,7 @@ NULL
     supply = , import = , export = paste(
       paste0("comm:", paste(sort(unique(methods::slot(o, "commodity"))),
                             collapse = "+")),
-      paste0("unit:", paste(sort(unique(methods::slot(o, "unit"))),
+      paste0("unit:", paste(sort(unique(getUnit(o))),
                             collapse = "+")),
       sep = "|"),
     NA_character_)

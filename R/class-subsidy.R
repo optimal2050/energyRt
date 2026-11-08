@@ -8,6 +8,7 @@
 #' @slot name `r get_slot_doc("subsidy", "name")`
 #' @slot desc `r get_slot_doc("subsidy", "desc")`
 #' @slot comm `r get_slot_doc("subsidy", "comm")`
+#' @slot units `r get_slot_doc("subsidy", "units")`
 #' @slot geoframe `r get_slot_doc("subsidy", "geoframe")`
 #' @slot region `r get_slot_doc("subsidy", "region")`
 #' @slot process `r get_slot_doc("subsidy", "process")`
@@ -34,6 +35,7 @@ setClass("subsidy",
     name = "character",
     desc = "character",
     comm = "character",
+    units = "data.frame",
     geoframe = "character",
     region = "character",
     process = "character",
@@ -52,6 +54,11 @@ setClass("subsidy",
     name = "", # Short name
     comm = "",
     desc = "",
+    units = data.frame(
+      comm = character(),
+      currency = character(),
+      stringsAsFactors = FALSE
+    ),
     geoframe = character(),
     region = character(), #
     process = character(), #
@@ -106,6 +113,7 @@ setMethod("initialize", "subsidy", function(.Object, ...) {
 #' @param name `r get_slot_doc("subsidy", "name")`
 #' @param desc `r get_slot_doc("subsidy", "desc")`
 #' @param comm `r get_slot_doc("subsidy", "comm")`
+#' @param units `r get_slot_doc("subsidy", "units")`
 #' @param geoframe `r get_slot_doc("subsidy", "geoframe")`
 #' @param region `r get_slot_doc("subsidy", "region")`
 #' @param process `r get_slot_doc("subsidy", "process")`
@@ -143,6 +151,7 @@ newSubsidy <- function(
   name = "",
   desc = "",
   comm = "",
+  units = data.frame(),
   geoframe = character(),
   region = character(),
   process = character(),
@@ -163,6 +172,7 @@ newSubsidy <- function(
     name,
     desc = desc,
     comm = comm,
+    units = units,
     geoframe = geoframe,
     region = region,
     process = process,

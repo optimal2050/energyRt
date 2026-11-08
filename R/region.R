@@ -1937,6 +1937,9 @@ get_weather <- function(object) {
     used_c <- character(0); used_f <- character(0)
     for (sn in .instance_slots(o)) {
       if (identical(sn, "misc")) next
+      # `@units$comm` holds a UNIT, not a commodity name: the column names the
+      # dimension being measured, so a scan for commodity references must skip it
+      if (identical(sn, "units")) next
       v <- methods::slot(o, sn)
       if (is.data.frame(v)) {
         for (cc in intersect(c("comm", "acomm"), colnames(v)))
@@ -1987,6 +1990,9 @@ Declare commodities with `newCommodity()` and add them to the model; ",
     if (methods::is(o, "weather")) { decl_w <- c(decl_w, o@name); next }
     used_w <- c(used_w, get_weather(o))
     for (sn in .instance_slots(o)) {
+      # `@units$comm` is a unit, not a commodity name; see
+      # `.check_undeclared_names()`
+      if (identical(sn, "units")) next
       v <- methods::slot(o, sn)
       if (is.data.frame(v)) {
         for (cc in intersect(c("comm", "acomm"), colnames(v))) used <- c(used, .nonblank(v[[cc]]))

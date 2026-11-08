@@ -1531,7 +1531,7 @@ draw.supply <- function(object, ...) {
       mutate(
         lab_txt = make_label(
           ioname,
-          in_brackets = object@unit,
+          in_brackets = getUnit(object),
           return_name_if_empty = TRUE,
           two_lines = FALSE
         ),
@@ -1541,7 +1541,7 @@ draw.supply <- function(object, ...) {
 
   arrow_labels <- make_label(
     object@commodity,
-    in_brackets = object@unit,
+    in_brackets = getUnit(object),
     return_name_if_empty = TRUE,
     two_lines = FALSE
   )
@@ -1572,7 +1572,7 @@ draw.supply <- function(object, ...) {
         group = NA_character_,
         lab_txt = make_label(
           object@commodity,
-          in_brackets = object@unit,
+          in_brackets = getUnit(object),
           return_name_if_empty = TRUE,
           two_lines = FALSE
         )
@@ -1590,7 +1590,7 @@ draw.supply <- function(object, ...) {
       mutate(
         lab_txt = make_label(
           ioname,
-          in_brackets = object@unit,
+          in_brackets = getUnit(object),
           return_name_if_empty = TRUE,
           two_lines = FALSE
         ),
@@ -1705,7 +1705,7 @@ draw.demand <- function(object, ...) {
       group = NA_character_,
       lab_txt = make_label(
         object@commodity,
-        in_brackets = object@unit,
+        in_brackets = getUnit(object),
         return_name_if_empty = TRUE,
         two_lines = FALSE
       )
@@ -1718,7 +1718,7 @@ draw.demand <- function(object, ...) {
     mutate(
       lab_txt = make_label(
         ioname,
-        in_brackets = object@unit,
+        in_brackets = getUnit(object),
         return_name_if_empty = TRUE,
         two_lines = FALSE
       ),
@@ -1728,7 +1728,7 @@ draw.demand <- function(object, ...) {
 
   arrow_labels <- make_label(
     object@commodity,
-    in_brackets = object@unit,
+    in_brackets = getUnit(object),
     return_name_if_empty = TRUE,
     two_lines = FALSE
   )
@@ -1811,7 +1811,7 @@ draw.export <- function(object, ...) {
     mutate(
       lab_txt = make_label(
         ioname,
-        in_brackets = object@unit,
+        in_brackets = getUnit(object),
         return_name_if_empty = TRUE,
         two_lines = FALSE
       ),
@@ -1823,7 +1823,7 @@ draw.export <- function(object, ...) {
   # arrow_label ####
   arrow_labels <- make_label(
     object@commodity,
-    in_brackets = object@unit,
+    in_brackets = getUnit(object),
     two_lines = FALSE
   )
   names(arrow_labels) <- object@commodity
@@ -1902,7 +1902,7 @@ draw.import <- function(object, ...) {
     mutate(
       lab_txt = make_label(
         ioname,
-        in_brackets = object@unit,
+        in_brackets = getUnit(object),
         return_name_if_empty = TRUE,
         two_lines = FALSE
       ),
@@ -1914,7 +1914,7 @@ draw.import <- function(object, ...) {
   # arrow_label ####
   arrow_labels <- make_label(
     object@commodity,
-    in_brackets = object@unit,
+    in_brackets = getUnit(object),
     return_name_if_empty = TRUE,
     two_lines = FALSE
   )

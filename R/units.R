@@ -74,9 +74,98 @@ NULL
   out
 }
 
+#' Unit of an object's own measure
+#'
+#' The one quantity an object measures itself in, as opposed to the table of
+#' parameter units [getUnits()] reports: the commodity a flow is counted in
+#' for `commodity`, `demand`, `import`, `export`, `supply` and `trade`, and
+#' the value of the series for `weather`.
+#'
+#' It is stored in `@units` -- the `comm` column, or `wval` for `weather` --
+#' and set with the `unit =` argument of the constructors. Up to version 0.91
+#' it was a slot of its own, `@unit`; that slot is gone, and this accessor
+#' replaces every read of it.
+#'
+#' @param object an object with a `@units` slot.
+#' @param ... not used.
+#'
+#' @return A single character value, or `NA_character_` when the object
+#'   declares no unit.
+#'
+#' @family units
+#' @export
+#' @examples
+#' getUnit(newCommodity(name = "ELC", desc = "Electricity", unit = "GWh"))
+#' getUnit(newCommodity(name = "ELC"))
+setGeneric("getUnit", function(object, ...) standardGeneric("getUnit"))
+
+#' @noRd
+.get_unit_own <- function(object, ...) {
+  own <- .unit_arg_column(class(object)[1])
+  # an object serialized before the slot existed has no attribute for
+  # it, and only `.upgrade_missing_slots()` fills one; a stored fixture
+  # reaches a plot without passing through that
+  u <- tryCatch(methods::slot(object, "units"),
+                error = function(e) NULL)
+  v <- if (is.data.frame(u) && nrow(u) > 0 && own %in% names(u))
+    u[[own]][1] else NA_character_
+  if (length(v) != 1 || is.na(v) || !nzchar(as.character(v))) {
+    # an object serialized before the slot was removed still carries it as a
+    # plain attribute; see `.upgrade_unit_slot()`
+    v <- attr(object, "unit", exact = TRUE)
+    if (length(v) != 1 || is.na(v) || !nzchar(as.character(v)))
+      return(NA_character_)
+  }
+  as.character(v)
+}
+
+#' @rdname getUnit
+#' @export
+setMethod("getUnit", "commodity", .get_unit_own)
+
+#' @rdname getUnit
+#' @export
+setMethod("getUnit", "demand", .get_unit_own)
+
+#' @rdname getUnit
+#' @export
+setMethod("getUnit", "import", .get_unit_own)
+
+#' @rdname getUnit
+#' @export
+setMethod("getUnit", "export", .get_unit_own)
+
+#' @rdname getUnit
+#' @export
+setMethod("getUnit", "supply", .get_unit_own)
+
+#' @rdname getUnit
+#' @export
+setMethod("getUnit", "weather", .get_unit_own)
+
+#' @rdname getUnit
+#' @export
+setMethod("getUnit", "technology", .get_unit_own)
+
+#' @rdname getUnit
+#' @export
+setMethod("getUnit", "storage", .get_unit_own)
+
+#' @rdname getUnit
+#' @export
+setMethod("getUnit", "trade", .get_unit_own)
+
+#' @rdname getUnit
+#' @export
+setMethod("getUnit", "tax", .get_unit_own)
+
+#' @rdname getUnit
+#' @export
+setMethod("getUnit", "subsidy", .get_unit_own)
+
 # Base tokens + comm lookup for ANY supported class, so one resolver serves
 # technology (rich `@units`), storage (role slots) and the flow classes
-# (scalar `@unit`). `units` overrides tokens by name, e.g. c(currency = "MUSD").
+# (`@units$comm`). `units` overrides tokens by name, e.g. c(currency = "MUSD").
 #' @noRd
 .unit_context <- function(object, units = NULL) {
   cls <- class(object)[1]
@@ -93,11 +182,8 @@ NULL
       list(capacity = "{capacity}", activity = "{activity}",
            use = "{use}", currency = "{currency}")
     comm_units <- character(0)
-    u <- tryCatch(slot(object, "unit"), error = function(e) NULL)
-    if (length(u) == 1 && !is.na(u) && nzchar(u)) {
-      # the scalar `@unit` IS the commodity unit of a flow object
-      base$comm <- u
-    }
+    # a flow class's own measure comes from `@units$comm`, which
+    # `.resolve_base_units()` has already read
     if (identical(cls, "storage")) {
       for (role in c("output", "input", "storage")) {
         df <- tryCatch(slot(object, role), error = function(e) NULL)
@@ -139,7 +225,7 @@ NULL
 
 # ── Helpers ─────────────────────────────────────────────────────────────────────
 
-# Extract base units from technology@units; return placeholders for missing ones.
+# Extract base units from an object's `@units`; placeholders for the rest.
 .resolve_base_units <- function(object) {
   u <- list(
     capacity = "{capacity}",
@@ -163,6 +249,24 @@ NULL
   }
   # use falls back to activity if unset
   if (identical(u$use, "{use}")) u$use <- u$activity
+
+  # The object's OWN measure, which propagates nowhere: `comm` for a commodity
+  # or a flow class, `wval` for a weather series, which measures no commodity.
+  # Set only when declared, so `.unit_context()` can still default `{comm}`.
+  own <- .unit_arg_column(class(object)[1])
+  if (nrow(object@units) > 0 && own %in% names(object@units)) {
+    v <- object@units[[own]][1]
+    if (!is.na(v) && nzchar(v)) u[[own]] <- v
+  }
+  if (is.null(u[[own]])) {
+    # the scalar `@unit` slot of 0.91 and earlier: removed from the class, but
+    # still an attribute on an object serialized with it, and so still
+    # readable. `.upgrade_unit_slot()` migrates it; this covers one that has
+    # not passed through the upgrade yet.
+    v <- attr(object, "unit", exact = TRUE)
+    if (length(v) == 1 && !is.na(v) && nzchar(as.character(v)))
+      u[[own]] <- as.character(v)
+  }
   u
 }
 
@@ -201,6 +305,9 @@ NULL
   s <- gsub("\\{activity\\}", base$activity, s)
   s <- gsub("\\{use\\}",      base$use,      s)
   s <- gsub("\\{currency\\}", base$currency, s)
+  # `{wval}` is a weather series own measure, dimensionless unless
+  # the object declares one; the placeholder stays when it does not
+  if (!is.null(base$wval)) s <- gsub("\\{wval\\}", base$wval, s)
   if (!is.na(comm) && grepl("\\{comm\\}", s)) {
     cu <- if (comm %in% names(comm_units)) comm_units[[comm]]
           else paste0("{", comm, "}")
@@ -239,16 +346,19 @@ NULL
 setMethod("getUnits", "commodity", function(object, slots = NULL, ...) {
   rows <- list()
 
-  all_slots <- c("unit", "emis", "agg", "property")
+  all_slots <- c("units", "emis", "agg", "property")
+  # `unit` was the slot's name up to 0.91 and stays an accepted filter spelling
+  if (!is.null(slots)) slots[slots == "unit"] <- "units"
   use_slots <- if (is.null(slots)) all_slots else intersect(slots, all_slots)
+  own <- getUnit(object)
 
-  if ("unit" %in% use_slots) {
+  if ("units" %in% use_slots) {
     rows[[length(rows) + 1]] <- data.frame(
-      slot        = "unit",
+      slot        = "units",
       parameter   = NA_character_,
       comm        = NA_character_,
       description = "Primary unit of the commodity",
-      unit        = if (nzchar(object@unit)) object@unit else NA_character_,
+      unit        = own,
       stringsAsFactors = FALSE
     )
   }
@@ -256,7 +366,7 @@ setMethod("getUnits", "commodity", function(object, slots = NULL, ...) {
   if ("emis" %in% use_slots && nrow(object@emis) > 0) {
     for (i in seq_len(nrow(object@emis))) {
       eu <- object@emis$unit[i]
-      cu <- if (nzchar(object@unit)) object@unit else "{unit}"
+      cu <- if (!is.na(own)) own else "{comm}"
       rows[[length(rows) + 1]] <- data.frame(
         slot        = "emis",
         parameter   = "emis",
@@ -271,7 +381,7 @@ setMethod("getUnits", "commodity", function(object, slots = NULL, ...) {
   if ("agg" %in% use_slots && nrow(object@agg) > 0) {
     for (i in seq_len(nrow(object@agg))) {
       au <- object@agg$unit[i]
-      cu <- if (nzchar(object@unit)) object@unit else "{unit}"
+      cu <- if (!is.na(own)) own else "{comm}"
       rows[[length(rows) + 1]] <- data.frame(
         slot        = "agg",
         parameter   = "agg",
@@ -284,7 +394,7 @@ setMethod("getUnits", "commodity", function(object, slots = NULL, ...) {
   }
 
   # Physical properties carry their own, self-contained unit ("GJ/t", "t/m3"),
-  # so unlike `emis`/`agg` they are not composed with the commodity's `@unit`.
+  # so unlike `emis`/`agg` they are not composed with the commodity's own.
   if ("property" %in% use_slots) {
     prop <- .comm_property(object)
     for (i in seq_len(nrow(prop))) {
@@ -578,6 +688,29 @@ setMethod("getUnits", "export", .get_units_process)
 #' @rdname getUnits
 #' @export
 setMethod("getUnits", "storage", .get_units_process)
+
+# `.get_units_process()` is keyed on the class only through `.unit_formulas_for()`
+# and `methods::slot()`, so a class needs no code of its own once its columns
+# are catalogued. `trade` has 39 of them and had no method at all.
+#' @rdname getUnits
+#' @export
+setMethod("getUnits", "trade", .get_units_process)
+
+#' @rdname getUnits
+#' @export
+setMethod("getUnits", "tax", .get_units_process)
+
+#' @rdname getUnits
+#' @export
+setMethod("getUnits", "subsidy", .get_units_process)
+
+#' @rdname getUnits
+#' @export
+setMethod("getUnits", "weather", .get_units_process)
+
+#' @rdname getUnits
+#' @export
+setMethod("getUnits", "calendar", .get_units_process)
 
 
 # `units` overrides the axis label's base unit PER COMMODITY, so it is a named

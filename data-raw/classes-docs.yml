@@ -43,9 +43,20 @@ class:
         config whose geoframes NEST -- adjacent levels must refine one another,
         or a region would be counted into two parents. Supported by all
         back-ends.
-    unit:
-      type: character
-      description: The main unit of the commodity used in the model.
+    units:
+      type: data.frame
+      description: >
+        Units this object is measured in, for reference and for carrying them
+        with it: an object moved between models is only meaningful where the
+        units agree, and nothing else in the object records them. Up to version
+        0.91 the object's own measure was a slot of its own, `@unit`.
+      columns:
+        comm:
+          type: character
+          description: >
+            The commodity this object is counted in, e.g. "GWh" or "PJ". Set by
+            the `unit =` argument of the constructor. Leave it empty to claim
+            nothing: a unit is reported and cross-checked, never converted.
     cluster:
       type: data.frame
       description: >
@@ -205,9 +216,6 @@ class:
     commodity:
       type: character
       description: The supplied commodity short name.
-    unit:
-      type: character
-      description: The main unit of the commodity used in the model.
     units:
       type: data.frame
       description: >
@@ -219,6 +227,12 @@ class:
         an error rather than a silent conversion; leave a column empty to
         claim nothing.
       columns:
+        comm:
+          type: character
+          description: >
+            The commodity this object is counted in, e.g. "GWh" or "PJ". Set by
+            the `unit =` argument of the constructor. Leave it empty to claim
+            nothing: a unit is reported and cross-checked, never converted.
         activity:
           type: character
           description: Unit of the activity variable.
@@ -429,9 +443,25 @@ class:
     commodity:
       type: character
       description: Name of the commodity for which the demand will be specified.
-    unit:
-      type: character
-      description: Optional unit of the commodity.
+    units:
+      type: data.frame
+      description: >
+        Units this object is measured in, for reference and for carrying them
+        with it: an object moved between models is only meaningful where the
+        units agree, and nothing else in the object records them. Up to version
+        0.91 the object's own measure was a slot of its own, `@unit`.
+      columns:
+        comm:
+          type: character
+          description: >
+            The commodity this object is counted in, e.g. "GWh" or "PJ". Set by
+            the `unit =` argument of the constructor. Leave it empty to claim
+            nothing: a unit is reported and cross-checked, never converted.
+        currency:
+          type: character
+          description: >
+            Currency of the cost columns. A currency that disagrees with the
+            model's own is an error rather than a silent conversion.
     demand:
       type: data.frame
       description: Specification of the demand.
@@ -1239,8 +1269,8 @@ class:
         Key units of the object, for reference and for carrying its units with
         it. An object moved between models is only meaningful where the units
         agree, and nothing else in the object records them: the numbers in the
-        cost, capacity and activity columns are bare. A declared `costs` that
-        disagrees with the model's `config@currency` is an error rather than a
+        cost, capacity and activity columns are bare. A declared `currency`
+        that disagrees with the model's own is an error rather than a
         silent conversion; leave a column empty to claim nothing. One unit per
         kind: a storage prices three capacities but states `capacity` once.
       columns:
@@ -2159,11 +2189,18 @@ class:
         Key units of the object, for reference and for carrying its units with
         it. An object moved between models is only meaningful where the units
         agree, and nothing else in the object records them: the numbers in the
-        cost, capacity and activity columns are bare. A declared `costs` that
-        disagrees with the model's `config@currency` is an error rather than a
+        cost, capacity and activity columns are bare. A declared `currency`
+        that disagrees with the model's own is an error rather than a
         silent conversion; leave a column empty to claim nothing. One unit per
         kind: a storage prices three capacities but states `capacity` once.
       columns:
+        comm:
+          type: character
+          description: >
+            The commodity this object is counted in, e.g. "GWh" or "PJ". The
+            unit of the traded flow, which `markup`, `varom` and the `ava`
+            bounds are all stated per. Leave it empty to claim nothing: a unit
+            is reported and cross-checked, never converted.
         capacity:
           type: character
           description: Unit of capacity.
@@ -2754,9 +2791,25 @@ class:
     commodity:
       type: character
       description: Name of the imported commodity.
-    unit:
-      type: character
-      description: Unit of the imported commodity.
+    units:
+      type: data.frame
+      description: >
+        Units this object is measured in, for reference and for carrying them
+        with it: an object moved between models is only meaningful where the
+        units agree, and nothing else in the object records them. Up to version
+        0.91 the object's own measure was a slot of its own, `@unit`.
+      columns:
+        comm:
+          type: character
+          description: >
+            The commodity this object is counted in, e.g. "GWh" or "PJ". Set by
+            the `unit =` argument of the constructor. Leave it empty to claim
+            nothing: a unit is reported and cross-checked, never converted.
+        currency:
+          type: character
+          description: >
+            Currency of the cost columns. A currency that disagrees with the
+            model's own is an error rather than a silent conversion.
     reserve:
       type: data.frame
       description: >
@@ -2903,9 +2956,25 @@ class:
     commodity:
       type: character
       description: Name of the exported commodity.
-    unit:
-      type: character
-      description: Unit of the exported commodity.
+    units:
+      type: data.frame
+      description: >
+        Units this object is measured in, for reference and for carrying them
+        with it: an object moved between models is only meaningful where the
+        units agree, and nothing else in the object records them. Up to version
+        0.91 the object's own measure was a slot of its own, `@unit`.
+      columns:
+        comm:
+          type: character
+          description: >
+            The commodity this object is counted in, e.g. "GWh" or "PJ". Set by
+            the `unit =` argument of the constructor. Leave it empty to claim
+            nothing: a unit is reported and cross-checked, never converted.
+        currency:
+          type: character
+          description: >
+            Currency of the cost columns. A currency that disagrees with the
+            model's own is an error rather than a silent conversion.
     reserve:
       type: data.frame
       description: >
@@ -3052,9 +3121,21 @@ class:
     desc:
       type: character
       description: Description of the weather factor.
-    unit:
-      type: character
-      description: Unit of the weather factor.
+    units:
+      type: data.frame
+      description: >
+        Unit of the weather series. A weather factor is DIMENSIONLESS by default
+        and that is the common case; a unit is declared only when the series
+        carries a real measure, and then it is used for reporting and for a
+        cross-check against what a process expects -- never for conversion.
+      columns:
+        wval:
+          type: character
+          description: >
+            Unit of the weather value, e.g. "degC". Empty means dimensionless.
+            The coefficients that read the series stay a `factor` either way:
+            the relation is reciprocal for a temperature and direct for other
+            measures, so it is not derived.
     geoframe:
       type: character
       description: >
@@ -3313,6 +3394,23 @@ class:
       description: >
         Commodity filter: the commodity or commodities the levy applies to.
         Empty means every commodity the chosen base reaches.
+    units:
+      type: data.frame
+      description: >
+        Units the levy is stated in. A levy is a rate -- currency per unit of
+        whatever its base counts -- so both halves are needed to read it, and
+        neither is converted.
+      columns:
+        comm:
+          type: character
+          description: >
+            Unit of the commodity the levy is charged on, where its base counts
+            a commodity flow.
+        currency:
+          type: character
+          description: >
+            Currency of the rate columns. A currency that disagrees with the
+            model's own is an error rather than a silent conversion.
     geoframe:
       type: character
       description: >
@@ -3476,6 +3574,23 @@ class:
       description: >
         Commodity filter: the commodity or commodities the levy applies to.
         Empty means every commodity the chosen base reaches.
+    units:
+      type: data.frame
+      description: >
+        Units the levy is stated in. A levy is a rate -- currency per unit of
+        whatever its base counts -- so both halves are needed to read it, and
+        neither is converted.
+      columns:
+        comm:
+          type: character
+          description: >
+            Unit of the commodity the levy is charged on, where its base counts
+            a commodity flow.
+        currency:
+          type: character
+          description: >
+            Currency of the rate columns. A currency that disagrees with the
+            model's own is an error rather than a silent conversion.
     geoframe:
       type: character
       description: >

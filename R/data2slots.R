@@ -51,6 +51,42 @@
   nms
 }
 
+# `unit =` is the constructor shorthand for the object's own measure, which
+# lives in `@units` since 0.92 -- the `comm` column for a commodity or a flow
+# class, `wval` for weather, since a weather series measures no commodity. The
+# argument stays because every example and vignette writes it; folding it here
+# keeps the slot the only place the value is stored.
+#' @noRd
+.unit_arg_column <- function(class_name) {
+  if (identical(as.character(class_name)[1], "weather")) "wval" else "comm"
+}
+
+# Fold `unit =` into the `units` argument, carrying the object's existing row
+# forward: the data.frame path below REPLACES a slot, so without the carry
+# `update(obj, unit = "PJ")` would drop a declared `currency` beside it.
+# Precedence is stored row, then `unit =`, then an explicit `units =`.
+#' @noRd
+.fold_unit_arg <- function(arg, class_name, obj) {
+  if (!("unit" %in% names(arg))) return(arg)
+  slots <- methods::getSlots(class_name)
+  if ("unit" %in% names(slots) || !("units" %in% names(slots))) return(arg)
+  v <- arg[["unit"]]
+  arg[["unit"]] <- NULL
+  if (length(v) != 1 || is.na(v) || !nzchar(as.character(v))) return(arg)
+  cc <- .unit_arg_column(class_name)
+  cur <- slot(obj, "units")
+  u <- if (nrow(cur) > 0) as.list(cur[1, , drop = FALSE]) else list()
+  u[[cc]] <- as.character(v)
+  if (!is.null(arg[["units"]])) {
+    # an explicit `units =` in the same call wins: it names the column itself
+    given <- as.list(arg[["units"]])
+    u[names(given)] <- given
+  }
+  u <- u[vapply(u, function(z) length(z) == 1, logical(1))]
+  arg[["units"]] <- as.data.frame(u, stringsAsFactors = FALSE)
+  arg
+}
+
 #' @param class_name character, name of the class to create.
 #' @param x character or object. Character string with a name to add to the `@name` slot of the object to create, or the object of `class_name` to update.
 #' @param ... slot names with the data to add to the object's slots.
@@ -150,6 +186,7 @@
       stop("Duplicated parameters ", names(arg)[anyDuplicated(names(arg))])
     }
     arg <- arg[!sapply(arg, is.null)]
+    arg <- .fold_unit_arg(arg, class_name, obj)
     if (any(!(names(arg) %in% names(slots)))) {
       # check consistency of the data in `...` with the object slots.
       # `warn_nodata = FALSE` is used by callers that deliberately pass a mixed

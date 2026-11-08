@@ -60,6 +60,7 @@ setClass("trade",
     name = "", # name in sets
     desc = "",
     units = data.frame(
+      comm = character(),
       capacity = character(),
       activity = character(),
       currency = character(),

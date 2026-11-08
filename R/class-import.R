@@ -11,7 +11,7 @@
 #' @slot name `r get_slot_doc("import", "name")`
 #' @slot desc `r get_slot_doc("import", "desc")`
 #' @slot commodity `r get_slot_doc("import", "commodity")`
-#' @slot unit `r get_slot_doc("import", "unit")`
+#' @slot units `r get_slot_doc("import", "units")`
 #' @slot reserve `r get_slot_doc("import", "reserve")`
 #' @slot cluster `r get_slot_doc("import", "cluster")`
 #' @slot import `r get_slot_doc("import", "import")`
@@ -30,7 +30,7 @@ setClass("import",
     name = "character",
     desc = "character",
     commodity = "character",
-    unit = "character",
+    units = "data.frame",
     reserve = "data.frame",
     import = "data.frame",
     cluster = "data.frame",
@@ -43,7 +43,11 @@ setClass("import",
     name = "",
     desc = "",
     commodity = "",
-    unit = "",
+    units = data.frame(
+      comm = character(),
+      currency = character(),
+      stringsAsFactors = FALSE
+    ),
     # Cumulative limit over the whole horizon, summed across ALL regions, years
     # and timeslices -- see `eqExportRowCum` / `eqImportRowCum`, which sum over
     # `r in region`. A data.frame rather than a scalar so it can carry a
@@ -131,7 +135,9 @@ setMethod("initialize", "import", function(.Object, ...) {
 #' @param name `r get_slot_doc("import", "name")`
 #' @param desc `r get_slot_doc("import", "desc")`
 #' @param commodity `r get_slot_doc("import", "commodity")`
-#' @param unit `r get_slot_doc("import", "unit")`
+#' @param unit character, the object's own measure, stored in `@units$comm`.
+#'   See [getUnit()].
+#' @param units `r get_slot_doc("import", "units")`
 #' @param reserve `r get_slot_doc("import", "reserve")`
 #' @param cluster `r get_slot_doc("import", "cluster")`
 #' @param import `r get_slot_doc("import", "import")`
@@ -164,6 +170,7 @@ newImport <- function(
     desc = "",
     commodity = "",
     unit = NULL,
+    units = data.frame(),
     reserve = data.frame(),
     import = data.frame(),
     cluster = data.frame(),
@@ -184,6 +191,7 @@ newImport <- function(
     desc = desc,
     commodity = commodity,
     unit = unit,
+    units = units,
     reserve = reserve,
     import = import,
     cluster = cluster,

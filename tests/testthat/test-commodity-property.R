@@ -76,7 +76,7 @@ test_that("update() replaces the property table", {
   expect_equal(nrow(up@property), 1)
   expect_equal(up@property$value, 30)
   # untouched slots survive
-  expect_equal(up@unit, "PJ")
+  expect_equal(getUnit(up), "PJ")
 })
 
 # -- accessors ---------------------------------------------------------------
@@ -229,7 +229,8 @@ test_that("getUnits() reports the property rows", {
   u <- getUnits(new_coa())
   pr <- u[u$slot == "property", ]
   expect_equal(nrow(pr), nrow(COA_PROP))
-  # a property's unit is self-contained and must NOT be composed with @unit
+  # a property's unit is self-contained and must NOT be composed with the
+  # commodity's own
   expect_identical(pr$unit[pr$parameter == "lhv"], "GJ/t")
   expect_identical(pr$description[pr$parameter == "lhv"],
                    "Lower (net) heating value")

@@ -15,7 +15,7 @@
 #' @slot limtype `r get_slot_doc("commodity", "limtype")`
 #' @slot timeframe `r get_slot_doc("commodity", "timeframe")`
 #' @slot geoframe `r get_slot_doc("commodity", "geoframe")`
-#' @slot unit `r get_slot_doc("commodity", "unit")`
+#' @slot units `r get_slot_doc("commodity", "units")`
 #' @slot cluster `r get_slot_doc("commodity", "cluster")`
 #' @slot emis `r get_slot_doc("commodity", "emis")`
 #' @slot agg `r get_slot_doc("commodity", "agg")`
@@ -33,7 +33,7 @@ setClass("commodity",
     limtype = "factor",
     timeframe = "character",
     geoframe = "character",
-    unit = "character",
+    units = "data.frame",
     cluster = "data.frame", # Resource tiers (grades that must not pool)
     emis = "data.frame", # Emission factors
     agg = "data.frame", # Aggregation parameter
@@ -46,7 +46,10 @@ setClass("commodity",
     limtype = factor("LO", levels = c("FX", "UP", "LO")),
     timeframe = character(),
     geoframe = character(),
-    unit = character(),
+    units = data.frame(
+      comm = character(),
+      stringsAsFactors = FALSE
+    ),
     # Resource tiers. No `region` column: a commodity has no region slot, and
     # which tiers exist where follows from the processes that reference them.
     cluster = data.frame(
@@ -99,7 +102,9 @@ setMethod("initialize", "commodity", function(.Object, ...) {
 #' @param limtype `r get_slot_doc("commodity", "limtype")`
 #' @param timeframe `r get_slot_doc("commodity", "timeframe")`
 #' @param geoframe `r get_slot_doc("commodity", "geoframe")`
-#' @param unit `r get_slot_doc("commodity", "unit")`
+#' @param unit character, the object's own measure, stored in `@units$comm`.
+#'   See [getUnit()].
+#' @param units `r get_slot_doc("commodity", "units")`
 #' @param cluster `r get_slot_doc("commodity", "cluster")`
 #' @param agg `r get_slot_doc("commodity", "agg")`
 #' @param emis `r get_slot_doc("commodity", "emis")`
@@ -138,6 +143,7 @@ newCommodity <- function(
     timeframe = character(),
     geoframe = character(),
     unit = character(),
+    units = data.frame(),
     cluster = data.frame(),
     agg = data.frame(),
     emis = data.frame(),
@@ -156,6 +162,7 @@ newCommodity <- function(
     timeframe = timeframe,
     geoframe = geoframe,
     unit = unit,
+    units = units,
     cluster = cluster,
     agg = agg,
     emis = emis,

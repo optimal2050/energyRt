@@ -9,6 +9,11 @@
 \alias{getUnits,import-method}
 \alias{getUnits,export-method}
 \alias{getUnits,storage-method}
+\alias{getUnits,trade-method}
+\alias{getUnits,tax-method}
+\alias{getUnits,subsidy-method}
+\alias{getUnits,weather-method}
+\alias{getUnits,calendar-method}
 \title{Get parameter units for energyRt class objects}
 \usage{
 \S4method{getUnits}{commodity}(object, slots = NULL, ...)
@@ -24,6 +29,16 @@
 \S4method{getUnits}{export}(object, slots = NULL, complete = FALSE, units = NULL, ...)
 
 \S4method{getUnits}{storage}(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+\S4method{getUnits}{trade}(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+\S4method{getUnits}{tax}(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+\S4method{getUnits}{subsidy}(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+\S4method{getUnits}{weather}(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+\S4method{getUnits}{calendar}(object, slots = NULL, complete = FALSE, units = NULL, ...)
 }
 \arguments{
 \item{object}{A \code{commodity} or \code{technology} S4 object.}

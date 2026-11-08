@@ -267,7 +267,7 @@ autoplot(IMP_GAS)
 per region and timeslice. `autoplot()` offers three views via `type =`: a calendar
 **heatmap** (the default), and diurnal **line** / **area** charts. Because the
 timeslice layout (here season × hour) can't be inferred from the timeslice names alone,
-pass the model's `calendar`; the value's unit (`@unit`, or `"capacity factor"`
+pass the model's `calendar`; the value's unit (`getUnit()`, or `"capacity factor"`
 when unset) labels the value axis — the fill legend for the heatmap, the y-axis
 for line/area.
 

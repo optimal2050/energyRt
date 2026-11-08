@@ -71,16 +71,16 @@ TOPIA uses the following units:
 
 | quantity | unit | where it is declared |
 |---|---|---|
-| electricity, and the renewable resources feeding it | **GWh** | `commodity@unit` |
-| coal, gas, biomass, nuclear fuel | **PJ** | `commodity@unit` |
-| emissions | kt | `commodity@unit` |
+| electricity, and the renewable resources feeding it | **GWh** | `commodity@units$comm` |
+| coal, gas, biomass, nuclear fuel | **PJ** | `commodity@units$comm` |
+| emissions | kt | `commodity@units$comm` |
 | capacity (plants, storage power, corridors) | GW | `cap2act` fixes the link |
 | investment cost | MUSD/GW | `invcost` |
 | storage reservoir | GWh, priced MUSD/GWh | `duration`, `stg.invcost` |
 | fuel cost, import price | MUSD/PJ (= USD/GJ) | `supply@cost`, `import@price` |
 
-Electricity and renewable-resource flows use GWh; fuels use PJ. `@unit` records
-the unit but does not convert values. Explicit conversions appear in:
+Electricity and renewable-resource flows use GWh; fuels use PJ. `@units$comm`
+records the unit but does not convert values. Explicit conversions appear in:
 
 * `cap2act` -- GW of capacity to GWh of annual activity.
 * `ceff$use2cact` -- the PJ-to-GWh bridge on a fuel-burning plant.

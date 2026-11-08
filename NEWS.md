@@ -27,6 +27,22 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* `getUnits()` works for `trade`, `tax`, `subsidy`, `weather` and `calendar`,
+  which had no method. `trade` reports all 40 of its columns, with `{comm}`
+  resolved from the new `@units$comm`; `tax` and `subsidy` gained a `@units`
+  slot of their own (`comm` and `currency`), since a levy is a rate and both
+  halves are needed to read it. `demand`, `import` and `export` gained a
+  `currency` column, so `price` resolves where it could not.
+
+* `getUnit()` reads an object's own measure, beside `getUnits()` for the table
+  of its parameter units.
+
+* A weather series reports its declared unit: `newWeather(unit = "degC")` makes
+  `getUnits()` say `degC` where it says `{wval}` for an undeclared one.
+  Dimensionless stays the default, and the coefficients that read the series
+  stay a `factor` either way — the relation is reciprocal for a temperature and
+  direct for other measures, so it is not derived.
+
 * `aggregate_model_regions(resolve_conflicts = )` decides what happens to a
   value with no merged form, such as a lifetime or a levy rate. The default
   stops and names the object, the column and the regions that disagree;
@@ -347,6 +363,29 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Breaking changes
 
+* **The scalar `@unit` slot is gone.** A commodity's, a flow's or a weather
+  series' own measure lives in `@units`, the same slot a process already used:
+  `@units$comm` for the commodity an object is counted in, `@units$wval` for a
+  weather value. `commodity`, `demand`, `import`, `export` and `weather` gained
+  the slot; `supply` carried both shapes and lost the scalar one. Read it with
+  the new `getUnit()` accessor, which returns one value or `NA_character_`:
+
+  ```r
+  co <- newCommodity("ELC", desc = "Electricity", unit = "GWh")
+  getUnit(co)        # "GWh"  -- was co@unit
+  co@units$comm      # "GWh"  -- where it is stored
+  ```
+
+  `unit =` is unchanged as a constructor and `update()` argument, so authoring
+  code does not move; it writes the column, and an explicit `units =` in the
+  same call wins. A saved object's `@unit` is **migrated**, not lost: a slot
+  removed from a class definition survives deserialization as a plain
+  attribute, and both `getUnit()` and the unit resolver read it.
+
+  Three places declared units in two shapes under two names one letter apart,
+  which is why six classes could not state a currency at all and `trade` could
+  not state the commodity its 39 priced columns are measured in.
+
 * `config@defVal` and `config@interpolation` are **empty override tables keyed
   by parameter name**, not pre-filled tables keyed by column name. Set
   `config@interpolation$pDemand <- "inter"` or
@@ -411,6 +450,16 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   `mmcloud::get_hf_token()` and `mmcloud::set_hf_token()`.
 
 ## Bug fixes
+
+* `getUnits()` on a `commodity` errored with "argument is of length zero"
+  whenever the commodity declared no unit, which is every commodity in the
+  shipped test models: the default was `character()` and `nzchar()` on it
+  returns `logical(0)`.
+
+* A unit declared in `@units$comm` was read as a **commodity name** by the
+  undeclared-name and unused-name checks, which sweep every slot for a column
+  called `comm`. A model with `newCommodity("ELC", unit = "MWh")` failed to
+  build with "The model references undeclared name(s): commodity: MWh".
 
 * **`storage@duration` and `@inp2stg` were reported in hours, which is wrong.**
   `duration` is energy capacity per unit of power capacity in the stored

@@ -49,20 +49,24 @@ and what the model checks for you.
 
 # Where units live
 
-Units are declared in three places, and they answer three different questions.
+One slot carries units, and its columns name what is being measured.
 
-| Where | Slot | Question it answers |
+| Where | Column | Question it answers |
 |---|---|---|
-| Commodity | `@unit` | in what measure is this commodity balanced? |
-| Process | `@units` | what are this process's capacity, activity and cost units? |
+| Commodity, or a flow | `@units$comm` | in what measure is this commodity counted? |
+| Process | `@units$capacity`, `$activity`, `$use` | what are this process's capacity and activity units? |
+| Anything priced | `@units$currency` | what money are its costs in? |
+| Weather | `@units$wval` | what does the series measure, if anything? |
 | Model | `config@units` | what should everything be expressed in? |
 
-A commodity's `@unit` is its **native measure** — the one the model balances it
-in. Electricity in GWh, coal in PJ, water in Mm3.
+A commodity's `@units$comm` is its **native measure** — the one the model
+balances it in. Electricity in GWh, coal in PJ, water in Mm3. The `unit =`
+argument of a constructor writes it, and `getUnit()` reads it back:
 
 ```{r comm-unit}
 ELC <- newCommodity("ELC", desc = "Electricity", unit = "GWh")
 COA <- newCommodity("COA", desc = "Steam coal",  unit = "PJ")
+getUnit(COA)
 ```
 
 A process declares its own units in `@units`, which is where a cost currency is
@@ -90,6 +94,12 @@ getUnits(EGAS)
 
 Where a process leaves a unit undeclared, `getUnits()` shows the placeholder
 token (`{costs}`, `{capacity}`, `{activity}`) rather than guessing.
+
+Up to version 0.91 a commodity's and a flow's own measure was a slot of its
+own, `@unit`, beside the `@units` table a process carried. The two are one
+slot now, so `getUnit()` and `getUnits()` read the same place. `unit =` is
+still the constructor argument, which is why the code above is unchanged, and
+a saved object's `@unit` is migrated to `@units$comm` when it is read.
 
 # Dimensions and conversion
 

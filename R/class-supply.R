@@ -4,7 +4,6 @@
 #' @slot desc `r get_slot_doc("supply", "desc")`
 #' @slot units `r get_slot_doc("supply", "units")`
 #' @slot commodity `r get_slot_doc("supply", "commodity")`
-#' @slot unit `r get_slot_doc("supply", "unit")`
 #' @slot weather `r get_slot_doc("supply", "weather")`
 #' @slot reserve `r get_slot_doc("supply", "reserve")`
 #' @slot cluster `r get_slot_doc("supply", "cluster")`
@@ -23,7 +22,6 @@ setClass("supply",
     desc = "character",
     units = "data.frame",
     commodity = "character",
-    unit = "character",
     weather = "data.frame",
     reserve = "data.frame",
     supply = "data.frame",
@@ -36,12 +34,12 @@ setClass("supply",
     name = "",
     desc = "",
     units = data.frame(
+      comm = character(),
       activity = character(),
       currency = character(),
       stringsAsFactors = FALSE
     ),
     commodity = "",
-    unit = "",
     weather = data.frame(
       cluster = character(),
       weather = character(),
@@ -123,7 +121,8 @@ setMethod("initialize", "supply", function(.Object, ...) {
 #' @param desc `r get_slot_doc("supply", "desc")`
 #' @param units `r get_slot_doc("supply", "units")`
 #' @param commodity `r get_slot_doc("supply", "commodity")`
-#' @param unit `r get_slot_doc("supply", "unit")`
+#' @param unit character, the object's own measure, stored in `@units$comm`.
+#'   See [getUnit()].
 #' @param weather `r get_slot_doc("supply", "weather")`
 #' @param reserve `r get_slot_doc("supply", "reserve")`
 #' @param cluster `r get_slot_doc("supply", "cluster")`

@@ -10,6 +10,7 @@ newExport(
   desc = "",
   commodity = "",
   unit = NULL,
+  units = data.frame(),
   reserve = data.frame(),
   export = data.frame(),
   cluster = data.frame(),
@@ -28,7 +29,17 @@ newExport(
 
 \item{commodity}{character. Name of the exported commodity.}
 
-\item{unit}{character. Unit of the exported commodity.}
+\item{unit}{character, the object's own measure, stored in \verb{@units$comm}.
+See \code{\link[=getUnit]{getUnit()}}.}
+
+\item{units}{data.frame. Units this object is measured in, for reference and for carrying them with it: an object moved between models is only meaningful where the units agree, and nothing else in the object records them. Up to version 0.91 the object's own measure was a slot of its own, \verb{@unit}.
+
+\describe{
+\item{comm}{character. The commodity this object is counted in, e.g. "GWh" or "PJ". Set by the \verb{unit =} argument of the constructor. Leave it empty to claim nothing: a unit is reported and cross-checked, never converted.
+}
+\item{currency}{character. Currency of the cost columns. A currency that disagrees with the model's own is an error rather than a silent conversion.
+}
+}}
 
 \item{reserve}{data.frame. Cumulative limit over the whole model horizon, summed across ALL regions, years and timeslices. A data.frame (rather than the bare number it was before 0.85) so it can carry a \code{cluster} column and be split across price steps; without that every step would inherit the FULL limit and the model would quietly hold \code{nsteps} times the resource. A plain number is still accepted by the constructor and read as \code{res.up}.
 There is deliberately no \code{region} column: adding one would turn this into a per-region cap and LOSE the all-region total, which is what it means today.

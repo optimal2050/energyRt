@@ -172,6 +172,7 @@ pWeather:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
+  unit: "{wval}"
   colName: wval
   recast: {space: weighted_mean, time: weighted_mean}
   class: weather

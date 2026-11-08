@@ -8,7 +8,7 @@
 #' @md
 #' @slot name `r get_slot_doc("weather", "name")`
 #' @slot desc `r get_slot_doc("weather", "desc")`
-#' @slot unit `r get_slot_doc("weather", "unit")`
+#' @slot units `r get_slot_doc("weather", "units")`
 #' @slot geoframe `r get_slot_doc("weather", "geoframe")`
 #' @slot region `r get_slot_doc("weather", "region")`
 #' @slot timeframe `r get_slot_doc("weather", "timeframe")`
@@ -27,7 +27,7 @@ setClass("weather",
   representation(
     name = "character",
     desc = "character",
-    unit = "character",
+    units = "data.frame",
     geoframe = "character",
     region = "character",
     timeframe = "character",
@@ -39,7 +39,10 @@ setClass("weather",
   prototype(
     name = "",
     desc = "",
-    unit = as.character(NA),
+    units = data.frame(
+      wval = character(),
+      stringsAsFactors = FALSE
+    ),
     geoframe = character(),
     region = character(),
     timeframe = character(),
@@ -84,7 +87,9 @@ setMethod("initialize", "weather", function(.Object, ...) {
 #' @md
 #' @param name `r get_slot_doc("weather", "name")`
 #' @param desc `r get_slot_doc("weather", "desc")`
-#' @param unit `r get_slot_doc("weather", "unit")`
+#' @param unit character, the object's own measure, stored in `@units$wval`.
+#'   See [getUnit()].
+#' @param units `r get_slot_doc("weather", "units")`
 #' @param geoframe `r get_slot_doc("weather", "geoframe")`
 #' @param region `r get_slot_doc("weather", "region")`
 #' @param timeframe `r get_slot_doc("weather", "timeframe")`
@@ -122,6 +127,7 @@ newWeather <- function(
     name = "",
     desc = "",
     unit = as.character(NA),
+    units = data.frame(),
     geoframe = character(),
     region = character(),
     timeframe = character(),
@@ -135,6 +141,7 @@ newWeather <- function(
     name,
     desc = desc,
     unit = unit,
+    units = units,
     geoframe = geoframe,
     region = region,
     timeframe = timeframe,

@@ -833,7 +833,7 @@ plot_supply_bar <- function(object, param = .supply_params,
   d <- .supply_cluster_levels(object, d)
   has_cluster <- "cluster" %in% names(d) &&
     length(unique(stats::na.omit(d$cluster))) > 1
-  unit <- tryCatch(object@unit, error = function(e) "")
+  unit <- tryCatch(getUnit(object), error = function(e) "")
   unit <- if (length(unit) == 1 && !is.na(unit) && nzchar(unit)) unit else NULL
 
   if (type == "availability") {
@@ -939,7 +939,7 @@ plot_supply_bar <- function(object, param = .supply_params,
 .supply_labels <- function(object) {
   act <- .object_units(object, "activity")
   if (is.null(act)) {
-    u <- tryCatch(object@unit, error = function(e) NULL)
+    u <- tryCatch(getUnit(object), error = function(e) NULL)
     if (length(u) == 1 && !is.na(u) && nzchar(u)) act <- u
   }
   cst <- .object_units(object, "currency")
@@ -1331,14 +1331,14 @@ plot_object_map <- function(object, param = NULL, year = NULL,
   lvl <- .region_level(map, d$region, paste0("'", nm, "'"))
   names(d)[names(d) == "region"] <- lvl
   # `import`, `export` and `demand` carry no `@units` table, but their scalar
-  # `@unit` IS the commodity's unit, which is what a quantity parameter is
+  # the own unit IS the commodity's, which is what a quantity parameter is
   # measured in. A price needs a currency and there is none to fall back on,
   # so it stays unlabelled rather than guessed.
   base <- sub("^(inp|out|stg)[.]", "", param)   # storage names its three parts
   u <- if (base %in% .price_params) .object_units(object, "currency") else
     if (base %in% .capacity_params) .object_units(object, "capacity") else {
       .object_units(object, "activity") %||% {
-        cu <- tryCatch(object@unit, error = function(e) NULL)
+        cu <- tryCatch(getUnit(object), error = function(e) NULL)
         if (length(cu) == 1 && !is.na(cu) && nzchar(cu)) cu else NULL
       }
     }
@@ -1368,7 +1368,7 @@ plot_object_map <- function(object, param = NULL, year = NULL,
 # a denominator ("/year"), `inv` inverts it ("per PJ").
 #' @noRd
 .unit_of <- function(object, per = NULL, inv = FALSE) {
-  u <- tryCatch(object@unit, error = function(e) NA_character_)
+  u <- tryCatch(getUnit(object), error = function(e) NA_character_)
   if (!(length(u) == 1 && !is.na(u) && nzchar(u))) return("NA")
   if (isTRUE(inv)) paste0("per ", u) else paste0(u, per)
 }
@@ -1495,7 +1495,7 @@ plot_demand <- function(object, style = c("area", "line", "heatmap"),
       return(invisible(NULL))
     }
     d$wval <- d$demand
-    u <- tryCatch(object@unit, error = function(e) NA_character_)
+    u <- tryCatch(getUnit(object), error = function(e) NA_character_)
     return(.plot_profile(
       d, style = style, calendar = calendar, palette = palette,
       unit_lab = .unit_of(object),
@@ -1548,7 +1548,7 @@ plot_demand <- function(object, style = c("area", "line", "heatmap"),
     pts$stacked <- stats::ave(pts$demand, pts$year, FUN = cumsum)
     # The unit goes on the y axis and the legend names the spatial level the
     # bands are, so a reader is told what is measured and over what.
-    u <- tryCatch(object@unit, error = function(e) NA_character_)
+    u <- tryCatch(getUnit(object), error = function(e) NA_character_)
     y_lab <- if (length(u) == 1 && !is.na(u) && nzchar(u)) u else "NA"
     gf_lab <- .geoframe_name(object)
     # A key per region while they fit, a colour bar carrying a few region
@@ -2000,7 +2000,7 @@ plot_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
 #' * `"area"` — the same as `"line"` with filled areas.
 #'
 #' The value axis (fill for the heatmap, `y` for line/area) is labelled with the
-#' object's `@unit` (or `"capacity factor"` if unset).
+#' object's own unit (or `"capacity factor"` if unset).
 #'
 #' @param object A `weather` object.
 #' @param style One of `"heatmap"` (default), `"line"`, `"area"`.
@@ -2050,7 +2050,7 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
   d <- .filter_region(d, region, nm, "weather data")
   if (nrow(d) == 0) return(invisible(NULL))
 
-  u        <- object@unit
+  u        <- getUnit(object)
   unit_lab <- if (length(u) == 1 && !is.na(u) && nzchar(u)) u else "NA"
 
   ttl <- if (nzchar(nm)) nm else NULL
@@ -2299,7 +2299,7 @@ autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
   }
   # highest mean on top
   dd$fct <- factor(dd$fct, levels = rev(names(m)[names(m) %in% dd$fct]))
-  u <- tryCatch(members[[1]]@unit, error = function(e) NA_character_)
+  u <- tryCatch(getUnit(members[[1]]), error = function(e) NA_character_)
   unit_lab <- if (length(u) == 1 && !is.na(u) && nzchar(u)) u else
     "capacity factor"
   .rows_heatmap(dd, "fct", unit_lab, title = title, subtitle = sub,

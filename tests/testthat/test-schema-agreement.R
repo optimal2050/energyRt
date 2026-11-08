@@ -208,8 +208,16 @@ test_that("the column exemptions name real slots", {
 
 # Constructor arguments that are NOT slots: each is folded into a slot, or is a
 # construction option rather than stored state.
+# `unit =` is the shorthand for the object's own measure, folded into
+# `@units$comm` (`$wval` for weather) by `.fold_unit_arg()`: the scalar `@unit`
+# slot was removed in 0.92, the argument was not.
 sa_extra_formals <- list(
-  commodity  = c("image", "icon"),                 # folded into @misc
+  commodity  = c("image", "icon", "unit"),         # @misc, @units$comm
+  demand     = "unit",                             # folded into @units$comm
+  import     = "unit",
+  export     = "unit",
+  supply     = "unit",
+  weather    = "unit",                             # folded into @units$wval
   technology = c("olife", "start", "end"),         # folded into @vintage
   trade      = c("olife", "start", "end"),         # folded into @vintage
   storage    = c("commodity", "start", "end", "olife"),

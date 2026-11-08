@@ -202,8 +202,10 @@ test_that("the unit vocabulary is closed", {
   tokens <- unique(unlist(regmatches(u, gregexpr("[{][a-z]+[}]", u))))
   # `{currency}`, not `{costs}`: measured, the token is money in every formula
   # and never stands alone, so `costs` named the quantity the formula builds
+  # `{wval}` is a weather series own measure: dimensionless unless the object
+  # declares one, and then for reporting and the cross-check only
   expect_setequal(tokens, c("{capacity}", "{activity}", "{use}", "{currency}",
-                            "{comm}", "{acomm}", "{group}"))
+                            "{comm}", "{acomm}", "{group}", "{wval}"))
   expect_false(any(grepl("costs", u)))
 
   # The literal (token-free) units, pinned so a new spelling is deliberate.
@@ -246,15 +248,10 @@ test_that("the columns without a unit are a stated set", {
   b <- cp[!is.na(cp$parameter) & !is.na(cp$column), ]
   expect_setequal(
     paste(b$class, b$slot, b$column, sep = "/")[is.na(b$unit)],
-    c(
-      # the emitted commodity's unit, which `commodity` has no lookup for
-      "commodity/emis/emis",
-      # dimensionless by default; a user may declare a real measure, and then
-      # it is for reporting and the cross-check, never converted
-      "weather/weather/wval"
-    )
+    # the emitted commodity's unit, which `commodity` has no lookup for
+    "commodity/emis/emis"
   )
-  expect_equal(sum(is.na(b$unit)), 2L)
+  expect_equal(sum(is.na(b$unit)), 1L)
 })
 
 test_that("the storage ratios are energy per power, not hours", {

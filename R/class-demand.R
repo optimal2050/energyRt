@@ -6,7 +6,7 @@
 #' @slot name `r get_slot_doc("demand", "name")`
 #' @slot desc `r get_slot_doc("demand", "desc")`
 #' @slot commodity `r get_slot_doc("demand", "commodity")`
-#' @slot unit `r get_slot_doc("demand", "unit")`
+#' @slot units `r get_slot_doc("demand", "units")`
 #' @slot demand `r get_slot_doc("demand", "demand")`
 #' @slot cluster `r get_slot_doc("demand", "cluster")`
 #' @slot geoframe `r get_slot_doc("demand", "geoframe")`
@@ -22,7 +22,7 @@ setClass("demand",
     name = "character",
     desc = "character",
     commodity = "character",
-    unit = "character",
+    units = "data.frame",
     demand = "data.frame",
     cluster = "data.frame",
     geoframe = "character",
@@ -32,7 +32,11 @@ setClass("demand",
   prototype(
     name = "",
     desc = "",
-    unit = "",
+    units = data.frame(
+      comm = character(),
+      currency = character(),
+      stringsAsFactors = FALSE
+    ),
     geoframe = character(),
     region = character(),
     demand = data.frame(
@@ -81,7 +85,9 @@ setMethod("initialize", "demand", function(.Object, ...) {
 #' @param name `r get_slot_doc("demand", "name")`
 #' @param desc `r get_slot_doc("demand", "desc")`
 #' @param commodity `r get_slot_doc("demand", "commodity")`
-#' @param unit `r get_slot_doc("demand", "unit")`
+#' @param unit character, the object's own measure, stored in `@units$comm`.
+#'   See [getUnit()].
+#' @param units `r get_slot_doc("demand", "units")`
 #' @param demand `r get_slot_doc("demand", "demand")`
 #' @param cluster `r get_slot_doc("demand", "cluster")`
 #' @param geoframe `r get_slot_doc("demand", "geoframe")`
@@ -117,6 +123,7 @@ newDemand <- function(
     desc = character(),
     commodity = character(),
     unit = character(),
+    units = data.frame(),
     demand = data.frame(),
     cluster = data.frame(),
     geoframe = character(),
@@ -128,6 +135,7 @@ newDemand <- function(
     desc = desc,
     commodity = commodity,
     unit = unit,
+    units = units,
     demand = demand,
     cluster = cluster,
     geoframe = geoframe,

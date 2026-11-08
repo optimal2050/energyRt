@@ -92,9 +92,34 @@ NULL
   defined <- tryCatch(names(methods::getSlots(cls)), error = function(e) NULL)
   if (!length(defined)) return(x)
   absent <- setdiff(defined, names(attributes(x)))
-  if (!length(absent)) return(x)
+  if (!length(absent)) return(.upgrade_unit_slot(x))
   proto <- tryCatch(methods::new(cls), error = function(e) NULL)
   if (is.null(proto)) return(x)
   for (sl in absent) attr(x, sl) <- methods::slot(proto, sl)
+  .upgrade_unit_slot(x)
+}
+# The scalar `@unit` slot was removed in 0.92: a commodity's or a flow's own
+# measure is `@units$comm`, a weather series' is `@units$wval`. A slot removed
+# from a class definition is NOT dropped from an object serialized with it --
+# it survives as a plain attribute, which `validObject()` tolerates -- so the
+# value is migrated here rather than lost. The orphan attribute is left in
+# place; nothing reads it once `@units` carries the measure.
+#' @noRd
+.upgrade_unit_slot <- function(x) {
+  if (!isS4(x)) return(x)
+  cls <- class(x)[1]
+  defined <- tryCatch(names(methods::getSlots(cls)), error = function(e) NULL)
+  if (!("units" %in% defined) || "unit" %in% defined) return(x)
+  v <- attr(x, "unit", exact = TRUE)
+  if (length(v) != 1 || is.na(v) || !nzchar(as.character(v))) return(x)
+  cc <- .unit_arg_column(cls)
+  u <- methods::slot(x, "units")
+  if (!is.data.frame(u) || !(cc %in% names(u))) return(x)
+  if (nrow(u) == 0) u[1, ] <- NA
+  if (is.na(u[[cc]][1]) || !nzchar(as.character(u[[cc]][1]))) {
+    u[[cc]][1] <- as.character(v)
+    methods::slot(x, "units") <- u
+  }
   x
 }
+

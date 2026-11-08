@@ -603,7 +603,7 @@ test_that("no shipped fixture declares a unit, so D2-D4 have nothing to check", 
   n <- 0L
   for (tier in c("tm_core", "tm_weather")) {
     for (o in getObjects(env[[tier]]())) {
-      u <- tryCatch(methods::slot(o, "unit"), error = function(e) NULL)
+      u <- tryCatch(getUnit(o), error = function(e) NULL)
       if (length(u) && any(!is.na(u) & nzchar(u))) n <- n + 1L
     }
   }
