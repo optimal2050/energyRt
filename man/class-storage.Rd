@@ -319,6 +319,8 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{weather}{character. Name of the weather factor to apply.}
+\item{unit}{character. Optional. The unit this process EXPECTS from the series named in \code{weather}, e.g. "degC". Per row, because one process may read a temperature from one series and a wind speed from another. Where this and the weather object's own \verb{@units$wval} are both declared and differ, that is an error: nothing in the model converts between weather units, so a coefficient fitted to one measure and applied to another is wrong in a way no output reveals. Empty on either side claims nothing and is not checked.
+}
 \item{transform}{character. Optional name of a function in the weather object's \verb{@misc$transform}: the factor reads the series that function derives from the raw one, materialised at interpolation. NA reads the raw series.
 }
 \item{waf.lo}{numeric. Coefficient that links the weather factor with the lower bound of the availability factor.}

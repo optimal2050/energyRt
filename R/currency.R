@@ -11,8 +11,8 @@
 ## produce objectives that look alike and are not comparable, and an object
 ## moved from one to the other is wrong in a way no output reveals.
 ##
-## Two declarations close that. `config@currency` states what the model counts
-## in -- one per model, the unit of the objective. `@units$currency` on an object
+## Two declarations close that. `config@units$currency` states what the model
+## counts in -- one per model, the unit of the objective. `@units$currency` on an object
 ## states what IT was priced in, and travels with it. Where both are declared
 ## and disagree, that is an error: there is no exchange rate in the model, so
 ## there is nothing to convert with.
@@ -23,16 +23,19 @@
 #' @include class-config.R class-supply.R class-storage.R class-trade.R
 NULL
 
-# The model's currency, or NULL when it declares none. Guarded because configs
-# serialized before the slot existed have no `currency` attribute at all and
-# `@currency` on them errors -- same device as `.upgrade_storage_inp2stg()`.
+# The model's currency, or NULL when it declares none. It lives in
+# `config@units$currency` since 0.92, the same column name an object uses, so
+# `.check_model_currency()` compares like with like. A config serialized
+# earlier carries the removed `currency` slot as a plain attribute, which is
+# read as a fallback -- see `.upgrade_unit_slot()`.
 #' @noRd
 .model_currency <- function(x) {
   cfg <- if (methods::is(x, "config")) x else
     tryCatch(x@config, error = function(e) NULL)
   if (is.null(cfg)) return(NULL)
-  if (!("currency" %in% names(attributes(cfg)))) return(NULL)
-  v <- as.character(methods::slot(cfg, "currency"))
+  v <- .object_units(cfg, "currency")
+  if (!is.null(v)) return(v)
+  v <- as.character(attr(cfg, "currency", exact = TRUE))
   v <- v[!is.na(v) & nzchar(v)]
   if (length(v)) v[1] else NULL
 }
@@ -77,6 +80,54 @@ NULL
        call. = FALSE)
 }
 
+## The weather side of the same problem. A weather factor is DIMENSIONLESS by
+## default and that is the common case; a series carrying a real measure
+## declares it in `weather@units$wval`, and a process says what it expects in
+## the `unit` column of its own `@weather` row -- per row, because one process
+## may read a temperature from one series and a wind speed from another. Where
+## both are declared and differ, that is an error: nothing in the model
+## converts degC to degK, so a coefficient fitted to one and applied to the
+## other is wrong in a way no output reveals. Where either side says nothing,
+## the check is silent.
+
+# Every process that states what it expects from a weather series must state
+# what the series declares. Both sides are optional; silence when either is
+# empty.
+#' @noRd
+.check_weather_units <- function(mod) {
+  objs <- tryCatch(getObject(mod), error = function(e) NULL)
+  if (!length(objs)) return(invisible(NULL))
+  declared <- character(0)
+  for (o in objs) {
+    if (!methods::is(o, "weather")) next
+    v <- .object_units(o, "wval")
+    if (!is.null(v)) declared[o@name] <- v
+  }
+  if (!length(declared)) return(invisible(NULL))
+  bad <- list()
+  for (o in objs) {
+    w <- tryCatch(methods::slot(o, "weather"), error = function(e) NULL)
+    if (!is.data.frame(w) || !nrow(w) ||
+          !all(c("weather", "unit") %in% names(w))) next
+    for (i in seq_len(nrow(w))) {
+      want <- w$unit[i]
+      nm <- w$weather[i]
+      if (is.na(want) || !nzchar(want) || is.na(nm) || !nzchar(nm)) next
+      if (!(nm %in% names(declared))) next
+      if (identical(as.character(want), declared[[nm]])) next
+      bad[[length(bad) + 1L]] <- sprintf(
+        "%s %s expects %s from weather '%s', which declares %s",
+        class(o)[1], o@name, want, nm, declared[[nm]])
+    }
+  }
+  if (!length(bad)) return(invisible(NULL))
+  stop(length(bad), " weather unit mismatch(es):\n  ",
+       paste(unique(unlist(bad)), collapse = "\n  "),
+       "\nThere is no conversion between weather units in a model, so this is ",
+       "not reconciled. Restate one side, or clear the `unit` column to claim ",
+       "nothing.", call. = FALSE)
+}
+
 # An object serialized before a slot existed has no attribute for it, and
 # `validObject()` rejects it ("slots in class definition but not in object").
 # Every saved model predates `@units`, so rather than one upgrade per slot --
@@ -109,10 +160,14 @@ NULL
   if (!isS4(x)) return(x)
   cls <- class(x)[1]
   defined <- tryCatch(names(methods::getSlots(cls)), error = function(e) NULL)
-  if (!("units" %in% defined) || "unit" %in% defined) return(x)
-  v <- attr(x, "unit", exact = TRUE)
+  if (!("units" %in% defined)) return(x)
+  folds <- .unit_arg_folds(cls)
+  nm <- names(folds)[!(names(folds) %in% defined)]
+  if (!length(nm)) return(x)
+  nm <- nm[1]
+  v <- attr(x, nm, exact = TRUE)
   if (length(v) != 1 || is.na(v) || !nzchar(as.character(v))) return(x)
-  cc <- .unit_arg_column(cls)
+  cc <- folds[[nm]]
   u <- methods::slot(x, "units")
   if (!is.data.frame(u) || !(cc %in% names(u))) return(x)
   if (nrow(u) == 0) u[1, ] <- NA

@@ -59,13 +59,21 @@ NULL
 .unit_formulas_cache <- new.env(parent = emptyenv())
 
 #' @noRd
+# `config` has no catalogue rows of its own: `settings` CONTAINS `config`, and
+# `data-raw/col_param.R` files the slots they share under the child's name
+# (`.class_parents`). A unit lookup for `config` therefore reads `settings`.
+#' @noRd
+.unit_formula_alias <- c(config = "settings")
+
 .unit_formulas_for <- function(cls) {
   if (length(cls) != 1L || is.na(cls)) return(NULL)
   hit <- .unit_formulas_cache[[cls]]
   if (!is.null(hit)) return(hit)
   cp <- tryCatch(.col_param, error = function(e) NULL)
   if (!is.data.frame(cp)) return(NULL)
-  j <- which(cp$class == cls & !is.na(cp$unit))
+  look <- if (cls %in% names(.unit_formula_alias))
+    .unit_formula_alias[[cls]] else cls
+  j <- which(cp$class == look & !is.na(cp$unit))
   if (!length(j)) return(NULL)
   keys <- ifelse(is.na(cp$column[j]), cp$slot[j],
                  paste(cp$slot[j], cp$column[j], sep = "."))
@@ -711,6 +719,14 @@ setMethod("getUnits", "weather", .get_units_process)
 #' @rdname getUnits
 #' @export
 setMethod("getUnits", "calendar", .get_units_process)
+
+#' @rdname getUnits
+#' @export
+setMethod("getUnits", "config", .get_units_process)
+
+#' @rdname getUnits
+#' @export
+setMethod("getUnits", "settings", .get_units_process)
 
 
 # `units` overrides the axis label's base unit PER COMMODITY, so it is a named

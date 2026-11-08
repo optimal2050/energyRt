@@ -61,19 +61,34 @@
   if (identical(as.character(class_name)[1], "weather")) "wval" else "comm"
 }
 
+# Which constructor arguments fold into which `@units` column, per class. Only
+# arguments that WERE slots are listed: `currency =` reached `config@currency`
+# and must keep working, while a class that never accepted it keeps rejecting
+# it rather than silently absorbing it.
+#' @noRd
+.unit_arg_folds <- function(class_name) {
+  cl <- as.character(class_name)[1]
+  if (cl %in% c("config", "settings")) return(c(currency = "currency"))
+  c(unit = .unit_arg_column(cl))
+}
+
 # Fold `unit =` into the `units` argument, carrying the object's existing row
 # forward: the data.frame path below REPLACES a slot, so without the carry
 # `update(obj, unit = "PJ")` would drop a declared `currency` beside it.
 # Precedence is stored row, then `unit =`, then an explicit `units =`.
 #' @noRd
 .fold_unit_arg <- function(arg, class_name, obj) {
-  if (!("unit" %in% names(arg))) return(arg)
   slots <- methods::getSlots(class_name)
-  if ("unit" %in% names(slots) || !("units" %in% names(slots))) return(arg)
-  v <- arg[["unit"]]
-  arg[["unit"]] <- NULL
+  if (!("units" %in% names(slots))) return(arg)
+  folds <- .unit_arg_folds(class_name)
+  nm <- intersect(names(folds), names(arg))
+  nm <- nm[!(nm %in% names(slots))]   # a real slot of that name wins
+  if (!length(nm)) return(arg)
+  nm <- nm[1]
+  v <- arg[[nm]]
+  arg[[nm]] <- NULL
   if (length(v) != 1 || is.na(v) || !nzchar(as.character(v))) return(arg)
-  cc <- .unit_arg_column(class_name)
+  cc <- folds[[nm]]
   cur <- slot(obj, "units")
   u <- if (nrow(cur) > 0) as.list(cur[1, , drop = FALSE]) else list()
   u[[cc]] <- as.character(v)

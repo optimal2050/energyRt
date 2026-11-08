@@ -16,7 +16,18 @@ scenario settings.
 
 \item{\code{desc}}{character. Description of the configuration object for own references.}
 
-\item{\code{currency}}{character. Optional. The currency every cost in the model is stated in, and the unit of the objective. Unset (the default) claims nothing, which is how every model written before this slot behaves. Declared, it is checked against each object's own \verb{@units$currency}: an object that names a different currency is an error, not a conversion, because there is no exchange rate in the model to convert with. The point is objects moving between models -- a technology priced in \code{MUSD} added to a model counting \code{bnEUR} is a mistake that no number in the output reveals.}
+\item{\code{units}}{data.frame. Optional. The model's generic units: what everything in it is expressed in, and the declared fallback for an object that states nothing of its own. The columns are the ones an object's \verb{@units} uses, so the two levels can be compared directly. Every column is optional and an empty one claims nothing, which is how every model written before this slot behaves. Nothing here converts a value: a unit is declared, reported and cross-checked only.
+
+\describe{
+\item{comm}{character. The model's generic unit for a commodity flow, e.g. "GWh".
+}
+\item{capacity}{character. The model's generic unit of capacity, e.g. "GW".}
+\item{activity}{character. The model's generic unit of activity.}
+\item{use}{character. The model's generic unit of use; falls back to \code{activity} when empty.
+}
+\item{currency}{character. The currency every cost in the model is stated in, and the unit of the objective. Declared, it is checked against each object's own \verb{@units$currency}: an object naming a different currency is an error, not a conversion, because there is no exchange rate in the model to convert with. The point is objects moving between models -- a technology priced in \code{MUSD} added to a model counting \code{bnEUR} is a mistake that no number in the output reveals. It was the \verb{@currency} slot up to version 0.91; \verb{currency =} is still the argument that sets it.
+}
+}}
 
 \item{\code{region}}{character. Coma separated string of all region names in the model. All regions used in the model-objects should be listed here.}
 

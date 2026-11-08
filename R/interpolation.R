@@ -284,6 +284,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # reveals, so it stops here rather than being absorbed. Silent unless both
   # the model and the object declare one.
   .check_model_currency(object)
+  .check_weather_units(object)
   # `scen@model` keeps the model as given (plus the repositories added below);
   # the expanded build copy is used only while interpolating
   .model_given <- object

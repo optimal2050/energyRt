@@ -43,6 +43,7 @@ setClass("supply",
     weather = data.frame(
       cluster = character(),
       weather = character(),
+      unit = character(),
       transform = character(),
       wava.lo = numeric(),
       wava.up = numeric(),

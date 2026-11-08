@@ -10,7 +10,7 @@
 #'
 #' @slot name `r get_slot_doc("config", "name")`
 #' @slot desc `r get_slot_doc("config", "desc")`
-#' @slot currency `r get_slot_doc("config", "currency")`
+#' @slot units `r get_slot_doc("config", "units")`
 #' @slot region `r get_slot_doc("config", "region")`
 #' @slot calendar `r get_slot_doc("config", "calendar")`
 #' @slot geoscale `r get_slot_doc("config", "geoscale")`
@@ -33,7 +33,7 @@ setClass("config",
   representation(
     name = "character",
     desc = "character",
-    currency = "character",
+    units = "data.frame",
     region = "character",
     calendar = "calendar",
     # Optional `geoscales::GeoScale`. Typed "ANY" rather than "Geoscale"
@@ -54,9 +54,19 @@ setClass("config",
   prototype(
     name = "default",
     desc = "model configuration",
-    # Unset claims nothing, which is how every model written before this slot
-    # behaves. See `.model_currency()`.
-    currency = character(),
+    # The model's generic units: what everything is expressed in, and the
+    # declared fallback for an object that states nothing. Same column names as
+    # an object's `@units`, so the two can be compared directly. Unset claims
+    # nothing, which is how every model written before the slot behaves. See
+    # `.model_currency()`.
+    units = data.frame(
+      comm = character(),
+      capacity = character(),
+      activity = character(),
+      use = character(),
+      currency = character(),
+      stringsAsFactors = FALSE
+    ),
     debug = data.frame(
       comm = character(),
       region = character(),

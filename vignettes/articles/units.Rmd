@@ -28,6 +28,8 @@ library(energyRt)
 has_bridge      <- exists("convert_path")
 has_currency    <- exists("currency_fx")
 has_model_units <- "units" %in% methods::slotNames("config")
+# the slot being there is not the conversion being there
+has_currency_norm <- has_currency
 
 # Where a feature is not in the running build, say so above its examples --
 # otherwise the code renders with no output and reads as if it should work.
@@ -291,19 +293,40 @@ this.
 
 A model has exactly one currency whether it says so or not: the objective adds
 every cost together with coefficient 1, across regions as well as processes. So
-declare it, and let interpolation do the arithmetic:
+declare it, in the same slot and under the same column name an object uses:
 
 ```{r not-yet-model-units, echo = FALSE, results = "asis"}
 .not_yet(has_model_units, "A model-level unit target")
 ```
 
 ```{r model-units, eval = has_model_units}
-mod <- newModel("demo", units = data.frame(costs = "MUSD2020"))
+mod <- newModel("demo", units = data.frame(currency = "MUSD"))
+mod@config@units$currency
 ```
 
-Processes that declare a different currency in their own `@units$currency` are
-converted to the model target during interpolation, and the conversion is
-reported rather than applied silently:
+`currency =` is the shorter way to write the same thing, and what every example
+before this release used: `newModel("demo", currency = "MUSD")`. It was the
+`config@currency` slot up to version 0.91.
+
+What this enforces today is agreement, not conversion. An object that declares
+a currency must declare the model's; one that declares nothing claims nothing
+and is left alone. The check runs at `newModel()`, because there is no exchange
+rate in a model and so nothing to reconcile a mismatch with:
+
+```{r model-currency-check, error = TRUE}
+COAL <- newSupply("COAL", commodity = "COA", unit = "PJ",
+                  units = data.frame(currency = "bnEUR"))
+newModel("demo", currency = "MUSD", data = add(newRepository("r"), COAL))
+```
+
+Normalising a model's money — converting each object's costs to the
+declared target during interpolation, and reporting every factor applied
+rather than applying it silently — is the next step and is not in this
+release:
+
+```{r not-yet-norm, echo = FALSE, results = "asis"}
+.not_yet(has_currency_norm, "Currency normalisation")
+```
 
 ```
 i Currency normalisation -> MUSD2020

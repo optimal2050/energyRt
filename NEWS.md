@@ -27,6 +27,31 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* A weather series may declare what it measures, and a process what it
+  expects. `weather@units$wval` states the series' own unit; the new `unit`
+  column of `technology@weather`, `storage@weather`, `trade@weather` and
+  `supply@weather` states what that row expects from the series it names --
+  per row, because one process may read a temperature from one series and a
+  wind speed from another. Where both are declared and differ, `newModel()`
+  and `interpolate_model()` stop:
+
+  ```
+  1 weather unit mismatch(es):
+    technology HP expects degK from weather 'TEMP', which declares degC
+  ```
+
+  Both sides are optional and silence is the default, so a model that has
+  never heard of weather units is unaffected. Nothing is converted: a
+  coefficient fitted to one measure and applied to another is wrong, and there
+  is no conversion in a model to reconcile them. The coefficient itself stays
+  a `factor` either way -- the relation is reciprocal for a temperature and
+  direct for other measures, so it is not derived.
+
+* `getUnits()` works on a `config` (and a `settings`), reporting the model's
+  rates and its dummy-flow prices. `config` has no catalogued columns of its
+  own — `settings` contains `config` and the shared slots are filed under the
+  child — so the lookup resolves through that relation.
+
 * `getUnits()` works for `trade`, `tax`, `subsidy`, `weather` and `calendar`,
   which had no method. `trade` reports all 40 of its columns, with `{comm}`
   resolved from the new `@units$comm`; `tax` and `subsidy` gained a `@units`
@@ -362,6 +387,21 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   the same region and timeslice (hourly matching, not unbundling).
 
 ## Breaking changes
+
+* **`config@currency` is gone, folded into `config@units$currency`.** The model
+  declares its generic units in one slot, with the same column names an object
+  uses, so the check compares `currency` with `currency` rather than a
+  differently-named scalar:
+
+  ```r
+  newModel("demo", currency = "MUSD")                        # unchanged
+  newModel("demo", units = data.frame(currency = "MUSD"))    # the same thing
+  ```
+
+  `currency =` is unchanged as an argument and a saved config's `@currency` is
+  migrated from the orphaned attribute, as `@unit` is. `config@units` also
+  carries `comm`, `capacity`, `activity` and `use` — the model's generic units,
+  declared and reported. Nothing here converts a value.
 
 * **The scalar `@unit` slot is gone.** A commodity's, a flow's or a weather
   series' own measure lives in `@units`, the same slot a process already used:

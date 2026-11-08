@@ -71,6 +71,7 @@ newModel <- function(name = "", desc = "", ...) {
   # so the check sits outside it.
   obj <- .newModel_build(name = name, desc = desc, ...)
   .check_model_currency(obj)
+  .check_weather_units(obj)
   obj
 }
 
@@ -198,6 +199,9 @@ newModel <- function(name = "", desc = "", ...) {
   ex_slots <- c(".S3Class", "name", "desc")
   ### @config slots ####
   config_slots <- names(getSlots("config"))
+  # `currency =` is an ARGUMENT, folded into `@units$currency` by
+  # `.fold_unit_arg()`; routing by slot name alone would drop it here
+  config_slots <- c(config_slots, names(.unit_arg_folds("config")))
   config_slots <- config_slots[!(config_slots %in% ex_slots)]
   ii <- names(arg) %in% config_slots
   if (any(ii)) {

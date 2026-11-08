@@ -159,6 +159,9 @@ sa_undocumented_columns <- c(
   # one column per model parameter
   "config@defVal", "config@interpolation", "config@debug",
   "settings@defVal", "settings@interpolation", "settings@debug",
+  # documented under `config`, which `settings` inherits from; the model's
+  # generic units
+  "settings@units",
   # derived from the model
   "settings@yearFraction", "settings@discount",
   # filled by the solver

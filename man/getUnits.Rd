@@ -14,6 +14,8 @@
 \alias{getUnits,subsidy-method}
 \alias{getUnits,weather-method}
 \alias{getUnits,calendar-method}
+\alias{getUnits,config-method}
+\alias{getUnits,settings-method}
 \title{Get parameter units for energyRt class objects}
 \usage{
 \S4method{getUnits}{commodity}(object, slots = NULL, ...)
@@ -39,6 +41,10 @@
 \S4method{getUnits}{weather}(object, slots = NULL, complete = FALSE, units = NULL, ...)
 
 \S4method{getUnits}{calendar}(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+\S4method{getUnits}{config}(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+\S4method{getUnits}{settings}(object, slots = NULL, complete = FALSE, units = NULL, ...)
 }
 \arguments{
 \item{object}{A \code{commodity} or \code{technology} S4 object.}
