@@ -1,8 +1,6 @@
-.get_interpolation_rule <- function(x) {
-  stopifnot(is.character(x))
-  if (!exists(".defInt")) load("R/sysdata.rda")
-  sapply(x, function(i) .defInt[[i]])
-}
+# A `constraint` is user-built and has no catalogue entry, so the rule for its
+# `rhs` is a property of this class rather than of the parameter catalogue.
+.constraint_rhs_rule <- "inter"
 
 ## constraint-class ####
 #' An S4 class to represent a custom constraint.
@@ -54,7 +52,7 @@ setClass("constraint",
     for.each = data.frame(),
     rhs = data.frame(),
     defVal = as.numeric(NA),
-    interpolation = .get_interpolation_rule("rhs"),
+    interpolation = .constraint_rhs_rule,
     lhs = list(),
     misc = list()
   ),

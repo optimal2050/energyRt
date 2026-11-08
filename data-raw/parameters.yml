@@ -1,7 +1,8 @@
 # The model's PARAMETERS -- the single authority for each one's `dimSets`,
 # `defVal` and `interpolation`, and for the class / slot / column it is written
 # from. Maintained BY HAND, one top-level key per parameter.
-# `config_default_*.yml` only supply the override baseline, not the defaults.
+# `config@defVal` / `@interpolation` can override a value per model, but they
+# declare nothing: they are empty until a user sets a key.
 # Read by `DATASET.R` into `.modInp` (R/sysdata.rda). Editing this file does
 # nothing until `DATASET.R` is re-run from the package root and the regenerated
 # `R/sysdata.rda` is committed.
@@ -250,8 +251,8 @@ pDemand:
   class: demand
   slot: demand
   colName: dem
-  # The slot's column is `demand`; `dem` is the key of the override tables in
-  # config_default_*.yml, so the two names cannot be collapsed into one yet.
+  # The slot's column is `demand`; `dem` is the catalogue's own name for it and
+  # is what `get_default_value(sname = )` and `get_slot_meta(colName = )` take.
   colAlias: demand
 pExportRowPrice:
   name: pExportRowPrice

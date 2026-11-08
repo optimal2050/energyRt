@@ -9,12 +9,12 @@
 # Per-column defVal / interpolation overrides (wired 2026-08-25, previously
 # initialised-but-never-consumed): `settings@defVal` / `settings@interpolation`
 # override the `.modInp` catalog per column at modInp init
-# (.apply_settings_param_overrides), keyed by colName provenance -- a bounds
-# parameter like pTechAf (colName "af") reads `af.lo`/`af.up`, a numpar like
-# pDemand reads `dem`. Model-level `config` flows in via .config_to_settings().
-# An override applies ONLY where the value differs from the baked baseline, so
-# an untouched table is a guaranteed no-op (mirror drift cannot clobber
-# parameters.yml -- the tm goldens pin this).
+# (.apply_settings_param_overrides), keyed by PARAMETER name -- a bounds
+# parameter reads `pTechAf.lo` / `pTechAf.up`, a numpar reads `pDemand`.
+# Model-level `config` flows in via .config_to_settings(). The tables start
+# empty, so a key present IS the override and an untouched table is a no-op by
+# construction; up to 0.91 they were seeded with every column and the override
+# had to be found by diffing against a second copy of the defaults.
 # =========================================================================== #
 
 io_build <- function() {
@@ -68,8 +68,8 @@ test_that("family interp-overrides: a config defVal override changes the effecti
   # config-level override af.up -> 0.5: no af declared on the tech, so the
   # DEFAULT governs -- capacity need doubles (cap 80)
   mod <- io_build()
-  expect_true("af.up" %in% colnames(mod@config@defVal))
-  mod@config@defVal$af.up <- 0.5
+  expect_equal(ncol(mod@config@defVal), 0L)  # empty until something is set
+  mod@config@defVal$pTechAf.up <- 0.5
   over <- suppressMessages(suppressWarnings(interpolate_model(
     mod, name = "io_dv_over", overwrite = TRUE)))
   p <- scen_par <- over@modInp@parameters[["pTechAf"]]
@@ -108,8 +108,8 @@ test_that("family interp-overrides: an interpolation-rule override stops extrapo
   expect_gte(length(yrs0), 2)   # extrapolated back/forth across milestones
 
   mod <- io_build2()
-  expect_true("dem" %in% colnames(mod@config@interpolation))
-  mod@config@interpolation$dem <- "inter"
+  expect_equal(ncol(mod@config@interpolation), 0L)
+  mod@config@interpolation$pDemand <- "inter"
   scen1 <- suppressMessages(suppressWarnings(interpolate_model(
     mod, name = "io_int_over", overwrite = TRUE)))
   expect_equal(unique(scen1@modInp@parameters[["pDemand"]]@interpolation), "inter")

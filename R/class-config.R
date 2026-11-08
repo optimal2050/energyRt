@@ -92,8 +92,11 @@ setClass("config",
     # because these become solver set-member names. Kept in sync with
     # `.variant_prefix_default()` (R/variants.R) by a unit test.
     variant_prefix = c(vintage = "_VIN", cluster = "_CL"),
-    defVal = data.frame(),
-    interpolation = data.frame(),
+    # One row, no columns: empty means "no override", and the single row keeps
+    # `config@interpolation$pTechAf.up <- "inter"` working, which a 0-row frame
+    # rejects. Keys are PARAMETER names, with `.lo` / `.up` for a bound.
+    defVal = data.frame(row.names = 1L),
+    interpolation = data.frame(row.names = 1L),
     misc = list()
   ),
   S3methods = FALSE
@@ -139,11 +142,11 @@ is_geoscale <- function(x) {
 
 setMethod("initialize", "config", function(.Object, ...) {
   .refuse_initialize_dots("config", "newModel", ...)
-  if (!exists(".defVal") || !exists(".modInp") || !exists(".defInt")) {
-    load("R/sysdata.rda")
-  }
-  .Object@defVal <- as.data.frame(.defVal, stringsAsFactors = FALSE)
-  .Object@interpolation <- as.data.frame(.defInt, stringsAsFactors = FALSE)
+  # `@defVal` and `@interpolation` are OVERRIDE tables and start empty: a
+  # parameter's default and interpolation rule are declared once, in
+  # data-raw/parameters.yml. Seeding them with the whole catalogue (as every
+  # version up to 0.91 did) made an untouched table indistinguishable from a
+  # deliberate one, and forced a second copy of every default to diff against.
   .Object
 })
 

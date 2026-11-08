@@ -36,7 +36,7 @@ ir_model <- function(rule = NULL, anchors = 2030L, vals = 100) {
                             demand = data.frame(year = anchors,
                                                 timeslice = "ANNUAL",
                                                 demand = vals))))
-  if (!is.null(rule)) m@config@interpolation$dem <- rule
+  if (!is.null(rule)) m@config@interpolation$pDemand <- rule
   m
 }
 
@@ -141,34 +141,34 @@ test_that("an empty rule behaves as `inter`, which is what the catalogue means",
 })
 
 # @covers depth=C
-test_that("the override table and the catalogue agree, and the gap is stated", {
-  defint <- energyRt:::.defInt
-  cat_tbl <- ir_cat()
-  cols <- sort(unique(cat_tbl$col))
+test_that("every parameter's rule is overridable, by parameter name", {
+  # Until 0.92 an override was keyed by COLUMN name and only worked where that
+  # column had a key in the `.defInt` baseline, which 103 of 190 catalogued
+  # columns did not -- the whole storage inp.* / out.* / stg.* family among
+  # them. The key is the parameter now, so reachability is total by
+  # construction and this test holds it there.
+  cp <- energyRt:::.col_param
+  pars <- unique(cp$parameter[!is.na(cp$parameter)])
+  expect_gt(length(pars), 150L)
 
-  # 1. Reachability. A rule can only be overridden where the column has a key
-  # in `.defInt` (`.apply_settings_param_overrides()` compares against that
-  # baseline and skips a key it does not hold). 103 of 190 catalogued colNames
-  # have none -- the entire storage `inp.*` / `out.*` / `stg.*` family among
-  # them -- so those rules are effectively fixed. Pinned so the set shrinks
-  # deliberately. (`demand` is reachable despite being listed: the catalogue
-  # names the column `demand` while the override key is the alias `dem`.)
-  unreachable <- setdiff(cols, names(defint))
-  expect_equal(length(unreachable), 103L)
-  expect_true(all(c("stg.invcost", "out.invcost", "inp.invcost", "stg.stock",
-                    "out.cap.up", "inp.cap.up") %in% unreachable),
-              label = "the storage triplet family is no longer unreachable")
+  mi <- energyRt:::.modInp
+  keyed <- unlist(lapply(pars, function(nm) {
+    e <- mi[[nm]]
+    if (identical(e$type, "bounds")) paste0(nm, c(".lo", ".up")) else nm
+  }))
+  expect_false(anyDuplicated(keyed) > 0)
 
-  # 2. Drift. Where a column IS overridable, its `.defInt` baseline must match
-  # the rule the catalogue gives its parameters, or an override silently
-  # compares against the wrong baseline. Exactly one column drifts today:
-  # `stock`, because `pTechStock` ships `.inter.` while `pTradeStock` and
-  # `.defInt` both say `back.inter.forth`.
-  drift <- Filter(Negate(is.null), lapply(intersect(cols, names(defint)),
-    function(c) {
-      rules <- unique(cat_tbl$rule[cat_tbl$col == c])
-      rules <- rules[!is.na(rules)]
-      if (!length(rules) || all(rules == as.character(defint[[c]]))) NULL else c
-    }))
-  expect_equal(unlist(drift), "stock")
+  # the storage family that used to be unreachable now has keys like any other
+  # (all three are numpar, so the key is the bare parameter name)
+  expect_true(all(c("pStorageStgInvcost", "pStorageOutInvcost",
+                    "pStorageInpInvcost") %in% keyed))
+
+  # and a key that names no parameter is refused rather than ignored
+  m <- ir_model()
+  m@config@interpolation$af.up <- "inter"
+  expect_error(
+    suppressMessages(suppressWarnings(interpolate_model(
+      m, name = "ir_badkey", overwrite = TRUE, verbose = FALSE))),
+    "keyed by parameter name"
+  )
 })

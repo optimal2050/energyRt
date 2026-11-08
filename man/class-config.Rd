@@ -39,9 +39,9 @@ As an ARGUMENT (\code{newModel(discount = )}, \code{update(cfg, discount = )}) t
 
 \item{\code{optimizeRetirement}}{logical. Incidates if the retirement of capacities of the model objects  should be optimized. Also requires the same parameter in the classes with capacitu, such as \code{technology}, \code{storage}, \code{trade} to be set to TRUE to be effective for a specific object.}
 
-\item{\code{defVal}}{data.frame. Default values of model parameters. The data frame with the default values for every parameter in the model, used to fill the missing values in the model objects. The values are used in the interpolation step. The data is stored in \code{energyRt::.defVal} object and can be overwritten by the user and supplied to the model as a parameter.}
+\item{\code{defVal}}{data.frame. Model-wide OVERRIDES of parameter default values, applied at the interpolation step. Empty unless set: a parameter's own default is declared once, in the catalogue (\code{data-raw/parameters.yml}), and a column here replaces it for the whole model. One column per override, named after the PARAMETER -- \code{pDemand} for a single value, \code{pTechAf.lo} / \code{pTechAf.up} for a bound. A column naming no parameter is an error, not a silent no-op. Up to version 0.91 this table was pre-filled with every column of the model and keyed by column name; a table saved then must be cleared or re-keyed.}
 
-\item{\code{interpolation}}{data.frame. Default interpolation rules for every parameter in the model. The data frame with the default interpolation rules is stored in \code{energyRt::.defInt} object and can be overwritten by the user and supplied to the model as a parameter.}
+\item{\code{interpolation}}{data.frame. Model-wide OVERRIDES of parameter interpolation rules, keyed exactly as \code{defVal} and subject to the same rules. Empty unless set; each parameter's own rule is declared in the catalogue (\code{data-raw/parameters.yml}).}
 
 \item{\code{debug}}{data.frame. Artificial (dummy or sluck) variables to debug model infeasibility. Can be specified by commodities, regions, years, and timeslices.}
 

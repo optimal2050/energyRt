@@ -8,7 +8,7 @@ directory is excluded by `.Rbuildignore`. The package sees only what
 `data-raw/DATASET.R` is re-run from the package root, and the regenerated
 artefacts are committed.** The script sources `maps.R` first and all its paths
 are relative, so the working directory matters. The artefacts are
-`R/sysdata.rda`, `R/defaults.R` and `R/recast-rules.R`.
+`R/sysdata.rda` and `R/recast-rules.R`.
 
 The three model-symbol catalogues — `sets.yml`, `parameters.yml` and
 `mappings.yml` — are concatenated in that order, and that order is `.modInp`'s
@@ -31,8 +31,6 @@ reaches `.modInp`: `DATASET.R` strips them, and they are read by
 | `classes-docs.yml` | `.classes` | `R/sysdata.rda` | by hand |
 | `variables.yml` | `.variables` | `R/sysdata.rda` | by hand |
 | `mapping_spec.yml` | `.mapping_spec` | `R/sysdata.rda` | generated + annotated |
-| `config_default_values.yml` | `.defVal` | `R/defaults.R` | by hand |
-| `config_default_interpolation.yml` | `.defInt` | `R/defaults.R` | by hand |
 | `maps.R` | `.variable_mapping`, map definitions | `R/sysdata.rda` | gams2x output |
 
 `data-raw/col_param.R` builds `.col_param`, one row per value column of every
@@ -44,10 +42,9 @@ and `pDemand` is catalogued under `colName: dem` while the column of
 the recast contract both index it rather than re-deriving it, and
 `tests/testthat/test-col-param-map.R` holds it against the S4 classes.
 
-Two details are easy to get wrong. `.defVal`, `.defInt` and `.defRecast` are
-**not** in `sysdata.rda`: they are written out as R source, so a stale
-`R/defaults.R` or `R/recast-rules.R` is as much a problem as a stale
-`sysdata.rda`. And `mapping_spec.yml` is half generated: `make_mapping_spec.R`
+Two details are easy to get wrong. `.defRecast` is **not** in `sysdata.rda`:
+it is written out as R source, so a stale `R/recast-rules.R` is as much a
+problem as a stale `sysdata.rda`. And `mapping_spec.yml` is half generated: `make_mapping_spec.R`
 refreshes `name`, `dims`, `gates_var` and `gates_eq` from `maps.R` and
 `mappings.yml`, while `recipe`, `source`, `predicate`, `join_keys`, `filter_by`
 and `depends_on` come from `mapping_annotations.R` and survive regeneration.
@@ -56,18 +53,18 @@ and `depends_on` come from `mapping_annotations.R` and survive regeneration.
 
 `parameters.yml` is the parameter catalogue and the authority for a parameter's
 `dimSets`, `defVal` and `interpolation`, and for the class / slot / column it is
-written from. The two `config_default_*.yml` tables are **override baselines**
-keyed by `colName`, not the defaults themselves:
-`.apply_settings_param_overrides()` compares a scenario's settings against them,
-so a `colName` with no key there cannot be overridden from settings at all.
-Their keys follow the parameter's type — a `bounds` parameter with
-`colName: x` is reached as `x.lo` / `x.up`, a `numpar` as bare `x` — and a bare
-key on a bounds parameter is unreachable.
+written from. Nothing else declares a default or a rule.
+`config@defVal` and `config@interpolation` can override either one per model,
+but they declare nothing: they are empty until a user sets a key, and the key
+is the PARAMETER name — `pDemand`, or `pTechAf.lo` / `pTechAf.up` for a bound.
+A key naming no parameter is an error. Before 0.92 those slots were pre-filled
+from two `config_default_*.yml` files keyed by column name, which was a second
+copy of every default and drifted from this one.
 
-Agreement between the catalogue and the interpolation baseline, together with
-the set of colNames the baseline cannot reach, is pinned by
-`tests/testthat/test-family-interp-rules.R`. There is no equivalent guard for
-`config_default_values.yml` yet.
+`tests/testthat/test-family-interp-rules.R` pins what each rule does, per
+parameter and under an override, and that every parameter is overridable;
+`tests/testthat/test-col-param-map.R` holds the column-to-parameter relation
+against the S4 classes.
 
 `variables.yml` must stay total over `.variable_mapping`; `DATASET.R` errors
 otherwise. Its own header explains why, and names the dead overlay that

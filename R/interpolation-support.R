@@ -892,54 +892,73 @@ interpolate_slot <- function(
 }
 
 # --------------------------------------------------------------------------- #
-# Settings-level per-column overrides of parameter defaults / interpolation.
+# Settings-level overrides of a parameter's default and interpolation rule.
 #
-# `settings@defVal` / `settings@interpolation` (inherited from `config`, filled
-# from config_default_values.yml / config_default_interpolation.yml, copied to
-# the scenario by `.config_to_settings()`) were initialised for years but never
-# consumed. They now override each parameter's catalog (`.modInp`) values,
-# keyed by the parameter's `colName` provenance -- `pTechAf` (colName "af",
-# bounds) reads columns `af.lo` / `af.up`; a numpar like `pDemand` (colName
-# "dem") reads column `dem`.
+# `settings@defVal` / `settings@interpolation` (inherited from `config`) are
+# empty tables keyed by PARAMETER name, with a bound suffix for a `bounds`
+# parameter: `pTechAf.lo`, `pTechAf.up`. A key present is an override, and
+# there is nothing to compare it against -- the catalogue
+# (data-raw/parameters.yml) is the only place a default or a rule is declared.
 #
-# An override applies ONLY where the settings value DIFFERS from the baked
-# baseline (`.defVal` / `.defInt`): the two YAML mirrors have drifted from
-# parameters.yml in places, and an untouched settings table must remain a
-# no-op -- parameters.yml stays the source of defaults unless the user changes
-# a column.
+# A key naming no parameter is an error rather than a silent no-op. Up to 0.91
+# these tables were seeded with every `colName` in the model, so an object
+# saved then carries ~100 keys that mean nothing here.
 # --------------------------------------------------------------------------- #
+
+# The override keys a parameter answers to: one per bound, or its bare name.
+.param_override_keys <- function(p) {
+  # `@type` is a factor, so compare as character -- identical() on a factor is
+  # never TRUE against a string
+  tp <- as.character(p@type)
+  if (!tp %in% c("numpar", "bounds")) return(character(0))
+  if (tp == "bounds") paste0(p@name, c(".lo", ".up")) else p@name
+}
+
 .apply_settings_param_overrides <- function(scen) {
   ss <- scen@settings
-  sv <- ss@defVal
-  si <- ss@interpolation
-  if ((is.null(sv) || nrow(sv) == 0) && (is.null(si) || nrow(si) == 0)) {
+  tabs <- list(defVal = ss@defVal, interpolation = ss@interpolation)
+  have <- function(tab) {
+    !is.null(tab) && is.data.frame(tab) && nrow(tab) >= 1L && ncol(tab) >= 1L
+  }
+  if (!any(vapply(tabs, have, logical(1)))) {
     return(scen)
   }
-  base_v <- .defVal
-  base_i <- .defInt
 
-  changed <- function(tab, base, key) {
-    !is.null(tab) && nrow(tab) >= 1 && key %in% colnames(tab) &&
-      !is.null(base[[key]]) &&
-      !isTRUE(all.equal(tab[[key]][1], base[[key]], tolerance = 0))
+  pars <- scen@modInp@parameters
+  keys <- lapply(pars, .param_override_keys)
+  known <- unlist(keys, use.names = FALSE)
+
+  for (nm in names(tabs)) {
+    if (!have(tabs[[nm]])) next
+    bad <- setdiff(colnames(tabs[[nm]]), known)
+    if (length(bad) > 0) {
+      stop("settings@", nm, " is keyed by parameter name -- `pTechAf.lo` for a ",
+           "bound, `pDemand` for a single value -- and these keys name no ",
+           "parameter: ", paste(utils::head(bad, 8), collapse = ", "),
+           if (length(bad) > 8) {
+             paste0(" (and ", length(bad) - 8L, " more)")
+           } else {
+             ""
+           },
+           ". A model or scenario saved before 0.92 carries the whole column ",
+           "table in this slot: clear it, or re-key the entries you meant.",
+           call. = FALSE)
+    }
   }
 
-  for (nm in names(scen@modInp@parameters)) {
-    p <- scen@modInp@parameters[[nm]]
-    if (!p@type %in% c("numpar", "bounds")) next
-    # colName provenance lives in @inClass (class / slot / colName)
-    cn <- unique(p@inClass$colName)
-    cn <- cn[!is.na(cn) & nzchar(cn)]
-    if (length(cn) != 1) next
-    keys <- if (p@type == "bounds") paste0(cn, c(".lo", ".up")) else cn
+  for (nm in names(pars)) {
+    k <- keys[[nm]]
+    if (!length(k)) next
+    p <- pars[[nm]]
     touched <- FALSE
-    for (j in seq_along(keys)) {
-      if (changed(sv, base_v, keys[j])) {
-        p@defVal[j] <- as.numeric(sv[[keys[j]]][1])
+    for (j in seq_along(k)) {
+      if (have(tabs$defVal) && k[j] %in% colnames(tabs$defVal)) {
+        p@defVal[j] <- as.numeric(tabs$defVal[[k[j]]][1])
         touched <- TRUE
       }
-      if (changed(si, base_i, keys[j]) && j <= length(p@interpolation)) {
-        p@interpolation[j] <- as.character(si[[keys[j]]][1])
+      if (have(tabs$interpolation) && k[j] %in% colnames(tabs$interpolation) &&
+            j <= length(p@interpolation)) {
+        p@interpolation[j] <- as.character(tabs$interpolation[[k[j]]][1])
         touched <- TRUE
       }
     }

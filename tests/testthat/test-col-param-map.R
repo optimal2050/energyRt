@@ -70,8 +70,8 @@ test_that(".param_interp_map() is exactly the bound rows", {
 
 test_that("a column name shared by two parameters resolves per class", {
   # `stock` is the one colName whose two parameters ship DIFFERENT rules. Keyed
-  # by bare name -- as the config_default_*.yml override tables still are --
-  # one of them has to lose; keyed by class/slot/column, neither does.
+  # by bare name -- as the deleted config_default_*.yml tables were -- one of
+  # them has to lose; keyed by class/slot/column, neither does.
   tech <- cp[cp$class == "technology" & cp$slot == "capacity" &
                cp$column == "stock", ]
   trd <- cp[cp$class == "trade" & cp$slot == "capacity" &

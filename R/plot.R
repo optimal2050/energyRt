@@ -1134,7 +1134,7 @@ plot_supply_map <- function(object, param = NULL,
   yr_v <- attr(v, "year")
   v$value <- v[[type]]
   # A supply that declares no `ava.up` is not missing a value: the default IS
-  # `Inf` (`R/defaults.R`), so the bound exists and is unlimited. There is
+  # `Inf` (the catalogue default), so the bound exists and is unlimited. There is
   # nothing to shade, but where the supply exists is worth drawing, so the
   # fill becomes the bound itself -- stated as `Inf`, which is what the model
   # will use -- rather than a word the plot made up.

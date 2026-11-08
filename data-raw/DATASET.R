@@ -25,8 +25,7 @@ source("data-raw/maps.R")
 # column of its variable rows is derived from it.
 
 # Internal data ####
-.defVal <- yaml::read_yaml("data-raw/config_default_values.yml")
-.defInt <- yaml::read_yaml(file = "data-raw/config_default_interpolation.yml")
+
 # One file per kind of model symbol. The concatenation order IS `.modInp`'s key
 # order, and that order sets the written matrix column order, so it must stay
 # sets -> parameters -> mappings.
@@ -44,23 +43,6 @@ source("data-raw/maps.R")
   yaml::read_yaml("data-raw/mappings.yml")
 )
 stopifnot(!anyDuplicated(names(.modInp)))
-
-readr::write_lines(c(
-  "# This file is auto-created from *.yml files inputs,",
-  "# see data-raw/DATASET.R for details. Do not edit by hand.",
-  "",
-  ".defVal <- ",
-  dput(.defVal) |> deparse() |> stringr::str_replace_all(", ", ",\n"),
-  "",
-  ".defInt <- ",
-  dput(.defInt) |> deparse() |> stringr::str_replace_all(", ", ",\n")
-  # "",
-  # ".modInp <- ",
-  # dput(.modInp) |> deparse(),
-  ),
-  file = "R/defaults.R"
-)
-styler::style_file("R/defaults.R")
 
 # The column <-> parameter relation, as data: which parameter owns each value
 # column of each slot, and which columns no parameter owns. The one place that
@@ -401,8 +383,6 @@ stopifnot(all(unlist(lapply(.variables, `[[`, "dimSets")) %in% .dimSets))
 
 .set_dimSets <- .set_set # drop after renaming in gams2x
 
-# DefVal <- .defVal
-
 # Roxygen docs ####
 # write/edit .yaml files in data-raw/
 yaml_to_df <- function(yaml_content) {
@@ -481,9 +461,6 @@ usethis::use_data(
   .dimSets,
   .modInp,
   .col_param,
-  # .defInt,
-  # .defVal,
-  # DefVal,
   .classes,
   .set_dimSets,
   .set_description,

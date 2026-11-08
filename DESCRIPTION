@@ -60,7 +60,6 @@ Collate:
     'class-horizon.R'
     'base_year.R'
     'class-repository.R'
-    'defaults.R'
     'class-calendar.R'
     'class-config.R'
     'class-model.R'

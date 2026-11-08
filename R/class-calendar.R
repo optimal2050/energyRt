@@ -25,7 +25,7 @@
 #' @slot next_in_year `r get_slot_doc("calendar", "next_in_year")`
 #' @slot misc `r get_slot_doc("calendar", "misc")`
 #'
-#' @include generics.R defaults.R
+#' @include generics.R
 #' @rdname class-calendar
 #' @export
 setClass("calendar",

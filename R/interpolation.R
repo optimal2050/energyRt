@@ -4644,9 +4644,14 @@ get_process_stock_years <- function(scen, process = NULL, classes = NULL) {
 
 utils::globalVariables(c("olife", "built"))
 
-# the default operational life of a process with none given
+# The default operational life of a process with none given. The catalogue
+# holds one `olife` parameter per process class; they must agree here, because
+# this is used where the class is not yet known.
 .default_olife <- function() {
-  d <- tryCatch(.defVal$olife, error = function(e) NULL)
+  d <- tryCatch({
+    cp <- .col_param
+    unique(cp$defVal[cp$column == "olife" & !is.na(cp$parameter)])
+  }, error = function(e) NULL)
   if (is.numeric(d) && length(d) == 1L && is.finite(d)) d else 1
 }
 
@@ -4728,8 +4733,8 @@ get_process_years <- function(scen, process = NULL, classes = NULL) {
 
 # The scenario's own default for one catalogued parameter, or NULL when it has
 # none. Reads the interpolated parameter first -- that value is what reaches the
-# solver -- then the `defVal` table of settings/config, keyed by `colName` the
-# way `.apply_settings_param_overrides()` keys its overrides.
+# solver -- then the `defVal` override table of settings/config, keyed by
+# parameter name the way `.apply_settings_param_overrides()` keys it.
 .adjusted_default <- function(object, meta) {
   nm <- meta[["name"]]
   pp <- tryCatch(object@modInp@parameters[[nm]], error = function(e) NULL)
@@ -4737,18 +4742,13 @@ get_process_years <- function(scen, process = NULL, classes = NULL) {
       !identical(unname(pp@defVal), unname(meta[["defVal"]]))) {
     return(pp@defVal)
   }
-  dv <- tryCatch(as.data.frame(object@settings@defVal),
-                 error = function(e) NULL)
-  cn <- meta[["colName"]]
-  if (is.null(dv) || !nrow(dv) || is.null(cn) || is.na(cn)) return(NULL)
-  key <- intersect(c("colName", "col.name", "column"), names(dv))
-  val <- intersect(c("value", "defVal", "lo", "up"), names(dv))
-  if (!length(key) || !length(val)) return(NULL)
-  row <- dv[dv[[key[1]]] == cn, , drop = FALSE]
-  if (!nrow(row)) return(NULL)
-  out <- unlist(row[1, val, drop = FALSE], use.names = FALSE)
+  dv <- tryCatch(object@settings@defVal, error = function(e) NULL)
+  if (!is.data.frame(dv) || !nrow(dv) || !ncol(dv) || is.null(nm)) return(NULL)
+  k <- intersect(c(nm, paste0(nm, c(".lo", ".up"))), colnames(dv))
+  if (!length(k)) return(NULL)
+  out <- as.numeric(unlist(dv[1, k, drop = FALSE], use.names = FALSE))
   out <- out[!is.na(out)]
-  if (!length(out)) NULL else as.numeric(out)
+  if (!length(out)) NULL else out
 }
 
 #' Return default value for one, several, or all parameters

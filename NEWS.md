@@ -347,6 +347,22 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Breaking changes
 
+* `config@defVal` and `config@interpolation` are **empty override tables keyed
+  by parameter name**, not pre-filled tables keyed by column name. Set
+  `config@interpolation$pDemand <- "inter"` or
+  `config@defVal$pTechAf.up <- 0.5`; a key naming no parameter is an error.
+  Every parameter is now overridable, where 103 of 190 columns were not. A
+  model or scenario saved before this release carries the old ~100-column table
+  in these slots and must have it cleared or re-keyed.
+
+  A parameter's default and interpolation rule are declared in one place, the
+  catalogue (`data-raw/parameters.yml`). `data-raw/config_default_values.yml`,
+  `data-raw/config_default_interpolation.yml`, `R/defaults.R`, `.defVal` and
+  `.defInt` are gone: they were a second copy of every default, keyed by bare
+  column name, and had drifted — `stock` resolved to `trade`'s rule for
+  `technology` too.
+
+
 * `solve_myopic()` is renamed **`solve_recursive()`**, with `myopic_objective()`
   to `recursive_objective()` and the result class from `myopic` to `recursive`.
   The driver steps through the horizon's milestones carrying capacity forward,
