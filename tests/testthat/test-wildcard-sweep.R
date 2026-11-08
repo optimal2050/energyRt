@@ -2,7 +2,7 @@
 # Wildcard rows, swept across the parameter catalogue.
 #
 # An NA in a key column means "every member of that dimension": the contract
-# `data-raw/classes.yml` states for 160 slots ("NA for every region") and
+# `data-raw/classes-docs.yml` states for 160 slots ("NA for every region") and
 # `test-conflicting-rows.R:62` asserts at construction ("region = NA means ALL
 # ... specific overriding broadcast"). Nothing asserted that INTERPOLATION
 # honours it, and it did not. A base-year anchor written

@@ -1,4 +1,4 @@
-# Auto-created from the `recast:` blocks of data-raw/classes.yml;
+# Auto-created from the recast rules of data-raw/parameters.yml;
 # see data-raw/recast_rules.R. Do not edit by hand.
 
 #' @include recast.R

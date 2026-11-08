@@ -147,7 +147,7 @@ setMethod("initialize", signature = "parameter",
         !is.na(dropIfEmpty)) {
       .Object@misc$dropIfEmpty <- as.logical(dropIfEmpty)
     }
-    # `prune: { value: v }` (modInp.yml) lets `drop_default_values()` drop rows
+    # `prune: { value: v }` (parameters.yml) lets `drop_default_values()` drop rows
     # equal to `v` (lossless when `v == defVal`; absent tuples read as default).
     # The dependent variable-column removal is multimod `trim`'s cascade job.
     if (!is.null(prune)) {

@@ -1,0 +1,67 @@
+# The model's SETS -- the index spaces every mapping and parameter is declared
+# over. Maintained BY HAND, one top-level key per set.
+# Read by `DATASET.R` (into `.modInp`, R/sysdata.rda) and by
+# `make_mapping_spec.R`. Editing this file does nothing until `DATASET.R` is
+# re-run from the package root and the regenerated `R/sysdata.rda` is
+# committed.
+# Companions: parameters.yml, mappings.yml. See data-raw/README.md.
+region:
+  name: region
+  type: set
+  dimSets: region
+year:
+  name: year
+  type: set
+  dimSets: year
+timeslice:
+  name: timeslice
+  type: set
+  dimSets: timeslice
+comm:
+  name: comm
+  type: set
+  dimSets: comm
+process:
+  name: process
+  type: set
+  dimSets: process
+sup:
+  name: sup
+  type: set
+  dimSets: sup
+dem:
+  name: dem
+  type: set
+  dimSets: dem
+tech:
+  name: tech
+  type: set
+  dimSets: tech
+group:
+  name: group
+  type: set
+  dimSets: group
+stg:
+  name: stg
+  type: set
+  dimSets: stg
+expp:
+  name: expp
+  type: set
+  dimSets: expp
+imp:
+  name: imp
+  type: set
+  dimSets: imp
+trade:
+  name: trade
+  type: set
+  dimSets: trade
+weather:
+  name: weather
+  type: set
+  dimSets: weather
+levy:
+  name: levy
+  type: set
+  dimSets: levy

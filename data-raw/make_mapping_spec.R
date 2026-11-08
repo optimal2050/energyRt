@@ -6,7 +6,7 @@
 #
 # The skeleton is produced automatically from the authoritative model
 # structure in `data-raw/maps.R` (variable/equation -> mapping conditions) and
-# `data-raw/modInp.yml` (declared parameter dimensions). The auto-filled fields
+# `data-raw/mappings.yml` (declared mapping dimensions). The auto-filled fields
 # (`name`, `dims`, `gates_var`, `gates_eq`) must NOT be edited by hand - re-run
 # this script to refresh them. The annotation fields
 # (`recipe`, `source`, `predicate`, `join_keys`, `filter_by`, `depends_on`)
@@ -56,7 +56,7 @@ library(yaml)
 
 build_mapping_spec_skeleton <- function(
     maps_file = "data-raw/maps.R",
-    modinp_file = "data-raw/modInp.yml") {
+    mappings_file = "data-raw/mappings.yml") {
   # Source the auto-generated model structure (defines the `.variable_mapping`
   # etc. objects into a dedicated environment).
   env <- new.env()
@@ -65,7 +65,7 @@ build_mapping_spec_skeleton <- function(
   variable_mapping <- get(".variable_mapping", envir = env)
   equation_mapping <- get(".equation_mapping", envir = env)
 
-  modinp <- yaml::read_yaml(modinp_file)
+  mappings <- yaml::read_yaml(mappings_file)
 
   # Collect mapping entries keyed by mapping name.
   specs <- list()
@@ -101,11 +101,11 @@ build_mapping_spec_skeleton <- function(
       union(specs[[tok$name]]$gates_eq, en)
   }
 
-  # 3) Backfill dims from modInp.yml for any mapping declared there, and flag
+  # 3) Backfill dims from mappings.yml for any mapping declared there, and flag
   #    declared-but-unreferenced mappings.
-  declared_maps <- names(modinp)[grepl("^m", names(modinp))]
+  declared_maps <- names(mappings)[grepl("^m", names(mappings))]
   for (mn in declared_maps) {
-    entry <- modinp[[mn]]
+    entry <- mappings[[mn]]
     if (!is.null(entry$type) && entry$type != "map") next
     dims <- entry$dimSets %||% character(0)
     if (is.null(specs[[mn]])) {
@@ -156,10 +156,10 @@ build_mapping_spec_skeleton <- function(
 
 make_mapping_spec <- function(
     maps_file = "data-raw/maps.R",
-    modinp_file = "data-raw/modInp.yml",
+    mappings_file = "data-raw/mappings.yml",
     annotations_file = "data-raw/mapping_annotations.R",
     out_file = "data-raw/mapping_spec.yml") {
-  skeleton <- build_mapping_spec_skeleton(maps_file, modinp_file)
+  skeleton <- build_mapping_spec_skeleton(maps_file, mappings_file)
 
   skeleton <- .add_blank_annotations(skeleton)
 
@@ -192,11 +192,11 @@ make_mapping_spec <- function(
   yml <- yaml::as.yaml(skeleton)
   writeLines(paste0(header, "\n", yml), out_file)
 
-  # Report unreferenced mappings (declared in modInp.yml but not gating
+  # Report unreferenced mappings (declared in mappings.yml but not gating
   # any variable or equation).
   unref <- names(Filter(function(s) isTRUE(s$unreferenced), skeleton))
   if (length(unref) > 0) {
-    message("Mappings declared in modInp.yml but not referenced in maps.R:\n  ",
+    message("Mappings declared in mappings.yml but not referenced in maps.R:\n  ",
             paste(unref, collapse = ", "))
   }
   message("Wrote ", length(skeleton), " mapping specs to ", out_file)

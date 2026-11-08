@@ -44,7 +44,7 @@ setMethod("initialize", "modOut", function(.Object, ...) {
   .refuse_initialize_dots("modOut", NULL, ...)
   # Pre-populate `@variables` with one empty, correctly-typed `variable` per
   # declared variable, mirroring how `modInp`'s initialize builds `@parameters`
-  # from `data-raw/modInp.yml`. `read_solution()` then fills them.
+  # from `data-raw/parameters.yml`. `read_solution()` then fills them.
   #
   # A variable the solver skips (no non-zero values) keeps its empty skeleton,
   # so `getData()` still knows its column names -- which it could not when

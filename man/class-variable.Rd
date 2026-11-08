@@ -9,7 +9,7 @@ The counterpart of \link{class-parameter}: a \code{parameter} carries the model'
 data, a \code{variable} its solved output. Every variable declared by the model
 has one of these, pre-populated from the baked specification when a \code{modOut}
 is created and filled with solved values by \code{read_solution()} -- exactly as
-\code{modInp@parameters} is populated from \code{data-raw/modInp.yml}.
+\code{modInp@parameters} is populated from \code{data-raw/parameters.yml}.
 
 The specification itself is composed at build time in \code{data-raw/DATASET.R}:
 dimensions, gating map and description come from the GAMS source via gams2x,

@@ -1,5 +1,5 @@
 # Interpolation-rule OVERRIDE BASELINE, maintained by hand, keyed by `colName`.
-# NOT the authoritative rule -- `modInp.yml` is. Keys follow the parameter's
+# NOT the authoritative rule -- `parameters.yml` is. Keys follow the parameter's
 # type: a `bounds` parameter with `colName: x` is reached as `x.lo` / `x.up`,
 # a `numpar` as bare `x`; a bare key on a bounds parameter is unreachable.
 # Read by `DATASET.R` into `.defInt`, emitted as source into `R/defaults.R`

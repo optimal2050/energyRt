@@ -12,7 +12,7 @@
 #    (`eqTradeEac` / `eqTradeFixom` in glpk/energyRt.mod), so BOTH endpoints pay
 #    their own rate on the WHOLE capacity -- "a corridor whose two endpoints
 #    each pay 100 therefore costs 200" (the `invcost` entry under `trade:` in
-#    data-raw/classes.yml). The numerator sums over
+#    data-raw/classes-docs.yml). The numerator sums over
 #    endpoints; picking one would halve the answer.
 #
 # 2. `@varom$varom` is a real cost and IS priced, on what is SENT. It becomes
@@ -22,7 +22,7 @@
 #    pays and the exporter receives, so it cancels between `eqImportIrCost` and
 #    `eqExportIrCost` and leaves the objective unchanged. (The dead parameter
 #    `pTradeVarom`, declared in the old templates and read by no equation, was
-#    never this slot -- see the `varom` entry in data-raw/classes.yml.)
+#    never this slot -- see the `varom` entry in data-raw/classes-docs.yml.)
 #
 # On a unit-capacity basis:
 #

@@ -904,8 +904,9 @@ interpolate_slot <- function(
 #
 # An override applies ONLY where the settings value DIFFERS from the baked
 # baseline (`.defVal` / `.defInt`): the two YAML mirrors have drifted from
-# modInp.yml in places, and an untouched settings table must remain a no-op --
-# modInp.yml stays the source of defaults unless the user changes a column.
+# parameters.yml in places, and an untouched settings table must remain a
+# no-op -- parameters.yml stays the source of defaults unless the user changes
+# a column.
 # --------------------------------------------------------------------------- #
 .apply_settings_param_overrides <- function(scen) {
   ss <- scen@settings

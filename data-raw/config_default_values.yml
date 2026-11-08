@@ -1,5 +1,5 @@
 # Default-value OVERRIDE BASELINE, maintained by hand, keyed by `colName`.
-# NOT the authoritative default -- `modInp.yml` is. This table is what
+# NOT the authoritative default -- `parameters.yml` is. This table is what
 # `.apply_settings_param_overrides()` compares a scenario's `settings@defVal`
 # against, so a `colName` absent here cannot be overridden from settings at all.
 # Read by `DATASET.R` into `.defVal`, which is emitted as source into

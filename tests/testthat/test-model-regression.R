@@ -79,7 +79,7 @@ test_that("per-region start/end/olife survive the @vintage merge", {
 test_that("every model parameter is declared in the GLPK and GAMS templates", {
   # The writers emit EVERY parameter in `modInp` unconditionally -- an empty one
   # still writes `param pX default 0 := ;`. A parameter registered in
-  # modInp.yml but not declared in a template is therefore not a missing feature
+  # parameters.yml but not declared in a template is therefore not a missing feature
   # but a hard solver error on the next solve, in a model that never touches it.
   # Cheap to check statically, and it is the failure mode adding a parameter
   # invites.

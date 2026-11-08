@@ -15,6 +15,7 @@ dev-local/
 \.git/
 ^solwork$
 ^tmp$
+drafts/
 drafts-local/
 levcosts/
 ^levcosts$
@@ -28,6 +29,7 @@ scenarios/
 ^julia$
 ^glpk$
 ^pyomo$
+^drafts$
 ^drafts-local$
 vignettes/scenarios/
 .archive$

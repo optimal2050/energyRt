@@ -1,4 +1,4 @@
-# The `.modInp` catalogue (data-raw/modInp.yml) wires each parameter to the
+# The `.modInp` catalogue (data-raw/parameters.yml) wires each parameter to the
 # `class@slot` and column it is extracted from. A wired name that no longer
 # resolves is invisible: `get_slot_meta()` filters on it and `next`s on no
 # match, so the parameter is simply never filled by the generic `ob2mi` path.

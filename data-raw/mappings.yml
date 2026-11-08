@@ -1,0 +1,2707 @@
+# The model's MAPPINGS -- the membership and domain sets the equations are
+# generated over. Maintained BY HAND, one top-level key per mapping.
+# How each one is BUILT is a separate file: `mapping_spec.yml` holds the build
+# recipes for these same symbols.
+# Read by `DATASET.R` (into `.modInp`, R/sysdata.rda) and by
+# `make_mapping_spec.R`, which backfills dims from here. Editing this file does
+# nothing until `DATASET.R` is re-run from the package root and the regenerated
+# `R/sysdata.rda` is committed.
+# Companions: sets.yml, parameters.yml. See data-raw/README.md.
+mCommReg:
+  name: mCommReg
+  type: map
+  dimSets:
+  - comm
+  - region
+mWeatherTimeslice:
+  name: mWeatherTimeslice
+  type: map
+  dimSets:
+  - weather
+  - timeslice
+mWeatherRegion:
+  name: mWeatherRegion
+  type: map
+  dimSets:
+  - weather
+  - region
+mWeatherRegionAt:
+  name: mWeatherRegionAt
+  type: map
+  dimSets:
+  - weather
+  - region
+  - regionp
+mSupWeatherLo:
+  name: mSupWeatherLo
+  type: map
+  dimSets:
+  - weather
+  - sup
+mSupWeatherUp:
+  name: mSupWeatherUp
+  type: map
+  dimSets:
+  - weather
+  - sup
+mTechWeatherAfLo:
+  name: mTechWeatherAfLo
+  type: map
+  dimSets:
+  - weather
+  - tech
+mTechWeatherAfUp:
+  name: mTechWeatherAfUp
+  type: map
+  dimSets:
+  - weather
+  - tech
+mTechWeatherAfsLo:
+  name: mTechWeatherAfsLo
+  type: map
+  dimSets:
+  - weather
+  - tech
+mTechWeatherAfsUp:
+  name: mTechWeatherAfsUp
+  type: map
+  dimSets:
+  - weather
+  - tech
+mTradeWeatherAfLo:
+  name: mTradeWeatherAfLo
+  type: map
+  dimSets:
+  - weather
+  - trade
+  - src
+  - dst
+mTradeWeatherAfUp:
+  name: mTradeWeatherAfUp
+  type: map
+  dimSets:
+  - weather
+  - trade
+  - src
+  - dst
+mTradeWeatherAfsLo:
+  name: mTradeWeatherAfsLo
+  type: map
+  dimSets:
+  - weather
+  - trade
+  - src
+  - dst
+mTradeWeatherAfsUp:
+  name: mTradeWeatherAfsUp
+  type: map
+  dimSets:
+  - weather
+  - trade
+  - src
+  - dst
+mTechWeatherAfcLo:
+  name: mTechWeatherAfcLo
+  type: map
+  dimSets:
+  - weather
+  - tech
+  - comm
+mTechWeatherAfcUp:
+  name: mTechWeatherAfcUp
+  type: map
+  dimSets:
+  - weather
+  - tech
+  - comm
+mStorageWeatherAfLo:
+  name: mStorageWeatherAfLo
+  type: map
+  dimSets:
+  - weather
+  - stg
+mStorageWeatherAfUp:
+  name: mStorageWeatherAfUp
+  type: map
+  dimSets:
+  - weather
+  - stg
+mStorageWeatherInpAfUp:
+  name: mStorageWeatherInpAfUp
+  type: map
+  dimSets:
+  - weather
+  - stg
+mStorageWeatherInpAfLo:
+  name: mStorageWeatherInpAfLo
+  type: map
+  dimSets:
+  - weather
+  - stg
+mStorageWeatherOutAfUp:
+  name: mStorageWeatherOutAfUp
+  type: map
+  dimSets:
+  - weather
+  - stg
+mStorageWeatherOutAfLo:
+  name: mStorageWeatherOutAfLo
+  type: map
+  dimSets:
+  - weather
+  - stg
+mTimesliceNext:
+  name: mTimesliceNext
+  type: map
+  dimSets:
+  - timeslice
+  - timeslicep
+mTimesliceFYearNext:
+  name: mTimesliceFYearNext
+  type: map
+  dimSets:
+  - timeslice
+  - timeslicep
+mSameRegion:
+  name: mSameRegion
+  type: map
+  dimSets:
+  - region
+  - regionp
+mSameTimeslice:
+  name: mSameTimeslice
+  type: map
+  dimSets:
+  - timeslice
+  - timeslicep
+mUpComm:
+  name: mUpComm
+  type: map
+  dimSets: comm
+mLoComm:
+  name: mLoComm
+  type: map
+  dimSets: comm
+mFxComm:
+  name: mFxComm
+  type: map
+  dimSets: comm
+mExpTimeslice:
+  name: mExpTimeslice
+  type: map
+  dimSets:
+  - expp
+  - timeslice
+mImpTimeslice:
+  name: mImpTimeslice
+  type: map
+  dimSets:
+  - imp
+  - timeslice
+mTechTimeslice:
+  name: mTechTimeslice
+  type: map
+  dimSets:
+  - tech
+  - timeslice
+mSupTimeslice:
+  name: mSupTimeslice
+  type: map
+  dimSets:
+  - sup
+  - timeslice
+mStorageFullYear:
+  name: mStorageFullYear
+  type: map
+  dimSets: stg
+mTradeTimeslice:
+  name: mTradeTimeslice
+  type: map
+  dimSets:
+  - trade
+  - timeslice
+mCommTimeslice:
+  name: mCommTimeslice
+  type: map
+  dimSets:
+  - comm
+  - timeslice
+mCommTimesliceOrParent:
+  name: mCommTimesliceOrParent
+  type: map
+  dimSets:
+  - comm
+  - timeslice
+  - timeslicep
+mTimesliceParentChildE:
+  name: mTimesliceParentChildE
+  type: map
+  dimSets:
+  - timeslice
+  - timeslicep
+mTimesliceParentChild:
+  name: mTimesliceParentChild
+  type: map
+  dimSets:
+  - timeslice
+  - timeslicep
+mTimesliceFamily:
+  name: mTimesliceFamily
+  type: map
+  dimSets:
+  - timeslice
+  - timeslicep
+mRegionFamily:
+  name: mRegionFamily
+  type: map
+  dimSets:
+  - region
+  - regionp
+mCommRegion:
+  name: mCommRegion
+  type: map
+  dimSets:
+  - comm
+  - region
+mDemComm:
+  name: mDemComm
+  type: map
+  dimSets:
+  - dem
+  - comm
+mSupComm:
+  name: mSupComm
+  type: map
+  dimSets:
+  - sup
+  - comm
+mSupSpan:
+  name: mSupSpan
+  type: map
+  dimSets:
+  - sup
+  - region
+mvSupCost:
+  name: mvSupCost
+  type: map
+  dimSets:
+  - sup
+  - region
+  - year
+mTechInpComm:
+  name: mTechInpComm
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechInpCommSameTimeslice:
+  name: mTechInpCommSameTimeslice
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechInpCommAgg:
+  name: mTechInpCommAgg
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechInpCommAggTimeslice:
+  name: mTechInpCommAggTimeslice
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - timeslice
+  - timeslicep
+mTechOutComm:
+  name: mTechOutComm
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechOutCommSameTimeslice:
+  name: mTechOutCommSameTimeslice
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechOutCommAgg:
+  name: mTechOutCommAgg
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechOutCommAggTimeslice:
+  name: mTechOutCommAggTimeslice
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - timeslice
+  - timeslicep
+mTechProcAggRegion:
+  name: mTechProcAggRegion
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - regionp
+mTechProcAggTimeslice:
+  name: mTechProcAggTimeslice
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - timeslice
+  - timeslicep
+mStorageProcAggRegion:
+  name: mStorageProcAggRegion
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - regionp
+mTechOneComm:
+  name: mTechOneComm
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechAInp:
+  name: mTechAInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechAInpCommSameTimeslice:
+  name: mTechAInpCommSameTimeslice
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechAInpCommAgg:
+  name: mTechAInpCommAgg
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechAInpCommAggTimeslice:
+  name: mTechAInpCommAggTimeslice
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - timeslice
+  - timeslicep
+mTechAOut:
+  name: mTechAOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechAOutCommSameTimeslice:
+  name: mTechAOutCommSameTimeslice
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechAOutCommAgg:
+  name: mTechAOutCommAgg
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechAOutCommAggTimeslice:
+  name: mTechAOutCommAggTimeslice
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - timeslice
+  - timeslicep
+mTechInpGroup:
+  name: mTechInpGroup
+  type: map
+  dimSets:
+  - tech
+  - group
+mTechOutGroup:
+  name: mTechOutGroup
+  type: map
+  dimSets:
+  - tech
+  - group
+mTechGroupComm:
+  name: mTechGroupComm
+  type: map
+  dimSets:
+  - tech
+  - group
+  - comm
+mTechUpgrade:
+  name: mTechUpgrade
+  type: map
+  dimSets:
+  - tech
+  - techp
+mTechRetirement:
+  name: mTechRetirement
+  type: map
+  dimSets: tech
+mTechRetCost:
+  name: mTechRetCost
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechNew:
+  name: mTechNew
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechInv:
+  name: mTechInv
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechSpan:
+  name: mTechSpan
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+meqTechRetiredNewCap:
+  name: meqTechRetiredNewCap
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechFixom:
+  name: mTechFixom
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechVarom:
+  name: mTechVarom
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechEac:
+  name: mTechEac
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechAct2AInp:
+  name: mTechAct2AInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mTechCap2AInp:
+  name: mTechCap2AInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mTechNCap2AInp:
+  name: mTechNCap2AInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mTechCinp2AInp:
+  name: mTechCinp2AInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - comm
+  - region
+  - year
+  - timeslice
+mTechCout2AInp:
+  name: mTechCout2AInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - comm
+  - region
+  - year
+  - timeslice
+mTechAct2AOut:
+  name: mTechAct2AOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mTechCap2AOut:
+  name: mTechCap2AOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mTechNCap2AOut:
+  name: mTechNCap2AOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+# End-of-life aux conversion domains.
+mTechPho2AInp:
+  name: mTechPho2AInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mTechPho2AOut:
+  name: mTechPho2AOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mTechRet2AInp:
+  name: mTechRet2AInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mTechRet2AOut:
+  name: mTechRet2AOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mStoragePho2AInp:
+  name: mStoragePho2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStoragePho2AOut:
+  name: mStoragePho2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageRet2AInp:
+  name: mStorageRet2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageRet2AOut:
+  name: mStorageRet2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mTechCinp2AOut:
+  name: mTechCinp2AOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - comm
+  - region
+  - year
+  - timeslice
+mTechCout2AOut:
+  name: mTechCout2AOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageComm:
+  name: mStorageComm
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageInpComm:
+  name: mStorageInpComm
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageOutComm:
+  name: mStorageOutComm
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageStgComm:
+  name: mStorageStgComm
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageNew:
+  name: mStorageNew
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageSpan:
+  name: mStorageSpan
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageEac:
+  name: mStorageEac
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgCap:
+  name: mStorageStgCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageNoStgCap:
+  name: mStorageNoStgCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgNew:
+  name: mStorageStgNew
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgCapLo:
+  name: mStorageStgCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgCapFx:
+  name: mStorageStgCapFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgCapUp:
+  name: mStorageStgCapUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgNewCapLo:
+  name: mStorageStgNewCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgNewCapFx:
+  name: mStorageStgNewCapFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgNewCapUp:
+  name: mStorageStgNewCapUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgFixom:
+  name: mStorageStgFixom
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgEac:
+  name: mStorageStgEac
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageDurationLo:
+  name: mStorageDurationLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageDurationFx:
+  name: mStorageDurationFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageDurationUp:
+  name: mStorageDurationUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpCap:
+  name: mStorageInpCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageNoInpCap:
+  name: mStorageNoInpCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpNew:
+  name: mStorageInpNew
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpCapLo:
+  name: mStorageInpCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpCapFx:
+  name: mStorageInpCapFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpCapUp:
+  name: mStorageInpCapUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpNewCapLo:
+  name: mStorageInpNewCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpNewCapFx:
+  name: mStorageInpNewCapFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpNewCapUp:
+  name: mStorageInpNewCapUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpFixom:
+  name: mStorageInpFixom
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpEac:
+  name: mStorageInpEac
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInp2outLo:
+  name: mStorageInp2outLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInp2outFx:
+  name: mStorageInp2outFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInp2outUp:
+  name: mStorageInp2outUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpStgCap:
+  name: mStorageInpStgCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutCap:
+  name: mStorageOutCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutNew:
+  name: mStorageOutNew
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpOutCap:
+  name: mStorageInpOutCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInp2stgLo:
+  name: mStorageInp2stgLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInp2stgFx:
+  name: mStorageInp2stgFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInp2stgUp:
+  name: mStorageInp2stgUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageFixom:
+  name: mStorageFixom
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageVarom:
+  name: mStorageVarom
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageAInp:
+  name: mStorageAInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageAOut:
+  name: mStorageAOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageStg2AOut:
+  name: mStorageStg2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageCinp2AOut:
+  name: mStorageCinp2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageCout2AOut:
+  name: mStorageCout2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageOutCap2AOut:
+  name: mStorageOutCap2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageOutNCap2AOut:
+  name: mStorageOutNCap2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageInpCap2AInp:
+  name: mStorageInpCap2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageInpCap2AOut:
+  name: mStorageInpCap2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageInpNCap2AInp:
+  name: mStorageInpNCap2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageInpNCap2AOut:
+  name: mStorageInpNCap2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageStgCap2AInp:
+  name: mStorageStgCap2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageStgCap2AOut:
+  name: mStorageStgCap2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageStgNCap2AInp:
+  name: mStorageStgNCap2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageStgNCap2AOut:
+  name: mStorageStgNCap2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageStg2AInp:
+  name: mStorageStg2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageCinp2AInp:
+  name: mStorageCinp2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageCout2AInp:
+  name: mStorageCout2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageOutCap2AInp:
+  name: mStorageOutCap2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageOutNCap2AInp:
+  name: mStorageOutNCap2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mTradeIrAInp:
+  name: mTradeIrAInp
+  type: map
+  dimSets:
+  - trade
+  - comm
+mTradeIrAOut:
+  name: mTradeIrAOut
+  type: map
+  dimSets:
+  - trade
+  - comm
+mExpComm:
+  name: mExpComm
+  type: map
+  dimSets:
+  - expp
+  - comm
+mImpComm:
+  name: mImpComm
+  type: map
+  dimSets:
+  - imp
+  - comm
+mTradeComm:
+  name: mTradeComm
+  type: map
+  dimSets:
+  - trade
+  - comm
+mExportRowCost:
+  name: mExportRowCost
+  type: map
+  dimSets:
+  - expp
+  - region
+  - year
+mImportRowCost:
+  name: mImportRowCost
+  type: map
+  dimSets:
+  - imp
+  - region
+  - year
+mMidMilestone:
+  name: mMidMilestone
+  type: map
+  dimSets: year
+mMilestoneHasNext:
+  name: mMilestoneHasNext
+  type: map
+  dimSets: year
+mMilestoneFirst:
+  name: mMilestoneFirst
+  type: map
+  dimSets: year
+mMilestoneLast:
+  name: mMilestoneLast
+  type: map
+  dimSets: year
+mMilestoneNext:
+  name: mMilestoneNext
+  type: map
+  dimSets:
+  - year
+  - yearp
+mTechInpTot:
+  name: mTechInpTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mTechOutTot:
+  name: mTechOutTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mEmsFuelTot:
+  name: mEmsFuelTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mTechEmsFuel:
+  name: mTechEmsFuel
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - comm
+  - region
+  - year
+  - timeslice
+mAggregateFactor:
+  name: mAggregateFactor
+  type: map
+  dimSets:
+  - comm
+  - comm
+mDummyImport:
+  name: mDummyImport
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mDummyExport:
+  name: mDummyExport
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mDummyImportCost:
+  name: mDummyImportCost
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+mDummyExportCost:
+  name: mDummyExportCost
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+mTradeIr:
+  name: mTradeIr
+  type: map
+  dimSets:
+  - trade
+  - src
+  - dst
+  - year
+  - timeslice
+mImportIrCost:
+  name: mImportIrCost
+  type: map
+  dimSets:
+  - trade
+  - region
+  - year
+mExportIrCost:
+  name: mExportIrCost
+  type: map
+  dimSets:
+  - trade
+  - region
+  - year
+mvTradeIrAInp:
+  name: mvTradeIrAInp
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - region
+  - year
+  - timeslice
+mvTradeIrAOut:
+  name: mvTradeIrAOut
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - region
+  - year
+  - timeslice
+mvTradeIrAInpTot:
+  name: mvTradeIrAInpTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mvTradeIrAOutTot:
+  name: mvTradeIrAOutTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mTradeIrCsrc2Ainp:
+  name: mTradeIrCsrc2Ainp
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+mTradeIrCdst2Ainp:
+  name: mTradeIrCdst2Ainp
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+mTradeIrCsrc2Aout:
+  name: mTradeIrCsrc2Aout
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+mTradeIrCdst2Aout:
+  name: mTradeIrCdst2Aout
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+mImportRow:
+  name: mImportRow
+  type: map
+  dimSets:
+  - imp
+  - comm
+  - region
+  - year
+  - timeslice
+mExportRow:
+  name: mExportRow
+  type: map
+  dimSets:
+  - expp
+  - comm
+  - region
+  - year
+  - timeslice
+mImportRowUp:
+  name: mImportRowUp
+  type: map
+  dimSets:
+  - imp
+  - comm
+  - region
+  - year
+  - timeslice
+mExportRowUp:
+  name: mExportRowUp
+  type: map
+  dimSets:
+  - expp
+  - comm
+  - region
+  - year
+  - timeslice
+mImportRowCumUp:
+  name: mImportRowCumUp
+  type: map
+  dimSets:
+  - imp
+  - comm
+mExportRowCumUp:
+  name: mExportRowCumUp
+  type: map
+  dimSets:
+  - expp
+  - comm
+mExport:
+  name: mExport
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mImport:
+  name: mImport
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageInpTot:
+  name: mStorageInpTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageOutTot:
+  name: mStorageOutTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageInpCommSameTimeslice:
+  name: mStorageInpCommSameTimeslice
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageInpCommAgg:
+  name: mStorageInpCommAgg
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageInpCommAggTimeslice:
+  name: mStorageInpCommAggTimeslice
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - timeslice
+  - timeslicep
+mStorageAInpCommSameTimeslice:
+  name: mStorageAInpCommSameTimeslice
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageAInpCommAgg:
+  name: mStorageAInpCommAgg
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageAInpCommAggTimeslice:
+  name: mStorageAInpCommAggTimeslice
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - timeslice
+  - timeslicep
+mStorageOutCommSameTimeslice:
+  name: mStorageOutCommSameTimeslice
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageOutCommAgg:
+  name: mStorageOutCommAgg
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageOutCommAggTimeslice:
+  name: mStorageOutCommAggTimeslice
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - timeslice
+  - timeslicep
+mStorageAOutCommSameTimeslice:
+  name: mStorageAOutCommSameTimeslice
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageAOutCommAgg:
+  name: mStorageAOutCommAgg
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageAOutCommAggTimeslice:
+  name: mStorageAOutCommAggTimeslice
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - timeslice
+  - timeslicep
+mTaxCost:
+  name: mTaxCost
+  type: map
+  dimSets:
+  - levy
+  - region
+  - year
+mSubCost:
+  name: mSubCost
+  type: map
+  dimSets:
+  - levy
+  - region
+  - year
+mAggOut:
+  name: mAggOut
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mSupOutTot:
+  name: mSupOutTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mSupAvaUp:
+  name: mSupAvaUp
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
+  - year
+  - timeslice
+mSupAva:
+  name: mSupAva
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
+  - year
+  - timeslice
+mSupReserveUp:
+  name: mSupReserveUp
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
+mTechAfUp:
+  name: mTechAfUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - timeslice
+mTechAfcUp:
+  name: mTechAfcUp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mTechOlifeInf:
+  name: mTechOlifeInf
+  type: map
+  dimSets:
+  - tech
+  - region
+mStorageOlifeInf:
+  name: mStorageOlifeInf
+  type: map
+  dimSets:
+  - stg
+  - region
+mTechRampUp:
+  name: mTechRampUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - timeslice
+  - timeslicep
+mTechRampDown:
+  name: mTechRampDown
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - timeslice
+  - timeslicep
+mTechFullYear:
+  name: mTechFullYear
+  type: map
+  dimSets: tech
+mTradeSpan:
+  name: mTradeSpan
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeNew:
+  name: mTradeNew
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeOlifeInf:
+  name: mTradeOlifeInf
+  type: map
+  dimSets: trade
+mTradeRoutes:
+  name: mTradeRoutes
+  type: map
+  dimSets:
+  - trade
+  - src
+  - dst
+mTradeInv:
+  name: mTradeInv
+  type: map
+  dimSets:
+  - trade
+  - region
+  - year
+mTradeEac:
+  name: mTradeEac
+  type: map
+  dimSets:
+  - trade
+  - region
+  - year
+mvSupReserve:
+  name: mvSupReserve
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
+mvTechRetiredNewCap:
+  name: mvTechRetiredNewCap
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - year
+mvTechRetiredStock:
+  name: mvTechRetiredStock
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+# Phase-out domain: span years that HAVE a predecessor span year. The first
+# year of a process's span is excluded -- phase-out is a transition between
+# milestones, so nothing has aged out yet at the start. Declaring the
+# variable over this map (rather than the whole span) also stops a phase-out
+# CREDIT from being unbounded at the first year, where no equation binds it.
+mvTechPhaseOut:
+  name: mvTechPhaseOut
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mvStoragePhaseOut:
+  name: mvStoragePhaseOut
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+# Trade capacity is region-free (`vTradeCap{trade, year}`), so its phase-out
+# domain drops the region as the rest of the trade family does.
+mvTradePhaseOut:
+  name: mvTradePhaseOut
+  type: map
+  dimSets:
+  - trade
+  - year
+# Retirement maps for trade -- mirror of the technology trio. Trade capacity
+# carries no region (`vTradeCap{trade, year}`), so these drop it too; the COST
+# map keeps region, as `mTradeInv`/`mTradeEac`/`mTradeFixom` do.
+meqTradeRetiredNewCap:
+  name: meqTradeRetiredNewCap
+  type: map
+  dimSets:
+  - trade
+  - year
+mvTradeRetiredStock:
+  name: mvTradeRetiredStock
+  type: map
+  dimSets:
+  - trade
+  - year
+mvTradeRetiredNewCap:
+  name: mvTradeRetiredNewCap
+  type: map
+  dimSets:
+  - trade
+  - year
+  - year
+mTradeRetCost:
+  name: mTradeRetCost
+  type: map
+  dimSets:
+  - trade
+  - region
+  - year
+# Retirement maps for storage. `@vintage`/`olife` is storage-wide, not
+# per-part, so ONE set of windows serves the out/inp/stg parts.
+meqStorageRetiredNewCap:
+  name: meqStorageRetiredNewCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mvStorageRetiredStock:
+  name: mvStorageRetiredStock
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mvStorageRetiredNewCap:
+  name: mvStorageRetiredNewCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+  - year
+mStorageRetCost:
+  name: mStorageRetCost
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mvTechAct:
+  name: mvTechAct
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - timeslice
+mvTechInp:
+  name: mvTechInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mvTechOut:
+  name: mvTechOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+meqTechAInp:
+  name: meqTechAInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+meqTechAOut:
+  name: meqTechAOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mvTechAInp:
+  name: mvTechAInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mvTechAOut:
+  name: mvTechAOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mvDemInp:
+  name: mvDemInp
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mvBalance:
+  name: mvBalance
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mvInpTot:
+  name: mvInpTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mvOutTot:
+  name: mvOutTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageAInp:
+  name: meqStorageAInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageAOut:
+  name: meqStorageAOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mvStorageAInp:
+  name: mvStorageAInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mvStorageAOut:
+  name: mvStorageAOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mvStorageLevel:
+  name: mvStorageLevel
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mvStorageInp:
+  name: mvStorageInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mvStorageOut:
+  name: mvStorageOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageLevel:
+  name: meqStorageLevel
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslicep
+  - timeslice
+mvTradeIr:
+  name: mvTradeIr
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+mvTotalCost:
+  name: mvTotalCost
+  type: map
+  dimSets:
+  - region
+  - year
+mvTotalUserCosts:
+  name: mvTotalUserCosts
+  type: map
+  dimSets:
+  - region
+  - year
+meqTechSng2Sng:
+  name: meqTechSng2Sng
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - comm
+  - year
+  - timeslice
+meqTechGrp2Sng:
+  name: meqTechGrp2Sng
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - timeslice
+meqTechSng2Grp:
+  name: meqTechSng2Grp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - group
+  - year
+  - timeslice
+meqTechGrp2Grp:
+  name: meqTechGrp2Grp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - group
+  - year
+  - timeslice
+meqTechShareInpLo:
+  name: meqTechShareInpLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - timeslice
+meqTechShareInpFx:
+  name: meqTechShareInpFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - timeslice
+meqTechShareInpUp:
+  name: meqTechShareInpUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - timeslice
+meqTechShareOutLo:
+  name: meqTechShareOutLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - timeslice
+meqTechShareOutFx:
+  name: meqTechShareOutFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - timeslice
+meqTechShareOutUp:
+  name: meqTechShareOutUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - timeslice
+meqTechAfLo:
+  name: meqTechAfLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - timeslice
+meqTechAfUp:
+  name: meqTechAfUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - timeslice
+meqTechAfFx:
+  name: meqTechAfFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - timeslice
+meqTechAfsLo:
+  name: meqTechAfsLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - timeslice
+meqTechAfsFx:
+  name: meqTechAfsFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - timeslice
+meqTechAfsUp:
+  name: meqTechAfsUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - timeslice
+meqTechActSng:
+  name: meqTechActSng
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+meqTechActGrp:
+  name: meqTechActGrp
+  type: map
+  dimSets:
+  - tech
+  - group
+  - region
+  - year
+  - timeslice
+meqTechAfcOutLo:
+  name: meqTechAfcOutLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - year
+  - timeslice
+meqTechAfcOutFx:
+  name: meqTechAfcOutFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - year
+  - timeslice
+meqTechAfcOutUp:
+  name: meqTechAfcOutUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - year
+  - timeslice
+meqTechAfcInpLo:
+  name: meqTechAfcInpLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - year
+  - timeslice
+meqTechAfcInpFx:
+  name: meqTechAfcInpFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - year
+  - timeslice
+meqTechAfcInpUp:
+  name: meqTechAfcInpUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - year
+  - timeslice
+meqSupAvaLo:
+  name: meqSupAvaLo
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
+  - year
+  - timeslice
+meqSupAvaFx:
+  name: meqSupAvaFx
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
+  - year
+  - timeslice
+meqSupReserveLo:
+  name: meqSupReserveLo
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
+meqSupReserveFx:
+  name: meqSupReserveFx
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
+meqStorageAfLo:
+  name: meqStorageAfLo
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageAfFx:
+  name: meqStorageAfFx
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageAfUp:
+  name: meqStorageAfUp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageInpUp:
+  name: meqStorageInpUp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageInpLo:
+  name: meqStorageInpLo
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageInpFx:
+  name: meqStorageInpFx
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageOutUp:
+  name: meqStorageOutUp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageOutLo:
+  name: meqStorageOutLo
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageOutFx:
+  name: meqStorageOutFx
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqTradeFlowUp:
+  name: meqTradeFlowUp
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+meqTradeFlowLo:
+  name: meqTradeFlowLo
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+meqTradeFlowFx:
+  name: meqTradeFlowFx
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+meqTradeIrAfUp:
+  name: meqTradeIrAfUp
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+meqTradeIrAfLo:
+  name: meqTradeIrAfLo
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+meqTradeIrAfFx:
+  name: meqTradeIrAfFx
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+meqTradeIrAfsUp:
+  name: meqTradeIrAfsUp
+  type: map
+  dimSets:
+  - trade
+  - src
+  - dst
+  - year
+  - timeslice
+meqTradeIrAfsLo:
+  name: meqTradeIrAfsLo
+  type: map
+  dimSets:
+  - trade
+  - src
+  - dst
+  - year
+  - timeslice
+meqTradeIrAfsFx:
+  name: meqTradeIrAfsFx
+  type: map
+  dimSets:
+  - trade
+  - src
+  - dst
+  - year
+  - timeslice
+meqExportRowLo:
+  name: meqExportRowLo
+  type: map
+  dimSets:
+  - expp
+  - comm
+  - region
+  - year
+  - timeslice
+meqExportRowFx:
+  name: meqExportRowFx
+  type: map
+  dimSets:
+  - expp
+  - comm
+  - region
+  - year
+  - timeslice
+meqImportRowLo:
+  name: meqImportRowLo
+  type: map
+  dimSets:
+  - imp
+  - comm
+  - region
+  - year
+  - timeslice
+meqImportRowFx:
+  name: meqImportRowFx
+  type: map
+  dimSets:
+  - imp
+  - comm
+  - region
+  - year
+  - timeslice
+meqTradeCapFlow:
+  name: meqTradeCapFlow
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - year
+  - timeslice
+meqBalLo:
+  name: meqBalLo
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+meqBalUp:
+  name: meqBalUp
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+meqBalFx:
+  name: meqBalFx
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - timeslice
+mTechCapLo:
+  name: mTechCapLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechCapFx:
+  name: mTechCapFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechCapUp:
+  name: mTechCapUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechNewCapLo:
+  name: mTechNewCapLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechNewCapFx:
+  name: mTechNewCapFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechNewCapUp:
+  name: mTechNewCapUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechRetLo:
+  name: mTechRetLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechRetFx:
+  name: mTechRetFx
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechRetUp:
+  name: mTechRetUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mStorageOutCapLo:
+  name: mStorageOutCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutCapFx:
+  name: mStorageOutCapFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutCapUp:
+  name: mStorageOutCapUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutNewCapLo:
+  name: mStorageOutNewCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutNewCapFx:
+  name: mStorageOutNewCapFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutNewCapUp:
+  name: mStorageOutNewCapUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutRetLo:
+  name: mStorageOutRetLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutRetFx:
+  name: mStorageOutRetFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageOutRetUp:
+  name: mStorageOutRetUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+# Retirement bound gates for the charging and storing parts; the
+# discharging pair (mStorageOutRet*) already existed.
+mStorageInpRetLo:
+  name: mStorageInpRetLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpRetFx:
+  name: mStorageInpRetFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpRetUp:
+  name: mStorageInpRetUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgRetLo:
+  name: mStorageStgRetLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgRetFx:
+  name: mStorageStgRetFx
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgRetUp:
+  name: mStorageStgRetUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mTradeCapLo:
+  name: mTradeCapLo
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeCapFx:
+  name: mTradeCapFx
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeCapUp:
+  name: mTradeCapUp
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeNewCapLo:
+  name: mTradeNewCapLo
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeNewCapFx:
+  name: mTradeNewCapFx
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeNewCapUp:
+  name: mTradeNewCapUp
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeFixom:
+  name: mTradeFixom
+  type: map
+  dimSets:
+  - trade
+  - region
+  - year
+mTradeRetLo:
+  name: mTradeRetLo
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeRetFx:
+  name: mTradeRetFx
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeRetUp:
+  name: mTradeRetUp
+  type: map
+  dimSets:
+  - trade
+  - year

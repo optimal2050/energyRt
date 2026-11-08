@@ -1,8 +1,9 @@
 ################################################################################
 # Description of slots in classes to use in documentation functions ############
 # Edit then run `DATASET.R` to update the .classes obj in the package data #####
-# The `recast:` blocks ALSO drive `R/recast-rules.R` / `.defRecast`, generated #
-# by `data-raw/recast_rules.R`, which `DATASET.R` sources. See README.md.      #
+# Column types and DESCRIPTIONS only. A column's recast rule, default and      #
+# interpolation rule live in `data-raw/parameters.yml`, which is also where    #
+# a column is bound to its parameter. See data-raw/README.md.                  #
 ################################################################################
 class:
 # model bricks: system components ###############################################
@@ -275,15 +276,12 @@ class:
             Use NA to apply to all regions.
         res.lo:
           type: numeric
-          recast: {space: sum}
           description: Lower bound of the total available resource.
         res.up:
           type: numeric
-          recast: {space: sum}
           description: Upper bound of the total available resource.
         res.fx:
           type: numeric
-          recast: {space: sum}
           description: >
             Fixed value of the total available resource.
             This parameter overrides `res.lo` and `res.up`.
@@ -317,25 +315,21 @@ class:
             Use NA to apply to all timeslices.
         ava.lo:
           type: numeric
-          recast: {space: sum, time: weighted_mean}
           description: >
             Lower bound on the supplied quantity, in physical commodity units
             per timeslice.
         ava.up:
           type: numeric
-          recast: {space: sum, time: weighted_mean}
           description: >
             Upper bound on the supplied quantity, in physical commodity units
             per timeslice.
         ava.fx:
           type: numeric
-          recast: {space: sum, time: weighted_mean}
           description: >
             Fixed value of the supplied quantity, in physical commodity units
             per timeslice. This parameter overrides `ava.lo` and `ava.up`.
         cost:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Cost of the resource extraction,
             if not set, the resource is considered free.
@@ -388,24 +382,20 @@ class:
             the object's own `region` slot.
         act.share.lo:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Lower bound on the share of the family's throughput this variant
             carries.
         act.share.up:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Upper bound on the share of the family's throughput this variant
             carries.
         act.share.fx:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Fixed share of the family's throughput this variant carries.
         order:
           type: integer
-          recast: {space: copy}
           description: >
             Fill order, 1 = the cheapest grade. Without it labels sort
             alphabetically and "S10" would precede "S2".
@@ -457,7 +447,6 @@ class:
           description: Name of the timeslice for the demand value. NA for every timeslice.
         demand:
           type: numeric
-          recast: {space: sum, time: weighted_mean}
           description: Value of the demand.
         cluster:
           type: character
@@ -507,13 +496,11 @@ class:
             share of the demand goes.
         dem.share.fx:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             This cluster's fixed fraction of the object's total demand. Must be
             positive, and the shares of one object must sum to 1.
         order:
           type: integer
-          recast: {space: copy}
           description: >
             Optional ordering for reporting. Without it labels sort
             alphabetically and "R10" would precede "R2".
@@ -638,7 +625,6 @@ class:
           description: Name of group to apply the parameter. Required, must match the group names in the input and output slots.
         ginp2use:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Group-input-to-use coefficient, default is 1.
     ceff:
       type: data.frame
@@ -664,35 +650,27 @@ class:
           description: Name of commodity to apply the parameter, different parameters require specification either input or output commodity.
         cinp2use:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Commodity-input-to-use coefficient, default is 1.
         use2cact:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Use-to-commodity-activity coefficient, default is 1.
         cact2cout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Commodity-activity-to-commodity-output coefficient, default is 1.
         cinp2ginp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Commodity-input-to-group-input coefficient, default is 1.
         grp.share.lo:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Lower bound on a share of commodity within a group, default is 0.
         grp.share.up:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Upper bound on a share of commodity within a group, default is 1.
         grp.share.fx:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Fixed share of commodity within a group, ignored if NA. This parameter overrides `grp.share.lo` and `grp.share.up`.
         afc.lo:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Lower bound on the per-commodity availability factor: bounds this
             commodity's input or output flow relative to installed capacity
@@ -700,7 +678,6 @@ class:
             Ignored if NA.
         afc.up:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Upper bound on the per-commodity availability factor: bounds this
             commodity's input or output flow relative to installed capacity
@@ -708,7 +685,6 @@ class:
             Ignored if NA.
         afc.fx:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Fixed per-commodity availability factor, ignored if NA.
             This parameter overrides `afc.lo` and `afc.up`.
@@ -741,39 +717,30 @@ class:
             or an output of the technology).
         cinp2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Main-commodity-input-to-auxilary-commodity-input coefficient, ignored if NA.
         cinp2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Main-commodity-input-to-auxilary-commodity-output coefficient, ignored if NA.
         cout2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Main-commodity-output-to-auxilary-commodity-input coefficient, ignored if NA.
         cout2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Main-commodity-output-to-auxilary-commodity-output coefficient, ignored if NA.
         act2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Technology-activity-to-auxilary-commodity-input coefficient, ignored if NA.
         act2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Technology-activity-to-auxilary-commodity-output coefficient, ignored if NA.
         cap2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Technology-capacity-to-auxilary-commodity-input coefficient, ignored if NA.
         cap2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Technology-capacity-to-auxilary-commodity-output coefficient, ignored if NA.
         ncap2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Aux commodity consumed per unit of NEW capacity -- a one-time charge at
             construction (materials, embodied energy), ignored if NA.
@@ -783,11 +750,9 @@ class:
             hourly calendar. Give a per-slice value, or name a single slice.
         ncap2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Technology-new-capacity-to-auxilary-commodity-output coefficient, ignored if NA.
         pho2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Aux commodity CONSUMED when capacity reaches the END OF ITS LIFE
             (demolition energy, labour). Multiplies the per-year phase-out FLOW,
@@ -799,7 +764,6 @@ class:
             hourly calendar. Give a per-slice value, or name a single slice.
         pho2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Aux commodity RELEASED when capacity reaches the END OF ITS LIFE
             (demolition waste, recovered material). Fires even when
@@ -810,7 +774,6 @@ class:
             hourly calendar. Give a per-slice value, or name a single slice.
         ret2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Aux commodity CONSUMED when capacity is retired EARLY. Separate from
             `pho2ainp` because the two differ physically: scrapping an intact
@@ -821,7 +784,6 @@ class:
             hourly calendar. Give a per-slice value, or name a single slice.
         ret2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Aux commodity RELEASED when capacity is retired EARLY (scrap). Usually
             LARGER than `pho2aout`: a plant retired before its time is still
@@ -856,23 +818,18 @@ class:
           description: Name of timeslice to apply the parameter, NA for every timeslice.
         af.lo:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Lower bound on the availability factor, default is 0.
         af.up:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Upper bound on the availability factor, default is 1.
         af.fx:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Fixed availability factor, ignored if NA. This parameter overrides `af.lo` and `af.up`.
         rampup:
           type: numeric
-          recast: {space: copy, time: copy}
           description: Ramping-up time constraint RHS value, ignored if NA. Depends on the technology timeframe.
         rampdown:
           type: numeric
-          recast: {space: copy, time: copy}
           description: Ramping-down time constraint RHS value, ignored if NA. Depends on the technology timeframe.
     afs:
       type: data.frame
@@ -902,17 +859,14 @@ class:
           description: Name of timeslice to apply the parameter, required.
         afs.lo:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Lower bound on the availability factor for the timeframe, default is 0.
         afs.up:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Upper bound on the availability factor for the timeframe, default is
             `Inf` (unbounded), in contrast to `af.up` which defaults to 1.
         afs.fx:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Fixed availability factor for the timeframe, ignored if NA. This parameter overrides `afs.lo` and `afs.up`.
     weather:
       type: data.frame
@@ -982,7 +936,6 @@ class:
           description: Year to apply the parameter, NA for every year.
         fixom:
           type: numeric
-          recast: {space: weighted_mean}
           description: Fixed operational and maintenance cost, default is 0.
     varom:
       type: data.frame
@@ -1005,21 +958,18 @@ class:
           description: Name of the time-timeslice or (grand-)parent timeframe to apply the parameter, NA for every time-timeslice of the technology timeframe.
         varom:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Variable operational and maintenance cost per unit of activity, default is 0.
         comm:
           type: character
           description: Name of the commodity for which the parameter will be applied, required for `cvarom` parameter.
         cvarom:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Variable operational and maintenance cost per unit of commodity, default is 0.
         acomm:
           type: character
           description: Name of the auxilary commodity for which the `avarom` will be applied, required for `avarom` parameter.
         avarom:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Variable operational and maintenance cost per unit of auxilary commodity, default is 0.
     invcost:
       type: data.frame
@@ -1039,18 +989,15 @@ class:
           description: Year to apply the parameter, NA for every year.
         invcost:
           type: numeric
-          recast: {space: weighted_mean}
           description: Total overnight investment costs of the project (per unit of capacity), default is 0.
         wacc:
           type: numeric
-          recast: {space: weighted_mean}
           description: >-
             Weighted average cost of capital used to annuitise `invcost` for
             this technology. Overrides the model-wide `wacc` (see the model
             `discount` argument). The social discount rate is never used here.
         payback:
           type: numeric
-          recast: {space: copy}
           description: >-
             Cost-recovery period in years. Where given it replaces `olife` in
             the annuity AND in the years over which the annuity is charged, so
@@ -1060,7 +1007,6 @@ class:
             Implemented for the GLPK solver only.
         eac:
           type: numeric
-          recast: {space: weighted_mean}
           description: >-
             Equivalent annual cost, supplied directly instead of being computed
             from `invcost`, `wacc` and the lifetime. Where given it wins; where
@@ -1068,7 +1014,6 @@ class:
             per row.
         retcost:
           type: numeric
-          recast: {space: weighted_mean}
           description: Costs of early retirement of the technology, default is 0.
     cluster:
       type: data.frame
@@ -1102,26 +1047,22 @@ class:
           description: Human-readable description of the cluster, used in reports.
         cap.share.fx:
           type: numeric
-          recast: {space: sum}
           description: >
             Fixed share of the family's capacity this variant holds, in every
             year. Ties the variants' capacities to fixed proportions (e.g. loss
             tranches).
         act.share.lo:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Lower bound on the share of the family's throughput this variant
             carries.
         act.share.up:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Upper bound on the share of the family's throughput this variant
             carries.
         act.share.fx:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Fixed share of the family's throughput this variant carries.
         region:
@@ -1129,7 +1070,6 @@ class:
           description: Region the cluster exists in, NA for every region. Several rows restrict a cluster to several regions.
         order:
           type: integer
-          recast: {space: copy}
           description: Optional display/ranking order (e.g. best to worst resource class); controls the order variants are created and reported in.
     vintage:
       type: data.frame
@@ -1152,15 +1092,12 @@ class:
           description: Cluster label, NA for every cluster.
         start:
           type: integer
-          recast: {space: copy}
           description: The first year the technology can be installed. NA means unbounded (all horizon years up to `end`); windows are user-defined and may overlap across vintages.
         end:
           type: integer
-          recast: {space: copy}
           description: The last year the technology can be installed. NA means unbounded (all horizon years from `start` on).
         olife:
           type: integer
-          recast: {space: copy}
           description: Operational life of the technology if installed during optimization, in years, default is 1.
     capacity:
       type: data.frame
@@ -1180,46 +1117,36 @@ class:
           description: Year to apply the parameter, required, values between specified years will be interpolated.
         stock:
           type: numeric
-          recast: {space: sum}
           description: >
             Predefined capacity of the technology in units of capacity, default is 0.
             This parameter also defines the exogenous capacity retirement (age-based),
             or exogenous capacity additions, not optimized by the model, and not included in investment costs.
         cap.lo:
           type: numeric
-          recast: {space: sum}
           description: Lower bound on the total capacity (preexisting stock and new installations), ignored if NA.
         cap.up:
           type: numeric
-          recast: {space: sum}
           description: Upper bound on the total capacity (preexisting stock and new installations), ignored if NA.
         cap.fx:
           type: numeric
-          recast: {space: sum}
           description: Fixed total capacity (preexisting stock and new installations), ignored if NA. This parameter overrides `cap.lo` and `cap.up`.
         ncap.lo:
           type: numeric
-          recast: {space: sum}
           description: Lower bound on the new capacity (new installations), ignored if NA.
         ncap.up:
           type: numeric
-          recast: {space: sum}
           description: Upper bound on the new capacity (new installations), ignored if NA.
         ncap.fx:
           type: numeric
-          recast: {space: sum}
           description: Fixed new capacity (new installations), ignored if NA. This parameter overrides `ncap.lo` and `ncap.up`.
         ret.lo:
           type: numeric
-          recast: {space: sum}
           description: Lower bound on the capacity retirement (age-based), ignored if NA.
         ret.up:
           type: numeric
-          recast: {space: sum}
           description: Upper bound on the capacity retirement (age-based), ignored if NA.
         ret.fx:
           type: numeric
-          recast: {space: sum}
           description: Fixed capacity retirement (age-based), ignored if NA. This parameter overrides `ret.lo` and `ret.up`.
     optimizeRetirement:
       type: logical
@@ -1434,26 +1361,22 @@ class:
           description: Human-readable description of the cluster, used in reports.
         cap.share.fx:
           type: numeric
-          recast: {space: sum}
           description: >
             Fixed share of the family's capacity this variant holds, in every
             year. Ties the variants' capacities to fixed proportions (e.g. loss
             tranches).
         act.share.lo:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Lower bound on the share of the family's throughput this variant
             carries.
         act.share.up:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Upper bound on the share of the family's throughput this variant
             carries.
         act.share.fx:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Fixed share of the family's throughput this variant carries.
         region:
@@ -1461,7 +1384,6 @@ class:
           description: Region the cluster exists in, NA for every region.
         order:
           type: integer
-          recast: {space: copy}
           description: Optional display/ranking order; controls the order variants are created and reported in.
     vintage:
       type: data.frame
@@ -1483,15 +1405,12 @@ class:
           description: Cluster label, NA for every cluster.
         start:
           type: integer
-          recast: {space: copy}
           description: The first year the storage can be installed. NA means unbounded (up to `end`).
         end:
           type: integer
-          recast: {space: copy}
           description: The last year the storage can be installed. NA means unbounded (from `start` on).
         olife:
           type: integer
-          recast: {space: copy}
           description: Operational life of the storage in years, applicable to new investment only.
     aux:
       type: data.frame
@@ -1540,7 +1459,6 @@ class:
           description: Year to apply the parameter, NA for every year.
         startLevel:
           type: numeric
-          recast: {space: sum}
           description: Energy added to the level at the first timeslice of each cycle.
     seff:
       type: data.frame
@@ -1563,15 +1481,12 @@ class:
           description: Time timeslice to apply the parameter, NA for every timeslice.
         stgeff:
           type: numeric
-          recast: {space: copy, time: copy}
           description: Storage decay annual rate.
         inpeff:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Input efficiency rate.
         outeff:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Output efficiency rate.
     af:
       type: data.frame
@@ -1601,56 +1516,47 @@ class:
           description: Time timeslice to apply the parameter, NA for every timeslice.
         af.lo:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Lower bound of the stored level as a fraction of storing capacity
             (minimum state of charge).
         af.up:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Upper bound of the stored level as a fraction of storing capacity
             (maximum state of charge).
         af.fx:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Fixed value of the stored-level fraction.
             This parameter overrides `af.lo` and `af.up`.
         inp.af.lo:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Lower bound of the charging (input) flow relative to charger
             capacity per timeslice.
         inp.af.up:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Upper bound of the charging (input) flow relative to charger
             capacity per timeslice.
         inp.af.fx:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Fixed value of the charging (input) flow relative to charger
             capacity per timeslice.
             This parameter overrides `inp.af.lo` and `inp.af.up`.
         out.af.lo:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Lower bound of the discharging (output) flow relative to
             discharger capacity per timeslice.
         out.af.up:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Upper bound of the discharging (output) flow relative to
             discharger capacity per timeslice.
         out.af.fx:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Fixed value of the discharging (output) flow relative to
             discharger capacity per timeslice.
@@ -1679,55 +1585,42 @@ class:
           description: Time timeslice to apply the parameter, NA for every timeslice.
         stg2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Storaage-level-to-auxiliary-input-commodity coefficient (multiplier).
         cinp2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Input-commodity-to-auxiliary-input-commodity coefficient (multiplier).
         cout2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Output-commodity-to-auxiliary-input-commodity coefficient (multiplier).
         stg2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Storage-level-to-auxiliary-output-commodity coefficient (multiplier).
         cinp2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Input-commodity-to-auxiliary-output-commodity coefficient (multiplier).
         cout2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Output-commodity-to-auxiliary-output-commodity coefficient (multiplier).
         inp.cap2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Charging (input-part) capacity to auxiliary input, per unit of vStorageInpCap.
         inp.cap2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Charging (input-part) capacity to auxiliary output, per unit of vStorageInpCap.
         inp.ncap2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: NEW charging capacity to auxiliary input, per unit of vStorageInpNewCap (lands once, at construction).
         inp.ncap2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: NEW charging capacity to auxiliary output, per unit of vStorageInpNewCap (lands once, at construction).
         stg.cap2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Energy (storing-part) capacity to auxiliary input, per unit of vStorageStgCap.
         stg.cap2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Energy (storing-part) capacity to auxiliary output, per unit of vStorageStgCap.
         stg.ncap2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             NEW energy capacity to auxiliary input, per unit of
             vStorageStgNewCap (lands once, at construction) -- e.g. battery
@@ -1736,30 +1629,24 @@ class:
             coupled the discharger and is now `out.ncap2ainp`.
         stg.ncap2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: NEW energy capacity to auxiliary output, per unit of vStorageStgNewCap (lands once, at construction).
         out.cap2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Discharging (output-part) capacity to auxiliary input, per unit of
             vStorageOutCap. RENAMED from `cap2ainp`, which coupled only this
             part; the bare name is refused with a rename hint.
         out.cap2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Discharging (output-part) capacity to auxiliary output, per unit of vStorageOutCap. Renamed from `cap2aout`.
         out.ncap2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: NEW discharging capacity to auxiliary input, per unit of vStorageOutNewCap (lands once, at construction). Renamed from `ncap2ainp`.
         out.ncap2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: NEW discharging capacity to auxiliary output, per unit of vStorageOutNewCap (lands once, at construction). Renamed from `ncap2aout`.
         pho2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Aux commodity CONSUMED when capacity reaches the END OF ITS LIFE
             (demolition energy, labour). Multiplies the per-year phase-out FLOW,
@@ -1771,7 +1658,6 @@ class:
             hourly calendar. Give a per-slice value, or name a single slice.
         pho2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Aux commodity RELEASED when capacity reaches the END OF ITS LIFE
             (demolition waste, recovered material). Fires even when
@@ -1782,7 +1668,6 @@ class:
             hourly calendar. Give a per-slice value, or name a single slice.
         ret2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Aux commodity CONSUMED when capacity is retired EARLY. Separate from
             `pho2ainp` because the two differ physically: scrapping an intact
@@ -1793,7 +1678,6 @@ class:
             hourly calendar. Give a per-slice value, or name a single slice.
         ret2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Aux commodity RELEASED when capacity is retired EARLY (scrap). Usually
             LARGER than `pho2aout`: a plant retired before its time is still
@@ -1804,7 +1688,6 @@ class:
             hourly calendar. Give a per-slice value, or name a single slice.
         ncap2stg:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: New-capacity-to-storage-level coefficient (multiplier).
     fixom:
       type: data.frame
@@ -1824,15 +1707,12 @@ class:
           description: "Year to apply the parameter, NA for every year."
         out.fixom:
           type: numeric
-          recast: {space: weighted_mean}
           description: "Fixed operation and maintenance cost per unit of installed capacity of the discharging part -- the power the store can deliver."
         inp.fixom:
           type: numeric
-          recast: {space: weighted_mean}
           description: "Fixed operation and maintenance cost per unit of installed capacity of the charging part -- the power the store can absorb."
         stg.fixom:
           type: numeric
-          recast: {space: weighted_mean}
           description: "Fixed operation and maintenance cost per unit of installed capacity of the reservoir itself -- the energy the store can hold."
     varom:
       type: data.frame
@@ -1855,15 +1735,12 @@ class:
           description: Time timeslice to apply the parameter, NA for every timeslice.
         inpcost:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Costs associated with the input commodity.
         outcost:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Costs associated with the output commodity.
         stgcost:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Costs associated with the storage level.
     invcost:
       type: data.frame
@@ -1883,63 +1760,48 @@ class:
           description: "Year to apply the parameter, NA for every year."
         out.invcost:
           type: numeric
-          recast: {space: weighted_mean}
           description: "Investment cost per unit of new capacity of the discharging part -- the power the store can deliver."
         out.wacc:
           type: numeric
-          recast: {space: weighted_mean}
           description: "Cost of capital used to annuitise the discharging part -- the power the store can deliver investment (overrides `pWacc`)."
         out.payback:
           type: numeric
-          recast: {space: copy}
           description: "Cost-recovery period of the discharging part -- the power the store can deliver, in years (overrides the operational life in the EAC charge)."
         out.eac:
           type: numeric
-          recast: {space: weighted_mean}
           description: "Equivalent annual cost of the discharging part -- the power the store can deliver, supplied directly instead of being annuitised from `invcost`."
         out.retcost:
           type: numeric
-          recast: {space: weighted_mean}
           description: "Cost of retiring the discharging part -- the power the store can deliver early."
         inp.invcost:
           type: numeric
-          recast: {space: weighted_mean}
           description: "Investment cost per unit of new capacity of the charging part -- the power the store can absorb."
         inp.wacc:
           type: numeric
-          recast: {space: weighted_mean}
           description: "Cost of capital used to annuitise the charging part -- the power the store can absorb investment (overrides `pWacc`)."
         inp.payback:
           type: numeric
-          recast: {space: copy}
           description: "Cost-recovery period of the charging part -- the power the store can absorb, in years (overrides the operational life in the EAC charge)."
         inp.eac:
           type: numeric
-          recast: {space: weighted_mean}
           description: "Equivalent annual cost of the charging part -- the power the store can absorb, supplied directly instead of being annuitised from `invcost`."
         inp.retcost:
           type: numeric
-          recast: {space: weighted_mean}
           description: "Cost of retiring the charging part -- the power the store can absorb early."
         stg.invcost:
           type: numeric
-          recast: {space: weighted_mean}
           description: "Investment cost per unit of new capacity of the reservoir itself -- the energy the store can hold."
         stg.wacc:
           type: numeric
-          recast: {space: weighted_mean}
           description: "Cost of capital used to annuitise the reservoir itself -- the energy the store can hold investment (overrides `pWacc`)."
         stg.payback:
           type: numeric
-          recast: {space: copy}
           description: "Cost-recovery period of the reservoir itself -- the energy the store can hold, in years (overrides the operational life in the EAC charge)."
         stg.eac:
           type: numeric
-          recast: {space: weighted_mean}
           description: "Equivalent annual cost of the reservoir itself -- the energy the store can hold, supplied directly instead of being annuitised from `invcost`."
         stg.retcost:
           type: numeric
-          recast: {space: weighted_mean}
           description: "Cost of retiring the reservoir itself -- the energy the store can hold early."
     fullYear:
       type: logical
@@ -2012,19 +1874,15 @@ class:
           description: Year to apply the parameter, NA for every year.
         duration:
           type: numeric
-          recast: {space: weighted_mean}
           description: Capacity-to-storage ratio (storage duration).
         duration.lo:
           type: numeric
-          recast: {space: weighted_mean}
           description: Lower bound on the energy-to-power ratio, in hours.
         duration.up:
           type: numeric
-          recast: {space: weighted_mean}
           description: Upper bound on the energy-to-power ratio, in hours.
         duration.fx:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Fixed energy-to-power ratio, in hours. The scalar shorthand
             `duration = 6` normalises to this.
@@ -2056,19 +1914,15 @@ class:
           description: Year the row applies to, NA for all.
         inp2out:
           type: numeric
-          recast: {space: weighted_mean}
           description: Scalar shorthand, normalised to `inp2out.fx`.
         inp2out.lo:
           type: numeric
-          recast: {space: weighted_mean}
           description: Lower bound on the charge-to-discharge capacity ratio.
         inp2out.up:
           type: numeric
-          recast: {space: weighted_mean}
           description: Upper bound on the charge-to-discharge capacity ratio.
         inp2out.fx:
           type: numeric
-          recast: {space: weighted_mean}
           description: Fixed charge-to-discharge capacity ratio.
 
     inp2stg:
@@ -2100,19 +1954,15 @@ class:
           description: Year the row applies to, NA for all.
         inp2stg:
           type: numeric
-          recast: {space: weighted_mean}
           description: Scalar shorthand, normalised to `inp2stg.fx`.
         inp2stg.lo:
           type: numeric
-          recast: {space: weighted_mean}
           description: Lower bound on the charging C-rate, 1/hours.
         inp2stg.up:
           type: numeric
-          recast: {space: weighted_mean}
           description: Upper bound on the charging C-rate, 1/hours.
         inp2stg.fx:
           type: numeric
-          recast: {space: weighted_mean}
           description: Fixed charging C-rate, 1/hours.
 
     weather:
@@ -2196,123 +2046,93 @@ class:
           description: "Year to apply the parameter, NA for every year."
         out.stock:
           type: numeric
-          recast: {space: sum}
           description: "Existing (exogenous) capacity of the discharging part -- the power the store can deliver, in power units."
         out.cap.lo:
           type: numeric
-          recast: {space: sum}
           description: "Lower bound of the discharging part -- the power the store can deliver capacity."
         out.cap.up:
           type: numeric
-          recast: {space: sum}
           description: "Upper bound of the discharging part -- the power the store can deliver capacity."
         out.cap.fx:
           type: numeric
-          recast: {space: sum}
           description: "Fixed value of the discharging part -- the power the store can deliver capacity. Overrides `out.cap.lo` and `out.cap.up`."
         out.ncap.lo:
           type: numeric
-          recast: {space: sum}
           description: "Lower bound of the discharging part -- the power the store can deliver new capacity."
         out.ncap.up:
           type: numeric
-          recast: {space: sum}
           description: "Upper bound of the discharging part -- the power the store can deliver new capacity."
         out.ncap.fx:
           type: numeric
-          recast: {space: sum}
           description: "Fixed value of the discharging part -- the power the store can deliver new capacity. Overrides `out.ncap.lo` and `out.ncap.up`."
         out.ret.lo:
           type: numeric
-          recast: {space: sum}
           description: "Lower bound of the discharging part -- the power the store can deliver capacity retirement."
         out.ret.up:
           type: numeric
-          recast: {space: sum}
           description: "Upper bound of the discharging part -- the power the store can deliver capacity retirement."
         out.ret.fx:
           type: numeric
-          recast: {space: sum}
           description: "Fixed value of the discharging part -- the power the store can deliver capacity retirement. Overrides `out.ret.lo` and `out.ret.up`."
         inp.stock:
           type: numeric
-          recast: {space: sum}
           description: "Existing (exogenous) capacity of the charging part -- the power the store can absorb, in power units."
         inp.cap.lo:
           type: numeric
-          recast: {space: sum}
           description: "Lower bound of the charging part -- the power the store can absorb capacity."
         inp.cap.up:
           type: numeric
-          recast: {space: sum}
           description: "Upper bound of the charging part -- the power the store can absorb capacity."
         inp.cap.fx:
           type: numeric
-          recast: {space: sum}
           description: "Fixed value of the charging part -- the power the store can absorb capacity. Overrides `inp.cap.lo` and `inp.cap.up`."
         inp.ncap.lo:
           type: numeric
-          recast: {space: sum}
           description: "Lower bound of the charging part -- the power the store can absorb new capacity."
         inp.ncap.up:
           type: numeric
-          recast: {space: sum}
           description: "Upper bound of the charging part -- the power the store can absorb new capacity."
         inp.ncap.fx:
           type: numeric
-          recast: {space: sum}
           description: "Fixed value of the charging part -- the power the store can absorb new capacity. Overrides `inp.ncap.lo` and `inp.ncap.up`."
         inp.ret.lo:
           type: numeric
-          recast: {space: sum}
           description: "Lower bound of the charging part -- the power the store can absorb capacity retirement."
         inp.ret.up:
           type: numeric
-          recast: {space: sum}
           description: "Upper bound of the charging part -- the power the store can absorb capacity retirement."
         inp.ret.fx:
           type: numeric
-          recast: {space: sum}
           description: "Fixed value of the charging part -- the power the store can absorb capacity retirement. Overrides `inp.ret.lo` and `inp.ret.up`."
         stg.stock:
           type: numeric
-          recast: {space: sum}
           description: "Existing (exogenous) capacity of the reservoir itself -- the energy the store can hold, in energy units."
         stg.cap.lo:
           type: numeric
-          recast: {space: sum}
           description: "Lower bound of the reservoir itself -- the energy the store can hold capacity."
         stg.cap.up:
           type: numeric
-          recast: {space: sum}
           description: "Upper bound of the reservoir itself -- the energy the store can hold capacity."
         stg.cap.fx:
           type: numeric
-          recast: {space: sum}
           description: "Fixed value of the reservoir itself -- the energy the store can hold capacity. Overrides `stg.cap.lo` and `stg.cap.up`."
         stg.ncap.lo:
           type: numeric
-          recast: {space: sum}
           description: "Lower bound of the reservoir itself -- the energy the store can hold new capacity."
         stg.ncap.up:
           type: numeric
-          recast: {space: sum}
           description: "Upper bound of the reservoir itself -- the energy the store can hold new capacity."
         stg.ncap.fx:
           type: numeric
-          recast: {space: sum}
           description: "Fixed value of the reservoir itself -- the energy the store can hold new capacity. Overrides `stg.ncap.lo` and `stg.ncap.up`."
         stg.ret.lo:
           type: numeric
-          recast: {space: sum}
           description: "Lower bound of the reservoir itself -- the energy the store can hold capacity retirement."
         stg.ret.up:
           type: numeric
-          recast: {space: sum}
           description: "Upper bound of the reservoir itself -- the energy the store can hold capacity retirement."
         stg.ret.fx:
           type: numeric
-          recast: {space: sum}
           description: "Fixed value of the reservoir itself -- the energy the store can hold capacity retirement. Overrides `stg.ret.lo` and `stg.ret.up`."
     optimizeRetirement:
       type: logical
@@ -2401,33 +2221,28 @@ class:
           description: Time timeslice to apply the parameter, NA for every timeslice.
         ava.lo:
           type: numeric
-          recast: {space: sum, time: weighted_mean}
           description: >
             Lower bound on the traded flow from `src` to `dst`, in physical
             commodity units per timeslice.
         ava.up:
           type: numeric
-          recast: {space: sum, time: weighted_mean}
           description: >
             Upper bound on the traded flow from `src` to `dst`, in physical
             commodity units per timeslice.
         ava.fx:
           type: numeric
-          recast: {space: sum, time: weighted_mean}
           description: >
             Fixed value of the traded flow from `src` to `dst`, in physical
             commodity units per timeslice.
             This parameter overrides `ava.lo` and `ava.up`.
         af.lo:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Lower bound on the flow from `src` to `dst` as a FRACTION of the
             object's capacity: `af.lo x cap2act x vTradeCap x share`. Forces a
             minimum loading on that direction.
         af.up:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Upper bound on the flow from `src` to `dst` as a FRACTION of the
             object's capacity: `af.up x cap2act x vTradeCap x share`. This is
@@ -2437,13 +2252,11 @@ class:
             of 1 is already implied by `eqTradeCapFlow` and cannot bind.
         af.fx:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Fixed loading of the direction `src` -> `dst` as a fraction of
             capacity. Overrides `af.lo` and `af.up`.
         afs.lo:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Lower bound on the flow from `src` to `dst` summed over the
             `timeslice` of the row (a parent timeslice, e.g. a day or the
@@ -2451,26 +2264,22 @@ class:
             `afs.lo x cap2act x vTradeCap x share`. As `technology@afs`.
         afs.up:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Upper bound on the flow from `src` to `dst` summed over the
             `timeslice` of the row, as a fraction of capacity -- e.g. an annual
             utilisation limit.
         afs.fx:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Fixed flow from `src` to `dst` over the `timeslice` of the row, as a
             fraction of capacity. Overrides `afs.lo` and `afs.up`.
         teff:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Trade efficiency: the fraction of the flow sent from `src` that is
             delivered to `dst` (1 = lossless).
         reactance:
           type: numeric
-          recast: {space: copy, time: copy}
           description: >
             Series reactance `x` of the line, in the model's own impedance
             units. Carried for AC lines and used by nothing unless the model is
@@ -2485,7 +2294,6 @@ class:
             `1/x_eq = sum(1/x_i)`, not any one circuit's.
         resistance:
           type: numeric
-          recast: {space: copy, time: copy}
           description: >
             Series resistance `r` of the line, same units and same symmetry
             requirement as `reactance`. Recorded so a line keeps both
@@ -2535,25 +2343,21 @@ class:
           description: Time timeslice to apply the parameter, NA for every timeslice.
         csrc2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Auxiliary input taken in the source region per unit of flow on the
             route.
         csrc2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Auxiliary output released in the source region per unit of flow on
             the route.
         cdst2ainp:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Auxiliary input taken in the destination region per unit of flow on
             the route.
         cdst2aout:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Auxiliary output released in the destination region per unit of flow
             on the route.
@@ -2591,32 +2395,26 @@ class:
             Destination region of the route, NA for every route.
         waf.lo:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Weather factor of the lower route rating `af.lo`.
         waf.up:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Weather factor of the upper route rating `af.up`.
         waf.fx:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Weather factor of the fixed route rating `af.fx`.
         wafs.lo:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Weather factor of the lower rating over a timeframe `afs.lo`.
         wafs.up:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Weather factor of the upper rating over a timeframe `afs.up`.
         wafs.fx:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Weather factor of the fixed rating over a timeframe `afs.fx`.
     invcost:
@@ -2652,18 +2450,15 @@ class:
           description: Year to apply the parameter, NA for every year.
         invcost:
           type: numeric
-          recast: {space: weighted_mean}
           description: Investment cost.
         wacc:
           type: numeric
-          recast: {space: weighted_mean}
           description: >-
             Weighted average cost of capital used to annuitise `invcost` for
             this corridor. Overrides the model-wide `wacc` (see the model
             `discount` argument). The social discount rate is never used here.
         payback:
           type: numeric
-          recast: {space: copy}
           description: >-
             Cost-recovery period in years. Where given it replaces `olife` in
             the annuity AND in the years over which the annuity is charged, so
@@ -2673,7 +2468,6 @@ class:
             Implemented for the GLPK solver only.
         eac:
           type: numeric
-          recast: {space: weighted_mean}
           description: >-
             Equivalent annual cost, supplied directly instead of being computed
             from `invcost`, `wacc` and the lifetime. Where given it wins; where
@@ -2681,7 +2475,6 @@ class:
             per row.
         retcost:
           type: numeric
-          recast: {space: weighted_mean}
           description: Costs of early retirement of the trade capacity, default is 0.
     vintage:
       type: data.frame
@@ -2811,7 +2604,6 @@ class:
             Year to apply the parameter, NA for every year.
         fixom:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Fixed operation and maintenance cost per unit of capacity per year.
     varom:
@@ -2869,13 +2661,11 @@ class:
             Timeslice to apply the parameter, NA for every timeslice.
         varom:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Variable cost per unit of flow, charged at `src` and added to system
             cost.
         markup:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Transfer per unit of flow, paid by the importing region to the
             exporting one; it leaves system cost unchanged.
@@ -3005,19 +2795,15 @@ class:
           description: Time timeslice to apply the parameter; use NA to apply to all timeslices.
         imp.lo:
           type: numeric
-          recast: {space: sum, time: weighted_mean}
           description: Lower bound on the import volume.
         imp.up:
           type: numeric
-          recast: {space: sum, time: weighted_mean}
           description: Upper bound on the import volume.
         imp.fx:
           type: numeric
-          recast: {space: sum, time: weighted_mean}
           description: Fixed import volume, ignored if NA. This parameter overrides `imp.lo` and `imp.up`.
         price:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Price paid per unit imported.
     cluster:
       type: data.frame
@@ -3066,24 +2852,20 @@ class:
             Region the row applies to, NA for every region.
         act.share.lo:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Lower bound on the share of the family's throughput this variant
             carries.
         act.share.up:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Upper bound on the share of the family's throughput this variant
             carries.
         act.share.fx:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Fixed share of the family's throughput this variant carries.
         order:
           type: integer
-          recast: {space: copy}
           description: >
             Fill order, 1 = the cheapest step (or, for export, the best paid).
             Without it labels sort alphabetically and "S10" would precede "S2".
@@ -3162,19 +2944,15 @@ class:
           description: Time timeslice to apply the parameter; use NA to apply to all timeslices.
         exp.lo:
           type: numeric
-          recast: {space: sum, time: weighted_mean}
           description: Export lower bound.
         exp.up:
           type: numeric
-          recast: {space: sum, time: weighted_mean}
           description: Export upper bound.
         exp.fx:
           type: numeric
-          recast: {space: sum, time: weighted_mean}
           description: Fixed export volume, ignored if NA. This parameter overrides `exp.lo` and `exp.up`.
         price:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: >
             Price received per unit exported. Export revenue is a NEGATIVE
             cost -- the minus sits inside `eqExportRowCost` -- so a higher
@@ -3226,24 +3004,20 @@ class:
             Region the row applies to, NA for every region.
         act.share.lo:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Lower bound on the share of the family's throughput this variant
             carries.
         act.share.up:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Upper bound on the share of the family's throughput this variant
             carries.
         act.share.fx:
           type: numeric
-          recast: {space: weighted_mean}
           description: >
             Fixed share of the family's throughput this variant carries.
         order:
           type: integer
-          recast: {space: copy}
           description: >
             Fill order, 1 = the cheapest step (or, for export, the best paid).
             Without it labels sort alphabetically and "S10" would precede "S2".
@@ -3343,7 +3117,6 @@ class:
             ancestor) is an error, not a silent zero.
         order:
           type: integer
-          recast: {space: copy}
           description: >
             Reporting order, 1 = the best tier. Without it labels sort
             alphabetically and "T10" would precede "T2".
@@ -3367,7 +3140,6 @@ class:
           description: Time timeslice to apply the parameter, NA for every timeslice.
         wval:
           type: numeric
-          recast: {space: weighted_mean, time: weighted_mean}
           description: Weather factor value.
     misc:
       type: list
@@ -3616,32 +3388,27 @@ class:
           description: Commodity to apply the parameter to, NA for every selected commodity.
         inp:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Per unit of commodity consumed. Without a process filter this is the
             commodity total over every process; with one it is that process's own
             input.
         out:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Per unit of commodity produced. Without a process filter this is the
             commodity total over every process; with one it is that process's own
             output.
         bal:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Per unit of commodity balance (production - consumption). Commodity
             level only: the balance belongs to no single process, so `bal`
             cannot be combined with a process filter.
         act:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: Per unit of process activity.
         cap:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Technologies and trades: per unit of installed capacity, charged in
             every year the capacity stands; a trade in each region the levy is
@@ -3649,47 +3416,39 @@ class:
             `inp.cap` or `out.cap`.
         ncap:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Per unit of capacity added in a period, charged once at
             commissioning rather than annualised. Technologies and trades; for
             a storage use `stg.ncap`, `inp.ncap` or `out.ncap`.
         stg.cap:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Storages only: per unit of reservoir capacity, in every year it
             stands.
         stg.ncap:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Storages only: per unit of new reservoir capacity.
         inp.cap:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Storages only: per unit of charger capacity, in every year it
             stands. A storage without a charger is not charged.
         inp.ncap:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Storages only: per unit of new charger capacity.
         out.cap:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Storages only: per unit of discharger capacity, in every year it
             stands. A storage without a discharger is not charged.
         out.ncap:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Storages only: per unit of new discharger capacity.
         rate:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Per unit of the variable named in `variable`. Used only with the
             escape hatch.
@@ -3792,32 +3551,27 @@ class:
           description: Commodity to apply the parameter to, NA for every selected commodity.
         inp:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Per unit of commodity consumed. Without a process filter this is the
             commodity total over every process; with one it is that process's own
             input.
         out:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Per unit of commodity produced. Without a process filter this is the
             commodity total over every process; with one it is that process's own
             output.
         bal:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Per unit of commodity balance (production - consumption). Commodity
             level only: the balance belongs to no single process, so `bal`
             cannot be combined with a process filter.
         act:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: Per unit of process activity.
         cap:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Technologies and trades: per unit of installed capacity, charged in
             every year the capacity stands; a trade in each region the levy is
@@ -3825,47 +3579,39 @@ class:
             `inp.cap` or `out.cap`.
         ncap:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Per unit of capacity added in a period, charged once at
             commissioning rather than annualised. Technologies and trades; for
             a storage use `stg.ncap`, `inp.ncap` or `out.ncap`.
         stg.cap:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Storages only: per unit of reservoir capacity, in every year it
             stands.
         stg.ncap:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Storages only: per unit of new reservoir capacity.
         inp.cap:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Storages only: per unit of charger capacity, in every year it
             stands. A storage without a charger is not charged.
         inp.ncap:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Storages only: per unit of new charger capacity.
         out.cap:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Storages only: per unit of discharger capacity, in every year it
             stands. A storage without a discharger is not charged.
         out.ncap:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Storages only: per unit of new discharger capacity.
         rate:
           type: numeric
-          recast: {space: copy, time: weighted_mean}
           description: >
             Per unit of the variable named in `variable`. Used only with the
             escape hatch.
@@ -4122,14 +3868,12 @@ class:
           description: Year to apply the parameter, NA for every year.
         wacc:
           type: numeric
-          recast: {space: weighted_mean}
           description: >-
             Weighted average cost of capital, used to annuitise investment costs
             into `pTechEac` / `pStorageOutEac` / `pTradeEac`. A process may override
             it with its own `@invcost$wacc`. Default is 0.
         sdr:
           type: numeric
-          recast: {space: weighted_mean}
           description: >-
             Social discount rate, used to build the cumulative discount factor
             applied to total system costs in the objective. A property of the

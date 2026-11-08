@@ -1,7 +1,7 @@
 # =========================================================================== #
 # prune.R  —  drop droppable (default-valued) parameter tuples.
 #
-# A parameter flagged `prune: { value: v }` in modInp.yml (carried to
+# A parameter flagged `prune: { value: v }` in parameters.yml (carried to
 # `param@misc$prune`) has its rows equal to `v` removed. Because an absent tuple
 # reads back as the parameter's default, this is LOSSLESS whenever `v == defVal`:
 # e.g. `pWeather` (defVal 0) — a dropped 0 still makes the weather up-bound
@@ -15,7 +15,7 @@
 # references in the equations that read it.
 # =========================================================================== #
 
-# Drop `value == prune$value` rows from every parameter flagged in modInp.yml.
+# Drop `value == prune$value` rows from every parameter flagged in parameters.yml.
 drop_default_values <- function(scen, verbose = isVerbose(2), params = NULL) {
   for (pn in .param_subset(scen, params)) {
     param <- scen@modInp@parameters[[pn]]

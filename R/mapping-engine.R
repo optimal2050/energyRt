@@ -967,7 +967,7 @@ recipe_value <- function(scen, names, fmp) {
 #            is structural on `domain` intersect this membership and CONDITIONAL
 #            outside it, so an OPTIONAL process part the model never declares
 #            keeps its flow unbounded while one it does declare is always rated.
-#            Such a parameter needs `dropIfEmpty: false` in modInp.yml: outside
+#            Such a parameter needs `dropIfEmpty: false` in parameters.yml: outside
 #            the membership a declared default-valued row is what puts the tuple
 #            in the map, so pruning it would delete the equation.
 # --------------------------------------------------------------------------- #
@@ -2027,7 +2027,7 @@ weather_map <- function(scen, name, source, types, fmp) {
 # `recipe_*` for its family. Families migrate one at a time: while the registry is
 # empty every mapping falls back, so behaviour is identical to before.
 #
-# To add a mapping (user-extensibility goal): declare it in `modInp.yml`
+# To add a mapping (user-extensibility goal): declare it in `mappings.yml`
 # (type: map, dimSets), declare its variable/equation linkage in `maps.R`, write a
 # `map_<Name>(scen, fmp)` function, and register it here.
 # =========================================================================== #

@@ -40,7 +40,7 @@ setClass(
 #'
 #' @details
 #' This is an internal method, it is called during creation of `scenario` objects, and it is not intended to run by users.
-#' Initialization of `modInp` adds empty structures of the model sets, mappings, and parameters to the `modInp@parameters` slot. The `@defVal` and `@interpolation` are filled with default values from internal `.modInp` list object (edit `modInp.yml` and rebuild to modify). The `@data` slot is empty (added on the interpolation step).
+#' Initialization of `modInp` adds empty structures of the model sets, mappings, and parameters to the `modInp@parameters` slot. The `@defVal` and `@interpolation` are filled with default values from internal `.modInp` list object (edit `parameters.yml` and rebuild to modify). The `@data` slot is empty (added on the interpolation step).
 #'
 #' @param modInp an uninitialized (created by "new", empty) model input class object.
 #' @noRd

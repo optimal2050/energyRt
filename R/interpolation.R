@@ -1199,7 +1199,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   #============================================================================#
   # Prune parameters ####
   #   Drop `value == prune$value` rows of parameters flagged `prune` in
-  #   modInp.yml (e.g. pWeather: the 0 night-timeslice rows). Lossless: an absent
+  #   parameters.yml (e.g. pWeather: the 0 night-timeslice rows). Lossless: an absent
   #   tuple reads as the default, which equals the pruned value. The dependent
   #   variable-column removal is multimod `trim`'s cascade, not done here. The
   #   `prune` argument is a global on/off over the per-parameter flags.
@@ -2320,7 +2320,7 @@ interpolate_numpar <- function(
 #' Broadcast partially-wildcarded key columns onto their member sets
 #'
 #' An NA in a key column means "every member of that dimension" -- the contract
-#' `data-raw/classes.yml` states for 160 slots ("NA for every region") and
+#' `data-raw/classes-docs.yml` states for 160 slots ("NA for every region") and
 #' `test-conflicting-rows.R` asserts at construction ("specific overrides
 #' broadcast").
 #'
@@ -3210,7 +3210,7 @@ interpolate_parameters <- function(scen, drop_default = FALSE, params = NULL) {
     raw <- .expand_partial_wildcards(scen, raw, param@dimSets, pname = pn)
 
     # Per-parameter override of the global `drop_default`. A parameter may set
-    # `@misc$dropIfEmpty` (from the `dropIfEmpty` field in modInp.yml) to force
+    # `@misc$dropIfEmpty` (from the `dropIfEmpty` field in parameters.yml) to force
     # its own policy regardless of the global flag: `TRUE` drops default-valued
     # rows (so an all-default parameter collapses to empty and its constraint is
     # dropped), `FALSE` keeps them (so a structurally required parameter such as

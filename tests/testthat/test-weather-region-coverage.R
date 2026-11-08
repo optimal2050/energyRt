@@ -16,7 +16,7 @@
 # them with `process_region`, and anti-joins `mWeatherRegionAt`. Its sibling
 # guard inside `map_mWeatherRegionAt()` covers the opposite case, a pair
 # resolving to TWO source regions. These tests pin both halves of the rule
-# classes.yml states for `weather@region`, which had no test of its own.
+# classes-docs.yml states for `weather@region`, which had no test of its own.
 # =========================================================================== #
 
 wrc_geoscale <- function(regions = c("R1", "R2")) {

@@ -1,7 +1,7 @@
 # =========================================================================== #
 # The declared recast contract.
 #
-# `.defRecast` is generated from the `recast:` blocks of data-raw/classes.yml.
+# `.defRecast` is generated from the `recast:` blocks of data-raw/classes-docs.yml.
 # It starts as a faithful snapshot of what `.agg_rules()` infers, so that the
 # inference can be retired without changing any answer; every later departure
 # from it is then a deliberate, tested decision rather than a side effect.
@@ -47,10 +47,10 @@ test_that("every pinned departure really does depart", {
 })
 
 test_that("every column on an axis carries a declaration", {
-  cand <- c(testthat::test_path("..", "..", "data-raw", "classes.yml"),
-            file.path("data-raw", "classes.yml"))
+  cand <- c(testthat::test_path("..", "..", "data-raw", "classes-docs.yml"),
+            file.path("data-raw", "classes-docs.yml"))
   hit <- cand[file.exists(cand)]
-  if (!length(hit)) testthat::skip("data-raw/classes.yml not available")
+  if (!length(hit)) testthat::skip("data-raw/classes-docs.yml not available")
   y <- yaml::read_yaml(hit[1])
   ID <- c("region", "src", "dst", "year", "vintage", "cluster", "timeslice",
           "comm", "acomm", "group", "desc", "property", "unit", "comment",

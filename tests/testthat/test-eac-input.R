@@ -1,5 +1,5 @@
 # A user may hand the model a precomputed annuity in `@invcost$eac` instead of
-# letting it annuitise `invcost`. modInp.yml binds pXEac to `colName: eac`, so
+# letting it annuitise `invcost`. parameters.yml binds pXEac to `colName: eac`, so
 # the slot loop seeds the parameter with exactly what was supplied, and
 # `.eac_one()` fills only the rows the user left empty.
 

@@ -27,6 +27,7 @@ energyRt_registry.csv
 energyRt_refs.csv
 logs/
 .archive/
+drafts/
 drafts-local/
 .formatted/
 .unformatted/

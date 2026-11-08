@@ -2537,7 +2537,7 @@ Declare the weather at that region, or at a COARSER region of the ",
 #
 # To add a value mapping: add its row to the table (or write a bespoke builder),
 # a thin `map_<Name>`, and an entry to `.value_builders`; declare it in
-# modInp.yml (type: map, dimSets) + maps.R.
+# mappings.yml (dimSets) + maps.R.
 # =========================================================================== #
 
 # Regular value maps: source = interpolated p* parameter(s) supplying the value
@@ -2937,7 +2937,7 @@ map_mTechRetirement <- function(scen, fmp) {
 # from overwriting each other. NA region in the source means "all regions" and is
 # expanded to every model region.
 # The dims come from the parameter's own @dimSets, so re-dimensioning the map in
-# data-raw/modInp.yml is enough; nothing here is positional.
+# data-raw/mappings.yml is enough; nothing here is positional.
 .policy_cost_map <- function(scen, name, sources, fmp) {
   p <- scen@modInp@parameters[[name]]
   if (is.null(p)) return(scen)

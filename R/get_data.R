@@ -1832,60 +1832,30 @@ getObject.en_registry <- function(x, type = NULL, name = NULL, hash = NULL,
   "imp", "impp", "weather", "src", "dst", "process", "levy"
 )
 
-# Reverse map (memoised): "class\rslot\rcolName" -> list(rule, defVal, param).
-# Built from the baked-in `.modInp` registry, which is the PLAIN YAML LIST from
-# data-raw/modInp.yml (not a modInp S4 object -- reading `@parameters` here
-# used to error into the tryCatch and leave the map empty, so every object
-# interpolation silently fell back to "back.inter.forth"/NA). Each parameter
-# entry carries `class`, `slot`, `colName`, `interpolation` and `defVal`;
-# bounds parameters carry per-bound vectors and expand to the
-# `<colName>.lo/.up/.fx` slot columns (the `.pack_bounds_long()` naming).
+# Reverse map (memoised): "class\rslot\rcolName" -> list(rule, defVal,
+# param, dims). An index over `.col_param`, the baked column <-> parameter
+# relation (built by data-raw/col_param.R): one row per value column of every
+# slot, with the parameter that owns it already resolved through class
+# inheritance (`settings` reads config's slots) and `colAlias` (`pDemand` is
+# catalogued under colName "dem" while the column of `demand@demand` is
+# "demand"). A `bounds` parameter contributes its three `<colName>.lo/.up/.fx`
+# columns, each with its own rule and default (`.pack_bounds_long()` naming).
 .param_interp_map_cache <- new.env(parent = emptyenv())
 
 .param_interp_map <- function() {
   if (!is.null(.param_interp_map_cache$map)) {
     return(.param_interp_map_cache$map)
   }
-  mp <- new.env(parent = emptyenv())
-  add <- function(cls, slt, col, rule, dv, param, dims = character(0)) {
-    assign(paste(cls, slt, col, sep = "\r"),
-           list(rule = rule, defVal = dv, param = param, dims = dims),
-           envir = mp)
-  }
-  entries <- tryCatch(.modInp, error = function(e) NULL)
-  if (is.list(entries)) {
-    for (p in entries) {
-      if (!is.list(p)) next
-      cls <- p$class
-      slt <- p$slot
-      cn <- p$colName
-      if (is.null(cls) || is.null(slt) || is.null(cn)) next
-      # `pDemand` is catalogued with colName "dem" while the column of
-      # `demand@demand` is "demand". The catalogue name is the key of the
-      # `config@defVal` / `@interpolation` override columns, so it cannot be
-      # renamed without breaking that table; map it here instead.
-      if (identical(cls, "demand") && identical(cn, "dem")) cn <- "demand"
-      # The parameter's own dimensions -- the source of truth for which of
-      # the slot's columns are keys of THIS column. A slot-level key set is
-      # wrong: within `technology@aeff`, `act2ainp` is keyed
-      # [tech, acomm, region, year, timeslice] while `cinp2ainp` adds `comm`.
-      .dims <- as.character(unlist(p$dimSets))
-      rule <- p$interpolation
-      dv <- suppressWarnings(as.numeric(unlist(p$defVal)))
-      if (identical(p$type, "bounds") || length(dv) >= 2) {
-        r1 <- if (length(rule) >= 1) rule[[1]] else "back.inter.forth"
-        r2 <- if (length(rule) >= 2) rule[[2]] else r1
-        add(cls, slt, paste0(cn, ".lo"), r1, dv[1], p$name, .dims)
-        add(cls, slt, paste0(cn, ".up"), r2,
-            if (length(dv) >= 2) dv[2] else NA_real_, p$name, .dims)
-        add(cls, slt, paste0(cn, ".fx"), r1, NA_real_, p$name, .dims)
-      } else {
-        add(cls, slt, cn, if (is.list(rule)) rule[[1]] else rule,
-            if (length(dv) >= 1) dv[1] else NA_real_, p$name, .dims)
-      }
-    }
-  }
-  out <- as.list(mp)
+  cp <- tryCatch(.col_param, error = function(e) NULL)
+  if (!is.data.frame(cp)) return(list())
+  cp <- cp[!is.na(cp$parameter), , drop = FALSE]
+  out <- stats::setNames(
+    lapply(seq_len(nrow(cp)), function(i) {
+      list(rule = cp$rule[i], defVal = cp$defVal[i],
+           param = cp$parameter[i], dims = cp$dims[[i]])
+    }),
+    paste(cp$class, cp$slot, cp$column, sep = "\r")
+  )
   .param_interp_map_cache$map <- out
   out
 }

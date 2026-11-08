@@ -27,7 +27,23 @@ source("data-raw/maps.R")
 # Internal data ####
 .defVal <- yaml::read_yaml("data-raw/config_default_values.yml")
 .defInt <- yaml::read_yaml(file = "data-raw/config_default_interpolation.yml")
-.modInp <- yaml::read_yaml("data-raw/modInp.yml")
+# One file per kind of model symbol. The concatenation order IS `.modInp`'s key
+# order, and that order sets the written matrix column order, so it must stay
+# sets -> parameters -> mappings.
+.parameters <- yaml::read_yaml("data-raw/parameters.yml")
+# `columns:` declares the data columns no parameter owns, and `recast:` is read
+# by recast_rules.R into .defRecast -- neither belongs to the model catalogue.
+.parameters$columns <- NULL
+.parameters <- lapply(.parameters, function(e) {
+  e$recast <- NULL
+  e
+})
+.modInp <- c(
+  yaml::read_yaml("data-raw/sets.yml"),
+  .parameters,
+  yaml::read_yaml("data-raw/mappings.yml")
+)
+stopifnot(!anyDuplicated(names(.modInp)))
 
 readr::write_lines(c(
   "# This file is auto-created from *.yml files inputs,",
@@ -46,8 +62,15 @@ readr::write_lines(c(
 )
 styler::style_file("R/defaults.R")
 
-# The recast contract: R/recast-rules.R from the `recast:` blocks of
-# classes.yml. Kept separate so it can be regenerated on its own.
+# The column <-> parameter relation, as data: which parameter owns each value
+# column of each slot, and which columns no parameter owns. The one place that
+# resolves class inheritance and `colAlias`; both `.param_interp_map()` and the
+# recast contract read it rather than re-deriving it.
+source("data-raw/col_param.R")
+
+# The recast contract: R/recast-rules.R from the recast rules of
+# parameters.yml, over the columns `.col_param` resolved. Kept separate so it
+# can be regenerated on its own.
 source("data-raw/recast_rules.R")
 
 # all names of sets used in parameter@dimSet and variable@dimSets
@@ -72,6 +95,10 @@ source("data-raw/recast_rules.R")
            "[ ]*[,][ ]*")[[1]]
 })
 stopifnot(all(unlist(.variable_set) %in% .dimSets))
+
+# A value column must not be named after a set dimension: `.col_param` would
+# then treat an index as data. `year` is excluded by name in col_param.R.
+stopifnot(!any(.col_param$column %in% .dimSets))
 
 # DIMENSION NAMES, as distinct from dimension SETS.
 #
@@ -443,7 +470,7 @@ yaml_to_df <- function(yaml_content) {
 }
 
 # classes
-.classes <- yaml_to_df("data-raw/classes.yml") |> as.data.frame()
+.classes <- yaml_to_df("data-raw/classes-docs.yml") |> as.data.frame()
 
 # mapping specification (recipe-driven creation of m*/meq* mapping parameters)
 # Regenerate the skeleton with: source("data-raw/make_mapping_spec.R"); make_mapping_spec()
@@ -453,6 +480,7 @@ yaml_to_df <- function(yaml_content) {
 usethis::use_data(
   .dimSets,
   .modInp,
+  .col_param,
   # .defInt,
   # .defVal,
   # DefVal,

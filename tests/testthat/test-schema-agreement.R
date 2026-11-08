@@ -6,7 +6,7 @@
 #
 #   1. `setClass()` representations      -- the authority on what slots exist;
 #   2. class prototypes                  -- the authority on data.frame columns;
-#   3. `data-raw/classes.yml`            -- the documentation source;
+#   3. `data-raw/classes-docs.yml`            -- the documentation source;
 #   4. the generated `.classes` catalogue in `R/sysdata.rda` -- what
 #      `get_slot_doc()` reads, so what the manual pages actually say;
 #   5. constructor signatures            -- what a user can set.
@@ -25,10 +25,10 @@
 # `data-raw/` is not installed, so an installed-package run has no source of
 # truth to compare against. Same fallback shape as helper-mapping.R.
 sa_yaml_path <- function() {
-  cand <- c(testthat::test_path("..", "..", "data-raw", "classes.yml"),
-            file.path("data-raw", "classes.yml"))
+  cand <- c(testthat::test_path("..", "..", "data-raw", "classes-docs.yml"),
+            file.path("data-raw", "classes-docs.yml"))
   hit <- cand[file.exists(cand)]
-  if (!length(hit)) testthat::skip("data-raw/classes.yml not available")
+  if (!length(hit)) testthat::skip("data-raw/classes-docs.yml not available")
   hit[1]
 }
 

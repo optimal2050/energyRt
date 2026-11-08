@@ -1,22 +1,43 @@
-## Auto-generates R/recast-rules.R from the `recast:` blocks in classes.yml.
-## Runnable on its own; also called from data-raw/DATASET.R.
-y <- yaml::read_yaml("data-raw/classes.yml")
+## Auto-generates R/recast-rules.R from the recast rules in parameters.yml.
+## Runnable on its own; also called from data-raw/DATASET.R, which sources
+## data-raw/col_param.R first.
+##
+## `.defRecast` is keyed class/slot/column, and `.col_param` has already done
+## the one hard part -- deciding which parameter owns which declared column,
+## through class inheritance and `colAlias`. So each rule is read off the owning
+## parameter (one rule covers its .lo/.up/.fx columns) or, for a column no
+## parameter owns, off the `columns:` section.
+if (!exists(".col_param", inherits = TRUE)) {
+  source("data-raw/col_param.R")
+}
+p <- yaml::read_yaml("data-raw/parameters.yml")
+orphan <- p$columns
+p$columns <- NULL
+
 rows <- list()
-for (cn in names(y$class)) for (sn in names(y$class[[cn]])) {
-  s <- y$class[[cn]][[sn]]
-  if (!is.list(s) || is.null(s$columns)) next
-  for (co in names(s$columns)) {
-    r <- s$columns[[co]]$recast
-    if (is.null(r)) next
-    rows[[length(rows) + 1L]] <- data.frame(
-      class = cn, slot = sn, column = co,
-      space = if (is.null(r$space)) NA_character_ else r$space,
-      time  = if (is.null(r$time))  NA_character_ else r$time,
-      stringsAsFactors = FALSE)
+for (i in seq_len(nrow(.col_param))) {
+  cp <- .col_param[i, ]
+  r <- if (is.na(cp$parameter)) {
+    orphan[[paste(cp$class, cp$slot, cp$column, sep = "/")]]$recast
+  } else {
+    p[[cp$parameter]]$recast
   }
+  if (is.null(r)) next
+  # the key is the class whose schema DECLARES the column, which is the class
+  # an object of that shape reports; NA means no `columns:` block documents it
+  if (is.na(cp$declared_on)) {
+    stop("recast rule on a column no class declares: ",
+         cp$class, "/", cp$slot, "/", cp$column)
+  }
+  rows[[length(rows) + 1L]] <- data.frame(
+    class = cp$declared_on, slot = cp$slot, column = cp$column,
+    space = if (is.null(r$space)) NA_character_ else r$space,
+    time  = if (is.null(r$time))  NA_character_ else r$time,
+    stringsAsFactors = FALSE)
 }
 d <- do.call(rbind, rows)
 d <- d[order(d$class, d$slot, d$column), ]
+stopifnot(!anyDuplicated(paste(d$class, d$slot, d$column, sep = "/")))
 
 # Row-wise and column-aligned, so a rule reads off the file at a glance
 # instead of counting positions across five parallel vectors.
@@ -35,7 +56,7 @@ hdr <- paste0("  # ", pad(labs[1], w[1] - 2L), " ", pad(labs[2], w[2]), " ",
               pad(labs[3], w[3]), " ", pad(labs[4], w[4]), " ", labs[5])
 
 readr::write_lines(c(
-  "# Auto-created from the `recast:` blocks of data-raw/classes.yml;",
+  "# Auto-created from the recast rules of data-raw/parameters.yml;",
   "# see data-raw/recast_rules.R. Do not edit by hand.",
   "",
   "#' @include recast.R",

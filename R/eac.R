@@ -17,7 +17,7 @@
 # year more, while the technical life still governs when capacity operates.
 #
 # A user-supplied `@invcost$eac` bypasses all of it: the slot loop seeds pXEac
-# from that column (modInp.yml binds `colName: eac`), and the rows it supplies
+# from that column (parameters.yml binds `colName: eac`), and the rows it supplies
 # survive the computed values below.
 #
 # Runs after interpolate_parameters (reads the interpolated pXInvcost / pWacc /
@@ -202,7 +202,7 @@
   # Rate: process-specific cost of capital (first supplied of the given
   # parameters, in order), else the model-wide one. NA means "not supplied" --
   # an explicit 0 is a legitimate zero-interest rate and is kept (hence
-  # `dropIfEmpty: false` on both parameters in modInp.yml).
+  # `dropIfEmpty: false` on both parameters in parameters.yml).
   wacc_cols <- paste0("pwacc", seq_along(wacc_par))
   for (i in seq_along(wacc_par)) {
     df <- .eac_join(scen, df, wacc_par[i], wacc_cols[i], c(key, "region", "year"))

@@ -7,7 +7,7 @@ output. Every variable declared by the model has one of these,
 pre-populated from the baked specification when a `modOut` is created
 and filled with solved values by
 [`read_solution()`](https://energyRt.org/reference/read.md) – exactly as
-`modInp@parameters` is populated from `data-raw/modInp.yml`.
+`modInp@parameters` is populated from `data-raw/parameters.yml`.
 
 The specification itself is composed at build time in
 `data-raw/DATASET.R`: dimensions, gating map and description come from

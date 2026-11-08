@@ -58,7 +58,8 @@ default and dumps raw slots. Use `#' @exportS3Method print <class>`.
 **Editing a solver template has no effect until you rebuild `sysdata`.** `glpk/`, `gams/`,
 `julia/` and `pyomo/` are in `.Rbuildignore`; the templates ship *only* as character vectors baked
 into `R/sysdata.rda` by `data-raw/DATASET.R`. After changing any template — or `data-raw/maps.R`
-or `data-raw/modInp.yml` — re-run `data-raw/DATASET.R` **from the package root** (it sources
+or any `data-raw/*.yml` catalogue (`sets.yml`, `parameters.yml`, `mappings.yml`) — re-run
+`data-raw/DATASET.R` **from the package root** (it sources
 `maps.R` first and all its paths are relative) and commit the regenerated `R/sysdata.rda`.
 
 **The templates are spliced at grep-located markers.** Writers in `R/write_glpk.R`,
@@ -85,7 +86,7 @@ one-off upgrade shims exist (`.upgrade_summand()` in `R/class-constraint.R`, `.h
 - Prefer dplyr/dtplyr and the native pipe (`|>`) for data-frame work.
 - Follow the tidyverse style guide; don't restyle code unrelated to your change.
 - User-facing changes get a bullet at the top of `NEWS.md`.
-- Class and slot documentation is generated from `data-raw/classes.yml` via `get_slot_doc()` —
+- Class and slot documentation is generated from `data-raw/classes-docs.yml` via `get_slot_doc()` —
   keep it in step with the `setClass` prototypes when adding or renaming a slot.
 - Design notes, guides and one-off scripts are not part of the repository —
   store them in a local dev folder such as `dev-local/scripts`.

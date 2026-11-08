@@ -14,7 +14,7 @@
 # pDemand reads `dem`. Model-level `config` flows in via .config_to_settings().
 # An override applies ONLY where the value differs from the baked baseline, so
 # an untouched table is a guaranteed no-op (mirror drift cannot clobber
-# modInp.yml -- the tm goldens pin this).
+# parameters.yml -- the tm goldens pin this).
 # =========================================================================== #
 
 io_build <- function() {

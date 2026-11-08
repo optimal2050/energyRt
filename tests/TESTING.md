@@ -28,7 +28,7 @@ Companion machinery:
 
 ## 1. Adding a test for a new parameter
 
-When a new entry lands in `data-raw/modInp.yml` (and sysdata is regenerated):
+When a new entry lands in `data-raw/parameters.yml` (and sysdata is regenerated):
 
 1. Run `Rscript tools/coverage/build_matrix.R` — the new row appears with
    `covered_depth=none`. No hand-editing: the matrix is always regenerated.
