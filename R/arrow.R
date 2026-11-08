@@ -1,4 +1,4 @@
-# Saved on disk scenario and model objects have the same structure as in memory  objects. The only difference is that data-frame slots are saved in `parquet`  format, while other "large" slots are saved in `RData` format.  Saved on disk objects have the same structure of directories and files as in  memory objects. The in-memory object stores the information about the path to  each slot on disk, the dimensions of the data-frame slots, the file format, and the file name. This information is stored in the `@misc` slot of the in-memory object. The `inMemory` slot of the object is set to `FALSE` to indicate that the object is saved on disk. The scenario or model object itself with stored  on disk slots is saved in the same directory as `scen.RData` or `mod.RData`. The access to the saved on disk slots is provided by the `getData` function. (toDo: add getSlot function and/or `slot` method)
+# Saved on disk scenario and model objects have the same structure as in memory  objects. The only difference is that data-frame slots are saved in `parquet`  format, while other "large" slots are saved in `RData` format.  Saved on disk objects have the same structure of directories and files as in  memory objects. The in-memory object stores the information about the path to  each slot on disk, the dimensions of the data-frame slots, the file format, and the file name. This information is stored in the `@misc` slot of the in-memory object. The `inMemory` slot of the object is set to `FALSE` to indicate that the object is saved on disk. The scenario or model object itself with stored  on disk slots is saved in the same directory as `scen.RData` or `mod.RData`. The access to the saved on disk slots is provided by the `getData` function.
 # The structure of the information stored in the `@misc` slot of the in-memory part of an object is a nested `list`, where every level corresponds to a directory. The last level of the nested list contains the information about the file format, the file name, and the dimensions of the data-frame slots or length of the vector slot.
 
 
@@ -509,8 +509,6 @@ data2disk <- function(
   # saves certain type of data to disk, returns TRUE if saved, FALSE if not
   if (is.null(path)) path <- getObjPath(obj)
   stopifnot(!is.null(path))
-  # dir.create(path, recursive = TRUE, showWarnings = FALSE)
-  # obj_class <- class(obj)
 
   # One writer for both shapes: an atomic vector becomes a one-column table
   # named after the slot. It used to be written as csv unconditionally, which
@@ -524,7 +522,6 @@ data2disk <- function(
   if (inherits(obj, "data.frame")) {
     obj <- as.data.table(obj)
     obj_class <- class(obj)
-    # if (verbose) cat(path, format, "\n")
     if (anyDuplicatedSets(obj)) obj <- rename_duplicated_sets(obj)
     dir.create(path, recursive = TRUE, showWarnings = FALSE)
     # Compression is spelled differently per format: parquet takes
@@ -556,8 +553,6 @@ data2disk <- function(
       arrow::write_dataset(obj, path = path,
                            format = if (format %in% c("feather", "arrow")) "ipc" else format)
     }
-    # write(format, file = fp(path, "format"), append = FALSE)
-    # write(obj_class, file = fp(path, "class"), append = FALSE)
     return(invisible(TRUE))
   }
   return(FALSE)
@@ -583,14 +578,7 @@ obj2disk <- function(
   # proceeds with saving and wiping the saved slots with marks in @misc
   if (is.null(path)) path <- getObjPath(obj)
   stopifnot(!is.null(path))
-  # dir.create(path, recursive = TRUE, showWarnings = FALSE)
-  # obj_class <- class(obj)
-  # if (inherits(obj, "list")) browser()
-  # if (inherits(obj, "modOut")) browser()
-  # if (inherits(obj, "weather")) browser()
   if (isOnDisk(obj)) {
-    # stopifnot(dir.exists(path))
-    # return(obj)
     if (!dir.exists(path)) {
       dir.create(path, recursive = TRUE, showWarnings = FALSE)
     }
@@ -603,7 +591,6 @@ obj2disk <- function(
     stopifnot(all(ondsk %in% slotNames(obj)))
     for (s in ondsk) { # slots to save
       if (isS4(slot(obj, s))) {
-        # cat("slot ", s, ": \n", sep = "")
         slot(obj, s) <- obj2disk(
           slot(obj, s),
           path = fp(path, s),
@@ -615,17 +602,12 @@ obj2disk <- function(
       } else if (inherits(slot(obj, s), "list")) {
         # list of S4s (repo@data, modInp@parameters) or data.frames, ...
         if (inherits(obj, "repository")) {
-          # cat("repository: '", obj@name, "'\n", sep = "")
           if (verbose) cat("model@data[['", obj@name, "']]\n", sep = "")
         } else if (inherits(obj, "model")) {
-          # cat("model@data[['", s, "']]: \n", sep = "")
         } else {
           if (verbose) cat(cl, "@", s, "\n", sep = "")
         }
-        # cat(cl, "@", s, ": \n", sep = "")
         nm <- names(obj@misc$onDisk[[s]])
-        # dim_list <- vector("list", length(nm)); names(dim_list) <- nm
-        # dim_list <- list()
         if (is(obj, "model") & s == "data") {
           make_progress_bar <- FALSE
         } else {
@@ -723,12 +705,9 @@ obj2disk <- function(
     }
   }
   # mark if any data is on disk
-  # if (inherits(obj, "scenario")) browser()
   if (isSaved) {
     obj <- mark_ondisk(obj)
     obj <- setObjPath(obj, path = path)
-    # } else {
-    #   obj <- mark_inMemory(obj)
   }
   return(obj)
 }
@@ -748,17 +727,22 @@ rename_duplicated_sets <- function(x) {
   # x - table
   stopifnot(inherits(x, "data.frame"))
   nm <- colnames(x)
-  # nm <- c("a", "b", "c", "b", "b", "a", "a", "a")
   ii <- duplicated(nm)
   if (any(ii)) {
     all_sets <- unique(nm)
-    # !!! add check for numeric endings !!!
-    # nm <- c("a", "b", "c", "b2", "b", "a", "a5", "a")
     for (s in all_sets) {
-      jj <- nm %in% s
-      if (length(nm[jj]) > 1) {
-        nm2 <- c(s, paste0(s, seq(2, length(nm[jj]))))
-        nm[jj] <- nm2
+      jj <- which(nm %in% s)
+      if (length(jj) > 1) {
+        # Suffixes skip names already in the table: `b2` for a second `b` is a
+        # collision when a `b2` column exists, and renaming duplicates must not
+        # create one. Taken == every name except the ones being replaced here.
+        taken <- nm[-jj]
+        k <- 2L
+        for (j in jj[-1]) {
+          while (paste0(s, k) %in% c(taken, nm[jj])) k <- k + 1L
+          nm[j] <- paste0(s, k)
+          k <- k + 1L
+        }
       }
     }
     colnames(x) <- nm
@@ -826,7 +810,6 @@ anyDuplicatedSets <- function(x) {
 }
 
 en_open_dataset <- function(path, format = NULL, engine = "arrow") {
-  # if (basename(path) == "vObjective") browser()
   # identify format
   ff <- list.files(path)
   ext <- tools::file_ext(ff) |> unique()
@@ -1052,7 +1035,6 @@ get_lazy_dim_names <- function(obj, slot = NULL, element = NULL,
                                InMemory = isInMemory(obj),
                                path = NULL) {
   # returns dim and names of the object's slot if available
-  # if (obj@name == "pTechStock") browser()
   ll <- list(
     dim = NULL,
     names = NULL
@@ -1075,7 +1057,6 @@ get_lazy_dim_names <- function(obj, slot = NULL, element = NULL,
   # not inMemory object
   if (is.null(path)) path <- getObjPath(obj)
   stopifnot(!is.null(path))
-  # browser() !!! Add path check
 
   if (!is.null(slot) && !.hasSlot(obj, slot)) {
     return(ll) # no data
@@ -1091,12 +1072,6 @@ get_lazy_dim_names <- function(obj, slot = NULL, element = NULL,
   } else {
     stop("get_lazy_dim_names: not implemented for object type ", class(obj))
   }
-  # ll$names <- obj@misc$onDisk[[slot]]$dimnames
-  # path <- paste(c(path, slot, element), collapse = "/") |> normalizePath()
-  # qu <- try(en_open_dataset(path), silent = TRUE)
-  # if (inherits(qu, "try-error")) {
-  #   return(ll)
-  # }
   return(ll)
 }
 
@@ -1190,11 +1165,6 @@ mark_inMemory <- function(obj) {
   }
   return(obj)
 }
-
-
-# load_scenario <- function(path, inMemory = FALSE) {
-#
-# }
 
 
 #' Load scenario (in progress)
@@ -1567,7 +1537,6 @@ obj2mem <- function(object, verbose = isVerbose()) {
   for (s in sls) {
     pth <- fp(obj_pth, s)
     if (isS4(slot(object, s))) {
-      # cat(getObjPath(slot(object, s)), "\n")
       slot(object, s) <- obj2mem(slot(object, s), verbose = verbose)
     } else if (inherits(slot(object, s), "list")) {
       sls2 <- names(object@misc$onDisk[[s]])
@@ -1586,7 +1555,6 @@ obj2mem <- function(object, verbose = isVerbose()) {
           if(verbose) cat(pth2, "\n")
           slot(object, s)[[i]] <- en_open_dataset(pth2) |> collect()}
       }
-      # cat(s, "\n")
     } else {
       if (object@misc$onDisk[[s]]$dim[1] == 0) next
       if(verbose) cat(pth, "\n")
@@ -1596,11 +1564,6 @@ obj2mem <- function(object, verbose = isVerbose()) {
   object <- mark_inMemory(object)
   invisible(object)
 }
-
-
-# compare_slots <- function(obj1, obj2) {
-#
-# }
 
 
 

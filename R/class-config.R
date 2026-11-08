@@ -35,7 +35,6 @@ setClass("config",
     desc = "character",
     currency = "character",
     region = "character",
-    # year = "numeric", # move to horizon
     calendar = "calendar",
     # Optional `geoscales::GeoScale`. Typed "ANY" rather than "Geoscale"
     # because `geoscales` is a Suggests dependency (it is not on CRAN, and
@@ -43,8 +42,6 @@ setClass("config",
     # sourced at build time. `setValidity("config")` below enforces the type.
     geoscale = "ANY",
     horizon = "horizon", # change to class
-    # timeslice = "timeslice", #
-    # yearFraction = "data.frame",
     discount = "data.frame",
     discountFirstYear = "logical",
     optimizeRetirement = "logical",
@@ -85,11 +82,9 @@ setClass("config",
     # Every reader goes through `as.character()`, which treats the two
     # identically, so this is a validity fix with no behavioural half.
     region = character(),
-    # year = as.numeric(2005:2050),
     horizon = new("horizon"),
     calendar = newCalendar(),
     geoscale = NULL,
-    # timeslice = new("timeslice"),
     discountFirstYear = FALSE,
     optimizeRetirement = FALSE,
     # Prefixes inserted into the names of expanded technology variants, e.g.
@@ -99,13 +94,6 @@ setClass("config",
     variant_prefix = c(vintage = "_VIN", cluster = "_CL"),
     defVal = data.frame(),
     interpolation = data.frame(),
-    # defVal = as.data.frame(.defVal, stringsAsFactors = FALSE),
-    # interpolation = as.data.frame(.defInt, stringsAsFactors = FALSE),
-    # yearFraction = data.frame(
-    #   year = as.numeric(NA),
-    #   fraction = as.numeric(1),
-    #   stringsAsFactors = FALSE
-    # ),
     misc = list()
   ),
   S3methods = FALSE
@@ -154,28 +142,16 @@ setMethod("initialize", "config", function(.Object, ...) {
   if (!exists(".defVal") || !exists(".modInp") || !exists(".defInt")) {
     load("R/sysdata.rda")
   }
-  # if (!is.null()) # add import from .defInt
   .Object@defVal <- as.data.frame(.defVal, stringsAsFactors = FALSE)
   .Object@interpolation <- as.data.frame(.defInt, stringsAsFactors = FALSE)
   .Object
 })
 
-# @export
-# setGeneric("setTimeSlices", function(obj, ...) standardGeneric("setTimeSlices"))
-
-# @export
-# setMethod("setTimeSlices", signature(obj = "config"), function(obj, ...) {
-#   obj@timeslice <- .setTimeSlices(...)
-#   obj
-# })
-
-# setGeneric("setCalendar", function(obj, ...) standardGeneric("setCalendar"))
-
 ## setCalendar ###############################################################
 #' @rdname setGeoscale
 #' @export
 setMethod("setCalendar", signature(obj = "config"), function(obj, ...) {
-  obj@calendar <- newCalendar(...) ## ToDo: add check for fractional data
+  obj@calendar <- newCalendar(...)
   obj
 })
 
@@ -203,8 +179,6 @@ setMethod("getGeoscale", signature(obj = "config"), function(obj, ...) {
   obj@geoscale
 })
 
-# setGeneric("setHorizon",
-#            function(obj, horizon, intervals) standardGeneric("setHorizon"))
 
 ## setHorizon ###############################################################
 #' @param horizon a new horizon object to be set.
@@ -215,13 +189,10 @@ setMethod("getGeoscale", signature(obj = "config"), function(obj, ...) {
 #' @export
 setMethod(
   "setHorizon", signature(obj = "config"), function(obj, period, ...) {
-    # obj@horizon <- milestoneYears(start, interval)
-    # obj@year <- min(obj@horizon@intervals$start):max(obj@horizon@intervals$end)
     obj@horizon <- newHorizon(period = period, ...)
     obj
   }
 )
-# setGeneric("getHorizon", function(obj) standardGeneric("getHorizon"))
 
 ## getHorizon ###############################################################
 #' @export

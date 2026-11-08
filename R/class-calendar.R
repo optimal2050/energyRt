@@ -28,25 +28,24 @@
 #' @include generics.R defaults.R
 #' @rdname class-calendar
 #' @export
-setClass("calendar", # alt: timestructure, timescales, timescheme, timeframe, schedule
+setClass("calendar",
   representation(
     name = "character",
     desc = "character",
-    timeframes = "list", # renamed `timeslice_map` // alt.names: hierarchy, nest, ..
+    timeframes = "list",
     year_fraction = "numeric",
-    year_start = "list", # list(month = , day = ): first day of the model year
+    year_start = "list",
     utc_offset_minutes = "integer",
-    timetable = "data.frame", # renames `levels`
-    timeslice_share = "data.frame", # !!! rename to fraction?
-    default_timeframe = "character", # renamed `default_timeslice_level`
-    timeframe_rank = "integer", # renamed `misc$deep`
-    timeslices_in_frame = "integer", # renamed `misc$nlevel`
-    timeslice_family = "data.frame", # renamed `parent_child`
-    timeslice_ancestry = "data.frame", # renamed `all_parent_child`
-    next_in_timeframe = "data.frame", # renamed `misc$next_timeslice`
-    next_in_year = "data.frame", # renamed `misc$fyear_next_timeslice`
+    timetable = "data.frame",
+    timeslice_share = "data.frame",
+    default_timeframe = "character",
+    timeframe_rank = "integer",
+    timeslices_in_frame = "integer",
+    timeslice_family = "data.frame",
+    timeslice_ancestry = "data.frame",
+    next_in_timeframe = "data.frame",
+    next_in_year = "data.frame",
     misc = "list"
-    # full_set = "character", # renamed `all_timeslice` -> timeslice_share$timeslice
   ),
   prototype(
     name = character(),
@@ -57,26 +56,23 @@ setClass("calendar", # alt: timestructure, timescales, timescheme, timeframe, sc
     utc_offset_minutes = 0L,
     timetable = data.frame(stringsAsFactors = FALSE),
     timeslice_share = data.frame(
-      # year = integer(),
-      timeslice = character(), # == time interval
-      share = numeric(), # fraction of a year // rename?
+      timeslice = character(),
+      share = numeric(),
       weight = numeric(),
       stringsAsFactors = FALSE
     ),
     timeslices_in_frame = integer(),
     timeslice_family = data.frame(
-      # year = integer(),
       parent = character(),
       child = character(),
       stringsAsFactors = FALSE
     ),
     timeslice_ancestry = data.frame(
-      # year = integer(),
       parent = character(),
       child = character(),
       stringsAsFactors = FALSE
     ),
-    default_timeframe = character(), # Default timeslice
+    default_timeframe = character(),
     timeframe_rank = c("ANNUAL" = 1L),
     next_in_timeframe = data.frame(
       timeslice = character(),
@@ -86,7 +82,6 @@ setClass("calendar", # alt: timestructure, timescales, timescheme, timeframe, sc
       timeslice = character(),
       timeslicep = character()
     ),
-    # all_timeslice = character(), -> timeslice_share$timeslice
     misc = list()
   ),
   S3methods = FALSE
@@ -127,7 +122,6 @@ setMethod("initialize", "calendar", function(.Object, ...) {
 #'
 make_timetable <- function(struct = list(ANNUAL = "ANNUAL"),
                            year_fraction = 1, warn = FALSE) {
-  # an old version, adjusted for data.table
   # class and content check
   if (inherits(struct, "list")) {
     # check/add ANNUAL
@@ -135,7 +129,6 @@ make_timetable <- function(struct = list(ANNUAL = "ANNUAL"),
       if (warn) warning("Adding `ANNUAL` level to timeframes")
       struct <- c(ANNUAL = "ANNUAL", struct)
     }
-    # arg <- unlist(struct)
   } else {
     stop(
       "`struct` should be a named nested list with timeframes and timeslices ",
@@ -161,10 +154,9 @@ make_timetable <- function(struct = list(ANNUAL = "ANNUAL"),
     )
     if (!is.null(names(struct))) colnames(dtf)[2] <- names(struct)[1]
   } else {
-    dtf <- .timeslice_constructor(dtf, struct) # , year_fraction = year_fraction
+    dtf <- .timeslice_constructor(dtf, struct)
     if (year_fraction != 1) dtf$share <- dtf$share * year_fraction
   }
-  # dtf <- dtf[, c(2:ncol(dtf), 1), drop = FALSE] # arrange columns
   setcolorder(dtf, c(2:ncol(dtf)))
   if (abs(sum(dtf$share) - year_fraction) < 1e-10) {
     dtf$share <- (dtf$share / sum(dtf$share) * year_fraction)
@@ -352,7 +344,6 @@ setMethod("print", "calendar", function(x, ...) {
     if (length(y) <= 10) return(y)
     y <- c(
       head(y, 5),
-      # paste0(y[10], "... (", length(y), " total)")
       "...", tail(y, 5), paste0(
       "(", length(y), " total)"
     ))
@@ -398,7 +389,8 @@ setMethod("print", "calendar", function(x, ...) {
   # adjusted for data.table & dtplyr
   sl <- select(dtf, timeslice)
   dtf <- select(dtf, -any_of("timeslice")) # to fit "old" check algo
-  dtf <- select(dtf, -any_of("weight")) # !!! add check of weights
+  w <- dtf[["weight"]] # checked after the shares, at the end
+  dtf <- select(dtf, -any_of("weight"))
   # check / optimize the script
   if (ncol(dtf) < 2) {
     stop("time-timeslices data.table must have more than one columns")
@@ -406,7 +398,6 @@ setMethod("print", "calendar", function(x, ...) {
   if (colnames(dtf)[ncol(dtf)] != "share") {
     stop("The time-timeslices data.table must have `share` column")
   }
-  # rcs <- colnames(dtf)[-ncol(dtf)]
   rcs <- select(dtf, -share) |> colnames()
   if (anyDuplicated(rcs)) {
     stop(paste('duplicated timeslice levels: "',
@@ -417,7 +408,6 @@ setMethod("print", "calendar", function(x, ...) {
 
   # check length
   fl <- apply(
-    # dtf[, -c(1, ncol(dtf)), drop = FALSE],
     select(dtf, -1, -share),
     2, function(x) length(unique(x)) == 1
   )
@@ -457,13 +447,41 @@ setMethod("print", "calendar", function(x, ...) {
       sep = ""
     ))
   }
+  # `weight` annualises a sample: `share * weight` sums to a full year whatever
+  # `year_fraction` is. A non-annualising sum only WARNS, naming the factor:
+  # `.complete_calendar()` normalises the weights it derives
+  # (`wh / sum(wh * sh)`), so the calendar is right either way and a declared
+  # weight is never discarded -- representative periods carry weights that
+  # cannot be derived from `share`. Zero, negative and non-finite ARE refused:
+  # they reach `@timeslice_share` as Inf / NaN.
+  # Absent on the `make_timetable()` path, which validates before filling it.
+  if (!is.null(w)) {
+    if (!is.numeric(w)) {
+      stop("The time-timeslices `weight` column must be numeric, got ",
+           class(w)[1])
+    }
+    jj <- !is.finite(w) | w <= 0
+    if (any(jj)) {
+      stop(paste('timeslice `weight` must be finite and positive, check: "',
+        paste(sl$timeslice[jj], collapse = '", "'), '"',
+        sep = ""
+      ))
+    }
+    sw <- sum(dtf$share * w)
+    if (round(sw - 1, 7) != 0) {
+      warning("Timeslice `share * weight` sums to ", signif(sw, 6),
+              ", not 1: the declared weights are normalised (divided by ",
+              signif(sw, 6), ") so that the shares annualise to a full year.",
+              call. = FALSE)
+    }
+  }
 }
 
-# internal function to ??? create timeslices table from a given list with structure
-# !!! ToDo: optimize/rewrite for data.table
+# internal function to create the timeslices table from a nested list structure
+# `add_val()` grows the frame by assigning past its extent, which a data.table
+# silently ignores (returning 0 rows) -- hence the data.frame.
 .timeslice_constructor <- function(dtf, arg) {
-  dtf <- as.data.frame(dtf) # doesn't work with data.table - debug/rewrite
-  # check / optimize script
+  dtf <- as.data.frame(dtf)
   if (is.null(names(arg)) || any(names(arg) == "")) {
     stop(paste("Unnamed arguments: ",
       paste(capture.output(print(arg)), collapse = "\n"),
@@ -512,7 +530,7 @@ setMethod("print", "calendar", function(x, ...) {
       arg <- arg[-1]
       dtf <- add_val(dtf, val_sh, val_nm)
     } else if (is.list(arg[[1]])) {
-      arg2 <- arg[[1]] # arg <- arg[-1]
+      arg2 <- arg[[1]]
       if (is.null(names(arg2)) || any(names(arg2) == "")) {
         stop(paste(
           paste('Check time-timeslice data for level "', lv, '"\n',
@@ -585,7 +603,6 @@ setMethod("print", "calendar", function(x, ...) {
   }
   # validate the timetable
   .check_timetable(obj@timetable, year_fraction = year_fraction)
-  # obj@misc <- list()
   dtf <- obj@timetable |> select(-any_of(c("timeslice")))
 
   # timeframe_rank / levels
@@ -641,8 +658,6 @@ setMethod("print", "calendar", function(x, ...) {
 
   obj@default_timeframe <- colnames(d)[ncol(d)]
 
-  # @timeslice_share$timeslice
-  # obj@timeslice_share$timeslice <- obj@timeslice_share$timeslice
 
   # @timeslice_family
   if (nrow(obj@timetable) == 1) {
@@ -680,7 +695,6 @@ setMethod("print", "calendar", function(x, ...) {
     obj@timeslice_ancestry <- ll
   }
   # next timeslice in the same nest & in a year
-  # obj@timeslices_in_frame <- NULL
   if (nrow(obj@timetable) != 1) {
     tmp <- obj@timeslice_family
     tmp$next_timeslice <- NA
@@ -692,12 +706,6 @@ setMethod("print", "calendar", function(x, ...) {
         tmp$next_timeslice[i] <- tmp$child[j]
         j <- i + 1
       }
-      # if (tmp[i, "parent"] == tmp[i + 1, "parent"]) {
-      #   tmp[i, "next_timeslice"] <- tmp[i + 1, "child"]
-      # } else {
-      #   tmp[i, "next_timeslice"] <- tmp[j, "child"]
-      #   j <- i + 1
-      # }
     }
     tmp$next_timeslice[i + 1] <- tmp$child[j]
     obj@next_in_timeframe <- data.table(
@@ -820,7 +828,4 @@ setMethod("print", "calendar", function(x, ...) {
 
 
 
-# ToDo: write methods: ####
-## `add` ####
-## `update` ####
 
