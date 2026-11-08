@@ -59,6 +59,58 @@ setClass(
   ) # ,
 )
 
+# -- the interpolation rule vocabulary -------------------------------------- #
+# A rule is a dot-joined subset of three directions over the YEAR axis:
+#   back   extrapolate backward from the earliest anchor
+#   inter  interpolate between anchors
+#   forth  extrapolate forward from the latest anchor
+#
+# `back`/`inter`/`forth` is the CANONICAL spelling: it is what
+# data-raw/parameters.yml stores, what `parameter@interpolation` reports and
+# what the tests assert. Every alias below is accepted wherever a rule is
+# given and normalised to canonical, so `bwd.mid.fwd` and `bwd.int.fwd` are
+# just other ways to write `back.inter.forth`.
+#
+# The list is the union of what three separate definitions used to tolerate --
+# this validator (canonical only), `interpolate_numpar()`'s `for|fwd|frw`
+# regex and the legacy engine's literal greps -- so no rule that worked before
+# stops working. A rule can still reach a parameter without passing this
+# constructor, through `settings@interpolation`, which normalises too.
+.interp_rule_aliases <- c(
+  back = "back", bwd = "back", backward = "back",
+  inter = "inter", int = "inter", mid = "inter",
+  forth = "forth", fwd = "forth", forw = "forth", frw = "forth",
+  forward = "forth"
+)
+
+#' Normalise an interpolation rule to its canonical spelling
+#'
+#' @param x character vector of rules, each a dot-joined set of direction
+#'   tokens. `NA` and `""` pass through: an empty rule means "interpolate
+#'   only" and is resolved downstream by `.interp_rule_token()`.
+#' @returns `x` with every token replaced by its canonical spelling, in the
+#'   canonical order `back.inter.forth`.
+#' @noRd
+.normalise_interp_rule <- function(x) {
+  if (!length(x)) return(x)
+  vapply(x, function(r) {
+    if (is.na(r) || !nzchar(r)) return(r)
+    tok <- strsplit(r, ".", fixed = TRUE)[[1]]
+    tok <- tok[nzchar(tok)]
+    if (!length(tok)) return("")
+    hit <- .interp_rule_aliases[tok]
+    if (anyNA(hit)) {
+      stop("Unknown interpolation token(s) ",
+           paste0("\"", tok[is.na(hit)], "\"", collapse = ", "),
+           " in rule \"", r, "\". Accepted: ",
+           paste(names(.interp_rule_aliases), collapse = ", "),
+           call. = FALSE)
+    }
+    canon <- c("back", "inter", "forth")
+    paste(canon[canon %in% hit], collapse = ".")
+  }, character(1), USE.NAMES = FALSE)
+}
+
 setMethod("initialize", signature = "parameter",
   function(.Object,
            name,
@@ -86,12 +138,12 @@ setMethod("initialize", signature = "parameter",
       stop("Wrong check function")
     }
     if (any(!is.numeric(defVal))) stop("Wrong defVal value")
-    if (any(!is.character(interpolation)) || any(gsub(
-      "[.]", "",
-      sub("forth", "", sub("inter", "", sub("back", "", interpolation)))
-    ) != "")) {
-      stop("Wrong interpolation rule")
-    }
+    if (any(!is.character(interpolation))) stop("Wrong interpolation rule")
+    # accepts every alias and stores the canonical spelling; an unknown token
+    # errors with the accepted set, where this used to say "Wrong
+    # interpolation rule" for anything it could not strip -- including the
+    # aliases the documentation promised
+    interpolation <- .normalise_interp_rule(interpolation)
     if (type == "numpar" && length(defVal) != 1) stop("Wrong defVal value")
     if (type == "bounds" && length(defVal) == 0) stop("Wrong defVal value")
     if (type == "bounds" && length(defVal) == 1) defVal <- rep(defVal, 2)

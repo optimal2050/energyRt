@@ -27,7 +27,7 @@ intended for direct use by the user.
 
 \item{\code{data}}{data.frame. Data frame with the parameter values.}
 
-\item{\code{interpolation}}{character. Interpolation rule for numeric parameters across years.  Recognized values are any combination of "back", "inter", "forth", e.g., "back.inter" or "forth.inter", indicating the direction of interpolation.}
+\item{\code{interpolation}}{character. Interpolation rule for a numeric parameter across years: any combination of the three directions \code{back} (extrapolate backward from the earliest anchor), \code{inter} (interpolate between anchors) and \code{forth} (extrapolate forward from the latest), joined by dots -- \code{back.inter.forth}, \code{inter.forth}, \code{inter}. That spelling is canonical and is what gets stored. The short symmetric spellings are accepted wherever a rule is given and normalised to it: \code{bwd} for \code{back}, \code{int} or \code{mid} for \code{inter}, \code{fwd} (also \code{forw}, \code{frw}) for \code{forth}, so \code{bwd.mid.fwd} and \code{back.inter.forth} are the same rule. An unknown token is an error. An empty rule interpolates between anchors and extrapolates past neither.}
 
 \item{\code{inClass}}{character. The class of the parameter, e.g., "technology", "storage", "trade", "supply", "demand", "export", etc.}
 

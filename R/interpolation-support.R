@@ -186,9 +186,11 @@
       }
       if (any(!f1)) {
         nr <- nrow(mx)
-        back <- any(grep("back", rule))
-        forth <- any(grep("forth", rule))
-        inter <- any(grep("inter", rule))
+        # canonical tokens: the rule was normalised at the door
+        rtok <- strsplit(.normalise_interp_rule(rule), ".", fixed = TRUE)[[1]]
+        back <- "back" %in% rtok
+        forth <- "forth" %in% rtok
+        inter <- "inter" %in% rtok
         ## Group by similiarity
         for (ee in seq(along = f1)[!f1]) {
           ll <- ee
@@ -958,7 +960,10 @@ interpolate_slot <- function(
       }
       if (have(tabs$interpolation) && k[j] %in% colnames(tabs$interpolation) &&
             j <= length(p@interpolation)) {
-        p@interpolation[j] <- as.character(tabs$interpolation[[k[j]]][1])
+        # this writes @interpolation directly, bypassing the constructor, so
+        # it is the one door a non-canonical spelling could come through
+        p@interpolation[j] <- .normalise_interp_rule(
+          as.character(tabs$interpolation[[k[j]]][1]))
         touched <- TRUE
       }
     }

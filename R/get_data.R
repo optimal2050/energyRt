@@ -1848,7 +1848,9 @@ getObject.en_registry <- function(x, type = NULL, name = NULL, hash = NULL,
   }
   cp <- tryCatch(.col_param, error = function(e) NULL)
   if (!is.data.frame(cp)) return(list())
-  cp <- cp[!is.na(cp$parameter), , drop = FALSE]
+  # slot-level rows (a scalar slot like `technology@cap2act`) carry no
+  # column, so they are not keys of this map
+  cp <- cp[!is.na(cp$parameter) & !is.na(cp$column), , drop = FALSE]
   out <- stats::setNames(
     lapply(seq_len(nrow(cp)), function(i) {
       list(rule = cp$rule[i], defVal = cp$defVal[i],

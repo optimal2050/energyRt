@@ -198,6 +198,7 @@ pSupCost:
   interpolation: back.inter.forth
   colName: cost
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{costs}/{comm}"
   class: supply
   slot: supply
 pSupReserve:
@@ -215,6 +216,7 @@ pSupReserve:
   - back.inter.forth
   colName: res
   recast: {space: sum}
+  unit: "{comm}"
   class: supply
   slot: reserve
 pSupAva:
@@ -234,6 +236,7 @@ pSupAva:
   - back.inter.forth
   colName: ava
   recast: {space: sum, time: weighted_mean}
+  unit: "{comm}/year"
   class: supply
   slot: supply
 pDemand:
@@ -248,6 +251,7 @@ pDemand:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: sum, time: weighted_mean}
+  unit: "{comm}"
   class: demand
   slot: demand
   colName: dem
@@ -265,6 +269,7 @@ pExportRowPrice:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{costs}/{comm}"
   class: export
   slot: export
   colName: price
@@ -283,6 +288,7 @@ pExportRow:
   - back.inter.forth
   - back.inter.forth
   recast: {space: sum, time: weighted_mean}
+  unit: "{comm}/year"
   class: export
   slot: export
   colName: exp
@@ -305,6 +311,7 @@ pImportRowPrice:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{costs}/{comm}"
   class: import
   slot: import
   colName: price
@@ -323,6 +330,7 @@ pImportRow:
   - back.inter.forth
   - back.inter.forth
   recast: {space: sum, time: weighted_mean}
+  unit: "{comm}/year"
   class: import
   slot: import
   colName: imp
@@ -346,6 +354,7 @@ pTechWeatherAf:
   interpolation:
   - back.inter.forth
   - back.inter.forth
+  unit: "factor"
   class: technology
   slot: weather
   colName: waf
@@ -422,6 +431,7 @@ pTechCap2act:
   dimSets: tech
   defVal: 1.0
   interpolation: back.inter.forth
+  unit: "{activity}/{capacity}"
   class: technology
   slot: cap2act
   dropIfEmpty: false
@@ -437,6 +447,7 @@ pTechEac:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean}
+  unit: "{costs}/{capacity}"
   class: technology
   slot: invcost
   colName: eac
@@ -451,6 +462,7 @@ pTechWacc:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean}
+  unit: "fraction"
   class: technology
   slot: invcost
   colName: wacc
@@ -467,6 +479,7 @@ pTechPayback:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: copy}
+  unit: "years"
   class: technology
   slot: invcost
   colName: payback
@@ -491,6 +504,7 @@ pTechOlife:
   defVal: 1.0
   interpolation: back.inter.forth
   recast: {space: copy}
+  unit: "years"
   class: technology
   slot: vintage
   colName: olife
@@ -504,6 +518,7 @@ pTechFixom:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean}
+  unit: "{costs}/{capacity}"
   class: technology
   slot: fixom
   colName: fixom
@@ -517,6 +532,7 @@ pTechInvcost:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean}
+  unit: "{costs}/{capacity}"
   class: technology
   slot: invcost
   colName: invcost
@@ -528,8 +544,9 @@ pTechStock:
   - region
   - year
   defVal: 0.0
-  interpolation: .inter.
+  interpolation: inter
   recast: {space: sum}
+  unit: "{capacity}"
   class: technology
   slot: capacity
   colName: stock
@@ -569,6 +586,7 @@ pTechVarom:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{costs}/{activity}"
   class: technology
   slot: varom
   colName: varom
@@ -587,6 +605,7 @@ pTechAf:
   - back.inter.forth
   - back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "fraction"
   class: technology
   slot: af
   colName: af
@@ -633,6 +652,7 @@ pTechAfs:
   - back.inter.forth
   - back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "fraction"
   class: technology
   slot: afs
   colName: afs
@@ -648,6 +668,7 @@ pTechGinp2use:
   defVal: 1.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{group}/{use}"
   class: technology
   slot: geff
   colName: ginp2use
@@ -663,6 +684,7 @@ pTechCinp2ginp:
   defVal: 1.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{comm}/{group}"
   class: technology
   slot: ceff
   colName: cinp2ginp
@@ -678,6 +700,7 @@ pTechUse2cact:
   defVal: 1.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{use}/{activity}"
   class: technology
   slot: ceff
   colName: use2cact
@@ -693,6 +716,7 @@ pTechAct2AInp:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{activity}/{acomm}"
   class: technology
   slot: aeff
   colName: act2ainp
@@ -708,6 +732,7 @@ pTechCap2AInp:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{capacity}/{acomm}"
   class: technology
   slot: aeff
   colName: cap2ainp
@@ -723,6 +748,7 @@ pTechAct2AOut:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{activity}/{acomm}"
   class: technology
   slot: aeff
   colName: act2aout
@@ -738,6 +764,7 @@ pTechCap2AOut:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{capacity}/{acomm}"
   class: technology
   slot: aeff
   colName: cap2aout
@@ -753,6 +780,7 @@ pTechNCap2AInp:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{capacity}/{acomm}"
   class: technology
   slot: aeff
   colName: ncap2ainp
@@ -768,6 +796,7 @@ pTechNCap2AOut:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{capacity}/{acomm}"
   class: technology
   slot: aeff
   colName: ncap2aout
@@ -906,6 +935,7 @@ pTechCinp2AInp:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{comm}/{acomm}"
   class: technology
   slot: aeff
   colName: cinp2ainp
@@ -922,6 +952,7 @@ pTechCout2AInp:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{comm}/{acomm}"
   class: technology
   slot: aeff
   colName: cout2ainp
@@ -938,6 +969,7 @@ pTechCinp2AOut:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{comm}/{acomm}"
   class: technology
   slot: aeff
   colName: cinp2aout
@@ -954,6 +986,7 @@ pTechCout2AOut:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{comm}/{acomm}"
   class: technology
   slot: aeff
   colName: cout2aout
@@ -969,6 +1002,7 @@ pTechCact2cout:
   defVal: 1.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{activity}/{comm}"
   class: technology
   slot: ceff
   colName: cact2cout
@@ -984,6 +1018,7 @@ pTechCinp2use:
   defVal: 1.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{comm}/{use}"
   class: technology
   slot: ceff
   colName: cinp2use
@@ -999,6 +1034,7 @@ pTechCvarom:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{costs}/{comm}"
   class: technology
   slot: varom
   colName: cvarom
@@ -1014,6 +1050,7 @@ pTechAvarom:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{costs}/{acomm}"
   class: technology
   slot: varom
   colName: avarom
@@ -1033,6 +1070,7 @@ pTechShare:
   - back.inter.forth
   - back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "fraction"
   class: technology
   slot: ceff
   colName: grp.share
@@ -1052,6 +1090,7 @@ pTechAfc:
   - back.inter.forth
   - back.inter.forth
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{comm}"
   class: technology
   slot: ceff
   colName: afc
@@ -1069,6 +1108,7 @@ pTechCap:
   - inter.forth
   - inter.forth
   recast: {space: sum}
+  unit: "{capacity}"
   class: technology
   slot: capacity
   colName: cap
@@ -1086,6 +1126,7 @@ pTechNewCap:
   - inter.forth
   - inter.forth
   recast: {space: sum}
+  unit: "{capacity}"
   class: technology
   slot: capacity
   colName: ncap
@@ -1103,6 +1144,7 @@ pTechRet:
   - inter.forth
   - inter.forth
   recast: {space: sum}
+  unit: "{capacity}"
   class: technology
   slot: capacity
   colName: ret
@@ -1116,6 +1158,7 @@ pTechRetCost:
   defVal: 0.0
   interpolation: back.inter.forth
   recast: {space: weighted_mean}
+  unit: "{costs}/{capacity}"
   class: technology
   slot: invcost
   colName: retcost
@@ -1174,6 +1217,7 @@ pStorageOlife:
   interpolation: back.inter.forth
   colName: olife
   recast: {space: copy}
+  unit: "years"
   class: storage
   slot: vintage
 pStorageOutStock:
@@ -1187,6 +1231,7 @@ pStorageOutStock:
   interpolation: back.inter.forth
   colName: out.stock
   recast: {space: sum}
+  unit: "{capacity}"
   class: storage
   slot: capacity
 # Exogenous capacity commissioned at this milestone: the INCREASE in
@@ -1224,6 +1269,7 @@ pStorageOutFixom:
   interpolation: back.inter.forth
   colName: out.fixom
   recast: {space: weighted_mean}
+  unit: "{costs}/{capacity}"
   class: storage
   slot: fixom
 pStorageOutInvcost:
@@ -1237,6 +1283,7 @@ pStorageOutInvcost:
   interpolation: back.inter.forth
   colName: out.invcost
   recast: {space: weighted_mean}
+  unit: "{costs}/{capacity}"
   class: storage
   slot: invcost
 # See pTechEac / pTechWacc / pTechPayback for what these three do.
@@ -1294,6 +1341,7 @@ pStorageInpEff:
   interpolation: back.inter.forth
   colName: inpeff
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "fraction"
   class: storage
   slot: seff
 pStorageOutEff:
@@ -1309,6 +1357,7 @@ pStorageOutEff:
   interpolation: back.inter.forth
   colName: outeff
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "fraction"
   class: storage
   slot: seff
 pStorageStgEff:
@@ -1324,6 +1373,7 @@ pStorageStgEff:
   interpolation: back.inter.forth
   colName: stgeff
   recast: {space: copy, time: copy}
+  unit: "fraction"
   class: storage
   slot: seff
 pStorageCostStore:
@@ -1338,6 +1388,7 @@ pStorageCostStore:
   interpolation: back.inter.forth
   colName: stgcost
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{costs}/{comm}"
   class: storage
   slot: varom
   dropIfEmpty: true
@@ -1353,6 +1404,7 @@ pStorageCostInp:
   interpolation: back.inter.forth
   colName: inpcost
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{costs}/{comm}"
   class: storage
   slot: varom
   dropIfEmpty: true
@@ -1368,6 +1420,7 @@ pStorageCostOut:
   interpolation: back.inter.forth
   colName: outcost
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{costs}/{comm}"
   class: storage
   slot: varom
   dropIfEmpty: true
@@ -1422,6 +1475,7 @@ pStorageStgStock:
   interpolation: back.inter.forth
   colName: stg.stock
   recast: {space: sum}
+  unit: "{capacity}"
   class: storage
   slot: capacity
 # Exogenous capacity commissioned at this milestone: the INCREASE in
@@ -1459,6 +1513,7 @@ pStorageStgInvcost:
   interpolation: back.inter.forth
   colName: stg.invcost
   recast: {space: weighted_mean}
+  unit: "{costs}/{capacity}"
   class: storage
   slot: invcost
 pStorageStgFixom:
@@ -1472,6 +1527,7 @@ pStorageStgFixom:
   interpolation: back.inter.forth
   colName: stg.fixom
   recast: {space: weighted_mean}
+  unit: "{costs}/{capacity}"
   class: storage
   slot: fixom
 # Annuitised from pStorageStgInvcost by compute_eac_parameters(); the storing and
@@ -1505,6 +1561,7 @@ pStorageStgCap:
   - inter.forth
   colName: stg.cap
   recast: {space: sum}
+  unit: "{capacity}"
   class: storage
   slot: capacity
 pStorageStgNewCap:
@@ -1522,6 +1579,7 @@ pStorageStgNewCap:
   - inter.forth
   colName: stg.ncap
   recast: {space: sum}
+  unit: "{capacity}"
   class: storage
   slot: capacity
 # --- the CHARGING part's own capacity and economics -------------------------- #
@@ -1539,6 +1597,7 @@ pStorageInpStock:
   interpolation: back.inter.forth
   colName: inp.stock
   recast: {space: sum}
+  unit: "{capacity}"
   class: storage
   slot: capacity
 # Exogenous capacity commissioned at this milestone: the INCREASE in
@@ -1576,6 +1635,7 @@ pStorageInpInvcost:
   interpolation: back.inter.forth
   colName: inp.invcost
   recast: {space: weighted_mean}
+  unit: "{costs}/{capacity}"
   class: storage
   slot: invcost
 pStorageInpFixom:
@@ -1589,6 +1649,7 @@ pStorageInpFixom:
   interpolation: back.inter.forth
   colName: inp.fixom
   recast: {space: weighted_mean}
+  unit: "{costs}/{capacity}"
   class: storage
   slot: fixom
 pStorageInpEac:
@@ -1619,6 +1680,7 @@ pStorageInpCap:
   - inter.forth
   colName: inp.cap
   recast: {space: sum}
+  unit: "{capacity}"
   class: storage
   slot: capacity
 pStorageInpNewCap:
@@ -1636,6 +1698,7 @@ pStorageInpNewCap:
   - inter.forth
   colName: inp.ncap
   recast: {space: sum}
+  unit: "{capacity}"
   class: storage
   slot: capacity
 # inp2out = input capacity / output capacity, dimensionless. Same shape as
@@ -1677,6 +1740,7 @@ pStorageInp2stg:
   - inter.forth
   colName: inp2stg
   recast: {space: weighted_mean}
+  unit: "1/hours"
   class: storage
   slot: inp2stg
 # --- capacity -> annual flow, so a capacity is a RATE ------------------------ #
@@ -1726,6 +1790,7 @@ pStorageDuration:
   - inter.forth
   - inter.forth
   recast: {space: weighted_mean}
+  unit: "hours"
   class: storage
   slot: duration
   colName: duration
@@ -1889,6 +1954,7 @@ pStorageInpCap2AInp:
   interpolation: back.inter.forth
   colName: inp.cap2ainp
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{capacity}/{acomm}"
   class: storage
   slot: aeff
 pStorageInpCap2AOut:
@@ -1904,6 +1970,7 @@ pStorageInpCap2AOut:
   interpolation: back.inter.forth
   colName: inp.cap2aout
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{capacity}/{acomm}"
   class: storage
   slot: aeff
 pStorageInpNCap2AInp:
@@ -1919,6 +1986,7 @@ pStorageInpNCap2AInp:
   interpolation: back.inter.forth
   colName: inp.ncap2ainp
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{capacity}/{acomm}"
   class: storage
   slot: aeff
 pStorageInpNCap2AOut:
@@ -1934,6 +2002,7 @@ pStorageInpNCap2AOut:
   interpolation: back.inter.forth
   colName: inp.ncap2aout
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{capacity}/{acomm}"
   class: storage
   slot: aeff
 pStorageStgCap2AInp:
@@ -1949,6 +2018,7 @@ pStorageStgCap2AInp:
   interpolation: back.inter.forth
   colName: stg.cap2ainp
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{capacity}/{acomm}"
   class: storage
   slot: aeff
 pStorageStgCap2AOut:
@@ -1964,6 +2034,7 @@ pStorageStgCap2AOut:
   interpolation: back.inter.forth
   colName: stg.cap2aout
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{capacity}/{acomm}"
   class: storage
   slot: aeff
 pStorageStgNCap2AInp:
@@ -1979,6 +2050,7 @@ pStorageStgNCap2AInp:
   interpolation: back.inter.forth
   colName: stg.ncap2ainp
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{capacity}/{acomm}"
   class: storage
   slot: aeff
 pStorageStgNCap2AOut:
@@ -1994,6 +2066,7 @@ pStorageStgNCap2AOut:
   interpolation: back.inter.forth
   colName: stg.ncap2aout
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{capacity}/{acomm}"
   class: storage
   slot: aeff
 pStorageOutCap2AInp:
@@ -2009,6 +2082,7 @@ pStorageOutCap2AInp:
   interpolation: back.inter.forth
   colName: out.cap2ainp
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{capacity}/{acomm}"
   class: storage
   slot: aeff
 pStorageOutCap2AOut:
@@ -2024,6 +2098,7 @@ pStorageOutCap2AOut:
   interpolation: back.inter.forth
   colName: out.cap2aout
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{capacity}/{acomm}"
   class: storage
   slot: aeff
 pStorageOutNCap2AInp:
@@ -2039,6 +2114,7 @@ pStorageOutNCap2AInp:
   interpolation: back.inter.forth
   colName: out.ncap2ainp
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{capacity}/{acomm}"
   class: storage
   slot: aeff
 pStorageOutNCap2AOut:
@@ -2054,6 +2130,7 @@ pStorageOutNCap2AOut:
   interpolation: back.inter.forth
   colName: out.ncap2aout
   recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{capacity}/{acomm}"
   class: storage
   slot: aeff
 pStorageNCap2Stg:
@@ -2084,6 +2161,7 @@ pStorageStartLevel:
   interpolation: ''
   colName: startLevel
   recast: {space: sum}
+  unit: "fraction"
   class: storage
   slot: startLevel
 pStorageOutCap:
@@ -2101,6 +2179,7 @@ pStorageOutCap:
   - inter.forth
   colName: out.cap
   recast: {space: sum}
+  unit: "{capacity}"
   class: storage
   slot: capacity
 pStorageOutNewCap:
@@ -2118,6 +2197,7 @@ pStorageOutNewCap:
   - inter.forth
   colName: out.ncap
   recast: {space: sum}
+  unit: "{capacity}"
   class: storage
   slot: capacity
 pStorageOutRet:
@@ -2135,6 +2215,7 @@ pStorageOutRet:
   - inter.forth
   colName: out.ret
   recast: {space: sum}
+  unit: "{capacity}"
   class: storage
   slot: capacity
 pStorageOutRetCost:
@@ -2165,6 +2246,7 @@ pStorageInpRet:
   - inter.forth
   colName: inp.ret
   recast: {space: sum}
+  unit: "{capacity}"
   class: storage
   slot: capacity
 pStorageInpWacc:
@@ -2221,6 +2303,7 @@ pStorageStgRet:
   - inter.forth
   colName: stg.ret
   recast: {space: sum}
+  unit: "{capacity}"
   class: storage
   slot: capacity
 pStorageStgWacc:
@@ -2993,6 +3076,7 @@ columns:
     why: "cluster-constraint input; the cluster parameters are not catalogued yet"
   storage/duration/duration:
     parameter: ~
+    unit: "hours"
     recast: {space: weighted_mean}
     why: "legacy single-value spelling: the parameter is `bounds`, so only the .lo / .up / .fx columns are ever read"
   storage/inp2out/inp2out:
@@ -3001,14 +3085,17 @@ columns:
     why: "legacy single-value spelling: the parameter is `bounds`, so only the .lo / .up / .fx columns are ever read"
   storage/inp2stg/inp2stg:
     parameter: ~
+    unit: "1/hours"
     recast: {space: weighted_mean}
     why: "legacy single-value spelling: the parameter is `bounds`, so only the .lo / .up / .fx columns are ever read"
   storage/vintage/end:
     parameter: ~
+    unit: "year"
     recast: {space: copy}
     why: "structural: bounds the vintage window, not a model parameter"
   storage/vintage/start:
     parameter: ~
+    unit: "year"
     recast: {space: copy}
     why: "structural: bounds the vintage window, not a model parameter"
   subsidy/subsidy/act:
@@ -3129,10 +3216,12 @@ columns:
     why: "cluster-constraint input; the cluster parameters are not catalogued yet"
   technology/vintage/end:
     parameter: ~
+    unit: "year"
     recast: {space: copy}
     why: "structural: bounds the vintage window, not a model parameter"
   technology/vintage/start:
     parameter: ~
+    unit: "year"
     recast: {space: copy}
     why: "structural: bounds the vintage window, not a model parameter"
   trade/cluster/act.share.fx:

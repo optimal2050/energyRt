@@ -412,6 +412,22 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* The short interpolation-rule spellings now work. `bwd` for `back`, `int` or
+  `mid` for `inter`, `fwd` (also `forw`, `frw`) for `forth`, in any
+  combination: `bwd.mid.fwd` is `back.inter.forth`. They were documented as
+  aliases but errored with "Wrong interpolation rule", because the token set
+  was defined three times — a substring strip in the validator, a loose regex
+  in one engine, literal matches in the other. There is one table now, every
+  spelling is normalised to the canonical `back.inter.forth` form on the way
+  in, and an unknown token is an error naming the accepted set.
+
+* A parameter's **unit** is declared with it, as `unit:` on the parameter in
+  `data-raw/parameters.yml`, rather than in three hand-written lists in
+  `R/units.R`. `getUnits()` is unchanged in shape and gains the formulas those
+  lists could no longer reach: 22 of their keys addressed columns that do not
+  exist, so `technology@ceff$grp.share.*` and twelve storage `aeff` columns
+  had silently lost their units.
+
 * **A constraint's terms move with it.** `@lhs` is a list, so no slot loop
   reached it: aggregating regions moved a constraint's row domain and its
   right-hand side but left each term's coefficients, and the regions it sums

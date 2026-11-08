@@ -42,164 +42,36 @@
 #' @export
 NULL
 
-# ── Static unit formula lookup ─────────────────────────────────────────────────
-# Keys are "slot.parameter"; value is a glue-style formula string.
-# Tokens: {capacity}, {activity}, {use}, {costs}, {comm}, {acomm}, {group}
-.tech_unit_formulas <- list(
-  # scalars
-  "cap2act"           = "{activity}/{capacity}",
-  # costs
-  "invcost.invcost"   = "{costs}/{capacity}",
-  "invcost.wacc"      = "fraction",
-  "invcost.payback"   = "years",
-  "invcost.eac"       = "{costs}/{capacity}",
-  "invcost.retcost"   = "{costs}/{capacity}",
-  "fixom.fixom"       = "{costs}/{capacity}",
-  "varom.varom"       = "{costs}/{activity}",
-  "varom.cvarom"      = "{costs}/{comm}",
-  "varom.avarom"      = "{costs}/{acomm}",
-  # life & schedule (merged into the `vintage` slot)
-  "vintage.olife"     = "years",
-  "vintage.start"     = "year",
-  "vintage.end"       = "year",
-  # capacity bounds
-  "capacity.cap.lo"   = "{capacity}",
-  "capacity.cap.up"   = "{capacity}",
-  "capacity.cap.fx"   = "{capacity}",
-  "capacity.ncap.lo"  = "{capacity}",
-  "capacity.ncap.up"  = "{capacity}",
-  "capacity.ncap.fx"  = "{capacity}",
-  "capacity.ret.lo"   = "{capacity}",
-  "capacity.ret.up"   = "{capacity}",
-  "capacity.ret.fx"   = "{capacity}",
-  "capacity.stock"    = "{capacity}",
-  # availability
-  "af.af.lo"          = "fraction",
-  "af.af.up"          = "fraction",
-  "af.af.fx"          = "fraction",
-  "afs.afs.lo"        = "fraction",
-  "afs.afs.up"        = "fraction",
-  "afs.afs.fx"        = "fraction",
-  # ceff — input side
-  "ceff.cinp2use"     = "{comm}/{use}",
-  "ceff.cinp2ginp"    = "{comm}/{group}",
-  "ceff.use2cact"     = "{use}/{activity}",
-  # ceff — output side
-  "ceff.cact2cout"    = "{activity}/{comm}",
-  # ceff — bounds (physical value of the commodity flow)
-  "ceff.afc.lo"       = "{comm}",
-  "ceff.afc.up"       = "{comm}",
-  "ceff.afc.fx"       = "{comm}",
-  # ceff — shares (dimensionless)
-  "ceff.share.lo"     = "fraction",
-  "ceff.share.up"     = "fraction",
-  "ceff.share.fx"     = "fraction",
-  # geff
-  "geff.ginp2use"     = "{group}/{use}",
-  # aeff — commodity-to-auxiliary
-  "aeff.cinp2ainp"    = "{comm}/{acomm}",
-  "aeff.cinp2aout"    = "{comm}/{acomm}",
-  "aeff.cout2ainp"    = "{comm}/{acomm}",
-  "aeff.cout2aout"    = "{comm}/{acomm}",
-  # aeff — activity/capacity-to-auxiliary
-  "aeff.act2ainp"     = "{activity}/{acomm}",
-  "aeff.act2aout"     = "{activity}/{acomm}",
-  "aeff.cap2ainp"     = "{capacity}/{acomm}",
-  "aeff.cap2aout"     = "{capacity}/{acomm}",
-  "aeff.ncap2ainp"    = "{capacity}/{acomm}",
-  "aeff.ncap2aout"    = "{capacity}/{acomm}",
-  # storage per-part capacity couplings (the bare four above are technology's)
-  "aeff.inp.cap2ainp"  = "{capacity}/{acomm}",
-  "aeff.inp.cap2aout"  = "{capacity}/{acomm}",
-  "aeff.inp.ncap2ainp" = "{capacity}/{acomm}",
-  "aeff.inp.ncap2aout" = "{capacity}/{acomm}",
-  "aeff.stg.cap2ainp"  = "{capacity}/{acomm}",
-  "aeff.stg.cap2aout"  = "{capacity}/{acomm}",
-  "aeff.stg.ncap2ainp" = "{capacity}/{acomm}",
-  "aeff.stg.ncap2aout" = "{capacity}/{acomm}",
-  "aeff.out.cap2ainp"  = "{capacity}/{acomm}",
-  "aeff.out.cap2aout"  = "{capacity}/{acomm}",
-  "aeff.out.ncap2ainp" = "{capacity}/{acomm}",
-  "aeff.out.ncap2aout" = "{capacity}/{acomm}",
-  # weather
-  "weather.waf.lo"    = "factor",
-  "weather.waf.up"    = "factor",
-  "weather.waf.fx"    = "factor"
-)
+# -- The unit of a parameter, from the catalogue ----------------------------- #
+# A unit is declared once, as `unit:` on the parameter in
+# data-raw/parameters.yml, and baked into `.col_param` by data-raw/col_param.R.
+# Before 0.92 the formulas were three hand-written lists keyed "slot.column"
+# here, which drifted: 22 keys addressed columns that no longer existed (the
+# storage `aeff.inp.*` family was filed under technology, `ceff.share.*` had
+# been renamed `grp.share.*`), and `trade` had no table at all.
+#
+# Tokens: {capacity}, {activity}, {use}, {costs}, {comm}, {acomm}, {group},
+# resolved against the object by `.unit_context()`.
+#
+# The shape this returns is unchanged, so the three call sites are too: a named
+# list "slot.column" -> formula, plus "slot" alone for a scalar slot such as
+# `technology@cap2act`. NULL when the class declares no unit anywhere.
+.unit_formulas_cache <- new.env(parent = emptyenv())
 
-# Formulas for the flow classes. These carry a single scalar `@unit` (the
-# COMMODITY's unit), so `{comm}` is that scalar and `{costs}` stays a
-# placeholder unless the caller supplies a currency -- the same convention
-# `getUnits(complete = TRUE)` already renders for technology.
-.flow_unit_formulas <- list(
-  supply = list(
-    "reserve.res.lo"  = "{comm}",
-    "reserve.res.up"  = "{comm}",
-    "reserve.res.fx"  = "{comm}",
-    "supply.ava.lo"   = "{comm}/year",
-    "supply.ava.up"   = "{comm}/year",
-    "supply.ava.fx"   = "{comm}/year",
-    "supply.cost"     = "{costs}/{comm}"
-  ),
-  import = list(
-    "import.imp.lo"   = "{comm}/year",
-    "import.imp.up"   = "{comm}/year",
-    "import.imp.fx"   = "{comm}/year",
-    "import.price"    = "{costs}/{comm}"
-  ),
-  export = list(
-    "export.exp.lo"   = "{comm}/year",
-    "export.exp.up"   = "{comm}/year",
-    "export.exp.fx"   = "{comm}/year",
-    "export.price"    = "{costs}/{comm}"
-  ),
-  demand = list(
-    "demand.demand"   = "{comm}"
-  )
-)
-
-# Storage: no `@units` slot (units live on the role declarations), and the
-# parameters are part-prefixed inp./out./stg.
-.storage_unit_formulas <- local({
-  parts <- c("inp", "out", "stg")
-  caps <- stats::setNames(
-    as.list(rep("{capacity}", length(parts) * 10)),
-    unlist(lapply(parts, function(p) paste0(
-      "capacity.", p, ".",
-      c("stock", "cap.lo", "cap.up", "cap.fx", "ncap.lo", "ncap.up",
-        "ncap.fx", "ret.lo", "ret.up", "ret.fx")))))
-  inv <- stats::setNames(
-    as.list(rep("{costs}/{capacity}", length(parts) * 2)),
-    unlist(lapply(parts, function(p)
-      c(paste0("invcost.", p, ".invcost"), paste0("fixom.", p, ".fixom")))))
-  c(caps, inv, list(
-    "varom.inpcost"   = "{costs}/{comm}",
-    "varom.outcost"   = "{costs}/{comm}",
-    "varom.stgcost"   = "{costs}/{comm}",
-    "seff.inpeff"     = "fraction",
-    "seff.outeff"     = "fraction",
-    "seff.stgeff"     = "fraction",
-    "duration.duration"    = "hours",
-    "duration.duration.lo" = "hours",
-    "duration.duration.up" = "hours",
-    "duration.duration.fx" = "hours",
-    "inp2stg.inp2stg"    = "1/hours",
-    "inp2stg.inp2stg.lo" = "1/hours",
-    "inp2stg.inp2stg.up" = "1/hours",
-    "inp2stg.inp2stg.fx" = "1/hours",
-    "startLevel.startLevel" = "fraction",
-    "vintage.olife"   = "years",
-    "vintage.start"   = "year",
-    "vintage.end"     = "year"
-  ))
-})
-
-# The formula registry for a class, or NULL when the class has none.
 #' @noRd
 .unit_formulas_for <- function(cls) {
-  if (identical(cls, "technology")) return(.tech_unit_formulas)
-  if (identical(cls, "storage")) return(.storage_unit_formulas)
-  .flow_unit_formulas[[cls]]
+  if (length(cls) != 1L || is.na(cls)) return(NULL)
+  hit <- .unit_formulas_cache[[cls]]
+  if (!is.null(hit)) return(hit)
+  cp <- tryCatch(.col_param, error = function(e) NULL)
+  if (!is.data.frame(cp)) return(NULL)
+  j <- which(cp$class == cls & !is.na(cp$unit))
+  if (!length(j)) return(NULL)
+  keys <- ifelse(is.na(cp$column[j]), cp$slot[j],
+                 paste(cp$slot[j], cp$column[j], sep = "."))
+  out <- stats::setNames(as.list(cp$unit[j]), keys)
+  .unit_formulas_cache[[cls]] <- out
+  out
 }
 
 # Base tokens + comm lookup for ANY supported class, so one resolver serves
@@ -465,7 +337,7 @@ setMethod("getUnits", "technology", function(object, slots = NULL,
 
   # ── scalar: cap2act ──────────────────────────────────────────────────────────
   if ("cap2act" %in% use_slots && length(object@cap2act) > 0) {
-    formula <- .tech_unit_formulas[["cap2act"]]
+    formula <- .unit_formulas_for("technology")[["cap2act"]]
     rows[[length(rows) + 1]] <- data.frame(
       slot        = "cap2act",
       parameter   = NA_character_,
@@ -491,7 +363,7 @@ setMethod("getUnits", "technology", function(object, slots = NULL,
 
     for (vc in val_cols) {
       key <- paste0(sn, ".", vc)
-      formula <- .tech_unit_formulas[[key]]
+      formula <- .unit_formulas_for("technology")[[key]]
       if (is.null(formula)) next  # unknown column, skip
 
       has_comm  <- "comm"  %in% names(df)

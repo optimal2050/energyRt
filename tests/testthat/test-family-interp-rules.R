@@ -172,3 +172,67 @@ test_that("every parameter's rule is overridable, by parameter name", {
     "keyed by parameter name"
   )
 })
+
+# --------------------------------------------------------------------------- #
+# The vocabulary. Canonical `back`/`inter`/`forth`; every alias accepted and
+# normalised at the two doors into a rule, so the engines match exact tokens.
+# Until 0.92 the token set was defined three times -- a literal strip in the
+# validator, a `for|fwd|frw` regex in the modern engine, literal greps in the
+# legacy one -- and the aliases the documentation promised errored.
+
+# @covers depth=C
+test_that("every accepted spelling normalises to the canonical rule", {
+  n <- energyRt:::.normalise_interp_rule
+  expect_equal(n("back.inter.forth"), "back.inter.forth")
+  expect_equal(n("bwd.mid.fwd"), "back.inter.forth")
+  expect_equal(n("bwd.int.fwd"), "back.inter.forth")
+  expect_equal(n("forward.backward"), "back.forth")   # canonical ORDER too
+  expect_equal(n("forw"), "forth")
+  expect_equal(n("frw"), "forth")
+  # `.inter.` was `pTechStock`'s shipped spelling: empty tokens, tolerated by
+  # the old substring-stripping validator
+  expect_equal(n(".inter."), "inter")
+  # an empty rule stays empty -- `.interp_rule_token()` resolves it downstream
+  expect_equal(n(""), "")
+  expect_true(is.na(n(NA_character_)))
+  expect_error(n("sideways"), "Unknown interpolation token")
+  expect_error(n("back.sideways"), "sideways")
+})
+
+# @covers depth=C
+test_that("every catalogued rule is canonical, and a rule is stored canonical", {
+  rs <- unlist(lapply(energyRt:::.modInp, function(e) e$interpolation))
+  rs <- rs[!is.na(rs)]
+  expect_equal(unname(energyRt:::.normalise_interp_rule(rs)), unname(rs),
+               label = "the catalogue ships canonical spellings")
+  expect_setequal(unique(rs), c("back.inter.forth", "inter.forth", "inter", ""))
+
+  # whatever spelling is given, the parameter stores canonical
+  p <- newParameter("pAliasNumpar", c("region", "year"), type = "numpar",
+                    defVal = 0, interpolation = "bwd.mid.fwd")
+  expect_equal(p@interpolation, "back.inter.forth")
+  b <- newParameter("pAliasBounds", c("region", "year"), type = "bounds",
+                    defVal = c(0, 1), interpolation = c("bwd.fwd", "mid"))
+  expect_equal(b@interpolation, c("back.forth", "inter"))
+  expect_error(
+    newParameter("pBadRule", c("region", "year"), type = "numpar",
+                 defVal = 0, interpolation = "sideways"),
+    "Unknown interpolation token"
+  )
+})
+
+# @covers pDemand depth=I forks=default
+test_that("an alias override interpolates exactly as its canonical twin", {
+  skip_if_tier_below("fast")
+  # the override path writes `@interpolation` directly, bypassing the
+  # constructor, so this is the integration that proves it normalises too
+  canon <- ir_years("inter", tag = "ir_alias_canon")
+  alias <- ir_years("mid", tag = "ir_alias_mid")
+  expect_equal(alias$effective, "inter")
+  expect_equal(alias$years, canon$years)
+  expect_equal(alias$values, canon$values)
+
+  wide <- ir_years("bwd.mid.fwd", tag = "ir_alias_wide")
+  expect_equal(wide$effective, "back.inter.forth")
+  expect_equal(wide$years, c(2025L, 2030L, 2040L))
+})

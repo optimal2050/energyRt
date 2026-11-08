@@ -14,12 +14,21 @@ The three model-symbol catalogues — `sets.yml`, `parameters.yml` and
 `mappings.yml` — are concatenated in that order, and that order is `.modInp`'s
 key order, which the matrix writers follow: it is not cosmetic.
 
-`parameters.yml` has two sections. The 200 top-level keys are the parameters.
-The reserved `columns:` key at the end lists the value columns that belong to
-*no* parameter, each with its recast rule and a one-line reason — a stated set
-rather than whatever a scan happens to miss. Neither `recast:` nor `columns:`
-reaches `.modInp`: `DATASET.R` strips them, and they are read by
-`data-raw/col_param.R` and `data-raw/recast_rules.R` instead.
+`parameters.yml` has two sections. The 200 top-level keys are the parameters,
+each declaring everything about itself that nothing upstream can know: its
+`dimSets`, `defVal`, `interpolation` rule, `recast` rule, `unit` formula, and
+the class / slot / column it is written from. The reserved `columns:` key at
+the end lists the value columns that belong to *no* parameter, each with its
+own `recast`, `unit` and a one-line reason — a stated set rather than whatever
+a scan happens to miss. None of `recast:`, `unit:` or `columns:` reaches
+`.modInp`: `DATASET.R` strips them, and `data-raw/col_param.R` and
+`data-raw/recast_rules.R` read them instead.
+
+A unit is a formula over the tokens `{capacity}`, `{activity}`, `{use}`,
+`{costs}`, `{comm}`, `{acomm}` and `{group}`, which `getUnits()` resolves
+against the object's own unit slots, or a literal (`fraction`, `years`,
+`hours`). One per parameter: measured across the 41 parameters that own more
+than one column, none disagreed.
 
 ## What becomes what
 
@@ -34,8 +43,9 @@ reaches `.modInp`: `DATASET.R` strips them, and they are read by
 | `maps.R` | `.variable_mapping`, map definitions | `R/sysdata.rda` | gams2x output |
 
 `data-raw/col_param.R` builds `.col_param`, one row per value column of every
-slot: the parameter that owns it, the rule and default for that column, and —
-where nothing owns it — the reason. It is the only place that resolves the two
+slot: the parameter that owns it, the rule, default and unit for that column,
+and — where nothing owns it — the reason. A parameter that names a slot but no
+column, such as the scalar `technology@cap2act`, gets a row with `column = NA`. It is the only place that resolves the two
 irregularities in the relation: `settings` reads config's slots by inheritance,
 and `pDemand` is catalogued under `colName: dem` while the column of
 `demand@demand` is `demand` (declared as `colAlias`). `.param_interp_map()` and

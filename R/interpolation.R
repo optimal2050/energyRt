@@ -2232,18 +2232,14 @@ interpolate_numpar <- function(
     return(as.data.table(data))
   }
 
+  # `int_rule` is canonical by the time it gets here -- both doors normalise --
+  # so the tokens are matched exactly rather than by a loose regex that also
+  # accepted, say, any rule containing the letters "for"
+  tok <- strsplit(.normalise_interp_rule(int_rule), ".", fixed = TRUE)[[1]]
   approx_rule <- c(1, 1)
-  if (grepl("for|fwd|frw", int_rule, ignore.case = T)) {
-    approx_rule[2] <- 2
-  }
-  if (grepl("back|bwd", int_rule, ignore.case = T)) {
-    approx_rule[1] <- 2
-  }
-  if (grepl("int|mid", int_rule, ignore.case = T)) {
-    interp_within <- TRUE
-  } else {
-    interp_within <- FALSE
-  }
+  if ("forth" %in% tok) approx_rule[2] <- 2
+  if ("back" %in% tok) approx_rule[1] <- 2
+  interp_within <- "inter" %in% tok
 
   # Per-group (set_cols) interpolation over `year`. Same logic as before, but
   # driven by data.table's C-level grouping instead of group_split() + lapply,
@@ -2305,9 +2301,10 @@ interpolate_numpar <- function(
 
 #' Normalise a parameter interpolation rule for `interpolate_numpar()`
 #'
-#' `interpolate_numpar()` recognises the tokens `back`/`inter`/`forth` (and the
-#' aliases `bwd`/`mid`/`fwd`). The legacy `parameter@interpolation` strings use
-#' the `back.inter.forth` form, which already matches. An empty/`NA` rule falls
+#' The canonical tokens are `back`/`inter`/`forth`; `.interp_rule_aliases`
+#' (R/class-parameter.R) lists the spellings accepted for each, and both doors
+#' into a rule -- `newParameter()` and `settings@interpolation` -- normalise to
+#' canonical, so a stored rule is always in that form. An empty/`NA` rule falls
 #' back to linear interpolation only.
 #' @noRd
 .interp_rule_token <- function(rule) {
@@ -4650,7 +4647,8 @@ utils::globalVariables(c("olife", "built"))
 .default_olife <- function() {
   d <- tryCatch({
     cp <- .col_param
-    unique(cp$defVal[cp$column == "olife" & !is.na(cp$parameter)])
+    j <- !is.na(cp$column) & cp$column == "olife" & !is.na(cp$parameter)
+    unique(cp$defVal[j])
   }, error = function(e) NULL)
   if (is.numeric(d) && length(d) == 1L && is.finite(d)) d else 1
 }

@@ -36,6 +36,7 @@ p$columns <- NULL
 .index_cols <- "year"
 
 key <- function(...) paste(..., sep = "/")
+`%|NA|%` <- function(a, b) ifelse(is.na(a), b, a)
 
 # ---- the declared data columns -------------------------------------------- #
 decl <- list()
@@ -101,9 +102,31 @@ for (nm in names(p)) {
       class = e$class, slot = e$slot, column = x[["co"]],
       parameter = nm, bound = x[["bound"]],
       rule = x[["rule"]], defVal = as.numeric(x[["dv"]]),
+      unit = e$unit %||% NA_character_,
       declared_on = on, why = NA_character_,
       dims = I(list(dims)), stringsAsFactors = FALSE)
   }
+}
+
+# ---- slot-level bindings: a parameter that names a slot and no column ----- #
+# `technology@cap2act` is a scalar slot, so it has no column to key on; the
+# parameter still carries a unit, and `getUnits()` looks it up by slot name.
+for (nm in names(p)) {
+  e <- p[[nm]]
+  if (is.null(e$class) || is.null(e$slot) || !is.null(e$colName)) next
+  rows[[length(rows) + 1L]] <- data.frame(
+    class = e$class, slot = e$slot, column = NA_character_,
+    parameter = nm, bound = NA_character_,
+    rule = if (is.null(e$interpolation)) {
+      NA_character_
+    } else {
+      as.character(e$interpolation)[1]
+    },
+    defVal = suppressWarnings(as.numeric(unlist(e$defVal))[1]),
+    unit = e$unit %||% NA_character_,
+    declared_on = e$class, why = NA_character_,
+    dims = I(list(as.character(unlist(e$dimSets)))),
+    stringsAsFactors = FALSE)
 }
 
 # ---- the declared columns no parameter owns -------------------------------- #
@@ -124,6 +147,7 @@ for (k in unbound) {
     class = d$class, slot = d$slot, column = d$column,
     parameter = NA_character_, bound = NA_character_,
     rule = NA_character_, defVal = NA_real_,
+    unit = orphan[[k]]$unit %||% NA_character_,
     declared_on = d$class, why = orphan[[k]]$why,
     dims = I(list(character(0))), stringsAsFactors = FALSE)
 }
@@ -132,12 +156,14 @@ for (k in unbound) {
 .col_param <- .col_param[order(.col_param$class, .col_param$slot,
                                .col_param$column), ]
 rownames(.col_param) <- NULL
-stopifnot(!anyDuplicated(
-  paste(.col_param$class, .col_param$slot, .col_param$column, sep = "/")))
+stopifnot(!anyDuplicated(paste(.col_param$class, .col_param$slot,
+                              .col_param$column %|NA|% "<slot>", sep = "/")))
 # an unbound column without a reason is an undeclared one
 stopifnot(all(nzchar(.col_param$why[is.na(.col_param$parameter)])))
 
-cat("built .col_param:", nrow(.col_param), "columns,",
+cat("built .col_param:", nrow(.col_param), "rows,",
+    sum(!is.na(.col_param$unit)), "with a unit,",
+    sum(is.na(.col_param$column)), "slot-level,\n   ",
     sum(!is.na(.col_param$parameter)), "bound to",
     length(unique(na.omit(.col_param$parameter))), "parameters,",
     sum(is.na(.col_param$parameter)), "unbound,",

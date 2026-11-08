@@ -4002,10 +4002,17 @@ class:
     interpolation:
       type: character
       description: >
-        Interpolation rule for numeric parameters across years. 
-        Recognized values are any combination
-        of "back", "inter", "forth", e.g., "back.inter" or "forth.inter",
-        indicating the direction of interpolation.
+        Interpolation rule for a numeric parameter across years: any
+        combination of the three directions `back` (extrapolate backward from
+        the earliest anchor), `inter` (interpolate between anchors) and
+        `forth` (extrapolate forward from the latest), joined by dots --
+        `back.inter.forth`, `inter.forth`, `inter`. That spelling is canonical
+        and is what gets stored. The short symmetric spellings are accepted
+        wherever a rule is given and normalised to it: `bwd` for `back`, `int`
+        or `mid` for `inter`, `fwd` (also `forw`, `frw`) for `forth`, so
+        `bwd.mid.fwd` and `back.inter.forth` are the same rule. An unknown
+        token is an error. An empty rule interpolates between anchors and
+        extrapolates past neither.
     inClass:
       type: character
       description: >
