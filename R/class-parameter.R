@@ -36,11 +36,7 @@ setClass(
     data = "data.frame", # @data Data for export
     # one for numpar, two for bounds
     interpolation = "character", # interpolation 'back.inter.forth'
-    # not_data        = "logical",  # @data NO flag for map
-    # class = "character",
-    # slot = "character",
     inClass = "data.frame",
-    # colName = "character", # @inClass$colName Column name in slot
     misc = "list"
   ),
   prototype(
@@ -50,8 +46,6 @@ setClass(
     defVal = NULL,
     interpolation = NULL,
     data = data.frame(),
-    # not_data       = FALSE,
-    # colName = NULL,
     inClass = data.frame(
       class = character(),
       slot = character(),
@@ -80,12 +74,6 @@ setMethod("initialize", signature = "parameter",
            dropIfEmpty = NULL,
            prune = NULL) {
 
-    # if (name == "DEBUG") browser() # DEBUG
-    # expected_sets <- c(
-    #   "tech", "techp", "dem", "sup", "weather", "acomm", "comm", "commp",
-    #   "group", "region", "regionp", "src", "dst",
-    #   "year", "yearp", "timeslice", "timeslicep", "stg", "expp", "imp", "trade"
-    # )
     if (!is.character(name) || length(name) != 1 || !check_name(name)) {
       stop(paste('Wrong name: "', name, '"', sep = ""))
     }
@@ -129,12 +117,11 @@ setMethod("initialize", signature = "parameter",
     data$value <- numeric()
     data$year <- integer()
     data$yearp <- integer()
-    # data <- as_tibble(data)
 
     if (type == "bounds") dimSets <- c(dimSets, "type")
     if (any(type == c("numpar", "bounds"))) dimSets <- c(dimSets, "value")
     .Object@data <- data[, dimSets, drop = FALSE] |> as.data.table()
-    # .Object@data <- select(data, all_of(dimSets)) #!!! drops duplicated columns
+    # Not `select(all_of(dimSets))`: it drops duplicated columns.
     if (any(!is_null(inClass), !is_null(cls), !is_null(slot),
              !is_null(colName) && any(colName != ""))) {
       # add the record
@@ -143,8 +130,6 @@ setMethod("initialize", signature = "parameter",
       if (!is.null(inClass)) {
         .Object@inClass <- bind_rows(.Object@inClass, inClass)
       } else {
-        # message("initialize parameter: unfinished translation: ",
-        #         name, " ", cls, " ", slot, " ", colName) # debug
       .Object@inClass <- .Object@inClass |>
         add_row(
           class = cls,
@@ -152,7 +137,6 @@ setMethod("initialize", signature = "parameter",
           colName = colName)
       }
     }
-    # .Object@inClass$colName <- colName
     # Per-parameter default policy (overrides the global `drop_default` of
     # `interpolate_parameters`). `dropIfEmpty = TRUE` lets a parameter collapse
     # to empty when all its values equal the default, so an unused constraint is
@@ -184,7 +168,6 @@ newSet <- function(dimSets) {
   newParameter(dimSets, dimSets, "set")
 }
 
-# setGeneric('.dat2par', function(obj, data) standardGeneric(".dat2par"))
 
 # .dat2par: NULL ####
 setMethod(
@@ -198,18 +181,13 @@ setMethod(
 setMethod(
   ".dat2par", signature(obj = "parameter", data = "data.frame"),
   function(obj, data) {
-    # cat(paste0(obj@name, ": ", class(data)[1], ", ncol =", ncol(data), "\n"))
-    # if (!is.data.table(data)) browser() # DEBUG
     if (!is.data.table(data)) { # DEBUG
-      # warning("\nDEBUG info: class ", class(data), " in ", obj@name, "@data\n")
     }
-    # if (obj@name == "ordYear") browser() # DEBUG
     if (nrow(data) > 0) {
       if (ncol(data) != ncol(obj@data) ||
         any(sort(colnames(data)) != sort(colnames(obj@data)))) {
         stop("Parameter dimensions mismatch: ", obj@name)
       }
-      # data <- data[, colnames(obj@data), drop = FALSE]
       data <- select(data, all_of(colnames(obj@data)))
       if (any(colnames(data) == "type")) {
         if (any(!(data$type %in% c("lo", "up")))) {
@@ -222,16 +200,22 @@ setMethod(
       for (i in colnames(data)[sapply(data, class) == "factor"]) {
         if (i != "type") data[[i]] <- as.character(data[[i]])
       }
-      # class2 <- function(x) if (class(x) == 'integer') 'numeric' else class(x)
-      # class2 <- function(x) if (inherits(x, "integer")) "numeric" else class(x)
-      if (nrow(obj@data) > 0 && # !!! rewrite with exact match
-          any(sapply(data, class) != sapply(obj@data, class))) {
-        stop("Column classes mismatch: ", obj@name, "\n",
-             "Expected: ", paste(sapply(obj@data, class), collapse = ", "),
-             "\nGot: ", paste(sapply(data, class), collapse = ", "),
-             "\nParameter: ", obj@name, "\nData:\n", head(data), "\n")
+      if (nrow(obj@data) > 0) {
+        # per column BY NAME: comparing the two `sapply(class)` vectors
+        # positionally errors on any column whose class() has two elements
+        # (an ordered factor, a datetime) and names no column when it fails
+        nm <- colnames(obj@data)
+        cls <- function(x, k) paste(class(x[[k]]), collapse = "/")
+        bad <- nm[!vapply(nm, function(k)
+          identical(class(data[[k]]), class(obj@data[[k]])), logical(1))]
+        if (length(bad) > 0) {
+          stop("Column classes mismatch in parameter ", obj@name, ":\n",
+               paste0("  ", bad, ": expected ",
+                      vapply(bad, cls, character(1), x = obj@data),
+                      ", got ", vapply(bad, cls, character(1), x = data),
+                      collapse = "\n"), "\n")
+        }
       }
-      # data <- data[apply(data, 1, function(x) all(!is.na(x))), , drop = FALSE]
       data <- drop_na(data)
       if (nrow(data) != 0) {
         obj@data <- rbindlist(list(as.data.table(obj@data),
@@ -263,9 +247,6 @@ setMethod(
       obj@data <- as.data.table(obj@data)
       return(obj)
     }
-    # !!! rewrite with dplyr or data.table
-    # nn <- nrow(obj@data) + 1:length(data)
-    # obj@data[nn, ] <- data
     obj@data <- rbindlist(list(as.data.table(obj@data), as.data.table(data)),
                           use.names = FALSE)
     if (isDebug() && ncol(obj@data) != 1)
@@ -292,9 +273,6 @@ setMethod(
       obj@data <- as.data.table(obj@data)
       return(obj)
     }
-    # !!! rewrite with dplyr or data.table
-    # nn <- nrow(obj@data) + 1:length(data)
-    # obj@data[nn, ] <- data
     obj@data <- rbindlist(list(as.data.table(obj@data), as.data.table(data)),
                           use.names = FALSE)
     obj@data <- .force_year_class_df(obj@data)
@@ -314,24 +292,6 @@ setMethod(
 # row-count cache, which meant every one of those call sites saw ZERO rows for an
 # on-disk parameter. Aliasing it to the on-disk-aware reader fixes that.
 .get_data_slot <- function(obj) get_data_slot(obj)
-
-# Remove all data by all set
-# setMethod('.drop_set_value', signature(obj = 'parameter', dimSets = "character", value = "character"),
-.drop_set_value <- function(obj, dimSets, value) {
-  # !!! better name? value -> ? dimSets -> dimSet?
-  if (length(dimSets) != 1 || all(dimSets != obj@dimSets)) {
-    stop(
-      "Inconsistent sets in parameter ", obj@name,
-      "check dimSets: ", paste(dimSets, collapse = ", ")
-    )
-  }
-  # obj@data <- obj@data[!(obj@data[, dimSets] %in% value), , drop = FALSE]
-  ii <- obj@data[[dimSets]] %in% value
-  if (isDebug() && length(dimSets) > 1)
-    cli::cli_warn("drop_set_value(): the filter assumes ONE dimSet, got {length(dimSets)}.")
-  obj@data <- obj@data |> filter(!ii)
-  obj
-}
 
 setGeneric('addMultipleSet',
            function(obj, dimSets) standardGeneric("addMultipleSet"))

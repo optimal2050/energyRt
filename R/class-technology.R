@@ -138,7 +138,7 @@ setClass("technology",
       grp.share.lo = numeric(),
       grp.share.up = numeric(),
       grp.share.fx = numeric(),
-      afc.lo = numeric(), # !!! check and potentially rename avc.*
+      afc.lo = numeric(),
       afc.up = numeric(),
       afc.fx = numeric(),
       stringsAsFactors = FALSE

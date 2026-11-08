@@ -60,7 +60,6 @@ findData <- function(object,
                      valueColumn = TRUE,
                      allSets = TRUE,
                      ignore.case = FALSE,
-                     # anyOfTheSets = !allSets,
                      add_weights = "auto",
                      dropEmpty = TRUE,
                      dfDim = TRUE,
@@ -71,18 +70,8 @@ findData <- function(object,
   ii <- dataType == "parameters"
   if (any(ii)) {
     dataType <- dataType[!ii]
-    # dat <- object@modInp@parameters
     lt <- lapply(object@modInp@parameters, function(x) {
-      # if (dim(x@data)[1] > 0 || !dropEmpty) {
-      # cat(x@name, " ")
       qu <- get_lazy_dim_names(x, slot = "data")
-      # qu <- get_lazy_data(x, slot = "data")
-      # if (nrow(qu) > 0 || !dropEmpty) {
-      #     list(
-      #     dim = dim(qu),
-      #     names = names(qu)
-      #   )
-      # }
       qu
     })
   }
@@ -251,7 +240,6 @@ getData.scenario <- function(
     na.rm = FALSE,
     digits = NULL,
     drop.zeros = FALSE,
-    # addGroups = list(), summarizeGroups = list(),
     add_weights = "auto",
     add_period_length = "auto",
     apply_weights = FALSE,
@@ -267,7 +255,6 @@ getData.scenario <- function(
     run = NULL,
     base_year = FALSE,
     verbose = FALSE) {
-  # if (name == "vObjective") browser()
   arg <- list(...)
   argnam <- names(arg)
   stopifnot(!any(duplicated(argnam)))
@@ -481,7 +468,6 @@ getData.scenario <- function(
     if (verbose && !any(avail)) {
       message("Scenario '", sc, "' has no interpolated/solved data to extract.")
     }
-    # if(is.null(object[[sc]]@modInp@parameters$pDemand@data$comm)) {object[[sc]] <- .addComm2pDemand(object[[sc]])}
     for (datype in names(parvar)[parvar]) { # loop over data sources
       if (!isTRUE(avail[[datype]])) {
         if (verbose) cat("No", datype, "available in scenario '", sc, "'.\n")
@@ -587,12 +573,24 @@ getData.scenario <- function(
               }
             }
           } else {
-            # dat <- object[[sc]]@modOut@variables[[pv]]
             dat <- get_lazy_data(object[[s]]@modOut@variables[[pv]],
               slot = "data"
             )
             if (!is.null(dat)) {
-              # temporary. ToDo: rewrite filter-algo for lazy-data
+              # Push the plain membership selectors onto the dataset before
+              # collecting: filtering after `collect()` reads the whole
+              # variable to return a slice of it. Only selectors whose name IS
+              # a column are pushed, and the authoritative filter below runs
+              # again on the collected rows, so this only reduces the read.
+              # Solution data carries no wildcard rows, so nothing an `unfold`
+              # would need is lost here (the parameter branch above, which
+              # does, is left alone).
+              for (k in intersect(names(dat), nflt)) {
+                .vals <- flt[[k]]
+                if (length(.vals) == 0) next
+                dat <- tryCatch(dplyr::filter(dat, .data[[k]] %in% .vals),
+                                error = function(e) dat)
+              }
               dat <- collect(dat)
             }
           }
@@ -697,7 +695,6 @@ getData.scenario <- function(
   force_format <- function(x) {
     # converts sets-columns to strings, year to integer
     cnames <- colnames(x)
-    # ex <- grepl("value|year")
     for (j in 1:length(cnames)) {
       if (cnames[j] == "value") {
         x[[j]] <- as.numeric(x[[j]])
@@ -739,9 +736,6 @@ getData.scenario <- function(
 
   # Renaming sets
   if (!is.null(newNames)) {
-    # for (i in 1:length(ll)) {
-    #   ll[[i]] <- renameSets(ll[[i]], newNames)
-    # }
     ll <- lapply(ll, function(x) renameSets(x, newNames))
   }
 

@@ -38,7 +38,7 @@ get_python_path <- function() {
     # the eac-fix (flat `pXEac * vXCap` instead of the vintaged form), and
     # vintaging/payback, which `R/eac.R` records as impossible "without a bigger
     # change". No shipped solver option selected it, so nothing exercised it and
-    # it rotted silently. Kept for reference in drafts/energyRtAbstract.py.
+    # it rotted silently.
     #
     # If an AbstractModel is ever wanted, GENERATE it from the Concrete template
     # the way mosox is generated from GLPK -- do not hand-maintain a sixth copy.
@@ -48,7 +48,6 @@ get_python_path <- function() {
          "  Use a Concrete Pyomo option instead, e.g. ",
          "`solver_options$pyomo_glpk` or `$pyomo_cbc`.
 ",
-         "  The template is kept for reference in drafts/energyRtAbstract.py.",
          call. = FALSE)
   } else {
     run_code <- scen@settings@sourceCode[["PYOMOConcrete"]]
@@ -105,7 +104,6 @@ get_python_path <- function() {
              recursive = TRUE)
   dir.create(fp(arg$solver.dir, "output"), showWarnings = FALSE,
              recursive = TRUE)
-  # if (!is.null(scen@settings@solver$SQLite) && scen@settings@solver$SQLite) {
   .ex_fmt <- scen@settings@solver$export_format
   SQLite <- !is.null(.ex_fmt) && tolower(.ex_fmt) == "sqlite"
   use_arrow_in <- .is_arrow_exchange(.ex_fmt)
@@ -181,7 +179,6 @@ get_python_path <- function() {
           )
         } else {
           if (any(grep("^.Cns", i))) {
-            # if (!is.null(scen@settings@solver$SQLite) && scen@settings@solver$SQLite) {
             if (use_readfn) {
               cat(.toPyomSQLite(scen@modInp@parameters[[i]]),
                 sep = "\n",
@@ -195,7 +192,6 @@ get_python_path <- function() {
               )
             }
           } else if (any(grep("^.Costs", i))) {
-            # if (!is.null(scen@settings@solver$SQLite) && scen@settings@solver$SQLite) {
             if (use_readfn) {
               cat(.toPyomSQLite(scen@modInp@parameters[[i]]),
                 sep = "\n",
@@ -400,12 +396,10 @@ get_python_path <- function() {
                )
     return(c(
       as_numpar(
-        # obj@data[obj@data$type == "lo", 1 - ncol(obj@data), drop = FALSE],
         select(filter(obj@data, type == "lo"), -type),
         paste(obj@name, "Lo", sep = ""), hh, obj@defVal[1]
       ),
       as_numpar(
-        # obj@data[obj@data$type == "up", 1 - ncol(obj@data), drop = FALSE],
         select(filter(obj@data, type == "up"), -type),
         paste(obj@name, "Up", sep = ""), hh, obj@defVal[2]
       )
@@ -464,12 +458,10 @@ get_python_path <- function() {
     hh <- paste0("(", paste0(obj@dimSets, collapse = ", "), ")")
     return(c(
       as_numpar(
-        # obj@data[obj@data$type == "lo", 1 - ncol(obj@data), drop = FALSE],
         select(filter(obj@data, type == "lo"), -type),
         paste(obj@name, "Lo", sep = ""), hh, obj@defVal[1]
       ),
       as_numpar(
-        # obj@data[obj@data$type == "up", 1 - ncol(obj@data), drop = FALSE],
         select(filter(obj@data, type == "up"), -type),
         paste(obj@name, "Up", sep = ""), hh, obj@defVal[2]
       )
@@ -532,12 +524,10 @@ get_python_path <- function() {
     hh <- paste0("(", paste0(obj@dimSets, collapse = ", "), ")")
     return(c(
       as_numpar(
-        # obj@data[obj@data$type == "lo", 1 - ncol(obj@data), drop = FALSE],
         select(filter(obj@data, type == "lo"), -type),
         paste(obj@name, "Lo", sep = ""), hh, obj@defVal[1]
       ),
       as_numpar(
-        # obj@data[obj@data$type == "up", 1 - ncol(obj@data), drop = FALSE],
         select(filter(obj@data, type == "up"), -type),
         paste(obj@name, "Up", sep = ""), hh, obj@defVal[2]
       )
@@ -602,15 +592,9 @@ get_python_path <- function() {
 }
 
 # Translate GAMS constraints to Pyomo ####
-# Make vector .alias_set (from gams to alias) and set_alias
-
-# set_alias <- .set_al0
-# names(set_alias) <- .alias_set
-
 
 ## Function
 .get_pyomo_loop_fast <- function(set_loop, set_cond, add_cond = NULL) {
-  # if (any(grep('', c(set_loop, set_cond)))) browser()
   if (!is.null(set_cond) && substr(set_cond, 1, 1) == "(") {
     set_cond <- sub("^[(]", "", sub("[)]$", "", set_cond))
   }
@@ -624,14 +608,7 @@ get_python_path <- function() {
   rs
 }
 
-# .fremset <-   c("comm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "region", "region")
-# names(.fremset) <-   c("acomm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "timeslicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "timeslicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "timeslicen", "groupn", "commn", "cnsn", "src", "dst")
-#
-# .removeEndSet <- function(x) {
-#   .fremset[x]
-# }
 .generate_loop_pyomo <- function(set_num, set_loop) {
-  # if (any(grep('', c(set_loop, set_num)))) browser()
 
   # Consdition split and divet by subset
   while (!is.null(set_loop) && substr(set_loop, 1, 1) == "(" &&
@@ -658,13 +635,22 @@ get_python_path <- function() {
     "(", paste0("", .removeEndSet(names(set_num2)), collapse = ","), ")"
   )
   if (length(cnd_slice) != 0) {
+    # A condition map over ONE index is folded into the comprehension's source
+    # (iterate the map, do not filter the full set). Only maps whose index is
+    # one of the loop's own sets can be: `kk[ff]` is NA otherwise, and the
+    # rename below was then a silent no-op that dropped the condition from the
+    # source AND from the filter. Those stay in `cnd_slice` as `if ... in ...`.
+    ff <- character(0)
+    kk <- seq_along(set_num2)
+    names(kk) <- set_num2
     fl <- (sapply(cnd_slice, length) == 1)
-    if (any(fl)) { #!!! Check !!!
+    if (any(fl)) {
       ff <- c(cnd_slice[fl], recursive = TRUE)
       ff <- ff[!duplicated(ff)]
       names(ff) <- gsub("[.].*", "", names(ff))
-      kk <- seq_along(set_num2)
-      names(kk) <- set_num2
+      ff <- ff[!is.na(kk[ff])]
+    }
+    if (length(ff) > 0) {
       names(set_num2) <- .removeEndSet(names(set_num2))
       names(set_num2)[kk[ff]] <- names(ff)
       rs <- paste0(
@@ -673,13 +659,8 @@ get_python_path <- function() {
         "(", paste0("", names(set_num2), collapse = ","), ")"
       )
       cnd_slice <- cnd_slice[!(names(cnd_slice) %in% names(ff))]
-      if (length(cnd_slice) != 0) {
-        iii <- c(lapply(cnd_slice, paste0, collapse = ", "), recursive = TRUE)
-        iii[grep(",", iii)] <- paste0("(", iii[grep(",", iii)], ")")
-        rs <- paste0(rs, " if ", paste0(paste0(iii, " in ", names(cnd_slice)),
-                                        collapse = " and "))
-      }
-    } else {
+    }
+    if (length(cnd_slice) != 0) {
       iii <- c(lapply(cnd_slice, paste0, collapse = ", "), recursive = TRUE)
       iii[grep(",", iii)] <- paste0("(", iii[grep(",", iii)], ")")
       rs <- paste0(rs, " if ", paste0(paste0(iii, " in ", names(cnd_slice)),
@@ -690,7 +671,6 @@ get_python_path <- function() {
 }
 
 .get_pyomo_loop_fast2 <- function(tx) {
-  # if (any(grep('', tx))) browser()
   if (any(grep("[$]", tx))) {
     beg <- gsub("[$].*", "", tx)
     end <- substr(tx, nchar(beg) + 2, nchar(tx))
@@ -702,7 +682,6 @@ get_python_path <- function() {
 }
 
 .get.bracket.pyomo <- function(tmp) {
-  # if (any(grep('', tmp))) browser()
   brk0 <- gsub("[^)(]", "", tmp)
   brk <- cumsum(c("(" = 1, ")" = -1)[strsplit(brk0, "")[[1]]])
   k <- seq_along(brk)[brk == 0][1]
@@ -713,7 +692,6 @@ get_python_path <- function() {
 }
 
 .handle.sum.pyomo <- function(tmp) {
-  # if (any(grep('', tmp))) browser()
   hh <- .get.bracket.pyomo(tmp)
   a1 <- sub("^[(]", "", sub("[)]$", "", hh$beg))
   a2 <- a1
@@ -730,20 +708,13 @@ get_python_path <- function() {
   )
 }
 .eqt.to.pyomo <- function(tmp) {
-  # if (any(grep('', tmp))) browser()
   rs <- ""
   while (nchar(tmp) != 0) {
     tmp <- gsub("^[ ]*", "", tmp)
     if (substr(tmp, 1, 4) == "sum(") {
       rs <- paste0(rs, "sum", .handle.sum.pyomo(substr(tmp, 4, nchar(tmp))))
       tmp <- ""
-    # } else if (any(grep("^([.[:digit:]]|[+]|[-]|[ ]|[*])", tmp))) {
-    #   a3 <- gsub("^([.[:digit:]_]|[+]|[-]|[ ]|[*])*", "", tmp)
     # changing pattern to include scientific numbers
-    # } else if (any(grep("^([-+]?\\d+\\.?\\d*([eE][-+]?\\d+)?)", tmp))) {
-    #   a3 <- gsub("^([-+]?\\d+\\.?\\d*([eE][-+]?\\d+)?)*", "", tmp)
-    # the pattern doesn't match:
-    # "+ sum(techp$(mCnsBASN_battery_moderate_0_cn_4(techp) and mTechNew(techp, region, year)), -1 * vTechNewCap(techp, region, year)) =e= 1e-20;"
     } else if (any(grep("^([.[:digit:]_]([eE][-+]?\\d+)?|[+]\\s*|[-]\\s*|[ ]|[*])",
                         tmp))) {
       a3 <- gsub("^([.[:digit:]_]([eE][-+]?\\d+)?|[+]\\s*|[-]\\s*|[ ]|[*])",
@@ -752,9 +723,6 @@ get_python_path <- function() {
       tmp <- a3
     } else if (substr(tmp, 1, 1) %in% c("m", "v", "p")) {
       a1 <- sub("^[[:alnum:]_]*", "", tmp)
-      # if (substr(tmp, 1, 1) == 'p') {
-      #   vrb <- paste0('model.', substr(tmp, 1, nchar(tmp) - nchar(a1)))
-      # }
       vrb <- paste0("model.", substr(tmp, 1, nchar(tmp) - nchar(a1)))
       a2 <- .get.bracket.pyomo(a1)
       arg <- paste0("", paste0(.aliasName(
@@ -792,7 +760,6 @@ get_python_path <- function() {
 
 # equation declaration
 .equation.from.gams.to.pyomo <- function(eqt) {
-  # if (any(grep('', eqt))) browser()
   declaration <- gsub("[.][.].*", "", eqt)
   rs <- paste0("model.", gsub("[$.(].*", "", eqt), " = Constraint(")
 
@@ -830,11 +797,8 @@ get_python_path <- function() {
   rs
 }
 
-# Translate ... to pyomo.jump ####
 # Generate vector .alias_set (from gams to alias) and set_alias
 
-# set_alias <- .set_al0
-# names(set_alias) <- .alias_set
 
 ## Function
 .get_pyomo.jump_loop_fast <- function(set_loop, set_cond, add_cond = NULL) {
@@ -851,14 +815,7 @@ get_python_path <- function() {
   rs
 }
 
-# .fremset <- c("comm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "region", "region")
-# names(.fremset) <- c("acomm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "timeslicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "timeslicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "timeslicen", "groupn", "commn", "cnsn", "src", "dst")
-#
-# .removeEndSet <- function(x) {
-#   .fremset[x]
-# }
 .generate_loop_pyomo.jump <- function(set_num, set_loop) {
-  # if (any(grep('', c(set_loop, set_num)))) browser()
 
   # Consdition split and divet by subset
   while (!is.null(set_loop) && substr(set_loop, 1, 1) == "(" &&
@@ -961,9 +918,6 @@ get_python_path <- function() {
       tmp <- ""
     } else if (any(grep("^([.[:digit:]]|[+]|[-]|[ ]|[*])", tmp))) {
       a3 <- gsub("^([.[:digit:]_]|[+]|[-]|[ ]|[*])*", "", tmp)
-    # } else if (any(grep("^([.[:digit:]_]([eE][-+]?\\d+)?|[+]\\s*|[-]\\s*|[ ]|[*])",
-    #                     tmp))) {
-    #   a3 <- gsub("^([.[:digit:]_]([eE][-+]?\\d+)?|[+]\\s*|[-]\\s*|[ ]|[*])", "", tmp)
       rs <- paste0(rs, substr(tmp, 1, nchar(tmp) - nchar(a3)))
       tmp <- a3
     } else if (substr(tmp, 1, 1) %in% c("m", "v", "p")) {

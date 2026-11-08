@@ -73,14 +73,7 @@ get_gdxlib_path <- function() {
 }
 
 .check_load_gdxlib <- function() {
-  # rw <- require("gdxrrw")
-  # if (!rw) {
-  #   stop('"gdxrrw" package has not been found. ',
-  #        'It is required for writing and reading "*.gdx" files.\n',
-  #        'Check: "https://github.com/GAMS-dev/gdxrrw"')
-  # }
   rw <- requireNamespace("gdxtools", quietly = TRUE)
-  # rw <- require("gdxtools", quietly = TRUE)
   if (!rw) {
     stop('"gdxtools" package has not been found. ',
          'It is required for reading "*.gdx" files.\n',
@@ -106,14 +99,12 @@ get_gdxlib_path <- function() {
          'To install: "https://github.com/lolow/gdxtools".')
   }
   xt <- requireNamespace("gdxtools", quietly = TRUE)
-  # xt <- require("gdxtools", quietly = TRUE)
   .load_gdxlib()
 }
 
 
 # Internal functions to write GAMS model files
 .write_model_GAMS <- function(arg, scen, trim = FALSE) {
-  # if (trim) scen <- fold(scen)
   .write_inc_solver(scen, arg, "option lp = cplex;", ".gms", "cplex")
   if (is.null(scen@status$sparse)) stop("scen@status$sparse not found")
   # GAMS needs a DENSE scenario: it has no native parameter default (an absent
@@ -450,8 +441,6 @@ get_gdxlib_path <- function() {
       for (i in seq_len(ncol(dtt) - 2) + 1) {
         ret <- paste0(ret, '", "', dtt[[i]])
       }
-      # paste0(ret, '") = ', dtt[, ncol(dtt)], ";")
-      # paste0(ret, '") = ', select(dtt, last_col()), ";")
       paste0(ret, '") = ', dtt[[ncol(dtt)]], ";")
     }
   }
@@ -507,7 +496,6 @@ get_gdxlib_path <- function() {
         return(c(fn, gen_gg(name, dtt[dtt$value != def, , drop = FALSE]))) #
       }
     }
-    # print(dtt)
     if (nrow(dtt) == 0 || all(dtt$value %in% c(0, Inf))) { #
       if (ncol(dtt) > 1) {
         return(paste0(
@@ -561,15 +549,12 @@ get_gdxlib_path <- function() {
   } else if (obj@type == "numpar") {
     return(as_numpar(obj@data, obj@name, obj@defVal, include.def))
   } else if (obj@type == "bounds") {
-    # cat(obj@name, "\n")
     return(c(
       as_numpar(
-        # obj@data[obj@data$type == "lo", 1 - ncol(obj@data), drop = FALSE],
         select(filter(obj@data, type == "lo"), -type),
         paste0(obj@name, "Lo"), obj@defVal[1], include.def
       ),
       as_numpar(
-        # obj@data[obj@data$type == "up", 1 - ncol(obj@data), drop = FALSE],
         select(filter(obj@data, type == "up"), -type),
         paste0(obj@name, "Up"), obj@defVal[2], include.def
       )
@@ -596,11 +581,9 @@ get_gdxlib_path <- function() {
     } else {
       prm <- .get_data_slot(scen@modInp@parameters[[i]])
       gx[[paste0(i, "Lo")]] <- all_factor(
-        # prm[prm$type == "lo", colnames(prm) != "type", drop = FALSE]
         select(filter(prm, type == "lo"), -type)
       )
       gx[[paste0(i, "Up")]] <- all_factor(
-        # prm[prm$type == "up", colnames(prm) != "type", drop = FALSE]
         select(filter(prm, type == "up"), -type)
       )
     }
@@ -637,7 +620,6 @@ get_gdxlib_path <- function() {
   df2val <- function(dd) {
     if (nrow(dd) > 0) {
       for (j in domains[v]) {
-        # dd[, j] <- as.numeric(dd[, j])
         dd[[j]] <- as.numeric(dd[[j]])
       }
       dd <- as.matrix(dd)
@@ -654,7 +636,6 @@ get_gdxlib_path <- function() {
   decl <- if (is.null(gdx_domains)) domains[v] else gdx_domains
   if (nr > 0) {
     for (j in domains[v]) {
-      # df[, j] <- factor(df[, j]) # add levels from sets!
       df[[j]] <- factor(df[[j]]) # add levels from sets!
     }
     uels <- list(
@@ -662,7 +643,6 @@ get_gdxlib_path <- function() {
       type = type,
       dim = nc,
       domains = decl,
-      # uels = lapply(domains[v], function(x) levels(df[, x])),
       uels = lapply(domains[v], function(x) levels(df[[x]])),
       val = df2val(df),
       form = "sparse"
@@ -683,7 +663,6 @@ get_gdxlib_path <- function() {
 
 .write_gdx_list <- function(dat, gdxName = "data.gdx") {
   # the function exports named list of sets and parameters to GDX file
-  # stopifnot("gdxrrw" %in% rownames(installed.packages()))
   .check_load_gdxtools()
   .cat2(" data.gdx ")
   nms <- names(dat)
@@ -700,8 +679,19 @@ get_gdxlib_path <- function() {
     }
     x <- c(x, list(.df2uels(data.frame(dat[[i]]), i, gdx_domains = .dom)))
   }
-  # gdxrrw::wgdx(gdxName = gdxName, x, squeeze = FALSE)
-  # !!!ToDo: add check for NAs
+  # GAMS has no NA: an NA value would be written as a number and the solve
+  # would use it silently. Nothing upstream should produce one (`.drop_na_value()`
+  # strips them and the GAMS path requires a dense scenario), so this is a
+  # tripwire for an upstream defect, named by symbol.
+  .na_sym <- names(dat)[vapply(dat, function(d) {
+    v <- if (is.data.frame(d)) d[["value"]] else d
+    !is.null(v) && anyNA(v)
+  }, logical(1))]
+  if (length(.na_sym) > 0) {
+    stop("NA values in GDX symbol(s): ", paste(.na_sym, collapse = ", "),
+         ". GAMS has no NA -- these would be written as numbers.",
+         call. = FALSE)
+  }
   .gdx("wgdx")(gdxName = gdxName, x, squeeze = FALSE)
   .cat2(wipe, sep = "")
   .cat2(rep(" ", max_length + 3), sep = "")
@@ -732,26 +722,20 @@ get_gdxlib_path <- function() {
   tStart <- Sys.time()
   if (file.exists(sqlFile)) file.remove(sqlFile)
   con <- DBI::dbConnect(RSQLite::SQLite(), sqlFile)
-  # DBI::dbListTables(con)
   nms <- names(dat)
   max_length <- max(nchar(nms))
   wipe <- ""
   for (i in nms) {
     .cat2(wipe, "(", i, ")", rep(" ", max_length - nchar(i) + 1), sep = "")
     wipe <- paste0(rep("\b", max_length + 3), collapse = "")
-    # cat(wipe, i, rep(" ", 10), sep = "")
-    # wipe <- paste0(rep("\b", nchar(i) + 10), collapse = "")
     DBI::dbWriteTable(con, i, dat[[i]], overwrite = TRUE)
   }
   DBI::dbDisconnect(con)
-  # finf <- file.desc(sqlFile)
-  # format(finf["size"])
   .cat2(wipe, sep = "")
   .cat2(rep(" ", max_length + 3), sep = "")
   .cat2(rep(" ", max_length + 3), sep = "")
   .cat2(wipe, wipe, "\b, ", format(object.size(file.size(sqlFile)), "auto"),
       ", ", sep = "")
-  # cat(format(round(Sys.time() - tStart), 1))
 }
 
 .write_gams_project_file <- function(solver.dir) {
@@ -763,8 +747,6 @@ get_gdxlib_path <- function() {
     "FILE1=energyRt.lst",
     "FILE2=input/data.gdx",
     "FILE2=output/output.gdx",
-    # gsub('[/][/]*', '\\\\', paste('FILE0=', tmp.dir, '/energyRt.gms', sep = '')),
-    # gsub('[/][/]*', '\\\\', paste('FILE1=', tmp.dir, '/energyRt.lst', sep = '')),
     "", "MAXIM=1",
     "TOP=50", "LEFT=50", "HEIGHT=400", "WIDTH=400", ""
   ), sep = "\n", file = fn)

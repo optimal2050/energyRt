@@ -18,8 +18,6 @@
 # and says so, which is all the user needs; a representative-period calendar
 # supplies weights that cannot be derived from `share` at all. Only
 # non-finite / non-positive weights are refused.
-#
-# @covers .check_timetable .complete_calendar
 # =========================================================================== #
 
 cw_tt <- function(n = 4, year_fraction = 1) {

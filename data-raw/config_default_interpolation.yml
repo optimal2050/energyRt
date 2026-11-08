@@ -1,5 +1,4 @@
 # temproary (manually created) file to store the default interpolation configuration
-# ToDO: create a function to generate this file from modInp.yml
 act2ainp: back.inter.forth
 act2aout: back.inter.forth
 af.lo: back.inter.forth

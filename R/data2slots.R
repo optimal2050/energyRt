@@ -7,6 +7,21 @@
 # break.
 .slice_compat_env <- new.env(parent = emptyenv())
 
+# Cached empty instance of a class, read for the SCHEMA of its data.frame slots
+# (column names and types). Prototypes are empty, so one per class is cheap.
+.proto_env <- new.env(parent = emptyenv())
+
+#' @noRd
+.proto <- function(class_name) {
+  k <- as.character(class_name)[1]
+  p <- .proto_env[[k]]
+  if (is.null(p)) {
+    p <- new(k)
+    .proto_env[[k]] <- p
+  }
+  p
+}
+
 #' @noRd
 .rename_slice_compat <- function(nms, where) {
   i <- !is.na(nms) & nms == "slice"
@@ -120,7 +135,6 @@
     if (anyDuplicated(names(arg)) != 0) {
       stop("Duplicated parameters ", names(arg)[anyDuplicated(names(arg))])
     }
-    # if (any(sapply(arg, is.null))) stop('There is NULL argument')
     arg <- arg[!sapply(arg, is.null)]
     if (any(!(names(arg) %in% names(slots)))) {
       # check consistency of the data in `...` with the object slots.
@@ -151,8 +165,17 @@
             colnames(dat) <- .rename_slice_compat(colnames(dat),
                                                   paste0(x, "@", s))
           }
+          # The CLASS schema, not the incoming object's: an object serialised
+          # before a column was added carries the old column set, and a valid
+          # value for the new one would read as unknown. Missing schema columns
+          # are materialised here, which upgrades such an object in passing.
+          .ref <- colnames(slot(.proto(class_name), s))
+          for (cc in setdiff(.ref, colnames(slot(obj, s)))) {
+            slot(obj, s)[[cc]] <-
+              rep(slot(.proto(class_name), s)[[cc]][NA_integer_],
+                  length.out = nrow(slot(obj, s)))
+          }
           if (any(!(colnames(dat) %in% colnames(slot(obj, s))))) {
-            # !!! ToDo: take columns from "new()" or from the class
             # Check column names
             .bad <- colnames(dat)[!(colnames(dat) %in% colnames(slot(obj, s)))]
             if (s %in% .open_slots[[as.character(class_name)[1]]]) {
@@ -171,7 +194,7 @@
             nn <- 1:nrow(dat)
             slot(obj, s)[nn, ] <- NA
             for (i in names(dat)) {
-              # fill-in the data by columns !!! Check ANNUAL/HOUR
+              # fill in the data column by column
               if (is.factor(slot(obj, s)[, i, drop = FALSE]) ||
                   is.factor(dat[[i]])) {
                 # coerce factors to characters

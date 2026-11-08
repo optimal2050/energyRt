@@ -234,7 +234,6 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
   arg <- .solver_dir_aliases(list(...))
   read_result_time <- proc.time()[3]
   arg <- .resolve_verbose_arg(arg)
-  # if (is.null(arg$readOutputFunction)) arg$readOutputFunction <- read.csv
   if (is.null(arg$readOutputFunction)) {
     arg$readOutputFunction <- data.table::fread
   }
@@ -449,13 +448,10 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
     invisible(NULL)
   }
   if (grepl("^gdx$", scen@settings@solver$import_format, ignore.case = TRUE)) {
-    # .check_load_gdxlib()
     .check_load_gdxtools()
     # Read variables gdx
     gd <- .gdx("gdx")(paste(arg$solver.dir, "/output/output.gdx", sep = ""))
     for (i in c(vrb_list, vrb_list2)) {
-      # cat(i, "\n")
-      # if (i == "vOutTot") browser() # debug
       vr <- try(gd[i])
       if (inherits(vr, "try-error")) {
         .say(paste0("Error reading ", i, " from output.gdx"))
@@ -478,13 +474,10 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
           # Save as.factor with existing levels
           if (sname != "year") {
             if (!is.null(scen@modInp@parameters[[sname]])) {
-              # !!! move to the top before aliases
               set_levels <- get_data_slot(scen@modInp@parameters[[sname]])[[sname]]
             } else {
               set_levels <- sort(rr$set_vec[[sname]])
             }
-            # set_levels <- get_data_slot(scen@modInp@parameters[[sname]])[[sname]]
-            # vr[[j]] <- factor(vr[[j]], levels = sort(rr$set_vec[[sname]]))
             vr[[j]] <- factor(vr[[j]], levels = set_levels)
           } else {
             vr[[j]] <- as.integer(vr[[j]])
@@ -777,13 +770,9 @@ read_solution <- function(object, run = NULL, ..., ondisk = !isInMemory(object))
 #' @export
 setMethod("read", "scenario", read_solution)
 
-# read_solution <- read.scenario
-# read.scenario <- function(scen, ...) read_solution(scen, ...)
-# .S3method("read", "scenario", read_solution)
 
-# `.paste_base_result2new()` (myopic / rolling-horizon result stitching) moved to
-# `drafts/paste_base_result2new.R`: it reads `scen@misc$data.before`, which is
-# assigned nowhere in the package, so its call site never fired. See the file for
-# what reviving it would take.
+# `.paste_base_result2new()` (myopic / rolling-horizon result stitching) was
+# retired: it reads `scen@misc$data.before`, which is assigned nowhere in the
+# package, so its call site never fired.
 
 #

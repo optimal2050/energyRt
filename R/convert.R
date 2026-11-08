@@ -128,12 +128,13 @@ setMethod(
         # stop("First unit must be standart")
       }
       if (alias[1] != "") {
-        for (i in 1:length(alias)) { #ToDo: rewrite
-          convert_data[[database]][[type]] <- array(
-            c(coef, SI_prefixes, coef, SI_prefixes),
-            dim = c(2,2),
-            dimnames = list(c("coef", "SI_prefixes"), c(unit, alias[i])))
-        }
+        # one column per name in one array: the loop this replaces rebuilt the
+        # element on every pass, so only the last alias survived
+        nms <- c(unit, alias)
+        convert_data[[database]][[type]] <- array(
+          rep(c(coef, SI_prefixes), length(nms)),
+          dim = c(2, length(nms)),
+          dimnames = list(c("coef", "SI_prefixes"), nms))
       } else {
         convert_data[[database]][[type]] <- array(c(
           coef,
@@ -156,16 +157,15 @@ setMethod(
         convert_data[[database]][[type]]["coef", alias] <- coef
       }
     } else if (alias[1] != "") {
-      for (i in 1:length(alias)) {
-        convert_data[[database]][[type]] <- array(
-          c(convert_data[[database]][[type]], coef, SI_prefixes,
-            coef, SI_prefixes),
-          dim = c(2, 2 + dim(convert_data[[database]][[type]])[2]),
-          dimnames = list(
-            c("coef", "SI_prefixes"),
-            c(dimnames(convert_data[[database]][[type]])[[2]], unit, alias[i]))
-        )
-      }
+      # `unit` once plus every alias: the loop this replaces appended `unit`
+      # again on each pass, which is what the de-duplication below cleaned up
+      cur <- convert_data[[database]][[type]]
+      nms <- c(unit, alias)
+      convert_data[[database]][[type]] <- array(
+        c(cur, rep(c(coef, SI_prefixes), length(nms))),
+        dim = c(2, dim(cur)[2] + length(nms)),
+        dimnames = list(c("coef", "SI_prefixes"), c(colnames(cur), nms))
+      )
     } else {
       convert_data[[database]][[type]] <- array(
         c(
@@ -179,8 +179,6 @@ setMethod(
         ))
       )
     }
-    jj <- duplicated(colnames(convert_data[[database]][[type]])) #!!! quick fix
-    convert_data[[database]][[type]] <- convert_data[[database]][[type]][,!jj]
     assign("convert_data", convert_data, globalenv())
   }
 )

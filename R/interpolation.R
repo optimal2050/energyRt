@@ -272,7 +272,6 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # (handy to A/B test template versions). A named list mapping a block name
   # (GLPK, GAMS, JuMP, PYOMOConcrete, ...) to either a script-file path or a
   # character vector of lines. See the override applied after `.modelCode` below.
-  # object - model
   # `sparse` is the single storage knob: TRUE drops `value==defVal` rows (and
   # folds); FALSE materialises defVal over each parameter's domain (and unfolds).
   # `drop_default` is the internal strip-component of `sparse`, not user-facing.
@@ -327,7 +326,6 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
     # scen@desc <- desc
   }
 
-  # !!! ... process arguments, add settings, ...
   args <- list(...)
   if (!is.null(.scen_settings) &&
       !any(vapply(args, function(x) inherits(x, "settings"), logical(1)))) {
@@ -355,7 +353,6 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   mi_path <- NULL
   if (ondisk) {
     scen <- mark_ondisk(scen)
-    # (!!! model is assumed to be in memory yet -- address later)
     if (dir.exists(scen@path)) {
       if (!overwrite) {
         stop(
@@ -380,7 +377,6 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
     scen <- mark_inMemory(scen)
   }
   .interp_banner(scen, sparse, prune, fold_dims, validate, ondisk, verbose)
-  # isOnDisk(scen)
   # Parameter path resolver. In-memory scenarios (`ondisk = FALSE`, `mi_path`
   # NULL) must return NULL so `d2p` keeps parameters in memory rather than
   # marking them on-disk with a bare (non-existent) path. The `parameters`
@@ -394,7 +390,6 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   }
 
 
-  # class(object)
   scen@model <- object
 
   # import settings from object@config
@@ -545,9 +540,28 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
          ", and drop the config/settings object passed to `interpolate_model()`.")
   }
 
-  # update individual settings slots from named args -- !!! ToDo (legacy parity:
-  # discount, region, discountFirstYear, optimizeRetirement, defValue,
-  # interpolation, debug). Pass a full settings/config object for now.
+  # Named SETTINGS slots given through `...`, which the class-dispatched
+  # branches above cannot catch (`discount = 0.05`, `optimizeRetirement = TRUE`,
+  # ...). The legacy `interpolate()` assigned these one by one; here they go
+  # through `.data2slots()` so they are typed and validated like any slot, with
+  # `.discount_args()` expanding `discount` into its wacc/sdr rows exactly as
+  # `update(config)` does. Excluded: the slots the branches above own
+  # (calendar / geoscale / horizon / solver), the scenario's own name and desc,
+  # `variant_prefix` (refused just above), and the retired `yearFraction`.
+  .set_slots <- setdiff(
+    names(getSlots("settings")),
+    c("name", "desc", "calendar", "geoscale", "horizon", "solver",
+      "sourceCode", "subset", "misc", "variant_prefix", "yearFraction")
+  )
+  ii <- names(args) %in% .set_slots
+  if (any(ii)) {
+    scen@settings <- do.call(
+      .data2slots,
+      c(list("settings", scen@settings), .discount_args(args[ii]),
+        list(warn_nodata = FALSE))
+    )
+    args <- args[!ii]
+  }
 
   # warn on any unrecognized leftover `...` argument (typo / misrouted control)
   if (length(args) > 0L) {
@@ -703,10 +717,6 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
     }
   }
 
-  # !!! ToDo:
-  # ... subset timeslices and regions
-  # ...
-
   # process model inputs
   mi <- new("modInp")
   if (ondisk) {
@@ -726,10 +736,6 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # `.config_to_settings()`). Catalog values from `.modInp` stay authoritative
   # unless the user CHANGED a column relative to the baked baseline.
   scen <- .apply_settings_param_overrides(scen)
-
-
-  # slotNames(mi)
-  # names(mi@parameters)
 
   .interp_step(verbose, "collecting sets: object names")
   sets_from_settings <- c("region", "year", "timeslice") # from settings
@@ -891,7 +897,6 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
                                     col_names = c("process", "class")) |>
     arrange(class, process) |> as.data.table()
 
-  # !!! ToDo: adjust for subsets of regions and timeslices
   .interp_step(verbose, "collecting sets: timeframes")
   scen@modInp@sets[["comm_timeframe"]] <- map_comm_timeframe(scen)
   scen@modInp@sets[["process_timeframe"]] <-
@@ -927,37 +932,20 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   scen@modInp@sets$tech_input_comm <- get_process_inputs(scen, classes = "technology")
   scen@modInp@sets$tech_output_comm <- get_process_outputs(scen, classes = "technology")
 
-  ## mProcessComm ####
-  # map processes to commodities, both inputs and outputs
-  # Note: does not include auxiliary commodities
-  # Note: main activity commodities cannot be inputs and outputs at the same time.
-  # !!! ToDo: add this mapping for futher use
-
-  ## mProcessAuxComm ####
-  # map auxiliary commodities to processes
-  # Note: auxiliary commodities can be both inputs and outputs at the same time.
-  # !!! ToDo: add this mapping for further use
-
-  ## ToDo: mProcessRegion ####
-  # map processes to regions !!! add mapping parameter?
+  ## mProcessRegion ####
+  # map processes to regions
   .interp_step(verbose, "collecting sets: process regions")
   scen@modInp@sets$process_region <- get_process_region(scen)
 
   # Build the membership maps then the mCommReg closure from the `*_comm` /
   # process sets above (R/mapping-builders.R, R/mapping-builders.R). The closure also
   # populates the primary/secondary/comm_region sets and validates commodity
-  # reachability. Formerly built inline here (archived: drafts/legacy-mapping/).
+  # reachability. Formerly built inline here.
   .interp_step(verbose, "building maps: membership + closure")
   scen <- build_mappings(scen, fmp = fmp, recipes = c("membership", "closure"))
   # on a base with the same closure, its maps keyed by a process are reused
   .b2 <- if (!is.null(.reuse)) .b2_start(scen, .reuse)
   if (!is.null(.b2)) scen@misc$base_maps <- "reused"
-
-  ## mWeatherRegion ####
-  # map weather to regions !!! ToDo: finish
-  # scen@modInp@sets$weather_region <- get_weather_region(scen)
-
-  ## mWeatherTimeframe ####
 
   # Investment and stock windows ####
   .interp_step(verbose, "collecting sets: invest/stock windows")
@@ -967,17 +955,10 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   scen@modInp@sets$process_stock_window <- get_process_stock_window(scen)
   scen@modInp@sets$process_stock_year <- get_process_stock_years(scen)
 
-  ## mProcessYear (!!! ToDo: add) ####
+  ## mProcessYear ####
   ### process availability over years by region
   scen@modInp@sets$process_years <- get_process_years(scen)
 
-  # scen@modInp@sets$process_years <- rbind(
-  #   scen@modInp@sets$process_invest_year,
-  #   scen@modInp@sets$process_stock_year
-  # ) |>
-  #   unique() |>
-  #   arrange(process, year) |>
-  #   as.data.table()
 
   #============================================================================#
   # Settings-derived parameters ####
@@ -999,10 +980,6 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   .interp_step(verbose, "building maps: calendar + lifespan")
   scen <- build_mappings(scen, fmp = fmp,
                          recipes = c("calendar", "lifespan"))
-
-  # Log/message meta-data of the scenario ####
-  # !!! ToDo: log/message
-  # number of regions, commodities, processes, years, timeslices
 
   #============================================================================#
   # Parameters from model objects ####
@@ -1360,17 +1337,6 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
 
   #============================================================================#
   # Return scenario object ####
-
-
-  # process objects one-by-one, applying ob2mi method
-  # saving parameters to the modInp object or directory
-  # cmd <- topia@model@data$topia_repository@data$COA
-  # ondisk
-
-  # extra_params <- list()
-  # extra_params$comm_timeframe <- .get_commodity_timeframe(scen)
-
-  # commodity_timeslice_map_obj <- .get_map_commodity_timeslice_map_obj(scen@model)
 
   # Finalise the total user-cost equation. Accumulated per-cost contributions
   # (if any) are wrapped into the `eqTotalUserCosts` definition; with no user
@@ -1921,48 +1887,6 @@ complete_set <- function(
 # replaced with the full set of elements for each unique combination of
 # other columns.
 
-
-
-# expand_dim <- function(
-#     dat, # data.frame
-#     ...
-#     # dim_name, # name of the dimension to expand
-#     # full_set, # full set of elements
-#     # par_name = NULL # name of the parameter to expand
-# ) {
-#   # browser()
-#   # dat - data frame with columns of sets and parameters
-#   # dim_name - name of the dimension to expand
-#   # full_set - full set of elements
-#   # par_name - name of the parameter to expand
-#
-#   if (is.null(full_set)) {
-#     stop("full_set is required")
-#   }
-#   if (is.null(dim_name)) {
-#     stop("dim_name is required")
-#   }
-#   if (is.null(dat)) {
-#     stop("dat is required")
-#   }
-#
-#   # check if dim_name is in dat
-#   if (!dim_name %in% names(dat)) {
-#     stop("dim_name not found in dat")
-#   }
-#
-#   # check if any NAs in dim_name (return if no NAs)
-#   if (!any(is.na(dat[[dim_name]]))) {
-#     return(dat)
-#   }
-#
-#   # match dat-columns with full_set
-#   complete(dat, ...)
-#
-#
-#
-# }
-
 #' Expand rows with NA values in set columns
 #'
 #' @description Replaces `NA` values in a data frame column with all possible
@@ -2057,9 +1981,9 @@ expand_na_years <- function(data, all_years, group_cols = NULL) {
 #' @keywords internal
 expand_sets <- function(
     data,
-    full_sets, # full_sets
-    name_col = NULL, # name_col / index_col
-    value_col = NULL, # param_col
+    full_sets,
+    name_col = NULL,
+    value_col = NULL,
     skip_na_dims = FALSE,
     add_missing_dims = !skip_na_dims,
     unmatched_action = c("warning", "drop")
@@ -2111,7 +2035,7 @@ expand_sets <- function(
     stop("No matching columns found in data and full_sets")
   }
 
-  #!!! check if there are duplicated values for the same key_cols with NAs
+  # duplicated values for the same key_cols, with NAs
   amb_check <- data |> select(all_of(key_cols))
   ii <- duplicated(amb_check) | duplicated(amb_check, fromLast = TRUE)
   duplicated_rows <- data[ii, ]
@@ -2205,21 +2129,23 @@ expand_sets <- function(
     non_na_keys <- key_cols[jj]
     na_keys <- key_cols[!jj]
 
+    # Narrow by `year` first: cheap, and the `semi_join()` below filters on
+    # every non-NA key anyway (year included), so this only shrinks its input.
     if (!is.null(row[["year"]]) && !is.na(row[["year"]])) {
-      # !!! ToDo: add other sets?
       proc_year <- full_sets |> filter(year == row[["year"]])
     } else {
       proc_year <- full_sets
     }
 
     if (length(non_na_keys) == 0) {
-      # no non-NA columns, expand all rows
-      return(
-        cross_join(
-          proc_year,
-          select(row, -all_of(key_cols))
-        )
+      # every key is NA: the row expands over the whole domain. Collected like
+      # any other row -- a `return()` here (left from the `lapply()` this loop
+      # replaced) discarded every other row's expansion.
+      ll[[length(ll) + 1]] <- cross_join(
+        proc_year,
+        select(row, -all_of(key_cols))
       )
+      next
     }
 
     # continue with at least one non-NA column in the row
@@ -2292,16 +2218,11 @@ interpolate_numpar <- function(
   }
 
   if ("year" %in% set_cols) {
-    # warning("set_cols should not include 'year' - dropping it")
     set_cols <- set_cols[set_cols != "year"]
   }
 
   if (is.null(set_cols)) {
     set_cols <- names(data)[!(names(data) %in% c(value_col, "year"))]
-    # drop numeric columns except 'vintage'
-    # jj <- sapply(select(data, all_of(set_cols)), is.numeric)
-    # jj <- jj & !(set_cols %in% c("vintage", "year"))
-    # set_cols <- set_cols[!jj]
   }
 
   # Fast path: nothing missing => nothing to interpolate. Skips the whole
@@ -2371,120 +2292,6 @@ interpolate_numpar <- function(
   return(ll)
 
 }
-
-#' Interpolate lower and upper bounds
-#'
-#' @param data data frame with columns of sets and the parameter to interpolate
-#' @param value_col name of the column with the parameter to interpolate
-#' @param set_cols optional character vector of set columns to group by, if NULL,
-#' @param int_rule interpolation rule, default is "inter" (linear interpolation
-#' @param def_val default value for the parameter, if not provided, NA values
-#' will be returned for missing years not covered by the interpolation rule.
-#' @param value_sfx suffix for the value column, default is c(".lo", ".up", ".fx")
-#'
-#' @returns data frame with interpolated values for the parameter
-#' @keywords internal
-interpolate_bounds <- function(
-    data,
-    value_col,
-    set_cols,
-    int_rule = "mid", # !!! ToDo: add separate rules for lo, up, fx
-    def_val = NULL,
-    value_sfx = c(".lo", ".up", ".fx")
-) {
-  if (nrow(data) == 0) {
-    return(data)
-  }
-  if (is.null(data[["year"]])) {
-    # not a time series
-    return(data)
-  }
-  bound_cols <- paste0(value_col, value_sfx)
-  # check if bound_cols are in data
-  ii <- bound_cols %in% names(data)
-  if (!any(ii)) {
-    stop("Parameter columns not found in data:\n",
-         paste(bound_cols[!ii], collapse = ", "))
-  } else if (sum(ii) < length(bound_cols)) {
-    warning("Some parameter columns not found in data:\n",
-            paste(bound_cols[!ii], collapse = ", "))
-  }
-  bound_cols <- bound_cols[ii]
-
-  d <- data |>
-    select(all_of(c(set_cols, bound_cols))) |>
-    unique() |>
-    force_cols_classes()
-
-
-  # check for conflicts in data
-  lo <- !is.na(d[[bound_cols[1]]])
-  up <- !is.na(d[[bound_cols[2]]])
-  fx <- !is.na(d[[bound_cols[3]]])
-
-  # fx vs lo/up
-  if (any(fx)) {
-    if (any(!is.na(d[[bound_cols[1]]][fx]))) {
-      stop("Both lo and fx values are set for the same parameter:\n",
-           paste(bound_cols[1], bound_cols[3], collapse = ", "))
-    }
-    if (any(!is.na(data[[bound_cols[2]]][fx]))) {
-      stop("Both up and fx values are set for the same parameter:\n",
-           paste(bound_cols[2], bound_cols[3], collapse = ", "))
-    }
-  }
-
-  # lo vs up
-  if (any(lo) && any(up)) {
-    if (isTRUE(any(d[[bound_cols[1]]][lo] > d[[bound_cols[2]]][lo]) ||
-        any(d[[bound_cols[1]]][up] > d[[bound_cols[2]]][up]))) {
-      stop("lo and up values are not consistent for the same parameter:\n",
-           paste(bound_cols[1], bound_cols[2], collapse = ", "))
-    }
-  }
-
-
-  # interpolate every bound separately
-  d <- purrr::reduce(bound_cols, function(data, col) {
-    interpolate_numpar(
-      data = data,
-      value_col = col,
-      set_cols = set_cols,
-      int_rule = int_rule,
-      def_val = def_val
-    )
-  }, .init = d)
-
-  # combine interpolated values from bounds
-  # Fold fixed bounds into equal lower/upper bounds (fx => lo == up) so the
-  # fixed value survives the downstream drop of the `.fx` column, and enforce
-  # lo <= up at the interpolated points.
-  lo_col <- paste0(value_col, ".lo")
-  up_col <- paste0(value_col, ".up")
-  fx_col <- paste0(value_col, ".fx")
-  if (fx_col %in% names(d)) {
-    isfx <- !is.na(d[[fx_col]])
-    if (any(isfx)) {
-      d[[lo_col]][isfx] <- d[[fx_col]][isfx]
-      d[[up_col]][isfx] <- d[[fx_col]][isfx]
-    }
-  }
-  if (all(c(lo_col, up_col) %in% names(d))) {
-    both <- !is.na(d[[lo_col]]) & !is.na(d[[up_col]])
-    if (any(both)) {
-      lo_v <- d[[lo_col]][both]
-      up_v <- d[[up_col]][both]
-      d[[lo_col]][both] <- pmin(lo_v, up_v)
-      d[[up_col]][both] <- pmax(lo_v, up_v)
-    }
-  }
-  d <- force_cols_classes(d)
-
-  return(d)
-
-}
-
-
 
 
 # =========================================================================== #
@@ -3568,89 +3375,6 @@ Declare one bound per key.
 "ANYTIMESLICE"
 "ANYVINTAGE"
 
-# Expand sets for parameter
-#
-# Expand NA sets in a data frame where parameter is not NA
-# @param x data frame with columns for sets and parameters
-# @param param name of the parameter to expand sets for
-# @param full_sets list of full sets to expand
-# @param filter_sets list of sets with subset elements to filter
-# @param ... additional arguments
-# @returns data frame with expanded sets for the `param` parameter.
-# The parameter value(s) are repeated for each NA element of the
-# combination of sets.
-# @export
-# .expand_sets <- function(x,
-#                         param,
-#                         process_name,
-#                         full_sets,
-#                         filter_sets = c("region", "year", "timeslice"),
-#                         ...) {
-#   browser() # !!! ToDo: finish
-#   if (F) {
-#     # debug
-#     ECOA <- scen@model@data$topia_repository@data$ECOA
-#     # x <- ECOA@ceff; param <- "cinp2use"
-#     x <- ECOA@capacity; param <- "stock"
-#     process_name <- "ECOA"
-#     full_sets <- scen@modInp@sets
-#     # filter_sets:
-#     # region: create from ECOA@region,
-#     # year: create from lifespan of ECOA
-#     # timeslice: create from ECOA@timeframe
-#   }
-#
-#   stopifnot(is.character(param))
-#   stopifnot(length(param) == 1)
-#   stopifnot(param %in% names(x))
-#
-#   x <- x |>
-#     select(any_of(c(filter_sets, param))) |>
-#     filter(!is.na(.data[[param]])) |>
-#     as.data.table()
-#
-#   # expand process' years
-#   if ("year" %in% names(x) && any(is.na(x$year))) {
-#     pr_years <- full_sets$process_years |>
-#       filter(process == process_name)
-#       # select(year, year_full) |>
-#       # unique()
-#
-#     # x_na <- |>
-#     x |> filter(is.na(year))
-#
-#
-#   }
-#
-#
-#   # expand process' regions
-#   if ("region" %in% names(x) && any(is.na(x$region))) {
-#     # x_na <- |>
-#       x |>
-#       filter(is.na(region)) |>
-#       select(-region) |>
-#       # full_sets$process_region[[]]
-#
-#
-#       left_join(
-#         named_list_to_df(, col_names = c("region", "region_full")),
-#         by = "region"
-#       ) |>
-#       select(-region) |>
-#       rename(region = region_full)
-#   }
-#
-#
-#
-#
-#
-#
-#   # filter out
-#
-#   # identify sets for the parameter
-#
-#   # check if there are NA elements in the parameter
-# }
 
 #' Operational timeframe of a commodities
 #'
@@ -3748,14 +3472,10 @@ get_process_timeframe <- function(object, process = NULL,
       # "export", "import", "demand", "supply"
     ),
     func = function(x) {
-      # ll <- list(name = x@name, value = character())
       ll <- list()
       ll[[x@name]] <- character()
       if (.hasSlot(x, "timeframe")) {
-        # ll$value <- x@timeframe
         ll[[x@name]] <- x@timeframe
-        # } else {
-        #   ll$value <- character()
       }
       ll
     }
@@ -3842,7 +3562,6 @@ get_process_timeframe <- function(object, process = NULL,
     check_timeframe <- check_timeframe |>
       group_by(process) |>
       mutate(
-        # timeframe_min = min(timeframe_rank)
         timeframe_max_pro = max(timeframe_rank_process),
         timeframe_max_comm = max(timeframe_rank_comm)
       ) |>
@@ -4016,7 +3735,6 @@ get_process_inputs <- function(object, process = NULL, classes = NULL) {
     scen = object,
     classes = classes,
     func = function(x) {
-      # ll <- list(name = x@name, value = character())
       ll <- list()
       ll[[x@name]] <- character()
       # Dispatch on CONTENT, not on slot existence. `storage` now HAS an
@@ -4099,7 +3817,6 @@ get_process_outputs <- function(object, process = NULL, classes = NULL) {
     scen = object,
     classes = classes,
     func = function(x) {
-      # ll <- list(name = x@name, value = character())
       ll <- list()
       ll[[x@name]] <- character()
       # Content, not slot existence -- see get_process_inputs().
@@ -4109,13 +3826,11 @@ get_process_outputs <- function(object, process = NULL, classes = NULL) {
           as.character() |>
           unique()
       } else if (.hasSlot(x, "commodity")) {
-        # ll$value <- x@commodity |> as.character() |> unique()
         ll[[x@name]] <- x@commodity |>
           as.character() |>
           unique()
       } else {
         warning("No outputs found for process ", x@name)
-        # ll$value <- character()
         ll[[x@name]] <- character()
       }
       ll
@@ -4225,19 +3940,14 @@ get_process_aux <- function(object, process = NULL, classes = NULL) {
     scen = object,
     classes = classes,
     func = function(x) {
-      # ll <- list(name = x@name, value = character())
       ll <- list()
       ll[[x@name]] <- character()
       if (.hasSlot(x, "aux")) {
-        # ll$value <- x@aux$acomm |> as.character() |> unique()
         ll[[x@name]] <- x@aux$acomm |>
           as.character() |>
           unique()
-        # } else if (.hasSlot(x, "commodity")) {
-        #   ll$value <- x@commodity |> as.character() |> unique()
       } else {
         warning("No aux slot found for process ", x@name)
-        # ll$value <- character()
         ll[[x@name]] <- character()
       }
       ll
@@ -4355,7 +4065,6 @@ get_process_comm <- function(object, process = NULL, classes = NULL,
     as.data.table()
 
   # coerce to list
-  # unstack(dd, value ~ name)
   split(dd$value, dd$name)
 }
 
@@ -4718,12 +4427,10 @@ get_process_invest_window <- function(object, process = NULL, classes = NULL) {
 get_process_invest_years <- function(scen, process = NULL, classes = NULL) {
   # match model years with investment window
   if (is.null(scen@modInp@sets$process_invest_window)) {
-    # log/message
     warning("Investment window is not defined. Running `get_process_invest_window()`.")
     scen@modInp@sets$process_invest_window <- get_process_invest_window(scen)
   }
   if (is.null(scen@modInp@sets$process)) {
-    # log/message
     warning("No process set `scen@modInp@sets$process` found.",
             "Hint: either the model has not processes, or ",
             "the set was no created. Check `scen@modInp@sets$process`"
@@ -4870,20 +4577,34 @@ get_process_stock_window <- function(scen, process = NULL, classes = NULL) {
     unique() |>
     arrange(process, region)
 
-  # !!!??? filter for process' regions
+  # A window region must be one the process operates in. The NA rows above are
+  # expanded FROM `process_region`, but an explicitly declared region was kept
+  # as given -- and `.lifespan_window_map()` (R/mapping-builders.R) builds
+  # mTechNew / span maps from this table's `region` column directly, so a stray
+  # region created capacity variables for a process that does not exist there.
+  .preg <- scen@modInp@sets$process_region
+  if (!is.null(.preg) && length(.preg) > 0 && nrow(ll) > 0) {
+    .preg <- named_list_to_df(.preg, col_names = c("process", "region"))
+    .outside <- anti_join(ll, .preg, by = c("process", "region"))
+    if (nrow(.outside) > 0) {
+      warning("Dropping ", nrow(.outside), " investment-window row(s) for ",
+              "region(s) the process does not operate in: ",
+              paste0(.outside$process, " @ ", .outside$region,
+                     collapse = ", "), call. = FALSE)
+      ll <- semi_join(ll, .preg, by = c("process", "region"))
+    }
+  }
   return(ll)
 }
 
 get_process_stock_years <- function(scen, process = NULL, classes = NULL) {
   # match model years with stock window
   if (is.null(scen@modInp@sets$process_stock_window)) {
-    # log/message
     warning("Stock window is not defined. Running `get_process_stock_window()`.")
     scen@modInp@sets$process_stock_window <- get_process_stock_window(scen)
   }
 
   if (is.null(scen@modInp@sets$process)) {
-    # log/message
     warning("No process set `scen@modInp@sets$process` found.",
             "Hint: either the model has not processes, or ",
             "the set was no created. Check `scen@modInp@sets$process`"
@@ -4933,7 +4654,6 @@ get_process_years <- function(scen, process = NULL, classes = NULL) {
   # check if scen@modInp@sets$process_years exists and/or rerun
 
   if (is.null(scen@modInp@sets$process_years)) {
-    # log/message
 
     if (is.null(scen@modInp@sets$process_invest_window)) {
       warning("Investment window is not defined. Running `get_process_invest_window()`.")
@@ -5025,6 +4745,31 @@ get_process_years <- function(scen, process = NULL, classes = NULL) {
 #' are found. If `FALSE`, the function will return all found values.
 #'
 #'
+# The scenario's own default for one catalogued parameter, or NULL when it has
+# none. Reads the interpolated parameter first -- that value is what reaches the
+# solver -- then the `defVal` table of settings/config, keyed by `colName` the
+# way `.apply_settings_param_overrides()` keys its overrides.
+.adjusted_default <- function(object, meta) {
+  nm <- meta[["name"]]
+  pp <- tryCatch(object@modInp@parameters[[nm]], error = function(e) NULL)
+  if (!is.null(pp) && length(pp@defVal) > 0 &&
+      !identical(unname(pp@defVal), unname(meta[["defVal"]]))) {
+    return(pp@defVal)
+  }
+  dv <- tryCatch(as.data.frame(object@settings@defVal),
+                 error = function(e) NULL)
+  cn <- meta[["colName"]]
+  if (is.null(dv) || !nrow(dv) || is.null(cn) || is.na(cn)) return(NULL)
+  key <- intersect(c("colName", "col.name", "column"), names(dv))
+  val <- intersect(c("value", "defVal", "lo", "up"), names(dv))
+  if (!length(key) || !length(val)) return(NULL)
+  row <- dv[dv[[key[1]]] == cn, , drop = FALSE]
+  if (!nrow(row)) return(NULL)
+  out <- unlist(row[1, val, drop = FALSE], use.names = FALSE)
+  out <- out[!is.na(out)]
+  if (!length(out)) NULL else as.numeric(out)
+}
+
 #' @returns
 #' A default value for one parameter, or a list of default values for several parameters.
 #' @export
@@ -5060,12 +4805,19 @@ get_default_value <- function(
     stop("Either `pname` or `sname` must be provided.")
   }
 
-  # !!! ToDo: add
-  # check if the parameter is adjusted in the scenario
-
   # check the bounds
   ii <- sapply(p, function(x) {x$type == "bounds"})
-  p <- lapply(p, function(x) x[["defVal"]])
+  # The catalogue default, unless an object was given and not overridden with
+  # `global = TRUE`: a scenario carries its own value, either on the
+  # interpolated parameter (which is what the writers emit) or, before
+  # interpolation, in the `defVal` table of its settings keyed by `colName`.
+  p <- lapply(p, function(x) {
+    if (!isTRUE(global) && !is.null(object)) {
+      pv <- .adjusted_default(object, x)
+      if (!is.null(pv)) return(pv)
+    }
+    x[["defVal"]]
+  })
   if (any(ii)) {
     if (!all(ii)) {
       stop("Parameter '", pname, "' has different types: ",
@@ -5085,7 +4837,6 @@ get_default_value <- function(
       # return both bounds
       # p <- p[p$type == "bounds", c("lo", "up")]
     }
-    # p <- p[ii]
   } else {
     if (!is.null(bound)) {
       warning("Parameter '", pname, "' is not a bounds parameter.")
@@ -5156,7 +4907,6 @@ get_interpolation_rule <- function(
       # return both bounds
       # p <- p[p$type == "bounds", c("lo", "up")]
     }
-    # p <- p[ii]
   } else {
     if (!is.null(bound)) {
       warning("Parameter '", pname, "' is not a bounds parameter.")

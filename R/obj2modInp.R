@@ -50,9 +50,7 @@ setMethod(
   "d2p",
   signature(obj = "parameter", data = "data.frame", path = "character"),
   function(obj, data, path = NULL) {
-    # ondisk <- !is.null(path) && isOnDisk(obj)
 
-    # args <- list(...)
 
     if (is.null(data)) {
       return(obj)
@@ -97,15 +95,9 @@ setMethod(
     }
 
     # order columns
-    # data <- .force_year_class_df(data)
-    # data <- .force_value_class_df(data)
     if (!isTRUE(attr(data, "en_cols_forced"))) data <- force_cols_classes(data)
     data <- as.data.table(data)[, colnames(obj@data), with = FALSE]
 
-    # convert factors to characters (??? replace with a function ???)
-    # for (i in colnames(data)[sapply(data, class) == "factor"]) {
-    #   if (i != "type") data[[i]] <- as.character(data[[i]])
-    # }
 
     # check for class mismatch
     if (isInMemory(obj) && any(sapply(data, class) != sapply(obj@data, class))) {
@@ -271,7 +263,6 @@ setMethod(
       data <- rbindlist(
         list(as.data.table(data_exist), as.data.table(data)),
         use.names = FALSE # avoid step of assignment of column name
-        # ignore.attr = TRUE # workaround for NA values in csv files
       ) |>
         unique()
 
@@ -459,7 +450,6 @@ setMethod(
   function(scen, obj, extra_params = list()) {
 
     obj@name <- toString(obj@name)
-    # obj <- .filter_data_in_slots(obj, extra_params$region, "region")
 
     ## pEmissionFactor ####
     # comm = emission commodity (e.g. CO2), commp = fuel being consumed
@@ -517,7 +507,6 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "demand", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    # dem <- mod@data$topia_repository@data$DEM_ELC
     dem <- obj
     dem@name <- toString(dem@name)
 
@@ -544,8 +533,6 @@ setMethod(
       )
     }
 
-    # dem <- .filter_data_in_slots(dem, approxim$region, "region")
-    # approxim <- .fix_approximation_list(approxim, comm = dem@commodity)
 
     ## pDemand ####
     dat <- data.table(
@@ -630,9 +617,6 @@ setMethod(
 
     ## pExportRowRes ####
     # scen@modInp@parameters$pExportRowRes@data
-    # pExportRowRes <- NULL
-    # if (exp@reserve != Inf) pExportRowRes <- data.table(expp = exp@name, value = exp@reserve)
-    # obj@parameters[["pExportRowRes"]] <- .dat2par(obj@parameters[["pExportRowRes"]], pExportRowRes)
     # `@reserve` is a data.frame since 0.85 (so it can carry a `cluster` column
     # and be split across price steps), but the parameter is still ONE value per
     # object: `pExportRowRes{expp}` caps the cumulative flow summed over every region,
@@ -649,8 +633,6 @@ setMethod(
 
     ## pExportRow ####
     # scen@modInp@parameters$pExportRow@data
-    # pExportRow <- .interp_bounds(exp@export, "exp", obj@parameters[["pExportRow"]], approxim, "expp", exp@name)
-    # obj@parameters[["pExportRow"]] <- .dat2par(obj@parameters[["pExportRow"]], pExportRow)
     dat <- .pack_bounds_long(exp@export, "exp", c("region", "year", "timeslice"))
     if (!is.null(dat)) {
       dat <- data.table(expp = exp@name, dat) |>
@@ -671,12 +653,8 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "import", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    # imp <- .upper_case(app)
     imp <- obj
     imp@name <- toString(imp@name)
-    # if (length(imp@commodity) != 1 || is.na(imp@commodity) || all(imp@commodity != approxim$all_comm)) {
-    #   stop(paste0('Wrong commodity in import "', imp@name, '"'))
-    # }
     if (length(imp@commodity) != 1) {
       stop(
         "Import must have exactly one commodity. ", imp@name, " has ",
@@ -693,13 +671,6 @@ setMethod(
         '" is not declared in the model.'
       )
     }
-
-
-    # pImportRowPrice <- .interp_numpar(
-    #   imp@import, "price",
-    #   obj@parameters[["pImportRowPrice"]], approxim, "imp", imp@name
-    # )
-    # obj@parameters[["pImportRowPrice"]] <- .dat2par(obj@parameters[["pImportRowPrice"]], pImportRowPrice)
 
     ## pImportRowPrice ####
     # scen@modInp@parameters$pImportRowPrice@data
@@ -719,9 +690,6 @@ setMethod(
 
     ## pImportRowRes ####
     # scen@modInp@parameters$pImportRowRes@data
-    # pImportRowRes <- NULL
-    # if (imp@reserve != Inf) pImportRowRes <- data.table(imp = imp@name, value = imp@reserve)
-    # obj@parameters[["pImportRowRes"]] <- .dat2par(obj@parameters[["pImportRowRes"]], pImportRowRes)
     # `@reserve` is a data.frame since 0.85 (so it can carry a `cluster` column
     # and be split across price steps), but the parameter is still ONE value per
     # object: `pImportRowRes{imp}` caps the cumulative flow summed over every region,
@@ -738,11 +706,6 @@ setMethod(
 
     ## pImportRow ####
     # scen@modInp@parameters$pImportRow@data
-    # pImportRow <- .interp_bounds(
-    #   imp@import, "imp",
-    #   obj@parameters[["pImportRow"]], approxim, "imp", imp@name
-    # )
-    # obj@parameters[["pImportRow"]] <- .dat2par(obj@parameters[["pImportRow"]], pImportRow)
     dat <- .pack_bounds_long(imp@import, "imp", c("region", "year", "timeslice"))
     if (!is.null(dat)) {
       dat <- data.table(imp = imp@name, dat) |>
@@ -786,16 +749,6 @@ setMethod(
 
     ## pSupCost ####
     # scen@modInp@parameters$pSupCost@data
-    # pSupCost <- .interp_numpar(
-    #   sup@supply, "cost",
-    #   obj@parameters[["pSupCost"]],
-    #   approxim, c("sup", "comm"),
-    #   c(sup@name, sup@commodity)
-    # )
-    # obj@parameters[["pSupCost"]] <- .dat2par(
-    #   obj@parameters[["pSupCost"]],
-    #   pSupCost
-    # )
     dat <- data.table(
       sup = sup@name,
       comm = sup@commodity,
@@ -864,9 +817,6 @@ setMethod(
   function(scen, obj, extra_params = list()) {
   wth <- obj
   wth@name <- toString(wth@name)
-  # if (length(wth@timeframe) == 0 && length(approxim$calendar@timeslices_in_frame) > 1) {
-  #   stop("Slot weather@timeframe is empty, it should have information about timeslice level")
-  # }
   if (length(wth@timeframe) == 0) {
     stop("Weather object must have a timeframe.")
   }
@@ -892,19 +842,6 @@ setMethod(
     wth, .weather_region_span(scen), .scen_geo_hierarchy(scen)))
   scen <- update_parameter(scen, "pWeather", dat)
 
-  # obj@parameters[["pWeather"]]@defVal <- wth@defVal
-  # obj@parameters[["pWeather"]] <- .dat2par(obj@parameters[["pWeather"]], .interp_numpar(
-  #   wth@weather, "wval",
-  #   obj@parameters[["pWeather"]], approxim, "weather", wth@name
-  # ))
-  # obj@parameters[["mWeatherTimeslice"]] <- .dat2par(
-  #   obj@parameters[["mWeatherTimeslice"]],
-  #   data.table(weather = rep(wth@name, length(approxim$timeslice)), timeslice = approxim$timeslice)
-  # )
-  # obj@parameters[["mWeatherRegion"]] <- .dat2par(
-  #   obj@parameters[["mWeatherRegion"]],
-  #   data.table(weather = rep(wth@name, length(wth@region)), region = wth@region)
-  # )
   scen
 })
 
@@ -936,7 +873,6 @@ setMethod(
           par_meta = p,
           class_col = "tech"
           # par_name = p$name,
-          # short_name = p$colName
         )
         scen <- update_parameter(scen, p$name, dat)
       }
@@ -991,7 +927,6 @@ setMethod(
       if (is_empty(slot_info)) {next}
       slot_data <- get_lazy_data(obj, s)
       for (p in slot_info) {
-        # mod@data$topia_repository@data$STGELC@seff
         #
         # Per-parameter COPY. Assigning back into `slot_data` made the first
         # parameter's commodity stick for every later one bound to the same
@@ -1372,15 +1307,9 @@ setMethod(
     pTimesliceWeight_tmp <- rbind(pTimesliceWeight_tmp, ab) |>
       filter(year %in% approxim$mileStoneYears) |>
       unique()
-    # pTimesliceWeight_tmp$value <- pTimesliceWeight_tmp$value /
-    #   (24 * 7 * 52 / 24 / 365)
 
     obj@parameters[["pTimesliceWeight"]] <- .dat2par(
       obj@parameters[["pTimesliceWeight"]],
-      # data.table(
-      #   timeslice = approxim$calendar@timeslice_share$timeslice,
-      #   value = approxim$calendar@timeslice_share$weight
-      # )
       pTimesliceWeight_tmp
     )
     # agg-rewrite: intensive timeslice-aggregation weight pTimesliceAgg[year, parent, child]
@@ -1450,9 +1379,7 @@ setMethod(
       data.table(region = app@region,
                  regionp = app@region)
     )
-    # tmp <- data.frame(year = .get_data_slot(obj@parameters$year))
     tmp <- .get_data_slot(obj@parameters$year)
-    # tmp$value <- seq_along(tmp$year)
     tmp$value <- tmp$year - min(tmp$year) + 1
     obj@parameters[["ordYear"]] <- .dat2par(obj@parameters[["ordYear"]], tmp)
     obj@parameters[["cardYear"]] <- .dat2par(obj@parameters[["cardYear"]],
@@ -1485,7 +1412,6 @@ setMethod(
     pYearFraction$value <- app@yearFraction$fraction
     obj@parameters[["pYearFraction"]] <-
       .dat2par(obj@parameters[["pYearFraction"]], pYearFraction)
-    obj@parameters[["pYearFraction"]]@defVal <- 1 # !!! temporary fix
     scen@modInp <- obj
     scen
   }
@@ -1720,16 +1646,8 @@ make_data_param <- function(
     slot_data,
     par_meta,
     class_col = NULL
-    # par_name,
-    # short_name,
-    # class_col
-    # scen = scen,
-    # obj_name = tech@name,
-    # slot_data = slot_data,
-    # par_meta = p
   ) {
 
-  # if (par_meta$name == "pTechCap2act") browser()
 
   if (!inherits(slot_data, "data.frame")) {
     slot_data <- data.frame(value = slot_data)
@@ -1832,7 +1750,6 @@ make_data_param <- function(
       dat[, c(dim_sets, "value"), drop = FALSE])
   }
 
-  # !!! add optional or essential info to metadata and filter NAs for optional
   dat <- .dedup(.drop_na_value(dat))
   rownames(dat) <- NULL
   # classes are already the canonical ones; d2p() need not coerce again
@@ -1865,11 +1782,7 @@ get_slot_meta <- function(class = NULL,
   if (!is.null(.hit)) return(.hit)
 
   ll <- list()
-  # for ( in seq_along(.modInp)) {
   for (x in .modInp) {
-    # if (x$name == "pTechAct2AOut") browser()
-    # if (x$name == "pTechCap2Act") browser()
-    # x <- .modInp[[i]]
     if (!is.null(class) && !any(x$class %in% class)) {next}
     if (!is.null(slot) && !any(x$slot %in% slot)) {next}
     if (!is.null(type) && !any(x$type %in% type)) {next}
@@ -1892,7 +1805,6 @@ get_slot_meta <- function(class = NULL,
     }
     ll[[x_name]] <- x
   }
-  # names(ll)
   .slot_meta_cache[[.key]] <- ll
   ll
 }

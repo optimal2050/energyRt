@@ -1,5 +1,4 @@
 # class model ####
-# setTimeSlices <- .setTimeSlices
 
 #' An S4 class to represent model
 #'
@@ -21,7 +20,6 @@ setClass("model",
     desc = "character", # Details
     data = "list",
     config = "config",
-    # optimizeRetirement = "logical",
     misc = "list"
   ),
   prototype(
@@ -29,7 +27,6 @@ setClass("model",
     desc = "", # Details
     data = list(),
     config = new("config"),
-    # optimizeRetirement = FALSE,
     misc = list()
   ),
   S3methods = FALSE
@@ -40,7 +37,6 @@ setMethod("initialize", "model", function(.Object, ...) {
   .Object
 })
 
-# add <- function(...) UseMethod("add")
 
 
 #' Create new model object
@@ -80,8 +76,6 @@ newModel <- function(name = "", desc = "", ...) {
 
 #' @noRd
 .newModel_build <- function(name = "", desc = "", ...) {
-  # mdl <- .data2slots("model", name,
-  #                    ignore_args = unique(c(config_slots, horizon_slots)),
   #                    ignore_classes = "repository", ...)
   obj <- new("model")
   .assert_object_name(name, what = "model")
@@ -91,7 +85,6 @@ newModel <- function(name = "", desc = "", ...) {
   if (is_empty(arg)) return(obj)
 
   ## flatten unnamed lists if any ####
-  # nn <- names(arg)
   ii <- sapply(seq_along(arg), function(i) {
     inherits(arg[[i]], "list") && names(arg)[[i]] == ""
     })
@@ -134,7 +127,6 @@ newModel <- function(name = "", desc = "", ...) {
       stop('"data" ("repository") must be a "repository", a list of model ',
            'objects, or a single model object')
     }
-    # obj@data <- repo@data
     obj <- add(obj, arg$data)
     arg$data <- NULL
   }
@@ -213,7 +205,9 @@ newModel <- function(name = "", desc = "", ...) {
     arg[ii] <- NULL
   }
   if (is_empty(arg)) return(obj)
-  ### @horizon slots #### !!! write update(config) with config & horizon slots
+  ### @horizon slots ####
+  # Horizon slot names are not config slot names, so they do not reach the
+  # config branch above; `update()` here also fills the interval labels.
   horizon_slots <- names(getSlots("horizon"))
   horizon_slots <- horizon_slots[!(horizon_slots %in% ex_slots)]
   ii <- names(arg) %in% horizon_slots
@@ -236,31 +230,7 @@ newModel <- function(name = "", desc = "", ...) {
       }
     }
   }
-  # if (length(arg) > 0)
-  # warning("Ignoring ", length(arg), " arguments.\n",
-  #         "names: ", paste(names(arg), collapse = ", "), "\nclasses: ",
-  #         paste(sapply(arg, class), collapse = ", "))
   obj
-#
-#   config_slots <- config_slots[config_slots %in% names(args)]
-#   mdl@config <- .data2slots(
-#     "config", "", ignore_classes = "repository",
-#     ignore_args = c("timeslice", names(args)[!(names(args) %in% config_slots)]),
-#     ...)
-#   # ignore_args = c(names(args)[!(names(args) %in% config_slots)], mlst_vec), ...)
-#
-#   if (any(names(args) == "timeslice")) {
-#     mdl@config <- setTimeSlices(mdl@config, timeslice = args$timeslice)
-#   } else {
-#     mdl@config <- setTimeSlices(mdl@config, timeslice = "ANNUAL")
-#   }
-#
-#   #    args <- list(...)
-#   #    if (any(names(args) %in% mlst_vec)) {
-#   #      if (sum(names(args) %in% mlst_vec) != 2) stop('Undefined all need parameters for setMileStoneYears')
-#   #      mdl <- setMileStoneYears(mdl, start = args$start, interval = args$interval)
-#   #    }
-#   mdl
 }
 
 
@@ -268,7 +238,6 @@ newModel <- function(name = "", desc = "", ...) {
 #' @aliases setHorizon getHorizon
 #' @export
 setMethod("setHorizon", signature(obj = "model"),
-  # signature(obj = "model", period = "numeric", intervals = "numeric"),
   function(obj, ...) {
     args <- list(...)
     has_h <- sapply(args, function(x) inherits(x, "horizon"))
@@ -357,26 +326,13 @@ setReplaceMethod("$", c("repository", "ANY"),
 setMethod("names", "repository", function(x) names(x@data))
 
 add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
-  # cls <- c('technology', 'commodity', 'region', 'commodity',
-  #          'constraint', 'costs',
-  #          'stock', 'reserve',
-  #          'supply', 'weather', 'demand',
-  #          'trade', 'export', 'import', 'storage', 'tax', 'sub')
   cls <- newRepository()@permit
-  # if (class(obj) != "model") stop('Applying add.model to class ', class(obj))
   arg <- list(...)
   while (any(sapply(arg, function(x) class(x)[1] == 'list'))) {
     arg <- list_flatten(arg, name_spec = "{inner}")
   }
   ## Calendar from solve must be added to interpolate
   arg_classes <- sapply(arg, class)
-  # if (any(arg_classes == "calendar")) {
-  #   if (length(arg_classes[arg_classes == "calendar"]) > 1) {
-  #     stop("Only one calendar object is allowed")
-  #   }
-  #   obj@data$calendar <- arg[arg_classes == "calendar"]
-  #   arg <- arg[arg_classes != "calendar"]
-  # }
 
   ## Add to repository
   if (any(!(sapply(arg, class) %in% c(cls, 'repository')))) {
@@ -384,7 +340,6 @@ add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
       !(sapply(arg, class) %in% c(cls, 'repository'))]), collapse = '", "'),
       '"', sep = ''))
   }
-  # cc <- sapply(arg, function(x) class(x)[1])
   ii <- sapply(arg, function(x) inherits(x, cls))
   # An incoming bare object whose class+name already lives in ONE OF THE
   # MODEL'S REPOSITORIES is a REPLACEMENT, not an addition: with
@@ -421,7 +376,6 @@ add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
     arg <- arg[!drop_k]; ii <- ii[!drop_k]
   }
   if (any(ii)) {
-    # arg <- arg[cc != 'repository']
     # Generate name
     # Objects added straight to a model (rather than to a named repository) land
     # in an auto-created one. It used to be built with the class prototype's
@@ -459,12 +413,8 @@ add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
   }
   arg <- arg[!ii]
   if (is_empty(arg)) return(obj)
-  # cc <- sapply(arg, function(x) class(x)[1])
   ii <- sapply(arg, function(x) inherits(x, "repository"))
   if (any(ii)) {
-    #    if (any(sapply(arg, class) != 'repository'))
-    #      stop('You can not mix class repository and other for command add')
-    # arg <- arg[sapply(arg, class) == 'repository']
     ff <- c(sapply(obj@data, function(x) x@name), recursive = TRUE)
     for (i in seq(along = arg[ii])) {
       nm <- arg[ii][[i]]@name # new repository name
@@ -474,7 +424,6 @@ add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
         obj@data[[nm]] <- add(obj@data[[nm]], arg[ii][[i]],
                               overwrite = overwrite)
       } else {
-        # !!! add name-check with other repositories
         obj@data[[nm]] <- arg[ii][[i]]
       }
       # With `overwrite = TRUE` an incoming repository SUPERSEDES same-named

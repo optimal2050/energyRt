@@ -266,7 +266,6 @@ map_mCommReg <- function(scen, fmp) {
   if (nrow(traded_primary_comm_region) > 0) {
     # A primary commodity (supply/import) that is also traded becomes available
     # in the regions it can be shipped to.
-    # TODO: confirm this covers multi-hop and auxiliary cases
     comm_region <- traded_primary_comm_region |>
       select(comm, region) |>
       rbind(comm_region) |>
