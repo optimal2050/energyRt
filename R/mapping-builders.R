@@ -224,9 +224,9 @@ map_mWeatherTimeslice <- function(scen, fmp) {
 #
 # map_mCommReg(scen, fmp): the (comm, region) set where each commodity is
 # available (primary supply/import, secondary process outputs, aux, emissions,
-# traded, demand). Faithful port of the inline block formerly in interp_mod
-# (archived to drafts/legacy-mapping/closure-inline.R); it also populates the
-# helper sets primary_comm_region / secondary_comm_region / comm_region and runs
+# traded, demand). Faithful port of the inline block formerly in interp_mod; it
+# also populates the helper sets primary_comm_region / secondary_comm_region /
+# comm_region and runs
 # the declared-commodity / served-demand validation. Built via
 # build_mappings(recipes = "closure") in interp_mod, after the membership maps.
 # =========================================================================== #
@@ -264,10 +264,9 @@ map_mCommReg <- function(scen, fmp) {
     filter(!is.na(region))
 
   if (nrow(traded_primary_comm_region) > 0) {
-    # A primary commodity (supply/import) that is also traded becomes available in
-    # the regions it can be shipped to. (Was a pre-existing `browser()` debug stop
-    # ported from the legacy inline block; removed so models with traded primary
-    # commodities run. !!! revisit: confirm this covers multi-hop / aux cases.)
+    # A primary commodity (supply/import) that is also traded becomes available
+    # in the regions it can be shipped to.
+    # TODO: confirm this covers multi-hop and auxiliary cases
     comm_region <- traded_primary_comm_region |>
       select(comm, region) |>
       rbind(comm_region) |>
@@ -1796,9 +1795,9 @@ map_mvTradePhaseOut   <- function(scen, fmp) .lifespan_phaseout_one(scen, "mvTra
 # objects). Registered in `.membership_builders` and built via
 # `build_mappings(recipes = "membership")` in interp_mod.
 #
-# These replace the inline membership block formerly in interp.R (archived to
-# drafts/legacy-mapping/membership.R). The aux maps reuse the live
-# `.build_aux_membership` helper (interp.R). The other ~18 membership-tagged maps
+# These replace the inline membership block formerly in interp.R. The aux maps
+# reuse the live `.build_aux_membership` helper (interp.R). The other ~18
+# membership-tagged maps
 # (mTech*CommAgg / *SameTimeslice / *Group / mTechEmsFuel / mWeatherRegion / ...) are
 # built later in the filter recipe, not here.
 # =========================================================================== #

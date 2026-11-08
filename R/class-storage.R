@@ -323,12 +323,6 @@ setClass("storage",
       stg.retcost = numeric(),
       stringsAsFactors = FALSE
     ),
-    # stock = data.frame(
-    #   region = character(),
-    #   year = integer(),
-    #   stock = numeric(),
-    #   stringsAsFactors = FALSE
-    # ),
     capacity = data.frame(
       vintage = character(),
       cluster = character(),

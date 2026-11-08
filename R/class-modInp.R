@@ -45,15 +45,10 @@ setClass(
 #' @param modInp an uninitialized (created by "new", empty) model input class object.
 #' @noRd
 setMethod("initialize", "modInp", function(.Object) {
-  # x <- .Object@parameters
   x <- list()
-  # .dimSets <- c("horizon", .dimSets) |> unique() #!!! test
-  # x[["horizon"]] <- newSet("horizon")
   ob <- .modInp
   for (i in 1:length(ob)) {
     nm <- ob[[i]]$name
-    # if (nm == "DEBUG") browser() # DEBUG
-    # if (nm == "pTechRet") browser() # DEBUG
     if (ob[[i]]$type == "set") {
       x[[nm]] <- newSet(nm)
     } else if (ob[[i]]$type == "map") {
@@ -63,7 +58,6 @@ setMethod("initialize", "modInp", function(.Object) {
         type = ob[[i]]$type
       )
     } else {
-      # if (nm == "pStorageOutAf") browser()
       x[[nm]] <- newParameter(
         nm,
         ob[[i]]$dimSets,
@@ -122,8 +116,6 @@ setMethod("initialize", "modInp", function(.Object) {
   #       expanded grid of all (or used only, like horizon-mid-period)
   #       values of the parameter dimension (e.g. sets)
   # name - "character", name of the parameter
-  # drop_duplicates <- function(x) x[!duplicated(x), , drop = FALSE]
-  # if (name == "pTechShare") browser() # DEBUG
   drop_duplicates <- function(x) filter(x, !duplicated(x))
   sets0 <- modInp@parameters[[name]]@dimSets
   sets <- NULL
@@ -214,15 +206,11 @@ setMethod("initialize", "modInp", function(.Object) {
                                use.dplyr = FALSE) {
   # Returns data.frame filled the parameter ("name") data with added, previous dropped zeros (if any)
   # rare use - currently reserved for "fix to scenario" routines (and some excessive/double-checking use)
-  # if (name == "pTechShare") browser() # DEBUG
   tmp <- .get_default_values(modInp, name, drop.unused.values)
-  # tmp$value <- 0
   dtt <- .get_data_slot(modInp@parameters[[name]])
   if (!is.null(tmp)) {
     if (use.dplyr) {
       cols <- colnames(dtt)
-      # gg <- suppressMessages(dplyr::anti_join(tmp, dtt[, cols],
-      #                                         by = cols[cols != "value"]))
       gg <- suppressMessages(dplyr::anti_join(tmp, dtt, by = cols[cols != "value"]))
       gg <- suppressMessages(dplyr::left_join(dtt, gg))
       return(gg)
@@ -230,7 +218,6 @@ setMethod("initialize", "modInp", function(.Object) {
       if (ncol(dtt) == ncol(tmp)) {
         gg <- rbind(dtt, tmp)
       } else {
-        # gg <- rbind(dtt, unique(tmp[, colnames(dtt), drop = FALSE]))
         if (isDebug() && anyDuplicated(colnames(dtt)))
           cli::cli_warn("Duplicated column names binding a mapping: {paste(colnames(dtt), collapse = ', ')}")
         gg <- rbind(dtt, unique(select(tmp, all_of(colnames(dtt)))))
@@ -242,7 +229,6 @@ setMethod("initialize", "modInp", function(.Object) {
   } else {
     gg <- dtt
   }
-  # gg[!duplicated(gg[, colnames(gg) != "value"]), , drop = FALSE]
   ii <- gg |> select(-value) |> duplicated()
   filter(gg, !ii)
 }

@@ -98,7 +98,6 @@ setClass("export",
     ),
     geoframe = character(),
     region = character(),
-    # ! Misc
     misc = list()
   ),
   S3methods = FALSE

@@ -68,7 +68,7 @@ mappings_by_recipe <- function(spec = load_mapping_spec()) {
 # --------------------------------------------------------------------------- #
 
 # `recipe_membership` + `.membership_map_def` + `.build_membership_map` (the
-# never-wired engine membership impl) ARCHIVED to drafts/legacy-mapping/membership.R.
+# never-wired engine membership impl) have been retired.
 # The core membership maps are built by R/mapping-builders.R (registry): the `*_comm`
 # maps read the `*_comm` sets populated in interp_mod, and the input/output-group
 # maps (mTechInpGroup / mTechOutGroup / mTechGroupComm) derive from checkInpOut() —
@@ -400,8 +400,8 @@ recipe_closure <- function(scen, names, fmp) {
   df
 }
 
-# `recipe_calendar` superseded by R/mapping-builders.R (registry) and ARCHIVED to
-# drafts/legacy-mapping/calendar.R. Retained as a no-op fallback for the three
+# `recipe_calendar` superseded by R/mapping-builders.R (registry) and retired.
+# Retained as a no-op fallback for the three
 # calendar-tagged maps (mWeatherTimeslice, mStorageFullYear, mTechFullYear) that are
 # built in later recipes; the calendar timeslice helpers above remain live.
 recipe_calendar <- function(scen, names, fmp) scen
@@ -600,8 +600,8 @@ recipe_calendar <- function(scen, names, fmp) scen
   .lifespan_retirement(scen, names, fmp, new_df, span_df, regions, "technology")
 }
 
-# NOTE: `recipe_lifespan` superseded by R/mapping-builders.R and ARCHIVED to
-# drafts/legacy-mapping/lifespan.R. The shared lifespan helpers above remain.
+# NOTE: `recipe_lifespan` superseded by R/mapping-builders.R and retired. The
+# shared lifespan helpers above remain.
 
 # --------------------------------------------------------------------------- #
 # Shared set-reduction helpers (faithful ports of the legacy `.make_mapping`
@@ -865,7 +865,7 @@ recipe_calendar <- function(scen, names, fmp) scen
 # NOTE: the value-family builders (.build_value_map_std, .build_mSupSpan,
 # .build_mTechRetirement, .build_policy_cost, .build_mTaxCost, .build_mSubCost,
 # .build_weather_map, .value_map_builders) were superseded by the per-mapping
-# functions in R/mapping-builders.R and ARCHIVED to drafts/legacy-mapping/value.R.
+# functions in R/mapping-builders.R and retired.
 
 # Value maps whose derivation depends on filter-recipe maps and are therefore
 # emitted as side-effects of their filter `map_*` siblings in R/mapping-filter.R
@@ -903,7 +903,7 @@ recipe_value <- function(scen, names, fmp) {
 # FULLY MIGRATED to R/mapping-filter.R (per-mapping registry). Every filter-recipe
 # map is registry-backed, so build_mappings() never routes a name to a filter
 # fallback; the legacy `.build_filter_core` / `.build_filter_derived` /
-# `recipe_filter` builders were ARCHIVED to drafts/legacy-mapping/filter.R.
+# `recipe_filter` builders were retired.
 # The shared helpers they used (.trade_aux_derived, .io_row_maps, .aux_conv_map)
 # stay live above; the setm_any side-effect maps (meqSupAvaLo, meq*RowLo,
 # m*RowCumUp, mInpSub/mOutSub, *Cost, mTradeRoutes) are now emitted as
@@ -1778,7 +1778,7 @@ recipe_constraint <- function(scen, names, fmp) {
 # --------------------------------------------------------------------------- #
 
 # NOTE: `recipe_cost_agg` + `.cost_agg_maps_empty_legacy` superseded by
-# R/mapping-builders.R (registry) and ARCHIVED to drafts/legacy-mapping/costagg.R.
+# R/mapping-builders.R (registry) and retired.
 
 # --------------------------------------------------------------------------- #
 # Driver

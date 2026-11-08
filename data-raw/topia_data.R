@@ -11,9 +11,9 @@
 ##                diurnal structure, and is not a resource estimate.
 ##   "sample"     a measured hourly set on d365_h24, read from
 ##                topia_profiles_sample.rds. topia_profiles_sample.R writes
-##                that file from sources held by the maintainer; see
-##                dev/2026-11-02-topia-sample-provenance.md. The dataset can be
-##                rebuilt anywhere, only REFRESHING the sample needs them.
+##                that file from sources held by the maintainer. The dataset
+##                can be rebuilt anywhere, only REFRESHING the sample needs
+##                them.
 ##
 ## The shipped tables carry region codes and timeslice labels and nothing else:
 ## no coordinates, no country, no calendar year, no source path. The assertions

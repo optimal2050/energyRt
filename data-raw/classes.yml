@@ -4044,6 +4044,10 @@ class:
         no LP at all. Both still anchor interpolation, which reads the anchor
         years present in the data rather than the milestone list. Empty when
         every milestone is optimised. See `solve_base_year()`.
+    misc:
+      type: list
+      description: >
+        Any additional data or information to store in the object.
 ## config #######################################################################
   config:
     name:

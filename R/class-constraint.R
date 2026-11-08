@@ -56,7 +56,6 @@ setClass("constraint",
     defVal = as.numeric(NA),
     interpolation = .get_interpolation_rule("rhs"),
     lhs = list(),
-    # ! Misc
     misc = list()
   ),
   S3methods = FALSE
@@ -243,7 +242,7 @@ setClass("summand",
     mult = "data.frame",
     defVal = "numeric",
     misc = "list"
-    # parameter= list() # !!! consider adding custom parameters
+    # TODO: consider a `parameter` slot for custom parameters
   ),
   prototype(
     desc = NULL,
@@ -350,10 +349,8 @@ newConstraint <- function(
     defVal = NULL,
     interpolation = "inter",
     replace_zerros = 1e-20
-    # arg = NULL
     ) {
   obj <- new("constraint")
-  # stopifnot(length(eq) == 1 && eq %in% levels(obj@eq))
   if (length(eq) != 1 || !(eq %in% levels(obj@eq))) {
     stop(
       "Unrecognized 'eq' parameter. Use one of: ",
@@ -404,11 +401,9 @@ newConstraint <- function(
     rhs <- as.data.frame(rhs, stringsAsFactors = FALSE)
   }
   if (!is.null(replace_zerros) && any(rhs$rhs == 0)) {
-    # warning("Zero values in 'rhs' will be replaced with '", replace_zerros, "' to avoid ignoring them by the current interpolation algorithms. Use non-zero value to avoid auto-replacement and the warning. Use 'replace_zerros = NULL' to avoid replacement.")
     rhs[rhs == 0] <- replace_zerros
   }
   if (!is.null(replace_zerros) && !is.na(defVal) && defVal == 0) {
-    # warning("Zero value in 'defVal' will be replaced with '", replace_zerros, "' to avoid ignoring it by the current interpolation algorithms. Use non-zero value to avoid auto-replacement and the warning. Use 'replace_zerros = NULL' to avoid replacement.")
     defVal <- replace_zerros
   }
   # TYPE vs SET
@@ -445,9 +440,6 @@ newConstraint <- function(
       stop("Unrecognized 'for.each' parameter. Failed to build the costraint.")
     }
   }
-  # for (i in seq_along(arg)) {
-  #   obj <- addSummand(obj, arg = arg[[i]])
-  # }
   arg <- list(...)
   for (i in seq_along(arg)) {
     obj <- addSummand(obj, arg = arg[[i]])
@@ -525,7 +517,6 @@ addSummand <- function(
       stop(paste0("Multiplier parameter ('mult') must be a constant or a data.frame with sets."))
     }
     st@defVal <- mult
-    # st@mult <- data.frame(value = mult, stringsAsFactors = FALSE)
   }
   st@for.sum <- for.sum
   st@timeframe <- if (is.null(timeframe) || length(timeframe) == 0) {
@@ -584,9 +575,6 @@ addSummand <- function(
   eqt
 }
 
-# prec <- add0_message$add0_arg$obj
-# stm <- add0_message$add0_arg$app
-# approxim <- add0_message$add0_arg$approxim
 
 # Report a constraint that has been dropped because the horizon filter left its
 # `for.each` domain empty. Names the constraint, what it asked for, and what the
@@ -708,8 +696,6 @@ addSummand <- function(
   )
   set.map <- list()
   set.map.name <- NULL # Temp vector with name for list set.map
-  # all.set & set.map
-  # for.each
 
   old_for_each <- lapply(stm@for.each, function(x) {
     if (any(is.na(x))) {
@@ -735,7 +721,6 @@ addSummand <- function(
     for (j in for.each.set) {
       if (!is.null(old_for_each[[j]]) && !all(prec@sets[[j]] %in% old_for_each[[j]])) {
         if (any(old_for_each[[j]] %in% prec@sets[[j]])) {
-          # warning(paste0('Set "'))
           old_for_each[[j]] <-
             old_for_each[[j]][old_for_each[[j]] %in% prec@sets[[j]]]
         }
@@ -1155,7 +1140,6 @@ addSummand <- function(
       tmp_fe <- rbind(
         merge(
           select(tmp_fe, -any_of(i)),
-          # tmp_fe[, colnames(tmp_fe) != i, drop = FALSE],
           tmg
         ),
         tmp_fe[!is.na(tmp_fe[[i]]), , drop = FALSE]
@@ -1236,12 +1220,7 @@ addSummand <- function(
     " "
   )
   # Add rhs
-  # browser() # rhs value or data.frame
   if (nrow(stm@rhs) != 0 && ncol(stm@rhs) != 1) {
-      # (any(stm@rhs$rhs != 0) ||
-      #  (stm@defVal != 0 && nrow(stm@for.each) > nrow(stm@rhs))
-      #  )
-      # ) {
     # RHS is a data.frame
     approxim2 <-
       approxim[unique(
@@ -1268,24 +1247,12 @@ addSummand <- function(
     )
     yy <- .interp_numpar(stm@rhs, "rhs", xx, approxim2)
     n1 <- colnames(yy)[colnames(yy) != "value"]
-    # yy <- yy[
-    #   (apply(yy[, n1, drop = FALSE], 1,
-    #          paste0, collapse = "##") %in%
-    #      apply(stm@for.each[, n1, drop = FALSE], 1,
-    #            paste0, collapse = "##")
-    #    ), , drop = FALSE]
-    # check:
-    # yy[apply(select(yy, all_of(n1)), 1, paste0, collapse = "##") %in%
-    #     apply(select(stm@for.each, all_of(n1)), 1, paste0, collapse = "##"),]
-    # same using dplyr
     if (ncol(yy) == 1) {
       stopifnot(names(yy) == "value")
       stopifnot(nrow(yy) == 1)
     } else {
-    # suppressMessages({
       col_nms <- intersect(colnames(yy), n1)
       yy <- yy |> right_join(select(stm@for.each, all_of(n1)), by = col_nms)
-    # })
     }
     prec@parameters[[xx@name]] <- .dat2par(xx, yy)
     # Add mult
@@ -1391,7 +1358,8 @@ addSummand <- function(
       xx <- newParameter(paste0("pCnsMult", stm@name, "_", i),
         need.set,
         "numpar",
-        defVal = stm@lhs[[i]]@defVal, # !!! Check
+        # fills the tuples a table `mult` omits, and carries a scalar `mult`
+        defVal = stm@lhs[[i]]@defVal,
         interpolation = stm@interpolation
       )
       prec@parameters[[xx@name]] <-
@@ -1541,5 +1509,4 @@ addSummand <- function(
   prec
 }
 
-#  .getSetEquation(prec, stm, approxim)@user_constraints
 

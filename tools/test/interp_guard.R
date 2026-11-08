@@ -1,8 +1,7 @@
 # =========================================================================== #
 # interp_guard.R -- tracked interpolation goldens: the tm tier models' modInp
 # must reproduce a frozen baseline bit-for-bit (order/rounding-insensitive).
-# Successor of dev-scripts/refactor_guard.R, now on energyRt::compare_inputs()
-# and with baselines TRACKED in git (tests/testthat/goldens/interp/<tier>.rds,
+# Built on energyRt::compare_inputs(), with baselines TRACKED in git (tests/testthat/goldens/interp/<tier>.rds,
 # xz-compressed; Rbuildignored -- full-tier only, not in the tarball).
 #
 #   Rscript tools/test/interp_guard.R baseline   # (re)freeze the baselines

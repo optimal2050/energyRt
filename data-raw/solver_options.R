@@ -58,7 +58,7 @@ pyomo_highs$solver <- "appsi_highs"
 ## it. On a degenerate LP (ties between marginal units, common in these models)
 ## a vertex dual would be an arbitrary pick among many; the interior point is
 ## the better-behaved choice, not a worse one. (Relevant to the parked duals
-## feature, drafts/duals.R.)
+## feature.)
 pyomo_highs_barrier <- pyomo_highs
 pyomo_highs_barrier$name <- "pyomo_highs_barrier"
 pyomo_highs_barrier$inc4 <- {

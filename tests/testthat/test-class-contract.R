@@ -1,7 +1,7 @@
 # =========================================================================== #
 # The class contract: construction, container laws, and authoritative defaults.
 #
-# Priority 1 of dev/class-consistency-review.md. Each block pins one promise
+# Each block pins one promise
 # the classes make but did not keep:
 #
 #   1. a model is a container, so `[[`, `[`, `$`, `names()` and `length()`

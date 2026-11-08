@@ -39,7 +39,7 @@ res_share_lever <- function(years, growth, annual_demand, nreg,
 #
 # TOPIA runs on TWO calendars: `s4_h24`, which the kits and the shipped model
 # use, and `d365_h24`, which the measured sample profiles are served at. The
-# stylised `topia_seasons` was retired to `drafts/topia_seasons_calendar.R` --
+# stylised `topia_seasons` was retired --
 # it had no HOUR level, and `ELC` is declared at `HOUR`, so nothing could run
 # on it -- and `m12_h24` left with it, hourly-capable but unused.
 #

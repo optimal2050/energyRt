@@ -12,8 +12,7 @@ variable of the model is a row, with its `class@slot$column` provenance, its
 feature family, and its current test coverage. Coverage is declared by
 structured `# @covers` tags in test files (convention: `tests/README.md`) and
 validated by the same tool (`--check`, wired into `test-coverage-matrix.R` —
-a typo in a tag name fails the suite). The full planning inventory lives in
-`dev/coverage-inventory.md`.
+a typo in a tag name fails the suite).
 
 Companion machinery:
 

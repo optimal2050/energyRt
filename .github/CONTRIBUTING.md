@@ -193,9 +193,10 @@ R/                 the package
 glpk/ julia/ pyomo/ gams/   solver templates (baked into sysdata)
 data-raw/          DATASET.R rebuilds sysdata from the templates + YAML specs
 tests/testthat/    unit tests, goldens/, and _snaps/
-drafts/            archived code — superseded work moves here, it is not deleted
-dev/ dev-scripts/  design notes and the mapping-pipeline docs
 ```
+
+Design notes, guides and one-off scripts are not part of the repository. Keep
+them in a local dev folder such as `dev-local/scripts`.
 
 ## Commit & PR conventions
 
@@ -222,7 +223,7 @@ Three places carry three different kinds of text. Keep them apart.
   internal (dot-prefixed or unexported) function names. Exported functions,
   arguments, slots, options and file names are the vocabulary.
 - If a bullet needs more than three lines to be understood, the extra belongs
-  in `dev/` (below), not in NEWS.
+  in the commit message, not in NEWS.
 
 **Code comments** state mechanism and constraints the code cannot show —
 "stats::aggregate drops NA by-groups", "must enter the render key", "the
@@ -231,9 +232,7 @@ for it, what it replaced, or what it measured. Roxygen is user documentation,
 not commentary: no design essays there either.
 
 **Narrative** — rationale, measurements, traps, rejected alternatives,
-lifted essays — goes to a topic file under `dev/` (`dev/notes-<topic>.md`,
-e.g. `notes-reports.md`, `notes-news-rationale.md`,
-`notes-dispatch-surrogate.md`) or into the commit message. Prose meant for
+lifted essays — goes into the commit message. Prose meant for
 users becomes a vignette or article. Before committing, check the diff for
 comments that answer "why did we discover this" instead of "what must hold
 here", and for NEWS bullets longer than three lines.

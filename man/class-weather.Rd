@@ -11,7 +11,6 @@ used to influence operation of processes in the model.
 \details{
 Weather factors are separated from the model parameters
 and can be added or replaced for different scenarios.
-!!!Additional details...
 }
 \section{Slots}{
 

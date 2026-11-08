@@ -6,8 +6,8 @@ editor_options:
 
 ```{r, include = FALSE}
 # eval = FALSE: this article builds and solves a dozen models. The code is run
-# and every number below checked out-of-band by
-# dev/verify-region-aggregation.R; the outputs shown are those results.
+# and every number below checked out-of-band; the outputs shown are those
+# results.
 knitr::opts_chunk$set(
   collapse = TRUE, comment = "#>",
   eval = FALSE,

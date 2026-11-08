@@ -271,7 +271,6 @@ get_glpk_path <- function() {
         ret <- c(
           ret,
           paste("[", apply(
-            # obj@data[fl, -ncol(obj@data), drop = FALSE],
             select(filter(obj@data, fl), -ncol(obj@data)),
             1, function(x) paste(x, collapse = ",")
             ), "] ", obj@data[["value"]][fl], sep = "")
@@ -283,7 +282,6 @@ get_glpk_path <- function() {
   } else if (obj@type == "bounds") {
     gg <- obj@data
     gg <- gg[gg$type == "lo", , drop = FALSE]
-    # gg <- gg[, colnames(gg) != "type"]
     gg <- gg |> select(-any_of("type"))
     if (nrow(gg) == 0) { #  || all(gg$value[1] == gg$value)
       ret <- paste("param ", obj@name, "Lo",
@@ -295,7 +293,6 @@ get_glpk_path <- function() {
       if (any(fl)) {
         ret <- c(
           ret, paste("[", apply(
-            # gg[fl, -ncol(gg), drop = FALSE],
             select(filter(gg, fl), -last_col()),
             1, function(x) paste(x, collapse = ",")
             ), "] ", gg[["value"]][fl], sep = ""))
@@ -305,7 +302,6 @@ get_glpk_path <- function() {
     }
     gg <- obj@data
     gg <- gg[gg$type == "up", , drop = FALSE]
-    # gg <- gg[, colnames(gg) != "type"]
     gg <- gg |> select(-any_of("type"))
     if (nrow(gg) == 0) { #  || all(gg$value[1] == gg$value)
       ret <- c(ret, paste("param ", obj@name, "Up",
@@ -317,7 +313,6 @@ get_glpk_path <- function() {
       if (any(fl)) {
         ret <- c(
           ret, paste("[", apply(
-            # gg[fl, -ncol(gg), drop = FALSE],
             select(filter(gg, fl), -ncol(gg)),
             1, function(x) paste(x, collapse = ",")
             ), "] ", gg[["value"]][fl], sep = "")
@@ -333,10 +328,7 @@ get_glpk_path <- function() {
 }
 
 # Translate GAMS constraints to GLPK functions ####
-# Make vector .alias_set (from gams to alias) and set_alias
 
-# set_alias <- .set_al0
-# names(set_alias) <- .alias_set
 
 .get_glpk_loop_fast <- function(set_loop, set_cond, add_cond = NULL) {
   if (!is.null(set_cond) && substr(set_cond, 1, 1) == "(") {
@@ -404,7 +396,6 @@ get_glpk_path <- function() {
   rs <- paste0(rs[!not_use], collapse = ", ")
   # Rest timeslice without mapping
   timeslice <- gsub(" ", "", strsplit(set_num, ",")[[1]])
-  # timeslice2 <- .aliasName(timeslice)
   rest_slice <- timeslice[!(.aliasName(timeslice) %in% c(cnd_slice, recursive = TRUE))]
   if (length(rest_slice) > 0) {
     if (rs == "") rs <- NULL
@@ -436,10 +427,6 @@ get_glpk_path <- function() {
   list(beg = substr(tmp, 1, nchar(tmp) - nchar(end)), end = end)
 }
 
-
-# "s.t. eqCnsMINGASgrow2{y in (mMidMilestone inter mMilestoneHasNext)}: sum{y in mMidMilestone, (c, s) in mCommTimeslice, r in region : c in (mCnsMINGASgrow2_1 inter mCnsMINGASgrow2_1)}(-1 * vOutTot[c, r, y, s]+ sum{(y, yp) in mMilestoneNext, (c, s) in mCommTimeslice, r in region : c in (mCnsMINGASgrow2_1 inter mCnsMINGASgrow2_1) and yp in mMidMilestone}(pCnsMultMINGASgrow2_2[y]* vOutTot[c, r, yp, s]>=0;"
-
-# tmp = '((comm, region, timeslice)$(mCnsMINGASgrow2_1(comm) and mMidMilestone(year) and mCommTimeslice(comm, timeslice) and mCnsMINGASgrow2_1(comm)), -1 * vOutTot(comm, region, year, timeslice))'
 .handle.sum.glpk <- function(tmp) {
   hh <- .get.bracket.glpk(tmp)
   a1 <- sub("^[(]", "", sub("[)]$", "", hh$beg))
@@ -453,18 +440,12 @@ get_glpk_path <- function() {
   paste0(.get_glpk_loop_fast2(substr(a1, 1, nchar(a1) - nchar(a2))), "(", .eqt.to.glpk(substr(a2, 2, nchar(a2))), ")", .eqt.to.glpk(hh$end))
 }
 .eqt.to.glpk <- function(tmp) {
-  # ITER = get('ITER', globalenv()) + 1
-  # cat(ITER, tmp, '\n')
-  # assign('ITER', ITER, globalenv())
-  # if (ITER > 20) stop('ITER', ITER)
   rs <- ""
   while (nchar(tmp) != 0) {
     tmp <- gsub("^[ ]*", "", tmp)
     if (substr(tmp, 1, 4) == "sum(") {
       rs <- paste0(rs, "sum", .handle.sum.glpk(substr(tmp, 4, nchar(tmp))))
       tmp <- ""
-    # } else if (any(grep("^([.[:digit:]]|[+]|[-]|[ ]|[*])", tmp))) {
-    #   a3 <- gsub("^([.[:digit:]_]|[+]|[-]|[ ]|[*])*", "", tmp)
     # changing pattern to include scientific numbers
     } else if (any(grep("^([.[:digit:]_]([eE][-+]?\\d+)?|[+]\\s*|[-]\\s*|[ ]|[*])",
                         tmp))) {

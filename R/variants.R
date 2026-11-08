@@ -1623,7 +1623,7 @@ The roster is the authoritative set: a label that appears only in a data slot ',
   list(objects = objs, provenance = prov)
 }
 
-# Back-compat wrapper: `dev-scripts/*` and downstream repos call this directly.
+# Back-compat wrapper: local scripts and downstream repos call this directly.
 .expand_one_tech <- function(tech, prefix = .variant_prefix_default()) {
   .expand_one_process(tech, prefix)
 }

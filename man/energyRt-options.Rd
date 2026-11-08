@@ -231,7 +231,7 @@ How a saved scenario carries its model: "ref" references the model in its own st
 }}
 
 \item{ondisk_min_rows}{\describe{
-Smallest table that is written to its own file when a scenario is saved on disk; anything shorter stays in the saved scenario.\item{default: }{\preformatted{1e+05}}
+Smallest table written to its own file; a shorter one stays in scen.RData.\item{default: }{\preformatted{1e+05}}
 \item{option: }{energyRt.ondisk_min_rows}
 \item{envvar: }{ENERGYRT_ONDISK_MIN_ROWS (evaluated if possible, raw string otherwise)}
 }}

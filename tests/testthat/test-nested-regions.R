@@ -422,7 +422,7 @@ test_that("no engine refuses a coarse commodity any more", {
   # Julia and Pyomo used to have no `mRegionFamily` term in eqOutTot/eqInpTot, so
   # they would have pinned the balance to NAT and found nothing feeding it. They
   # were made to refuse rather than solve a different problem
-  # (`.assert_geoframe_supported()`, now retired to drafts/). The term is ported,
+  # (`.assert_geoframe_supported()`, now retired). The term is ported,
   # so the guard is gone and every writer must accept the model.
   mod <- setGeoscale(nr_model("nation", "NAT", name = "nrF"), nr_geoscale())
   scen <- vt_interp(mod, "nrF")

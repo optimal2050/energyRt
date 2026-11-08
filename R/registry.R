@@ -8,8 +8,8 @@
 # a rebuildable index — `refresh_registry()` rescans the stores and reconciles.
 #
 # The previous implementation (a wrapper over the CRAN `registry` package,
-# in-memory only) is archived in `drafts/registry-cran-wrapper.R`; its public
-# names live on as deprecated shims at the bottom of this file.
+# in-memory only) was retired; its public names live on as deprecated shims at
+# the bottom of this file.
 # =============================================================================#
 
 # Canonical column set. Character throughout for CSV round-trip stability,

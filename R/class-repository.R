@@ -231,23 +231,3 @@ setMethod("add", signature("repository"), function(obj, ..., overwrite = FALSE) 
   }
   return(obj)
 })
-
-#
-# setReplaceMethod("[[", c("repository", "ANY", "ANY"),
-#                  function(x, name, value) {
-#                    x@data[[name]] = value
-#                    x
-#                  }
-# )
-
-
-# setMethod("add", signature("repository", "commodity"), function())
-
-#------------------------------------------------------------------------------#
-# ! add_to_repository <- function(x, add) : Add to repository
-#------------------------------------------------------------------------------#
-# if (!isClassUnion('repository')) setClassUnion("repository")
-# Add to repository
-
-# add <- function(...) UseMethod("add")
-

@@ -209,11 +209,6 @@ setMethod("summary", signature(object = "scenario"),
 #' @family show print summary
 setMethod("show", "scenario", function(object) summary(object))
 
-# @export
-# setMethod("setTimeSlices", signature(obj = "scenario"), function(obj, ...) {
-#   obj@model@settings@timeslice <- .setTimeSlices(...)
-#   obj
-# })
 
 #' @export
 setMethod("setHorizon", signature(obj = "scenario"),
@@ -237,7 +232,6 @@ setMethod("setHorizon", signature(obj = "scenario"),
 
 #' @export
 setMethod("getHorizon", signature(obj = "scenario"), function(obj) {
-  # getHorizon(obj@model)
   obj@settings@horizon
 })
 

@@ -113,8 +113,6 @@ get_julia_path <- function() {
       dat[[i]] <- tmp
     } else {
       tmp <- .get_data_slot(scen@modInp@parameters[[i]])
-      # dat[[paste0(i, "Up")]] <- tmp[tmp$type == "up", colnames(tmp) != "type"]
-      # dat[[paste0(i, "Lo")]] <- tmp[tmp$type == "lo", colnames(tmp) != "type"]
       dat[[paste0(i, "Up")]] <- select(filter(tmp, type == "up"), -type)
       dat[[paste0(i, "Lo")]] <- select(filter(tmp, type == "lo"), -type)
     }
@@ -241,8 +239,6 @@ get_julia_path <- function() {
   close(zz_modout)
   .write_inc_files(arg, scen, ".jl")
   if (is.null(scen@settings@solver$cmdline) || scen@settings@solver$cmdline == "") {
-    # scen@settings@solver$cmdline <-
-    #   paste0(get_julia_path(), "julia energyRt.jl")
     #   # "julia energyRt.jl"
     fpath <- get_julia_path()
     if (!is.null(fpath)) {
@@ -342,12 +338,10 @@ get_julia_path <- function() {
     hh <- paste0("(", paste0(obj@dimSets, collapse = ", "), ")")
     return(c(
       as_numpar(
-        # obj@data[obj@data$type == "lo", 1 - ncol(obj@data), drop = FALSE],
         select(filter(obj@data, type == "lo"), -type),
         paste(obj@name, "Lo", sep = ""), hh, obj@defVal[1]
       ),
       as_numpar(
-        # obj@data[obj@data$type == "up", 1 - ncol(obj@data), drop = FALSE],
         select(filter(obj@data, type == "up"), -type),
         paste(obj@name, "Up", sep = ""), hh, obj@defVal[2]
       )
@@ -363,8 +357,6 @@ get_julia_path <- function() {
 # Translate GAMS constraints to Julia/JuMP ####
 # Make vector .alias_set (from gams to alias) and set_alias
 
-# set_alias <- .set_al0
-# names(set_alias) <- .alias_set
 
 ## Function
 .get_julia_loop_fast <- function(set_loop, set_cond, add_cond = NULL) {
@@ -380,8 +372,6 @@ get_julia_path <- function() {
   rs <- paste0(rs, "")
   rs
 }
-# .set_al <- c("stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "timeslicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "timeslicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "timeslicen", "groupn", "commn", "cnsn", "src", "dst")
-# .alias_set <- c("st1", "t1", "e", "i", "t", "d", "s1", "wth1", "r", "y", "s", "g", "c", "cn1", "st1p", "t1p", "ep", "ip", "tp", "dp", "s1p", "wth1p", "rp", "yp", "sp", "gp", "cp", "cn1p", "st1e", "t1e", "ee", "ie", "te", "de", "s1e", "wth1e", "re", "ye", "se", "ge", "ce", "cn1e", "st1n", "t1n", "en", "in", "tn", "dn", "s1n", "wth1n", "rn", "yn", "sn", "gn", "cn", "cn1n", "src", "dst")
 names(.alias_set) <- .set_al
 .aliasName <- function(x) {
   if (!all(x %in% .set_al)) {
@@ -391,12 +381,7 @@ names(.alias_set) <- .set_al
   .alias_set[x]
 }
 
-# .fremset <- c("comm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "region", "region")
-# names(.fremset) <- c("acomm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "timeslicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "timeslicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "timeslicen", "groupn", "commn", "cnsn", "src", "dst")
 
-# .removeEndSet <- function(x) {
-#   .fremset[x]
-# }
 .generate_loop_julia <- function(set_num, set_loop) {
   # Consdition split and divet by subset
   while (!is.null(set_loop) && substr(set_loop, 1, 1) == "(" &&
@@ -436,15 +421,12 @@ names(.alias_set) <- .set_al
                  .removeEndSet(names(set_num2)), collapse = " ")
   }
 
-  # rs <- paste0('(', paste0(set_num2, collapse =', '), ') in (', paste0(.removeEndSet(names(set_num2)), collapse = ', '), ')')
 
   if (length(cnd_slice) != 0) {
     rs <- paste0(rs, " if ", paste0(
       paste0("(", c(lapply(cnd_slice, paste0, collapse = ", "),
       recursive = TRUE
     ), ") in ", names(cnd_slice)), collapse = " && "))
-    # rs <- paste0(rs, ' if ', paste0(paste0('(', c(lapply(cnd_slice, paste0, collapse = ', '),
-    #   recursive = TRUE), ') in ', names(cnd_slice)), collapse = ' && '))
   }
   list(first = NULL, end = rs)
 }
@@ -480,8 +462,6 @@ names(.alias_set) <- .set_al
       a2 <- .get.bracket.julia(a2)$end
     }
   }
-  # paste0('(', .eqt.to.julia(substr(a2, 2, nchar(a2))), ' for ', .get_julia_loop_fast2(substr(a1, 1, nchar(a1) - nchar(a2))), ')',
-  #        .eqt.to.julia(hh$end))
   paste0(
     "(", .eqt.to.julia(substr(a2, 2, nchar(a2))),
     .get_julia_loop_fast2(substr(a1, 1, nchar(a1) - nchar(a2))), ")",
@@ -495,12 +475,8 @@ names(.alias_set) <- .set_al
     if (substr(tmp, 1, 4) == "sum(") {
       rs <- paste0(rs, "sum", .handle.sum.julia(substr(tmp, 4, nchar(tmp))))
       tmp <- ""
-    # } else if (any(grep("^([.[:digit:]]|[+]|[-]|[ ]|[*])", tmp))) {
-    #   a3 <- gsub("^([.[:digit:]_]|[+]|[-]|[ ]|[*])*", "", tmp)
     # changing pattern to include scientific numbers
       # "+ sum(techp$(mCnsBASN_battery_moderate_0_cn_4(techp) and mTechNew(techp, region, year)), -1 * vTechNewCap(techp, region, year)) =e= 1e-20;"
-    # } else if (any(grep("^([-+]?\\d+\\.?\\d*([eE][-+]?\\d+)?)", tmp))) {
-    #   a3 <- gsub("^([-+]?\\d+\\.?\\d*([eE][-+]?\\d+)?)*", "", tmp)
     } else if (any(grep("^([.[:digit:]_]([eE][-+]?\\d+)?|[+]\\s*|[-]\\s*|[ ]|[*])", tmp))) {
       a3 <- gsub("^([.[:digit:]_]([eE][-+]?\\d+)?|[+]\\s*|[-]\\s*|[ ]|[*])", "", tmp)
       rs <- paste0(rs, substr(tmp, 1, nchar(tmp) - nchar(a3)))

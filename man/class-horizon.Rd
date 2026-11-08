@@ -17,6 +17,10 @@ An S4 class to represent model/scenario planning horizon with intervals (year-st
 \item{\code{period}}{integer. A planning period defined as a sequence of years (arranged, without gaps) of the model planning (e.g. optimization) window. Data with years before or after the planning \code{period} can present in the model-objects and will be taken into account during interpolation of the model parameters.}
 
 \item{\code{intervals}}{data.frame. Data frame with the start, middle, and end year of every modelled interval, plus an optional display \code{label}. \code{start}, \code{mid} and \code{end} are integer years; \code{mid} is the milestone and the model's key for the period. \code{label} is a character display name, unique across intervals, filled from \code{mid} when not given, and rendered fiscally (\code{FY2025-26}) when the calendar carries a non-January \code{year_start}. The label is presentation only and never reaches the solver -- see \code{year_label()}.}
+
+\item{\code{base_year}}{integer. Optional single milestone year that is GIVEN rather than decided. The marked year is interpolated as any other year but is not passed to the solver -- its own solution comes from a separate solve (\code{solve_base_year()}) and what it decided can be carried into the projection as sunk stock. Milestones BEFORE it are historical and enter no LP at all. Both still anchor interpolation, which reads the anchor years present in the data rather than the milestone list. Empty when every milestone is optimised. See \code{solve_base_year()}.}
+
+\item{\code{misc}}{list. Any additional data or information to store in the object.}
 }}
 
 \concept{settings model scenario}

@@ -200,33 +200,20 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 ####### Internal functions ##########
 .executeScenario <- function(
     scen,
-    # tmp.dir = NULL,
-    # solver = NULL,
     ...
-    # interpolate = FALSE,
-    # read.solution = FALSE,
-    # write = FALSE
     ) {
   arg <- .solver_dir_aliases(list(...))
-  # if (is_empty(arg[["solver.dir"]])) arg[["solver.dir"]] <- NULL
-  # if (is_empty(arg[["solver"]])) arg[["solver"]] <- NULL
   if (is_empty(arg[["read.solution"]])) arg[["read.solution"]] <- FALSE
   if (is_empty(arg[["write"]])) arg[["write"]] <- FALSE
 
-  # arg <- get_tmp_dir(scen, arg)
-  # if (is.null(arg$solver.dir)) {
-  #   stop("tmp.dir is not specified")
-  # }
   arg <- .resolve_verbose_arg(arg)
   if (is_empty(arg[["solver"]])) {
     if (is_empty(scen@settings@solver)) {
-      # arg[["solver"]] <- list(lang = "PYOMO")
       arg[["solver"]] <- get_default_solver()
       scen@settings@solver <- arg[["solver"]]
     } else {
       arg[["solver"]] <- scen@settings@solver
     }
-    # scen@settings@solver <- list(lang = "PYOMO")
   } else if (is.character(arg[["solver"]])) {
     scen@settings@solver <- list(name = arg[["solver"]], lang = arg[["solver"]])
     arg[["solver"]] <- scen@settings@solver
@@ -236,7 +223,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   .check_renamed_preset(scen@settings@solver)
   # The two should be the same object by now; a mismatch means one of the
   # branches above failed to keep them in sync. Reported only under
-  # `options(en.debug = 1)` -- this used to drop into `browser()`, which halts
+  # `options(energyRt.debug = 1)` -- this used to drop into `browser()`, which halts
   # non-interactive and batch solves.
   if (isDebug() && !identical(scen@settings@solver, arg[["solver"]])) {
     cli::cli_warn(
@@ -245,10 +232,8 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   }
   if (is_empty(arg$open.folder)) arg$open.folder <- FALSE
   if (is_empty(arg$show.output.on.console)) arg$show.output.on.console <- FALSE
-  # if (is.null(arg$invisible)) arg$invisible <- FALSE
   if (is_empty(arg$read.solution)) arg$read.solution <- TRUE
   if (is_empty(arg$transient)) arg$transient <- arg$read.solution
-  # arg$write <- write
   if (is_empty(arg$wait)) {
     if (is_empty(scen@settings@solver$wait)) {
       arg$wait <- TRUE
@@ -299,22 +284,16 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     }
     tmp_name <- scen@name
   }
-  # arg$dir.result <- .fix_path(arg$dir.result)
-  # arg$solver.dir <- .fix_path(arg$solver.dir)
-  # if (!is.null(scen)) scen@misc$tmp.dir <- .fix_path(scen@misc$tmp.dir)
 
 
   # interpolate
   if (isTRUE(arg$interpolate)) {
     scen <- energyRt::interpolate(scen, ...)
     arg$write <- TRUE
-    # interpolate <- FALSE
     arg$interpolate <- FALSE
   }
 
   # write
-  # dir.create(arg$solver.dir, recursive = TRUE, showWarnings = FALSE)
-  # if (arg$open.folder) shell.exec(arg$solver.dir)
   if (is.null(arg$solver.dir) || length(arg$solver.dir) == 0) {
     stop("tmp.dir is not specified")
   }
@@ -356,8 +335,6 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     if (arg$verbose) cat("Writing files: ")
     solver_solver_time <- proc.time()[3]
     if (any(grep("^gams$", scen@settings@solver$lang, ignore.case = TRUE))) {
-      # if (is.null(arg$trim)) arg$trim <- FALSE
-      # scen <- .write_model_GAMS(arg, scen, trim = arg$trim)
       scen <- .write_model_GAMS(arg, scen, trim = FALSE)
     } else if (any(grep("^(glpk|cbcb)$", scen@settings@solver$lang,
       ignore.case = TRUE

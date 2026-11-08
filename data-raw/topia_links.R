@@ -3,7 +3,7 @@
 ## region-by-region matrix.
 ##
 ## The network is LISTED here rather than derived. It was settled with the
-## geometry (`drafts/topia-v1/FROZEN.md`, `frozen_links.csv`) in three steps:
+## geometry in three steps:
 ## a majority rule over the four layouts' borders, then a greedy pruning of
 ## every link that crosses another when the network is drawn on the continent,
 ## then one corridor dropped by hand. Re-running that derivation here would

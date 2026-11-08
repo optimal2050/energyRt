@@ -42,7 +42,6 @@ setClass("settings",
     ),
     solver = list(),
     sourceCode = list() # Model source
-    # misc = list()
   ),
   S3methods = FALSE
 )

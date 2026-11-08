@@ -7,6 +7,8 @@
 #' @slot desc `r get_slot_doc("horizon", "desc")`
 #' @slot period `r get_slot_doc("horizon", "period")`
 #' @slot intervals `r get_slot_doc("horizon", "intervals")`
+#' @slot base_year `r get_slot_doc("horizon", "base_year")`
+#' @slot misc `r get_slot_doc("horizon", "misc")`
 #'
 #' @rdname class-horizon
 #' @family settings model scenario
@@ -19,7 +21,8 @@ setClass(
     desc = "character",
     period = "integer",
     intervals = "data.table",
-    base_year = "integer"
+    base_year = "integer",
+    misc = "list"
   ),
   prototype(
     name = character(),
@@ -31,8 +34,8 @@ setClass(
       mid = integer(),
       end = integer(),
       label = character()
-    )
-    # !!! Add misc
+    ),
+    misc = list()
   )
 )
 
@@ -60,6 +63,7 @@ setMethod("initialize", "horizon", function(.Object, ...) {
 #' key for a period stays the integer `mid`. See [year_label()].
 #' The vector will be considered as lengths of each modeled interval in period.
 #' @param desc `r get_slot_doc("horizon", "desc")`
+#' @param misc `r get_slot_doc("horizon", "misc")`
 #' @param object the `horizon` or `config` object to update.
 #' @param obj the `config` object, for the `setHorizon` method.
 #' @param ... named slots with new values.
@@ -125,9 +129,14 @@ newHorizon <- function(
     force_BY_interval_to_1_year = TRUE,
     base_year = NULL,
     desc = NULL,
-    name = NULL
+    name = NULL,
+    misc = NULL
     ) {
-  h <- new("horizon") # !!! update .data2slots for this class
+  h <- new("horizon")
+  if (!is.null(misc)) {
+    stopifnot(is.list(misc))
+    h@misc <- misc
+  }
   if (!is.null(desc)) {
     stopifnot(is.character(desc))
     h@desc <- as.character(desc)
@@ -261,7 +270,6 @@ newHorizon <- function(
   if (mid_is_start) intervals$mid <- intervals$start
   h@intervals <- .fill_interval_labels(intervals)
   if (!is.null(base_year)) h@base_year <- .check_base_year(base_year, h)
-  # h <- .data2slots("period", x = "", period = period, intervals = intervals)
   return(h)
 }
 
@@ -305,7 +313,6 @@ newHorizon <- function(
 #' @rdname newHorizon
 #' @export
 setMethod("update", "horizon", function(object, ..., warn_nodata = TRUE) {
-  # !!! add no-data check for warning
   # cf <- .data2slots("config", object, ..., warn_nodata = FALSE)
   object <- .data2slots("horizon", object, ...,
     # ignore_args = c("name", "desc"),
@@ -533,6 +540,3 @@ year_label <- function(object) {
            error = function(e) stats::setNames(character(), character()))
 }
 
-# ToDo: write methods: ####
-## `add` ####
-## `update` ####

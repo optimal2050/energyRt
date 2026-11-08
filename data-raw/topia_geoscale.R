@@ -17,13 +17,13 @@
 #
 # The assignment is NOT chosen here. It arrives with the polygons in
 # `data-raw/topia_geom12.rds` (`region`, `cell`, `zone`), which is the frozen
-# twelve-region geometry; `drafts/topia-v1/FROZEN.md` is its record. This
-# replaces the eleven-region arrangement with zone-prefixed codes
+# twelve-region geometry. This replaces the eleven-region arrangement with
+# zone-prefixed codes
 # (`W1`-`W2`, `C1`-`C6`, `E1`-`E3`) and, before that, zones that were slices
 # of the number line and contiguous on no layout at all.
 #
 # NAMES ARE DEFERRED. The labels are placeholders: naming the regions is a
-# separate decision, and `drafts/topia_regions.csv` holds the proposals.
+# separate decision.
 #
 # WHAT THIS FILE SHIPS. One `geoscales::GeoScale` per layout, in
 # `topia$geoscales`. Each carries the hierarchy AND that layout's polygons, so

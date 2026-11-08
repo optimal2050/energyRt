@@ -2844,7 +2844,6 @@ Price it with `timeframe = \"native\"` and a matching `calendar = `.",
   }
 
   # ── 12. Base solve ───────────────────────────────────────────────────────────
-  # set_default_solver(solver)
   base_model_dvals <- setNames(rep(1, length(all_out_comms)), all_out_comms)
   base_lcoe_dvals  <- base_model_dvals[out_comms]
   demand_objects   <- make_demands_(base_model_dvals)

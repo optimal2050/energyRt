@@ -3,9 +3,7 @@
 ##
 ## Since v0.93 the geometry is not derived here: it is read from
 ## `data-raw/topia_geom12.rds`, the frozen twelve-region layouts. The freeze
-## was settled over a long visual iteration and its record, including how each
-## layout was obtained, is `drafts/topia-v1/FROZEN.md` with `frozen_regions.csv`
-## and `frozen_links.csv` beside it. The rds carries `region`, `cell` and
+## was settled over a long visual iteration. The rds carries `region`, `cell` and
 ## `zone` per layout, so the code assignment travels WITH the polygons instead
 ## of being re-chosen here.
 ##

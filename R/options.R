@@ -85,8 +85,6 @@ options::define_option(
   default = NULL
 )
 
-# (the `mosox_path` option moved to drafts/mosox/ with the mosox experiment)
-
 # NEOS ########################################################################
 # `neos_email` is the one option that keeps an explicit `envvar_name`: NEOS
 # requires an email for job submission, `set_neos_email()` exports it with

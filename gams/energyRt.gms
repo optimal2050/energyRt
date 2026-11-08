@@ -1926,7 +1926,7 @@ eqTechEac(tech, region, year)$mTechEac(tech, region, year)..
                        )
                 )
               );
-* [moved] * [eac-fix] simplified "EAC for existing capacity" form disa -- see drafts/gams-disabled-equations.gms
+* [moved] * [eac-fix] simplified "EAC for existing capacity" form disa
 
 * Investment equation
 eqTechInv(tech, region, year)$mTechInv(tech, region, year)..
@@ -1936,7 +1936,7 @@ eqTechInv(tech, region, year)$mTechInv(tech, region, year)..
         pTechInvcost(tech, region, year) * vTechNewCap(tech, region, year);
 
 
-* [moved] * Annual O&M costs -- see drafts/gams-disabled-equations.gms
+* [moved] * Annual O&M costs
 * Fixed O&M costs
 *mTechFixom(tech, region, year) = mTechSpan(tech, region, year);
 eqTechFixom(tech, region, year)$mTechFixom(tech, region, year)..
@@ -2679,10 +2679,10 @@ eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
                 * vStorageInpNewCap(stg, region, yearp)
                )$mStorageInpNew(stg, region, yearp))
          );
-* [moved] * [eac-fix] simplified "EAC for existing capacity" form disa -- see drafts/gams-disabled-equations.gms
+* [moved] * [eac-fix] simplified "EAC for existing capacity" form disa
 
 
-* [moved] * Fixed and Variable O&M costs -- see drafts/gams-disabled-equations.gms
+* [moved] * Fixed and Variable O&M costs
 * Storage fixed costs
 *!!!eqStorageFixom(stg, region, year)$mStorageFixom(stg, region, year)..
 eqStorageFixom(stg, region, year)$mStorageFixom(stg, region, year)..
@@ -2772,7 +2772,7 @@ eqImportIrCost(trade, region, year)               Interregional trade import cos
 eqExportIrCost(trade, region, year)               Interregional trade export costs
 ;
 
-* [moved] * rewritten (dropped sum(timeslicep$mCommTimesliceOrParent.. -- see drafts/gams-disabled-equations.gms
+* [moved] * rewritten (dropped sum(timeslicep$mCommTimesliceOrParent..
 
 eqImportTot(comm, dst, year, timeslice)$mImport(comm, dst, year, timeslice)..
   vImportTot(comm, dst, year, timeslice) =e=
@@ -2790,7 +2790,7 @@ eqImportTot(comm, dst, year, timeslice)$mImport(comm, dst, year, timeslice)..
     );
 *    ) * pTimesliceWeight(year, timeslice);
 
-* [moved] * rewritten (dropped sum(timeslicep$mCommTimesliceOrParent.. -- see drafts/gams-disabled-equations.gms
+* [moved] * rewritten (dropped sum(timeslicep$mCommTimesliceOrParent..
 
 eqExportTot(comm, src, year, timeslice)$mExport(comm, src, year, timeslice)..
 
@@ -2871,7 +2871,7 @@ eqTradeIrAfsFx(trade, src, dst, year, timeslice)$meqTradeIrAfsFx(trade, src, dst
               sum(regionp$mWeatherRegionAt(weather, src, regionp),
                   pWeather(weather, regionp, year, timeslice)));
 
-* [moved] eqCostTrade(region, year)$mvTradeCost(region, year).. -- see drafts/gams-disabled-equations.gms
+* [moved] eqCostTrade(region, year)$mvTradeCost(region, year)..
 
 * Import (IR)
 eqImportIrCost(trade, region, year)$mImportIrCost(trade, region, year)..
@@ -3035,7 +3035,7 @@ eqTradeEac(trade, region, year)$mTradeEac(trade, region, year)..
 *               converts to the vintage's standing capacity.
                 pTradeEac(trade, region, yearp) * pPeriodLen(yearp)
                 * vTradeNewCap(trade, yearp));
-* [moved] * [eac-fix] simplified "EAC for existing capacity" form disa -- see drafts/gams-disabled-equations.gms
+* [moved] * [eac-fix] simplified "EAC for existing capacity" form disa
 
 
 * Fixed O&M costs
@@ -3183,7 +3183,7 @@ eqOutTot(comm, region, year, timeslice)$mvOutTot(comm, region, year, timeslice).
 * [agg-rewrite] eqOutTotRY/vOutTotRY retired (dead reporting)
 
 * [agg-rewrite] eqOut2Lo removed (up-aggregation in eqOutTot; vOut2Lo retired)
-* [moved] eqOut2Lo(comm, region, year, timeslice)$mOut2Lo(comm, region -- see drafts/gams-disabled-equations.gms
+* [moved] eqOut2Lo(comm, region, year, timeslice)$mOut2Lo(comm, region
 
 eqInpTot(comm, region, year, timeslice)$mvInpTot(comm, region, year, timeslice)..
         vInpTot(comm, region, year, timeslice)
@@ -3215,7 +3215,7 @@ eqInpTot(comm, region, year, timeslice)$mvInpTot(comm, region, year, timeslice).
 * [agg-rewrite] eqInpTotRY/vInpTotRY retired (dead reporting)
 
 * [agg-rewrite] eqInp2Lo removed (up-aggregation in eqInpTot; vInp2Lo retired)
-* [moved] eqInp2Lo(comm, region, year, timeslice)$mInp2Lo(comm, region -- see drafts/gams-disabled-equations.gms
+* [moved] eqInp2Lo(comm, region, year, timeslice)$mInp2Lo(comm, region
 
 eqSupOutTot(comm, region, year, timeslice)$mSupOutTot(comm, region, year, timeslice)..
           vSupOutTot(comm, region, year, timeslice)

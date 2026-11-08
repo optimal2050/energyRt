@@ -168,8 +168,7 @@ setClass("trade",
       stringsAsFactors = FALSE
     ),
     # Lifespan / vintage table, replacing the former `start`/`end`/`olife` slots
-    # (whose ToDo notes asked for exactly this consistency with the other
-    # processes). One row per vintage; `start`/`end` = user-defined window
+    # One row per vintage; `start`/`end` = user-defined window
     # (NA side = unbounded).
     # No `region` column, unlike technology and storage: a trade's lifespan
     # belongs to the route, not to a region. `pTradeOlife` is declared

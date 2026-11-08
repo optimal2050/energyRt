@@ -34,35 +34,22 @@ countdown_timer <- function(
     .say(warn_message)
   }
 
-  # message("Press Ctrl+C to interrupt the countdown.")
   .cat(start_message)
 
   for (i in seq(seconds, 1, by = -1)) {
-    # cat(sprintf("\rTime remaining: %2d seconds", i)) # Replace previous line
     .cat(sprintf(count_message, i)) # Replace previous line
     flush.console() # Ensure the message is printed immediately
     Sys.sleep(1)
   }
   i <- 0
-  # cat("\rTime remaining:  0 seconds\nCountdown complete!\n") # Final message
-  # cat(sprintf("\rTime remaining:  0 seconds\n%s\n", end_message)) # Final message
   .cat(sprintf(count_message, i), final_message) # Final message
 }
 
-# Example usage
-# countdown_timer(10)
-
-
-# factors_in_prams(scen_BASE_int@modInp@parameters)
-
 nonchar_in_sets <- function(x) {
   # x - list
-  # if (inherits(x, "list")) y <- lapply()
   y <- lapply(x, function(y) any(class(y) != "character"))
   y[unlist(y)]
 }
-# nonchar_in_sets(scen_BASE_int@modInp@sets)
-# scen_BASE_int@modInp@sets$year |> class()
 
 # Slot names an INSTANCE actually carries.
 #
@@ -114,7 +101,6 @@ size <- function(x, level1 = FALSE, units = "auto", sort = TRUE,
         object.size(slot(x, z))
       })
       names(val) <- slx
-      # return(val)
     } else if (is.list(x)) {
       val <- lapply(x, function(z) {
         object.size(z)
@@ -158,7 +144,6 @@ dir_size <- function(path, missing = c("error", "zero")) {
 }
 
 .fix_path <- function(x) {
-  # gsub("[\\/]+", "/", paste0(x, "/"))
   gsub("[\\/]+", "/", x)
 }
 
@@ -202,7 +187,6 @@ dir_size <- function(path, missing = c("error", "zero")) {
 
 fp <- function(...) {
   file.path(...) |> .fix_path()
-    # normalizePath(winslash = "/", mustWork = FALSE)
 }
 
 
@@ -326,7 +310,6 @@ findDuplicates <- function(x) {
   }
   rs <- findDuplicates0(x)
   if (!is.null(rs)) {
-    # cat(paste0("There are ", nrow(rs), " duplicates, sum of values: ", sum(rs$value), "\n"))
     cat(paste0("Found ", nrow(rs), " tables with duplicates,",
                sum(rs$value), "duplicated rows in total\n"))
     return(invisible(rs))
@@ -361,12 +344,8 @@ set_progress_bar <- function(type = "bw", show = TRUE, clear = FALSE) {
   if (type == "bw") {
     progressr::handlers(
       progressr::handler_pbcol(
-        # adjust = 1.0,
-        # complete = function(s) cli::bg_br_green(cli::col_br_black(s)),
         complete = function(s) cli::bg_black(cli::col_white(s)),
-        # complete = function(s) cli::bg_br_black(cli::col_silver(s)),
         incomplete = function(s) cli::bg_none(cli::col_grey(s))
-        # incomplete = function(s) cli::bg_black(cli::col_white(s))
       )
     )
   } else if (type == "default") {
@@ -408,7 +387,6 @@ show_progress_bar <- function(show = TRUE) {
 # the option they read. They used to be defined here AND there; `utils.R` loads
 # later in `Collate:`, so this copy silently shadowed the other one.
 
-# merge_paths <- function(path1, path2)
 
 #' Drop columns in a data.frame with all NA values
 #'
@@ -593,7 +571,6 @@ get_slot_doc <- function(class_name = "technology",
                           ) {
   # Get the slot documentation for a specific slot in a class
   # returns a roxygen2 formatted string
-  # slot_doc <- getSlots(class_name) |> filter(slotname == slot_name)
   df <- .classes
   slot_data <- df |> filter(slotname == slot_name, 
                             class == class_name)
@@ -634,8 +611,6 @@ get_slot_doc <- function(class_name = "technology",
       col_description <- slot_columns$col.description[j]
 
       # Properly format the description, ensuring multiline content is handled
-      # wrapped_description <- paste(strwrap(col_description, width = 80),
-      #                              collapse = "\n   ")
       item_entry <- paste0("    \\item{", col_name, "}{", col_type, ". ",
                            col_description, "}\n")
       slot_desc <- c(slot_desc, item_entry)

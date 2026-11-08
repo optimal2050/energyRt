@@ -1,7 +1,7 @@
 # =========================================================================== #
 # Schema agreement: one class definition, five places that describe it.
 #
-# Priority 2, item 6 of dev/class-consistency-review.md. The effective schema
+# The effective schema
 # is distributed among
 #
 #   1. `setClass()` representations      -- the authority on what slots exist;
@@ -110,14 +110,12 @@ test_that("the generated .classes catalogue is current with the YAML", {
            paste0(p[, 1], "@", p[, 2], "$", p[, 3]))
   }
 
-  # STALE sysdata.rda, 2026-11-05: `R/sysdata.rda` predates two YAML edits, so
-  # `get_slot_doc()` -- and therefore the manual page -- cannot see these two
-  # slots. Regenerating it adds exactly these rows and changes nothing else
-  # (measured: no removals, no description drift). Until the maintainer
-  # approves that regeneration the gap is pinned here, and this expectation
-  # becomes `character(0)` on the same commit.
+  # Every YAML slot must reach the baked catalogue: a slot the catalogue does
+  # not carry has no `get_slot_doc()` text and so no manual page. `costs@defVal`
+  # and `horizon@base_year` were pinned here while `R/sysdata.rda` predated
+  # their YAML edits; the rebuild (2026-11-07) closed the gap.
   stale <- sort(pretty(setdiff(yaml_keys, cat_keys)))
-  expect_equal(stale, c("costs@defVal", "horizon@base_year"))
+  expect_equal(stale, character(0))
 
   # the other direction must be empty: a catalogue row with no YAML source
   # would be documentation that no one can edit

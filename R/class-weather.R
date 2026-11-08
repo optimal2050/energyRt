@@ -80,7 +80,6 @@ setMethod("initialize", "weather", function(.Object, ...) {
 #' @details
 #' Weather factors are separated from the model parameters
 #' and can be added or replaced for different scenarios.
-#' !!!Additional details...
 #'
 #' @md
 #' @param name `r get_slot_doc("weather", "name")`

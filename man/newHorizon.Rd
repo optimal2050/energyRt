@@ -15,7 +15,8 @@ newHorizon(
   force_BY_interval_to_1_year = TRUE,
   base_year = NULL,
   desc = NULL,
-  name = NULL
+  name = NULL,
+  misc = NULL
 )
 
 \S4method{update}{horizon}(object, ..., warn_nodata = TRUE)
@@ -53,6 +54,8 @@ See \code{\link[=solve_base_year]{solve_base_year()}}.}
 \item{desc}{character. Description of the horizon object, for own references.}
 
 \item{name}{character. Name of the horizon object. Used to distinguish between different horizons in the model or scenario, including the automatic creation of the folder name for the model/scenario scripts.}
+
+\item{misc}{list. Any additional data or information to store in the object.}
 
 \item{object}{the \code{horizon} or \code{config} object to update.}
 

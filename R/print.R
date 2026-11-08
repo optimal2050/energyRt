@@ -64,9 +64,7 @@ print.commodity <- function(x, ...) {
     }
   }
   cat("Name: ", x@name, "\n")
-  # if (x@type != '') cat('type: ', x@type, '\n')
   if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
-  # if (x@origin != '') cat('Region of origin: ',x@origin, '\n')
   if (length(x@unit) != 0 && nzchar(x@unit[1])) cat("unit: ", x@unit, "\n")
   if (!is.null(x@misc$color)) cat("color: ", x@misc$color, "\n")
   img <- object_image(x)
@@ -171,11 +169,6 @@ print.model <- function(x, ...) {
   }
   cat("Name: ", x@name, "\n")
   if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
-  # print(x@config)
-  # if (length(x@data) != 0) {
-  #   for (i in 1:length(x@data)) {
-  #     cat("Repository ", i, "(", class(x@data[[i]]), "):\n", sep = "")
-  #     print(x@data[[i]])
   #   }
   # }
 }
@@ -220,7 +213,6 @@ print.supply <- function(x, ...) {
   cat("Name: ", x@name, "\n")
   if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
   cat("Commodity: ", x@commodity, "\n")
-  # cat('Reserve: ', x@reserve, '\n')
   # `length()`, not `!is.null()`: the slot is typed "character", so the NULL
   # test never fired and an object with no region printed `region: ""`.
   if (length(x@region)) cat('region: "', paste(x@region, collapse = '", "'), '"\n', sep = "")
@@ -246,11 +238,9 @@ print.technology <- function(x, ...) {
     }
   }
   cat("Name: ", x@name, "\n")
-  # if (x@type!='') cat('type: ', x@type, '\n')
   if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
   if (x@cap2act != "") cat("cap2act: ", x@cap2act, "\n")
   if (length(x@region)) cat('region: "', paste(x@region, collapse = '", "'), '"\n', sep = "")
-  # if(!is.null(x@reporting_years)) cat('reporting period: ', x@reporting_years, '\n')
   for (i in .technology_data_frame()) if_print_data_frame(x, i)
 }
 
@@ -269,7 +259,6 @@ print.config <- function(x, ...) {
   }
   if_print_data_frame(x, "debug")
   if_print_data_frame(x, "discount")
-  # if_print_data_frame(x, 'tax')
   if_print_data_frame(x, "defVal")
   if_print_data_frame(x, "interpolation")
 }

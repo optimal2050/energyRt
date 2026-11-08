@@ -14,7 +14,6 @@
 # data, so solving at full resolution vs a subset of m<K representatives
 # (year_fraction = m/K) must give the same objective.
 #
-# Standalone dev versions: dev-scripts/sampling_validation*.R
 # =========================================================================== #
 
 obj_glpk <- function(scen, tag) {

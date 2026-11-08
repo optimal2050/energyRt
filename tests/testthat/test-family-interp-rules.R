@@ -127,8 +127,8 @@ test_that("an empty rule behaves as `inter`, which is what the catalogue means",
   # empty rule interpolates between anchors but extrapolates past neither.
   # PINNED, not endorsed: two catalogued parameters ship an empty rule
   # (`pStorageNCap2Stg`, `pStorageStartLevel`) and whether they should instead
-  # fill nothing at all is a per-parameter ruling -- see
-  # dev/interp-empty-rule-review.md. This test fails loudly if that changes.
+  # fill nothing at all is a per-parameter ruling. This test fails loudly if
+  # that changes.
   one <- ir_years("", tag = "ir_empty_one")
   expect_equal(one$years, 2030L)
   two <- ir_years("", anchors = c(2025L, 2040L), vals = c(50, 150),

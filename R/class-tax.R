@@ -79,7 +79,6 @@ setClass("tax",
       rate = numeric(),
       stringsAsFactors = FALSE
     ),
-    # ! Misc
     misc = list()
   ),
   S3methods = FALSE

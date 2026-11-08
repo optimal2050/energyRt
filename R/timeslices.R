@@ -2,8 +2,8 @@
 #
 # Calendar datasets and the chronological walk over a solved scenario.
 #
-# The timeslice <-> datetime conversions moved to timescales on 2026-09-26
-# (see drafts/deprecated-timeslice-conversions-2026-09-26.R). They read the
+# The timeslice <-> datetime conversions moved to timescales on 2026-09-26. They
+# read the
 # timeframe off the CALENDAR now rather than parsing the label text, so they
 # take the calendar: timescales::tsl2hour(tsl, calendar). `.ts_calendar()`
 # below turns an energyRt calendar into the one they expect.

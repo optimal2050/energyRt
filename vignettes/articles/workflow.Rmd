@@ -351,10 +351,15 @@ on the sample.
 
 A sampled calendar is a **row subset of the full calendar's timetable**
 plus an explicit `year_fraction` — the fraction of the year the sample
-covers. Timeslice weights annualise the sample inside the solver
-(the top slice carries weight `1/year_fraction`), so the objective is an
-*estimate* of the full model's — and exactly equals it when the sampled
-slices are representative:
+covers. Timeslice weights annualise the sample inside the solver: the
+sampled slices carry weight `1/year_fraction`, while the top slice stays
+full-year magnitude with share and weight 1. The objective is therefore an
+*estimate* of the full model's, and equals it exactly when the sampled
+slices are representative.
+
+The subset inherits the full year's `weight` column, which no longer
+annualises the shorter sample. Interpolation normalises the weights on
+construction and reports the factor it applied:
 
 ```{r sample-calendar}
 timetable <- topia$modules$calendars$s4_h24@timetable

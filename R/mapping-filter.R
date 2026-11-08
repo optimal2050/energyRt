@@ -16,8 +16,8 @@
 # (meqSupAvaLo, meq{Import,Export}RowLo, m{Import,Export}RowCumUp) and value-recipe
 # maps (mInpSub/mOutSub, the *Cost maps) plus mTradeRoutes share a derivation with
 # a filter map and are emitted as SIDE-EFFECTS of that sibling here (recipe_value /
-# recipe_constraint skip them). The legacy recipe_filter fallback has been retired
-# (archived to drafts/legacy-mapping/filter.R).
+# recipe_constraint skip them). The legacy recipe_filter fallback has been
+# retired.
 # =========================================================================== #
 
 # per-object timeslice map (leaf timeslices of each object's finest timeframe).

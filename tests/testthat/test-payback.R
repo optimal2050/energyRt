@@ -124,7 +124,7 @@ test_that("payback is present in every backend template that claims to support i
                   info = paste(cs$nm, "does not use", par))
     }
   }
-  # Pyomo-Abstract was RETIRED (drafts/energyRtAbstract.py): it was on the
+  # Pyomo-Abstract was RETIRED: it was on the
   # pre-vintaging EAC form and could not carry payback. It must no longer be
   # shipped as a template at all -- that is what replaces the old
   # "must not pretend to support payback" assertion.

@@ -43,7 +43,6 @@ setClass("costs",
     subset = data.frame(),
     mult = data.frame(),
     defVal = 0,
-    # ! Misc
     misc = list()
   ),
   S3methods = FALSE
@@ -102,8 +101,6 @@ newCosts <- function(
     stop(paste0('There are unknown variable "', variable, '" in cost "', name,
                 '".'))
   }
-  # if (anyDuplicated(sets))
-  #       stop(paste0('Add cost to variable with duplicated sets is not allowed now (cost "', name, '").'))
   if (anyDuplicated(sets)) {
     sets[duplicated(sets)] <- paste0(sets[duplicated(sets)], 2)
   }
@@ -125,7 +122,6 @@ newCosts <- function(
     if (!all(colnames(subset) %in% sets)) {
       bug <- colnames(subset)[!(colnames(subset) %in% sets)]
       stop(paste0(
-        # "There ", c("is", "are")[1 + length(bug) != 1],
         "Unrecognized column",
         "s"[length(bug) != 1], ' "', paste0(bug, collapse = '", "'),
         '" in subset (cost "', name, '").'
@@ -156,14 +152,12 @@ newCosts <- function(
       if (!all(colnames(mult) %in% c("value", sets))) {
         bug <- colnames(mult)[!(colnames(mult) %in% c("value", sets))]
         stop(paste0(
-          # "There ", c("is", "are")[1 + length(bug) != 1],
           "Unrecognized column",
           "s"[length(bug) != 1], ' "', paste0(bug, collapse = '", "'),
           '" in mult (cost "', name, '").'
         ))
       }
       mult <- mult[, !apply(is.na(mult), 2, all), drop = FALSE]
-      # if (anyDuplicated(mult[, colnames(mult) != "value", drop = FALSE])) {
       if (anyDuplicated(select(mult, -value))) {
         stop(paste0('Duplicated row(s) in mult (cost "', name, '").'))
       }
@@ -351,4 +345,3 @@ newCosts <- function(
   prec
 }
 
-#  .getSetEquation(prec, stm, approxim)@user_constraints
