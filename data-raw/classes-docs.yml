@@ -1,6 +1,8 @@
 ################################################################################
 # Description of slots in classes to use in documentation functions ############
 # Edit then run `DATASET.R` to update the .classes obj in the package data #####
+# The `recast:` blocks ALSO drive `R/recast-rules.R` / `.defRecast`, generated #
+# by `data-raw/recast_rules.R`, which `DATASET.R` sources. See README.md.      #
 ################################################################################
 class:
 # model bricks: system components ###############################################

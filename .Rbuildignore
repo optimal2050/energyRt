@@ -16,6 +16,8 @@ dev-local/
 ^solwork$
 ^tmp$
 drafts-local/
+levcosts/
+^levcosts$
 depreciated/
 scenarios/
 ^scenarios$

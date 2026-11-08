@@ -1,3 +1,10 @@
+# The parameter catalogue, maintained BY HAND. One top-level key per model
+# symbol, and the authority for its `dimSets`, `defVal` and `interpolation` --
+# `config_default_*.yml` only supply the override baseline.
+# Read by `DATASET.R` into `.modInp` (R/sysdata.rda) and by
+# `make_mapping_spec.R` for mapping dimensions. Editing this file does nothing
+# until `DATASET.R` is re-run from the package root and the regenerated
+# `R/sysdata.rda` is committed. See data-raw/README.md.
 region:
   name: region
   type: set

@@ -1,5 +1,5 @@
 # This file is auto-created from *.yml files inputs,
-# see data-raw/DATASETS.R for details.
+# see data-raw/DATASET.R for details. Do not edit by hand.
 
 .defVal <-
   list(

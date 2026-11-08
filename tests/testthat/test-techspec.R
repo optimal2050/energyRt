@@ -1,8 +1,24 @@
 # techspec: YAML process specifications + designer plumbing ------------------
+#
+# MISSING EXAMPLE: `ldv_bev.yml` is read below but has never been added to
+# `inst/techspec/examples/` (which holds battery / coal_power /
+# interconnector). The blocks that need it therefore FAIL rather than skip --
+# "partial vintage coverage is reported, never auto-filled", "unknown
+# sections/columns and undeclared vintages are errors", the two that follow
+# them, and the round-trip loop. The example is owed; the failures are the
+# record of that, not a regression.
 
 .ex <- function(f) {
   p <- system.file("techspec", "examples", f, package = "energyRt")
-  if (!nzchar(p)) skip("techspec examples not installed")
+  if (!nzchar(p)) {
+    # Only a genuinely uninstalled package may skip. When the examples ARE
+    # there and one named file is not, a deleted or never-written example must
+    # not quietly take its tests with it.
+    if (nzchar(system.file("techspec", "examples", package = "energyRt"))) {
+      stop("missing techspec example: ", f, call. = FALSE)
+    }
+    skip("techspec examples not installed")
+  }
   p
 }
 

@@ -4726,25 +4726,6 @@ get_process_years <- function(scen, process = NULL, classes = NULL) {
 #
 # }
 
-#' Return default value for one, several, or all parameters
-#'
-#' @param object scenario object
-#' @param pname character, parameter name, as it appears in the model
-#' @param sname character, short name of the parameter, as it appears in classes
-#' @param oname character, object name; accepted for symmetry with the other
-#'   selectors and currently unused.
-#' @param class character, class of the parameter to search for
-#' @param bound character, name of the bound to retrieve, `lo` or `up`.
-#' If `NULL`, the function will return the default value for both upper and
-#' lower bounds.
-#' @param global logical, if `FALSE`, the function will search for adjusted
-#' values for the parameter in the scenario object. If `TRUE` or no adjustments
-#' found, the function will return the default value stored in the package data.
-#' @param one_value logical, if `TRUE`, the function will force returning
-#' a single value for the parameter, and will throw an error if multiple values
-#' are found. If `FALSE`, the function will return all found values.
-#'
-#'
 # The scenario's own default for one catalogued parameter, or NULL when it has
 # none. Reads the interpolated parameter first -- that value is what reaches the
 # solver -- then the `defVal` table of settings/config, keyed by `colName` the
@@ -4769,6 +4750,26 @@ get_process_years <- function(scen, process = NULL, classes = NULL) {
   out <- out[!is.na(out)]
   if (!length(out)) NULL else as.numeric(out)
 }
+
+#' Return default value for one, several, or all parameters
+#'
+#' @param object scenario object
+#' @param pname character, parameter name, as it appears in the model
+#' @param sname character, short name of the parameter, as it appears in classes
+#' @param oname character, object name; accepted for symmetry with the other
+#'   selectors and currently unused.
+#' @param class character, class of the parameter to search for
+#' @param bound character, name of the bound to retrieve, `lo` or `up`.
+#' If `NULL`, the function will return the default value for both upper and
+#' lower bounds.
+#' @param global logical, if `FALSE`, the function will search for adjusted
+#' values for the parameter in the scenario object. If `TRUE` or no adjustments
+#' found, the function will return the default value stored in the package data.
+#' @param one_value logical, if `TRUE`, the function will force returning
+#' a single value for the parameter, and will throw an error if multiple values
+#' are found. If `FALSE`, the function will return all found values.
+#'
+#'
 
 #' @returns
 #' A default value for one parameter, or a list of default values for several parameters.

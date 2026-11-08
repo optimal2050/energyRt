@@ -1,4 +1,12 @@
-# temproary (manually created) file to store the default interpolation configuration
+# Interpolation-rule OVERRIDE BASELINE, maintained by hand, keyed by `colName`.
+# NOT the authoritative rule -- `modInp.yml` is. Keys follow the parameter's
+# type: a `bounds` parameter with `colName: x` is reached as `x.lo` / `x.up`,
+# a `numpar` as bare `x`; a bare key on a bounds parameter is unreachable.
+# Read by `DATASET.R` into `.defInt`, emitted as source into `R/defaults.R`
+# (NOT into sysdata). Re-run `DATASET.R` after editing.
+# Agreement with the catalogue, and the colNames this table cannot reach, are
+# pinned by tests/testthat/test-family-interp-rules.R ("the override table and
+# the catalogue agree, and the gap is stated"). See data-raw/README.md.
 act2ainp: back.inter.forth
 act2aout: back.inter.forth
 af.lo: back.inter.forth

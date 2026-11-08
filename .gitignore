@@ -71,6 +71,12 @@ docs/AGENTS.md
 docs/copilot-instructions.html
 docs/copilot-instructions.md
 
+# knitr figure/cache output from rendering a vignette in place; the built
+# copies live in docs/ and are tracked there, so only the source tree's
+# scratch is ignored
+vignettes/*_files/
+vignettes/*_cache/
+
 # testthat writes this after a run with failures
 tests/testthat/testthat-problems.rds
 tests/testthat/_problems/

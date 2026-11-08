@@ -31,7 +31,7 @@ source("data-raw/maps.R")
 
 readr::write_lines(c(
   "# This file is auto-created from *.yml files inputs,",
-  "# see data-raw/DATASETS.R for details.",
+  "# see data-raw/DATASET.R for details. Do not edit by hand.",
   "",
   ".defVal <- ",
   dput(.defVal) |> deparse() |> stringr::str_replace_all(", ", ",\n"),

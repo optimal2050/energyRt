@@ -1,3 +1,10 @@
+# Default-value OVERRIDE BASELINE, maintained by hand, keyed by `colName`.
+# NOT the authoritative default -- `modInp.yml` is. This table is what
+# `.apply_settings_param_overrides()` compares a scenario's `settings@defVal`
+# against, so a `colName` absent here cannot be overridden from settings at all.
+# Read by `DATASET.R` into `.defVal`, which is emitted as source into
+# `R/defaults.R` (NOT into sysdata). Re-run `DATASET.R` after editing.
+# See data-raw/README.md.
 act2ainp: 0.0
 act2aout: 0.0
 af.lo: 0.0
