@@ -42,12 +42,20 @@ library(sf)
 # the reference transmission chain links consecutive pairs.
 .topia_regions <- sprintf("R%02d", 1:12)
 
-.topia_zones <- c("NW", "NE", "SW", "SE")
+.topia_zones <- paste0("Z", 1:5)
 
 # Zone membership is a property of the CODE, identical on every layout; the
 # geometry file states it per layout and the agreement is checked below.
-.topia_zone_of <- rep(.topia_zones, each = 3L)
-names(.topia_zone_of) <- .topia_regions
+#
+# The zones are DELIBERATELY uneven -- 1/2/3/4/2. `Z1` is the remote region on
+# its own, which carries no transmission and must balance locally in every
+# hour; the rest grade from the two-region sun to the four-region belt and the
+# windy coastal pair. Compass names were retired with the even grouping: with
+# these sizes they described nothing.
+.topia_zone_of <- c(R01 = "Z1", R02 = "Z2", R03 = "Z2",
+                    R04 = "Z3", R05 = "Z3", R06 = "Z3",
+                    R07 = "Z4", R08 = "Z4", R09 = "Z4", R10 = "Z4",
+                    R11 = "Z5", R12 = "Z5")
 
 # Placeholder labels -- see "NAMES ARE DEFERRED" above.
 .topia_names <- stats::setNames(
@@ -65,7 +73,7 @@ stopifnot(
   nrow(geo) == 12L, !anyDuplicated(geo$region), !anyNA(geo$name),
   identical(geo$region, .topia_regions),
   identical(sort(unique(geo$zone)), sort(.topia_zones)),
-  all(table(geo$zone) == 3L)
+  identical(as.integer(table(geo$zone)[.topia_zones]), c(1L, 2L, 3L, 4L, 2L))
 )
 
 # -- the geometry agrees with the hierarchy ----------------------------------
@@ -150,7 +158,7 @@ for (nm in names(topia_geoscales)) {
     identical(geoscales::geoscale_geoframes(gs),
               c("nation", "zone", "region")),
     setequal(geoscales::geoscale_regions(gs, "region"), .topia_regions),
-    nrow(geoscales::geoscale_geometry(gs, "zone")) == 4L
+    nrow(geoscales::geoscale_geometry(gs, "zone")) == length(.topia_zones)
   )
 }
 

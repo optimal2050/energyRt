@@ -34,6 +34,7 @@ stopifnot(file.exists(.vig))
   weather   = topia_weather,
   demand    = topia_demand,
   stock     = topia_stock,
+  grades    = topia_grades,
   modules   = topia_modules
 )
 
@@ -68,7 +69,9 @@ if (length(.miss)) {
 
 topia_model <- list(
   regions   = .env$regions,
-  calendar  = "s4_h24",
+  # the name of the calendar the vignette built on, read from the object it
+  # used rather than restated -- the two drifted when this was a literal
+  calendar  = .env$calendar@name,
   repo      = .env$repo,
   geoscale  = .env$gs,
   CO2_CAP   = .env$CO2_CAP,

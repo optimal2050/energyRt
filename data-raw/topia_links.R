@@ -42,8 +42,8 @@ stopifnot(requireNamespace("sf", quietly = TRUE))
 .LINKS <- rbind(
   c("R02", "R03"), c("R02", "R05"), c("R04", "R05"), c("R04", "R06"),
   c("R05", "R06"), c("R02", "R07"), c("R03", "R07"), c("R05", "R07"),
-  c("R07", "R08"), c("R08", "R09"), c("R06", "R11"), c("R09", "R11"),
-  c("R10", "R12"), c("R11", "R12")
+  c("R07", "R08"), c("R08", "R09"), c("R06", "R10"), c("R09", "R10"),
+  c("R10", "R11"), c("R11", "R12")
 )
 
 # the canonical order, which the matrix is keyed on

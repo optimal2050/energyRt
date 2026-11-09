@@ -6,7 +6,8 @@
 ##   data-raw/topia_geoscale.R  -> topia$geoscales (hierarchy + those polygons)
 ##   data-raw/topia_links.R     -> topia$links, the transmission network read
 ##                                 off those polygons
-##   data-raw/topia_data.R      -> topia_weather, topia_demand, topia_stock
+##   data-raw/topia_data.R      -> topia_weather, topia_demand, topia_stock,
+##                                 topia_grades
 ##   data-raw/topia_modules.R   -> topia_modules (calendars, horizons, the
 ##                                 unit kits, and the pre-0.92 region kits)
 ##   data-raw/topia_model.R     -> topia_model, tangled from
@@ -47,7 +48,8 @@ stopifnot(
   is.list(.e$topia_geoscales), length(.e$topia_geoscales) == 4L,
   is.matrix(.e$topia_links), isSymmetric(.e$topia_links),
   !is.null(.e$topia_weather), !is.null(.e$topia_demand),
-  !is.null(.e$topia_stock),   !is.null(.e$topia_modules),
+  !is.null(.e$topia_stock),   !is.null(.e$topia_grades),
+  !is.null(.e$topia_modules),
   !is.null(.e$topia_model)
 )
 
@@ -56,6 +58,7 @@ topia$links   <- .e$topia_links
 topia$weather <- .e$topia_weather
 topia$demand  <- .e$topia_demand
 topia$stock   <- .e$topia_stock
+topia$grades  <- .e$topia_grades
 # `modules$electricity` IS the vignette's model. The hand-written kits that
 # used to live there still back the golden regressions, but they are retiring
 # and are not something to point a reader at, so they are written out as a
@@ -75,7 +78,8 @@ cat("golden kits written to", .fixture, "-",
 
 stopifnot(
   identical(names(topia),
-            c("geoscales", "links", "weather", "demand", "stock", "modules")),
+            c("geoscales", "links", "weather", "demand", "stock", "grades",
+              "modules")),
   # one model, not a list of layouts
   methods::is(topia$modules$electricity$repo, "repository"),
   length(topia$modules$electricity$regions) == 12L,
@@ -93,7 +97,11 @@ stopifnot(
 stopifnot(!any(c("map", "geo") %in% names(topia)),
           is.null(topia$modules$maps))
 
-usethis::use_data(topia, overwrite = TRUE)
+# xz, as the other data-raw drivers use: on this object it is half the
+# size of usethis's bzip2 default and faster to write. `LazyData` is on,
+# so DESCRIPTION also sets `LazyDataCompression: xz` -- otherwise the
+# INSTALLED database is rebuilt with gzip and the saving is lost.
+usethis::use_data(topia, overwrite = TRUE, compress = "xz")
 cat("topia.rda written:", paste(names(topia), collapse = ", "), "|",
     length(topia$geoscales), "layouts:",
     paste(names(topia$geoscales), collapse = ", "), "\n")

@@ -257,6 +257,11 @@
                  collapse = ", "), call. = FALSE)
     }
     v <- x[x$region %in% mem, ]
+    # A region carries a resource GRADE only where its own ground reaches it,
+    # so a (region, cluster) pair with no series is absent rather than zero:
+    # returning nothing keeps it out of the model, while aggregating an empty
+    # frame would stop the build.
+    if (nrow(v) == 0L) return(NULL)
     agg <- stats::aggregate(v[[value]], by = list(timeslice = v$timeslice),
                             FUN = mean)
     d <- data.frame(region = r, timeslice = as.character(agg$timeslice),
@@ -373,18 +378,30 @@ topia_profiles <- function(regions,
     wx <- .topia_weather_from_ideea(calendar, resources, cluster)
     weather <- do.call(rbind, lapply(regions, function(r)
       cbind(region = r, wx, stringsAsFactors = FALSE, row.names = NULL)))
-    weather <- weather[, c("resource", "region", "timeslice", "wval")]
+    weather$cluster <- NA_character_
+    weather <- weather[, c("resource", "cluster", "region", "timeslice",
+                           "wval")]
   } else {
     w <- .topia_pick(as.data.frame(.topia_ds()$weather), calendar, dataset,
                      "weather")
     w$resource <- as.character(w$resource)
     w$region <- as.character(w$region)
     w$timeslice <- as.character(w$timeslice)
-    weather <- do.call(rbind, lapply(sort(unique(w$resource)), function(res) {
-      v <- .topia_lookup(w[w$resource == res, ], regions, "wval", gm)
-      cbind(resource = res, v, stringsAsFactors = FALSE, row.names = NULL)
+    w$cluster <- if (is.null(w$cluster)) NA_character_ else as.character(w$cluster)
+    # one series per (resource, cluster): a wind grade or a solar mounting.
+    # `NA` is the single series of a set that has no clusters.
+    keys <- unique(w[, c("resource", "cluster")])
+    keys <- keys[order(keys$resource, keys$cluster), , drop = FALSE]
+    weather <- do.call(rbind, lapply(seq_len(nrow(keys)), function(i) {
+      cl <- keys$cluster[i]
+      sel <- w$resource == keys$resource[i] &
+        (if (is.na(cl)) is.na(w$cluster) else !is.na(w$cluster) & w$cluster == cl)
+      v <- .topia_lookup(w[sel, ], regions, "wval", gm)
+      cbind(resource = keys$resource[i], cluster = cl, v,
+            stringsAsFactors = FALSE, row.names = NULL)
     }))
-    weather <- weather[, c("resource", "region", "timeslice", "wval")]
+    weather <- weather[, c("resource", "cluster", "region", "timeslice",
+                           "wval")]
   }
 
   d <- .topia_pick(as.data.frame(.topia_ds()$demand), calendar, dataset,

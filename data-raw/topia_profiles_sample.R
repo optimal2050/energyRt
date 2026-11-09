@@ -24,13 +24,52 @@ GFDIR <- "C:/Users/admin/Documents/R/reneuro/data-raw/glofas"
 LDDIR <- "C:/Users/admin/Documents/R/reneuro/projects/countries/inputs"
 
 REG <- sprintf("R%02d", 1:12)
+
+# Twelve territories, chosen so each ZONE of the frozen geoscale is one
+# archetype: `Z1` the windy dark island that carries no wire, `Z2` the sun,
+# `Z3` and the inland half of `Z4` the becalmed interior, and the coastal half
+# of `Z4` with `Z5` the windy end. Sites are placed to produce that, then the
+# resource grades below are READ OFF the cells rather than assigned.
 SITE <- data.frame(
   region = REG,
-  lon = c(25.6, -4.5, 22.8,  6.0, 13.0, 10.5, 15.5, 20.5, 18.0, -7.0,  4.5,  0.5),
-  lat = c(40.9, 38.0, 42.7, 50.4, 48.0, 49.3, 46.8, 44.3, 45.5, 53.3, 51.8, 52.4),
-  cc = c("GR", "ES", "BG", "BE", "AT", "DE", "SI", "RS", "HR", "IE", "NL", "GB"),
+  lon = c(-2.0, -8.5, -3.5, 14.0,  9.5, 11.5, 21.0, 24.0, 15.5,  9.0, -4.5, -9.0),
+  lat = c(59.5, 39.5, 38.5, 49.0, 45.5, 44.5, 42.5, 42.5, 54.0, 56.5, 55.5, 53.5),
+  # `cc` picks the measured LOAD series only, so it is chosen for a plausible
+  # distinct shape rather than to match the cell territory exactly: the island
+  # takes a northern winter-peaking profile, and no two regions share one.
+  cc = c("NO", "PT", "ES", "CZ", "CH", "IT", "RS", "BG", "PL", "DK", "GB", "IE"),
   stringsAsFactors = FALSE)
 stopifnot(nrow(SITE) == 12L, !anyDuplicated(SITE$cc))
+
+# ---- resource grades --------------------------------------------------------
+# Wind grades are ABSOLUTE bands on a cell's own annual capacity factor, the
+# same thresholds everywhere. A per-region tier would call a becalmed region's
+# best sites "HI", which is not what a grade means; with absolute bands a
+# region simply has no HI cells. Measured over the 9,003 cells carrying both
+# resources: 336 are HI, 944 MD, the rest LO.
+WIND_BANDS <- c(HI = 0.45, MD = 0.30)   # lower edge of each; below MD is LO
+NMIN <- 5L                              # cells a band needs to be worth a cluster
+
+# What each region offers. The bands above decide what EXISTS; this table is
+# the design on top of them -- the windy coast and the island carry no
+# low-grade sites, and the belt carries no mid-grade, so the grades are not
+# merely a quality ladder repeated in every region.
+WIND_CL <- list(
+  R01 = c("HI", "MD"), R02 = c("MD", "LO"), R03 = "LO", R04 = "LO",
+  R05 = "LO",          R06 = "LO",          R07 = "LO", R08 = "LO",
+  R09 = c("HI", "LO"), R10 = "HI",          R11 = c("HI", "MD"),
+  R12 = c("HI", "MD"))
+
+# Solar is a TECHNOLOGY pair, not a resource grade. Within a territory the
+# best twelve cells and the next twelve differ by 1-6%, so grading cells would
+# give two near-identical clusters -- the correlated-shapes defect. Fixed tilt
+# against horizontal single-axis tracking is +20.9% on the SAME cells, with a
+# broader shoulder and a flatter midday. (`cf_cells_solar_opt` is not a third
+# option: it matches the fixed file to -0.1%, so the shipped file is already
+# optimally tilted.)
+SOLAR_SRC <- c(FIX = "solar", TRK = "hsat")
+SOLAR_MIN <- 0.14      # best-12 CF below which tracking is not offered
+
 MAXD <- 2.2   # deg, cap on a territory's radius
 NTOP <- 12    # best cells per territory, per resource
 NRIV <- 5     # rivers per territory
@@ -58,7 +97,8 @@ stopifnot(length(HOURS) == 8760L, length(DAYS) == 365L)
 .cf_sites <- function() {
   cells <- as.data.frame(arrow::read_parquet(
     file.path(CFDIR, "cells_eu.parquet")))
-  ok <- Reduce(intersect, lapply(c("onwind", "solar"), function(nm)
+  src <- unique(c("onwind", unname(SOLAR_SRC)))
+  ok <- Reduce(intersect, lapply(src, function(nm)
     as.data.frame(dplyr::collect(dplyr::distinct(arrow::open_dataset(
       file.path(CFDIR, paste0("cf_cells_", nm, ".parquet"))),
       cell_id)))$cell_id))
@@ -69,37 +109,76 @@ stopifnot(length(HOURS) == 8760L, length(DAYS) == 365L)
   cells$own <- apply(D, 1, which.min)
   cells$dmin <- apply(D, 1, min)
   cells <- cells[cells$dmin <= MAXD, ]
-  out <- list()
-  for (nm in c("onwind", "solar")) {
-    ann <- as.data.frame(dplyr::collect(dplyr::summarise(dplyr::group_by(
-      arrow::open_dataset(file.path(CFDIR, paste0("cf_cells_", nm,
-                                                  ".parquet"))),
-      cell_id), cf = mean(cf))))
-    sel <- list()
-    for (i in seq_len(nrow(SITE))) {
-      a <- ann[ann$cell_id %in% cells$cell_id[cells$own == i], ]
-      a <- a[order(-a$cf), ][seq_len(min(NTOP, nrow(a))), ]
-      sel[[i]] <- data.frame(region = SITE$region[i], cell_id = a$cell_id,
-                             ann_cf = a$cf, stringsAsFactors = FALSE)
+
+  ann <- function(nm) as.data.frame(dplyr::collect(dplyr::summarise(
+    dplyr::group_by(arrow::open_dataset(
+      file.path(CFDIR, paste0("cf_cells_", nm, ".parquet"))), cell_id),
+    cf = mean(cf))))
+
+  # WIND: band every owned cell by its own annual CF, then take the best NTOP
+  # within each band the region is declared to offer. A declared band with
+  # fewer than NMIN cells is dropped and reported -- an empty cluster would
+  # reach the model as a technology that can never run.
+  aw <- ann("onwind")
+  wsel <- list()
+  for (i in seq_len(nrow(SITE))) {
+    r <- SITE$region[i]
+    a <- aw[aw$cell_id %in% cells$cell_id[cells$own == i], ]
+    a$band <- ifelse(a$cf >= WIND_BANDS[["HI"]], "HI",
+                     ifelse(a$cf >= WIND_BANDS[["MD"]], "MD", "LO"))
+    for (cl in WIND_CL[[r]]) {
+      v <- a[a$band == cl, ]
+      if (nrow(v) < NMIN) {
+        warning("wind cluster ", cl, " dropped in ", r, ": ", nrow(v),
+                " cells, below NMIN = ", NMIN, call. = FALSE)
+        next
+      }
+      navail <- nrow(v)        # the band's whole stock, not just the best NTOP
+      v <- v[order(-v$cf), ][seq_len(min(NTOP, nrow(v))), ]
+      wsel[[length(wsel) + 1L]] <- data.frame(
+        region = r, cluster = cl, cell_id = v$cell_id, ann_cf = v$cf,
+        avail = navail, stringsAsFactors = FALSE)
     }
-    out[[nm]] <- do.call(rbind, sel)
   }
-  out
+
+  # SOLAR: the same cells under two technologies. The cell pick is made once,
+  # on the fixed-tilt file, so FIX and TRK stand on the same ground and differ
+  # only by what is mounted there.
+  as_ <- ann(SOLAR_SRC[["FIX"]])
+  ssel <- list()
+  for (i in seq_len(nrow(SITE))) {
+    r <- SITE$region[i]
+    a <- as_[as_$cell_id %in% cells$cell_id[cells$own == i], ]
+    navail <- nrow(a)
+    a <- a[order(-a$cf), ][seq_len(min(NTOP, nrow(a))), ]
+    cls <- if (mean(a$cf) >= SOLAR_MIN) names(SOLAR_SRC) else "FIX"
+    for (cl in cls) {
+      ssel[[length(ssel) + 1L]] <- data.frame(
+        region = r, cluster = cl, cell_id = a$cell_id, ann_cf = a$cf,
+        avail = navail, stringsAsFactors = FALSE)
+    }
+  }
+  list(onwind = do.call(rbind, wsel), solar = do.call(rbind, ssel))
 }
 
+# Hourly mean over each (region, cluster) cell set. Columns are keyed
+# "<region>.<cluster>"; `.reduce()` splits them back out.
 .cf_series <- function(nm, map) {
   x <- as.data.frame(dplyr::collect(dplyr::select(dplyr::filter(
     arrow::open_dataset(file.path(CFDIR, paste0("cf_cells_", nm, ".parquet"))),
-    cell_id %in% map$cell_id), cell_id, time, cf)))
-  x$region <- map$region[match(x$cell_id, map$cell_id)]
-  a <- stats::aggregate(cf ~ region + time, data = x, FUN = mean)
-  m <- matrix(NA_real_, 8760L, length(REG), dimnames = list(NULL, REG))
-  for (r in REG) {
-    v <- a[a$region == r, ]
-    m[match(as.POSIXct(v$time, tz = "UTC"), HOURS), r] <- v$cf
-    m[, r] <- .fill(m[, r])
+    cell_id %in% unique(map$cell_id)), cell_id, time, cf)))
+  key <- paste(map$region, map$cluster, sep = ".")
+  out <- NULL
+  for (k in unique(key)) {
+    ids <- map$cell_id[key == k]
+    v <- x[x$cell_id %in% ids, ]
+    a <- stats::aggregate(cf ~ time, data = v, FUN = mean)
+    col <- rep(NA_real_, 8760L)
+    col[match(as.POSIXct(a$time, tz = "UTC"), HOURS)] <- a$cf
+    out <- cbind(out, .fill(col))
+    colnames(out)[ncol(out)] <- k
   }
-  m
+  out
 }
 
 # ---- inflow -----------------------------------------------------------------
@@ -205,11 +284,17 @@ HOUR <- as.integer(format(HOURS, "%H"))
   }
 }
 
+# Columns are either "<region>" (inflow, load) or "<region>.<cluster>"
+# (wind, solar); the cluster comes back out as its own column so the shipped
+# table is keyed the way the model reads it.
 .reduce <- function(m, calendar) {
   key <- .keys(calendar)
-  do.call(rbind, lapply(REG, function(r) {
-    agg <- stats::aggregate(m[, r], by = list(timeslice = key), FUN = mean)
-    data.frame(region = r, timeslice = agg$timeslice, value = agg$x,
+  do.call(rbind, lapply(colnames(m), function(cc) {
+    agg <- stats::aggregate(m[, cc], by = list(timeslice = key), FUN = mean)
+    p <- strsplit(cc, ".", fixed = TRUE)[[1]]
+    data.frame(region = p[1],
+               cluster = if (length(p) > 1L) p[2] else NA_character_,
+               timeslice = agg$timeslice, value = agg$x,
                stringsAsFactors = FALSE)
   }))
 }
@@ -218,7 +303,13 @@ topia_real_profiles <- function(
     calendars = "d365_h24") {
   maps <- .cf_sites()
   W <- .cf_series("onwind", maps$onwind)
-  S <- .cf_series("solar", maps$solar)
+  # one read per solar technology; both stand on the same cells
+  S <- NULL
+  for (cl in names(SOLAR_SRC)) {
+    mp <- maps$solar[maps$solar$cluster == cl, , drop = FALSE]
+    if (!nrow(mp)) next
+    S <- cbind(S, .cf_series(SOLAR_SRC[[cl]], mp))
+  }
   rv <- .rivers()
   Hd <- .inflow_series(rv)
   H <- Hd[YDAY, , drop = FALSE]        # daily inflow held over the day
@@ -236,18 +327,24 @@ topia_real_profiles <- function(
   names(weather)[names(weather) == "value"] <- "wval"
   demand <- do.call(rbind, dx)
   names(demand)[names(demand) == "value"] <- "load"
-  sites <- merge(SITE, stats::aggregate(ann_cf ~ region, maps$onwind, mean),
-                 by = "region", all.x = TRUE)
-  names(sites)[names(sites) == "ann_cf"] <- "wind_cf"
-  sites <- merge(sites, stats::aggregate(ann_cf ~ region, maps$solar, mean),
-                 by = "region", all.x = TRUE)
-  names(sites)[names(sites) == "ann_cf"] <- "solar_cf"
-  sites <- sites[match(REG, sites$region), ]
+  demand$cluster <- NULL
+  # one row per (region, resource, cluster): the grade table the model's
+  # caps and stock are sized from
+  .grade_tab <- function(res, mp) {
+    g <- stats::aggregate(cbind(ann_cf, avail) ~ region + cluster, mp, mean)
+    g$cells <- stats::aggregate(cell_id ~ region + cluster, mp, length)$cell_id
+    data.frame(resource = res, g)
+  }
+  grades <- rbind(.grade_tab("WWIN", maps$onwind),
+                  .grade_tab("WSOL", maps$solar))
+  grades <- grades[order(grades$region, grades$resource, -grades$ann_cf), ]
+  sites <- SITE
   list(
-    weather = weather[, c("calendar", "resource", "region", "timeslice",
-                          "wval")],
+    weather = weather[, c("calendar", "resource", "region", "cluster",
+                          "timeslice", "wval")],
     demand = demand[, c("calendar", "region", "timeslice", "load")],
     sites = sites,
+    grades = grades,
     rivers = rv,
     hourly = list(WSOL = S, WWIN = W, WHYD = H, load = L, hours = HOURS))
 }
@@ -259,7 +356,12 @@ topia_real_profiles <- function(
 # the archives. Run with ENERGYRT_TOPIA_SAMPLE=refresh to rebuild it.
 if (identical(Sys.getenv("ENERGYRT_TOPIA_SAMPLE"), "refresh")) {
   .p <- topia_real_profiles(calendars = "d365_h24")
-  topia_sample <- list(weather = .p$weather, demand = .p$demand)
+  # `grades` ships with the series: one row per (region, resource, cluster)
+  # with its mean capacity factor and the number of cells behind it, which is
+  # what the model's potential caps are sized from. It names no place -- only
+  # the model's own region codes.
+  topia_sample <- list(weather = .p$weather, demand = .p$demand,
+                       grades = .p$grades)
   saveRDS(topia_sample,
           "data-raw/topia_profiles_sample.rds", compress = "xz")
   cat("wrote data-raw/topia_profiles_sample.rds:",

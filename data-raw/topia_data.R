@@ -36,13 +36,24 @@ if (!file.exists(.sample_rds)) {
 topia_sample <- readRDS(.sample_rds)
 
 # ── 3. both datasets, in one table each ──────────────────────────────────────
-.keep_w <- c("dataset", "calendar", "resource", "region", "timeslice", "wval")
+# `cluster` names the resource grade (wind) or the mounting (solar) a series
+# belongs to. The simulated set has one series per resource and so carries NA,
+# which reads as "the only one".
+.keep_w <- c("dataset", "calendar", "resource", "region", "cluster",
+             "timeslice", "wval")
 .keep_d <- c("dataset", "calendar", "region", "timeslice", "load")
 .tag <- function(x, tag) {
   x <- as.data.frame(x)
   x$dataset <- tag
+  if (!"cluster" %in% names(x)) x$cluster <- NA_character_
   x
 }
+
+# The resource grades behind the sample's series: one row per (region,
+# resource, cluster) with its mean capacity factor, the cells the series is
+# built from, and the cells AVAILABLE in that grade -- which is what the
+# model's buildable potential is sized from.
+topia_grades <- as.data.frame(topia_sample$grades)
 
 topia_weather <- rbind(.tag(topia_sim$weather, "simulated")[, .keep_w],
                        .tag(topia_sample$weather, "sample")[, .keep_w])
