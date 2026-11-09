@@ -360,6 +360,24 @@
 #' @param remove_duplicate tbc
 #' @param all.val logical, if `TRUE` all values are interpolated
 #'
+# The value a row is redundant against: the parameter's own default for this
+# bound, not a literal zero. A non-finite or missing default means "nothing is
+# redundant", so every row is kept.
+#
+# The drop exists to keep the written matrix sparse: a row equal to the default
+# the solver already substitutes carries no information. Comparing against 0
+# instead made the opposite mistake wherever the default is not 0 -- an
+# explicit `0` was discarded and the default took its place, which is why
+# `newConstraint(replace_zerros = 1e-20)` exists to sidestep it.
+#' @noRd
+.legacy_drop_value <- function(defVal, which = 1L) {
+  if (length(defVal) == 0) return(NA_real_)
+  i <- min(as.integer(which), length(defVal))
+  v <- suppressWarnings(as.numeric(defVal[i]))
+  if (length(v) != 1 || is.na(v) || !is.finite(v)) return(NA_real_)
+  v
+}
+
 #' @noRd
 .interp_numpar <- function(
     dtf, parameter, mtp, approxim,
@@ -398,7 +416,12 @@
     return(NULL)
   }
   if (!all.val) {
-    dd <- dd[dd[[ncol(dd)]] != 0, , drop = FALSE]
+    # drop what the solver's own default would supply anyway -- the DEFAULT,
+    # not a literal zero
+    .dv <- .legacy_drop_value(mtp@defVal)
+    if (!is.na(.dv)) {
+      dd <- dd[dd[[ncol(dd)]] != .dv, , drop = FALSE]
+    }
     if (nrow(dd) == 0) {
       return(NULL)
     }
@@ -485,7 +508,13 @@
   if (is.null(dd)) {
     return(NULL)
   }
-  dd <- dd[dd[[ncol(dd)]] != 0 | dd$type == "up", , drop = FALSE]
+  # `lo` rows equal to the LO default are redundant; `up` rows are kept
+  # unconditionally, as they always have been (an `Inf` up-default makes
+  # dropping against it delicate, and that is beyond this fix).
+  .dv <- .legacy_drop_value(mtp@defVal, 1L)
+  if (!is.na(.dv)) {
+    dd <- dd[dd[[ncol(dd)]] != .dv | dd$type == "up", , drop = FALSE]
+  }
   if (nrow(dd) == 0) {
     return(NULL)
   }
