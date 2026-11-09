@@ -11,13 +11,18 @@ test_that("every shipped calendar is internally consistent", {
     expect_lt(abs(sum(x@timetable$share) - x@year_fraction), 1e-7)
     ss <- as.data.frame(x@timeslice_share)
     # timeframe contract: the top slice is full-year magnitude on every
-    # calendar; sub-annual slices annualise a sample with weight 1/yf
+    # calendar, and the timetable annualises -- `Sum(share * weight) == 1`.
+    # NOT `leaf weight == 1/year_fraction`: a representative calendar built
+    # on real season or month lengths carries one weight per length (`s4_h24`
+    # 90/91/92, `m12_h24` 28/30/31), so no single slice equals the mean, and
+    # the assertion was reading the LAST slice's weight.
     expect_equal(ss$share[1], 1, tolerance = 1e-9,
                  label = paste0(nm, ": top share == 1"))
     expect_equal(ss$weight[1], 1, tolerance = 1e-9,
                  label = paste0(nm, ": top weight == 1"))
-    expect_equal(ss$weight[nrow(ss)], 1 / x@year_fraction, tolerance = 1e-9,
-                 label = paste0(nm, ": leaf weight == 1/year_fraction"))
+    expect_equal(sum(as.numeric(x@timetable$share) *
+                       as.numeric(x@timetable$weight)), 1, tolerance = 1e-9,
+                 label = paste0(nm, ": Sum(share * weight) == 1"))
     expect_identical(x@name, nm)
   }
 })
@@ -25,12 +30,23 @@ test_that("every shipped calendar is internally consistent", {
 test_that("the timescales imports ship with their catalog shapes", {
   rows <- c(m12 = 12, m12a = 12, q4 = 4, s4 = 4, s4_h24 = 96,
             m12_h24 = 288, wd7_h24 = 168, w52_h24 = 1248)
+  # `year_fraction == 1` is a CHRONOLOGICAL property: the calendar covers the
+  # whole year. The h24 imports are representative -- one typical day per
+  # season, month, weekday or week -- so their timetable covers one such
+  # period and the repetition lives in `weight`. Their annualisation is
+  # pinned by `Sum(share * weight) == 1` in the block above.
+  chrono <- c("m12", "m12a", "q4", "s4")
   for (nm in names(rows)) {
     x <- calendars[[nm]]
     expect_false(is.null(x), label = paste0(nm, " present"))
     expect_equal(nrow(x@timetable), unname(rows[nm]),
                      label = paste0(nm, " row count"))
-    expect_equal(x@year_fraction, 1)
+    if (nm %in% chrono) {
+      expect_equal(x@year_fraction, 1, label = paste0(nm, ": covers the year"))
+    } else {
+      expect_lt(x@year_fraction, 1)
+      expect_gt(x@year_fraction, 0)
+    }
   }
   # day-proportional shares, not equal splits
   s4 <- as.data.frame(calendars$s4@timetable)
@@ -42,14 +58,18 @@ test_that("the timescales imports ship with their catalog shapes", {
 })
 
 test_that("sampled calendars carry the surviving year fraction", {
+  # `m12_subset_q1` is the only shipped sample: `m12` is chronological, so
+  # cutting it is a plain sample. `s4_h24_subset_2seasons` and
+  # `m12_h24_subset_4months` were retired when `s4_h24` and `m12_h24` became
+  # representative days with the repetition in `weight` -- a seasonal cut of
+  # one is a sample of a sample, and its weight the product of two
+  # reductions. See data-raw/calendars.R.
   expect_equal(calendars$m12_subset_q1@year_fraction, 90 / 365,
                tolerance = 1e-9)
-  expect_equal(calendars$s4_h24_subset_2seasons@year_fraction,
-               (90 + 92) / 365, tolerance = 1e-9)
-  expect_equal(calendars$m12_h24_subset_4months@year_fraction,
-               (31 + 30 + 31 + 31) / 365, tolerance = 1e-9)
-  expect_lt(nrow(calendars$s4_h24_subset_2seasons@timetable),
-            nrow(calendars$s4_h24@timetable))
+  expect_lt(nrow(calendars$m12_subset_q1@timetable),
+            nrow(calendars$m12@timetable))
+  expect_null(calendars$s4_h24_subset_2seasons)
+  expect_null(calendars$m12_h24_subset_4months)
 })
 
 test_that("calendar chronology follows the year, not the alphabet", {
@@ -68,15 +88,16 @@ test_that("a shipped sampled calendar reproduces the full objective", {
   # grouped-identical INTENSITY: per-slice demand proportional to the
   # slice share (constant load), so sampling must reproduce the full
   # objective exactly (the test-subset_slices.R ground truth) even with
-  # day-proportional shares -- here with the SHIPPED s4_h24 /
-  # s4_h24_subset_2seasons pair
+  # day-proportional shares -- here with the SHIPPED m12 / m12_subset_q1
+  # pair, the only one left since the representative calendars' samples were
+  # retired. Monthly rather than hourly: the hourly pair no longer ships.
   mk <- function(cal) {
     tt <- as.data.frame(cal@timetable)
     sl <- tt$timeslice
     newModel("caldata",
       repo = newRepository("r",
         newCommodity("COA", timeframe = "ANNUAL"),
-        newCommodity("ELC", timeframe = "HOUR"),
+        newCommodity("ELC", timeframe = "MONTH"),
         newSupply("SUP_COA", commodity = "COA",
                   supply = data.frame(region = "R1", cost = 5)),
         newTechnology("ECOA", input = list(comm = "COA"),
@@ -99,7 +120,7 @@ test_that("a shipped sampled calendar reproduces the full objective", {
       force = TRUE)))
     getData(s, "vObjective", merge = TRUE)$value
   }
-  o_full <- obj(calendars$s4_h24, "full")
-  o_smpl <- obj(calendars$s4_h24_subset_2seasons, "smpl")
+  o_full <- obj(calendars$m12, "full")
+  o_smpl <- obj(calendars$m12_subset_q1, "smpl")
   expect_equal(o_smpl, o_full, tolerance = 1e-6)
 })

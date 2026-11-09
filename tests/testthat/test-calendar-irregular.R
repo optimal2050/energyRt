@@ -87,7 +87,10 @@ test_that("a ragged sample keeps the full calendar's names", {
 test_that("a timetable out of time order is refused", {
   tt <- .irr_timetable()
   tt <- tt[c(2, 1, 3:nrow(tt)), ]
-  expect_silent(suppressMessages(newCalendar(name = "ok", timetable = tt)))
+  # accepted, not silent: the fixture's shares carry the repetition, so
+  # `.warn_representative_share()` fires. This block is about chronology.
+  expect_no_error(suppressWarnings(suppressMessages(
+    newCalendar(name = "ok", timetable = tt))))
   tt <- .irr_timetable()
   tt <- tt[order(tt$HOUR, seq_len(nrow(tt))), ]
   expect_error(suppressMessages(newCalendar(name = "bad", timetable = tt)),
