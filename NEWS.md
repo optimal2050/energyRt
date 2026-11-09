@@ -406,6 +406,10 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Breaking changes
 
+* The `s4_h24_subset_2seasons` and `m12_h24_subset_4months` calendars are
+  removed: both sampled an already-representative design, so their weight was
+  the product of two reductions.
+
 * `weather@defVal`, `tax@defVal` and `subsidy@defVal` are the override table
   above, not a number. The `defVal =` argument is unchanged -- a bare number
   folds into the column the class owns (`wval`; a levy's `inp`/`out`/`bal`),
@@ -515,6 +519,15 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   `mmcloud::get_hf_token()` and `mmcloud::set_hf_token()`.
 
 ## Bug fixes
+
+* Calendars whose timeslices stand for several of the unit their timeframe
+  names -- `s4_h24`, `m12_h24`, `wd7_h24`, `w52_h24` -- carried the repetition
+  as a longer `share`, and `share` scales every per-timeslice bound. Storage
+  built on them was oversized by that factor, while costs and annual totals
+  stayed right. The repetition is now a timeslice weight, so a model returns
+  the same capacities and objective on any of them. `newCalendar()` and
+  `interpolate_model()` warn when a leaf timeframe's timeslices are longer
+  than the unit it is named after.
 
 * `commodity@emis$unit` and `@agg$unit` are **rates**, reported as declared.
   `getUnits()` divided both by the commodity's own unit, which was right for

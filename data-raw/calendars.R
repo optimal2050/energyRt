@@ -9,10 +9,11 @@
 ##   source("data-raw/calendars.R")
 ##   devtools::document()
 ##
-## Detailed hourly calendars and milestone horizons are imported from the IDEEA
-## package (https://github.com/optimal2050/IDEEA) when it is installed; a few
-## small, self-contained calendars/horizons are always built from energyRt's own
-## constructors so the datasets never depend on IDEEA being available.
+## Everything here is built from energyRt's own constructors and the timescales
+## catalog, so a rebuild gives the same datasets on any machine. Nothing is
+## imported from IDEEA: that dependency ran the wrong way -- IDEEA takes its
+## calendars from this package -- and it made the result depend on which
+## library the rebuild happened to run against.
 
 if (!isNamespaceLoaded("energyRt")) library(energyRt)
 library(usethis)
@@ -71,61 +72,41 @@ calendars[["annual"]] <- newCalendar(
   desc = "Annual resolution (1 timeslice)"
 )
 
-# ── 2. Import detailed calendars & horizons from IDEEA (optional) ─────────────
+# ── 2. Horizons, defined here ────────────────────────────────────────────────
+# Calendars and horizons used to be imported from IDEEA when it happened to be
+# installed, which made the shipped datasets depend on which library the
+# rebuild ran against -- and inverted the real relationship, since IDEEA takes
+# its calendars from here. The two calendars it offered also still carried the
+# pre-v0.80 `slice` column, so the import stopped the rebuild outright on a
+# current R. Horizons are written out below; calendars come from the
+# timescales catalog in section 2b.
+#
+# `mid` == `end` throughout: a milestone stands for the interval ending on it.
 horizons <- list()
 
-# `ideea_modules` is lazy data, not an exported symbol in every IDEEA version
-# -- and the rebuilt IDEEA (>= 0.80) ships no datasets at all. Treat "installed
-# but no data" the same as "not installed".
-ideea <- NULL
-if (requireNamespace("IDEEA", quietly = TRUE)) {
-  .ide <- new.env()
-  suppressWarnings(utils::data("ideea_modules", package = "IDEEA",
-                               envir = .ide))
-  ideea <- .ide$ideea_modules
+.hz <- function(start, mid, end, name, desc) {
+  newHorizon(intervals = data.frame(start = start, mid = mid, end = end),
+             name = name, desc = desc)
 }
 
-if (!is.null(ideea)) {
-  for (key in names(ideea$calendars)) {
-    src <- ideea$calendars[[key]]
-    calendars[[.nm(src, key)]] <- rebuild_calendar(src)
-  }
-  for (key in names(ideea$horizons)) {
-    src <- ideea$horizons[[key]]
-    horizons[[.nm(src, key)]] <- rebuild_horizon(src)
-  }
-} else {
-  # NON-DESTRUCTIVE fallback: carry the previously shipped (IDEEA-derived)
-  # calendars/horizons over from the package's current data files, so
-  # regenerating without the IDEEA source never silently drops them.
-  message(
-    "IDEEA data not available: carrying previously shipped calendars/",
-    "horizons over from data/*.rda."
-  )
-  .prev <- new.env()
-  if (file.exists("data/calendars.rda")) load("data/calendars.rda", envir = .prev)
-  if (file.exists("data/horizons.rda")) load("data/horizons.rda", envir = .prev)
-  # RETIRED entries never come back through the carry-over (2026-08
-  # unification: TOPIA reuses annual / s4_h24 / m12_h24)
-  .retired <- c("topia_annual", "topia_s4h24", "topia_m12h24")
-  for (key in setdiff(names(.prev$calendars),
-                      c(names(calendars), .retired))) {
-    calendars[[key]] <- rebuild_calendar(.prev$calendars[[key]])
-  }
-  for (key in setdiff(names(.prev$horizons), names(horizons))) {
-    horizons[[key]] <- rebuild_horizon(.prev$horizons[[key]])
-  }
-  # Minimal self-contained horizons if there was nothing to carry over.
-  if (length(horizons) == 0) {
-    horizons[["Y2020_2050_by_5"]] <- newHorizon(
-      2020:2050, c(1, rep(5, 6)),
-      name = "Y2020_2050_by_5", desc = "2020-2050 by 5 years"
-    )
-    horizons[["Y2020"]] <- newHorizon(
-      2020, name = "Y2020", desc = "one year horizon: 2020"
-    )
-  }
+horizons[["Y2020_2060_by_5"]] <- .hz(
+  start = c(2020, 2021, 2026, 2031, 2036, 2041, 2046, 2051, 2056),
+  mid   = c(2020, 2025, 2030, 2035, 2040, 2045, 2050, 2055, 2060),
+  end   = c(2020, 2025, 2030, 2035, 2040, 2045, 2050, 2055, 2060),
+  name = "Y2020_2060_by_5", desc = "2020 to 2060 by 5 years")
+
+horizons[["Y2020_2060_by_10"]] <- .hz(
+  start = c(2020, 2021, 2026, 2036, 2046, 2056),
+  mid   = c(2020, 2025, 2035, 2045, 2055, 2060),
+  end   = c(2020, 2025, 2035, 2045, 2055, 2060),
+  name = "Y2020_2060_by_10", desc = "2020 to 2060 by 10 years")
+
+for (.y in c(2020, 2030, 2040, 2050, 2060, 2070)) {
+  .n <- paste0("Y", .y)
+  horizons[[.n]] <- newHorizon(.y, name = .n,
+                               desc = paste("one year horizon:", .y))
 }
+rm(.y, .n)
 
 # ── 2b. Mainstream calendars imported from the timescales catalog ────────────
 # Built AT DATA-BUILD TIME only (data-raw/ is Rbuildignored), so timescales is
@@ -202,7 +183,8 @@ if (requireNamespace("timescales", quietly = TRUE)) {
     if (!is.null(cyc_unit) && cyc_unit %in% names(nominal)) {
       grp <- if (length(tfs) > 1L) {
         do.call(paste, c(lapply(tfs[-length(tfs)], function(f)
-          as.character(lv[[f]])), list(sep = "")))
+          as.character(lv[[f]])), list(sep = "
+")))
       } else rep("", nrow(lv))
       span <- stats::ave(lv$share, grp, FUN = sum) * 8760
       raw <- span / nominal[[cyc_unit]]
@@ -302,30 +284,23 @@ if (requireNamespace("timescales", quietly = TRUE)) {
   }
 }
 
-# ── 2c. Short sampled names ──────────────────────────────────────────────────
+# ── 2c. One day per month ────────────────────────────────────────────────────
 # Solver working paths embed the calendar name, so the daily samples use
-# compact names: 1dpm = one day per month, 1dps = one day per season. The
-# long-named 1dpm entry (from the IDEEA import or a carried rda) is renamed
-# here; once the rda holds the short key this block is a no-op.
-if (!is.null(calendars[["d365_h24_subset_1day_per_month"]])) {
-  .cal <- calendars[["d365_h24_subset_1day_per_month"]]
-  .cal@name <- "d365_h24_1dpm"
-  calendars[["d365_h24_1dpm"]] <- .cal
-  calendars[["d365_h24_subset_1day_per_month"]] <- NULL
-}
-# A carried 1dpm predates the annualized-ANNUAL convention (top-slice share/
-# weight = 1); rebuild it from the timescales design on its own sampled days
-# so the shipped object is never stale.
-if (requireNamespace("timescales", quietly = TRUE) &&
-    !is.null(calendars[["d365_h24_1dpm"]])) {
-  .days <- sort(unique(as.character(
-    calendars[["d365_h24_1dpm"]]@timetable$YDAY)))
+# compact names: 1dpm = one day per month, 1dps = one day per season.
+#
+# The twelve days are PINNED here. They used to be read off whichever 1dpm
+# entry the IDEEA import or a carried rda happened to supply, which made the
+# shipped sample depend on the library the rebuild ran against.
+.days_1dpm <- c("d015", "d046", "d074", "d105", "d135", "d166",
+                "d196", "d227", "d258", "d288", "d319", "d349")
+if (requireNamespace("timescales", quietly = TRUE)) {
+  calendars[["d365_h24_subset_1day_per_month"]] <- NULL   # retired long name
   calendars[["d365_h24_1dpm"]] <- ts_bridge(
     timescales::filter_calendar(timescales::calendar("d365_h24"),
-                                "YDAY", .days),
+                                "YDAY", .days_1dpm),
     name = "d365_h24_1dpm",
     desc = paste0("d365_h24 sampled to one day per month (",
-                  paste(.days, collapse = "/"),
+                  paste(.days_1dpm, collapse = "/"),
                   "); year_fraction = the twelve days' share (timescales ",
                   as.character(utils::packageVersion("timescales")), ")")
   )

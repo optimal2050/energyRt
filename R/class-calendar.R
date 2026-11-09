@@ -623,7 +623,9 @@ setMethod("print", "calendar", function(x, ...) {
   leaf <- cols[length(cols)]
   if (!leaf %in% names(.TIMEFRAME_HOURS)) return(invisible(NULL))
   cyc <- as.numeric(timetable$share) * 8760 / .TIMEFRAME_HOURS[[leaf]]
-  if (!length(cyc) || anyNA(cyc) || !all(is.finite(cyc))) return(invisible(NULL))
+  if (!length(cyc) || anyNA(cyc) || !all(is.finite(cyc))) {
+    return(invisible(NULL))
+  }
   if (max(cyc) < 1.5) return(invisible(NULL))
   rng <- if (abs(diff(range(cyc))) < 1e-6) signif(cyc[1], 6) else
     paste(signif(range(cyc), 6), collapse = "-")
