@@ -121,20 +121,33 @@ ir_cat <- function() {
 }
 
 # @covers depth=C
-test_that("an empty rule behaves as `inter`, which is what the catalogue means", {
+test_that("an empty rule means no interpolation at all, not `inter`", {
   skip_if_tier_below("fast")
-  # `.interp_rule_token()` (R/interpolation.R) coerces "" to "inter", so an
-  # empty rule interpolates between anchors but extrapolates past neither.
-  # PINNED, not endorsed: two catalogued parameters ship an empty rule
-  # (`pStorageNCap2Stg`, `pStorageStartLevel`) and whether they should instead
-  # fill nothing at all is a per-parameter ruling. This test fails loudly if
-  # that changes.
+  # Ruled 2026-11-09. `.interp_rule_token()` no longer coerces "" to "inter":
+  # with no tokens `.interp_one_series()` leaves `approx_rule` at c(1, 1) and
+  # `interp_within` FALSE, so the declared years stand and every other year
+  # falls to the parameter's default. Deliberate for a storage initial charge,
+  # which is a starting condition rather than a series to extend.
   one <- ir_years("", tag = "ir_empty_one")
   expect_equal(one$years, 2030L)
+
+  # the behavioural change: two anchors stay two rows. `inter` would fill
+  # 2030 with 250/3; nothing does.
   two <- ir_years("", anchors = c(2025L, 2040L), vals = c(50, 150),
                   tag = "ir_empty_two")
-  expect_equal(two$values, c(50, 250 / 3, 150), tolerance = 1e-6)
+  expect_equal(two$years, c(2025L, 2040L))
+  expect_equal(two$values, c(50, 150), tolerance = 1e-9)
+  expect_false(2030L %in% two$years)
 
+  # and `inter` on the same anchors still fills, so the two are distinguishable
+  inter <- ir_years("inter", anchors = c(2025L, 2040L), vals = c(50, 150),
+                    tag = "ir_empty_vs_inter")
+  expect_equal(inter$years, c(2025L, 2030L, 2040L))
+
+  # the two that can fire. The ten `*StockNew` / `*StockSurv` parameters also
+  # ship "" but are filled by `compute_stock_parameters()` AFTER
+  # `interpolate_parameters()`, so their rule never applies and they carry no
+  # bound column for `.param_interp_map()` to key.
   cat_tbl <- ir_cat()
   empty <- cat_tbl[!is.na(cat_tbl$rule) & cat_tbl$rule == "", ]
   expect_setequal(empty$param, c("pStorageNCap2Stg", "pStorageStartLevel"))

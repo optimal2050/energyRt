@@ -2319,9 +2319,16 @@ interpolate_numpar <- function(
 #' back to linear interpolation only.
 #' @noRd
 .interp_rule_token <- function(rule) {
-  if (length(rule) == 0 || is.na(rule[1]) || rule[1] == "") {
-    return("inter")
-  }
+  # An empty rule means NO INTERPOLATION AT ALL -- not `inter`.
+  # `strsplit("", ".")` yields no tokens, so `.interp_one_series()`
+  # leaves `approx_rule` at c(1, 1) and `interp_within` FALSE: the
+  # declared years stand, nothing is filled, and every other year falls
+  # to the parameter's default. Coercing it to `inter` was the one place
+  # the two engines disagreed -- the legacy one greps for the literals,
+  # matches none, and fills with defVal throughout. Measured: no
+  # catalogued parameter has an absent or NA rule, so that branch is
+  # unreachable from `.modInp`; it means the same thing either way.
+  if (length(rule) == 0 || is.na(rule[1])) return("")
   rule[1]
 }
 

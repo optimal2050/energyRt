@@ -570,6 +570,14 @@ pTechStock:
 # Exogenous capacity commissioned at this milestone: the INCREASE in `stock`,
 # and the whole of `stock` in the first year of the span. Derived from
 # pTechStock by compute_stock_parameters(); not written by the user.
+# An EMPTY interpolation rule means no interpolation at all: the declared
+# years stand and every other falls to the default. For this parameter and
+# its nine siblings (pTech/pTrade/pStorage{Inp,Stg,Out} x StockNew/StockSurv)
+# the rule is UNREACHABLE either way -- `compute_stock_parameters()`
+# (R/vintage.R) fills them at interpolation.R:1126, AFTER
+# `interpolate_parameters()` has run at :1106, so they hold no data when
+# interpolation looks at them. They are live in the equations
+# (eqTechPhaseOut, eqTechStockCap); only their rule is moot.
 pTechStockNew:
   name: pTechStockNew
   type: numpar
@@ -2180,6 +2188,12 @@ pStorageOutNCap2AOut:
   unit: "{capacity}/{acomm}"
   class: storage
   slot: aeff
+# An EMPTY interpolation rule means no interpolation at all: a value declared
+# at one milestone stands there and every other year falls to the default.
+# Deliberate for a storage initial charge -- it is a starting condition, not
+# a series to extend. This and `pStorageStartLevel` are the only two empty
+# rules that can fire; the ten `*StockNew`/`*StockSurv` ones are filled after
+# interpolation. See `.interp_rule_token()`.
 pStorageNCap2Stg:
   name: pStorageNCap2Stg
   dimSets:

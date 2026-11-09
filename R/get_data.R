@@ -762,7 +762,10 @@ getData.scenario <- function(
   # so this changes nothing unless asked for.
   if (length(ll) > 0 && !identical(tolower(as.character(geoframe)[1]), "finest")) {
     hier <- tryCatch(.scen_geo_hierarchy(object[[1]]), error = function(e) NULL)
-    if (!is.null(hier)) ll <- .apply_geoframe(ll, hier, geoframe)
+    # corridor-keyed capacity variables carry no region column; their endpoints
+    # come from `mTradeRoutes`. NULL where the model has no trade.
+    rts <- tryCatch(.trade_routes_tbl(object[[1]]), error = function(e) NULL)
+    if (!is.null(hier)) ll <- .apply_geoframe(ll, hier, geoframe, routes = rts)
   }
 
   if (merge) {
@@ -996,9 +999,57 @@ getData.default <- function(object, ...) {
 # The endpoints are the frame's own two region columns -- `src`/`dst` for
 # `vTradeIr`, whose dims repeat `region` so the writer renames them.
 #' @noRd
+# Corridor -> (src, dst) from `mTradeRoutes`, for the capacity variables that
+# carry no region column of their own. Returns NULL when the scenario has no
+# trade, which is the common case.
+#' @noRd
+.trade_routes_tbl <- function(scen) {
+  p <- tryCatch(scen@modInp@parameters[["mTradeRoutes"]],
+                error = function(e) NULL)
+  if (is.null(p)) return(NULL)
+  d <- tryCatch(as.data.frame(get_data_slot(p, optional = TRUE)),
+                error = function(e) NULL)
+  if (!is.data.frame(d) || !nrow(d) ||
+        !all(c("trade", "src", "dst") %in% names(d))) {
+    return(NULL)
+  }
+  d[, c("trade", "src", "dst"), drop = FALSE]
+}
+
+# `sum_external` for a frame keyed by CORRIDOR rather than by region. A
+# corridor is external when at least one of its routes still crosses the new
+# border (ruled: it then keeps its full capacity, since the capacity is one
+# number for the corridor and not per route). One whose every route became
+# internal leaves the total and is recorded.
+#' @noRd
+.rollup_sum_external_trade <- function(df, map, routes) {
+  if (is.null(routes) || !("trade" %in% names(df))) return(df)
+  s <- unname(map[as.character(routes$src)])
+  d <- unname(map[as.character(routes$dst)])
+  s[is.na(s)] <- as.character(routes$src)[is.na(s)]
+  d[is.na(d)] <- as.character(routes$dst)[is.na(d)]
+  crosses <- s != d
+  # any route crossing makes the corridor external
+  ext <- unique(as.character(routes$trade)[crosses])
+  seen <- unique(as.character(routes$trade))
+  keep_rows <- as.character(df$trade) %in% ext
+  # a corridor with no route at all in the table is left alone rather than
+  # assumed internal
+  unknown <- !(as.character(df$trade) %in% seen)
+  keep_rows <- keep_rows | unknown
+  if (all(keep_rows)) return(df)
+  keep <- df[keep_rows, , drop = FALSE]
+  gone <- df[!keep_rows, , drop = FALSE]
+  rownames(keep) <- NULL
+  rownames(gone) <- NULL
+  attr(keep, "absorbed") <- list(rule = "sum_external",
+                                 in_region_capacity = gone)
+  keep
+}
+
 .rollup_sum_external_df <- function(df, map) {
   pair <- intersect(c("src", "dst"), names(df))
-  if (length(pair) != 2L) return(df)   # not a pair-keyed frame
+  if (length(pair) != 2L) return(df)   # not pair-keyed; see the trade variant
   s <- unname(map[as.character(df$src)])
   d <- unname(map[as.character(df$dst)])
   s[is.na(s)] <- as.character(df$src)[is.na(s)]
@@ -1143,10 +1194,23 @@ getData.default <- function(object, ...) {
 }
 
 #' @noRd
-.aggregate_geoframe_df <- function(df, hier, target_rank) {
+.aggregate_geoframe_df <- function(df, hier, target_rank, routes = NULL) {
   if (is.na(target_rank)) return(df)
-  if (!("region" %in% names(df)) || !("value" %in% names(df))) return(df)
+  if (!("value" %in% names(df))) return(df)
   rule <- .df_variable_rule(df, "space")
+  # A corridor-keyed frame has neither `region` nor `src`/`dst`: its endpoints
+  # live in `mTradeRoutes`. Handled before the `region` guard, which would
+  # otherwise return first.
+  if (identical(rule, "sum_external") && !("region" %in% names(df)) &&
+        !all(c("src", "dst") %in% names(df))) {
+    if (is.null(routes)) return(df)
+    return(.rollup_sum_external_trade(df, .region_target_map(hier, target_rank),
+                                      routes))
+  }
+  if (!("region" %in% names(df))) {
+    # `src`/`dst`-keyed frames are handled below; anything else is untouched
+    if (!all(c("src", "dst") %in% names(df))) return(df)
+  }
   if (is.na(rule) || !(rule %in% c("sum", "sum_external"))) return(df)
   map <- .region_target_map(hier, target_rank)
   if (identical(rule, "sum_external")) {
@@ -1173,7 +1237,7 @@ getData.default <- function(object, ...) {
 #   "all"    -> native + every coarser aggregate, stacked;
 #   <level>  -> aggregate to that named geoscale level.
 #' @noRd
-.apply_geoframe <- function(ll, hier, geoframe) {
+.apply_geoframe <- function(ll, hier, geoframe, routes = NULL) {
   if (length(ll) == 0 || is.null(hier)) return(ll)
   lvl <- hier$levels
   if (length(lvl) <= 1) return(ll)
@@ -1182,9 +1246,9 @@ getData.default <- function(object, ...) {
 
   if (identical(tolower(gl), "all")) {
     out <- lapply(ll, function(df) {
-      if (!("region" %in% names(df)) || !("value" %in% names(df))) return(df)
+      if (!("value" %in% names(df))) return(df)
       pieces <- lapply(seq_along(lvl), function(r) {
-        .aggregate_geoframe_df(df, hier, r)
+        .aggregate_geoframe_df(df, hier, r, routes = routes)
       })
       dplyr::distinct(dplyr::bind_rows(pieces))
     })
@@ -1200,7 +1264,8 @@ getData.default <- function(object, ...) {
     stop("Unknown 'geoframe' = '", gl, "'. Use 'coarsest', 'finest', 'all', ",
          "or a geoscale level name: ", paste(lvl, collapse = ", "))
   }
-  lapply(ll, function(df) .aggregate_geoframe_df(df, hier, target_rank))
+  lapply(ll, function(df)
+    .aggregate_geoframe_df(df, hier, target_rank, routes = routes))
 }
 
 # Apply the requested `timeframe` to a list of result data.frames.
