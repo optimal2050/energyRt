@@ -218,13 +218,20 @@ build_topia <- function(regions = .topia_regions[1:3],
   WHYD <- wobj("WHYD", "Hydro inflow factor by timeslice and region")
 
   # ---- demand ----
-  share <- as.data.frame(cal@timeslice_share)[, c("timeslice", "share")]
+  # `demand` is the energy IN the slice, and a slice recurs `weight` times a
+  # year, so the annual total is sum(demand * weight) -- not sum(demand).
+  # Normalising by sum(w) alone was right only while every shipped calendar
+  # had weight 1; a representative design (s4_h24, m12_h24) now carries the
+  # repetition there, and dividing by the unweighted sum would inflate the
+  # year by that factor.
+  share <- as.data.frame(cal@timeslice_share)[, c("timeslice", "share", "weight")]
   d0 <- merge(prof$demand, share, by = "timeslice"); d0$w <- d0$load * d0$share
   dem_rows <- do.call(rbind, lapply(seq_along(years), function(i) {
     do.call(rbind, lapply(regions, function(r) {
       dr <- d0[d0$region == r, ]
       data.frame(region = r, year = years[i], timeslice = dr$timeslice,
-                 demand = annual_demand * demand_growth[i] * dr$w / sum(dr$w))
+                 demand = annual_demand * demand_growth[i] * dr$w /
+                   sum(dr$w * dr$weight))
     }))
   }))
   DEM_ELC <- newDemand("DEM_ELC", desc = "Electricity demand", commodity = "ELC",

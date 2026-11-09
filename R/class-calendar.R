@@ -590,6 +590,55 @@ setMethod("print", "calendar", function(x, ...) {
   as.data.table(dtf)
 }
 
+# Nominal length of ONE member of each core timeframe. A frame named after a
+# time unit declares how long its members are; `share` has to agree.
+.TIMEFRAME_HOURS <- c(YEAR = 8760, QUARTER = 2190, SEASON = 2190,
+                      MONTH = 730.5, WEEK = 168, MWEEK = 168,
+                      YDAY = 24, MDAY = 24, HOUR = 1, WHOUR = 1,
+                      MINUTE = 1 / 60, SECOND = 1 / 3600)
+
+# Warn when a leaf frame's slices are LONGER than the unit the frame is named
+# after -- 24 slices called HOUR that are 91 hours each.
+#
+# `share` is the only duration the LP has, and every per-slice bound is scaled
+# by it, so an inflated share makes the storage chain step 91 hours at a time
+# and the reservoir comes out 91 times too large. Costs and annual totals stay
+# right, which is why this goes unnoticed: the error is confined to whatever
+# carries state between timeslices.
+#
+# The repetition belongs in `weight`, which reaches only the cost and
+# cumulative equations: share = the length of ONE piece, weight = how many
+# times it recurs. Calendar units are not all equal -- January is 744 h against
+# a nominal 730.5 -- so anything under 1.5 is unit irregularity, not
+# repetition. Frames with no nominal length (HOURTYPE, DAYTYPE, WDAY) are
+# representative by name and are left alone.
+.warn_representative_share <- function(timetable, name = "", where = "") {
+  # `obj@name` is character(0) on a calendar built without one, and nzchar()
+  # on it returns logical(0), which `if` refuses
+  name <- if (length(name) == 1L && !is.na(name)) as.character(name) else ""
+  where <- if (length(where) == 1L && !is.na(where)) as.character(where) else ""
+  if (!is.data.frame(timetable) || !nrow(timetable)) return(invisible(NULL))
+  cols <- setdiff(names(timetable), c("timeslice", "share", "weight", "year"))
+  if (!length(cols)) return(invisible(NULL))
+  leaf <- cols[length(cols)]
+  if (!leaf %in% names(.TIMEFRAME_HOURS)) return(invisible(NULL))
+  cyc <- as.numeric(timetable$share) * 8760 / .TIMEFRAME_HOURS[[leaf]]
+  if (!length(cyc) || anyNA(cyc) || !all(is.finite(cyc))) return(invisible(NULL))
+  if (max(cyc) < 1.5) return(invisible(NULL))
+  rng <- if (abs(diff(range(cyc))) < 1e-6) signif(cyc[1], 6) else
+    paste(signif(range(cyc), 6), collapse = "-")
+  warning("calendar ", if (nzchar(name)) paste0("'", name, "' ") else "",
+          "is representative at '", leaf, "': its slices span ", rng,
+          " x the length of one ", leaf, ". `share` carries the repetition, ",
+          "so anything with state between timeslices -- storage above all -- ",
+          "is scaled by it and comes out ", rng, " times too large. Declare ",
+          "the repetition in `weight` and leave `share` at the length of one ",
+          leaf, "; `Sum(share * weight)` must still be 1.",
+          if (nzchar(where)) paste0(" (", where, ")") else "",
+          call. = FALSE)
+  invisible(cyc)
+}
+
 # internal function to populate all slots of `calendar` from given calendar@timetable
 .complete_calendar <- function(obj, year_fraction = 1, ref = NULL) {
   if (nrow(obj@timetable) == 0) {
@@ -603,6 +652,8 @@ setMethod("print", "calendar", function(x, ...) {
   }
   # validate the timetable
   .check_timetable(obj@timetable, year_fraction = year_fraction)
+  .warn_representative_share(obj@timetable, name = obj@name,
+                             where = "newCalendar()")
   dtf <- obj@timetable |> select(-any_of(c("timeslice")))
 
   # timeframe_rank / levels

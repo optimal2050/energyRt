@@ -24,10 +24,6 @@ higher-resolution TOPIA option.}
 \item{d365}{Daily resolution, 365 days.}
 \item{d365_h24}{Full hourly year: 365 days x 24 hours (8760
 timeslices).}
-\item{s4_h24_subset_2seasons}{SAMPLED: \code{s4_h24} filtered to WIN+SUM;
-\code{year_fraction} ~ 0.499.}
-\item{m12_h24_subset_4months}{SAMPLED: \code{m12_h24} filtered to
-m01/m04/m07/m10; \code{year_fraction} ~ 0.337.}
 \item{m12_subset_q1}{SAMPLED: \code{m12} filtered to Jan-Mar;
 \code{year_fraction} = 90/365.}
 \item{d365_h24_1dpm}{SAMPLED: one day per month at hourly

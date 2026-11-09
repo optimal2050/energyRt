@@ -64,10 +64,6 @@
 #'   \item{d365}{Daily resolution, 365 days.}
 #'   \item{d365_h24}{Full hourly year: 365 days x 24 hours (8760
 #'     timeslices).}
-#'   \item{s4_h24_subset_2seasons}{SAMPLED: `s4_h24` filtered to WIN+SUM;
-#'     `year_fraction` ~ 0.499.}
-#'   \item{m12_h24_subset_4months}{SAMPLED: `m12_h24` filtered to
-#'     m01/m04/m07/m10; `year_fraction` ~ 0.337.}
 #'   \item{m12_subset_q1}{SAMPLED: `m12` filtered to Jan-Mar;
 #'     `year_fraction` = 90/365.}
 #'   \item{d365_h24_1dpm}{SAMPLED: one day per month at hourly
@@ -380,7 +376,7 @@ print.timeslice_walk <- function(x, ...) {
 #'
 #' Building from the table rather than looking the name up in timescales'
 #' catalog matters: the sampled and subset calendars (`d365_h24_1dps`,
-#' `m12_h24_subset_4months`, ...) are constructed here and have no entry there.
+#' `m12_subset_q1`, ...) are constructed here and have no entry there.
 #' `ANNUAL` is dropped because it is a single-member column, not a timeframe
 #' the conversions can read anything off.
 #'

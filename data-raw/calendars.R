@@ -154,8 +154,7 @@ if (!is.null(ideea)) {
               # season x daypart: the regular twin of the retired bespoke
               # `season_dn` and `topia_seasons`
               "s4_hp3")
-.ts_samples <- c("s4_h24_subset_2seasons", "m12_h24_subset_4months",
-                 "m12_subset_q1", "d365_h24_1dps")
+.ts_samples <- c("m12_subset_q1", "d365_h24_1dps")
 
 if (requireNamespace("timescales", quietly = TRUE)) {
   .ts_ver <- as.character(utils::packageVersion("timescales"))
@@ -169,8 +168,59 @@ if (requireNamespace("timescales", quietly = TRUE)) {
     }))
     lv <- lv[ord, , drop = FALSE]
     lv$ANNUAL <- "ANNUAL"
+
+    # A REPRESENTATIVE design carries a slice that stands for several of the
+    # unit its frame is named after: `s4_h24`'s `WIN_h00` is the 00:00 hour of
+    # 90 winter days, not one 90-hour block. timescales expresses that by
+    # inflating `share` (its `weight` is just `share * 8760`, the hours the
+    # slice accounts for), and `share` is also what every per-slice bound in
+    # the LP is scaled by -- so a 90-hour `share` makes the storage chain step
+    # 90 hours at a time and the reservoir comes out 90 times too large.
+    #
+    # Split the two facts `share` conflates. The repetition belongs in
+    # `weight`, which reaches only the cost and cumulative equations:
+    #
+    #   share  = duration of ONE piece / 8760      (a real hour, for HOUR)
+    #   weight = number of pieces / year_fraction  (annualises, as the class
+    #                                               contract requires)
+    #
+    # Chronological designs have one piece per slice and are untouched.
+    nominal <- c(YEAR = 8760, QUARTER = 2190, SEASON = 2190, MONTH = 730.5,
+                 WEEK = 168, MWEEK = 168, YDAY = 24, MDAY = 24,
+                 HOUR = 1, WHOUR = 1, MINUTE = 1 / 60, SECOND = 1 / 3600)
+    leaf <- tfs[length(tfs)]
+    yf <- sum(lv$share)
+    cyc <- rep(1, nrow(lv))
+    # A TYPOLOGICAL leaf (HOURTYPE, DAYTYPE, WDAY) names a kind of period, not
+    # a stretch of calendar, so its members have no length the frame implies
+    # and the repetition cannot be read off `share`. timescales declares the
+    # unit they tile -- `hp3`'s three hour types make up a YDAY -- and the
+    # parent's span divided by that unit is how many times the pattern recurs:
+    # a 90-day winter holds 90 of them. Absent the declaration the frame is
+    # left alone rather than guessed at.
+    cyc_unit <- tryCatch(summary(cal)$cycle[[leaf]], error = function(e) NULL)
+    if (!is.null(cyc_unit) && cyc_unit %in% names(nominal)) {
+      grp <- if (length(tfs) > 1L) {
+        do.call(paste, c(lapply(tfs[-length(tfs)], function(f)
+          as.character(lv[[f]])), list(sep = "")))
+      } else rep("", nrow(lv))
+      span <- stats::ave(lv$share, grp, FUN = sum) * 8760
+      raw <- span / nominal[[cyc_unit]]
+      if (max(raw) >= 1.5) cyc <- raw
+    } else if (leaf %in% names(nominal)) {
+      # the slice's own duration, NOT normalised by year_fraction: a sampled
+      # design keeps a real hour's share and must score 1, not 1/year_fraction
+      raw <- lv$share * 8760 / nominal[[leaf]]
+      # Calendar units are not all equal: January is 744 h against a nominal
+      # 730.5, so a chronological MONTH leaf scores 0.92-1.02. Measured, every
+      # representative design in the catalog scores 6.9 or more, so anything
+      # below 1.5 is unit irregularity rather than repetition.
+      if (max(raw) >= 1.5) cyc <- raw
+    }
+    lv$share <- lv$share / cyc
+    lv$weight <- cyc / yf
     tt <- data.table::as.data.table(
-      lv[, c("ANNUAL", tfs, "timeslice", "share")]
+      lv[, c("ANNUAL", tfs, "timeslice", "share", "weight")]
     )
     smry <- summary(cal)
     ys <- smry$year_start
@@ -196,20 +246,17 @@ if (requireNamespace("timescales", quietly = TRUE)) {
   # Sampled designs: timescales::filter_calendar keeps shares UNnormalized,
   # so year_fraction = sum(share) carries over -- the documented sampled-
   # calendar contract (never rebuild a subset with make_timetable()).
-  calendars[["s4_h24_subset_2seasons"]] <- ts_bridge(
-    timescales::filter_calendar(timescales::calendar("s4_h24"),
-                                "SEASON", c("WIN", "SUM")),
-    name = "s4_h24_subset_2seasons",
-    desc = paste0("s4_h24 sampled to WIN+SUM; year_fraction = the two ",
-                  "seasons' share (timescales ", .ts_ver, ")")
-  )
-  calendars[["m12_h24_subset_4months"]] <- ts_bridge(
-    timescales::filter_calendar(timescales::calendar("m12_h24"),
-                                "MONTH", c("m01", "m04", "m07", "m10")),
-    name = "m12_h24_subset_4months",
-    desc = paste0("m12_h24 sampled to m01/m04/m07/m10; year_fraction = ",
-                  "the four months' share (timescales ", .ts_ver, ")")
-  )
+  # Retired here as well as skipped above: the list is seeded from the
+  # previously shipped data/calendars.rda, so dropping the construction alone
+  # would carry the old entries forward.
+  calendars[c("s4_h24_subset_2seasons", "m12_h24_subset_4months")] <- NULL
+
+  # `s4_h24_subset_2seasons` and `m12_h24_subset_4months` are NOT shipped:
+  # now that `s4_h24` and `m12_h24` are themselves representative days with
+  # the repetition in `weight`, a seasonal cut of one is a sample of a sample,
+  # and its weight is the product of two reductions -- exactly the conflation
+  # this release removes. `m12_subset_q1` stays: `m12` is chronological, so
+  # cutting it is a plain sample.
   calendars[["m12_subset_q1"]] <- ts_bridge(
     timescales::filter_calendar(timescales::calendar("m12"),
                                 "MONTH", c("m01", "m02", "m03")),
