@@ -470,8 +470,8 @@ setGeneric(
        title = paste0(nm, ": declared locations"))
 }
 
-# The choropleth itself. `geoscale_plot()` is the same primitive
-# `plot_geoscale()` uses, so the look matches the rest of the stack.
+# The choropleth itself. `gg_geoscale(type = "map")` is the same primitive
+# the membership map uses, so the look matches the rest of the stack.
 #' @noRd
 .report_location_plot <- function(object, ctx) {
   gs <- ctx$geoscale
@@ -486,10 +486,10 @@ setGeneric(
   d <- loc$data
   names(d)[names(d) == "region"] <- finest
   tryCatch(
-    geoscales::geoscale_plot(gs, data = d, geoframe = finest,
-                             fill = loc$fill, title = loc$title,
-                             fill_label = if (identical(loc$fill, "value"))
-                               "" else NULL),
+    geoscales::gg_geoscale(gs, type = "map", data = d, geoframe = finest,
+                           z = loc$fill) +
+      ggplot2::labs(title = loc$title,
+                    fill = if (identical(loc$fill, "value")) "" else NULL),
     error = function(e) NULL)
 }
 
@@ -706,7 +706,7 @@ setMethod(
       share_frontier_plot <- tryCatch({
         df <- tech_share_frontier(object)
         if (!is.null(df) && nrow(df) > 0)
-          plot_share_frontier(df, base_size = if (any(format %in% c("pdf", "tex"))) 8L else 11L)
+          gg_share_frontier(df, base_size = if (any(format %in% c("pdf", "tex"))) 8L else 11L)
         else NULL
       }, error = function(e) {
         warning("share frontier plot failed: ", conditionMessage(e))
@@ -2003,15 +2003,17 @@ Levelized cost section will be omitted.")
         }, error = function(e) NULL)
       }
       if (geo_ok && want("geo_map")) {
-        geo_map <- tryCatch(plot_geoscale(gs, type = "map"),
+        geo_map <- tryCatch(.gg_membership_map(gs),
                             error = function(e) NULL)
       }
       if (geo_ok && want("geo_stack")) {
         nfr <- tryCatch(length(geoscales::geoscale_geoframes(gs)),
                         error = function(e) 1L)
         if (nfr > 1) {
-          geo_stack <- tryCatch(plot_geoscale(gs, type = "stack"),
-                                error = function(e) NULL)
+          geo_stack <- tryCatch(
+            geoscales::gg_geoscale(gs, type = "stack", view = "cabinet",
+                                   direction = "down"),
+            error = function(e) NULL)
         }
       }
     }
@@ -2573,8 +2575,11 @@ Levelized cost section will be omitted.")
                              error = function(e) NA)))
     if (want("calendar_plot") && !is.null(scen_cal)) {
       calendar_plot <- tryCatch({
-        if (cal_differs) plot_calendar(scen_cal, reference = mod_cal) else
+        if (cal_differs) {
+          ggplot2::autoplot(scen_cal, reference = mod_cal)
+        } else {
           ggplot2::autoplot(scen_cal)
+        }
       }, error = function(e) NULL)
     }
     if (want("calendar_model_plot") && cal_differs && !is.null(mod_cal)) {
@@ -2595,15 +2600,17 @@ Levelized cost section will be omitted.")
     gs <- tryCatch(getGeoscale(scen), error = function(e) NULL)
     if (!is.null(gs)) {
       if (want("geo_map")) {
-        geo_map <- tryCatch(plot_geoscale(gs, type = "map"),
+        geo_map <- tryCatch(.gg_membership_map(gs),
                             error = function(e) NULL)
       }
       if (want("geo_stack")) {
         nfr <- tryCatch(length(geoscales::geoscale_geoframes(gs)),
                         error = function(e) 1L)
         if (nfr > 1) {
-          geo_stack <- tryCatch(plot_geoscale(gs, type = "stack"),
-                                error = function(e) NULL)
+          geo_stack <- tryCatch(
+            geoscales::gg_geoscale(gs, type = "stack", view = "cabinet",
+                                   direction = "down"),
+            error = function(e) NULL)
         }
       }
       if (want("geo_note")) {
@@ -2619,12 +2626,12 @@ Levelized cost section will be omitted.")
 
   # -- result maps ---------------------------------------------------------
   newcap_map <- if (want("newcap_map") && geo_ok) tryCatch(
-    plot_map(scen, name = "vTechNewCap", facet = "year"),
+    gg_map(scen, name = "vTechNewCap", facet = "year"),
     error = function(e) NULL) else NULL
   ret_map <- if (want("ret_map") && geo_ok) tryCatch({
     d <- gd("vTechRetiredStock")
     if (!is.null(d) && nrow(d) > 0 && any(d$value != 0)) {
-      plot_map(scen, name = "vTechRetiredStock", facet = "year")
+      gg_map(scen, name = "vTechRetiredStock", facet = "year")
     } else NULL
   }, error = function(e) NULL) else NULL
 

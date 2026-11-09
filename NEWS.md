@@ -406,6 +406,10 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Breaking changes
 
+* The figure functions that return a ggplot object are named `gg_*`: `gg_map()`, `gg_heatmap()`, `gg_trade_map()`, `gg_trade_network()`, `gg_share_frontier()`. The `plot_*` names forward with a one-time warning and go before 1.0. `plot_geoscale()` is deprecated without a successor here: call `geoscales::gg_geoscale()` on `getGeoscale(object)`.
+* `plot()` on every energyRt class now draws the figure and returns it invisibly, like base `plot()`; `autoplot()` returns the ggplot to modify.
+* `autoplot()` on a calendar is drawn by `timescales::gg_calendar()`. `labels` takes `"name"`, `"timeslice"` or `"none"` (`label_by` is gone), the text colour is automatic (`label_color` is gone) and `show_leafs` is gone: subset the calendar first. `reference` stays.
+
 * The `s4_h24_subset_2seasons` and `m12_h24_subset_4months` calendars are
   removed: both sampled an already-representative design, so their weight was
   the product of two reductions.

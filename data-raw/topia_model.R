@@ -45,7 +45,8 @@ assign("topia", .topia_sofar, envir = .env)
 # `eval = have_sf` guards are gone by the time this runs: the display verbs are
 # shadowed instead, which also keeps the data build off ggplot2 and sf.
 assign("have_sf", FALSE, envir = .env)
-for (.f in c("plot_geoscale", "plot_trade_map", "plot_trade_network",
+for (.f in c("gg_geoscale", "gg_trade_map", "gg_trade_network",
+             "plot_geoscale", "plot_trade_map", "plot_trade_network",
              "autoplot", "draw")) {
   assign(.f, function(...) invisible(NULL), envir = .env)
 }

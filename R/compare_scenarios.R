@@ -480,7 +480,9 @@ setOldClass("scenarios_cmp")
 #' @param y ignored.
 #' @export
 setMethod("plot", c("scenarios_cmp", "ANY"), function(x, y, ...) {
-  autoplot.scenarios_cmp(x, ...)
+  p <- autoplot.scenarios_cmp(x, ...)
+  print(p)
+  invisible(p)
 })
 
 #' @rdname report

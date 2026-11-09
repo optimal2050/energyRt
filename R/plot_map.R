@@ -1,4 +1,4 @@
-# plot_map ####################################################################
+# gg_map ####################################################################
 # Region-level maps of model results.
 #
 # Everything here is presentation: results come out of `getMix()`/`getData()`
@@ -181,15 +181,15 @@ NULL
 #' @examples
 #' \dontrun{
 #' scen <- solve(interpolate(mod, "BASE"))
-#' plot_map(scen, "capacity")
-#' plot_map(scen, "capacity", level = "zone")
-#' plot_map(scen, name = "vTechNewCap", facet = "year")
-#' plot_map(scen, name = "vTechRetiredStock")
+#' gg_map(scen, "capacity")
+#' gg_map(scen, "capacity", level = "zone")
+#' gg_map(scen, name = "vTechNewCap", facet = "year")
+#' gg_map(scen, name = "vTechRetiredStock")
 #' }
 #'
 #' @family geoscale
 #' @export
-plot_map <- function(object,
+gg_map <- function(object,
                     type = c("generation", "capacity", "new_capacity", "fuel"),
                     level = NULL, comm = "ELC", year = NULL,
                     process = NULL, geoscale = NULL,
@@ -314,7 +314,7 @@ plot_map <- function(object,
 }
 
 # Draw a prepared per-region table: a single geoscales choropleth, or a
-# year-faceted composition via geom_geoscale() (geoscale_plot cannot facet).
+# year-faceted composition via geom_geoscale() (the map type cannot facet).
 #' @noRd
 .plot_map_draw <- function(d, gs, level, facet, palette, label, year, ...) {
   title <- paste0(label, if (!is.null(year) && length(year) == 1L)
@@ -347,7 +347,7 @@ plot_map <- function(object,
                                         name = level, na.value = "grey92") +
           ggplot2::labs(title = title))
     }
-    .say("plot_map(): could not build a year-faceted map (no attached ",
+    .say("gg_map(): could not build a year-faceted map (no attached ",
             "geometry?); summing over years instead.")
     grp <- setdiff(names(d), c("year", "value"))
     d <- stats::aggregate(d["value"], by = d[grp], FUN = sum)
@@ -355,80 +355,23 @@ plot_map <- function(object,
   # Drawing belongs to geoscales: it owns the geometry, the levels and the
   # dissolving. energyRt's job ends here, having decided WHAT to plot --
   # which variable, netted or summed, at which level.
-  geoscales::geoscale_plot(
-    gs, data = d, geoframe = level, fill = "value",
-    palette = palette,
-    title = title,
-    fill_label = level,
-    ...
-  )
+  geoscales::gg_geoscale(
+    gs, type = "map", data = d, geoframe = level, z = "value",
+    palette = palette, ...
+  ) +
+    ggplot2::labs(title = title, fill = level)
 }
 
-#' Draw a model's geoscale
-#'
-#' Visualises the geography attached to a model, scenario, config, or a bare
-#' `geoscales::GeoScale`: a membership map of one geoframe (`"map"`), a
-#' layered view of ALL geoframes stacked in a cabinet/perspective projection
-#' with the coarsest level at the bottom (`"stack"`), or the geometry-free
-#' `"icicle"` diagram.
-#'
-#' `"map"` and `"stack"` need attached geometry (see
-#' `geoscales::attach_geometry_geoscale()`) and the `sf` package; `"icicle"`
-#' works without either and is the fallback the report templates degrade to.
-#'
-#' @param object a `model`, `scenario`, `config`, or `geoscales::GeoScale`.
-#' @param type `"map"`, `"stack"`, or `"icicle"`.
-#' @param geoframe for `"map"`: the geoframe whose membership colours the
-#'   atoms; default = the coarsest level above the atoms.
-#' @param view stack projection (`"cabinet"`, `"perspective"`, ... -- see
-#'   `geoscales::geoscale_autoplot()`).
-#' @param direction `"down"` (default) draws the coarsest geoframe at the
-#'   bottom of the stack; `"up"` at the top.
-#' @param geoscale a `geoscales::GeoScale` override, or `NULL` to resolve
-#'   from `object`.
-#' @param ... passed to the geoscales plotting functions.
-#'
-#' @return A `ggplot` object.
-#' @family geoscale
-#' @export
-#' @examples
-#' gs <- topia$geoscales$squares
-#'
-#' # the nesting of a geoscale, without any geometry
-#' plot_geoscale(gs, type = "icicle")
-#' plot_geoscale(gs, type = "stack")
-#'
-#' # the map itself
-#' plot_geoscale(gs, type = "map")
-plot_geoscale <- function(object, type = c("map", "stack", "icicle"),
-                          geoframe = NULL, view = "cabinet",
-                          direction = "down", geoscale = NULL, ...) {
-  type <- match.arg(type)
+# The membership map of a geoscale: the atoms coloured by their group at
+# `geoframe` (default: the coarsest geoframe above the atoms). What the
+# reports draw for a model's geography; the user-facing entry point is
+# geoscales::gg_geoscale() on getGeoscale().
+#' @noRd
+.gg_membership_map <- function(gs, geoframe = NULL, ...) {
   check_package("geoscales")
-  gs <- if (is_geoscale(object)) object else
-    .resolve_geoscale(object, geoscale)
-  frames <- geoscales::geoscale_geoframes(gs)   # coarsest first, atoms last
-
-  if (type == "icicle") {
-    return(geoscales::geoscale_autoplot(gs, type = "icicle", ...))
-  }
-
   check_package("ggplot2")
   check_package("sf")
-
-  if (type == "stack") {
-    fa <- tryCatch(names(formals(geoscales::geoscale_autoplot)),
-                   error = function(e) character(0))
-    if (!all(c("view", "direction") %in% fa)) {
-      .say("plot_geoscale(): this geoscales version has no stack view; ",
-              "drawing the icicle instead.")
-      return(geoscales::geoscale_autoplot(gs, type = "icicle", ...))
-    }
-    return(geoscales::geoscale_autoplot(gs, type = "stack", view = view,
-                                        direction = direction, ...))
-  }
-
-  # type == "map": atoms coloured by their group at `geoframe`
+  frames <- geoscales::geoscale_geoframes(gs)   # coarsest first, atoms last
   finest <- .geo_default_level(gs)
   if (is.null(geoframe)) {
     above <- setdiff(frames, finest)
@@ -439,8 +382,8 @@ plot_geoscale <- function(object, type = c("map", "stack", "icicle"),
   names(d) <- finest
   d$group <- if (identical(geoframe, finest)) d[[finest]] else
     unname(.geo_level_map(gs, from = finest, to = geoframe)[d[[finest]]])
-  geoscales::geoscale_plot(gs, data = d, geoframe = finest, fill = "group",
-                           title = paste0("geoscale: ",
-                                          paste(frames, collapse = " > ")),
-                           fill_label = geoframe, ...)
+  geoscales::gg_geoscale(gs, type = "map", data = d, geoframe = finest,
+                         z = "group", ...) +
+    ggplot2::labs(title = paste0("geoscale: ", paste(frames, collapse = " > ")),
+                  fill = geoframe)
 }

@@ -296,7 +296,7 @@ NULL
       requireNamespace("geoscales", quietly = TRUE) &&
       requireNamespace("sf", quietly = TRUE) &&
       requireNamespace("ggplot2", quietly = TRUE)) {
-    map_plot <- tryCatch(plot_trade_map(object), error = function(e) NULL)
+    map_plot <- tryCatch(gg_trade_map(object), error = function(e) NULL)
   }
   lc_df <- if (want("levcost_df") && !is.null(levcost)) tryCatch({
     inst <- if (inherits(levcost, "levcost")) levcost else
@@ -504,7 +504,7 @@ NULL
   if (gg_ok && want("geo_map") &&
       requireNamespace("geoscales", quietly = TRUE) &&
       requireNamespace("sf", quietly = TRUE)) {
-    geo_map <- tryCatch(plot_geoscale(getGeoscale(object), type = "map"),
+    geo_map <- tryCatch(.gg_membership_map(getGeoscale(object)),
                         error = function(e) NULL)
   }
   list(info_df = .config_report_rows(object),

@@ -84,9 +84,8 @@ getGeoscale(mod)
 Other geoscale:
 \code{\link[=check_geoscale_regions]{check_geoscale_regions()}},
 \code{\link[=get_process_groups]{get_process_groups()}},
+\code{\link[=gg_map]{gg_map()}},
 \code{\link[=model_clusters]{model_clusters()}},
-\code{\link[=plot_geoscale]{plot_geoscale()}},
-\code{\link[=plot_map]{plot_map()}},
 \code{\link[=process_cluster_sweep]{process_cluster_sweep()}}
 }
 \concept{geoscale}

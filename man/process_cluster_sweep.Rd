@@ -75,9 +75,8 @@ process_cluster_sweep(mod, group = "EWIN", ks = 3:6,
 Other geoscale:
 \code{\link[=check_geoscale_regions]{check_geoscale_regions()}},
 \code{\link[=get_process_groups]{get_process_groups()}},
+\code{\link[=gg_map]{gg_map()}},
 \code{\link[=model_clusters]{model_clusters()}},
-\code{\link[=plot_geoscale]{plot_geoscale()}},
-\code{\link[=plot_map]{plot_map()}},
 \code{\link{setCalendar,config-method}}
 }
 \concept{geoscale}

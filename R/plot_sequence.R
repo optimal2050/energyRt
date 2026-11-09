@@ -158,7 +158,7 @@ sequence_coverage.guided <- function(x, ...) {
 # of what ran.
 #
 # Fill is the unit, discretely. The scale packages' value plots
-# (`timescales::calendar_wall_plot()`, `geoscales::geoscale_plot()`) map a
+# (`timescales::gg_calendar()`, `geoscales::gg_geoscale()`) map a
 # numeric `z` continuously, which cannot label a sample or tell a shared cell
 # from an interpolated one, so the layout comes from them and the drawing is
 # here.
@@ -446,9 +446,9 @@ autoplot.by_region <- function(object, type = c("coverage"), geoscale = NULL,
   names(d) <- lvl
   d$unit <- factor(byk$unit[match(members, byk$key)],
                    levels = .cov_unit_levels(cv))
-  geoscales::geoscale_plot(
-    gs, data = d, geoframe = lvl, fill = "unit", fill_label = "unit",
-    title = "Region coverage") +
+  geoscales::gg_geoscale(gs, type = "map", data = d, geoframe = lvl,
+                         z = "unit") +
+    ggplot2::labs(title = "Region coverage", fill = "unit") +
     ggplot2::labs(caption = .cov_subtitle(byk, length(unique(cv$unit)),
                                           length(members), "regions")) +
     .cov_fill_scale()

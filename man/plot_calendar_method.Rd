@@ -4,86 +4,28 @@
 \alias{autoplot.calendar}
 \title{Visualize a Calendar object}
 \usage{
-\method{autoplot}{calendar}(
-  object,
-  ...,
-  fill = c("order", "share", "weight"),
-  color_pattern = c("within", "global"),
-  palette = "D",
-  labels = TRUE,
-  label_by = c("name", "timeslice", "none"),
-  label_color = "auto",
-  max_labels = 60L,
-  border = NA,
-  show_leafs = NULL,
-  reference = NULL
-)
+\method{autoplot}{calendar}(object, ..., reference = NULL)
 }
 \arguments{
 \item{object}{An object of class \code{calendar}.}
 
-\item{...}{Passed to \code{plot_calendar()}.}
+\item{...}{Passed to \code{\link[timescales:gg_calendar]{timescales::gg_calendar()}} (\code{type = "icicle"}):
+\code{fill}, \code{color_pattern}, \code{palette}, \code{labels}, \code{max_labels},
+\code{max_segments}, \code{border}.}
 
-\item{fill}{One of \code{"order"} (chronology, default), \code{"share"} (year-share of
-the timeslice), or \code{"weight"} — the metric mapped to rectangle fill color.}
-
-\item{color_pattern}{For \code{fill = "order"}, how the color gradient is applied:
-\code{"within"} (default) colors each level over its own timeslices — a full
-\code{h00}→\code{h23} gradient recycled every day, \code{d001}→\code{d365} over the year — so
-each row shows its cyclical structure; \code{"global"} colors by absolute
-chronology (leaf order \verb{1…n}, e.g. \verb{0…8760}). Ignored for \code{"share"}/\code{"weight"}.}
-
-\item{palette}{Viridis color option (e.g. \code{"D"}, \code{"C"}, \code{"magma"}) for the
-fill scale.}
-
-\item{labels}{Logical; draw labels inside the rectangles (master on/off).}
-
-\item{label_by}{What to label each rectangle with: \code{"name"} (default) the
-individual level name (e.g. \code{HOUR} cells become \code{h00}…\code{h23}, \code{YDAY} cells
-\code{d001}…\code{d365}), \code{"timeslice"} the full timeslice path (e.g. \code{d001_h00}), or
-\code{"none"}.}
-
-\item{label_color}{Text color for the labels. \code{"auto"} (default) contrasts
-each label with its cell — white on the darker part of the gradient, dark
-on the lighter part — so labels stay readable on dark fills. Pass any single
-color (e.g. \code{"black"}, \code{"white"}) to use it for all labels.}
-
-\item{max_labels}{Integer; timeframes with more timeslices than this are left
-unlabeled to avoid clutter.}
-
-\item{border}{Rectangle outline color. \code{NA} (default) draws no outline, so a
-high-resolution row (e.g. 8760 hourly timeslices) reads as a smooth gradient
-instead of a solid block of borders. Pass e.g. \code{"grey30"} to outline timeslices
-on coarse calendars.}
-
-\item{show_leafs}{Select which timeslices to draw (\code{NULL}, default, shows all).
-Two forms:
-\itemize{
-\item an unnamed vector filtering the finest (leaf) level — leaf timeslice names
-(e.g. \code{"d001_h05"}) or integer leaf indices (e.g. \code{1:100} for the first
-100 leaves);
-\item a named list filtering per timeframe level, combined with AND, e.g.
-\code{list(YDAY = "d100", HOUR = 5:10)} — for each level a character vector of
-that level's timeslice names or integer positions among its timeslices
-(\code{HOUR = 5:10} selects the 5th–10th hours). The kept timeslices are packed
-left-to-right and the x-axis spans their total year-share. Colors stay
-stable (e.g. \code{h05} keeps its color whether or not other hours are shown).
-}}
-
-\item{reference}{Optional full \code{calendar}. When supplied, \code{x} is treated as a
-\emph{subset} of \code{reference}: the plot lays out \code{reference}'s full structure but
-fills only the timeslices present in \code{x} (matched by timeslice name), leaving the
-unselected timeslices empty. Use it to see which part of a full calendar a
-sampled/subset calendar covers.}
+\item{reference}{Optional full \code{calendar}. When supplied, \code{object} is drawn
+as a subset of it: the layout is the reference's, and the timeslices
+absent from \code{object} are left empty. Use it to see which part of a full
+calendar a sampled calendar covers.}
 }
 \value{
 A \code{ggplot} object.
 }
 \description{
-Draws the calendar's time-structure as stacked rows (one per timeframe,
-\code{ANNUAL} on top), where each rectangle is a time-timeslice sized by its share of
-the year. \code{autoplot()} is the ggplot2-idiomatic entry point and returns the
-same \code{ggplot} object as \code{\link[=plot]{plot()}}.
+Draws the calendar's time structure as an icicle: one row per timeframe,
+\code{ANNUAL} on top, each rectangle a timeslice sized by its share of the year.
+The figure is \code{\link[timescales:gg_calendar]{timescales::gg_calendar()}} on the calendar's timetable;
+\code{autoplot()} returns it, \code{plot()} draws it.
 }
 \examples{
 \dontrun{
@@ -91,11 +33,7 @@ cal <- newCalendar(make_timetable(timeslices3), name = "m12h24")
 plot(cal)
 autoplot(cal, fill = "share")
 
-# Subset view: show which timeslices a reduced calendar covers within the full one
-autoplot(calendars$d365_h24_1dpm,
-         reference = calendars$d365_h24)
-
-# Zoom into specific timeslices: day 100, hours 5-10
-autoplot(calendars$d365_h24, show_leafs = list(YDAY = "d100", HOUR = 5:10))
+# which timeslices a reduced calendar covers within the full one
+autoplot(calendars$d365_h24_1dpm, reference = calendars$d365_h24)
 }
 }

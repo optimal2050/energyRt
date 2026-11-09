@@ -114,11 +114,11 @@ getData(scen_BASE, "vObjective", merge = TRUE) # projection cost, MUSD
 ```
 
 The regions are wired west to east with bi-directional transmission links
-(`TBD_ELC_*`), and the fuels move zone to zone. `plot_trade_map()` draws that
+(`TBD_ELC_*`), and the fuels move zone to zone. `gg_trade_map()` draws that
 network over a map layout — pass any of `topia$geoscales`, here `honeycomb`:
 
 ```{r trade-map, eval = have_sf, fig.height = 4}
-plot_trade_map(topia_elc$repo, map = topia$geoscales$honeycomb)
+gg_trade_map(topia_elc$repo, map = topia$geoscales$honeycomb)
 ```
 
 # Reading the solution

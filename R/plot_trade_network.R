@@ -53,11 +53,11 @@
 #' @export
 #' @examples
 #' \dontrun{
-#' plot_trade_network(repo)                                  # inputs, circular layout
-#' plot_trade_network(scen, value = "capacity", year = 2050) # solved capacity on the map
-#' plot_trade_network(scen, value = "flow", timeslice = "d180_h18")
+#' gg_trade_network(repo)                                  # inputs, circular layout
+#' gg_trade_network(scen, value = "capacity", year = 2050) # solved capacity on the map
+#' gg_trade_network(scen, value = "flow", timeslice = "d180_h18")
 #' }
-plot_trade_network <- function(object, map = NULL,
+gg_trade_network <- function(object, map = NULL,
                                value = c("input", "capacity", "flow"),
                                comm = NULL,
                                year = NULL, timeslice = "ANNUAL", level = NULL,
@@ -71,7 +71,7 @@ plot_trade_network <- function(object, map = NULL,
     return(invisible(NULL))
   }
   if (value != "input" && !methods::is(object, "scenario")) {
-    stop("plot_trade_network: value = \"", value, "\" needs a solved scenario.",
+    stop("gg_trade_network: value = \"", value, "\" needs a solved scenario.",
          call. = FALSE)
   }
 
@@ -108,7 +108,7 @@ plot_trade_network <- function(object, map = NULL,
     # need not be: a model declares its corridors at the level each commodity
     # is balanced on, so electricity may run between regions while a fuel runs
     # between zones. Naming one level silently dropped every route declared at
-    # another, which is the same defect `plot_trade_map()` was fixed for.
+    # another, which is the same defect `gg_trade_map()` was fixed for.
     shapes <- .trade_map_normalise(map, level = level)
     ce <- as.data.frame(shapes)
     nodes <- data.frame(region = as.character(ce$region), x = ce$x, y = ce$y)
@@ -225,7 +225,7 @@ plot_trade_network <- function(object, map = NULL,
 #' @noRd
 .tn_capacity <- function(scen, routes, year) {
   d <- as.data.frame(getData(scen, "vTradeCap", merge = TRUE))
-  if (!nrow(d)) stop("plot_trade_network: no vTradeCap in the scenario.", call. = FALSE)
+  if (!nrow(d)) stop("gg_trade_network: no vTradeCap in the scenario.", call. = FALSE)
   y <- .tn_year(d$year, year)
   d <- d[d$year %in% y, , drop = FALSE]
   d <- stats::aggregate(value ~ trade, data = d, FUN = sum)
@@ -246,7 +246,7 @@ plot_trade_network <- function(object, map = NULL,
   annual <- identical(toupper(timeslice), "ANNUAL")
   d <- as.data.frame(getData(scen, "vTradeIr", merge = TRUE,
                              timeframe = if (annual) "lowest" else "all"))
-  if (!nrow(d)) stop("plot_trade_network: no vTradeIr in the scenario.", call. = FALSE)
+  if (!nrow(d)) stop("gg_trade_network: no vTradeIr in the scenario.", call. = FALSE)
   # decoders differ: multimod writes src/dst, the Pyomo route region/regionp
   if (!"src" %in% names(d) && "region" %in% names(d)) names(d)[names(d) == "region"] <- "src"
   if (!"dst" %in% names(d) && "regionp" %in% names(d)) names(d)[names(d) == "regionp"] <- "dst"
@@ -254,7 +254,7 @@ plot_trade_network <- function(object, map = NULL,
   d <- d[d$year %in% y, , drop = FALSE]
   if (!annual) {
     if (!timeslice %in% d$timeslice) {
-      stop("plot_trade_network: timeslice '", timeslice, "' not in the results.", call. = FALSE)
+      stop("gg_trade_network: timeslice '", timeslice, "' not in the results.", call. = FALSE)
     }
     d <- d[d$timeslice %in% timeslice, , drop = FALSE]
   }

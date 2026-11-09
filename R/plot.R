@@ -91,278 +91,26 @@ autoplot.horizon <- function(object, ...) {
 
 
 # Calendar structure plot ------------------------------------------------------
-
-plot_calendar <- function(object, ...,
-                          fill = c("order", "share", "weight"),
-                          color_pattern = c("within", "global"),
-                          palette = "D",
-                          labels = TRUE,
-                          label_by = c("name", "timeslice", "none"),
-                          label_color = "auto",
-                          max_labels = 60L,
-                          border = NA,
-                          show_leafs = NULL,
-                          reference = NULL) {
-  check_package("ggplot2")
-  fill <- match.arg(fill)
-  color_pattern <- match.arg(color_pattern)
-  label_by <- match.arg(label_by)
-
-  # A `reference` full calendar turns this into a subset view: the layout comes
-  # from `reference` (the full year), but only the timeslices present in `object` are
-  # filled -- unselected timeslices are left empty.
-  if (!is.null(reference)) {
-    if (!methods::is(reference, "calendar")) {
-      stop("`reference` must be a `calendar` object.", call. = FALSE)
-    }
-    grid_cal   <- reference
-    sub_timeslices <- as.character(as.data.frame(object@timetable)$timeslice)
-  } else {
-    grid_cal   <- object
-    sub_timeslices <- NULL
-  }
-
-  tt_full <- as.data.frame(grid_cal@timetable)
-  frame_cols <- setdiff(names(tt_full), c("timeslice", "share", "weight"))
-  if (length(frame_cols) == 0 || nrow(tt_full) == 0) {
-    stop("The calendar has no timeframes/timeslices to plot.")
-  }
-  if (is.null(tt_full$weight)) tt_full$weight <- 1 / sum(tt_full$share)
-  nlev <- length(frame_cols)
-
-  # Selection is judged over each timeslice's FULL extent in the reference, not just
-  # the shown window: for every level, the set of prefix paths that contain at
-  # least one selected leaf. So ANNUAL stays selected whenever the subset is
-  # non-empty, while a YDAY is selected only if that whole day is in the subset.
-  sel_full <- if (is.null(sub_timeslices)) rep(TRUE, nrow(tt_full)) else tt_full$timeslice %in% sub_timeslices
-  if (!is.null(sub_timeslices) && !any(sel_full)) {
-    warning("None of the subset's timeslices match the reference calendar; ",
-            "nothing will be highlighted.", call. = FALSE)
-  }
-  selected_prefix <- lapply(seq_len(nlev), function(i) {
-    keyf <- do.call(paste, c(tt_full[frame_cols[seq_len(i)]], sep = "\r"))
-    unique(keyf[sel_full])
-  })
-
-  # Per-level unique timeslices (used for within-level coloring and for numeric
-  # `show_leafs` positions).
-  uniq_lev <- lapply(seq_len(nlev), function(i) unique(as.character(tt_full[[frame_cols[i]]])))
-  klev     <- vapply(uniq_lev, length, integer(1))
-
-  # `show_leafs` selects which timeslices are drawn. A named list filters each named
-  # timeframe level (character = timeslice names at that level; numeric = 1-based
-  # positions among that level's timeslices). An unnamed vector filters the finest
-  # (leaf) level (character = leaf timeslice names; numeric = leaf indices). Kept
-  # timeslices are packed left-to-right and the x-axis spans their total year-share.
-  keep <- rep(TRUE, nrow(tt_full))
-  if (!is.null(show_leafs)) {
-    if (is.list(show_leafs)) {
-      if (is.null(names(show_leafs)) || !all(names(show_leafs) %in% frame_cols)) {
-        stop("`show_leafs` list names must be timeframe levels: ",
-             paste(frame_cols, collapse = ", "), call. = FALSE)
-      }
-      for (lv in names(show_leafs)) {
-        i   <- match(lv, frame_cols)
-        sel <- show_leafs[[lv]]
-        if (is.numeric(sel)) sel <- uniq_lev[[i]][sel[sel >= 1 & sel <= klev[i]]]
-        keep <- keep & (as.character(tt_full[[lv]]) %in% as.character(sel))
-      }
-    } else if (is.numeric(show_leafs)) {
-      idx  <- as.integer(show_leafs); idx <- idx[idx >= 1 & idx <= nrow(tt_full)]
-      keep <- logical(nrow(tt_full)); keep[idx] <- TRUE
-    } else {
-      keep <- as.character(tt_full$timeslice) %in% as.character(show_leafs)
-    }
-    if (!any(keep)) stop("`show_leafs` selected no timeslices.", call. = FALSE)
-  }
-
-  tt       <- tt_full[keep, , drop = FALSE]
-  true_idx <- which(keep)   # position of each kept leaf in the full calendar
-  n_full   <- nrow(tt_full)
-  n  <- nrow(tt)
-  w  <- tt$share
-  x1 <- cumsum(w)          # cumulative year-share -> x position of leaf timeslices
-  x0 <- x1 - w
-
-  # Aggregate leaf timeslices into contiguous segments for a given timeframe level.
-  # Grouping on the prefix of level columns keeps repeated child timeslices (e.g.
-  # DAY under both WINTER and SUMMER) as distinct segments.
-  seg_for_level <- function(i) {
-    cols <- frame_cols[seq_len(i)]
-    key  <- do.call(paste, c(tt[cols], sep = "\r"))
-    gid  <- cumsum(c(TRUE, key[-1] != key[-n]))
-    idx  <- split(seq_len(n), gid)
-    first <- vapply(idx, function(ii) ii[1], integer(1))
-    nm_i  <- as.character(tt[[frame_cols[i]]])[first]   # level value (e.g. h04)
-    data.frame(
-      timeframe = frame_cols[i],
-      level     = i,
-      # individual level name (e.g. HOUR -> h00); `timeslice` is the full path (d001_h00)
-      name      = nm_i,
-      timeslice     = vapply(idx, function(ii) as.character(tt$timeslice[ii[1]]), character(1)),
-      xmin      = vapply(idx, function(ii) x0[ii[1]], numeric(1)),
-      xmax      = vapply(idx, function(ii) x1[ii[length(ii)]], numeric(1)),
-      # true chronology index (global) and within-level position (h04 -> 5);
-      # both stable under `show_leafs` filtering.
-      order     = true_idx[first],
-      within    = match(nm_i, uniq_lev[[i]]),
-      share     = vapply(idx, function(ii) sum(w[ii]), numeric(1)),
-      weight    = vapply(idx, function(ii) mean(tt$weight[ii]), numeric(1)),
-      # selected over the timeslice's full extent (via its prefix path)
-      selected  = vapply(idx, function(ii) key[ii[1]] %in% selected_prefix[[i]], logical(1)),
-      stringsAsFactors = FALSE
-    )
-  }
-
-  # Every cell of the (possibly truncated) grid is drawn; a subset view leaves
-  # the cells not present in `object` empty.
-  df <- do.call(rbind, lapply(seq_len(nlev), seg_for_level))
-  rownames(df) <- NULL
-
-  # Stack timeframes top-to-bottom: ANNUAL (level 1) on top.
-  df$y    <- nlev - df$level + 1
-  df$ymin <- df$y - 0.45
-  df$ymax <- df$y + 0.45
-  # Fill metric. For fill = "order" the `color_pattern` controls whether cells
-  # are colored by global chronology (leaf order 1..n) or "within" each level
-  # (per-level full gradient: h00..h23 recycled per day, d001..d365 per year).
-  within_mode <- fill == "order" && color_pattern == "within"
-  if (within_mode) {
-    df$fill <- (df$within - 1) / pmax(1, klev[df$level] - 1)  # -> [0, 1] per level
-  } else {
-    df$fill <- df[[fill]]
-  }
-  # Subset view: leave unselected timeslices empty (rendered via the scale's na.value).
-  if (!is.null(sub_timeslices)) df$fill[!df$selected] <- NA
-
-  fill_name <- if (within_mode) "timeslice" else
-    c(order = "chronology", share = "year share", weight = "weight")[[fill]]
-  empty_col <- "grey90"  # color of unselected/empty timeslices in a subset view
-
-  if (within_mode) {
-    # relative position within each level: 0 = first timeslice, 1 = last
-    fill_scale <- ggplot2::scale_fill_viridis_c(
-      option = palette, name = fill_name, na.value = empty_col,
-      limits = c(0, 1), breaks = c(0, 1), labels = c("first", "last"))
-  } else if (fill == "order" && n_full > 1) {
-    # global chronology: label the legend endpoints (0 .. n_leaf of full calendar)
-    fill_scale <- ggplot2::scale_fill_viridis_c(
-      option = palette, name = fill_name, na.value = empty_col,
-      limits = c(1, n_full), breaks = c(1, n_full), labels = c("0", as.character(n_full)))
-  } else {
-    fill_scale <- ggplot2::scale_fill_viridis_c(
-      option = palette, name = fill_name, na.value = empty_col)
-  }
-
-  p <- ggplot2::ggplot(df) +
-    ggplot2::geom_rect(
-      ggplot2::aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax,
-                   fill = fill),
-      color = border, linewidth = 0.15) +
-    fill_scale +
-    ggplot2::scale_x_continuous(expand = c(0, 0)) +
-    ggplot2::scale_y_continuous(
-      breaks = seq_len(nlev),
-      labels = rev(frame_cols),
-      expand = ggplot2::expansion(mult = c(0.02, 0.02))) +
-    ggplot2::labs(x = "share of the year", y = NULL) +
-    theme_energyRt() +
-    ggplot2::theme(
-      panel.grid    = ggplot2::element_blank(),
-      axis.ticks.y  = ggplot2::element_blank(),
-      plot.title    = ggplot2::element_text(hjust = 0.5, size = 16, face = "bold"),
-      plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 12, face = "italic")
-    )
-
-  # Labels centered on each rectangle: individual level name (`"name"`, the
-  # default, e.g. HOUR -> h00) or the full timeslice path (`"timeslice"`, d001_h00).
-  # Over-crowded levels (more than `max_labels` cells) are skipped.
-  if (isTRUE(labels) && label_by != "none") {
-    counts      <- table(df$level)
-    keep_levels <- as.integer(names(counts)[counts <= max_labels])
-    lab_df      <- df[df$level %in% keep_levels, , drop = FALSE]
-    lab_df$txt  <- lab_df[[label_by]]
-    lab_df      <- lab_df[!is.na(lab_df$txt), , drop = FALSE]
-    if (nrow(lab_df) > 0) {
-      lab_df$x <- (lab_df$xmin + lab_df$xmax) / 2
-      if (identical(label_color, "auto")) {
-        # Contrast the text with the fill: white on the darker part of the
-        # gradient, dark on the lighter part (and on empty/`grey90` cells).
-        lim <- if (within_mode) {
-          c(0, 1)
-        } else if (fill == "order") {
-          c(1, n_full)
-        } else {
-          range(df$fill, na.rm = TRUE)
-        }
-        norm <- (lab_df$fill - lim[1]) / (diff(lim) + 1e-9)
-        norm[!is.finite(norm)] <- 1  # empty cells are light -> dark text
-        tcol <- ifelse(norm < 0.5, "white", "grey15")
-      } else {
-        tcol <- label_color
-      }
-      p <- p + ggplot2::geom_text(
-        data = lab_df,
-        ggplot2::aes(x = x, y = y, label = txt),
-        colour = tcol, size = 2.6, check_overlap = TRUE)
-    }
-  }
-
-  if (!is_empty(object@name)) p <- p + ggplot2::labs(title = object@name)
-  if (!is_empty(object@desc)) p <- p + ggplot2::labs(subtitle = object@desc)
-  p
-}
+# The figure is timescales' icicle: the S4 calendar is bridged to a
+# timescales Calendar and drawn by gg_calendar(); only the model-side
+# `reference` resolution and the title stay here.
 
 #' Visualize a Calendar object
 #'
 #' @description
-#' Draws the calendar's time-structure as stacked rows (one per timeframe,
-#' `ANNUAL` on top), where each rectangle is a time-timeslice sized by its share of
-#' the year. `autoplot()` is the ggplot2-idiomatic entry point and returns the
-#' same `ggplot` object as [plot()].
+#' Draws the calendar's time structure as an icicle: one row per timeframe,
+#' `ANNUAL` on top, each rectangle a timeslice sized by its share of the year.
+#' The figure is [timescales::gg_calendar()] on the calendar's timetable;
+#' `autoplot()` returns it, `plot()` draws it.
 #'
 #' @param object An object of class `calendar`.
-#' @param ... Passed to `plot_calendar()`.
-#' @param fill One of `"order"` (chronology, default), `"share"` (year-share of
-#'   the timeslice), or `"weight"` — the metric mapped to rectangle fill color.
-#' @param color_pattern For `fill = "order"`, how the color gradient is applied:
-#'   `"within"` (default) colors each level over its own timeslices — a full
-#'   `h00`→`h23` gradient recycled every day, `d001`→`d365` over the year — so
-#'   each row shows its cyclical structure; `"global"` colors by absolute
-#'   chronology (leaf order `1…n`, e.g. `0…8760`). Ignored for `"share"`/`"weight"`.
-#' @param palette Viridis color option (e.g. `"D"`, `"C"`, `"magma"`) for the
-#'   fill scale.
-#' @param labels Logical; draw labels inside the rectangles (master on/off).
-#' @param label_by What to label each rectangle with: `"name"` (default) the
-#'   individual level name (e.g. `HOUR` cells become `h00`…`h23`, `YDAY` cells
-#'   `d001`…`d365`), `"timeslice"` the full timeslice path (e.g. `d001_h00`), or
-#'   `"none"`.
-#' @param label_color Text color for the labels. `"auto"` (default) contrasts
-#'   each label with its cell — white on the darker part of the gradient, dark
-#'   on the lighter part — so labels stay readable on dark fills. Pass any single
-#'   color (e.g. `"black"`, `"white"`) to use it for all labels.
-#' @param max_labels Integer; timeframes with more timeslices than this are left
-#'   unlabeled to avoid clutter.
-#' @param border Rectangle outline color. `NA` (default) draws no outline, so a
-#'   high-resolution row (e.g. 8760 hourly timeslices) reads as a smooth gradient
-#'   instead of a solid block of borders. Pass e.g. `"grey30"` to outline timeslices
-#'   on coarse calendars.
-#' @param show_leafs Select which timeslices to draw (`NULL`, default, shows all).
-#'   Two forms:
-#'   * an unnamed vector filtering the finest (leaf) level — leaf timeslice names
-#'     (e.g. `"d001_h05"`) or integer leaf indices (e.g. `1:100` for the first
-#'     100 leaves);
-#'   * a named list filtering per timeframe level, combined with AND, e.g.
-#'     `list(YDAY = "d100", HOUR = 5:10)` — for each level a character vector of
-#'     that level's timeslice names or integer positions among its timeslices
-#'     (`HOUR = 5:10` selects the 5th–10th hours). The kept timeslices are packed
-#'     left-to-right and the x-axis spans their total year-share. Colors stay
-#'     stable (e.g. `h05` keeps its color whether or not other hours are shown).
-#' @param reference Optional full `calendar`. When supplied, `x` is treated as a
-#'   *subset* of `reference`: the plot lays out `reference`'s full structure but
-#'   fills only the timeslices present in `x` (matched by timeslice name), leaving the
-#'   unselected timeslices empty. Use it to see which part of a full calendar a
-#'   sampled/subset calendar covers.
+#' @param ... Passed to [timescales::gg_calendar()] (`type = "icicle"`):
+#'   `fill`, `color_pattern`, `palette`, `labels`, `max_labels`,
+#'   `max_segments`, `border`.
+#' @param reference Optional full `calendar`. When supplied, `object` is drawn
+#'   as a subset of it: the layout is the reference's, and the timeslices
+#'   absent from `object` are left empty. Use it to see which part of a full
+#'   calendar a sampled calendar covers.
 #'
 #' @return A `ggplot` object.
 #' @examples
@@ -371,34 +119,28 @@ plot_calendar <- function(object, ...,
 #' plot(cal)
 #' autoplot(cal, fill = "share")
 #'
-#' # Subset view: show which timeslices a reduced calendar covers within the full one
-#' autoplot(calendars$d365_h24_1dpm,
-#'          reference = calendars$d365_h24)
-#'
-#' # Zoom into specific timeslices: day 100, hours 5-10
-#' autoplot(calendars$d365_h24, show_leafs = list(YDAY = "d100", HOUR = 5:10))
+#' # which timeslices a reduced calendar covers within the full one
+#' autoplot(calendars$d365_h24_1dpm, reference = calendars$d365_h24)
 #' }
-
 #' @rdname plot_calendar_method
 #' @exportS3Method ggplot2::autoplot
-autoplot.calendar <- function(object, ...,
-                              fill = c("order", "share", "weight"),
-                              color_pattern = c("within", "global"),
-                              palette = "D",
-                              labels = TRUE,
-                              label_by = c("name", "timeslice", "none"),
-                              label_color = "auto",
-                              max_labels = 60L,
-                              border = NA,
-                              show_leafs = NULL,
-                              reference = NULL) {
-  # Arguments are listed explicitly (kept in sync with plot_calendar()) so that
-  # editors and `args(autoplot.calendar)` expose them through the generic.
-  plot_calendar(object, ...,
-                fill = fill, color_pattern = color_pattern, palette = palette,
-                labels = labels, label_by = label_by, label_color = label_color,
-                max_labels = max_labels, border = border, show_leafs = show_leafs,
-                reference = reference)
+autoplot.calendar <- function(object, ..., reference = NULL) {
+  check_package("ggplot2")
+  cal <- .ts_calendar(object)
+  if (is.null(cal)) {
+    stop("The calendar has no timeframes below ANNUAL to draw.", call. = FALSE)
+  }
+  ref <- NULL
+  if (!is.null(reference)) {
+    if (!methods::is(reference, "calendar")) {
+      stop("`reference` must be a `calendar` object.", call. = FALSE)
+    }
+    ref <- .ts_calendar(reference)
+  }
+  p <- timescales::gg_calendar(cal, type = "icicle", ..., reference = ref)
+  if (!is_empty(object@name)) p <- p + ggplot2::labs(title = object@name)
+  if (!is_empty(object@desc)) p <- p + ggplot2::labs(subtitle = object@desc)
+  p
 }
 
 
@@ -1168,20 +910,20 @@ plot_supply_map <- function(object, param = NULL,
          "level of `map` (", paste(frames, collapse = ", "), ").",
          call. = FALSE)
   }
-  # `geoscale_plot()` keys the data by the geoframe's own name, not by
-  # "region": a zone-level supply joins on `zone`.
+  # the map keys the data by the geoframe's own name, not by "region": a
+  # zone-level supply joins on `zone`.
   names(v)[names(v) == "region"] <- lvl
   yr <- attr(v, "year")
   lab <- .supply_labels(object)[[type]]
   # the unit belongs under the quantity, not trailing after it: a legend
   # title is a narrow column
-  p <- geoscales::geoscale_plot(
-    map, data = v, geoframe = lvl, fill = "value", palette = palette,
-    title = if (nzchar(obj_name)) obj_name else NULL,
-    subtitle = .desc_of(object),
-    fill_label = lab)
+  p <- geoscales::gg_geoscale(
+    map, type = "map", data = v, geoframe = lvl, z = "value",
+    palette = palette) +
+    ggplot2::labs(title = if (nzchar(obj_name)) obj_name else NULL,
+                  subtitle = .desc_of(object), fill = lab)
   if (uncapped) {
-    # `geoscale_plot()` scales a fill continuously; an unbounded one is not
+    # the map scales a fill continuously; an unbounded one is not
     p <- suppressMessages(
       # `breaks` keeps NA out of the LEGEND; `na.translate = FALSE` would
       # also drop those rows and take the background regions with them
@@ -1342,12 +1084,14 @@ plot_object_map <- function(object, param = NULL, year = NULL,
         if (length(cu) == 1 && !is.na(cu) && nzchar(cu)) cu else NULL
       }
     }
-  geoscales::geoscale_plot(
-    map, data = d, geoframe = lvl, fill = "value", palette = palette,
-    title = if (nzchar(nm)) nm else NULL, subtitle = .desc_of(object),
-    fill_label = if (is.null(u)) param else paste0(param, ", ", u)) +
-    ggplot2::labs(caption = if (!is.na(attr(v, "year")))
-      paste("year:", attr(v, "year")) else NULL)
+  geoscales::gg_geoscale(
+    map, type = "map", data = d, geoframe = lvl, z = "value",
+    palette = palette) +
+    ggplot2::labs(
+      title = if (nzchar(nm)) nm else NULL, subtitle = .desc_of(object),
+      fill = if (is.null(u)) param else paste0(param, ", ", u),
+      caption = if (!is.na(attr(v, "year")))
+        paste("year:", attr(v, "year")) else NULL)
 }
 
 # Demand gets its own plot: a timeslice-resolved demand has too many series for the
@@ -1950,10 +1694,10 @@ autoplot.constraint <- function(object, year = NULL, interpolate = TRUE, ...) {
 #' cal <- calendars$d365_h24
 #' prof <- data.frame(timeslice = cal@timetable$timeslice,
 #'                    load  = runif(nrow(cal@timetable)))
-#' plot_heatmap(prof, calendar = cal, value = "load")
-#' plot_heatmap(prof, calendar = cal, value = "load", facet = "month")
+#' gg_heatmap(prof, calendar = cal, value = "load")
+#' gg_heatmap(prof, calendar = cal, value = "load", facet = "month")
 #' }
-plot_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
+gg_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
                          palette = "D", name = NULL) {
   check_package("ggplot2")
   pr <- .heatmap_prep(object, calendar, value, facet)
@@ -2320,7 +2064,7 @@ autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
   if (methods::is(x, "repository") || methods::is(x, "model") ||
       methods::is(x, "scenario")) return(getObject(x, class = "trade"))
   if (is.list(x)) return(Filter(function(o) methods::is(o, "trade"), x))
-  stop("plot_trade_map: `object` must be a `trade`, a list of trades, or a ",
+  stop("gg_trade_map: `object` must be a `trade`, a list of trades, or a ",
        "repository/model/scenario.", call. = FALSE)
 }
 
@@ -2405,17 +2149,17 @@ autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
 #' autoplot(TRD, map = topia$geoscales$honeycomb)
 #'
 #' # a geoscale can be drawn at any level
-#' plot_trade_map(TRD, map = topia$geoscales$honeycomb, level = "zone")
+#' gg_trade_map(TRD, map = topia$geoscales$honeycomb, level = "zone")
 #' }
-plot_trade_map <- function(object, map = NULL, labels = TRUE,
+gg_trade_map <- function(object, map = NULL, labels = TRUE,
                            route_color = "steelblue", level = NULL,
                            comm = NULL, ...) {
   check_package("ggplot2")
   # A geoscale attached to the scenario/model is used when no map is given, so
-  # `autoplot(scen)` and `plot_trade_map(repo)` work without one being passed.
+  # `autoplot(scen)` and `gg_trade_map(repo)` work without one being passed.
   if (is.null(map)) map <- tryCatch(getGeoscale(object), error = function(e) NULL)
   if (is.null(map)) {
-    stop("plot_trade_map: pass a `map` (an sf object with `region`/`x`/`y` and ",
+    stop("gg_trade_map: pass a `map` (an sf object with `region`/`x`/`y` and ",
          "polygon geometry, or a `geoscales::GeoScale`), e.g. ",
          "`topia$geoscales$honeycomb`.", call. = FALSE)
   }
@@ -2577,13 +2321,13 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
                    legend.position = "right")
 }
 
-#' @rdname plot_trade_map
+#' @rdname gg_trade_map
 #' @exportS3Method ggplot2::autoplot
 autoplot.trade <- function(object, map = NULL, ...) {
-  plot_trade_map(object, map = map, ...)
+  gg_trade_map(object, map = map, ...)
 }
 
-# Normalise the `map` argument of plot_trade_map() to an sf/data.frame carrying
+# Normalise the `map` argument of gg_trade_map() to an sf/data.frame carrying
 # `region`, `x`, `y`. Accepts a `geoscales::GeoScale` (dissolved to `level` and
 # given centroids), or anything already in that shape.
 #' @noRd
@@ -2713,9 +2457,8 @@ energy_palettes <- list(
 # `plot()` delegates to `autoplot()` for every class that has one, so whichever
 # verb a user reaches for works and `autoplot()` stays the single implementation.
 #
-# The value is RETURNED, not printed: an S4 generic auto-prints a visible result
-# at top level, so printing here as well would draw the figure twice. This also
-# preserves `p <- plot(x)`.
+# The figure is PRINTED and returned invisibly, the base-graphics contract:
+# `plot()` draws, `autoplot()` returns the object to modify.
 #
 # The schematic-diagram role that `plot()` conventionally plays for base
 # graphics is filled by `draw()`, which needs no ggplot2 -- so the classical
@@ -2731,56 +2474,76 @@ energy_palettes <- list(
 #' @exportMethod plot
 NULL
 
+# One implementation for every plot() method: draw, hand the figure back
+# invisibly.
+#' @noRd
+.plot_via_autoplot <- function(x, ...) {
+  check_package("ggplot2")
+  p <- ggplot2::autoplot(x, ...)
+  print(p)
+  invisible(p)
+}
+
+# One implementation for every plot() method: draw, hand the figure back
+# invisibly.
+#' @noRd
+.plot_via_autoplot <- function(x, ...) {
+  check_package("ggplot2")
+  p <- ggplot2::autoplot(x, ...)
+  print(p)
+  invisible(p)
+}
+
 setMethod("plot", c("calendar", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 setMethod("plot", c("commodity", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 setMethod("plot", c("constraint", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 setMethod("plot", c("demand", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 setMethod("plot", c("export", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 setMethod("plot", c("horizon", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 setMethod("plot", c("import", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 setMethod("plot", c("model", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 setMethod("plot", c("repository", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 setMethod("plot", c("scenario", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 setMethod("plot", c("storage", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 setMethod("plot", c("subsidy", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 setMethod("plot", c("supply", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 setMethod("plot", c("tax", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 setMethod("plot", c("technology", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 setMethod("plot", c("trade", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 setMethod("plot", c("weather", "ANY"), function(x, y, ...) {
-  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 })
 
 # -- shared theme -------------------------------------------------------------

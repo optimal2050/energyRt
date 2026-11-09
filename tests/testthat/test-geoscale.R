@@ -304,7 +304,7 @@ test_that("a shipped geoscale subsets to a model's regions", {
   expect_error(geoscales::filter_geoscale(full, "region", "R99"))
 })
 
-test_that("plot_map delegates drawing to geoscales::geoscale_plot", {
+test_that("gg_map delegates drawing to geoscales::gg_geoscale", {
   skip_if_no_geoscales()
   skip_if_not_installed("sf")
   skip_if_not_installed("ggplot2")
@@ -312,9 +312,7 @@ test_that("plot_map delegates drawing to geoscales::geoscale_plot", {
   # energyRt decides WHAT to draw (variable, netting, level); geoscales draws
   # it. This pins the handover: the plot must carry the viridis scale, the
   # titles energyRt composes, and no legend key -- the same output as when
-  # plot_map built the ggplot itself.
-  skip_if(!("palette" %in% names(formals(geoscales::geoscale_plot))),
-          "installed geoscales predates the geoscale_plot() enrichment")
+  # gg_map built the ggplot itself.
 
   regs <- c("R01", "R03")
   mod <- setGeoscale(vt_model(name = "gm", regions = regs),
@@ -322,7 +320,7 @@ test_that("plot_map delegates drawing to geoscales::geoscale_plot", {
                                                 "region", regs))
   sol <- vt_solve(vt_interp(mod, "gm"))
 
-  p <- plot_map(sol, "capacity")
+  p <- gg_map(sol, "capacity")
   expect_s3_class(p, "ggplot")
   geoms <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   expect_true("GeomSf" %in% geoms)
@@ -336,12 +334,12 @@ test_that("plot_map delegates drawing to geoscales::geoscale_plot", {
   expect_false(any(fills == "#132B43"))
 
   # a coarser level aggregates first and yields one polygon per zone
-  pz <- plot_map(sol, "capacity", level = "zone")
+  pz <- gg_map(sol, "capacity", level = "zone")
   expect_null(pz$labels$subtitle)
   expect_equal(nrow(ggplot2::ggplot_build(pz)$data[[1]]), 1L)
 })
 
-test_that("plot_trade_map keeps working on a CRS-less map", {
+test_that("gg_trade_map keeps working on a CRS-less map", {
   skip_if_no_geoscales()
   skip_if_not_installed("sf")
   skip_if_not_installed("ggplot2")
@@ -349,16 +347,16 @@ test_that("plot_trade_map keeps working on a CRS-less map", {
                   routes = data.frame(src = c("R01", "R03"),
                                       dst = c("R03", "R06")))
   # a plain `sf` straight out of the geoscale: no `x`/`y` columns, so this
-  # also pins that plot_trade_map() derives the label anchors itself
+  # also pins that gg_trade_map() derives the label anchors itself
   m <- geoscales::geoscale_geometry(topia$geoscales$honeycomb, "region")
   expect_false(any(c("x", "y") %in% names(m)))
-  p <- plot_trade_map(trd, map = m)
+  p <- gg_trade_map(trd, map = m)
   geoms <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   # no CRS -> the plain cartesian layers are correct and are kept
   expect_true("GeomSegment" %in% geoms)
 })
 
-test_that("plot_trade_map draws sf layers when the map has a CRS", {
+test_that("gg_trade_map draws sf layers when the map has a CRS", {
   skip_if_no_geoscales()
   skip_if_not_installed("sf")
   skip_if_not_installed("ggplot2")
@@ -367,14 +365,14 @@ test_that("plot_trade_map draws sf layers when the map has a CRS", {
                                       dst = c("R03", "R06")))
   m <- geoscales::geoscale_geometry(topia$geoscales$honeycomb, "region")
   sf::st_crs(m) <- 4326
-  p <- plot_trade_map(trd, map = m)
+  p <- gg_trade_map(trd, map = m)
   geoms <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   # `geom_sf()` installs a coord_sf that would leave geom_segment behind
   expect_false("GeomSegment" %in% geoms)
   expect_false("GeomPoint" %in% geoms)
 })
 
-test_that("plot_trade_map accepts a Geoscale and a coarser level", {
+test_that("gg_trade_map accepts a Geoscale and a coarser level", {
   skip_if_no_geoscales()
   skip_if_not_installed("sf")
   skip_if_not_installed("ggplot2")
@@ -382,20 +380,20 @@ test_that("plot_trade_map accepts a Geoscale and a coarser level", {
   trd <- newTrade("TRD", commodity = "ELC",
                   routes = data.frame(src = c("R01", "R05"),
                                       dst = c("R03", "R12")))
-  expect_s3_class(plot_trade_map(trd, map = gs), "ggplot")
+  expect_s3_class(gg_trade_map(trd, map = gs), "ggplot")
 
   # R01->R03 is inside NW and drops out; R05->R12 crosses NE -> SE
-  p <- plot_trade_map(trd, map = gs, level = "zone")
+  p <- gg_trade_map(trd, map = gs, level = "zone")
   expect_s3_class(p, "ggplot")
 
   only_internal <- newTrade("TRD2", commodity = "ELC",
                             routes = data.frame(src = "R01", dst = "R03"))
-  expect_message(plot_trade_map(only_internal, map = gs, level = "zone"),
+  expect_message(gg_trade_map(only_internal, map = gs, level = "zone"),
                  "cross a boundary")
 })
 
-test_that("plot_trade_map still demands geometry when there is none", {
+test_that("gg_trade_map still demands geometry when there is none", {
   trd <- newTrade("TRD", commodity = "ELC",
                   routes = data.frame(src = "R1", dst = "R2"))
-  expect_error(plot_trade_map(trd), "pass a `map`")
+  expect_error(gg_trade_map(trd), "pass a `map`")
 })

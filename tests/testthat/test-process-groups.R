@@ -554,9 +554,8 @@ test_that("the clustering comes back as a geoscale with a `cluster` frame", {
   expect_equal(geoscales::geoscale_weights(gs),
                geoscales::geoscale_weights(cr_geoscale()))
   skip_if_not_installed("ggplot2")
-  expect_s3_class(plot_geoscale(gs, type = "map", geoframe = "cluster"),
-                  "ggplot")
-  expect_s3_class(plot_geoscale(gs, type = "icicle"), "ggplot")
+  expect_s3_class(.gg_membership_map(gs, geoframe = "cluster"), "ggplot")
+  expect_s3_class(geoscales::gg_geoscale(gs, type = "icicle"), "ggplot")
 })
 
 # -- three key dimensions at once --------------------------------------------

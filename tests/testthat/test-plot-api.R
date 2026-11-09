@@ -83,10 +83,15 @@ test_that("classes with plot methods are collated BEFORE R/plot.R", {
 })
 
 test_that("plot() is a thin delegation, not a second implementation", {
-  # Same object -> same class of result. If plot() ever grows its own rendering
-  # this stops being true, which is the point.
+  # Same object -> same class of result. plot() draws the figure and returns
+  # it invisibly; autoplot() returns it. If plot() ever grows its own
+  # rendering this stops being true, which is the point.
+  grDevices::pdf(NULL)
+  on.exit(grDevices::dev.off(), add = TRUE)
   h <- newHorizon(2020:2030, intervals = 5L)
-  expect_equal(class(plot(h)), class(ggplot2::autoplot(h)))
+  r <- withVisible(plot(h))
+  expect_false(r$visible)
+  expect_equal(class(r$value), class(ggplot2::autoplot(h)))
   cal <- calendars[["s4_h24"]]
   expect_equal(class(plot(cal)), class(ggplot2::autoplot(cal)))
 })
@@ -102,11 +107,11 @@ test_that("draw() covers every process class", {
 # --------------------------------------------------------------------------- #
 # one vocabulary
 
-test_that("every exported plot_* and draw method takes `object` first", {
+test_that("every exported gg_* and draw method takes `object` first", {
   # `plot()` is excluded on purpose: base R fixes its formals as (x, y, ...).
   # No exemptions: R/levcost.R was harmonized once its parallel rewrite landed.
   exported <- getNamespaceExports("energyRt")
-  fns <- sort(grep("^plot_", exported, value = TRUE))
+  fns <- sort(grep("^gg_", exported, value = TRUE))
   expect_gt(length(fns), 2L)
   first <- vapply(fns, function(f) {
     fo <- names(formals(getExportedValue("energyRt", f)))
@@ -151,18 +156,20 @@ test_that("`type` means the quantity and `style` means the chart shape", {
   expect_false("type" %in% names(formals(get("plot_weather", envir = ns))))
   # quantity
   expect_true("type" %in% names(formals(getMix)))
-  expect_true("type" %in% names(formals(plot_map)))
+  expect_true("type" %in% names(formals(gg_map)))
   expect_equal(eval(formals(getMix)$type)[1], "generation")
-  expect_equal(eval(formals(plot_map)$type)[1], "generation")
+  expect_equal(eval(formals(gg_map)$type)[1], "generation")
 })
 
 # --------------------------------------------------------------------------- #
 # export surface
 
-test_that("a plot_* is exported only when no generic reaches it", {
-  exported <- grep("^plot_", getNamespaceExports("energyRt"), value = TRUE)
+test_that("a gg_* is exported only when no generic reaches it", {
+  exported <- getNamespaceExports("energyRt")
   # these take raw data, or span classes no single autoplot method covers
-  expect_true(all(c("plot_heatmap", "plot_map", "plot_trade_map") %in% exported))
+  expect_true(all(c("gg_heatmap", "gg_map", "gg_trade_map") %in% exported))
+  # the old plot_* names survive only as deprecated aliases
+  expect_true(all(c("gg_heatmap", "gg_map", "gg_trade_map") %in% exported))
   # these are fully reachable through autoplot() and must NOT be public --
   # two public names for one chart is what this pass removed
   expect_false(any(c("plot_demand", "plot_weather", "plot_process_windows",
@@ -172,7 +179,7 @@ test_that("a plot_* is exported only when no generic reaches it", {
 
 test_that("geo_map is gone; geo_* is geoscales' prefix", {
   expect_false("geo_map" %in% getNamespaceExports("energyRt"))
-  expect_true("plot_map" %in% getNamespaceExports("energyRt"))
+  expect_true("gg_map" %in% getNamespaceExports("energyRt"))
 })
 
 # --------------------------------------------------------------------------- #
@@ -217,7 +224,7 @@ test_that("draw/autoplot/plot all render without error", {
   expect_s3_class(plot(cal), "ggplot")
 })
 
-test_that("plot_share_frontier builds panels for both branches", {
+test_that("gg_share_frontier builds panels for both branches", {
   # This had NO coverage at all, which is how a 13-line argument rename inside
   # it could pass a fully green suite. The column shape is read off the
   # plotting loop: `direction` picks the colour, `n_in_group == 2` takes the
@@ -228,17 +235,17 @@ test_that("plot_share_frontier builds panels for both branches", {
                share_lo = c(0.1, 0.3), share_hi = c(0.7, 0.9),
                n_in_group = n_in_group, stringsAsFactors = FALSE)
   }
-  expect_null(plot_share_frontier(NULL))
-  expect_null(plot_share_frontier(data.frame()))
+  expect_null(gg_share_frontier(NULL))
+  expect_null(gg_share_frontier(data.frame()))
 
   for (n in c(2L, 3L)) {
-    p <- plot_share_frontier(mk(n))
+    p <- gg_share_frontier(mk(n))
     expect_s3_class(p, "share_frontier_plots")
     expect_length(p, 1L)
     expect_true(all(vapply(p, inherits, logical(1), "ggplot")))
   }
   # one panel per (direction, group)
-  both <- plot_share_frontier(rbind(mk(2L, "input"), mk(2L, "output", "g2")))
+  both <- gg_share_frontier(rbind(mk(2L, "input"), mk(2L, "output", "g2")))
   expect_length(both, 2L)
 
   # not `expect_silent`: without patchwork the print method falls back to
@@ -261,7 +268,7 @@ test_that("faceting by month works from a calendar that has no MONTH column", {
   prof <- data.frame(timeslice = cal@timetable$timeslice,
                      load = seq_len(nrow(cal@timetable)))
   for (cl in list(cal, "d365_h24")) {
-    p <- plot_heatmap(prof, calendar = cl, value = "load", facet = "month")
+    p <- gg_heatmap(prof, calendar = cl, value = "load", facet = "month")
     n <- length(unique(ggplot2::ggplot_build(p)$layout$layout$PANEL))
     expect_equal(n, 12L)
   }
@@ -269,5 +276,5 @@ test_that("faceting by month works from a calendar that has no MONTH column", {
 
 test_that("a timeslice layout needs a calendar rather than guessing one", {
   prof <- data.frame(timeslice = c("d001_h00", "d001_h01"), load = c(1, 2))
-  expect_error(plot_heatmap(prof, value = "load"), "`calendar` is required")
+  expect_error(gg_heatmap(prof, value = "load"), "`calendar` is required")
 })

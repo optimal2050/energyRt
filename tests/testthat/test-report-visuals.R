@@ -107,7 +107,7 @@ test_that(".report_call_params dispatches by closure arity", {
 })
 
 # --------------------------------------------------------------------------- #
-# plot_map(name =) / facet and plot_geoscale (geo-toolchain gated)
+# gg_map(name =) / facet and plot_geoscale (geo-toolchain gated)
 # --------------------------------------------------------------------------- #
 
 .rv_geo_solved <- local({
@@ -124,26 +124,26 @@ test_that(".report_call_params dispatches by closure arity", {
   }
 })
 
-test_that("plot_map(name=) maps any region-dim variable", {
+test_that("gg_map(name=) maps any region-dim variable", {
   skip_if_no_geoscales()
   skip_if_not_installed("sf")
   skip_if_not_installed("ggplot2")
   skip_if_no_solver()
   sol <- .rv_geo_solved()
-  p <- plot_map(sol, name = "vTechCap")
+  p <- gg_map(sol, name = "vTechCap")
   expect_s3_class(p, "ggplot")
   geoms <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   expect_true("GeomSf" %in% geoms)
   expect_equal(p$labels$title, "vTechCap")
 })
 
-test_that("plot_map(facet='year') panels the milestone years", {
+test_that("gg_map(facet='year') panels the milestone years", {
   skip_if_no_geoscales()
   skip_if_not_installed("sf")
   skip_if_not_installed("ggplot2")
   skip_if_no_solver()
   sol <- .rv_geo_solved()
-  p <- plot_map(sol, name = "vTechNewCap", facet = "year")
+  p <- gg_map(sol, name = "vTechNewCap", facet = "year")
   expect_s3_class(p, "ggplot")
   expect_s3_class(p$facet, "FacetWrap")
   # the plot must BUILD: faceting fails at build time when a layer lacks
@@ -153,12 +153,12 @@ test_that("plot_map(facet='year') panels the milestone years", {
   expect_gte(length(unique(b$layout$layout$PANEL)), 1L)
 })
 
-test_that("plot_map(name=) refuses region-less variables", {
+test_that("gg_map(name=) refuses region-less variables", {
   skip_if_no_geoscales()
   skip_if_not_installed("sf")
   skip_if_not_installed("ggplot2")
   # no solve needed: the guard fires before any data access
-  expect_error(plot_map(new("scenario"), name = "vTradeStockCap"),
+  expect_error(gg_map(new("scenario"), name = "vTradeStockCap"),
                "region dimension")
 })
 
@@ -289,21 +289,20 @@ test_that("docx page break lands in word/document.xml", {
   expect_match(xml, "w:br w:type=\"page\"")
 })
 
-test_that("plot_geoscale draws map, icicle, and stack", {
+test_that("the geoscale draws as map, icicle, and stack", {
   skip_if_no_geoscales()
   skip_if_not_installed("ggplot2")
   gs <- geoscales::filter_geoscale(topia$geoscales$honeycomb, "region",
                                    c("R01", "R03", "R08"))
-  pi_ <- plot_geoscale(gs, type = "icicle")
-  expect_s3_class(pi_, "ggplot")
+  expect_s3_class(geoscales::gg_geoscale(gs, type = "icicle"), "ggplot")
   skip_if_not_installed("sf")
-  pm <- plot_geoscale(gs, type = "map")
-  expect_s3_class(pm, "ggplot")
-  fa <- names(formals(geoscales::geoscale_autoplot))
-  if (all(c("view", "direction") %in% fa)) {
-    ps <- plot_geoscale(gs, type = "stack")
-    expect_s3_class(ps, "ggplot")
-  } else {
-    expect_message(plot_geoscale(gs, type = "stack"), "icicle")
-  }
+  expect_s3_class(.gg_membership_map(gs), "ggplot")
+  expect_s3_class(
+    geoscales::gg_geoscale(gs, type = "stack", view = "cabinet",
+                           direction = "down"),
+    "ggplot")
+  # the deprecated name still forwards, warning once per session
+  .en_state$deprecated <- setdiff(.en_state$deprecated, "plot_geoscale")
+  expect_warning(pd <- plot_geoscale(gs, type = "map"), "deprecated")
+  expect_s3_class(pd, "ggplot")
 })

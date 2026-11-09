@@ -732,8 +732,9 @@ model_clusters <- function(object) {
 
 
 # A geoscale carrying the grouping as a `cluster` geoframe, so the clustering
-# can be SEEN with the views that already exist: plot_geoscale(type = "map",
-# geoframe = "cluster") colours the atoms by their group, and `type = "icicle"`
+# can be SEEN with the views that already exist: gg_geoscale(type = "map")
+# with the cluster membership as `z` colours the atoms by their group, and
+# `type = "icicle"`
 # walks nation > zone > cluster > region. No new plotting code.
 #
 # This is a view, not the aggregated model's geoscale: that one is pruned to
@@ -750,7 +751,7 @@ model_clusters <- function(object) {
   out <- lt[keep, up, drop = FALSE]
   out$cluster <- xw$cluster[i[keep]]
   out[[fine]] <- as.character(lt[[fine]])[keep]
-  # the weight columns come along: geoscale_autoplot(type = "icicle") sizes its
+  # the weight columns come along: gg_geoscale(type = "icicle") sizes its
   # bands by one, and refuses outright when the geoscale declares none
   wts <- intersect(geoscales::geoscale_weights(gs), names(lt))
   out[wts] <- lt[keep, wts, drop = FALSE]

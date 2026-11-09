@@ -131,8 +131,9 @@ which derives a variant instead of re-typing the object.
 - **Sub-territory solves.** A filtered geoscale handed to `interpolate_model()`
   solves part of a model's territory; `subset_model_regions()` samples regions
   and warns when a sample splits a cell a process spans.
-- **Maps.** `plot_geoscale()`, `plot_map()` for any solved variable carrying a
-  region, `plot_trade_map()` and `plot_trade_network()` for flows.
+- **Maps.** `geoscales::gg_geoscale()` for the geography itself, `gg_map()`
+  for any solved variable carrying a region, `gg_trade_map()` and
+  `gg_trade_network()` for flows.
 
 ## Axis three: the solve route
 
@@ -246,7 +247,7 @@ model definition does not change between them.
 - **Levelized cost.** `levcost()` prices a technology, a storage (LCOS) or a
   trade route (LCOT) analytically — no solver — per vintage, cluster and
   region, from either a declared object or a solved scenario; results are
-  cached on disk. `tech_share_frontier()` and `plot_share_frontier()` show how
+  cached on disk. `tech_share_frontier()` and `gg_share_frontier()` show how
   the merit order shifts with a share constraint.
 - **Comparison.** `compare_scenarios()` (solved results, or runs of one
   scenario), `compare_models()` (declarations) and `compare_inputs()`
@@ -284,7 +285,7 @@ model definition does not change between them.
   (`type = "generation"`, `"capacity"`, `"new_capacity"`, `"fuel"`,
   `"storage"`, with `by = "vintage"` / `"cluster"` fan-outs, faceting and
   `top_n`).
-- **Maps** — see the space axis above — and `plot_heatmap()` for a timeslice ×
+- **Maps** — see the space axis above — and `gg_heatmap()` for a timeslice ×
   region view.
 - **Reports.** `report()` renders any energyRt object — fourteen element
   classes plus the model, repository and scenario containers — to HTML, PDF,

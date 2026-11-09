@@ -3160,7 +3160,7 @@ Price it with `timeframe = \"native\"` and a matching `calendar = `.",
   result
 }
 
-# ── plot_share_frontier ─────────────────────────────────────────────────────────
+# ── gg_share_frontier ─────────────────────────────────────────────────────────
 
 #' Plot feasible share-mix diagram for technology inputs/outputs
 #'
@@ -3186,10 +3186,10 @@ Price it with `timeframe = \"native\"` and a matching `calendar = `.",
 #' )
 #'
 #' # one ggplot per (direction x group)
-#' p <- plot_share_frontier(tech_share_frontier(chp))
+#' p <- gg_share_frontier(tech_share_frontier(chp))
 #' names(p)
 #' p[[1]]
-plot_share_frontier <- function(object, title = NULL, base_size = 11L) {
+gg_share_frontier <- function(object, title = NULL, base_size = 11L) {
   if (is.null(object) || nrow(object) == 0) return(NULL)
   check_package("ggplot2")
 
@@ -3439,7 +3439,7 @@ autoplot.levcost <- function(object,
   # ── input_frontier type ───────────────────────────────────────────────────────
   if (type == "input_frontier") {
     df <- object$input_frontier
-    p  <- plot_share_frontier(df, title = paste0("Share Mix: ", names(object$levcost_npv)))
+    p  <- gg_share_frontier(df, title = paste0("Share Mix: ", names(object$levcost_npv)))
     if (is.null(p)) {
       message("No share constraint data available. The technology may have no ",
               "grouped inputs or outputs with grp.share.up / grp.share.lo constraints.")
@@ -3881,19 +3881,17 @@ autoplot.levcost_variants <- function(object,
 # The S4 classes get `plot()` via `setMethod()` in R/plot.R; `levcost` and
 # `levcost_list` are S3, so they need S3 methods to reach the same contract:
 # whichever verb a user types works, and `autoplot()` stays the single
-# implementation. The value is returned rather than printed, matching the S4
-# methods -- R auto-prints a visible result at top level.
+# implementation. The figure is printed and returned invisibly, matching the
+# S4 methods.
 
 #' @exportS3Method base::plot
 plot.levcost <- function(x, y, ...) {
-  check_package("ggplot2")
-  ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 }
 
 #' @exportS3Method base::plot
 plot.levcost_list <- function(x, y, ...) {
-  check_package("ggplot2")
-  ggplot2::autoplot(x, ...)
+  .plot_via_autoplot(x, ...)
 }
 
 

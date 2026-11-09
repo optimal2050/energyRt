@@ -33,8 +33,7 @@ plot_geoscale(cl$ECOA$geoscale, type = "icicle")
 Other geoscale:
 \code{\link[=check_geoscale_regions]{check_geoscale_regions()}},
 \code{\link[=get_process_groups]{get_process_groups()}},
-\code{\link[=plot_geoscale]{plot_geoscale()}},
-\code{\link[=plot_map]{plot_map()}},
+\code{\link[=gg_map]{gg_map()}},
 \code{\link[=process_cluster_sweep]{process_cluster_sweep()}},
 \code{\link{setCalendar,config-method}}
 }

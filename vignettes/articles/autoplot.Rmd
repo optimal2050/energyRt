@@ -46,8 +46,8 @@ data("calendars", package = "energyRt")
 names(calendars)
 ```
 
-`autoplot()` (or the equivalent `plot()`) draws each timeframe as a row of
-rectangles sized by each timeslice's share of the year:
+`autoplot()` returns each timeframe as a row of rectangles sized by each
+timeslice's share of the year; `plot()` draws the same figure:
 
 ```{r cal-basic, fig.height = 2.2}
 autoplot(calendars$s4_hp3)
@@ -73,29 +73,13 @@ autoplot(calendars$s4_hp3, fill = "share")
 
 ## Labels
 
-Each cell can be labelled by its individual level name (`"name"`, the default,
-e.g. `h00`…`h23`) or by the full timeslice path (`"timeslice"`, e.g. `d001_h00`). Label
-text auto-contrasts with the fill; override it with `label_color`.
+Each cell is labelled by its member name (`labels = "name"`, the default,
+e.g. `h00`…`h23`) or by the full timeslice path (`labels = "timeslice"`,
+e.g. `d001_h00`); `labels = FALSE` draws none. Label text contrasts with the
+fill automatically, and rows with more cells than `max_labels` stay unlabelled.
 
 ```{r cal-labels, fig.height = 2.6}
-# zoom (see below) so labels are legible
-autoplot(calendars$d365_h24,
-         show_leafs = list(YDAY = "d001", HOUR = 1:24),
-         label_by = "name")
-```
-
-## Zooming with `show_leafs`
-
-`show_leafs` selects which timeslices to draw. Pass a named list to filter per
-timeframe level (character = timeslice names, numeric = positions among that level's
-timeslices), or an unnamed vector to filter the finest level directly.
-
-```{r cal-zoom, fig.height = 2.4}
-# day 100, hours 5-10
-autoplot(calendars$d365_h24, show_leafs = list(YDAY = "d100", HOUR = 5:10))
-
-# the first 48 leaf timeslices (first two days)
-autoplot(calendars$d365_h24, show_leafs = 1:48)
+autoplot(calendars$s4_hp3, labels = "timeslice")
 ```
 
 ## Subset view
@@ -125,7 +109,7 @@ autoplot(calendars$s4_hp3, palette = "magma", border = "grey40") +
 
 `autoplot()` lays every timeslice out in one row per timeframe. When a value is
 indexed by a *two-dimensional* calendar — day-of-year × hour, month × hour — a
-**heatmap** reads more naturally: `plot_heatmap()` puts the finest timeframe on
+**heatmap** reads more naturally: `gg_heatmap()` puts the finest timeframe on
 `y`, the next on `x`, and any coarser levels into facets. The layout is taken
 from the calendar, which you pass as `calendar =` -- either a calendar object or
 the name of one, such as `"d365_h24"`.
@@ -145,7 +129,7 @@ prof <- data.frame(
               15 * cos(2 * pi * yday / 365))
 
 # x = YDAY, y = HOUR
-plot_heatmap(prof, calendar = calendar_d365h24, value = "load")
+gg_heatmap(prof, calendar = calendar_d365h24, value = "load")
 ```
 
 Facet a day-of-year format by `"month"` to get one day-of-month × hour panel per
@@ -153,7 +137,7 @@ month:
 
 ```{r hm-month, fig.height = 4.5}
 # 12 panels
-plot_heatmap(prof, calendar = calendar_d365h24, value = "load",
+gg_heatmap(prof, calendar = calendar_d365h24, value = "load",
              facet = "month")
 ```
 
@@ -166,7 +150,7 @@ Any timeslice-indexed model data lays out the same way. Here **electricity deman
 and a **solar capacity factor** from the packaged TOPIA kit, on its season × hour
 calendar (`s4_h24`): pull the object with `getObject()`, take one region
 (and, for demand, one year), and pass the `timeslice` + value columns to
-`plot_heatmap()`. The `name` argument carries the value's unit onto the colour
+`gg_heatmap()`. The `name` argument carries the value's unit onto the colour
 bar.
 
 ```{r hm-demand, fig.height = 2.6}
@@ -175,14 +159,14 @@ calendar_s4h24 <- calendars$s4_h24
 
 DEM <- getObject(repo, name = "DEM_ELC", drop = TRUE)
 dem <- subset(as.data.frame(DEM@demand), region == "W1" & year == 2050)
-plot_heatmap(dem[, c("timeslice", "demand")], calendar = calendar_s4h24,
+gg_heatmap(dem[, c("timeslice", "demand")], calendar = calendar_s4h24,
              value = "demand", name = "PJ")
 ```
 
 ```{r hm-weather, fig.height = 2.6}
 WSOL <- getObject(repo, name = "WSOL", drop = TRUE)
 wsol <- subset(as.data.frame(WSOL@weather), region == "W1")
-plot_heatmap(wsol[, c("timeslice", "wval")], calendar = calendar_s4h24,
+gg_heatmap(wsol[, c("timeslice", "wval")], calendar = calendar_s4h24,
              value = "wval", name = "capacity factor")
 ```
 
@@ -292,8 +276,8 @@ autoplot(WSOL, style = "area", calendar = calendar_s4h24)     # or filled areas
 
 * Every method returns a `ggplot`, so `+ theme_*()`, `+ labs()`, `+ scale_*()`
   etc. all work.
-* `plot()` is available for `calendar` and `horizon` and produces the same figure
-  as `autoplot()`.
+* `plot()` is available for `calendar` and `horizon`: it draws the `autoplot()`
+  figure and returns it invisibly.
 * `autoplot()` also works on the result of `levcost()` (levelized cost) — see
   `?levcost` — but that requires solving a small model, so it is not shown here.
 * See `?autoplot.calendar`, `?autoplot.commodity`, `?autoplot.supply`, and
