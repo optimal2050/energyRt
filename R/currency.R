@@ -143,11 +143,11 @@ NULL
   defined <- tryCatch(names(methods::getSlots(cls)), error = function(e) NULL)
   if (!length(defined)) return(x)
   absent <- setdiff(defined, names(attributes(x)))
-  if (!length(absent)) return(.upgrade_unit_slot(x))
+  if (!length(absent)) return(.upgrade_unit_slot(.upgrade_override_slots(x)))
   proto <- tryCatch(methods::new(cls), error = function(e) NULL)
   if (is.null(proto)) return(x)
   for (sl in absent) attr(x, sl) <- methods::slot(proto, sl)
-  .upgrade_unit_slot(x)
+  .upgrade_unit_slot(.upgrade_override_slots(x))
 }
 # The scalar `@unit` slot was removed in 0.92: a commodity's or a flow's own
 # measure is `@units$comm`, a weather series' is `@units$wval`. A slot removed

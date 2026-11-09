@@ -164,6 +164,15 @@ sa_undocumented_columns <- c(
   "settings@units",
   # derived from the model
   "settings@yearFraction", "settings@discount",
+  # the per-object override tables: their COLUMNS are the keys, one per
+  # overridden parameter column, so no prototype can declare them
+  "technology@defVal", "technology@interpolation", "storage@defVal",
+  "storage@interpolation", "trade@defVal", "trade@interpolation",
+  "supply@defVal", "supply@interpolation", "demand@defVal",
+  "demand@interpolation", "import@defVal", "import@interpolation",
+  "export@defVal", "export@interpolation", "weather@defVal",
+  "weather@interpolation", "tax@defVal", "tax@interpolation",
+  "subsidy@defVal", "subsidy@interpolation",
   # filled by the solver
   "modOut@solutionLogs"
 )
@@ -233,6 +242,19 @@ sa_extra_formals <- list(
 # later -- but note a constructor taking `...` may still reach a slot through
 # it, so absence from the formals is not proof a user cannot set it.
 sa_unset_slots <- list(
+  # the per-object overrides are set with `$<-` or through `update()`;
+  # `weather`/`tax`/`subsidy` keep a numeric `defVal =` argument, which
+  # `.fold_defval_arg()` folds into the table
+  technology = c("defVal", "interpolation"),
+  storage = c("defVal", "interpolation"),
+  trade = c("defVal", "interpolation"),
+  supply = c("defVal", "interpolation"),
+  demand = c("defVal", "interpolation"),
+  import = c("defVal", "interpolation"),
+  export = c("defVal", "interpolation"),
+  weather = "interpolation",
+  tax = "interpolation",
+  subsidy = "interpolation",
   constraint = c("lhs", "misc"),
   costs      = "defVal",                           # set from `mult`
   calendar   = c("timeframes", "timeslice_share", "timeframe_rank",

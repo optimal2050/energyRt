@@ -15,6 +15,7 @@
 #' @slot defVal `r get_slot_doc("weather", "defVal")`
 #' @slot cluster `r get_slot_doc("weather", "cluster")`
 #' @slot weather `r get_slot_doc("weather", "weather")`
+#' @slot interpolation `r get_slot_doc("weather", "interpolation")`
 #' @slot misc `r get_slot_doc("weather", "misc")`
 #'
 #' @include class-export.R
@@ -31,9 +32,10 @@ setClass("weather",
     geoframe = "character",
     region = "character",
     timeframe = "character",
-    defVal = "numeric",
     cluster = "data.frame",
     weather = "data.frame",
+    defVal = "data.frame",
+    interpolation = "data.frame",
     misc = "list"
   ),
   prototype(
@@ -46,7 +48,6 @@ setClass("weather",
     geoframe = character(),
     region = character(),
     timeframe = character(),
-    defVal = 0.,
     # Resource tiers: one series per grade in one object. No share columns --
     # a capacity-factor series has no capacity or activity to tie.
     cluster = data.frame(
@@ -64,6 +65,12 @@ setClass("weather",
       wval = numeric(),
       stringsAsFactors = FALSE
     ),
+    # Per-object overrides of the catalogue's default and interpolation
+    # rule, keyed by PARAMETER name (a column name of this class is
+    # accepted and resolved). Empty by default: one row, zero columns,
+    # so `$<-` works. See `.check_param_overrides()`.
+    defVal = data.frame(row.names = 1L),
+    interpolation = data.frame(row.names = 1L),
     misc = list()
   ),
   S3methods = FALSE
@@ -321,8 +328,16 @@ materialize_weather <- function(weather, transform, ...) {
   # suffixes; collisions with declared names are checked by the caller
   cl@name <- paste0(wobj@name, "_", tname)
   cl@weather$wval <- as.numeric(vals)
-  # the default fills absent slices; it must pass through the same lens
-  cl@defVal <- as.numeric(do.call(fun, c(list(wobj@defVal), args)))[1]
+  # The default fills absent slices, so it passes through the same lens.
+  # It lives in the override table as `defVal$wval` since 0.92; an object
+  # that declares none has nothing to transform.
+  .dv <- wobj@defVal
+  if (is.data.frame(.dv) && "wval" %in% names(.dv) && nrow(.dv)) {
+    .v <- .dv$wval[1]
+    if (!is.na(.v)) {
+      cl@defVal$wval <- as.numeric(do.call(fun, c(list(.v), args)))[1]
+    }
+  }
   cl@misc$transform <- NULL
   cl@misc$transform_source <- list(weather = wobj@name, transform = tname,
                                    args = args)

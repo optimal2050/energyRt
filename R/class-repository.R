@@ -191,6 +191,11 @@ setMethod("summary", signature(object = "repository"), function(object, ...) {
   # An object restored from a store written before a slot existed is missing
   # it, not invalid; fill it from the prototype before judging.
   x <- .upgrade_missing_slots(x)
+  # `@defVal` / `@interpolation` are open slots, so their COLUMN names
+  # are the keys and no prototype can check them; this resolves every
+  # key against the class's catalogued columns and errors on one that
+  # names nothing, where a typo would otherwise be a silent no-op.
+  .check_param_overrides(x)
   r <- methods::validObject(x, test = TRUE)
   if (!isTRUE(r)) {
     nm <- if (methods::.hasSlot(x, "name")) paste0(' "', x@name, '"') else ""

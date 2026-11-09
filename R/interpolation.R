@@ -737,6 +737,10 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # `.config_to_settings()`). Catalog values from `.modInp` stay authoritative
   # unless the user CHANGED a column relative to the baked baseline.
   scen <- .apply_settings_param_overrides(scen)
+  # the third layer: an individual object's own `@defVal` / `@interpolation`.
+  # Records nothing where it agrees with the two above, so a model with
+  # no overrides leaves every parameter exactly as it was.
+  scen <- .collect_param_overrides(scen)
 
   .interp_step(verbose, "collecting sets: object names")
   sets_from_settings <- c("region", "year", "timeslice") # from settings
@@ -777,6 +781,12 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
            "Rebuild it with newCalendar() (or reload the shipped ",
            "`calendars` catalog) before interpolating.")
     }
+    # Re-checked here, not only at construction: a calendar can be built in
+    # one session and interpolated in another, and the bias it carries is
+    # silent in every number except the ones that hold state across
+    # timeslices.
+    .warn_representative_share(.cal@timetable, name = .cal@name,
+                               where = "interpolate_model()")
   }
   scen@modInp@sets$timeslice <- scen@settings@calendar@timeslice_share$timeslice
 
@@ -3172,6 +3182,55 @@ validate_scenario_parameters <- function(object, fold = TRUE,
   invisible(res)
 }
 
+# One `.interp_one_series()` pass per (rule, default) group of a parameter's
+# rows. `ov` is `param@misc$override`: one row per overriding member, carrying
+# the dim column to filter on. Rows no override claims keep the parameter's own
+# rule, so they are the last group.
+#' @noRd
+.interp_groups <- function(raw, ov, bound, rule, defv, set_cols, milestones) {
+  if (is.null(ov) || !nrow(ov) || !(ov$dim[1] %in% names(raw))) {
+    return(list(list(rows = raw, rule = rule, defv = defv)))
+  }
+  sel <- if (is.null(bound)) is.na(ov$bound) | !nzchar(ov$bound) else
+    is.na(ov$bound) | ov$bound == bound
+  ov <- ov[sel, , drop = FALSE]
+  if (!nrow(ov)) return(list(list(rows = raw, rule = rule, defv = defv)))
+  dim <- ov$dim[1]
+  ov$.r <- ifelse(is.na(ov$rule), rule, ov$rule)
+  ov$.d <- ifelse(is.na(ov$defVal), defv, ov$defVal)
+  out <- list()
+  for (g in split(ov, paste(ov$.r, ov$.d, sep = "\r"))) {
+    rows <- raw[raw[[dim]] %in% g$member, , drop = FALSE]
+    if (!nrow(rows)) next
+    out[[length(out) + 1L]] <- list(rows = rows, rule = g$.r[1],
+                                    defv = as.numeric(g$.d[1]))
+  }
+  rest <- raw[!(raw[[dim]] %in% ov$member), , drop = FALSE]
+  if (nrow(rest)) {
+    out[[length(out) + 1L]] <- list(rows = rest, rule = rule, defv = defv)
+  }
+  if (!length(out)) list(list(rows = raw, rule = rule, defv = defv)) else out
+}
+
+# Interpolate one bound (or a numpar) through the groups above and stack the
+# results. With no override this is one call, as before.
+#' @noRd
+.interp_with_overrides <- function(raw, ov, bound, rule, defv, set_cols,
+                                   milestones) {
+  gs <- .interp_groups(raw, ov, bound, rule, defv, set_cols, milestones)
+  if (length(gs) == 1L) {
+    return(.interp_one_series(gs[[1]]$rows, set_cols = set_cols,
+                              milestones = milestones,
+                              int_rule = .interp_rule_token(gs[[1]]$rule),
+                              def_val = gs[[1]]$defv))
+  }
+  parts <- lapply(gs, function(g)
+    .interp_one_series(g$rows, set_cols = set_cols, milestones = milestones,
+                       int_rule = .interp_rule_token(g$rule),
+                       def_val = g$defv))
+  dplyr::bind_rows(parts)
+}
+
 #' Interpolate all year-indexed numeric/bounds parameters of a scenario
 #'
 #' @param scen scenario object whose `modInp@parameters` already hold the raw
@@ -3219,11 +3278,13 @@ interpolate_parameters <- function(scen, drop_default = FALSE, params = NULL) {
       isTRUE(drop_default)
     }
 
+    .ov <- param@misc$override
     if (ptype == "numpar") {
-      out <- .interp_one_series(
-        raw, set_cols = non_year, milestones = milestones,
-        int_rule = .interp_rule_token(param@interpolation),
-        def_val = param@defVal[1]
+      out <- .interp_with_overrides(
+        raw, .ov, bound = NULL,
+        rule = as.character(param@interpolation)[1],
+        defv = param@defVal[1],
+        set_cols = non_year, milestones = milestones
       )
       if (isTRUE(eff_drop) && length(param@defVal) >= 1) {
         out <- out |> dplyr::filter(value != param@defVal[1])
@@ -3301,9 +3362,10 @@ Declare one bound per key.
         didx <- if (tp == "lo") 1L else min(2L, length(defv))
         sub <- raw |> dplyr::filter(as.character(type) == tp)
         if (nrow(sub) == 0) next
-        o <- .interp_one_series(
-          sub, set_cols = non_year, milestones = milestones,
-          int_rule = .interp_rule_token(rule[idx]), def_val = defv[didx]
+        o <- .interp_with_overrides(
+          sub, .ov, bound = tp,
+          rule = as.character(rule[idx]), defv = defv[didx],
+          set_cols = non_year, milestones = milestones
         )
         # Drop default-valued rows only when explicitly requested; by default
         # (legacy) bounds equal to their default are kept and written.

@@ -27,6 +27,24 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* **One object can override a parameter's default or interpolation rule for its
+  own rows.** `@defVal` and `@interpolation` on `technology`, `storage`,
+  `trade`, `supply`, `demand`, `import`, `export`, `weather`, `tax` and
+  `subsidy`, keyed by the short column name the value is written under:
+
+  ```r
+  tech@interpolation$af.up <- "inter"   # this technology only
+  weather@defVal$wval      <- 3
+  ```
+
+  A parameter name works too and is resolved (`pTechAf.up`, or `pTechAf` for
+  every bound at once), and any accepted rule spelling is normalised. A key
+  naming no column or parameter of that class is an **error**, not a silent
+  no-op. These are the third of three layers -- the catalogue, then
+  `config@defVal`/`@interpolation`, then the object -- and a value equal to the
+  layer above it records nothing, so a model that sets no override interpolates
+  exactly as it did before.
+
 * A weather series may declare what it measures, and a process what it
   expects. `weather@units$wval` states the series' own unit; the new `unit`
   column of `technology@weather`, `storage@weather`, `trade@weather` and
@@ -387,6 +405,13 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   the same region and timeslice (hourly matching, not unbundling).
 
 ## Breaking changes
+
+* `weather@defVal`, `tax@defVal` and `subsidy@defVal` are the override table
+  above, not a number. The `defVal =` argument is unchanged -- a bare number
+  folds into the column the class owns (`wval`; a levy's `inp`/`out`/`bal`),
+  and `defVal = 0` equals the catalogue default and so records nothing. The
+  three slots were **inert**: nothing read a levy's, and a weather's reached no
+  parameter, so this gives them the effect they always described.
 
 * **`config@currency` is gone, folded into `config@units$currency`.** The model
   declares its generic units in one slot, with the same column names an object

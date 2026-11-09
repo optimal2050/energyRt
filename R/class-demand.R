@@ -11,6 +11,8 @@
 #' @slot cluster `r get_slot_doc("demand", "cluster")`
 #' @slot geoframe `r get_slot_doc("demand", "geoframe")`
 #' @slot region `r get_slot_doc("demand", "region")`
+#' @slot defVal `r get_slot_doc("demand", "defVal")`
+#' @slot interpolation `r get_slot_doc("demand", "interpolation")`
 #' @slot misc `r get_slot_doc("demand", "misc")`
 #'
 #' @include class-commodity.R
@@ -27,6 +29,8 @@ setClass("demand",
     cluster = "data.frame",
     geoframe = "character",
     region = "character",
+    defVal = "data.frame",
+    interpolation = "data.frame",
     misc = "list"
   ),
   prototype(
@@ -70,6 +74,12 @@ setClass("demand",
       order = integer(),
       stringsAsFactors = FALSE
     ),
+    # Per-object overrides of the catalogue's default and interpolation
+    # rule, keyed by PARAMETER name (a column name of this class is
+    # accepted and resolved). Empty by default: one row, zero columns,
+    # so `$<-` works. See `.check_param_overrides()`.
+    defVal = data.frame(row.names = 1L),
+    interpolation = data.frame(row.names = 1L),
     misc = list()
   ),
   S3methods = FALSE

@@ -38,8 +38,13 @@
       if (!.hasSlot(x, s)) next
       v <- .strip_volatile(slot(x, s))
       # a slot whose prototype is NULL (e.g. scenario@desc) reads back as
-      # NULL, which cannot be re-assigned into a typed slot -- leave it be
-      if (!is.null(v)) slot(x, s) <- v
+      # NULL, which cannot be re-assigned into a typed slot -- leave it be.
+      # And a slot whose STORED type no longer matches the class (an object
+      # serialized before `weather@defVal` became a table) cannot be assigned
+      # at all: it contributes as it stands rather than failing the hash.
+      if (!is.null(v)) {
+        try(slot(x, s) <- v, silent = TRUE)
+      }
     }
     return(x)
   }

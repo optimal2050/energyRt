@@ -61,7 +61,7 @@ newSubsidy(
 
 \item{variable}{character. Escape hatch: the name of a model variable to levy directly, for a target no base shorthand reaches. Mutually exclusive with the base rate columns; the rate then goes in the data slot's \code{rate} column.}
 
-\item{defVal}{numeric. Default value of the subsidy for not specified sets, 0 if not specified.}
+\item{defVal}{data.frame. Optional per-object override of a parameter's DEFAULT, keyed by the short column name the value is written under -- \code{defVal$af.up <- 1} on a technology, \code{defVal$wval <- 3} on a weather series. Empty by default, and one column per override. A parameter name also works and is resolved (\code{pTechAf.up}, or \code{pTechAf} for both bounds). A key that names no column or parameter of this class is an error, not a silent no-op. This is the last of three layers: the catalogue (\code{data-raw/parameters.yml}), then \code{config@defVal}, then this; a value equal to what the layer before it says records nothing.}
 
 \item{subsidy}{data.frame. Rate table. The key columns filter, the rate columns say what is levied; a row carries one or more rates.
 

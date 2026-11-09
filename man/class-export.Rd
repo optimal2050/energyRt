@@ -90,6 +90,10 @@ REQUIRED whenever any other slot carries a \code{cluster} label, and AUTHORITATI
 
 \item{\code{region}}{character. Regions where the export process exists. Empty (or NA) means every region of the model. A region named in any other slot must be one of these; the other slots place VALUES and never change where the process exists.}
 
+\item{\code{defVal}}{data.frame. Optional per-object override of a parameter's DEFAULT, keyed by the short column name the value is written under -- \code{defVal$af.up <- 1} on a technology, \code{defVal$wval <- 3} on a weather series. Empty by default, and one column per override. A parameter name also works and is resolved (\code{pTechAf.up}, or \code{pTechAf} for both bounds). A key that names no column or parameter of this class is an error, not a silent no-op. This is the last of three layers: the catalogue (\code{data-raw/parameters.yml}), then \code{config@defVal}, then this; a value equal to what the layer before it says records nothing.}
+
+\item{\code{interpolation}}{data.frame. Optional per-object override of a parameter's INTERPOLATION RULE, keyed exactly as \code{defVal} above: \code{interpolation$af.up <- "inter"}. Any accepted spelling of a rule works and is normalised, so \code{bwd.mid.fwd} is \code{back.inter.forth}. The override applies to THIS object's rows only: every other object of the class keeps the rule the catalogue or \code{config} gives it.}
+
 \item{\code{misc}}{list. Additional information.}
 }}
 

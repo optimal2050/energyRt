@@ -37,6 +37,8 @@
 #' @slot timeframe `r get_slot_doc("technology", "timeframe")`
 #' @slot geoframe `r get_slot_doc("technology", "geoframe")`
 #' @slot region `r get_slot_doc("technology", "region")`
+#' @slot defVal `r get_slot_doc("technology", "defVal")`
+#' @slot interpolation `r get_slot_doc("technology", "interpolation")`
 #' @slot misc `r get_slot_doc("technology", "misc")`
 #'
 #' @rdname class-technology
@@ -75,6 +77,8 @@ setClass("technology",
     timeframe = "character",
     geoframe = "character",
     region = "character",
+    defVal = "data.frame",
+    interpolation = "data.frame",
     misc = "list"
   ),
   prototype(
@@ -334,6 +338,12 @@ setClass("technology",
     geoframe = character(),
     region = character(),
     timeframe = character(),
+    # Per-object overrides of the catalogue's default and interpolation
+    # rule, keyed by PARAMETER name (a column name of this class is
+    # accepted and resolved). Empty by default: one row, zero columns,
+    # so `$<-` works. See `.check_param_overrides()`.
+    defVal = data.frame(row.names = 1L),
+    interpolation = data.frame(row.names = 1L),
     misc = list()
   ),
   # validity = .check_technology_data_frame,

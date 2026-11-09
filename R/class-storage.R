@@ -30,6 +30,8 @@
 #' @slot inp2stg `r get_slot_doc("storage", "inp2stg")`
 #' @slot weather `r get_slot_doc("storage", "weather")`
 #' @slot optimizeRetirement `r get_slot_doc("storage", "optimizeRetirement")`
+#' @slot defVal `r get_slot_doc("storage", "defVal")`
+#' @slot interpolation `r get_slot_doc("storage", "interpolation")`
 #' @slot misc `r get_slot_doc("storage", "misc")`
 #'
 #' @include class-technology.R
@@ -66,6 +68,8 @@ setClass("storage",
     inp2stg = "data.frame",  # charge-to-storing capacity ratio (charging C-rate)
     weather = "data.frame", # weather condisions multiplier
     optimizeRetirement = "logical",
+    defVal = "data.frame",
+    interpolation = "data.frame",
     misc = "list" #
   ),
   prototype(
@@ -441,6 +445,12 @@ setClass("storage",
       stringsAsFactors = FALSE
     ),
     optimizeRetirement = FALSE,
+    # Per-object overrides of the catalogue's default and interpolation
+    # rule, keyed by PARAMETER name (a column name of this class is
+    # accepted and resolved). Empty by default: one row, zero columns,
+    # so `$<-` works. See `.check_param_overrides()`.
+    defVal = data.frame(row.names = 1L),
+    interpolation = data.frame(row.names = 1L),
     misc = list()
   ),
   S3methods = FALSE

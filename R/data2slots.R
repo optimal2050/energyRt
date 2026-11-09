@@ -102,6 +102,42 @@
   arg
 }
 
+# `defVal` was a NUMERIC slot on `weather`, `tax` and `subsidy` -- the object's
+# default for the one parameter family it owns -- and is the override TABLE
+# since 0.92. The argument keeps its old spelling: a bare number folds into the
+# table under the class's own column keys (`wval`; `inp`/`out`/`bal` for a
+# levy, which is what "default for not specified sets" means). A value equal to
+# the catalogue's own default records nothing, so `defVal = 0` leaves the table
+# empty as it always was. Measured before the fold: all three slots were inert
+# -- nothing in the package read a levy's, and a weather's reached no
+# parameter -- so this adds behaviour rather than changing it.
+#' @noRd
+.fold_defval_arg <- function(arg, class_name, obj) {
+  if (!("defVal" %in% names(arg))) return(arg)
+  slots <- methods::getSlots(class_name)
+  if (!identical(unname(slots["defVal"]), "data.frame")) return(arg)
+  v <- arg[["defVal"]]
+  if (is.data.frame(v) || is.list(v)) return(arg)      # already a table
+  arg[["defVal"]] <- NULL
+  if (length(v) != 1 || is.na(v) || !is.numeric(v)) return(arg)
+  k <- .override_keys_for(as.character(class_name)[1])
+  if (is.null(k) || !length(k$canon)) return(arg)
+  mi <- tryCatch(.modInp, error = function(e) NULL)
+  cur <- as.list(slot(obj, "defVal"))
+  for (cc in k$canon) {
+    dv <- if (!is.null(mi)) mi[[k$param[[cc]]]]$defVal else NULL
+    # the catalogue already says this; nothing to override
+    if (!is.null(dv) && length(dv) >= 1 && isTRUE(all.equal(as.numeric(dv[1]),
+                                                            as.numeric(v)))) {
+      next
+    }
+    cur[[cc]] <- as.numeric(v)
+  }
+  if (!length(cur)) return(arg)
+  arg[["defVal"]] <- as.data.frame(cur, stringsAsFactors = FALSE)
+  arg
+}
+
 #' @param class_name character, name of the class to create.
 #' @param x character or object. Character string with a name to add to the `@name` slot of the object to create, or the object of `class_name` to update.
 #' @param ... slot names with the data to add to the object's slots.
@@ -152,8 +188,22 @@
 # function a row names in its `transform` column (see R/class-weather.R),
 # so their names cannot be enumerated here. Unknown columns on any other slot
 # stay an error.
-.open_slots <- list(technology = "weather", storage = "weather",
-                    supply = "weather")
+# Slots whose column set is not fixed by the prototype. `@weather` takes
+# user columns for a transform's extra arguments; `@defVal` and
+# `@interpolation` are override tables whose columns ARE the keys, one
+# per overridden parameter column, so the prototype declares none.
+.open_slots <- list(
+  technology = c("defVal", "interpolation", "weather"),
+  storage = c("defVal", "interpolation", "weather"),
+  trade = c("defVal", "interpolation"),
+  supply = c("defVal", "interpolation", "weather"),
+  demand = c("defVal", "interpolation"),
+  import = c("defVal", "interpolation"),
+  export = c("defVal", "interpolation"),
+  weather = c("defVal", "interpolation"),
+  tax = c("defVal", "interpolation"),
+  subsidy = c("defVal", "interpolation")
+)
 
 .data2slots <- function(
     class_name = NULL,
@@ -202,6 +252,7 @@
     }
     arg <- arg[!sapply(arg, is.null)]
     arg <- .fold_unit_arg(arg, class_name, obj)
+    arg <- .fold_defval_arg(arg, class_name, obj)
     if (any(!(names(arg) %in% names(slots)))) {
       # check consistency of the data in `...` with the object slots.
       # `warn_nodata = FALSE` is used by callers that deliberately pass a mixed

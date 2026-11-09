@@ -438,6 +438,27 @@ class:
         Regions where the supply process exists.
         Must include all regions used in other slots.
         `availability` and `reserve` slots also limit possible regions.
+    defVal:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's DEFAULT, keyed by the
+        short column name the value is written under -- `defVal$af.up <- 1`
+        on a technology, `defVal$wval <- 3` on a weather series. Empty by
+        default, and one column per override. A parameter name also works
+        and is resolved (`pTechAf.up`, or `pTechAf` for both bounds). A key
+        that names no column or parameter of this class is an error, not a
+        silent no-op. This is the last of three layers: the catalogue
+        (`data-raw/parameters.yml`), then `config@defVal`, then this; a
+        value equal to what the layer before it says records nothing.
+    interpolation:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's INTERPOLATION RULE,
+        keyed exactly as `defVal` above: `interpolation$af.up <- "inter"`.
+        Any accepted spelling of a rule works and is normalised, so
+        `bwd.mid.fwd` is `back.inter.forth`. The override applies to THIS
+        object's rows only: every other object of the class keeps the rule
+        the catalogue or `config` gives it.
     misc:
       type: list
       description: >
@@ -559,6 +580,27 @@ class:
         Optional name of region to narrow the specification of the demand in the case of used NAs.
         Error will be returned if specified regions in `@demand` are not mensioned in the `@region` slot
         (if the slot is not empty).
+    defVal:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's DEFAULT, keyed by the
+        short column name the value is written under -- `defVal$af.up <- 1`
+        on a technology, `defVal$wval <- 3` on a weather series. Empty by
+        default, and one column per override. A parameter name also works
+        and is resolved (`pTechAf.up`, or `pTechAf` for both bounds). A key
+        that names no column or parameter of this class is an error, not a
+        silent no-op. This is the last of three layers: the catalogue
+        (`data-raw/parameters.yml`), then `config@defVal`, then this; a
+        value equal to what the layer before it says records nothing.
+    interpolation:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's INTERPOLATION RULE,
+        keyed exactly as `defVal` above: `interpolation$af.up <- "inter"`.
+        Any accepted spelling of a rule works and is normalised, so
+        `bwd.mid.fwd` is `back.inter.forth`. The override applies to THIS
+        object's rows only: every other object of the class keeps the rule
+        the catalogue or `config` gives it.
     misc:
       type: list
       description: Optional list of additional information.
@@ -1270,6 +1312,27 @@ class:
         variables -- those stay at the commodity's level; it removes activity
         variables and equation rows.
         If specified, must include all regions used in other slots.
+    defVal:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's DEFAULT, keyed by the
+        short column name the value is written under -- `defVal$af.up <- 1`
+        on a technology, `defVal$wval <- 3` on a weather series. Empty by
+        default, and one column per override. A parameter name also works
+        and is resolved (`pTechAf.up`, or `pTechAf` for both bounds). A key
+        that names no column or parameter of this class is an error, not a
+        silent no-op. This is the last of three layers: the catalogue
+        (`data-raw/parameters.yml`), then `config@defVal`, then this; a
+        value equal to what the layer before it says records nothing.
+    interpolation:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's INTERPOLATION RULE,
+        keyed exactly as `defVal` above: `interpolation$af.up <- "inter"`.
+        Any accepted spelling of a rule works and is normalised, so
+        `bwd.mid.fwd` is `back.inter.forth`. The override applies to THIS
+        object's rows only: every other object of the class keeps the rule
+        the catalogue or `config` gives it.
     misc:
       type: list
       description: >
@@ -2094,6 +2157,27 @@ class:
           description: >
             Coefficient that links the weather factor with the fixed value of the output commodity availability factor.
             This parameter overrides `out.waf.lo` and `out.waf.up`.
+    defVal:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's DEFAULT, keyed by the
+        short column name the value is written under -- `defVal$af.up <- 1`
+        on a technology, `defVal$wval <- 3` on a weather series. Empty by
+        default, and one column per override. A parameter name also works
+        and is resolved (`pTechAf.up`, or `pTechAf` for both bounds). A key
+        that names no column or parameter of this class is an error, not a
+        silent no-op. This is the last of three layers: the catalogue
+        (`data-raw/parameters.yml`), then `config@defVal`, then this; a
+        value equal to what the layer before it says records nothing.
+    interpolation:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's INTERPOLATION RULE,
+        keyed exactly as `defVal` above: `interpolation$af.up <- "inter"`.
+        Any accepted spelling of a rule works and is normalised, so
+        `bwd.mid.fwd` is `back.inter.forth`. The override applies to THIS
+        object's rows only: every other object of the class keeps the rule
+        the catalogue or `config` gives it.
     misc:
       type: list
       description: >
@@ -2665,6 +2749,27 @@ class:
     cap2act:
       type: numeric
       description: Capacity to activity ratio.
+    defVal:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's DEFAULT, keyed by the
+        short column name the value is written under -- `defVal$af.up <- 1`
+        on a technology, `defVal$wval <- 3` on a weather series. Empty by
+        default, and one column per override. A parameter name also works
+        and is resolved (`pTechAf.up`, or `pTechAf` for both bounds). A key
+        that names no column or parameter of this class is an error, not a
+        silent no-op. This is the last of three layers: the catalogue
+        (`data-raw/parameters.yml`), then `config@defVal`, then this; a
+        value equal to what the layer before it says records nothing.
+    interpolation:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's INTERPOLATION RULE,
+        keyed exactly as `defVal` above: `interpolation$af.up <- "inter"`.
+        Any accepted spelling of a rule works and is normalised, so
+        `bwd.mid.fwd` is `back.inter.forth`. The override applies to THIS
+        object's rows only: every other object of the class keeps the rule
+        the catalogue or `config` gives it.
     misc:
       type: list
       description: Additional information.
@@ -2990,6 +3095,27 @@ class:
         region of the model. A region named in any other slot must be one of
         these; the other slots place VALUES and never change where the
         process exists.
+    defVal:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's DEFAULT, keyed by the
+        short column name the value is written under -- `defVal$af.up <- 1`
+        on a technology, `defVal$wval <- 3` on a weather series. Empty by
+        default, and one column per override. A parameter name also works
+        and is resolved (`pTechAf.up`, or `pTechAf` for both bounds). A key
+        that names no column or parameter of this class is an error, not a
+        silent no-op. This is the last of three layers: the catalogue
+        (`data-raw/parameters.yml`), then `config@defVal`, then this; a
+        value equal to what the layer before it says records nothing.
+    interpolation:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's INTERPOLATION RULE,
+        keyed exactly as `defVal` above: `interpolation$af.up <- "inter"`.
+        Any accepted spelling of a rule works and is normalised, so
+        `bwd.mid.fwd` is `back.inter.forth`. The override applies to THIS
+        object's rows only: every other object of the class keeps the rule
+        the catalogue or `config` gives it.
     misc:
       type: list
       description: Additional information.
@@ -3158,6 +3284,27 @@ class:
         region of the model. A region named in any other slot must be one of
         these; the other slots place VALUES and never change where the
         process exists.
+    defVal:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's DEFAULT, keyed by the
+        short column name the value is written under -- `defVal$af.up <- 1`
+        on a technology, `defVal$wval <- 3` on a weather series. Empty by
+        default, and one column per override. A parameter name also works
+        and is resolved (`pTechAf.up`, or `pTechAf` for both bounds). A key
+        that names no column or parameter of this class is an error, not a
+        silent no-op. This is the last of three layers: the catalogue
+        (`data-raw/parameters.yml`), then `config@defVal`, then this; a
+        value equal to what the layer before it says records nothing.
+    interpolation:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's INTERPOLATION RULE,
+        keyed exactly as `defVal` above: `interpolation$af.up <- "inter"`.
+        Any accepted spelling of a rule works and is normalised, so
+        `bwd.mid.fwd` is `back.inter.forth`. The override applies to THIS
+        object's rows only: every other object of the class keeps the rule
+        the catalogue or `config` gives it.
     misc:
       type: list
       description: Additional information.
@@ -3206,9 +3353,6 @@ class:
     timeframe:
       type: character
       description: Timeframe of the weather factor.
-    defVal:
-      type: numeric
-      description: Default value of the weather factor, 0 by default.
     cluster:
       type: data.frame
       description: >
@@ -3276,6 +3420,27 @@ class:
         wval:
           type: numeric
           description: Weather factor value.
+    defVal:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's DEFAULT, keyed by the
+        short column name the value is written under -- `defVal$af.up <- 1`
+        on a technology, `defVal$wval <- 3` on a weather series. Empty by
+        default, and one column per override. A parameter name also works
+        and is resolved (`pTechAf.up`, or `pTechAf` for both bounds). A key
+        that names no column or parameter of this class is an error, not a
+        silent no-op. This is the last of three layers: the catalogue
+        (`data-raw/parameters.yml`), then `config@defVal`, then this; a
+        value equal to what the layer before it says records nothing.
+    interpolation:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's INTERPOLATION RULE,
+        keyed exactly as `defVal` above: `interpolation$af.up <- "inter"`.
+        Any accepted spelling of a rule works and is normalised, so
+        `bwd.mid.fwd` is `back.inter.forth`. The override applies to THIS
+        object's rows only: every other object of the class keeps the rule
+        the catalogue or `config` gives it.
     misc:
       type: list
       description: Additional information.
@@ -3514,9 +3679,6 @@ class:
         Escape hatch: the name of a model variable to levy directly, for a
         target no base shorthand reaches. Mutually exclusive with the base rate
         columns; the rate then goes in the data slot's `rate` column.
-    defVal:
-      type: numeric
-      description: Default value of the tax for not specified sets, 0 if not specified.
     tax:
       type: data.frame
       description: >
@@ -3604,6 +3766,27 @@ class:
           description: >
             Per unit of the variable named in `variable`. Used only with the
             escape hatch.
+    defVal:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's DEFAULT, keyed by the
+        short column name the value is written under -- `defVal$af.up <- 1`
+        on a technology, `defVal$wval <- 3` on a weather series. Empty by
+        default, and one column per override. A parameter name also works
+        and is resolved (`pTechAf.up`, or `pTechAf` for both bounds). A key
+        that names no column or parameter of this class is an error, not a
+        silent no-op. This is the last of three layers: the catalogue
+        (`data-raw/parameters.yml`), then `config@defVal`, then this; a
+        value equal to what the layer before it says records nothing.
+    interpolation:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's INTERPOLATION RULE,
+        keyed exactly as `defVal` above: `interpolation$af.up <- "inter"`.
+        Any accepted spelling of a rule works and is normalised, so
+        `bwd.mid.fwd` is `back.inter.forth`. The override applies to THIS
+        object's rows only: every other object of the class keeps the rule
+        the catalogue or `config` gives it.
     misc:
       type: list
       description: Any additional information or data to store in the tax object.
@@ -3694,9 +3877,6 @@ class:
         Escape hatch: the name of a model variable to levy directly, for a
         target no base shorthand reaches. Mutually exclusive with the base rate
         columns; the rate then goes in the data slot's `rate` column.
-    defVal:
-      type: numeric
-      description: Default value of the subsidy for not specified sets, 0 if not specified.
     subsidy:
       type: data.frame
       description: >
@@ -3784,6 +3964,27 @@ class:
           description: >
             Per unit of the variable named in `variable`. Used only with the
             escape hatch.
+    defVal:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's DEFAULT, keyed by the
+        short column name the value is written under -- `defVal$af.up <- 1`
+        on a technology, `defVal$wval <- 3` on a weather series. Empty by
+        default, and one column per override. A parameter name also works
+        and is resolved (`pTechAf.up`, or `pTechAf` for both bounds). A key
+        that names no column or parameter of this class is an error, not a
+        silent no-op. This is the last of three layers: the catalogue
+        (`data-raw/parameters.yml`), then `config@defVal`, then this; a
+        value equal to what the layer before it says records nothing.
+    interpolation:
+      type: data.frame
+      description: >
+        Optional per-object override of a parameter's INTERPOLATION RULE,
+        keyed exactly as `defVal` above: `interpolation$af.up <- "inter"`.
+        Any accepted spelling of a rule works and is normalised, so
+        `bwd.mid.fwd` is `back.inter.forth`. The override applies to THIS
+        object's rows only: every other object of the class keeps the rule
+        the catalogue or `config` gives it.
     misc:
       type: list
       description: Any additional information or data to store in the subsidy object.

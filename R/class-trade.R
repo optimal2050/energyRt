@@ -24,6 +24,8 @@
 #' @slot cluster `r get_slot_doc("trade", "cluster")`
 #' @slot cap2act `r get_slot_doc("trade", "cap2act")`
 #' @slot optimizeRetirement `r get_slot_doc("trade", "optimizeRetirement")`
+#' @slot defVal `r get_slot_doc("trade", "defVal")`
+#' @slot interpolation `r get_slot_doc("trade", "interpolation")`
 #' @slot misc `r get_slot_doc("trade", "misc")`
 #'
 #' @include class-storage.R
@@ -52,6 +54,8 @@ setClass("trade",
     capacity = "data.frame",
     cap2act = "numeric", #
     optimizeRetirement = "logical",
+    defVal = "data.frame",
+    interpolation = "data.frame",
     misc = "list"
   ),
   # Default values and structure of slots
@@ -241,6 +245,12 @@ setClass("trade",
     ),
     cap2act = 1, #
     optimizeRetirement = FALSE,
+    # Per-object overrides of the catalogue's default and interpolation
+    # rule, keyed by PARAMETER name (a column name of this class is
+    # accepted and resolved). Empty by default: one row, zero columns,
+    # so `$<-` works. See `.check_param_overrides()`.
+    defVal = data.frame(row.names = 1L),
+    interpolation = data.frame(row.names = 1L),
     misc = list()
   ),
   S3methods = FALSE

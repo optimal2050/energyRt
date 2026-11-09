@@ -21,6 +21,7 @@
 #' @slot variable `r get_slot_doc("subsidy", "variable")`
 #' @slot defVal `r get_slot_doc("subsidy", "defVal")`
 #' @slot subsidy `r get_slot_doc("subsidy", "subsidy")`
+#' @slot interpolation `r get_slot_doc("subsidy", "interpolation")`
 #' @slot misc `r get_slot_doc("subsidy", "misc")`
 #'
 #' @export
@@ -46,8 +47,9 @@ setClass("subsidy",
     cluster = "character",
     cluster_ = "character",
     variable = "character",
-    defVal = "numeric",
     subsidy = "data.frame",
+    defVal = "data.frame",
+    interpolation = "data.frame",
     misc = "list"
   ),
   prototype(
@@ -69,7 +71,6 @@ setClass("subsidy",
     cluster = character(), #
     cluster_ = character(), #
     variable = character(), #
-    defVal = 0, #
     subsidy = data.frame(
       region = character(),
       year = integer(),
@@ -91,6 +92,12 @@ setClass("subsidy",
       rate = numeric(),
       stringsAsFactors = FALSE
     ),
+    # Per-object overrides of the catalogue's default and interpolation
+    # rule, keyed by PARAMETER name (a column name of this class is
+    # accepted and resolved). Empty by default: one row, zero columns,
+    # so `$<-` works. See `.check_param_overrides()`.
+    defVal = data.frame(row.names = 1L),
+    interpolation = data.frame(row.names = 1L),
     misc = list()
   ),
   S3methods = FALSE

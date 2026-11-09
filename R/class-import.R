@@ -17,6 +17,8 @@
 #' @slot import `r get_slot_doc("import", "import")`
 #' @slot geoframe `r get_slot_doc("import", "geoframe")`
 #' @slot region `r get_slot_doc("import", "region")`
+#' @slot defVal `r get_slot_doc("import", "defVal")`
+#' @slot interpolation `r get_slot_doc("import", "interpolation")`
 #' @slot misc `r get_slot_doc("import", "misc")`
 #'
 #' @include class-trade.R
@@ -37,6 +39,8 @@ setClass("import",
     geoframe = "character",
     region = "character",
     # timeframe = "character", # set to commodity@timeframe
+    defVal = "data.frame",
+    interpolation = "data.frame",
     misc = "list"
   ),
   prototype(
@@ -103,6 +107,12 @@ setClass("import",
     ),
     geoframe = character(),
     region = character(),
+    # Per-object overrides of the catalogue's default and interpolation
+    # rule, keyed by PARAMETER name (a column name of this class is
+    # accepted and resolved). Empty by default: one row, zero columns,
+    # so `$<-` works. See `.check_param_overrides()`.
+    defVal = data.frame(row.names = 1L),
+    interpolation = data.frame(row.names = 1L),
     misc = list()
   ),
   S3methods = FALSE

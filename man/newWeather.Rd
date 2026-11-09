@@ -38,7 +38,7 @@ See \code{\link[=getUnit]{getUnit()}}.}
 
 \item{timeframe}{character. Timeframe of the weather factor.}
 
-\item{defVal}{numeric. Default value of the weather factor, 0 by default.}
+\item{defVal}{data.frame. Optional per-object override of a parameter's DEFAULT, keyed by the short column name the value is written under -- \code{defVal$af.up <- 1} on a technology, \code{defVal$wval <- 3} on a weather series. Empty by default, and one column per override. A parameter name also works and is resolved (\code{pTechAf.up}, or \code{pTechAf} for both bounds). A key that names no column or parameter of this class is an error, not a silent no-op. This is the last of three layers: the catalogue (\code{data-raw/parameters.yml}), then \code{config@defVal}, then this; a value equal to what the layer before it says records nothing.}
 
 \item{cluster}{data.frame. Declaration of the object's parallel series. For weather a cluster is a RESOURCE TIER -- one profile per grade of the same resource, so a single object covers a whole tier set instead of one hand-named object per tier.
 This slot declares WHAT the tiers are; the per-tier values live in the \code{cluster} column of \code{weather}. It is REQUIRED whenever that column carries a label, and authoritative: labels are never harvested from the series, so a misspelled tier is an error rather than a series nobody asked for. At interpolation each tier referenced by a process is cloned into an ordinary weather object named with the model's cluster prefix (\code{WWIN} tier \code{T3} -> \code{WWIN_CLT3}), so the backends only ever see plain series.

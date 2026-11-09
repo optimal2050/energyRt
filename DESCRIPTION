@@ -130,6 +130,7 @@ Collate:
     'neos.R'
     'obj2modInp.R'
     'operability.R'
+    'param-overrides.R'
     'parent-levels.R'
     'plot_scenario.R'
     'plot_map.R'
