@@ -81,6 +81,66 @@ NULL
   column[is.na(match(paste(class, slot, column, sep = ""), ref))]
 }
 
+#' Recast rules for the solution variables, by role
+#'
+#' DUPLICATE of `recast_by_role` in `data-raw/DATASET.R`, which resolves these
+#' into `.variables` before the package is loadable. `test-recast-contract.R`
+#' asserts the two agree, which is what catches a drift.
+#'
+#' `sum` on the time axis means "sum at the child/target weight ratio", which
+#' is what `.aggregate_timeframe_df()` applies: a per-slice solved value is
+#' already scaled by `share`, and `Sum(share * weight) == 1`, so the annual
+#' total is `Sum(value * weight)`. It is a plain sum between full calendars,
+#' where every weight is 1.
+#' @noRd
+.VARIABLE_RECAST_BY_ROLE <- list(
+  source        = c(space = "sum",          time = "sum"),
+  sink          = c(space = "sum",          time = "sum"),
+  activity      = c(space = "sum",          time = "sum"),
+  balance       = c(space = "sum",          time = "sum"),
+  stock         = c(space = "sum",          time = "last"),
+  capacity      = c(space = "sum",          time = NA),
+  cost          = c(space = "sum",          time = NA),
+  interregional = c(space = "sum_external", time = "sum")
+)
+
+#' @noRd
+.VARIABLE_RECAST_RULES <- list(
+  space = c("sum", "weighted_mean", "copy", "sum_external"),
+  time = c("sum", "weighted_mean", "copy", "last")
+)
+
+#' The declared recast rule for one or more solution variables
+#'
+#' The results-side twin of [.get_recast_rule()]. Aggregation ONLY: a solution
+#' cannot be split into a finer calendar or geometry, so `axis = "down"` is an
+#' error rather than an inverse -- `.recast_rules()`'s bidirectional contract
+#' ("sum sums going up and splits by weight going down") does not hold here.
+#'
+#' @param variable Character vector of variable names.
+#' @param axis `"space"` or `"time"`.
+#' @return A named character vector, one entry per `variable`. `NA` where the
+#'   variable is not indexed on that axis (no `cost` or `capacity` variable has
+#'   a timeslice; `vObjective` has neither), and `NA` for a name that is not a
+#'   declared variable.
+#' @noRd
+.get_variable_recast_rule <- function(variable, axis = c("space", "time")) {
+  if (identical(axis, "down") || identical(axis, "split")) {
+    stop("recast rules for solution variables are aggregation-only: a solved ",
+         "result cannot be split into a finer calendar or geometry.",
+         call. = FALSE)
+  }
+  axis <- match.arg(axis)
+  key <- paste0("recast_", axis)
+  v <- tryCatch(.variables, error = function(e) NULL)
+  out <- vapply(variable, function(nm) {
+    x <- v[[nm]]
+    if (is.null(x)) return(NA_character_)
+    as.character(x[[key]])[1]
+  }, character(1))
+  stats::setNames(out, variable)
+}
+
 #' Recast a model onto another calendar
 #'
 #' Moves a model's time-varying data from the calendar it was written against

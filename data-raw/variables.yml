@@ -13,14 +13,16 @@
 # role   what the variable IS, which is a property of the variable; a plot's
 #        SIGN is a property of the (variable, chart) pair and is derived from
 #        the role per chart, not stored here.
-#          source    adds to the regional commodity balance
-#          sink      removes from it
-#          flow      a transfer that is both (between regions)
-#          activity  process activity, not a commodity balance term
-#          balance   the net balance itself
-#          stock     a LEVEL at a point in time -- never summed over timeslices
-#          capacity  installed / new / retired capacity
-#          cost      monetary
+#          source        adds to the regional commodity balance
+#          sink          removes from it
+#          interregional a transfer that is both (between two regions)
+#          activity      process activity, not a commodity balance term
+#          balance       the net balance itself
+#          stock         a LEVEL at a point in time -- never summed over slices
+#          capacity      installed / new / retired capacity
+#          cost          monetary
+#        (`flow` was documented here and used by nothing; `interregional` was
+#        in use and undocumented.)
 #
 # unit   a KIND, not a formula. Real units are per-object here (a technology's
 #        `cap2act`, a commodity's own unit, per-region currency), so a fixed
@@ -30,6 +32,17 @@
 #
 # origin `solver` (default) or `computed` -- built in R by `read.R`, so it is
 #        never missing solver output.
+#
+# recast HOW A RESULT COMBINES when it is rolled up, per axis. Defaults from
+#        `role` (the table in `data-raw/DATASET.R`), so an entry carries
+#        `recast: {space: ..., time: ...}` only where it differs. Aggregation
+#        only -- a solution cannot be split into a finer calendar or geometry,
+#        and the accessor refuses the down direction.
+#          space  sum | weighted_mean | copy | sum_external
+#          time   sum | weighted_mean | copy | last
+#        `sum` on the time axis carries the child/target WEIGHT RATIO, because
+#        a per-slice value is already scaled by `share`: the annual total is
+#        `Sum(value * weight)`. See `.aggregate_timeframe_df()`.
 # =========================================================================== #
 
 vAggOutTot:          {role: source,   unit: commodity}
@@ -104,8 +117,8 @@ vStorageInpRetiredNewCap: {role: capacity, unit: capacity}
 vStorageStgRetiredStock: {role: capacity, unit: capacity}
 vStorageStgRetiredNewCap: {role: capacity, unit: capacity}
 vStorageRetCost:      {role: cost,    unit: currency}
-vTradeRetiredStock:   {role: capacity, unit: capacity}
-vTradeRetiredNewCap:  {role: capacity, unit: capacity}
+vTradeRetiredStock:   {role: capacity, unit: capacity, recast: {space: sum_external}}
+vTradeRetiredNewCap:  {role: capacity, unit: capacity, recast: {space: sum_external}}
 vTradeRetCost:        {role: cost,    unit: currency}
 vTechPhaseOut:        {role: capacity, unit: capacity}
 vTechStockCap:        {role: capacity, unit: capacity}
@@ -114,14 +127,14 @@ vStorageOutStockCap:  {role: capacity, unit: capacity}
 vStorageInpStockCap:  {role: capacity, unit: capacity}
 vStorageStgStockCap:  {role: capacity, unit: capacity}
 vStorageStockPhaseOut: {role: capacity, unit: capacity}
-vTradeStockCap:       {role: capacity, unit: capacity}
-vTradePhaseOut:       {role: capacity, unit: capacity}
-vTradeStockPhaseOut:  {role: capacity, unit: capacity}
+vTradeStockCap:       {role: capacity, unit: capacity, recast: {space: sum_external}}
+vTradePhaseOut:       {role: capacity, unit: capacity, recast: {space: sum_external}}
+vTradeStockPhaseOut:  {role: capacity, unit: capacity, recast: {space: sum_external}}
 vStoragePhaseOut:     {role: capacity, unit: capacity}
 vTechVarom:          {role: cost,     unit: currency}
 vTotalCost:          {role: cost,     unit: currency}
 vTotalUserCosts:     {role: cost,     unit: currency}
-vTradeCap:           {role: capacity, unit: capacity}
+vTradeCap:           {role: capacity, unit: capacity, recast: {space: sum_external}}
 vTradeEac:           {role: cost,     unit: currency}
 vTradeFixom:         {role: cost,     unit: currency}
 vTradeInv:           {role: cost,     unit: currency}
@@ -132,7 +145,7 @@ vTradeIrAInp:        {role: sink,     unit: commodity}
 vTradeIrAInpTot:     {role: sink,     unit: commodity}
 vTradeIrAOut:        {role: source,   unit: commodity}
 vTradeIrAOutTot:     {role: source,   unit: commodity}
-vTradeNewCap:        {role: capacity, unit: capacity}
+vTradeNewCap:        {role: capacity, unit: capacity, recast: {space: sum_external}}
 
 # --------------------------------------------------------------------------- #
 # Computed in R by `read.R`, not returned by any solver. These appear in NO

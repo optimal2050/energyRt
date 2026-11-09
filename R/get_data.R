@@ -145,8 +145,8 @@ findData <- function(object,
 #' @param ... filters for various sets (setname = c(val1, val2) or setname_ = "matching pattern"), see details.
 #' @param name character vector with names of parameters and/or variables.
 #' @param merge if TRUE, the search results will be merged in one dataframe; the named list will be returned if FALSE. When TRUE, a data.frame (empty if nothing matched) is always returned, never NULL.
-#' @param geoframe controls spatial aggregation of results that carry a `region` column, the spatial twin of `timeframe`. One of `"finest"` (default, native resolution as stored), `"coarsest"` (aggregate up to the top geoscale level), `"all"` (return every level stacked), or an explicit geoscale level name (e.g. `"zone"`, `"nation"`). Requires a geoscale on the model; without one this is inert. Inter-regional flow variables (e.g. `vTradeIr`) are returned unchanged, because summing a flow across regions double-counts it — the spatial counterpart of leaving state variables alone under `timeframe`.
-#' @param timeframe controls sub-annual time aggregation of results that carry a `timeslice` column. One of `"highest"` (default, native/finest resolution, as stored), `"lowest"` (aggregate/sum flows up to the coarsest level, normally `ANNUAL`), `"all"` (return every timeframe level stacked), or an explicit calendar level name (e.g. `"SEASON"`, `"YDAY"`) to aggregate to that level. Non-timeslice data, and state/level variables (e.g. `vStorageLevel`) for which summing over timeslices is meaningless, are returned unchanged.
+#' @param geoframe controls spatial aggregation of results that carry a `region` column, the spatial twin of `timeframe`. One of `"finest"` (default, native resolution as stored), `"coarsest"` (aggregate up to the top geoscale level), `"all"` (return every level stacked), or an explicit geoscale level name (e.g. `"zone"`, `"nation"`). Requires a geoscale on the model; without one this is inert. How a variable combines is declared per variable (`recast` in `data-raw/variables.yml`): a quantity is summed, while an inter-regional flow (e.g. `vTradeIr`) is summed only where it CROSSES the new border. Rows whose endpoints land in the same target region are no longer a transfer, so they leave the total and are recorded as in-region flow in `attr(x, "absorbed")` rather than double-counted.
+#' @param timeframe controls sub-annual time aggregation of results that carry a `timeslice` column. One of `"highest"` (default, native/finest resolution, as stored), `"lowest"` (aggregate/sum flows up to the coarsest level, normally `ANNUAL`), `"all"` (return every timeframe level stacked), or an explicit calendar level name (e.g. `"SEASON"`, `"YDAY"`) to aggregate to that level. Non-timeslice data is returned unchanged. How a variable combines is declared per variable (`recast` in `data-raw/variables.yml`): a quantity is summed at the child/target weight ratio, while a state/level variable (e.g. `vStorageLevel`) takes its CLOSING value, with the swing inside each target slice recorded in `attr(x, "absorbed")`.
 #'
 #'   The default was `"lowest"` up to v0.80 and is now `"highest"`, matching the spatial twin `geoframe`, whose default `"finest"` has always meant "as stored". Returning data at native resolution unless asked otherwise is the safer default: the old one silently summed an 8760-slice hourly series into a single annual number, which reads as a plausible value rather than as an error, and is indistinguishable from a genuine annual result. Aggregation is easy to ask for and hard to notice when it is not wanted. Code that relied on annual totals must now pass `timeframe = "lowest"` explicitly.
 #' @param process `TRUE` renames the process-class id dimension ("tech", "stg",
@@ -938,6 +938,92 @@ getData.default <- function(object, ...) {
   }, logical(1), USE.NAMES = FALSE)
 }
 
+# The declared recast rule for the one variable a result frame holds. Each
+# element of `getData()`'s `ll` is one variable, tagged by a `name` column.
+# No `name` column means the caller assembled the frame itself: keep the
+# pre-0.92 behaviour and roll it as a quantity.
+#' @noRd
+.df_variable_rule <- function(df, axis, default = "sum") {
+  if (!("name" %in% names(df))) return(default)
+  nm <- unique(as.character(df$name))
+  if (length(nm) != 1L) return(NA_character_)   # mixed: leave it alone
+  r <- .get_variable_recast_rule(nm, axis)
+  unname(r[1])
+}
+
+# `last`: the closing value of each target slice, with the swing inside it
+# recorded. A level is a snapshot, so it is never summed over slices -- but the
+# peak and trough the coarse slice hides are what a reader loses, so they ride
+# on the result as `attr(, "absorbed")`.
+#' @noRd
+.rollup_last_df <- function(df, calendar, tgt, same) {
+  # the timetable is chronological, so its row order IS the order within a
+  # target slice
+  ord <- match(as.character(df$timeslice),
+               as.character(calendar@timetable$timeslice))
+  ord[is.na(ord)] <- 0L
+  grp <- setdiff(names(df), c("value", "timeslice"))
+  d <- df
+  d$.tgt <- tgt
+  d$.ord <- ord
+  keys <- do.call(paste, c(d[, c(grp, ".tgt"), drop = FALSE], sep = "\r"))
+  d$.key <- keys
+  # the swing that the roll-up hides, before it is hidden
+  absorbed <- stats::aggregate(list(value = d$value), by = list(.key = d$.key),
+                               FUN = function(x) c(min(x), max(x), length(x)))
+  ab <- data.frame(.key = absorbed$.key,
+                   level_min = absorbed$value[, 1],
+                   level_max = absorbed$value[, 2],
+                   slices = absorbed$value[, 3],
+                   stringsAsFactors = FALSE)
+  pick <- d[order(d$.key, d$.ord), , drop = FALSE]
+  pick <- pick[!duplicated(pick$.key, fromLast = TRUE), , drop = FALSE]
+  ab <- merge(ab, pick[, c(".key", grp, ".tgt"), drop = FALSE], by = ".key")
+  ab$.key <- NULL
+  names(ab)[names(ab) == ".tgt"] <- "timeslice"
+  out <- pick
+  out$timeslice <- out$.tgt
+  out <- out[, names(df), drop = FALSE]
+  rownames(out) <- NULL
+  attr(out, "absorbed") <- list(rule = "last", in_slice_swing = ab)
+  out
+}
+
+# `sum_external`: a row whose two endpoints land in the same target region is
+# no longer a transfer. Those rows leave the total and are recorded as
+# in-region flow; the rest are summed per new endpoint pair.
+#
+# The endpoints are the frame's own two region columns -- `src`/`dst` for
+# `vTradeIr`, whose dims repeat `region` so the writer renames them.
+#' @noRd
+.rollup_sum_external_df <- function(df, map) {
+  pair <- intersect(c("src", "dst"), names(df))
+  if (length(pair) != 2L) return(df)   # not a pair-keyed frame
+  s <- unname(map[as.character(df$src)])
+  d <- unname(map[as.character(df$dst)])
+  s[is.na(s)] <- as.character(df$src)[is.na(s)]
+  d[is.na(d)] <- as.character(df$dst)[is.na(d)]
+  if (all(s == as.character(df$src)) && all(d == as.character(df$dst))) {
+    return(df)
+  }
+  out <- df
+  out$src <- s
+  out$dst <- d
+  internal <- out$src == out$dst
+  grp <- setdiff(names(out), "value")
+  agg <- function(x) {
+    if (!nrow(x)) return(x[0, , drop = FALSE])
+    r <- x |>
+      dplyr::group_by(dplyr::across(dplyr::all_of(grp))) |>
+      dplyr::summarise(value = sum(value), .groups = "drop")
+    as.data.frame(r)
+  }
+  keep <- agg(out[!internal, , drop = FALSE])
+  gone <- agg(out[internal, , drop = FALSE])
+  attr(keep, "absorbed") <- list(rule = "sum_external", in_region_flow = gone)
+  keep
+}
+
 # Aggregate one data.frame to `target_rank` by summing `value` over child timeslices.
 # Left-join the variant provenance onto a result frame. The process id column is
 # `tech` / `stg` / `trade` depending on the class, or `process` when
@@ -963,8 +1049,12 @@ getData.default <- function(object, ...) {
   if (!("timeslice" %in% names(df)) || !("value" %in% names(df))) {
     return(df)
   }
-  # never sum a stored-level / state variable across timeslices
-  if ("name" %in% names(df) && any(.is_state_var(unique(df$name)))) {
+  # The declared rule decides. `sum` is the weight-ratio sum below; `last`
+  # is a level's closing value; NA means the variable is not indexed on this
+  # axis, and `weighted_mean` / `copy` are in the vocabulary but declared by no
+  # variable, so they are left alone rather than guessed at.
+  rule <- .df_variable_rule(df, "time")
+  if (is.na(rule) || !(rule %in% c("sum", "last"))) {
     return(df)
   }
   map <- .timeslice_target_map(calendar, target_rank)
@@ -978,6 +1068,9 @@ getData.default <- function(object, ...) {
   same[is.na(same)] <- TRUE
   if (all(same)) {
     return(df) # nothing to roll up
+  }
+  if (identical(rule, "last")) {
+    return(.rollup_last_df(df, calendar, tgt, same))
   }
   # Timeframe contract: rolled-up values carry the child/target weight ratio
   # (1 within sub-annual levels and on full calendars; 1/year_fraction when
@@ -1053,12 +1146,14 @@ getData.default <- function(object, ...) {
 .aggregate_geoframe_df <- function(df, hier, target_rank) {
   if (is.na(target_rank)) return(df)
   if (!("region" %in% names(df)) || !("value" %in% names(df))) return(df)
-  # Never sum an INTERREGIONAL quantity across regions. It carries two region
-  # indices, so mapping both ends to a common parent turns an exchange into a
-  # total of flows that are internal to that parent and cancel.
-  if ("name" %in% names(df) && any(.is_interregional_var(unique(df$name))))
-    return(df)
+  rule <- .df_variable_rule(df, "space")
+  if (is.na(rule) || !(rule %in% c("sum", "sum_external"))) return(df)
   map <- .region_target_map(hier, target_rank)
+  if (identical(rule, "sum_external")) {
+    # an exchange, not a quantity: mapping both ends to a common parent would
+    # total flows that are internal to it. Those are recorded, not summed.
+    return(.rollup_sum_external_df(df, map))
+  }
   tgt <- unname(map[as.character(df$region)])
   na <- is.na(tgt)
   tgt[na] <- as.character(df$region)[na] # unknown regions: leave untouched

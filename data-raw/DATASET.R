@@ -314,6 +314,41 @@ local({
 # to be TOTAL so it cannot quietly fall behind the model.
 # ---------------------------------------------------------------------------- #
 
+# ---------------------------------------------------------------------------- #
+# Recast rules for the solution variables: how a RESULT combines when it is
+# rolled up. Defaults from `role`; `variables.yml` overrides per variable.
+#
+# DUPLICATE of `.VARIABLE_RECAST_BY_ROLE` in R/recast.R, for the same reason the
+# role list above is duplicated -- this script runs before the package is
+# loadable. The validation below catches a drift, loudly.
+#
+# `sum` on the time axis means "sum at the child/target weight ratio", which is
+# what `.aggregate_timeframe_df()` already does: a per-slice solved value is
+# already scaled by `share` (`eqTechAfUp` bounds vTechAct by
+# `cap * cap2act * pTimesliceShare[s]`), and `Sum(share * weight) == 1`, so the
+# annual total is `Sum(value * weight)`. It is a plain sum between full
+# calendars, where every weight is 1.
+#
+# NA means "not indexed on this axis": measured, no `cost` or `capacity`
+# variable has a timeslice dimension, so the time rule is only decided for the
+# 33 that do.
+recast_by_role <- list(
+  source        = c(space = "sum",          time = "sum"),
+  sink          = c(space = "sum",          time = "sum"),
+  activity      = c(space = "sum",          time = "sum"),
+  balance       = c(space = "sum",          time = "sum"),
+  # a level is a snapshot: never summed over slices, and the closing one is
+  # what the next period carries forward
+  stock         = c(space = "sum",          time = "last"),
+  capacity      = c(space = "sum",          time = NA),
+  cost          = c(space = "sum",          time = NA),
+  # a flow between two members of the aggregated group stops being a transfer;
+  # one crossing the new border survives and is summed
+  interregional = c(space = "sum_external", time = "sum")
+)
+space_rules <- c("sum", "weighted_mean", "copy", "sum_external")
+time_rules <- c("sum", "weighted_mean", "copy", "last")
+
 .variables <- local({
   ov <- yaml::read_yaml("data-raw/variables.yml")
 
@@ -350,6 +385,30 @@ local({
     }
     computed_here <- identical(o$origin, "computed")
     dims <- if (computed_here) as.character(o$dimSets) else .variable_set[[v]]
+    # recast: the role default, overridden per variable
+    rc <- o$recast %||% list()
+    rsp <- rc$space %||% unname(recast_by_role[[o$role]]["space"])
+    rtm <- rc$time %||% unname(recast_by_role[[o$role]]["time"])
+    # a role default that cannot apply falls to NA: three of the four
+    # `stock` variables carry no timeslice (vExportRowCum,
+    # vImportRowCum, vSupReserve), and `capacity`/`cost` carry none at
+    # all. An EXPLICIT rule on an unindexed axis stays an error below.
+    if (is.null(rc$time) && !("timeslice" %in% dims)) rtm <- NA
+    if (is.null(rc$space) && !("region" %in% dims)) rsp <- NA
+    if (!is.na(rsp) && !rsp %in% space_rules) {
+      stop("Variable ", v, ": unknown space recast rule '", rsp,
+           "'. One of: ", paste(space_rules, collapse = ", "))
+    }
+    if (!is.na(rtm) && !rtm %in% time_rules) {
+      stop("Variable ", v, ": unknown time recast rule '", rtm,
+           "'. One of: ", paste(time_rules, collapse = ", "))
+    }
+    # a rule on an axis the variable is not indexed on is a mistake, not a
+    # harmless extra: it would never fire and would read as if it had
+    if (!is.null(rc$time) && !("timeslice" %in% dims)) {
+      stop("Variable ", v, " has no timeslice dimension, so a time recast ",
+           "rule ('", rtm, "') can never apply.")
+    }
     list(
       name = v,
       # `desc`: the generated description, except for the computed variables,
@@ -373,7 +432,9 @@ local({
       unit = o$unit,
       positive = if (computed_here) FALSE else
         unname(.variable_positive[[v]]),
-      origin = if (computed_here) "computed" else "solver"
+      origin = if (computed_here) "computed" else "solver",
+      recast_space = rsp,
+      recast_time = rtm
     )
   })
   names(out) <- names(ov)
