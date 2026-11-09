@@ -52,13 +52,19 @@ unit_calendars <- list(
     name = "unit_s4",
     desc = "Unit calendar: 4 equal seasons (share 1/4 each, weight 4)"
   ),
+  # The four members of the inner frame are 1/16 of a year each -- 547.5
+  # hours, a six-hour daypart repeated across the season -- so the frame is
+  # HOURTYPE, not HOUR. Naming them hours would claim a length they do not
+  # have, and anything carrying state between timeslices would be scaled by
+  # it. The shares stay exactly 1/16 so the kits' objectives remain integers.
   unit_s4h4 = newCalendar(
     make_timetable(list(
-      SEASON = paste0("S", 1:4),
-      HOUR   = paste0("H", 1:4)
+      SEASON   = paste0("S", 1:4),
+      HOURTYPE = paste0("H", 1:4)
     )),
     name = "unit_s4h4",
-    desc = "Unit calendar: 4 seasons x 4 hours, 16 timeslices (share 1/16 each)"
+    desc = paste("Unit calendar: 4 seasons x 4 dayparts, 16 timeslices",
+                 "(share 1/16 each)")
   )
 )
 
@@ -86,29 +92,43 @@ topia_calendars <- c(calendars, unit_calendars)
 # Because gas is pooled at the ZONE, `R01` -- which carries no transmission at
 # all -- can draw fuel from the `NW` pool even though no wire reaches it, and
 # must then convert it locally. That is the one import an island can have.
-.TOPIA_COAL      <- c(SW = 150, NE = 40)            # PJ/yr per region of zone
-.TOPIA_COAL_COST <- c(SW = 1.8, NE = 2.8)           # USD/GJ
-.TOPIA_GAS       <- c(NW = 120, SE = 25)
-.TOPIA_GAS_COST  <- c(NW = 4.0, SE = 6.0)
+# Coal sits in the interior belt `Z3`, gas in the larger belt `Z4`, so the
+# mid-level corridors carry fuel in a direction: `Z2` and `Z5` have neither and
+# must buy, and `Z1` -- one region, no wire -- has nothing but its own weather
+# and whatever a ship can bring. Caps are per region OF the zone and scale with
+# how many of it a layout reaches, so `Z4` (four regions) pools more than `Z2`
+# (two). Costs are USD/GJ, the same unit as the import prices below.
+.TOPIA_COAL      <- c(Z3 = 150, Z4 = 40)            # PJ/yr per region of zone
+.TOPIA_COAL_COST <- c(Z3 = 1.8, Z4 = 2.8)           # USD/GJ
+.TOPIA_GAS       <- c(Z4 = 120, Z2 = 25)
+.TOPIA_GAS_COST  <- c(Z4 = 4.0, Z2 = 6.0)
 
 # Where the dispatchable fleets and the free resources sit. A region absent
-# from a table gets `base` (thermal) or nothing at all (hydro, nuclear).
+# from a table gets `base` (thermal) or nothing at all (hydro, nuclear). The
+# placements follow the resource archetypes: thermal on the fuel, the
+# reservoir in the alpine region, run-of-river in the valley, and the pumped
+# store where there is head -- the mountain, and the island that has to ride
+# through a night alone.
 .TOPIA_NUC_REGIONS <- "R04"
 .TOPIA_NUC_GW      <- c(R04 = 4)                    # base-year nuclear, GW
-# Reservoir inflow: `R05` is the mountain reservoir, `R07` the run-of-river
-# valley. `R01` has no inflow -- its hydro is a PUMPED store, which is a
-# storage object and not a resource.
-.TOPIA_HYD_GW      <- c(R05 = 12, R07 = 6)          # legacy reservoir hydro
-.TOPIA_COAL_GW     <- c(R08 = 8, R09 = 4, R06 = 3)  # elsewhere 1 GW
+.TOPIA_HYD_GW      <- c(R05 = 12, R07 = 6)          # alpine reservoir, valley
+.TOPIA_COAL_GW     <- c(R06 = 8, R04 = 4, R08 = 3)  # on the Z3 coal, elsewhere 1
 # Sized against the base-year solve: a plant that runs no hour in 2025 is an
-# assumption, not a fleet, so the coal, hydro and import regions carry none.
-.TOPIA_GAS_GW      <- c(R03 = 6, R01 = 4, R02 = 2, R11 = 1, R12 = 1,
-                        R04 = 1, R05 = 1, R06 = 1,
-                        R07 = 0, R08 = 0, R09 = 0, R10 = 0)
-
-# Pumped storage sits where there is head: the mountain reservoir, and the
-# island that has to ride through a night on its own.
+# assumption, not a fleet, so the coal, hydro and windiest regions carry none.
+.TOPIA_GAS_GW      <- c(R07 = 6, R08 = 4, R09 = 2, R03 = 2, R02 = 1,
+                        R01 = 1, R04 = 1, R05 = 1, R06 = 1,
+                        R10 = 0, R11 = 0, R12 = 0)
 .TOPIA_PSP_GW      <- c(R05 = 4, R01 = 2)
+
+# Base-year VRE fleet, GW per "<region>.<grade>". 2025 starts from a plausible
+# build-out rather than empty: the windy coast has part of its best sites
+# standing, the sun belt has fixed-tilt solar, and nothing stands where the
+# resource is poor. Tracking is new in the horizon and has no legacy fleet.
+.TOPIA_WIN_STOCK <- c(R10.HI = 2.5, R11.HI = 2.0, R12.HI = 1.5, R09.HI = 1.0,
+                      R01.HI = 0.4, R11.MD = 0.5, R12.MD = 0.4, R02.MD = 0.3)
+.TOPIA_SOL_STOCK <- c(R03.FIX = 2.0, R02.FIX = 1.5, R05.FIX = 0.8,
+                      R06.FIX = 0.8, R07.FIX = 0.6, R08.FIX = 0.6,
+                      R04.FIX = 0.5)
 
 build_topia <- function(regions = .topia_regions[1:3],
                          calendar = "s4_h24",
@@ -211,11 +231,39 @@ build_topia <- function(regions = .topia_regions[1:3],
                 data.frame(timeslice = sl$timeslice, exp.up = 10 * sl$share)))
 
   # ---- weather ----
-  wobj <- function(res, desc) newWeather(res, desc = desc, timeframe = "HOUR",
-    weather = prof$weather[prof$weather$resource == res, c("region", "timeslice", "wval")])
-  WSOL <- wobj("WSOL", "Solar capacity factor by timeslice and region")
-  WWIN <- wobj("WWIN", "Wind capacity factor by timeslice and region")
-  WHYD <- wobj("WHYD", "Hydro inflow factor by timeslice and region")
+  # One weather object per resource GRADE. Wind comes in site grades -- `HI`
+  # coastal, `MD`, `LO` inland -- and solar in two mountings on the same
+  # ground, fixed tilt and single-axis tracking. Each is a series of its own,
+  # built from different cells or a different mounting, never a scaled copy of
+  # one shape: scaling leaves the grades correlated at 1.000 and the model
+  # then sees no reason to hold more than one.
+  #
+  # Which grades exist in a region is read off the shipped series, so the
+  # membership is a property of the data rather than a table repeated here.
+  wsel <- function(res, cl) {
+    w <- prof$weather
+    k <- w$resource == res &
+      (if (is.na(cl)) is.na(w$cluster) else !is.na(w$cluster) & w$cluster == cl)
+    w[k, c("region", "timeslice", "wval")]
+  }
+  wname <- function(res, cl) if (is.na(cl)) res else paste(res, cl, sep = "_")
+  wobj <- function(res, cl, desc) newWeather(wname(res, cl), desc = desc,
+    timeframe = "HOUR", weather = wsel(res, cl))
+  .cls <- function(res) {
+    v <- unique(prof$weather$cluster[prof$weather$resource == res])
+    v[order(is.na(v), v)]
+  }
+  win_cl <- .cls("WWIN")
+  sol_cl <- .cls("WSOL")
+  WWIN_OBJ <- lapply(win_cl, function(cl)
+    wobj("WWIN", cl, paste0("Wind capacity factor, grade ", cl)))
+  WSOL_OBJ <- lapply(sol_cl, function(cl)
+    wobj("WSOL", cl, paste0("Solar capacity factor, ", cl)))
+  WHYD <- wobj("WHYD", NA, "Hydro inflow factor by timeslice and region")
+
+  # (region, cluster) pairs the data offers -- what a technology may build
+  .members <- function(res) unique(
+    prof$weather[prof$weather$resource == res, c("region", "cluster")])
 
   # ---- demand ----
   # `demand` is the energy IN the slice, and a slice recurs `weight` times a
@@ -305,10 +353,62 @@ build_topia <- function(regions = .topia_regions[1:3],
       weather = list(weather = wname, comm = comm, waf.up = 1),
       cap2act = 31.536, fixom = fixom, invcost = list(invcost = inv),
       olife = olife, start = start, ...)
-  ESOL <- vre("ESOL", "SOL", "WSOL", "Solar photovoltaic plant", mg(650), 12,
-              capacity = stk_decline(fleet(c(), 1), 0))
-  EWIN <- vre("EWIN", "WIN", "WWIN", "Onshore wind farm", mg(1300), 35,
-              capacity = stk_decline(fleet(c(), 1), 0))
+  # Clustered VRE. Each grade is a parallel sub-process with its own series,
+  # its own ceiling and its own base-year fleet, so "where can this be built,
+  # and how good is it there" is answered by the geography rather than by one
+  # averaged capacity factor.
+  #
+  # `cap.up` is the buildable potential: the cells standing behind that grade
+  # in that region, at `VRE_GW_PER_CELL`. A (region, grade) pair the data does
+  # not offer is given `cap.up = 0` explicitly -- the weather object has no
+  # rows there, and a silent zero is how a technology ends up declared where
+  # it cannot run.
+  VRE_GW_PER_CELL <- 0.15
+  vre_cap <- function(res, years) {
+    g <- topia_grades[topia_grades$resource == res &
+                        topia_grades$region %in% regions, ]
+    mem <- .members(res)
+    full <- expand.grid(region = regions, cluster = unique(mem$cluster),
+                        stringsAsFactors = FALSE)
+    full$cap.up <- 0
+    i <- match(paste(full$region, full$cluster),
+               paste(g$region, g$cluster))
+    full$cap.up[!is.na(i)] <- round(
+      g$avail[i[!is.na(i)]] * VRE_GW_PER_CELL, 2)
+    do.call(rbind, lapply(years, function(y)
+      data.frame(cluster = full$cluster, region = full$region, year = y,
+                 cap.up = full$cap.up, stringsAsFactors = FALSE)))
+  }
+  # the legacy fleet, as capacity rows at both ends of the horizon (a row in
+  # the base year alone leaves every later milestone at the default of zero)
+  vre_stock <- function(res) {
+    v <- if (identical(res, "WWIN")) .TOPIA_WIN_STOCK else .TOPIA_SOL_STOCK
+    p <- do.call(rbind, strsplit(names(v), ".", fixed = TRUE))
+    k <- p[, 1] %in% regions
+    if (!any(k)) return(NULL)
+    data.frame(cluster = rep(p[k, 2], 2L), region = rep(p[k, 1], 2L),
+               year = rep(c(by, ey), each = sum(k)),
+               stock = rep(unname(v[k]), 2L), stringsAsFactors = FALSE)
+  }
+  vre_cl <- function(nm, comm, res, desc, inv, fixom) {
+    cls <- .cls(res)
+    newTechnology(nm, desc = desc,
+      cluster = data.frame(cluster = cls, stringsAsFactors = FALSE),
+      input = list(comm = comm), output = list(comm = "ELC"),
+      ceff = data.frame(comm = comm, cinp2use = 1),
+      weather = data.frame(cluster = cls, weather = wname(res, cls),
+                           comm = comm, waf.up = 1, stringsAsFactors = FALSE),
+      capacity = local({
+        cap <- vre_cap(res, years)
+        st <- vre_stock(res)
+        if (is.null(st)) cap else
+          merge(cap, st, by = c("cluster", "region", "year"), all = TRUE)
+      }),
+      cap2act = 31.536, fixom = fixom, invcost = list(invcost = inv),
+      olife = 25L, start = 2015L)
+  }
+  ESOL <- vre_cl("ESOL", "SOL", "WSOL", "Solar photovoltaic plant", mg(650), 12)
+  EWIN <- vre_cl("EWIN", "WIN", "WWIN", "Onshore wind farm", mg(1300), 35)
   EHYD <- if (length(hyd_regs) > 0)
     vre("EHYD", "HYD", "WHYD", "Reservoir hydropower plant", mg(3000), 45,
         region = hyd_regs,
@@ -412,8 +512,9 @@ build_topia <- function(regions = .topia_regions[1:3],
     COA, GAS, BIO, NUC, SOL, WIN, HYD, ELC, CO2,
     repo_supply,
     IMP_COA, IMP_GAS, EXP_ELC,
-    WSOL, WWIN, WHYD,
+    WHYD,
     ECOA, EGAS, ESOL, EWIN, EBIO, STG_ELC)
+  for (ob in c(WWIN_OBJ, WSOL_OBJ)) repo <- add(repo, ob)
   for (ob in list(ENUC, EHYD)) if (!is.null(ob)) repo <- add(repo, ob)
   for (trd in trades) repo <- add(repo, trd)
   repo <- add(repo, DEM_ELC)
@@ -528,7 +629,7 @@ build_topia <- function(regions = .topia_regions[1:3],
   list(regions = regions, calendar = calendar, repo = repo, geoscale = gscale,
        repo_comm = repo_comm, repo_supply = repo_supply,
        DEM_ELC = DEM_ELC,
-       WSOL = WSOL, WWIN = WWIN, WHYD = WHYD,
+       WSOL = WSOL_OBJ, WWIN = WWIN_OBJ, WHYD = WHYD,
        ECOA = ECOA, EGAS = EGAS, ENUC = ENUC, ESOL = ESOL, EWIN = EWIN,
        EHYD = EHYD, EBIO = EBIO, STG_ELC = STG_ELC,
        CO2_CAP = CO2_CAP, CT_CO2 = CT_CO2, RES_SHARE = RES_SHARE,
@@ -703,8 +804,12 @@ for (cfg in names(topia_modules$electricity)) {
             !(cfg %in% c("R7", "R12")) || methods::is(k$ENUC, "technology"),
             !(cfg %in% c("R7", "R12")) ||
               methods::is(k$ENUC_VINT, "technology"),
-            # every layout spans a zone with a gas endowment (NW or SE)
-            methods::is(k$GAS_CURVE, "supply"))
+            # A layout has a gas curve only where it reaches a gas-endowed
+            # zone. `R1` is the island alone: `Z1` holds one region, carries
+            # no transmission and has no domestic fuel, so there is nothing
+            # for a supply curve to step.
+            !(cfg %in% c("R3", "R7", "R12")) ||
+              methods::is(k$GAS_CURVE, "supply"))
 }
 # `unit` also carries its own `calendars` entry, which is not a kit.
 for (cfg in setdiff(names(topia_modules$unit), "calendars")) {

@@ -30,13 +30,9 @@ have_sf <- requireNamespace("sf", quietly = TRUE)
 
 # Overview
 
-TOPIA is a teaching model for energy-system optimization. Its **Reference
-Energy System (RES)** links primary resources, conversion technologies,
-storage, trade, and electricity demand across up to twelve regions.
+TOPIA is a teaching model for energy-system optimization. Its **Reference Energy System (RES)** links primary resources, conversion technologies, storage, trade, and electricity demand across up to twelve regions.
 
-The complete model is packaged as `topia$modules$electricity`. Smaller cases
-are cut from it with `subset_model_regions()` rather than kept as separate
-saved layouts.
+The complete model is packaged as `topia$modules$electricity`. Smaller cases are cut from it with `subset_model_regions()` rather than kept as separate saved layouts.
 
 ```{r setup, include=FALSE}
 library(energyRt)
@@ -108,6 +104,11 @@ from what it holds locally.
 gs <- topia$geoscales$honeycomb
 regions <- geoscale_regions(gs, geoframe = "region")
 regions
+
+# the zones the fossil fuels balance on, and where the rest of the world
+# reaches the model
+zones <- geoscale_regions(gs, geoframe = "zone")
+zones
 ```
 
 ```{r maps, eval = have_sf, fig.height = 5.2, fig.cap = "The honeycomb layout."}
@@ -116,7 +117,7 @@ plot_geoscale(gs, type = "map")
 
 ## Zones: the region hierarchy
 
-The regions nest into four zones of three and one nation.
+The regions nest into five zones of uneven size and one nation.
 `geoscale_leaftable()` returns this hierarchy.
 
 ```{r geoscale}
@@ -125,22 +126,28 @@ geo <- as.data.frame(geoscale_leaftable(gs))
 knitr::kable(geo, caption = "Regional hierarchy")
 ```
 
-Fuel balances and regional archetypes are defined by zone:
+The zones are deliberately uneven -- 1, 2, 3, 4 and 2 regions. A zone is where
+the fossil fuels balance, so its size decides how large a pool a region can
+draw on, and an even grouping would have made that uniform and uninteresting.
 
 | zone | regions | resource | load |
 |---|---|---|---|
-| `NW` | `R01`--`R03` | the arid end: the best sun, the weakest wind, the domestic gas | moderate, evening peak |
-| `NE` | `R04`--`R06` | the firm end: the nuclear station, the mountain reservoir | large and flat, industrial |
-| `SW` | `R07`--`R09` | the resource belt: run-of-river, the lignite basin, forestry | mixed |
-| `SE` | `R10`--`R12` | the windy end, onshore and offshore | small where the wind is, dense at the load centre |
+| `Z1` | `R01` | the island: the best wind in the model and the least sun, alone and with no wire | small, winter-peaking |
+| `Z2` | `R02`--`R03` | the sun: the highest solar yield, little wind, the domestic gas | moderate, evening peak |
+| `Z3` | `R04`--`R06` | the firm interior: the nuclear station, the mountain reservoir, the calmest air in the model | large and flat, industrial |
+| `Z4` | `R07`--`R10` | the belt: run-of-river, the lignite basin, forestry, and the north-coast wind at its eastern end | mixed |
+| `Z5` | `R11`--`R12` | the windy coast: exposed sites at both regions, poor sun | small, dense at the load centre |
 
 Each region is endowed differently, and the endowment is what the model is
-about: `R01` an island with no wire, `R02` the solar potential, `R03` domestic
-gas, `R04` the nuclear incumbent, `R05` the reservoir, `R06` industry, `R07`
-run-of-river, `R08` the lignite basin, `R09` forestry, `R10` the onshore wind
-peak, `R11` the load centre, `R12` the offshore wind. Solar and wind are
-available everywhere -- what differs is how much land each region can give
-them, and the capacity factor its own weather delivers.
+about: `R01` an island with no wire and no fuel of its own, `R02` and `R03` the
+solar potential with `R03` holding the domestic gas, `R04` the nuclear
+incumbent, `R05` the reservoir, `R06` industry, `R07` run-of-river, `R08` the
+lignite basin, `R09` forestry and the first exposed coast, `R10` the wind peak,
+`R11` the load centre, `R12` the second wind peak.
+
+Solar and wind are available everywhere -- what differs is which *grades* of
+each a region can offer, and the capacity factor its own weather delivers. The
+grades are measured rather than assigned: see "Input profiles" below.
 
 ```{r geoscale-stack, eval = have_sf, fig.height = 5.2, fig.cap = "The spatial hierarchy in a 3D stack."}
 geoscale_autoplot(gs,
@@ -152,10 +159,16 @@ geoscale_autoplot(gs,
 
 # Time resolution
 
-The base calendar has four seasons and 24 hourly timeslices per season.
+The base calendar is the full hourly year: 365 days of 24 hours, 8,760
+timeslices. The measured resource grades below are hourly series, and the
+things this model is about -- a multi-day lull, a storage cycle, a corridor
+that saturates in one hour and idles in the next -- only exist at that
+resolution. Smaller calendars are cut from it when a case needs to be quick:
+`d365_h24_1dpm` keeps one day a month and weights it, which is the same year
+seen through 288 timeslices.
 
 ```{r calendar, fig.height=3}
-calendar <- topia$modules$calendars$s4_h24
+calendar <- topia$modules$calendars$d365_h24
 autoplot(calendar)
 ```
 
@@ -189,7 +202,10 @@ autoplot(horizon)
 selected region set and calendar.
 
 ```{r inputs}
-prof <- topia_profiles(regions = regions, calendar = "s4_h24")
+# `d365_h24` selects the MEASURED dataset: hourly 2025 series, with wind in
+# three site grades and solar in two mountings. The smaller calendars carry a
+# simulated stand-in instead, which has no grades.
+prof <- topia_profiles(regions = regions, calendar = "d365_h24")
 head(prof$weather, 3)
 head(prof$demand, 3)
 # head(prof$stock, 3) # !!! should not be here, stock is not a profile
@@ -268,13 +284,15 @@ LANDW <- newCommodity(
   unit = "km2",
   timeframe = "ANNUAL",
   geoframe = "region",
-  # tiers, not labels: ridgeline and inland terrain must not pool, so the
-  # commodity becomes one balance per tier and a clustered wind farm draws
-  # on the tier its own cluster names
+  # tiers, not labels: exposed coast, open country and inland terrain must not
+  # pool, so the commodity becomes one balance per tier and a clustered wind
+  # farm draws on the tier its own cluster names. The three tiers match the
+  # measured wind grades -- a region holds land in a tier only where its own
+  # cells reach that grade.
   cluster = data.frame(
-    cluster = c("HI", "LO"),
-    desc = c("exposed ridges and coast", "open inland terrain"),
-    order = 1:2
+    cluster = c("HI", "MD", "LO"),
+    desc = c("exposed coast and ridge", "open country", "inland terrain"),
+    order = 1:3
   )
 )
 
@@ -351,12 +369,12 @@ fuel_path <- tibble::tribble(
 # carry a trajectory, and the steps are written out instead.
 fuel_base <- tibble::tribble(
   ~fuel, ~region,   ~cluster, ~price0, ~ava0,
-  "COA",  "SW",      "S1",       1.4,    100,
-  "COA",  "SW",      "S2",       1.8,    100,
-  "COA",  "SW",      "S3",       2.6,    100,
-  "GAS",  "NW",      "S1",       3.2,    120,
-  "GAS",  "NW",      "S2",       4.0,    120,
-  "GAS",  "NW",      "S3",       5.6,    120
+  "COA",  "Z4",      "S1",       1.4,    100,
+  "COA",  "Z4",      "S2",       1.8,    100,
+  "COA",  "Z4",      "S3",       2.6,    100,
+  "GAS",  "Z2",      "S1",       3.2,    120,
+  "GAS",  "Z2",      "S2",       4.0,    120,
+  "GAS",  "Z2",      "S3",       5.6,    120
 )
 
 # every step meets every year, which is the expansion wanted here -- said
@@ -385,7 +403,7 @@ SUP_COA <- newSupply(
   ),
   commodity = "COA",
   unit = "PJ",
-  region = "SW",
+  region = "Z4",
   cluster = fuel_steps |>
     mutate(desc = c("open cast", "shallow seam", "deep seam")),
   supply = coa_supply
@@ -400,7 +418,7 @@ SUP_GAS <- newSupply(
   ),
   commodity = "GAS",
   unit = "PJ",
-  region = "NW",
+  region = "Z2",
   cluster = fuel_steps |>
     mutate(desc = c("associated gas", "conventional", "tight")),
   supply = gas_supply
@@ -495,29 +513,80 @@ a wind farm needs. Each region's budget is the land its former cap would have
 occupied, at 20 km2 per GW of solar and 100 per GW of wind.
 
 ```{r siting}
-# Potential, not weather: every region can build both, and these are the
-# ceilings its land imposes. `R02` is the solar one, `R10` and `R12` the wind
-# ones, and `R11` -- the load centre -- is the region that cannot build its
-# way out of its own demand.
-siting <- tibble::tribble(
-  ~region, ~sol_GW, ~win_GW,
-  "R01",       5.0,     1.0,
-  "R02",      12.0,     2.0,
-  "R03",       6.0,     1.0,
-  "R04",       2.0,     2.0,
-  "R05",       2.0,     1.5,
-  "R06",       2.5,     2.5,
-  "R07",       2.0,     2.0,
-  "R08",       2.5,     2.0,
-  "R09",       2.0,     2.0,
-  "R10",       1.5,    14.0,
-  "R11",       1.0,     3.0,
-  "R12",       1.5,    10.0
-)
+# Potential, not weather. `topia$grades` carries, for every region and every
+# resource grade, the capacity factor of the series and the number of weather
+# cells standing behind it -- so the land a region can offer follows the
+# geography that produced the series rather than a hand-written ceiling.
+#
+# The two resources take land differently. A wind farm leaves the ground in
+# use and spreads thinly, so it is given a tenth of each cell and needs a lot
+# of km2 per GW; a photovoltaic field takes the ground outright, so it gets a
+# hundredth of each cell and needs little. The km2-per-GW figures differ by
+# grade the way `EWIN`'s own land intensity does: an exposed ridge is spaced
+# wider than open inland terrain, so it buys its yield with land.
+WIND_KM2_PER_CELL <- 10
+SOL_KM2_PER_CELL <- 1
+WIND_KM2_PER_GW <- c(HI = 120, MD = 95, LO = 70)   # as `EWIN`'s aeff
+SOL_KM2_PER_GW <- 20
+
+grades <- as.data.frame(topia$grades) |>
+  filter(region %in% regions)
+
+land_w <- grades |>
+  filter(resource == "WWIN") |>
+  transmute(region, cluster,
+            ava.up = round(avail * WIND_KM2_PER_CELL, 1))
+
+land_s <- grades |>
+  filter(resource == "WSOL", cluster == "FIX") |>
+  transmute(region, ava.up = round(avail * SOL_KM2_PER_CELL, 1))
+
+# what that land is worth in GW, which is the number to sanity-check
+siting <- land_w |>
+  mutate(GW = round(ava.up / WIND_KM2_PER_GW[cluster], 1)) |>
+  select(region, cluster, km2 = ava.up, GW) |>
+  arrange(region, cluster)
 
 knitr::kable(
   siting,
-  caption = "Solar and wind capacity the land pool is sized for, GW"
+  caption = "Wind land by region and grade, and the capacity it supports (GW)"
+)
+```
+
+A region appears only in the grades its own cells reach: the island and the
+north coast have no inland tier at all, the becalmed interior has nothing but
+inland terrain, and only the exposed coast carries `HI`. That is the whole
+point of grading the land rather than the turbine -- where a region may build
+is decided before any cost is compared.
+
+```{r grade-membership}
+# A cluster carries a `region` column: the grade exists THERE and nowhere
+# else. Without it every region would declare all three grades, and the
+# two-thirds that have no such ground would reference a wind series that does
+# not exist -- which is an error at interpolation, not a silent zero.
+win_cl <- tibble::tribble(
+  ~cluster,                     ~desc, ~order,
+     "HI", "exposed coast and ridge",      1,
+     "MD",            "open country",      2,
+     "LO",          "inland terrain",      3
+) |>
+  inner_join(distinct(land_w, cluster, region), by = "cluster") |>
+  select(cluster, desc, region, order)
+
+sol_cl <- tibble::tribble(
+  ~cluster,                 ~desc, ~order,
+    "FIX",          "fixed tilt",      1,
+    "TRK", "single-axis tracking",      2
+) |>
+  inner_join(
+    grades |> filter(resource == "WSOL") |> distinct(cluster, region),
+    by = "cluster"
+  ) |>
+  select(cluster, desc, region, order)
+
+knitr::kable(
+  win_cl |> count(cluster, name = "regions"),
+  caption = "Regions offering each wind grade"
 )
 ```
 
@@ -532,7 +601,7 @@ RES_LANDS <- newSupply(
   commodity = "LANDS",
   unit = "km2",
   region = regions,
-  supply = siting |> transmute(region, ava.up = sol_GW * 20)
+  supply = land_s
 )
 autoplot(RES_LANDS, style = "map", map = gs)
 
@@ -547,15 +616,10 @@ RES_LANDW <- newSupply(
   commodity = "LANDW",
   unit = "km2",
   region = regions,
-  cluster = data.frame(
-    cluster = c("HI", "LO"),
-    desc = c("exposed ridges and coast", "open inland terrain"),
-    order = 1:2
-  ),
-  supply = bind_rows(
-    siting |> transmute(region, cluster = "HI", ava.up = win_GW * 30),
-    siting |> transmute(region, cluster = "LO", ava.up = win_GW * 100)
-  )
+  cluster = win_cl,
+  # only the grades a region actually reaches: a tier it has no cells for is
+  # absent rather than zero, so nothing is declared where it cannot be built
+  supply = land_w
 )
 autoplot(RES_LANDW, style = "map", map = gs)
 
@@ -591,9 +655,9 @@ IMP_COA <- newImport(
   desc = "Coal import from the rest of the world",
   commodity = "COA",
   unit = "PJ",
-  region = c("NW", "NE", "SW", "SE"),
+  region = zones,
   import = data.frame(
-    region = c("NW", "NE", "SW", "SE"),
+    region = zones,
     price = 3.5
   )
 )
@@ -605,9 +669,9 @@ IMP_GAS <- newImport(
   desc = "LNG import from the rest of the world",
   commodity = "GAS",
   unit = "PJ",
-  region = c("NW", "NE", "SW", "SE"),
+  region = zones,
   import = data.frame(
-    region = c("NW", "NE", "SW", "SE"),
+    region = zones,
     price = 9.0
   )
 )
@@ -643,23 +707,25 @@ repo_supply <- newRepository(
 timeslice for solar, wind, and hydro.
 
 ```{r weather}
+# The grades are MEASURED, not derived. Each series is the mean of the
+# weather cells whose own annual capacity factor falls in that band, so the
+# grades differ in shape as well as in level -- a scaled copy of one series
+# would leave them correlated at 1.000, and the model would then see no reason
+# to hold more than one.
+#
+# A region carries only the grades its own ground reaches: the island and the
+# north coast have no inland tier, and the becalmed interior has nothing else.
+wwin <- prof$weather |>
+  filter(resource == "WWIN") |>
+  select(region, cluster, timeslice, wval)
+
+# Solar is graded by MOUNTING rather than by site: within a territory the best
+# and the median cell differ by a few per cent, while single-axis tracking on
+# the same ground is worth about a fifth more energy and moves the peak into
+# the morning. Tracking is offered only where the resource repays it.
 wsol <- prof$weather |>
   filter(resource == "WSOL") |>
-  select(region, timeslice, wval)
-
-wwin_hi <- prof$weather |>
-  filter(resource == "WWIN") |>
-  select(region, timeslice, wval) |>
-  mutate(cluster = "HI")
-
-# Inland sites are both weaker and steadier: three quarters of the level, and
-# the hour-to-hour swing pulled to 60% of the exposed grade's.
-wwin_lo <- wwin_hi |>
-  mutate(wval = 0.75 * (mean(wval) + 0.6 * (wval - mean(wval))),
-         cluster = "LO",
-         .by = region)
-
-wwin <- bind_rows(wwin_hi, wwin_lo)
+  select(region, cluster, timeslice, wval)
 
 whyd <- prof$weather |>
   filter(resource == "WHYD") |>
@@ -667,8 +733,9 @@ whyd <- prof$weather |>
 
 WSOL <- newWeather(
   name = "WSOL",
-  desc = "Solar capacity factor by timeslice and region",
+  desc = "Solar capacity factor by timeslice, region and mounting",
   timeframe = "HOUR",
+  cluster = sol_cl,
   weather = wsol
 )
 
@@ -678,11 +745,7 @@ WWIN <- newWeather(
   name = "WWIN",
   desc = "Wind capacity factor by timeslice, region and site grade",
   timeframe = "HOUR",
-  cluster = data.frame(
-    cluster = c("HI", "LO"),
-    desc = c("exposed ridges and coast", "open inland terrain"),
-    order = 1:2
-  ),
+  cluster = win_cl,
   weather = wwin
 )
 
@@ -748,18 +811,11 @@ knitr::kable(
 )
 ```
 
-Demand grows from a factor of 1.0 in 2025 to 1.5 in 2050. Each regional profile
-is normalized and scaled to its annual demand level.
+Each regional profile is normalized and scaled to its annual demand level in
+the base year. The model ships that year and nothing else; the next section
+grows it.
 
 ```{r demand}
-growth <- tibble::tribble(
-  ~year, ~factor,
-  2025, 1.0,
-  2030, 1.1,
-  2040, 1.3,
-  2050, 1.5
-)
-
 tsl_share <- calendar@timeslice_share |>
   as.data.frame() |>
   select(timeslice, share)
@@ -769,10 +825,14 @@ shape <- prof$demand |>
   mutate(w = load * share) |>
   mutate(w = w / sum(w), .by = region)
 
+# The BASE YEAR alone. One hourly year of demand for twelve regions is
+# already 105,120 numbers; carrying a milestone path would multiply that by
+# the number of milestones for no new information, since every later year is
+# this shape times a scalar. The projection is built below, in three lines,
+# and that is the part worth reading anyway.
 dem_elc <- shape |>
   left_join(levels, by = "region") |>
-  tidyr::crossing(growth) |>
-  mutate(demand = annual_GWh * factor * w) |>
+  mutate(year = 2025, demand = annual_GWh * w) |>
   select(region, year, timeslice, demand)
 
 DEM_ELC <- newDemand(
@@ -789,7 +849,47 @@ repo_demand <- newRepository(
 )
 ```
 
-The projected demand data, interpolated across years can be displayed as `"area"` plot of the annual totals stacked by region over every year between the first and last milestone. The bands are interpolated, the points are the four milestone years as given, drawn on the edge of their own band.
+## Growing it into a projection
+
+The shipped demand stops at the base year, so the model as it stands holds
+2025 demand in every milestone: `pDemand` is interpolated
+`back.inter.forth`, and with a single anchor there is nothing to interpolate
+between, so the value is carried forward.
+
+A projection is the base year times a path. Declaring the two ends is enough
+whenever the path is a straight line -- the rule fills what lies between, so
+1.1 in 2030 and 1.3 in 2040 come out of a table that never mentions them:
+
+```{r demand-projection}
+growth <- tibble::tribble(
+  ~year, ~factor,
+  2025,     1.0,
+  2050,     1.5
+)
+
+DEM_ELC_GROWN <- update(
+  DEM_ELC,
+  demand = dem_elc |>
+    select(-year) |>
+    tidyr::crossing(growth) |>
+    mutate(demand = demand * factor) |>
+    select(region, year, timeslice, demand)
+)
+
+# swap it in wherever a projection is wanted, leaving the shipped object alone
+#   mod <- add(mod, DEM_ELC_GROWN, overwrite = TRUE)
+range(DEM_ELC_GROWN@demand$year)
+```
+
+A path with a bend needs its corners declared and nothing else: anchor the
+years where the slope changes and let the rule draw the straight pieces. What
+never needs declaring is the hourly shape, which is the part that costs
+105,120 numbers a year.
+
+The projected demand, interpolated across years, can be displayed as an
+`"area"` plot of the annual totals stacked by region over every year between
+the first and last milestone. The bands are interpolated, the points are the
+milestone years as given, drawn on the edge of their own band.
 
 ```{r demand-annual, fig.height = 3.5}
 autoplot(DEM_ELC, style = "area")
@@ -1020,8 +1120,11 @@ and occupies more land per GW, and its land is the scarce kind; `LO` is weaker
 but plentiful. Which one a region builds is a question about its terrain.
 
 ```{r tech-solar}
+# Everything standing in 2025 is fixed tilt: tracking is new in this horizon
+# and has no legacy fleet.
 sol_cap <- data.frame(
   vintage = "2015",
+  cluster = "FIX",
   region = rep(regions, times = 2),
   year = rep(c(2025, 2050), each = length(regions)),
   stock = rep(c(1, 0), each = length(regions))
@@ -1054,22 +1157,31 @@ ESOL <- newTechnology(
     end = c(2020L, 2040L, 2050L),
     olife = c(25L, 30L, 30L)
   ),
+  # Two mountings on the same ground. Tracking earns about a fifth more
+  # energy from the same cells and moves the peak into the morning, and pays
+  # for it in capital and in land: the rows must not shade one another, so a
+  # tracking field is spread wider.
+  cluster = sol_cl,
   invcost = data.frame(
-    vintage = c("2015", "2030", "2045"),
-    invcost = convert("USD/kW", "MUSD/GW", c(650, 450, 350))
+    cluster = rep(c("FIX", "TRK"), each = 3),
+    vintage = rep(c("2015", "2030", "2045"), times = 2),
+    invcost = convert("USD/kW", "MUSD/GW",
+                      c(650, 450, 350, 780, 540, 420))
   ),
   fixom = data.frame(
-    vintage = c("2015", "2030", "2045"),
-    fixom = c(12, 10, 9)
+    cluster = rep(c("FIX", "TRK"), each = 3),
+    vintage = rep(c("2015", "2030", "2045"), times = 2),
+    fixom = c(12, 10, 9, 15, 13, 11)
   ),
   aux = data.frame(
     acomm = "LANDS",
     unit = "km2"
   ),
   aeff = data.frame(
-    vintage = c("2015", "2030", "2045"),
+    cluster = rep(c("FIX", "TRK"), each = 3),
+    vintage = rep(c("2015", "2030", "2045"), times = 2),
     acomm = "LANDS",
-    cap2ainp = c(20, 16, 14) # km2 of land per GW standing
+    cap2ainp = c(20, 16, 14, 28, 23, 20) # km2 of land per GW standing
   ),
   capacity = sol_cap
 )
@@ -1086,21 +1198,44 @@ draw(ESOL)
 # quarter of that budget -- 3.5 GW in `R10`, 2.5 in `R12`, 0.75 in `R11`. The
 # inherited fleet is set below each ceiling so the later vintages have room to
 # build; filling it would leave the exposed grade nowhere to grow.
+# The 2025 fleet, by region and grade. What stands in the base year is
+# observed, so it is stock rather than a decision, and it retires to nothing
+# by 2050 -- the legacy vintage is closed to investment before 2025.
+#
+# The table is FILTERED to the grades a region actually has: declaring a
+# turbine on a tier with no land and no wind series would reach the model as a
+# plant that can never run.
+win_stock <- tibble::tribble(
+  ~region, ~cluster, ~stock,
+  "R10",   "HI",       2.5,
+  "R11",   "HI",       2.0,
+  "R12",   "HI",       1.5,
+  "R09",   "HI",       1.0,
+  "R01",   "HI",       0.4,
+  "R11",   "MD",       0.5,
+  "R12",   "MD",       0.4,
+  "R02",   "MD",       0.3,
+  "R01",   "MD",       0.2,
+  "R03",   "LO",       0.8,
+  "R04",   "LO",       0.8,
+  "R06",   "LO",       0.6,
+  "R08",   "LO",       0.6,
+  "R07",   "LO",       0.4,
+  "R09",   "LO",       0.4,
+  "R05",   "LO",       0.2,
+  "R02",   "LO",       0.2
+) |>
+  semi_join(land_w, by = c("region", "cluster"))
+
 win_cap <- bind_rows(
-  data.frame(
-    vintage = "2015",
-    cluster = "LO",
-    region = rep(regions, times = 2),
-    year = rep(c(2025, 2050), each = length(regions)),
-    stock = rep(c(1, 0), each = length(regions))
-  ),
-  data.frame(
-    vintage = "2015",
-    cluster = "HI",
-    region = rep(c("R10", "R11", "R12"), times = 2),
-    year = rep(c(2025, 2050), each = 3),
-    stock = c(3.0, 0.5, 2.0, 0, 0, 0)
-  )
+  win_stock |> mutate(vintage = "2015", year = 2025),
+  win_stock |> mutate(vintage = "2015", year = 2050, stock = 0)
+) |>
+  select(vintage, cluster, region, year, stock)
+
+knitr::kable(
+  win_stock |> tidyr::pivot_wider(names_from = cluster, values_from = stock),
+  caption = "Base-year wind fleet by grade, GW"
 )
 
 EWIN <- newTechnology(
@@ -1132,21 +1267,17 @@ EWIN <- newTechnology(
     vintage = c("2015", "2030", "2045"),
     fixom = c(35, 30, 28)
   ),
-  cluster = data.frame(
-    cluster = c("HI", "LO"),
-    desc = c("exposed ridges and coast", "open inland terrain"),
-    order = 1:2
-  ),
+  cluster = win_cl,
   aux = data.frame(
     acomm = "LANDW",
     unit = "km2"
   ),
   aeff = data.frame(
-    cluster = rep(c("HI", "LO"), each = 3),
-    vintage = rep(c("2015", "2030", "2045"), times = 2),
+    cluster = rep(c("HI", "MD", "LO"), each = 3),
+    vintage = rep(c("2015", "2030", "2045"), times = 3),
     acomm = "LANDW",
     # the windier grade needs wider spacing, so it buys its yield with land
-    cap2ainp = c(120, 114, 108, 70, 66, 63)
+    cap2ainp = c(120, 114, 108, 95, 90, 86, 70, 66, 63)
   ),
   capacity = win_cap
 )
@@ -1451,9 +1582,9 @@ carry 60 PJ/year at 99% efficiency, the gas pipe 40 PJ/year at 98%. Their
 capacity unit is PJ/year, so `cap2act = 1`.
 
 ```{r trade-fuels}
-TBD_COA_SW_NE <- newTrade(
-  name = "TBD_COA_SW_NE",
-  desc = "Coal rail corridor SW - NE",
+TBD_COA_Z4_Z3 <- newTrade(
+  name = "TBD_COA_Z4_Z3",
+  desc = "Coal rail corridor Z4 - Z3",
   units = data.frame(
     capacity = "PJ/year",
     activity = "PJ",
@@ -1461,31 +1592,31 @@ TBD_COA_SW_NE <- newTrade(
   ),
   commodity = "COA",
   routes = data.frame(
-    src = c("SW", "NE"),
-    dst = c("NE", "SW")
+    src = c("Z4", "Z3"),
+    dst = c("Z3", "Z4")
   ),
   trade = data.frame(
-    src = c("SW", "NE"),
-    dst = c("NE", "SW"),
+    src = c("Z4", "Z3"),
+    dst = c("Z3", "Z4"),
     teff = 0.99
   ),
   cap2act = 1, # capacity in PJ/yr
   capacity = data.frame(stock = 60),
   invcost = data.frame(
-    region = c("SW", "NE"),
+    region = c("Z4", "Z3"),
     invcost = 20
   ),
   varom = data.frame(
-    src = c("SW", "NE"),
-    dst = c("NE", "SW"),
+    src = c("Z4", "Z3"),
+    dst = c("Z3", "Z4"),
     varom = 0.3
   ),
   vintage = data.frame(olife = 40L)
 )
 
-TBD_COA_SW_SE <- newTrade(
-  name = "TBD_COA_SW_SE",
-  desc = "Coal rail corridor SW - SE",
+TBD_COA_Z4_Z5 <- newTrade(
+  name = "TBD_COA_Z4_Z5",
+  desc = "Coal rail corridor Z4 - Z5",
   units = data.frame(
     capacity = "PJ/year",
     activity = "PJ",
@@ -1493,31 +1624,31 @@ TBD_COA_SW_SE <- newTrade(
   ),
   commodity = "COA",
   routes = data.frame(
-    src = c("SW", "SE"),
-    dst = c("SE", "SW")
+    src = c("Z4", "Z5"),
+    dst = c("Z5", "Z4")
   ),
   trade = data.frame(
-    src = c("SW", "SE"),
-    dst = c("SE", "SW"),
+    src = c("Z4", "Z5"),
+    dst = c("Z5", "Z4"),
     teff = 0.99
   ),
   cap2act = 1,
   capacity = data.frame(stock = 60),
   invcost = data.frame(
-    region = c("SW", "SE"),
+    region = c("Z4", "Z5"),
     invcost = 20
   ),
   varom = data.frame(
-    src = c("SW", "SE"),
-    dst = c("SE", "SW"),
+    src = c("Z4", "Z5"),
+    dst = c("Z5", "Z4"),
     varom = 0.3
   ),
   vintage = data.frame(olife = 40L)
 )
 
-TBD_GAS_NW_NE <- newTrade(
-  name = "TBD_GAS_NW_NE",
-  desc = "Gas pipeline NW - NE, one way",
+TBD_GAS_Z2_Z3 <- newTrade(
+  name = "TBD_GAS_Z2_Z3",
+  desc = "Gas pipeline Z2 - Z3, one way",
   units = data.frame(
     capacity = "PJ/year",
     activity = "PJ",
@@ -1526,23 +1657,23 @@ TBD_GAS_NW_NE <- newTrade(
   commodity = "GAS",
   # one row, so the pipe runs one way only: gas leaves the producing zone
   routes = data.frame(
-    src = "NW",
-    dst = "NE"
+    src = "Z2",
+    dst = "Z3"
   ),
   trade = data.frame(
-    src = "NW",
-    dst = "NE",
+    src = "Z2",
+    dst = "Z3",
     teff = 0.98
   ),
   cap2act = 1,
   capacity = data.frame(stock = 40),
   invcost = data.frame(
-    region = c("NW", "NE"),
+    region = c("Z2", "Z3"),
     invcost = 60
   ),
   varom = data.frame(
-    src = "NW",
-    dst = "NE",
+    src = "Z2",
+    dst = "Z3",
     varom = 0.2
   ),
   vintage = data.frame(olife = 40L)
@@ -1550,8 +1681,8 @@ TBD_GAS_NW_NE <- newTrade(
 
 repo_fuel_trade <- newRepository(
   name = "topia_fuel_trade",
-  TBD_COA_SW_NE, TBD_COA_SW_SE,
-  TBD_GAS_NW_NE
+  TBD_COA_Z4_Z3, TBD_COA_Z4_Z5,
+  TBD_GAS_Z2_Z3
 )
 
 names(repo_fuel_trade)
