@@ -516,6 +516,16 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* `commodity@emis$unit` and `@agg$unit` are **rates**, reported as declared.
+  `getUnits()` divided both by the commodity's own unit, which was right for
+  neither: an emission factor's denominator is already this commodity
+  (`"kt/PJ"` was reported as `kt/PJ/{comm}`), while an aggregation
+  coefficient's *numerator* is the one that matches it (`"kt"` on a `kt`
+  aggregate was reported as `kt/{comm}`). A new check warns when either column
+  holds a quantity instead of a rate, and when the side that must agree with
+  `@units$comm` does not -- a warning, never an error, since a unit is reported
+  and cross-checked and never converted.
+
 * `getUnits()` on a `commodity` errored with "argument is of length zero"
   whenever the commodity declared no unit, which is every commodity in the
   shipped test models: the default was `character()` and `nzchar()` on it

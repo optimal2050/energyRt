@@ -371,16 +371,19 @@ setMethod("getUnits", "commodity", function(object, slots = NULL, ...) {
     )
   }
 
+  # `@emis$unit` and `@agg$unit` are RATES, declared whole: the emission
+  # factor's numerator is the EMITTED commodity's unit and its denominator this
+  # one's, while an aggregation coefficient's numerator is this one's and its
+  # denominator the member's. Neither is composed here -- doing so
+  # double-divided the first and inverted the second.
   if ("emis" %in% use_slots && nrow(object@emis) > 0) {
     for (i in seq_len(nrow(object@emis))) {
-      eu <- object@emis$unit[i]
-      cu <- if (!is.na(own)) own else "{comm}"
       rows[[length(rows) + 1]] <- data.frame(
         slot        = "emis",
         parameter   = "emis",
         comm        = object@emis$comm[i],
         description = "Emission factor",
-        unit        = paste0(eu, "/", cu),
+        unit        = object@emis$unit[i],
         stringsAsFactors = FALSE
       )
     }
@@ -388,14 +391,12 @@ setMethod("getUnits", "commodity", function(object, slots = NULL, ...) {
 
   if ("agg" %in% use_slots && nrow(object@agg) > 0) {
     for (i in seq_len(nrow(object@agg))) {
-      au <- object@agg$unit[i]
-      cu <- if (!is.na(own)) own else "{comm}"
       rows[[length(rows) + 1]] <- data.frame(
         slot        = "agg",
         parameter   = "agg",
         comm        = object@agg$comm[i],
         description = "Aggregation weight",
-        unit        = paste0(au, "/", cu),
+        unit        = object@agg$unit[i],
         stringsAsFactors = FALSE
       )
     }

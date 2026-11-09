@@ -55,7 +55,8 @@ There is deliberately no \code{region} column: a commodity has no \code{region} 
 \item{cluster}{character. Tier this row applies to, NA for every tier. See the \code{cluster} slot: grades of one commodity differ in exactly this kind of data (carbon content, heat value), so a row may be shared or per tier.
 }
 \item{comm}{character. Name of a commodity being aggregated.}
-\item{unit}{character. Unit of the commodity being aggregated.}
+\item{unit}{character. Unit of the aggregation coefficient, as a RATE: THIS commodity's unit over the member's, e.g. "kt/t". Members may each be in a different measure (H2 in kg or GWh, CH4 in PJ, NO3 in t), so the denominator varies by row while the numerator must agree with this commodity's \verb{@units$comm}. Reported as declared; nothing is converted.
+}
 \item{agg}{numeric. weight of the commodity in the aggregation, must be set for all aggregated commodities.
 }
 }}
@@ -66,7 +67,8 @@ There is deliberately no \code{region} column: a commodity has no \code{region} 
 \item{cluster}{character. Tier this row applies to, NA for every tier. See the \code{cluster} slot: grades of one commodity differ in exactly this kind of data (carbon content, heat value), so a row may be shared or per tier.
 }
 \item{comm}{character. Name of the emitted commodity.}
-\item{unit}{character. Unit of the emission factor.}
+\item{unit}{character. Unit of the emission factor, as a RATE: the emitted commodity's unit over THIS commodity's, e.g. "kt/PJ". The numerator stays in the emitted commodity's own measure -- a leakage factor is counted in GHG units, not the carrier's -- and the denominator must agree with this commodity's \verb{@units$comm}. Reported as declared; nothing is converted.
+}
 \item{emis}{numeric. Emission factor, emissions released per unit of the consumed commodity.
 }
 }}
@@ -118,7 +120,7 @@ newCommodity(
     unit = c("GJ/t", "t/m3"),
     comment = c("IEA average, other bituminous", "bulk, as stockpiled")
   ),
-  emis = data.frame(comm = "CO2", unit = "Mt", emis = 0.0946)
+  emis = data.frame(comm = "CO2", unit = "Mt/PJ", emis = 0.0946)
 )
 }
 \seealso{

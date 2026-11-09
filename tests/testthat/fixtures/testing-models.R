@@ -95,7 +95,7 @@ tm_GHG <- newCommodity(
   name = "GHG",
   desc = "Aggregate greenhouse gas (CO2-equivalent)",
   timeframe = "ANNUAL",
-  agg = data.frame(comm = "CO2", unit = "kt", agg = 1)
+  agg = data.frame(comm = "CO2", unit = "kt/kt", agg = 1)
 )
 
 # --- Supply ---------------------------------------------------------------- #

@@ -112,7 +112,13 @@ class:
           description: Name of the emitted commodity.
         unit:
           type: character
-          description: Unit of the emission factor.
+          description: >
+            Unit of the emission factor, as a RATE: the emitted
+            commodity's unit over THIS commodity's, e.g. "kt/PJ". The
+            numerator stays in the emitted commodity's own measure -- a
+            leakage factor is counted in GHG units, not the carrier's --
+            and the denominator must agree with this commodity's
+            `@units$comm`. Reported as declared; nothing is converted.
         emis:
           type: numeric
           description: >
@@ -133,7 +139,13 @@ class:
           description: Name of a commodity being aggregated.
         unit:
           type: character
-          description: Unit of the commodity being aggregated.
+          description: >
+            Unit of the aggregation coefficient, as a RATE: THIS
+            commodity's unit over the member's, e.g. "kt/t". Members may
+            each be in a different measure (H2 in kg or GWh, CH4 in PJ,
+            NO3 in t), so the denominator varies by row while the
+            numerator must agree with this commodity's `@units$comm`.
+            Reported as declared; nothing is converted.
         agg:
           type: numeric
           description: >

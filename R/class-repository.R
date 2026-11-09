@@ -196,6 +196,9 @@ setMethod("summary", signature(object = "repository"), function(object, ...) {
   # key against the class's catalogued columns and errors on one that
   # names nothing, where a typo would otherwise be a silent no-op.
   .check_param_overrides(x)
+  # `@emis$unit` / `@agg$unit` are rates; a slot assigned with `@<-` never
+  # passed the constructor's check
+  if (methods::is(x, "commodity")) .check_comm_rate_units(x)
   r <- methods::validObject(x, test = TRUE)
   if (!isTRUE(r)) {
     nm <- if (methods::.hasSlot(x, "name")) paste0(' "', x@name, '"') else ""

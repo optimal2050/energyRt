@@ -134,7 +134,7 @@ setMethod("initialize", "commodity", function(.Object, ...) {
 #'     unit = c("GJ/t", "t/m3"),
 #'     comment = c("IEA average, other bituminous", "bulk, as stockpiled")
 #'   ),
-#'   emis = data.frame(comm = "CO2", unit = "Mt", emis = 0.0946)
+#'   emis = data.frame(comm = "CO2", unit = "Mt/PJ", emis = 0.0946)
 #' )
 newCommodity <- function(
     name = "",
@@ -172,8 +172,60 @@ newCommodity <- function(
   # after `.data2slots()`, so that a malformed table fails on its column names
   # first and the checks below see a normalised, fully-columned table
   .check_commodity_property(obj@property, name = obj@name)
+  .check_comm_rate_units(obj)
   obj
 }
+# `@emis$unit` and `@agg$unit` hold a RATE, and the side that must agree with
+# this commodity's own measure differs between them: `@emis` is
+# `<emitted>/<this>`, `@agg` is `<this>/<member>`. The other side belongs to a
+# different commodity object and can only be checked with the model in hand.
+#
+# Both findings WARN and nothing stops: a unit is reported and cross-checked,
+# never converted, so a disagreement cannot make a number wrong on its own --
+# and both spellings have been in use, so a model that declares the short form
+# must keep building.
+#' @noRd
+.comm_rate_slots <- c(emis = "denominator", agg = "numerator")
+
+#' @noRd
+.check_comm_rate_units <- function(obj, name = NULL) {
+  own <- tryCatch(getUnit(obj), error = function(e) NA_character_)
+  nm <- name %||% tryCatch(obj@name, error = function(e) "commodity")
+  warn <- function(...) warning(..., call. = FALSE)
+  bad <- character()
+  for (sl in names(.comm_rate_slots)) {
+    d <- tryCatch(methods::slot(obj, sl), error = function(e) NULL)
+    if (!is.data.frame(d) || !nrow(d) || !("unit" %in% names(d))) next
+    side <- .comm_rate_slots[[sl]]
+    for (i in seq_len(nrow(d))) {
+      u <- d$unit[i]
+      if (is.na(u) || !nzchar(u)) next
+      parts <- strsplit(u, "/", fixed = TRUE)[[1]]
+      if (length(parts) != 2L) {
+        warn("`", nm, "@", sl, "$unit` is a RATE, not a quantity: \"", u,
+             "\" should read ",
+             if (identical(sl, "emis"))
+               "<emitted commodity>/<this commodity>, e.g. \"kt/PJ\""
+             else "<this commodity>/<member>, e.g. \"kt/t\"",
+             ". Reported as declared.")
+        next
+      }
+      if (is.na(own) || !nzchar(own)) next
+      mine <- if (identical(side, "denominator")) parts[2] else parts[1]
+      if (!identical(mine, own)) {
+        bad <- c(bad, sprintf("@%s$unit \"%s\": its %s is %s, but the commodity is measured in %s",
+                              sl, u, side, mine, own))
+      }
+    }
+  }
+  if (length(bad)) {
+    warn(nm, ": ", length(bad), " unit(s) disagree with the commodity's own ",
+         "measure:\n  ", paste(bad, collapse = "\n  "),
+         "\nNothing is converted; the units are reported as declared.")
+  }
+  invisible(NULL)
+}
+
 
 
 #' @method update commodity
