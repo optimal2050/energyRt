@@ -11,7 +11,7 @@ of three tidy data.frames."><meta property="og:image" content="https://energyRt.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,8 +29,10 @@ of three tidy data.frames."><meta property="og:image" content="https://energyRt.
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -172,11 +174,9 @@ over any calendar and returns a single data.frame.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># weather, demand and stock for two regions of the TOPIA map</span></span></span>
 <span class="r-in"><span><span class="va">prof</span> <span class="op">&lt;-</span> <span class="fu">topia_profiles</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"W1"</span>, <span class="st">"W2"</span><span class="op">)</span>, calendar <span class="op">=</span> <span class="st">"s4_h24"</span><span class="op">)</span></span></span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> no TOPIA profile for region 'W1'. Known codes: R01, R02, R03, R04, R05, R06, R07, R08, R09, R10, R11, R12, Z1, Z2, Z3, Z4, Z5, TOPIA</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">prof</span><span class="op">$</span><span class="va">weather</span>, <span class="fl">3</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   resource region timeslice   wval</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1     WHYD     W1   FAL_h00 0.2265</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2     WHYD     W1   FAL_h01 0.2265</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3     WHYD     W1   FAL_h02 0.2265</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'prof' not found</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

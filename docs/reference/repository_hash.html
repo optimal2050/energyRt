@@ -19,7 +19,7 @@ hashes differently from its in-memory original — hash before thinning
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,8 +37,10 @@ hashes differently from its in-memory original — hash before thinning
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -104,11 +106,11 @@ hashes differently from its in-memory original — hash before thinning
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">repo</span> <span class="op">&lt;-</span> <span class="fu"><a href="newRepository.html">newRepository</a></span><span class="op">(</span><span class="st">"r"</span>, <span class="fu"><a href="newCommodity.html">newCommodity</a></span><span class="op">(</span><span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">repository_hash</span><span class="op">(</span><span class="va">repo</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "90c6e2abf5a6c5720e6c10b405cb8d9f"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "3427382a1e34f6efa1863716f8d93af5"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># the hash follows the content: adding an object changes it</span></span></span>
 <span class="r-in"><span><span class="fu">repository_hash</span><span class="op">(</span><span class="fu"><a href="add.html">add</a></span><span class="op">(</span><span class="va">repo</span>, <span class="fu"><a href="newCommodity.html">newCommodity</a></span><span class="op">(</span><span class="st">"COA"</span>, unit <span class="op">=</span> <span class="st">"MMBtu"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "4c97faf9ed708b46f7a686e044d72449"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "965548fbd3dfb3f41be2532550171ce4"</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

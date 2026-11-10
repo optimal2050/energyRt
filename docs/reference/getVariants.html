@@ -25,7 +25,7 @@ The expansion runs on a throwaway copy, so the model passed in is unchanged."><m
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,8 +43,10 @@ The expansion runs on a throwaway copy, so the model passed in is unchanged."><m
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -148,45 +150,88 @@ The expansion runs on a throwaway copy, so the model passed in is unchanged.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 8       SUP_BIO_CLS2     supply   SUP_BIO    &lt;NA&gt;      S2</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 9       SUP_BIO_CLS3     supply   SUP_BIO    &lt;NA&gt;      S3</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 10    RES_LANDW_CLHI     supply RES_LANDW    &lt;NA&gt;      HI</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11    RES_LANDW_CLLO     supply RES_LANDW    &lt;NA&gt;      LO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12      ESOL_VIN2015 technology      ESOL    2015    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13      ESOL_VIN2030 technology      ESOL    2030    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14      ESOL_VIN2045 technology      ESOL    2045    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15 EWIN_VIN2015_CLHI technology      EWIN    2015      HI</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16 EWIN_VIN2030_CLHI technology      EWIN    2030      HI</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17 EWIN_VIN2045_CLHI technology      EWIN    2045      HI</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18 EWIN_VIN2015_CLLO technology      EWIN    2015      LO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19 EWIN_VIN2030_CLLO technology      EWIN    2030      LO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20 EWIN_VIN2045_CLLO technology      EWIN    2045      LO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21   STG_ELC_VIN2025    storage   STG_ELC    2025    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22   STG_ELC_VIN2035    storage   STG_ELC    2035    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23   STG_ELC_VIN2045    storage   STG_ELC    2045    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24     H2ELC_VIN2030 technology     H2ELC    2030    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 25     H2ELC_VIN2040 technology     H2ELC    2040    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 26     H2ELC_VIN2050 technology     H2ELC    2050    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11    RES_LANDW_CLMD     supply RES_LANDW    &lt;NA&gt;      MD</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12    RES_LANDW_CLLO     supply RES_LANDW    &lt;NA&gt;      LO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13 ESOL_VIN2015_CLFL technology      ESOL    2015      FL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14 ESOL_VIN2030_CLFL technology      ESOL    2030      FL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15 ESOL_VIN2045_CLFL technology      ESOL    2045      FL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16 ESOL_VIN2015_CLTH technology      ESOL    2015      TH</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17 ESOL_VIN2030_CLTH technology      ESOL    2030      TH</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18 ESOL_VIN2045_CLTH technology      ESOL    2045      TH</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19 EWIN_VIN2015_CLHI technology      EWIN    2015      HI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20 EWIN_VIN2030_CLHI technology      EWIN    2030      HI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 21 EWIN_VIN2045_CLHI technology      EWIN    2045      HI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 22 EWIN_VIN2015_CLMD technology      EWIN    2015      MD</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 23 EWIN_VIN2030_CLMD technology      EWIN    2030      MD</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 24 EWIN_VIN2045_CLMD technology      EWIN    2045      MD</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 25 EWIN_VIN2015_CLLO technology      EWIN    2015      LO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 26 EWIN_VIN2030_CLLO technology      EWIN    2030      LO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 27 EWIN_VIN2045_CLLO technology      EWIN    2045      LO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 28   STG_ELC_VIN2025    storage   STG_ELC    2025    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 29   STG_ELC_VIN2035    storage   STG_ELC    2035    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 30   STG_ELC_VIN2045    storage   STG_ELC    2045    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 31     H2ELC_VIN2030 technology     H2ELC    2030    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 32     H2ELC_VIN2040 technology     H2ELC    2040    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 33     H2ELC_VIN2050 technology     H2ELC    2050    &lt;NA&gt;</span>
 <span class="r-in"><span><span class="fu">getVariants</span><span class="op">(</span><span class="va">mod</span>, class <span class="op">=</span> <span class="st">"technology"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 name      class  base vintage cluster</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1       ESOL_VIN2015 technology  ESOL    2015    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2       ESOL_VIN2030 technology  ESOL    2030    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3       ESOL_VIN2045 technology  ESOL    2045    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4  EWIN_VIN2015_CLHI technology  EWIN    2015      HI</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5  EWIN_VIN2030_CLHI technology  EWIN    2030      HI</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6  EWIN_VIN2045_CLHI technology  EWIN    2045      HI</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7  EWIN_VIN2015_CLLO technology  EWIN    2015      LO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8  EWIN_VIN2030_CLLO technology  EWIN    2030      LO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9  EWIN_VIN2045_CLLO technology  EWIN    2045      LO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10     H2ELC_VIN2030 technology H2ELC    2030    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11     H2ELC_VIN2040 technology H2ELC    2040    &lt;NA&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12     H2ELC_VIN2050 technology H2ELC    2050    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  ESOL_VIN2015_CLFL technology  ESOL    2015      FL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  ESOL_VIN2030_CLFL technology  ESOL    2030      FL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3  ESOL_VIN2045_CLFL technology  ESOL    2045      FL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  ESOL_VIN2015_CLTH technology  ESOL    2015      TH</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5  ESOL_VIN2030_CLTH technology  ESOL    2030      TH</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6  ESOL_VIN2045_CLTH technology  ESOL    2045      TH</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7  EWIN_VIN2015_CLHI technology  EWIN    2015      HI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8  EWIN_VIN2030_CLHI technology  EWIN    2030      HI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9  EWIN_VIN2045_CLHI technology  EWIN    2045      HI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10 EWIN_VIN2015_CLMD technology  EWIN    2015      MD</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11 EWIN_VIN2030_CLMD technology  EWIN    2030      MD</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12 EWIN_VIN2045_CLMD technology  EWIN    2045      MD</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13 EWIN_VIN2015_CLLO technology  EWIN    2015      LO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14 EWIN_VIN2030_CLLO technology  EWIN    2030      LO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15 EWIN_VIN2045_CLLO technology  EWIN    2045      LO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16     H2ELC_VIN2030 technology H2ELC    2030    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17     H2ELC_VIN2040 technology H2ELC    2040    &lt;NA&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18     H2ELC_VIN2050 technology H2ELC    2050    &lt;NA&gt;</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># a process gains variants from its own @cluster / @vintage tables</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="getObject.html">getObject</a></span><span class="op">(</span><span class="va">topia_elc</span><span class="op">$</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"EWIN"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">@</span><span class="va">cluster</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   cluster                     desc region cap.share.fx act.share.lo</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1      HI exposed ridges and coast   &lt;NA&gt;           NA           NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2      LO      open inland terrain   &lt;NA&gt;           NA           NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   act.share.up act.share.fx order</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1           NA           NA     1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2           NA           NA     2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    cluster                    desc region cap.share.fx act.share.lo</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1       HI exposed coast and ridge    R01           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2       HI exposed coast and ridge    R09           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3       HI exposed coast and ridge    R10           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4       HI exposed coast and ridge    R11           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5       HI exposed coast and ridge    R12           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6       MD            open country    R01           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7       MD            open country    R02           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8       MD            open country    R11           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9       MD            open country    R12           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10      LO          inland terrain    R02           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11      LO          inland terrain    R03           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12      LO          inland terrain    R04           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13      LO          inland terrain    R05           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14      LO          inland terrain    R06           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15      LO          inland terrain    R07           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16      LO          inland terrain    R08           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17      LO          inland terrain    R09           NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    act.share.up act.share.fx order</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1            NA           NA     1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2            NA           NA     1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3            NA           NA     1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4            NA           NA     1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5            NA           NA     1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6            NA           NA     2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7            NA           NA     2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8            NA           NA     2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9            NA           NA     2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10           NA           NA     3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11           NA           NA     3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12           NA           NA     3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13           NA           NA     3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14           NA           NA     3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15           NA           NA     3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16           NA           NA     3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17           NA           NA     3</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

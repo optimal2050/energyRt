@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -46,8 +46,10 @@
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -247,15 +249,14 @@ count over 365; seasons are <code>WIN/SPR/SUM/FAL</code> in calendar
 order):</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">calendars</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  [1] "annual"                 "d365"                   "d365_h24"              </span></span>
-<span><span class="co">#&gt;  [4] "m12"                    "m12a"                   "q4"                    </span></span>
-<span><span class="co">#&gt;  [7] "s4"                     "s4_h24"                 "m12_h24"               </span></span>
-<span><span class="co">#&gt; [10] "wd7_h24"                "w52_h24"                "s4_h24_subset_2seasons"</span></span>
-<span><span class="co">#&gt; [13] "m12_h24_subset_4months" "m12_subset_q1"          "d365_h24_1dps"         </span></span>
-<span><span class="co">#&gt; [16] "d365_h24_1dpm"          "s4_hp3"                 "m12_d365_h24"          </span></span>
-<span><span class="co">#&gt; [19] "m12_d365_h24_1dpm"</span></span>
-<span><span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">topia_seasons</span><span class="op">@</span><span class="va">desc</span></span>
-<span><span class="co">#&gt; [1] "TOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK), 12 timeslices"</span></span>
+<span><span class="co">#&gt;  [1] "annual"            "m12"               "m12a"             </span></span>
+<span><span class="co">#&gt;  [4] "q4"                "s4"                "s4_h24"           </span></span>
+<span><span class="co">#&gt;  [7] "m12_h24"           "wd7_h24"           "w52_h24"          </span></span>
+<span><span class="co">#&gt; [10] "d365"              "d365_h24"          "s4_hp3"           </span></span>
+<span><span class="co">#&gt; [13] "m12_subset_q1"     "d365_h24_1dps"     "d365_h24_1dpm"    </span></span>
+<span><span class="co">#&gt; [16] "m12_d365_h24"      "m12_d365_h24_1dpm"</span></span>
+<span><span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">d365_h24</span><span class="op">@</span><span class="va">desc</span></span>
+<span><span class="co">#&gt; [1] "YDAY/HOUR calendar (8760 timeslices; truncated, regular) (timescales 0.7.2)"</span></span>
 <span><span class="va">s4</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4</span><span class="op">@</span><span class="va">timetable</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"SEASON"</span>, <span class="st">"share"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="va">s4</span><span class="op">$</span><span class="va">share</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">s4</span><span class="op">$</span><span class="va">share</span>, <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="va">s4</span></span>
@@ -269,10 +270,14 @@ parent design whose <code>year_fraction &lt; 1</code> is the surviving
 share of the year. They solve partial years natively — declared
 timeslices, weights, and storage cycles all follow the sample:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24_subset_2seasons</span><span class="op">@</span><span class="va">year_fraction</span>   <span class="co"># WIN + SUM</span></span>
-<span><span class="co">#&gt; [1] 0.4986301</span></span></code></pre></div>
-<p>Pick one and pass it to <code>newModel(calendar = ...)</code>; the
-TOPIA vignettes use <code>calendars$s4_h24</code> throughout.</p>
+<code class="sourceCode R"><span><span class="va">calendars</span><span class="op">$</span><span class="va">d365_h24_1dpm</span><span class="op">@</span><span class="va">year_fraction</span>   <span class="co"># one day per month</span></span>
+<span><span class="co">#&gt; [1] 0.03287671</span></span></code></pre></div>
+<p>Pick one and pass it to <code>newModel(calendar = ...)</code>. A
+calendar has to hold the timeslices the model’s own data is declared at:
+the TOPIA kit’s profiles are measured on <code>d365_h24</code>, so its
+vignettes use that calendar or a sampled subset of it such as
+<code>d365_h24_1dpm</code>. A design whose labels the data never
+mentions is refused at interpolation, not quietly ignored.</p>
 </div>
 <div class="section level2">
 <h2 id="fiscal-and-non-calendar-years">Fiscal and non-calendar years<a class="anchor" aria-label="anchor" href="#fiscal-and-non-calendar-years"></a>

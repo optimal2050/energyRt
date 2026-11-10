@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,8 +25,10 @@
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -99,7 +101,7 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> newTechnology(</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   name = "ECOA",</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   desc = "Coal-fired power plant, subcritical",</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   units = list(capacity = "GW", activity = "GWh", costs = "MUSD"),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   units = list(capacity = "GW", activity = "GWh", currency = "MUSD"),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   cap2act = 8760,</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   optimizeRetirement = TRUE,</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   input = data.frame(</span>
@@ -129,9 +131,9 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span>     olife = c(30),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     stringsAsFactors = FALSE),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   capacity = data.frame(</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     region = c("W1", "W2", "C1", "C2", "C3", "C4", "C5", "C6", "E1", "E2", "E3", "W1", "W2", "C1", "C2", "C3", "C4", "C5", "C6", "E1", "E2", "E3"),</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     year = c(2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050),</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     stock = c(8.0, 4.0, 1.0, 1.0, 1.0, 1.0, 3.0, 1.0, 1.0, 1.0, 1.0, 2.4, 1.2, 0.3, 0.3, 0.3, 0.3, 0.9, 0.3, 0.3, 0.3, 0.3),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     region = c("R01", "R02", "R03", "R04", "R05", "R06", "R07", "R08", "R09", "R10", "R11", "R12", "R01", "R02", "R03", "R04", "R05", "R06", "R07", "R08", "R09", "R10", "R11", "R12"),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     year = c(2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050),</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     stock = c(1.0, 1.0, 1.0, 1.0, 1.0, 3.0, 1.0, 8.0, 4.0, 1.0, 1.0, 1.0, 0.3, 0.3, 0.3, 0.3, 0.3, 0.9, 0.3, 2.4, 1.2, 0.3, 0.3, 0.3),</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     stringsAsFactors = FALSE)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> )</span>
 </code></pre></div>

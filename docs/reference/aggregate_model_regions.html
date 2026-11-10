@@ -11,7 +11,7 @@ own right: it can be interpolated, solved and reported like any other."><meta pr
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,8 +29,10 @@ own right: it can be interpolated, solved and reported like any other."><meta pr
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -79,6 +81,7 @@ own right: it can be interpolated, solved and reported like any other.</p>
 <span>  clusters <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  as <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"clusters"</span>, <span class="st">"objects"</span><span class="op">)</span>,</span>
 <span>  name <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  resolve_conflicts <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="fu"><a href="isVerbose.html">isVerbose</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  .trade_parts <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -123,6 +126,15 @@ results are keyed.</p></dd>
 <code>level</code> to the source model's name.</p></dd>
 
 
+<dt id="arg-resolve-conflicts">resolve_conflicts<a class="anchor" aria-label="anchor" href="#arg-resolve-conflicts"></a></dt>
+<dd><p>What to do with a value that has no merged form,
+such as a lifetime or a levy rate. <code>FALSE</code> (default) stops, naming the
+object, the column and the regions that disagree. <code>"force"</code> (or <code>TRUE</code>)
+takes their mean; <code>"drop"</code> leaves the merged value unset, so the parameter
+falls back to its default rather than to a fabricated number. Both warn
+and record what was resolved in each object's <code>@misc$aggregation</code>.</p></dd>
+
+
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
 <dd><p>Report what was aggregated, merged and dropped.</p></dd>
 
@@ -144,11 +156,16 @@ geoscale. With <code>clusters</code>, the grouping is attached and readable with
     <p>Every region-keyed slot is recast. Extensive quantities – capacities,
 demand, supply availability, import and export limits – are summed over the
 regions of each parent. Intensive ones – efficiencies, availability
-factors, costs, weather values – take a mean weighted by the object's own
-size in each region, so an aggregated value stays within the range of the
-values it came from. When the weights of a group are all zero the mean is
-unweighted, which keeps a group of empty regions at their common value
-rather than undefined.</p>
+factors, costs, weather values – take a weighted mean, so an aggregated
+value stays within the range of the values it came from. The weight is the
+object's own size in each region where it carries one; an object that does
+not – a weather profile has no size – is weighted by the geoscale instead,
+by area or whatever weight it declares. When the weights of a group are all
+zero the mean is unweighted, which keeps a group of empty regions at their
+common value rather than undefined.</p>
+<p>Values with no merged form at all, such as a lifetime or a levy rate, are
+copied, and a difference between regions stops the aggregation unless
+<code>resolve_conflicts</code> says otherwise.</p>
 <p>Trade is different: a trade object is one region pair, so corridors that
 land inside a single parent region become internal and are dropped, and the
 rest merge – their capacities add, and their loss factors take the
@@ -213,8 +230,9 @@ model's own resolution instead of coarsening the whole of it;
 <span class="r-in"><span><span class="co"># roll the two regions up into the zone they share</span></span></span>
 <span class="r-in"><span><span class="va">agg</span> <span class="op">&lt;-</span> <span class="fu">aggregate_model_regions</span><span class="op">(</span><span class="va">mod</span>, geoscale <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">geoscales</span><span class="op">$</span><span class="va">squares</span>,</span></span>
 <span class="r-in"><span>                               level <span class="op">=</span> <span class="st">"zone"</span><span class="op">)</span></span></span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> 2 of the model's 2 region(s) are not atoms of the geoscale, so their data would be dropped silently: W1, W2. The geoscale must be keyed the way the model is.</span>
 <span class="r-in"><span><span class="fu"><a href="get_region.html">get_region</a></span><span class="op">(</span><span class="va">agg</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "WEST"</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'agg' not found</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

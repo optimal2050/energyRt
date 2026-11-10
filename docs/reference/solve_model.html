@@ -21,7 +21,7 @@ deprecated aliases."><meta property="og:image" content="https://energyRt.org/log
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,8 +39,10 @@ deprecated aliases."><meta property="og:image" content="https://energyRt.org/log
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -142,9 +144,9 @@ parameters in memory and unfolded, matching the shape the writers expect.</p></d
 <dd><p>for <code>solve_model()</code>, arguments are routed to
 <code><a href="interpolate_model.html">interpolate_model()</a></code> (settings / calendar / horizon / model data) or to
 the solver run (<code>solver.dir</code>, <code>transient</code>, <code>force</code>, <code>read.solution</code>,
-<code>wait</code>, <code>echo</code>, <code>run</code>, <code>run.conflict</code>, <code>n.threads</code>, ...). For
+<code>wait</code>, <code>verbose</code>, <code>run</code>, <code>run.conflict</code>, <code>n.threads</code>, ...). For
 <code>solve_scenario()</code>, arguments are passed to <code>.executeScenario()</code>. Set
-<code>echo = FALSE</code> for a quiet run: it silences both the progress messages
+<code>verbose = FALSE</code> for a quiet run: it silences both the progress messages
 and the solver's own console output.</p>
 <p><code>run</code> doubles as the run label: <code>TRUE</code>/<code>FALSE</code> keeps its historical
 meaning (run the solver or only write the script), while a character

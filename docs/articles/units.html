@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -46,8 +46,10 @@
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -107,8 +109,8 @@ model checks for you.</p>
 <div class="section level2">
 <h2 id="where-units-live">Where units live<a class="anchor" aria-label="anchor" href="#where-units-live"></a>
 </h2>
-<p>Units are declared in three places, and they answer three different
-questions.</p>
+<p>One slot carries units, and its columns name what is being
+measured.</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -117,19 +119,32 @@ questions.</p>
 </colgroup>
 <thead><tr class="header">
 <th>Where</th>
-<th>Slot</th>
+<th>Column</th>
 <th>Question it answers</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td>Commodity</td>
-<td><code>@unit</code></td>
-<td>in what measure is this commodity balanced?</td>
+<td>Commodity, or a flow</td>
+<td><code>@units$comm</code></td>
+<td>in what measure is this commodity counted?</td>
 </tr>
 <tr class="even">
 <td>Process</td>
-<td><code>@units</code></td>
-<td>what are this process’s capacity, activity and cost units?</td>
+<td>
+<code>@units$capacity</code>, <code>$activity</code>,
+<code>$use</code>
+</td>
+<td>what are this process’s capacity and activity units?</td>
+</tr>
+<tr class="odd">
+<td>Anything priced</td>
+<td><code>@units$currency</code></td>
+<td>what money are its costs in?</td>
+</tr>
+<tr class="even">
+<td>Weather</td>
+<td><code>@units$wval</code></td>
+<td>what does the series measure, if anything?</td>
 </tr>
 <tr class="odd">
 <td>Model</td>
@@ -138,12 +153,15 @@ questions.</p>
 </tr>
 </tbody>
 </table>
-<p>A commodity’s <code>@unit</code> is its <strong>native
+<p>A commodity’s <code>@units$comm</code> is its <strong>native
 measure</strong> — the one the model balances it in. Electricity in GWh,
-coal in PJ, water in Mm3.</p>
+coal in PJ, water in Mm3. The <code>unit =</code> argument of a
+constructor writes it, and <code><a href="../reference/getUnit.html">getUnit()</a></code> reads it back:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ELC</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCommodity.html">newCommodity</a></span><span class="op">(</span><span class="st">"ELC"</span>, desc <span class="op">=</span> <span class="st">"Electricity"</span>, unit <span class="op">=</span> <span class="st">"GWh"</span><span class="op">)</span></span>
-<span><span class="va">COA</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCommodity.html">newCommodity</a></span><span class="op">(</span><span class="st">"COA"</span>, desc <span class="op">=</span> <span class="st">"Steam coal"</span>,  unit <span class="op">=</span> <span class="st">"PJ"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">COA</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCommodity.html">newCommodity</a></span><span class="op">(</span><span class="st">"COA"</span>, desc <span class="op">=</span> <span class="st">"Steam coal"</span>,  unit <span class="op">=</span> <span class="st">"PJ"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/getUnit.html">getUnit</a></span><span class="op">(</span><span class="va">COA</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "PJ"</span></span></code></pre></div>
 <p>A process declares its own units in <code>@units</code>, which is
 where a cost currency is stated:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
@@ -151,7 +169,7 @@ where a cost currency is stated:</p>
 <span>  name <span class="op">=</span> <span class="st">"EGAS"</span>, desc <span class="op">=</span> <span class="st">"Gas turbine"</span>,</span>
 <span>  input  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"GAS"</span>, unit <span class="op">=</span> <span class="st">"PJ"</span><span class="op">)</span>,</span>
 <span>  output <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"GWh"</span><span class="op">)</span>,</span>
-<span>  units  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>capacity <span class="op">=</span> <span class="st">"GW"</span>, activity <span class="op">=</span> <span class="st">"GWh"</span>, costs <span class="op">=</span> <span class="st">"MEUR"</span><span class="op">)</span>,</span>
+<span>  units  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>capacity <span class="op">=</span> <span class="st">"GW"</span>, activity <span class="op">=</span> <span class="st">"GWh"</span>, currency <span class="op">=</span> <span class="st">"MEUR"</span><span class="op">)</span>,</span>
 <span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>invcost <span class="op">=</span> <span class="fl">0.9</span><span class="op">)</span>,         <span class="co"># MEUR per GW</span></span>
 <span>  varom   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>varom <span class="op">=</span> <span class="fl">0.003</span><span class="op">)</span>,         <span class="co"># MEUR per GWh</span></span>
 <span>  cap2act <span class="op">=</span> <span class="fl">8760</span><span class="op">)</span>                              <span class="co"># 1 GW × 8760 h = 8760 GWh</span></span></code></pre></div>
@@ -172,6 +190,13 @@ investment cost is <em>costs per capacity</em>, variable cost is
 shows the placeholder token (<code>{costs}</code>,
 <code>{capacity}</code>, <code>{activity}</code>) rather than
 guessing.</p>
+<p>Up to version 0.91 a commodity’s and a flow’s own measure was a slot
+of its own, <code>@unit</code>, beside the <code>@units</code> table a
+process carried. The two are one slot now, so <code><a href="../reference/getUnit.html">getUnit()</a></code> and
+<code><a href="../reference/getUnits.html">getUnits()</a></code> read the same place. <code>unit =</code> is
+still the constructor argument, which is why the code above is
+unchanged, and a saved object’s <code>@unit</code> is migrated to
+<code>@units$comm</code> when it is read.</p>
 </div>
 <div class="section level2">
 <h2 id="dimensions-and-conversion">Dimensions and conversion<a class="anchor" aria-label="anchor" href="#dimensions-and-conversion"></a>
@@ -260,7 +285,7 @@ and a volume of coal becomes an energy. Given the properties,
 <code><a href="../reference/convert.html">convert()</a></code> can find that chain itself:</p>
 <blockquote>
 <p><strong>Not in this build.</strong> Commodity-aware conversion is not
-available in energyRt 0.91.1.9000. The calls below are shown for
+available in energyRt 0.91.3.9000. The calls below are shown for
 reference; their output will appear here once the feature lands.</p>
 </blockquote>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
@@ -326,7 +351,7 @@ of 1000 EUR is not one number, it is one number and a year.</p>
 <p>Write the year into the unit:</p>
 <blockquote>
 <p><strong>Not in this build.</strong> Year-tagged currency is not
-available in energyRt 0.91.1.9000. The calls below are shown for
+available in energyRt 0.91.3.9000. The calls below are shown for
 reference; their output will appear here once the feature lands.</p>
 </blockquote>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
@@ -390,19 +415,38 @@ this.</p>
 </h2>
 <p>A model has exactly one currency whether it says so or not: the
 objective adds every cost together with coefficient 1, across regions as
-well as processes. So declare it, and let interpolation do the
-arithmetic:</p>
+well as processes. So declare it, in the same slot and under the same
+column name an object uses:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"demo"</span>, units <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>currency <span class="op">=</span> <span class="st">"MUSD"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">mod</span><span class="op">@</span><span class="va">config</span><span class="op">@</span><span class="va">units</span><span class="op">$</span><span class="va">currency</span></span>
+<span><span class="co">#&gt; [1] "MUSD"</span></span></code></pre></div>
+<p><code>currency =</code> is the shorter way to write the same thing,
+and what every example before this release used:
+<code>newModel("demo", currency = "MUSD")</code>. It was the
+<code>config@currency</code> slot up to version 0.91.</p>
+<p>What this enforces today is agreement, not conversion. An object that
+declares a currency must declare the model’s; one that declares nothing
+claims nothing and is left alone. The check runs at
+<code><a href="../reference/newModel.html">newModel()</a></code>, because there is no exchange rate in a model
+and so nothing to reconcile a mismatch with:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">COAL</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newSupply.html">newSupply</a></span><span class="op">(</span><span class="st">"COAL"</span>, commodity <span class="op">=</span> <span class="st">"COA"</span>, unit <span class="op">=</span> <span class="st">"PJ"</span>,</span>
+<span>                  units <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>currency <span class="op">=</span> <span class="st">"bnEUR"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"demo"</span>, currency <span class="op">=</span> <span class="st">"MUSD"</span>, data <span class="op">=</span> <span class="fu"><a href="../reference/add.html">add</a></span><span class="op">(</span><span class="fu"><a href="../reference/newRepository.html">newRepository</a></span><span class="op">(</span><span class="st">"r"</span><span class="op">)</span>, <span class="va">COAL</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> the model counts in 'MUSD', but 1 object(s) are priced in another currency:</span></span>
+<span><span class="co">#&gt;   COAL: bnEUR</span></span>
+<span><span class="co">#&gt; There is no exchange rate in a model, so this is not converted. Restate the costs, or clear `@units$currency` to claim nothing.</span></span></code></pre></div>
+<p>Normalising a model’s money — converting each object’s costs to the
+declared target during interpolation, and reporting every factor applied
+rather than applying it silently — is the next step and is not in this
+release:</p>
 <blockquote>
-<p><strong>Not in this build.</strong> A model-level unit target is not
-available in energyRt 0.91.1.9000. The calls below are shown for
+<p><strong>Not in this build.</strong> Currency normalisation is not
+available in energyRt 0.91.3.9000. The calls below are shown for
 reference; their output will appear here once the feature lands.</p>
 </blockquote>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"demo"</span>, units <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>costs <span class="op">=</span> <span class="st">"MUSD2020"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>Processes that declare a different currency in their own
-<code>@units$costs</code> are converted to the model target during
-interpolation, and the conversion is reported rather than applied
-silently:</p>
 <pre><code>i Currency normalisation -&gt; MUSD2020
     WIND_OFF, WIND_ON, PV      MEUR2015   × 1.163   (deflate_then_fx)
     COAL_PP                    MUSD2015   × 1.080   (US GDP deflator)

@@ -19,7 +19,7 @@ get_reports_path() (default reports/) and get_levcost_cache_path()
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,8 +37,10 @@ get_reports_path() (default reports/) and get_levcost_cache_path()
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -113,6 +115,7 @@ invisibly.</p>
 <code><a href="en_config_show.html">en_config_show()</a></code>,
 <code><a href="default_solver.html">get_default_solver()</a></code>,
 <code><a href="exchange_format.html">get_exchange_format()</a></code>,
+<code>get_project_root()</code>,
 <code><a href="storage_format.html">get_storage_format()</a></code>,
 <code><a href="isVerbose.html">isVerbose()</a></code>,
 <code><a href="log.html">set_log_file()</a></code>,
@@ -126,9 +129,9 @@ invisibly.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">get_reports_path</span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "reports/"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "C:/Users/admin/AppData/Local/Temp/RtmpAtP2gS/energyRt/reports"</span>
 <span class="r-in"><span><span class="fu">get_levcost_cache_path</span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "levcosts/"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "C:/Users/admin/AppData/Local/Temp/RtmpAtP2gS/energyRt/levcosts"</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -21,7 +21,7 @@ drill-down, printable per object via print(x, name = "...").'><meta property="og
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,8 +39,10 @@ drill-down, printable per object via print(x, name = "...").'><meta property="og
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -158,11 +160,11 @@ objects), <code>counts</code> (status table), <code>names</code>.</p>
 <span class="r-in"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu">compare_models</span><span class="op">(</span><span class="va">mod</span>, <span class="va">mod2</span>, names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"base"</span>, <span class="st">"dear gas"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">cmp</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> model comparison: base vs dear gas</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> changed: 1  same: 47 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> changed: 1  same: 50 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> --- Objects ---</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     name  class   hash_a   hash_b  status</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  SUP_GAS supply 4d4340e5 c74858d7 changed</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  SUP_GAS supply 0b416d94 c07c29a9 changed</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Configuration: identical.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Drill down with print(x, name = "SUP_GAS")</span>

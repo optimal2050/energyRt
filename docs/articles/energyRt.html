@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -46,8 +46,10 @@
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -315,7 +317,7 @@ region, and solve it with the bundled GLPK solver:</p>
 <span>  object <span class="op">=</span> <span class="va">HELLO</span>,</span>
 <span>  name <span class="op">=</span> <span class="st">"BASE"</span>,</span>
 <span>  solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span>,</span>
-<span>  echo <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="../reference/solve_model.html">solve_model()</a></code> interpolates and solves in one call. The
 composable form exposes the intermediate scenario when it needs to be
@@ -393,25 +395,14 @@ path:</p>
 <span>  object <span class="op">=</span> <span class="va">BASE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpA5YfBB/energyRt-intro/BASE-HELLO-HELLO_HORIZON'</span></span>
-<span><span class="co">#&gt; Directory size: 0.24 MB</span></span>
 <span></span>
 <span><span class="va">project_registry</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">load_registry</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">project_registry</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"type"</span>, <span class="st">"name"</span>, <span class="st">"parent"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 33 × 3</span></span></span>
-<span><span class="co">#&gt;    type     name  parent</span></span>
-<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span> model    HELLO <span style="color: #949494;">""</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 23 more rows</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 3</span></span></span>
+<span><span class="co">#&gt;   type     name  parent</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> scenario BASE  <span style="color: #949494;">""</span>    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> run      glpk  <span style="color: #949494;">"</span>BASE<span style="color: #949494;">"</span></span></span>
 <span></span>
 <span><span class="va">BASE</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_scenario.html">load_scenario</a></span><span class="op">(</span></span>
 <span>  path <span class="op">=</span> <span class="st">"BASE"</span>,</span>
@@ -486,7 +477,7 @@ is not executed while the introductory vignette builds:</p>
 <span>  name <span class="op">=</span> <span class="st">"TOPIA_SAMPLES"</span>,</span>
 <span>  samples <span class="op">=</span> <span class="va">SEASON_SAMPLES</span>,</span>
 <span>  solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span>,</span>
-<span>  echo <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/sample_summary.html">sample_summary</a></span><span class="op">(</span></span>
@@ -582,7 +573,7 @@ solving a small test model.</p>
 <span>    object <span class="op">=</span> <span class="va">HELLO</span>,</span>
 <span>    name <span class="op">=</span> <span class="st">"BASE_JULIA"</span>,</span>
 <span>    solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs</span>,</span>
-<span>    echo <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>    verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
@@ -594,7 +585,7 @@ solving a small test model.</p>
 <span>    object <span class="op">=</span> <span class="va">HELLO</span>,</span>
 <span>    name <span class="op">=</span> <span class="st">"BASE_PYOMO"</span>,</span>
 <span>    solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">pyomo_cbc</span>,</span>
-<span>    echo <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>    verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <p><a href="https://neos-server.org/" class="external-link">NEOS</a> provides another remote

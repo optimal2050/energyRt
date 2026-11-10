@@ -9,7 +9,7 @@ initializes it with the given data and parameters."><meta property="og:image" co
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,8 +27,10 @@ initializes it with the given data and parameters."><meta property="og:image" co
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -103,7 +105,8 @@ initializes it with the given data and parameters.</p>
 
 
 <dt id="arg-unit">unit<a class="anchor" aria-label="anchor" href="#arg-unit"></a></dt>
-<dd><p>character. The main unit of the commodity used in the model.</p></dd>
+<dd><p>character, the object's own measure, stored in <code>@units$comm</code>.
+See <code><a href="getUnit.html">getUnit()</a></code>.</p></dd>
 
 
 <dt id="arg-weather">weather<a class="anchor" aria-label="anchor" href="#arg-weather"></a></dt>
@@ -112,6 +115,9 @@ initializes it with the given data and parameters.</p>
 
 <dt>weather</dt>
 <dd><p>character. Name of the weather factor to apply. Must match the weather factor names in a <code>weather</code> class in the model.</p></dd>
+
+<dt>unit</dt>
+<dd><p>character. Optional. The unit this process EXPECTS from the series named in <code>weather</code>, e.g. "degC". Per row, because one process may read a temperature from one series and a wind speed from another. Where this and the weather object's own <code>@units$wval</code> are both declared and differ, that is an error: nothing in the model converts between weather units, so a coefficient fitted to one measure and applied to another is wrong in a way no output reveals. Empty on either side claims nothing and is not checked.</p></dd>
 
 <dt>transform</dt>
 <dd><p>character. Optional name of a function in the weather object's <code>@misc$transform</code>: the factor reads the series that function derives from the raw one, materialised at interpolation. NA reads the raw series.</p></dd>
@@ -218,11 +224,14 @@ REQUIRED whenever any other slot carries a <code>cluster</code> label, and AUTHO
 
 
 <dt id="arg-units">units<a class="anchor" aria-label="anchor" href="#arg-units"></a></dt>
-<dd><p>data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in <code>cost</code>/<code>invcost</code> and the capacity and activity columns are bare. A declared <code>costs</code> that disagrees with the model's <code>config@currency</code> is an error rather than a silent conversion; leave a column empty to claim nothing.</p>
-<dl><dt>activity</dt>
+<dd><p>data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in <code>cost</code>/<code>invcost</code> and the capacity and activity columns are bare. A declared <code>currency</code> that disagrees with the model's own is an error rather than a silent conversion; leave a column empty to claim nothing.</p>
+<dl><dt>comm</dt>
+<dd><p>character. The commodity this object is counted in, e.g. "GWh" or "PJ". Set by the <code>unit =</code> argument of the constructor. Leave it empty to claim nothing: a unit is reported and cross-checked, never converted.</p></dd>
+
+<dt>activity</dt>
 <dd><p>character. Unit of the activity variable.</p></dd>
 
-<dt>costs</dt>
+<dt>currency</dt>
 <dd><p>character. Currency of the cost columns.</p></dd>
 
 

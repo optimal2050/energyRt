@@ -120,6 +120,7 @@ reference:
   contents:
   - starts_with("class-")
   - ends_with("-class")
+  - energyRt-validity
 
 - title: Building a model
   desc: >
@@ -274,6 +275,7 @@ reference:
   - get_weather
   - getMix
   - getObject
+  - getUnit
   - getScenario
   - getVariants
   - variantSummary
@@ -318,6 +320,7 @@ reference:
   desc: Plots and diagrams.
   contents:
   - starts_with("autoplot")
+  - starts_with("gg_")
   - draw
   - plot
   - plot_heatmap

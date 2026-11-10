@@ -147,27 +147,28 @@ for `autoplot()`.
 ## From model objects
 
 Any timeslice-indexed model data lays out the same way. Here **electricity demand**
-and a **solar capacity factor** from the packaged TOPIA kit, on its season × hour
-calendar (`s4_h24`): pull the object with `getObject()`, take one region
+and a **solar capacity factor** from the packaged TOPIA kit, on its hourly
+calendar (`d365_h24`): pull the object with `getObject()`, take one region
 (and, for demand, one year), and pass the `timeslice` + value columns to
 `gg_heatmap()`. The `name` argument carries the value's unit onto the colour
-bar.
+bar. A graded resource ships one series per grade, so the solar object is cut
+to one mounting as well as one region -- two series on one timeslice have
+nothing to lay out.
 
 ```{r hm-demand, fig.height = 2.6}
 repo <- topia$modules$electricity$repo
-calendar_s4h24 <- calendars$s4_h24
 
 DEM <- getObject(repo, name = "DEM_ELC", drop = TRUE)
-dem <- subset(as.data.frame(DEM@demand), region == "W1" & year == 2050)
-gg_heatmap(dem[, c("timeslice", "demand")], calendar = calendar_s4h24,
-             value = "demand", name = "PJ")
+dem <- subset(as.data.frame(DEM@demand), region == "R02" & year == 2025)
+gg_heatmap(dem[, c("timeslice", "demand")], calendar = calendar_d365h24,
+             value = "demand", name = "GWh", facet = "month")
 ```
 
 ```{r hm-weather, fig.height = 2.6}
 WSOL <- getObject(repo, name = "WSOL", drop = TRUE)
-wsol <- subset(as.data.frame(WSOL@weather), region == "W1")
-gg_heatmap(wsol[, c("timeslice", "wval")], calendar = calendar_s4h24,
-             value = "wval", name = "capacity factor")
+wsol <- subset(as.data.frame(WSOL@weather), region == "R02" & cluster == "FL")
+gg_heatmap(wsol[, c("timeslice", "wval")], calendar = calendar_d365h24,
+             value = "wval", name = "capacity factor", facet = "month")
 ```
 
 The weather heatmap is exactly what `autoplot()` draws for a `weather` object
@@ -258,18 +259,17 @@ for line/area.
 ```{r wea, fig.height = 3}
 WSOL <- getObject(topia$modules$electricity$repo,
                   name = "WSOL", drop = TRUE)
-calendar_s4h24 <- calendars$s4_h24
 
 # heatmap (default), faceted by region
-autoplot(WSOL, calendar = calendar_s4h24)
+autoplot(WSOL, calendar = calendar_d365h24)
 ```
 
 The **line** view reads the diurnal shape directly — one line per season, the
 capacity factor on the y-axis:
 
 ```{r wea-line, fig.height = 3}
-autoplot(WSOL, style = "line", calendar = calendar_s4h24)
-autoplot(WSOL, style = "area", calendar = calendar_s4h24)     # or filled areas
+autoplot(WSOL, style = "line", calendar = calendar_d365h24)
+autoplot(WSOL, style = "area", calendar = calendar_d365h24)   # or filled areas
 ```
 
 # Notes

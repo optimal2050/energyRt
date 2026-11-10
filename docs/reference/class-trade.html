@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,8 +25,10 @@
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -89,14 +91,17 @@ Create separate trade objects to optimize different parts of the trade network
 
 
 <dt><code>units</code></dt>
-<dd><p>data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in the cost, capacity and activity columns are bare. A declared <code>costs</code> that disagrees with the model's <code>config@currency</code> is an error rather than a silent conversion; leave a column empty to claim nothing. One unit per kind: a storage prices three capacities but states <code>capacity</code> once.</p>
-<dl><dt>capacity</dt>
+<dd><p>data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in the cost, capacity and activity columns are bare. A declared <code>currency</code> that disagrees with the model's own is an error rather than a silent conversion; leave a column empty to claim nothing. One unit per kind: a storage prices three capacities but states <code>capacity</code> once.</p>
+<dl><dt>comm</dt>
+<dd><p>character. The commodity this object is counted in, e.g. "GWh" or "PJ". The unit of the traded flow, which <code>markup</code>, <code>varom</code> and the <code>ava</code> bounds are all stated per. Leave it empty to claim nothing: a unit is reported and cross-checked, never converted.</p></dd>
+
+<dt>capacity</dt>
 <dd><p>character. Unit of capacity.</p></dd>
 
 <dt>activity</dt>
 <dd><p>character. Unit of the activity variable.</p></dd>
 
-<dt>costs</dt>
+<dt>currency</dt>
 <dd><p>character. Currency of the cost columns.</p></dd>
 
 
@@ -241,6 +246,9 @@ Create separate trade objects to optimize different parts of the trade network
 
 <dt>weather</dt>
 <dd><p>character. Name of the weather object.</p></dd>
+
+<dt>unit</dt>
+<dd><p>character. Optional. The unit this process EXPECTS from the series named in <code>weather</code>, e.g. "degC". Per row, because one process may read a temperature from one series and a wind speed from another. Where this and the weather object's own <code>@units$wval</code> are both declared and differ, that is an error: nothing in the model converts between weather units, so a coefficient fitted to one measure and applied to another is wrong in a way no output reveals. Empty on either side claims nothing and is not checked.</p></dd>
 
 <dt>src</dt>
 <dd><p>character. Source region of the route, NA for every route.</p></dd>
@@ -466,6 +474,14 @@ REQUIRED whenever any other slot carries a <code>cluster</code> label, and AUTHO
 
 <dt><code>optimizeRetirement</code></dt>
 <dd><p>logical. Incidates if the retirement of the trade object should be optimized. Also requires the same parameter in the <code>model</code> or <code>scenario</code> class to be set to TRUE to be effective.</p></dd>
+
+
+<dt><code>defVal</code></dt>
+<dd><p>data.frame. Optional per-object override of a parameter's DEFAULT, keyed by the short column name the value is written under – <code>defVal$af.up &lt;- 1</code> on a technology, <code>defVal$wval &lt;- 3</code> on a weather series. Empty by default, and one column per override. A parameter name also works and is resolved (<code>pTechAf.up</code>, or <code>pTechAf</code> for both bounds). A key that names no column or parameter of this class is an error, not a silent no-op. This is the last of three layers: the catalogue (<code>data-raw/parameters.yml</code>), then <code>config@defVal</code>, then this; a value equal to what the layer before it says records nothing.</p></dd>
+
+
+<dt><code>interpolation</code></dt>
+<dd><p>data.frame. Optional per-object override of a parameter's INTERPOLATION RULE, keyed exactly as <code>defVal</code> above: <code>interpolation$af.up &lt;- "inter"</code>. Any accepted spelling of a rule works and is normalised, so <code>bwd.mid.fwd</code> is <code>back.inter.forth</code>. The override applies to THIS object's rows only: every other object of the class keeps the rule the catalogue or <code>config</code> gives it.</p></dd>
 
 
 <dt><code>misc</code></dt>

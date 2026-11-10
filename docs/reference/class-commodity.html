@@ -15,7 +15,7 @@ The creation of a commodity object is done with the newCommodity function."><met
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,8 +33,10 @@ The creation of a commodity object is done with the newCommodity function."><met
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -101,8 +103,8 @@ The creation of a commodity object is done with the <code>newCommodity</code> fu
 <dd><p>character. The geoscale level at which this commodity is balanced – the spatial counterpart of <code>timeframe</code>. The finest level in the model is used by default, reproducing the flat, single-level behaviour. Naming a coarser level (e.g. balancing steel nationally while electricity stays state-level) asserts free, unlimited transport of the commodity within that level, so it suits goods with a genuinely integrated market and never a network-constrained carrier such as electricity. The coarse balance is the plain SUM of its children: regional quantities are extensive, so no weighting is applied. Requires a geoscale on the model config whose geoframes NEST – adjacent levels must refine one another, or a region would be counted into two parents. Supported by all back-ends.</p></dd>
 
 
-<dt><code>unit</code></dt>
-<dd><p>character. The main unit of the commodity used in the model.</p></dd>
+<dt><code>units</code></dt>
+<dd><p>data.frame. Units this object is measured in, for reference and for carrying them with it: an object moved between models is only meaningful where the units agree, and nothing else in the object records them. Up to version 0.91 the object's own measure was a slot of its own, <code>@unit</code>.</p></dd>
 
 
 <dt><code>cluster</code></dt>
@@ -132,7 +134,7 @@ There is deliberately no <code>region</code> column: a commodity has no <code>re
 <dd><p>character. Name of the emitted commodity.</p></dd>
 
 <dt>unit</dt>
-<dd><p>character. Unit of the emission factor.</p></dd>
+<dd><p>character. Unit of the emission factor, as a RATE: the emitted commodity's unit over THIS commodity's, e.g. "kt/PJ". The numerator stays in the emitted commodity's own measure – a leakage factor is counted in GHG units, not the carrier's – and the denominator must agree with this commodity's <code>@units$comm</code>. Reported as declared; nothing is converted.</p></dd>
 
 <dt>emis</dt>
 <dd><p>numeric. Emission factor, emissions released per unit of the consumed commodity.</p></dd>
@@ -150,7 +152,7 @@ There is deliberately no <code>region</code> column: a commodity has no <code>re
 <dd><p>character. Name of a commodity being aggregated.</p></dd>
 
 <dt>unit</dt>
-<dd><p>character. Unit of the commodity being aggregated.</p></dd>
+<dd><p>character. Unit of the aggregation coefficient, as a RATE: THIS commodity's unit over the member's, e.g. "kt/t". Members may each be in a different measure (H2 in kg or GWh, CH4 in PJ, NO3 in t), so the denominator varies by row while the numerator must agree with this commodity's <code>@units$comm</code>. Reported as declared; nothing is converted.</p></dd>
 
 <dt>agg</dt>
 <dd><p>numeric. weight of the commodity in the aggregation, must be set for all aggregated commodities.</p></dd>

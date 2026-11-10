@@ -9,7 +9,7 @@ consumption, or balance of a commodity."><meta property="og:image" content="http
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,8 +27,10 @@ consumption, or balance of a commodity."><meta property="og:image" content="http
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -73,6 +75,7 @@ consumption, or balance of a commodity.</p>
 <span>  name <span class="op">=</span> <span class="st">""</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">""</span>,</span>
 <span>  comm <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  units <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  geoframe <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  region <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  process <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -104,6 +107,18 @@ consumption, or balance of a commodity.</p>
 
 <dt id="arg-comm">comm<a class="anchor" aria-label="anchor" href="#arg-comm"></a></dt>
 <dd><p>character. Commodity filter: the commodity or commodities the levy applies to. Empty means every commodity the chosen base reaches.</p></dd>
+
+
+<dt id="arg-units">units<a class="anchor" aria-label="anchor" href="#arg-units"></a></dt>
+<dd><p>data.frame. Units the levy is stated in. A levy is a rate – currency per unit of whatever its base counts – so both halves are needed to read it, and neither is converted.</p>
+<dl><dt>comm</dt>
+<dd><p>character. Unit of the commodity the levy is charged on, where its base counts a commodity flow.</p></dd>
+
+<dt>currency</dt>
+<dd><p>character. Currency of the rate columns. A currency that disagrees with the model's own is an error rather than a silent conversion.</p></dd>
+
+
+</dl></dd>
 
 
 <dt id="arg-geoframe">geoframe<a class="anchor" aria-label="anchor" href="#arg-geoframe"></a></dt>
@@ -147,7 +162,7 @@ consumption, or balance of a commodity.</p>
 
 
 <dt id="arg-defval">defVal<a class="anchor" aria-label="anchor" href="#arg-defval"></a></dt>
-<dd><p>numeric. Default value of the tax for not specified sets, 0 if not specified.</p></dd>
+<dd><p>data.frame. Optional per-object override of a parameter's DEFAULT, keyed by the short column name the value is written under – <code>defVal$af.up &lt;- 1</code> on a technology, <code>defVal$wval &lt;- 3</code> on a weather series. Empty by default, and one column per override. A parameter name also works and is resolved (<code>pTechAf.up</code>, or <code>pTechAf</code> for both bounds). A key that names no column or parameter of this class is an error, not a silent no-op. This is the last of three layers: the catalogue (<code>data-raw/parameters.yml</code>), then <code>config@defVal</code>, then this; a value equal to what the layer before it says records nothing.</p></dd>
 
 
 <dt id="arg-tax">tax<a class="anchor" aria-label="anchor" href="#arg-tax"></a></dt>

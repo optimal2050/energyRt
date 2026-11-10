@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -46,8 +46,10 @@
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -156,7 +158,7 @@ three change it, and in one of them the aggregated model comes out
 <span><span class="va">regions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/geoscale_regions.html" class="external-link">geoscale_regions</a></span><span class="op">(</span><span class="va">gs</span>, geoframe <span class="op">=</span> <span class="st">"region"</span><span class="op">)</span></span>
 <span><span class="va">geo</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/geoscale_leaftable.html" class="external-link">geoscale_leaftable</a></span><span class="op">(</span><span class="va">gs</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/plot_geoscale.html">plot_geoscale</a></span><span class="op">(</span><span class="va">gs</span>, type <span class="op">=</span> <span class="st">"map"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/gg_geoscale.html" class="external-link">gg_geoscale</a></span><span class="op">(</span><span class="va">gs</span>, type <span class="op">=</span> <span class="st">"map"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="the-plants">The plants<a class="anchor" aria-label="anchor" href="#the-plants"></a>
@@ -618,12 +620,14 @@ code:</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_clusters.html">model_clusters</a></span><span class="op">(</span><span class="va">mod_7</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/plot_geoscale.html">plot_geoscale</a></span><span class="op">(</span><span class="va">cl</span><span class="op">$</span><span class="va">ECOA</span><span class="op">$</span><span class="va">geoscale</span>, style <span class="op">=</span> <span class="st">"map"</span>, geoframe <span class="op">=</span> <span class="st">"cluster"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">membership</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/geoscale_leaftable.html" class="external-link">geoscale_leaftable</a></span><span class="op">(</span><span class="va">cl</span><span class="op">$</span><span class="va">ECOA</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/gg_geoscale.html" class="external-link">gg_geoscale</a></span><span class="op">(</span><span class="va">cl</span><span class="op">$</span><span class="va">ECOA</span><span class="op">$</span><span class="va">geoscale</span>, type <span class="op">=</span> <span class="st">"map"</span>, data <span class="op">=</span> <span class="va">membership</span>,</span>
+<span>            geoframe <span class="op">=</span> <span class="st">"region"</span>, z <span class="op">=</span> <span class="st">"cluster"</span><span class="op">)</span></span></code></pre></div>
 <p>The atoms are coloured by the cluster they joined. Every cluster is
 one connected blob and none crosses a zone boundary – that is the
 contiguity constraint, visible rather than asserted.</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_geoscale.html">plot_geoscale</a></span><span class="op">(</span><span class="va">cl</span><span class="op">$</span><span class="va">ECOA</span><span class="op">$</span><span class="va">geoscale</span>, type <span class="op">=</span> <span class="st">"icicle"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/gg_geoscale.html" class="external-link">gg_geoscale</a></span><span class="op">(</span><span class="va">cl</span><span class="op">$</span><span class="va">ECOA</span><span class="op">$</span><span class="va">geoscale</span>, type <span class="op">=</span> <span class="st">"icicle"</span><span class="op">)</span></span></code></pre></div>
 <p>The icicle reads
 <code>nation &gt; zone &gt; cluster &gt; region</code>: the cluster
 layer is an extra level <em>inserted</em> between the target and the

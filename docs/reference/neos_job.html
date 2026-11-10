@@ -13,7 +13,7 @@ public service — see the notes in neos."><meta property="og:image" content="ht
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,8 +31,10 @@ public service — see the notes in neos."><meta property="og:image" content="ht
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -85,7 +87,7 @@ public service</strong> — see the notes in <a href="neos.html">neos</a>.</p>
 <span></span>
 <span><span class="fu">neos_get_output_file</span><span class="op">(</span><span class="va">job</span>, <span class="va">pw</span>, <span class="va">fileName</span>, timeout <span class="op">=</span> <span class="fl">120</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">neos_wait</span><span class="op">(</span><span class="va">job</span>, <span class="va">pw</span>, poll <span class="op">=</span> <span class="fl">5</span>, max_wait <span class="op">=</span> <span class="fl">600</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">neos_wait</span><span class="op">(</span><span class="va">job</span>, <span class="va">pw</span>, poll <span class="op">=</span> <span class="fl">5</span>, max_wait <span class="op">=</span> <span class="fl">600</span>, verbose <span class="op">=</span> <span class="fu"><a href="isVerbose.html">isVerbose</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">

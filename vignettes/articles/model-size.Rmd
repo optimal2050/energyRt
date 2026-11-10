@@ -35,9 +35,9 @@ axis each in depth.
 library(energyRt)
 open_project(tempdir())   # every driver below writes scenarios to a project
 
-topia_elc <- topia$modules$electricity$R11    # eleven regions, three zones
+topia_elc <- topia$modules$electricity   # twelve regions, five zones
 mod <- newModel("TOPIA", data = topia_elc$repo,
-                calendar = topia$modules$calendars$s4_h24,
+                calendar = calendars[["d365_h24_1dpm"]],
                 region   = topia_elc$regions,
                 horizon  = topia$modules$horizons$BY2025_50_by10,
                 discount = 0.05)
@@ -72,7 +72,7 @@ mod <- setGeoscale(mod, topia_elc$geoscale)
   variant of one scenario. `sample_summary()` reads the distribution back.
 
 ```{r sampling}
-cal <- topia$modules$calendars$s4_h24
+cal <- calendars[["d365_h24"]]
 
 # consecutive blocks tiling the year: the deterministic, full-coverage crawl
 sam <- calendar_samples(cal, n = 2, seed = 1)
@@ -210,12 +210,12 @@ seq_res <- solve_recursive(mod, step = 2L, overlap = 1L,
   modes. `boundary_window()` sizes the stub from the region's own demand.
 
 ```{r subsetting}
-west <- subset_model_regions(mod, region = c("W1", "W2"))
+west <- subset_model_regions(mod, region = c("R02", "R03"))   # zone Z2
 
 # the same cut, but facing an exterior rather than an edge: a stepped curve
 # around a supplied price, sized from the severed routes' own demand
-bw   <- boundary_window(mod, regions = c("W1", "W2"), price = 60, nsteps = 3)
-west <- subset_model_regions(mod, region = c("W1", "W2"), boundary_prices = bw)
+bw   <- boundary_window(mod, regions = c("R02", "R03"), price = 60, nsteps = 3)
+west <- subset_model_regions(mod, region = c("R02", "R03"), boundary_prices = bw)
 
 # or let the driver cut, solve and store each region in turn
 by_reg <- solve_by_region(mod, trade = "none", solver = solver_options$glpk)
@@ -260,11 +260,11 @@ repo <- newRepository(
                 cap2act = 1, invcost = list(invcost = 100),
                 olife = list(olife = 30)),
   newDemand("DEM", commodity = "ELC",
-            demand = data.frame(region = c("W1", "W2"), year = 2020,
+            demand = data.frame(region = c("R02", "R03"), year = 2020,
                                 demand = 10))
 )
 mini <- newModel("MINI", data = repo, calendar = calendars$annual,
-                 region = c("W1", "W2"), horizon = horizons$Y2020_2060_by_5)
+                 region = c("R02", "R03"), horizon = horizons$Y2020_2060_by_5)
 
 # the two regions roll up into the zone they share
 zones <- aggregate_model_regions(mini, geoscale = topia$geoscales$squares,

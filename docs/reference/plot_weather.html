@@ -10,7 +10,7 @@ with a viridis &quot;H&quot; gradient (continuous when numeric, e.g. day of year
 
 
 The value axis (fill for the heatmap, y for line/area) is labelled with the
-object's @unit (or &quot;capacity factor&quot; if unset)."><meta property="og:description" content="Plots the sub-annual weather factor wval (a capacity / availability factor)
+object's own unit (or &quot;capacity factor&quot; if unset)."><meta property="og:description" content="Plots the sub-annual weather factor wval (a capacity / availability factor)
 of a weather object, in one of three styles:
 &quot;heatmap&quot; (default) — a calendar heatmap (finest timeframe on y, next on
 x), faceted by region; the value's unit is on the fill legend;
@@ -21,7 +21,7 @@ with a viridis &quot;H&quot; gradient (continuous when numeric, e.g. day of year
 
 
 The value axis (fill for the heatmap, y for line/area) is labelled with the
-object's @unit (or &quot;capacity factor&quot; if unset)."><meta property="og:image" content="https://energyRt.org/logo.png"><script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></head><body>
+object's own unit (or &quot;capacity factor&quot; if unset)."><meta property="og:image" content="https://energyRt.org/logo.png"><script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -29,7 +29,7 @@ object's @unit (or &quot;capacity factor&quot; if unset)."><meta property="og:im
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,8 +47,10 @@ object's @unit (or &quot;capacity factor&quot; if unset)."><meta property="og:im
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -91,7 +93,7 @@ coarser level (e.g. season), faceted by region; the coarse level is coloured
 with a viridis <code>"H"</code> gradient (continuous when numeric, e.g. day of year);</p></li>
 <li><p><code>"area"</code> — the same as <code>"line"</code> with filled areas.</p></li>
 </ul><p>The value axis (fill for the heatmap, <code>y</code> for line/area) is labelled with the
-object's <code>@unit</code> (or <code>"capacity factor"</code> if unset).</p>
+object's own unit (or <code>"capacity factor"</code> if unset).</p>
     </div>
 
     <div class="section level2">

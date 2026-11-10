@@ -13,7 +13,7 @@ aggregate_model_regions()."><meta property="og:image" content="https://energyRt.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,8 +31,10 @@ aggregate_model_regions()."><meta property="og:image" content="https://energyRt.
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -163,7 +165,7 @@ report the source model's numbers.</p>
 <span class="r-in"><span><span class="co"># 96 hourly timeslices collapse to 4 seasons: the same model, small enough</span></span></span>
 <span class="r-in"><span><span class="co"># to solve in a second</span></span></span>
 <span class="r-in"><span><span class="va">light</span> <span class="op">&lt;-</span> <span class="fu">recast_model_calendar</span><span class="op">(</span><span class="va">mod</span>, calendar <span class="op">=</span> <span class="va">calendars</span><span class="op">$</span><span class="va">s4</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> recast onto calendar 's4' (96 -&gt; 4 timeslices): 4 table(s), 8,448 -&gt; 352 row(s); 6 timeframe declaration(s) -&gt; SEASON (verbose = TRUE lists them).</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> recast onto calendar 's4' (96 -&gt; 4 timeslices): 0 table(s), 0 -&gt; 0 row(s); 6 timeframe declaration(s) -&gt; SEASON: HYD@timeframe (HOUR); H2@timeframe (HOUR); ELC@timeframe (HOUR); WSOL@timeframe (HOUR); WWIN@timeframe (HOUR); WHYD@timeframe (HOUR).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Dispatch, costs and the objective are the recast model's own, not the source model's.</span>
 <span class="r-in"><span><span class="fu"><a href="setGeoscale.html">getCalendar</a></span><span class="op">(</span><span class="va">light</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> An object of class "calendar"</span>
@@ -171,7 +173,7 @@ report the source model's numbers.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "s4"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Slot "desc":</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "SEASON calendar (4 timeslices; complete, regular) (timescales 0.6.0)"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "SEASON calendar (4 timeslices; complete, regular) (timescales 0.7.2)"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Slot "timeframes":</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $ANNUAL</span>
@@ -265,12 +267,12 @@ report the source model's numbers.</p>
 <span class="r-in"><span><span class="va">dem</span> <span class="op">&lt;-</span> <span class="fu"><a href="getObject.html">getObject</a></span><span class="op">(</span><span class="va">light</span>, name <span class="op">=</span> <span class="st">"DEM_ELC"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">dem</span><span class="op">@</span><span class="va">demand</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   cluster region year timeslice   demand</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1    &lt;NA&gt;     C1 2025       WIN 432.5774</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2    &lt;NA&gt;     C1 2025       SPR 391.8829</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3    &lt;NA&gt;     C1 2025       SUM 405.4693</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4    &lt;NA&gt;     C1 2025       FAL 395.0703</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5    &lt;NA&gt;     C1 2030       WIN 475.8351</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6    &lt;NA&gt;     C1 2030       SPR 431.0712</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1    &lt;NA&gt;    R01 2025  d001_h00 1.314840</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2    &lt;NA&gt;    R01 2025  d001_h01 1.309818</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3    &lt;NA&gt;    R01 2025  d001_h02 1.299658</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4    &lt;NA&gt;    R01 2025  d001_h03 1.322146</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5    &lt;NA&gt;    R01 2025  d001_h04 1.330137</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6    &lt;NA&gt;    R01 2025  d001_h05 1.338699</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,8 +25,10 @@
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -83,6 +85,14 @@
 
 <dt><code>intervals</code></dt>
 <dd><p>data.frame. Data frame with the start, middle, and end year of every modelled interval, plus an optional display <code>label</code>. <code>start</code>, <code>mid</code> and <code>end</code> are integer years; <code>mid</code> is the milestone and the model's key for the period. <code>label</code> is a character display name, unique across intervals, filled from <code>mid</code> when not given, and rendered fiscally (<code>FY2025-26</code>) when the calendar carries a non-January <code>year_start</code>. The label is presentation only and never reaches the solver – see <code><a href="year_label.html">year_label()</a></code>.</p></dd>
+
+
+<dt><code>base_year</code></dt>
+<dd><p>integer. Optional single milestone year that is GIVEN rather than decided. The marked year is interpolated as any other year but is not passed to the solver – its own solution comes from a separate solve (<code><a href="solve_base_year.html">solve_base_year()</a></code>) and what it decided can be carried into the projection as sunk stock. Milestones BEFORE it are historical and enter no LP at all. Both still anchor interpolation, which reads the anchor years present in the data rather than the milestone list. Empty when every milestone is optimised. See <code><a href="solve_base_year.html">solve_base_year()</a></code>.</p></dd>
+
+
+<dt><code>misc</code></dt>
+<dd><p>list. Any additional data or information to store in the object.</p></dd>
 
 
 </dl></div>

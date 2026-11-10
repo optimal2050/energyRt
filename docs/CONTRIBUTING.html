@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,8 +25,10 @@
     <li><a class="dropdown-item" href="articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="articles/workflow.html">Workflow</a></li>
@@ -156,9 +158,8 @@
 <pre><code>R/                 the package
 glpk/ julia/ pyomo/ gams/   solver templates (baked into sysdata)
 data-raw/          DATASET.R rebuilds sysdata from the templates + YAML specs
-tests/testthat/    unit tests, goldens/, and _snaps/
-drafts/            archived code — superseded work moves here, it is not deleted
-dev/ dev-scripts/  design notes and the mapping-pipeline docs</code></pre>
+tests/testthat/    unit tests, goldens/, and _snaps/</code></pre>
+<p>Design notes, guides and one-off scripts are not part of the repository. Keep them in a local dev folder such as <code>dev-local/scripts</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="commit--pr-conventions">Commit &amp; PR conventions<a class="anchor" aria-label="anchor" href="#commit--pr-conventions"></a></h2>
@@ -175,9 +176,9 @@ dev/ dev-scripts/  design notes and the mapping-pipeline docs</code></pre>
 <ul><li>Every bullet sits under one of <code>## Breaking changes / New features / Deprecations / Bug fixes / Documentation</code> in the development-version section — never between the version heading and the first <code>##</code>.</li>
 <li>One change per bullet, the <strong>final state</strong> in one to three lines: what the user sees now, and for a bug fix what was wrong in a clause. No blank lines between bullets.</li>
 <li>No discovery story, no timings or measurements, no design alternatives, no internal (dot-prefixed or unexported) function names. Exported functions, arguments, slots, options and file names are the vocabulary.</li>
-<li>If a bullet needs more than three lines to be understood, the extra belongs in <code>dev/</code> (below), not in NEWS.</li>
+<li>If a bullet needs more than three lines to be understood, the extra belongs in the commit message, not in NEWS.</li>
 </ul><p><strong>Code comments</strong> state mechanism and constraints the code cannot show — “stats::aggregate drops NA by-groups”, “must enter the render key”, “the fence must sit at column 0”. They never say how a finding was made, who asked for it, what it replaced, or what it measured. Roxygen is user documentation, not commentary: no design essays there either.</p>
-<p><strong>Narrative</strong> — rationale, measurements, traps, rejected alternatives, lifted essays — goes to a topic file under <code>dev/</code> (<code>dev/notes-&lt;topic&gt;.md</code>, e.g. <code>notes-reports.md</code>, <code>notes-news-rationale.md</code>, <code>notes-dispatch-surrogate.md</code>) or into the commit message. Prose meant for users becomes a vignette or article. Before committing, check the diff for comments that answer “why did we discover this” instead of “what must hold here”, and for NEWS bullets longer than three lines.</p>
+<p><strong>Narrative</strong> — rationale, measurements, traps, rejected alternatives, lifted essays — goes into the commit message. Prose meant for users becomes a vignette or article. Before committing, check the diff for comments that answer “why did we discover this” instead of “what must hold here”, and for NEWS bullets longer than three lines.</p>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a></h2>

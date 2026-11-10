@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,8 +25,10 @@
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -85,7 +87,7 @@ Path to the GAMS installation directory. Prefixed to the gams command when solvi
 <dd><div class="sourceCode"><pre><code><span><span class="cn">NULL</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.gams_path</p></dd>
+<dd><p>energyRt.gams_path</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_GAMS_PATH (evaluated if possible, raw string otherwise)</p></dd>
@@ -100,7 +102,7 @@ Path to the GAMS Data Exchange (GDX) library, used to read and write *.gdx files
 <dd><div class="sourceCode"><pre><code><span><span class="cn">NULL</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.gdxlib_path</p></dd>
+<dd><p>energyRt.gdxlib_path</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_GDXLIB_PATH (evaluated if possible, raw string otherwise)</p></dd>
@@ -115,7 +117,7 @@ Path to the Python installation or environment used by the Pyomo backend. Prefix
 <dd><div class="sourceCode"><pre><code><span><span class="cn">NULL</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.python_path</p></dd>
+<dd><p>energyRt.python_path</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_PYTHON_PATH (evaluated if possible, raw string otherwise)</p></dd>
@@ -130,7 +132,7 @@ Path to the Julia installation used by the JuMP backend. Prefixed to the julia c
 <dd><div class="sourceCode"><pre><code><span><span class="cn">NULL</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.julia_path</p></dd>
+<dd><p>energyRt.julia_path</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_JULIA_PATH (evaluated if possible, raw string otherwise)</p></dd>
@@ -145,7 +147,7 @@ Path to a standalone GLPK installation containing the glpsol executable. If unse
 <dd><div class="sourceCode"><pre><code><span><span class="cn">NULL</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.glpk_path</p></dd>
+<dd><p>energyRt.glpk_path</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_GLPK_PATH (evaluated if possible, raw string otherwise)</p></dd>
@@ -160,7 +162,7 @@ Email address for NEOS Server job submission (required by NEOS). Read from the N
 <dd><div class="sourceCode"><pre><code><span><span class="cn">NULL</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.neos_email</p></dd>
+<dd><p>energyRt.neos_email</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>NEOS_EMAIL (evaluated if possible, raw string otherwise)</p></dd>
@@ -175,7 +177,7 @@ XML-RPC endpoint of the NEOS Server.<dt>default: </dt>
 <dd><div class="sourceCode"><pre><code><span><span class="st">"https://neos-server.org:3333"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.neos_endpoint</p></dd>
+<dd><p>energyRt.neos_endpoint</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_NEOS_ENDPOINT (evaluated if possible, raw string otherwise)</p></dd>
@@ -190,7 +192,7 @@ Default solver specification, used when a scenario carries none. A named list, n
 <dd><div class="sourceCode"><pre><code><span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"glpk"</span>, lang <span class="op">=</span> <span class="st">"GLPK"</span><span class="op">)</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.solver</p></dd>
+<dd><p>energyRt.solver</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_SOLVER (evaluated if possible, raw string otherwise)</p></dd>
@@ -205,7 +207,7 @@ Root directory for scenario folders. Scenario paths and solver working directori
 <dd><div class="sourceCode"><pre><code><span><span class="st">"scenarios/"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.scenarios_path</p></dd>
+<dd><p>energyRt.scenarios_path</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_SCENARIOS_PATH (evaluated if possible, raw string otherwise)</p></dd>
@@ -220,7 +222,7 @@ Path to the project registry CSV indexing saved models, scenarios and runs. Kept
 <dd><div class="sourceCode"><pre><code><span><span class="st">"energyRt_registry.csv"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.registry_file</p></dd>
+<dd><p>energyRt.registry_file</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_REGISTRY_FILE (evaluated if possible, raw string otherwise)</p></dd>
@@ -235,7 +237,7 @@ Root directory for the model store, a sibling of the scenarios/ store. save_mode
 <dd><div class="sourceCode"><pre><code><span><span class="st">"models/"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.models_path</p></dd>
+<dd><p>energyRt.models_path</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_MODELS_PATH (evaluated if possible, raw string otherwise)</p></dd>
@@ -250,7 +252,7 @@ Root directory for the repository store. save_repository() writes one folder per
 <dd><div class="sourceCode"><pre><code><span><span class="st">"repositories/"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.repositories_path</p></dd>
+<dd><p>energyRt.repositories_path</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_REPOSITORIES_PATH (evaluated if possible, raw string otherwise)</p></dd>
@@ -265,7 +267,7 @@ Root directory for the dataset store. save_dataset() writes one folder per datas
 <dd><div class="sourceCode"><pre><code><span><span class="st">"datasets/"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.datasets_path</p></dd>
+<dd><p>energyRt.datasets_path</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_DATASETS_PATH (evaluated if possible, raw string otherwise)</p></dd>
@@ -280,7 +282,7 @@ Optional operation-log CSV. Empty (default) = logging off; a path makes interpol
 <dd><div class="sourceCode"><pre><code><span><span class="st">""</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.log_file</p></dd>
+<dd><p>energyRt.log_file</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_LOG_FILE (evaluated if possible, raw string otherwise)</p></dd>
@@ -295,7 +297,7 @@ Directory for the interpolation profile log (interp_runs.csv, interp_stages.csv,
 <dd><div class="sourceCode"><pre><code><span><span class="st">""</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.profile_dir</p></dd>
+<dd><p>energyRt.profile_dir</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_PROFILE_DIR (evaluated if possible, raw string otherwise)</p></dd>
@@ -310,7 +312,7 @@ Default directory for rendered reports of IN-MEMORY objects (treated as temporar
 <dd><div class="sourceCode"><pre><code><span><span class="st">"reports/"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.reports_path</p></dd>
+<dd><p>energyRt.reports_path</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_REPORTS_PATH (evaluated if possible, raw string otherwise)</p></dd>
@@ -325,7 +327,7 @@ Default directory for cached levcost results of IN-MEMORY objects (treated as te
 <dd><div class="sourceCode"><pre><code><span><span class="st">"levcosts/"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.levcost_cache_path</p></dd>
+<dd><p>energyRt.levcost_cache_path</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_LEVCOST_CACHE_PATH (evaluated if possible, raw string otherwise)</p></dd>
@@ -340,7 +342,7 @@ Named list of user functions overriding the built-in folder-name derivations (se
 <dd><div class="sourceCode"><pre><code><span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.path_builders</p></dd>
+<dd><p>energyRt.path_builders</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_PATH_BUILDERS (evaluated if possible, raw string otherwise)</p></dd>
@@ -355,7 +357,7 @@ On-disk table storage format: 'feather' (IPC), 'parquet', or 'csv'; 'arrow' and 
 <dd><div class="sourceCode"><pre><code><span><span class="st">"feather"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.storage_format</p></dd>
+<dd><p>energyRt.storage_format</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_STORAGE_FORMAT (evaluated if possible, raw string otherwise)</p></dd>
@@ -370,7 +372,7 @@ Storage compression codec: 'zstd', 'lz4', or 'uncompressed'.<dt>default: </dt>
 <dd><div class="sourceCode"><pre><code><span><span class="st">"zstd"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.storage_compression</p></dd>
+<dd><p>energyRt.storage_compression</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_STORAGE_COMPRESSION (evaluated if possible, raw string otherwise)</p></dd>
@@ -385,7 +387,7 @@ Storage compression level (codec-dependent; ZSTD supports 1-22).<dt>default: </d
 <dd><div class="sourceCode"><pre><code><span><span class="fl">15L</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.storage_compression_level</p></dd>
+<dd><p>energyRt.storage_compression_level</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_STORAGE_COMPRESSION_LEVEL (evaluated if possible, raw string otherwise)</p></dd>
@@ -400,7 +402,7 @@ Data-exchange format for the JuMP/Pyomo solvers: 'feather' (IPC), 'parquet', or 
 <dd><div class="sourceCode"><pre><code><span><span class="st">"feather"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.exchange_format</p></dd>
+<dd><p>energyRt.exchange_format</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_EXCHANGE_FORMAT (evaluated if possible, raw string otherwise)</p></dd>
@@ -415,7 +417,7 @@ Exchange compression codec: 'zstd', 'lz4', or 'uncompressed'. Exchange files are
 <dd><div class="sourceCode"><pre><code><span><span class="st">"lz4"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.exchange_compression</p></dd>
+<dd><p>energyRt.exchange_compression</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_EXCHANGE_COMPRESSION (evaluated if possible, raw string otherwise)</p></dd>
@@ -430,7 +432,7 @@ Exchange compression level (codec-dependent; ZSTD supports 1-22). Ignored for lz
 <dd><div class="sourceCode"><pre><code><span><span class="fl">15L</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.exchange_compression_level</p></dd>
+<dd><p>energyRt.exchange_compression_level</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_EXCHANGE_COMPRESSION_LEVEL (evaluated if possible, raw string otherwise)</p></dd>
@@ -439,13 +441,268 @@ Exchange compression level (codec-dependent; ZSTD supports 1-22). Ignored for lz
 </dl></dd>
 
 
-<dt>verbose</dt>
+<dt>fx_equ</dt>
 <dd><dl>
-Verbosity level: 0 silent, 1 progress messages, 2 and above for increasingly detailed reporting. TRUE/FALSE are accepted and read as 1/0. Test with isVerbose(level).<dt>default: </dt>
-<dd><div class="sourceCode"><pre><code><span><span class="fl">0</span></span></code></pre></div></dd>
+Write an fx bound as one equality row rather than a matched pair of lo/up rows.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="cn">TRUE</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.verbose</p></dd>
+<dd><p>energyRt.fx_equ</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_FX_EQU (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>parent_levels</dt>
+<dd><dl>
+Keep parameters at a parent geoframe or timeframe alongside the finest level, so a coarse declaration stays readable after interpolation.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="cn">FALSE</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.parent_levels</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_PARENT_LEVELS (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>on_missing_input</dt>
+<dd><dl>
+What interpolation does when a process names an input commodity the model does not declare: "stop", "warn" or "ignore".<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="st">"stop"</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.on_missing_input</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_ON_MISSING_INPUT (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>threads</dt>
+<dd><dl>
+Threads for the data.table operations interpolation runs. 0 means data.table's own default, which is half the physical cores.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="fl">0L</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.threads</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_THREADS (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>map_rules</dt>
+<dd><dl>
+Build mapping parameters from the declared rules rather than the hand-written builders.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="cn">TRUE</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.map_rules</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_MAP_RULES (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>map_rules_verify</dt>
+<dd><dl>
+Diagnostic: build each mapping BOTH ways and compare, which is slow and is for checking a rule change rather than for normal use.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="cn">FALSE</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.map_rules_verify</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_MAP_RULES_VERIFY (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>base_maps</dt>
+<dd><dl>
+Diagnostic: keep the mapping tables a base interpolation produced, so a derived scenario's maps can be compared against them.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="cn">FALSE</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.base_maps</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_BASE_MAPS (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>base_maps_verify</dt>
+<dd><dl>
+Diagnostic: compare a derived scenario's maps against the base's.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="cn">FALSE</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.base_maps_verify</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_BASE_MAPS_VERIFY (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>model_checks_stop</dt>
+<dd><dl>
+Treat a model consistency check as an error instead of a warning. A declaration that cannot bind is a reason to warn, not a reason to refuse to build, so this is off by default.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="cn">FALSE</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.model_checks_stop</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_MODEL_CHECKS_STOP (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>mm_keep_wildcards</dt>
+<dd><dl>
+Keep wildcard (all-NA) key rows when importing a scenario into the matrix backend, instead of expanding them to their members.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="cn">FALSE</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.mm_keep_wildcards</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_MM_KEEP_WILDCARDS (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>save_mode</dt>
+<dd><dl>
+How a saved scenario carries its model: "ref" references the model in its own store, "embed" writes a copy inside the scenario.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="st">"ref"</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.save_mode</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_SAVE_MODE (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>ondisk_min_rows</dt>
+<dd><dl>
+Smallest table written to its own file; a shorter one stays in scen.RData.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="fl">1e+05</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.ondisk_min_rows</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_ONDISK_MIN_ROWS (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>param_ref_min_rows</dt>
+<dd><dl>
+Smallest parameter table that is referenced from a base scenario rather than copied into a derived one.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="fl">1e+06</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.param_ref_min_rows</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_PARAM_REF_MIN_ROWS (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>scen_file_mb_limit</dt>
+<dd><dl>
+Size at which the saved scenario file (scen.RData) is reported as carrying tables that belong in the stores. Megabytes.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="fl">256</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.scen_file_mb_limit</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_SCEN_FILE_MB_LIMIT (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>lazy_hash</dt>
+<dd><dl>
+Hash a stored object only when its size or timestamp changed. FALSE hashes on every save.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="cn">TRUE</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.lazy_hash</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_LAZY_HASH (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>mem_gc_full</dt>
+<dd><dl>
+Run a full garbage collection before each memory reading in the operation log. Accurate and slow; the default reads the quick probe.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="cn">FALSE</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.mem_gc_full</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_MEM_GC_FULL (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>project_root</dt>
+<dd><dl>
+Directory a relative store path is rooted at. Defaults to a per-session directory under tempdir(), so nothing is written outside the session unless open_project() or a set_*_path() call says where.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="fu"><a href="https://rdrr.io/r/base/substitute.html" class="external-link">quote</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"energyRt"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.project_root</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_PROJECT_ROOT (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>verbose</dt>
+<dd><dl>
+Verbosity level, logical or integer: 0/FALSE silent, 1/TRUE reports each ACTION once -- what was written, loaded or solved, and where -- and 2 and above add per-object and per-parameter detail. Test with isVerbose(level). This option is the single control: a function's own verbose argument defaults to it, and passing one overrides it for that call.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="fl">1</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.verbose</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_VERBOSE (evaluated if possible, raw string otherwise)</p></dd>
@@ -460,7 +717,7 @@ Debug level, in the same 0/1/2 form as verbose. Enables internal consistency war
 <dd><div class="sourceCode"><pre><code><span><span class="fl">0</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.debug</p></dd>
+<dd><p>energyRt.debug</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_DEBUG (evaluated if possible, raw string otherwise)</p></dd>
@@ -475,7 +732,7 @@ Whether long-running operations display a progress bar. Set through show_progres
 <dd><div class="sourceCode"><pre><code><span><span class="cn">TRUE</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.progress_bar</p></dd>
+<dd><p>energyRt.progress_bar</p></dd>
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_PROGRESS_BAR (evaluated if possible, raw string otherwise)</p></dd>

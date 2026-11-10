@@ -41,7 +41,7 @@ observed year range) with each parameter's default interpolation rule."><meta pr
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,8 +59,10 @@ observed year range) with each parameter's default interpolation rule."><meta pr
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -374,12 +376,12 @@ observed year range) with each parameter's default interpolation rule.</p>
 
 
 <dt id="arg-timeframe">timeframe<a class="anchor" aria-label="anchor" href="#arg-timeframe"></a></dt>
-<dd><p>controls sub-annual time aggregation of results that carry a <code>timeslice</code> column. One of <code>"highest"</code> (default, native/finest resolution, as stored), <code>"lowest"</code> (aggregate/sum flows up to the coarsest level, normally <code>ANNUAL</code>), <code>"all"</code> (return every timeframe level stacked), or an explicit calendar level name (e.g. <code>"SEASON"</code>, <code>"YDAY"</code>) to aggregate to that level. Non-timeslice data, and state/level variables (e.g. <code>vStorageLevel</code>) for which summing over timeslices is meaningless, are returned unchanged.</p>
+<dd><p>controls sub-annual time aggregation of results that carry a <code>timeslice</code> column. One of <code>"highest"</code> (default, native/finest resolution, as stored), <code>"lowest"</code> (aggregate/sum flows up to the coarsest level, normally <code>ANNUAL</code>), <code>"all"</code> (return every timeframe level stacked), or an explicit calendar level name (e.g. <code>"SEASON"</code>, <code>"YDAY"</code>) to aggregate to that level. Non-timeslice data is returned unchanged. How a variable combines is declared per variable (<code>recast</code> in <code>data-raw/variables.yml</code>): a quantity is summed at the child/target weight ratio, while a state/level variable (e.g. <code>vStorageLevel</code>) takes its CLOSING value, with the swing inside each target slice recorded in <code>attr(x, "absorbed")</code>.</p>
 <p>The default was <code>"lowest"</code> up to v0.80 and is now <code>"highest"</code>, matching the spatial twin <code>geoframe</code>, whose default <code>"finest"</code> has always meant "as stored". Returning data at native resolution unless asked otherwise is the safer default: the old one silently summed an 8760-slice hourly series into a single annual number, which reads as a plausible value rather than as an error, and is indistinguishable from a genuine annual result. Aggregation is easy to ask for and hard to notice when it is not wanted. Code that relied on annual totals must now pass <code>timeframe = "lowest"</code> explicitly.</p></dd>
 
 
 <dt id="arg-geoframe">geoframe<a class="anchor" aria-label="anchor" href="#arg-geoframe"></a></dt>
-<dd><p>controls spatial aggregation of results that carry a <code>region</code> column, the spatial twin of <code>timeframe</code>. One of <code>"finest"</code> (default, native resolution as stored), <code>"coarsest"</code> (aggregate up to the top geoscale level), <code>"all"</code> (return every level stacked), or an explicit geoscale level name (e.g. <code>"zone"</code>, <code>"nation"</code>). Requires a geoscale on the model; without one this is inert. Inter-regional flow variables (e.g. <code>vTradeIr</code>) are returned unchanged, because summing a flow across regions double-counts it — the spatial counterpart of leaving state variables alone under <code>timeframe</code>.</p></dd>
+<dd><p>controls spatial aggregation of results that carry a <code>region</code> column, the spatial twin of <code>timeframe</code>. One of <code>"finest"</code> (default, native resolution as stored), <code>"coarsest"</code> (aggregate up to the top geoscale level), <code>"all"</code> (return every level stacked), or an explicit geoscale level name (e.g. <code>"zone"</code>, <code>"nation"</code>). Requires a geoscale on the model; without one this is inert. How a variable combines is declared per variable (<code>recast</code> in <code>data-raw/variables.yml</code>): a quantity is summed, while an inter-regional flow (e.g. <code>vTradeIr</code>) is summed only where it CROSSES the new border. Rows whose endpoints land in the same target region are no longer a transfer, so they leave the total and are recorded as in-region flow in <code>attr(x, "absorbed")</code> rather than double-counted.</p></dd>
 
 
 <dt id="arg-process">process<a class="anchor" aria-label="anchor" href="#arg-process"></a></dt>

@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -46,8 +46,10 @@
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -273,6 +275,52 @@ article come out in USD/MWh.</p>
 <span>  overwrite <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  echo <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> checking declarations<span style="color: #00BB00;">✔</span> checking declarations <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> expanding vintage/cluster variants</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> expanding vintage/cluster variants <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing commodity clusters<span style="color: #00BB00;">✔</span> materializing commodity clusters <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather clusters<span style="color: #00BB00;">✔</span> materializing weather clusters <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather transforms<span style="color: #00BB00;">✔</span> materializing weather transforms <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: object names</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process classes<span style="color: #00BB00;">✔</span> collecting sets: process classes <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: timeframes<span style="color: #00BB00;">✔</span> collecting sets: timeframes <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process inputs/outputs<span style="color: #00BB00;">✔</span> collecting sets: process inputs/outputs <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: membership comm sets<span style="color: #00BB00;">✔</span> collecting sets: membership comm sets <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process regions<span style="color: #00BB00;">✔</span> collecting sets: process regions <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: membership + closure<span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> settings parameters (discount, period length, timeslice share)<span style="color: #00BB00;">✔</span> settings parameters (discount, period length, timeslice share) <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: calendar + lifespan<span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> interpolating parameters over milestone years<span style="color: #00BB00;">✔</span> interpolating parameters over milestone years <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> calendar-filter: restricting parameters to declared timeslices<span style="color: #00BB00;">✔</span> calendar-filter: restricting parameters to declared timeslices <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter<span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: cost aggregation<span style="color: #00BB00;">✔</span> building maps: cost aggregation <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing model-size summary<span style="color: #00BB00;">✔</span> computing model-size summary <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; model_size: art_vintage</span></span>
+<span><span class="co">#&gt;   parameters : 200 value, 359 maps, 15 sets</span></span>
+<span><span class="co">#&gt;   param rows : 751</span></span>
+<span><span class="co">#&gt;   estimate   : ~1,194 variables, ~1,069 constraints (from gating maps)</span></span>
+<span><span class="co">#&gt;   top parameters by rows:</span></span>
+<span><span class="co">#&gt;     pTimesliceAgg      130</span></span>
+<span><span class="co">#&gt;     pTechCact2cout     104</span></span>
+<span><span class="co">#&gt;     pTimesliceWeight   78</span></span>
+<span><span class="co">#&gt;     pDemand            52</span></span>
+<span><span class="co">#&gt;     pImportRowPrice    52</span></span>
+<span><span class="co">#&gt;     pTechInvcost       52</span></span>
+<span><span class="co">#&gt;     pTechCap           52</span></span>
+<span><span class="co">#&gt;     pTechEac           42</span></span>
+<span><span class="co">#&gt;     pPeriodLen         26</span></span>
+<span><span class="co">#&gt;     ordYear            26</span></span>
+<span><span class="co">#&gt;     pYearFraction      26</span></span>
+<span><span class="co">#&gt;     pWacc              26</span></span>
+<span><span class="co">#&gt;     pSdr               26</span></span>
+<span><span class="co">#&gt;     pSupCost           26</span></span>
+<span><span class="co">#&gt;     pDiscountFactor    25</span></span>
 <span><span class="fu"><a href="../reference/getVariants.html">getVariants</a></span><span class="op">(</span><span class="va">scen_vin</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         name      class base vintage cluster</span></span>
 <span><span class="co">#&gt; 1 PP_VIN2025 technology   PP    2025    &lt;NA&gt;</span></span>
@@ -397,6 +445,58 @@ let the model choose:</p>
 <span>  overwrite <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  echo <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> checking declarations<span style="color: #00BB00;">✔</span> checking declarations <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> expanding vintage/cluster variants</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> expanding vintage/cluster variants <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing commodity clusters<span style="color: #00BB00;">✔</span> materializing commodity clusters <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather clusters<span style="color: #00BB00;">✔</span> materializing weather clusters <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather transforms<span style="color: #00BB00;">✔</span> materializing weather transforms <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: object names</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process classes<span style="color: #00BB00;">✔</span> collecting sets: process classes <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: timeframes</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: timeframes <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process inputs/outputs</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: process inputs/outputs <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: membership comm sets</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: membership comm sets <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process regions<span style="color: #00BB00;">✔</span> collecting sets: process regions <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: membership + closure</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> settings parameters (discount, period length, timeslice share)<span style="color: #00BB00;">✔</span> settings parameters (discount, period length, timeslice share) <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: calendar + lifespan</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> interpolating parameters over milestone years<span style="color: #00BB00;">✔</span> interpolating parameters over milestone years <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> calendar-filter: restricting parameters to declared timeslices<span style="color: #00BB00;">✔</span> calendar-filter: restricting parameters to declared timeslices <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: cost aggregation<span style="color: #00BB00;">✔</span> building maps: cost aggregation <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing model-size summary<span style="color: #00BB00;">✔</span> computing model-size summary <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; model_size: art_cluster</span></span>
+<span><span class="co">#&gt;   parameters : 200 value, 359 maps, 15 sets</span></span>
+<span><span class="co">#&gt;   param rows : 683</span></span>
+<span><span class="co">#&gt;   estimate   : ~1,178 variables, ~989 constraints (from gating maps)</span></span>
+<span><span class="co">#&gt;   top parameters by rows:</span></span>
+<span><span class="co">#&gt;     pTechAf            96</span></span>
+<span><span class="co">#&gt;     pTimesliceAgg      80</span></span>
+<span><span class="co">#&gt;     pTechEac           64</span></span>
+<span><span class="co">#&gt;     pTechInvcost       64</span></span>
+<span><span class="co">#&gt;     pTechCap           64</span></span>
+<span><span class="co">#&gt;     pTimesliceWeight   48</span></span>
+<span><span class="co">#&gt;     pTechFixom         48</span></span>
+<span><span class="co">#&gt;     pDemand            32</span></span>
+<span><span class="co">#&gt;     pImportRowPrice    32</span></span>
+<span><span class="co">#&gt;     pTechCact2cout     32</span></span>
+<span><span class="co">#&gt;     pPeriodLen         16</span></span>
+<span><span class="co">#&gt;     ordYear            16</span></span>
+<span><span class="co">#&gt;     pYearFraction      16</span></span>
+<span><span class="co">#&gt;     pWacc              16</span></span>
+<span><span class="co">#&gt;     pSdr               16</span></span>
 <span></span>
 <span><span class="va">cap</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_clu</span>, name <span class="op">=</span> <span class="st">"vTechCap"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">cap</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">cap</span><span class="op">)</span></span>
@@ -449,6 +549,58 @@ how a tier set of a <em>different size</em> in each region is expressed
 <span>  discount <span class="op">=</span> <span class="fl">0.05</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">scen_rr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod_rr</span>, name <span class="op">=</span> <span class="st">"art_region"</span>, ondisk <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> checking declarations<span style="color: #00BB00;">✔</span> checking declarations <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> expanding vintage/cluster variants</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> expanding vintage/cluster variants <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing commodity clusters<span style="color: #00BB00;">✔</span> materializing commodity clusters <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather clusters<span style="color: #00BB00;">✔</span> materializing weather clusters <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather transforms<span style="color: #00BB00;">✔</span> materializing weather transforms <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: object names</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process classes<span style="color: #00BB00;">✔</span> collecting sets: process classes <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: timeframes</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: timeframes <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process inputs/outputs</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: process inputs/outputs <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: membership comm sets</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: membership comm sets <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process regions<span style="color: #00BB00;">✔</span> collecting sets: process regions <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: membership + closure</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> settings parameters (discount, period length, timeslice share)<span style="color: #00BB00;">✔</span> settings parameters (discount, period length, timeslice share) <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: calendar + lifespan</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> interpolating parameters over milestone years<span style="color: #00BB00;">✔</span> interpolating parameters over milestone years <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> calendar-filter: restricting parameters to declared timeslices<span style="color: #00BB00;">✔</span> calendar-filter: restricting parameters to declared timeslices <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: cost aggregation<span style="color: #00BB00;">✔</span> building maps: cost aggregation <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing model-size summary<span style="color: #00BB00;">✔</span> computing model-size summary <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; model_size: art_region</span></span>
+<span><span class="co">#&gt;   parameters : 200 value, 359 maps, 15 sets</span></span>
+<span><span class="co">#&gt;   param rows : 322</span></span>
+<span><span class="co">#&gt;   estimate   : ~646 variables, ~560 constraints (from gating maps)</span></span>
+<span><span class="co">#&gt;   top parameters by rows:</span></span>
+<span><span class="co">#&gt;     pTechAf            36</span></span>
+<span><span class="co">#&gt;     pTimesliceAgg      30</span></span>
+<span><span class="co">#&gt;     pTechEac           30</span></span>
+<span><span class="co">#&gt;     pTechInvcost       30</span></span>
+<span><span class="co">#&gt;     pTechCap           30</span></span>
+<span><span class="co">#&gt;     pDemand            24</span></span>
+<span><span class="co">#&gt;     pImportRowPrice    24</span></span>
+<span><span class="co">#&gt;     pTechCact2cout     24</span></span>
+<span><span class="co">#&gt;     pTimesliceWeight   18</span></span>
+<span><span class="co">#&gt;     pWacc              12</span></span>
+<span><span class="co">#&gt;     pSdr               12</span></span>
+<span><span class="co">#&gt;     pSupCost           12</span></span>
+<span><span class="co">#&gt;     pDiscountFactor    10</span></span>
+<span><span class="co">#&gt;     pPeriodLen         6</span></span>
+<span><span class="co">#&gt;     ordYear            6</span></span>
 <span></span>
 <span><span class="co"># any per-process input parameter shows which variants exist where, and</span></span>
 <span><span class="co"># `getData()` adds the provenance columns</span></span>
@@ -683,6 +835,59 @@ for the whole set:</p>
 <span>  discount <span class="op">=</span> <span class="fl">0.05</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">scen_w</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod_w</span>, name <span class="op">=</span> <span class="st">"art_weather"</span>, ondisk <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> checking declarations<span style="color: #00BB00;">✔</span> checking declarations <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> expanding vintage/cluster variants</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> expanding vintage/cluster variants <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing commodity clusters<span style="color: #00BB00;">✔</span> materializing commodity clusters <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather clusters</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> materializing weather clusters <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather transforms<span style="color: #00BB00;">✔</span> materializing weather transforms <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: object names</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process classes<span style="color: #00BB00;">✔</span> collecting sets: process classes <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: timeframes</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: timeframes <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process inputs/outputs</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: process inputs/outputs <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: membership comm sets</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: membership comm sets <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process regions<span style="color: #00BB00;">✔</span> collecting sets: process regions <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: membership + closure</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> settings parameters (discount, period length, timeslice share)<span style="color: #00BB00;">✔</span> settings parameters (discount, period length, timeslice share) <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: calendar + lifespan</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> interpolating parameters over milestone years<span style="color: #00BB00;">✔</span> interpolating parameters over milestone years <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> calendar-filter: restricting parameters to declared timeslices<span style="color: #00BB00;">✔</span> calendar-filter: restricting parameters to declared timeslices <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: cost aggregation<span style="color: #00BB00;">✔</span> building maps: cost aggregation <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing model-size summary<span style="color: #00BB00;">✔</span> computing model-size summary <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; model_size: art_weather</span></span>
+<span><span class="co">#&gt;   parameters : 200 value, 359 maps, 15 sets</span></span>
+<span><span class="co">#&gt;   param rows : 215</span></span>
+<span><span class="co">#&gt;   estimate   : ~356 variables, ~304 constraints (from gating maps)</span></span>
+<span><span class="co">#&gt;   top parameters by rows:</span></span>
+<span><span class="co">#&gt;     pTimesliceAgg      30</span></span>
+<span><span class="co">#&gt;     pWeather           24</span></span>
+<span><span class="co">#&gt;     pTimesliceWeight   18</span></span>
+<span><span class="co">#&gt;     pTechEac           18</span></span>
+<span><span class="co">#&gt;     pTechInvcost       18</span></span>
+<span><span class="co">#&gt;     pTechCap           18</span></span>
+<span><span class="co">#&gt;     pDemand            12</span></span>
+<span><span class="co">#&gt;     pImportRowPrice    12</span></span>
+<span><span class="co">#&gt;     pTechCact2cout     12</span></span>
+<span><span class="co">#&gt;     pPeriodLen         6</span></span>
+<span><span class="co">#&gt;     ordYear            6</span></span>
+<span><span class="co">#&gt;     pYearFraction      6</span></span>
+<span><span class="co">#&gt;     pWacc              6</span></span>
+<span><span class="co">#&gt;     pSdr               6</span></span>
+<span><span class="co">#&gt;     pSupCost           6</span></span>
 <span></span>
 <span><span class="va">pw</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_w</span>, name <span class="op">=</span> <span class="st">"pWeather"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">pw</span><span class="op">)</span><span class="op">$</span><span class="va">weather</span><span class="op">)</span></span>
@@ -793,6 +998,53 @@ the tiers belong on the commodity:</p>
 <span>  overwrite <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  echo <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> checking declarations<span style="color: #00BB00;">✔</span> checking declarations <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> expanding vintage/cluster variants</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> expanding vintage/cluster variants <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing commodity clusters</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> materializing commodity clusters <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather clusters<span style="color: #00BB00;">✔</span> materializing weather clusters <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather transforms<span style="color: #00BB00;">✔</span> materializing weather transforms <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: object names</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process classes<span style="color: #00BB00;">✔</span> collecting sets: process classes <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: timeframes<span style="color: #00BB00;">✔</span> collecting sets: timeframes <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process inputs/outputs<span style="color: #00BB00;">✔</span> collecting sets: process inputs/outputs <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: membership comm sets<span style="color: #00BB00;">✔</span> collecting sets: membership comm sets <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process regions<span style="color: #00BB00;">✔</span> collecting sets: process regions <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: membership + closure<span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> settings parameters (discount, period length, timeslice share)<span style="color: #00BB00;">✔</span> settings parameters (discount, period length, timeslice share) <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: calendar + lifespan<span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> interpolating parameters over milestone years<span style="color: #00BB00;">✔</span> interpolating parameters over milestone years <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> calendar-filter: restricting parameters to declared timeslices<span style="color: #00BB00;">✔</span> calendar-filter: restricting parameters to declared timeslices <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter<span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: cost aggregation<span style="color: #00BB00;">✔</span> building maps: cost aggregation <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing model-size summary<span style="color: #00BB00;">✔</span> computing model-size summary <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; model_size: art_land</span></span>
+<span><span class="co">#&gt;   parameters : 200 value, 359 maps, 15 sets</span></span>
+<span><span class="co">#&gt;   param rows : 231</span></span>
+<span><span class="co">#&gt;   estimate   : ~464 variables, ~430 constraints (from gating maps)</span></span>
+<span><span class="co">#&gt;   top parameters by rows:</span></span>
+<span><span class="co">#&gt;     pTimesliceAgg      30</span></span>
+<span><span class="co">#&gt;     pTechCact2cout     24</span></span>
+<span><span class="co">#&gt;     pTimesliceWeight   18</span></span>
+<span><span class="co">#&gt;     pSupCost           18</span></span>
+<span><span class="co">#&gt;     pSupAva            18</span></span>
+<span><span class="co">#&gt;     pTechEac           18</span></span>
+<span><span class="co">#&gt;     pTechInvcost       18</span></span>
+<span><span class="co">#&gt;     pTechCap           18</span></span>
+<span><span class="co">#&gt;     pDemand            12</span></span>
+<span><span class="co">#&gt;     pImportRowPrice    12</span></span>
+<span><span class="co">#&gt;     pPeriodLen         6</span></span>
+<span><span class="co">#&gt;     ordYear            6</span></span>
+<span><span class="co">#&gt;     pYearFraction      6</span></span>
+<span><span class="co">#&gt;     pWacc              6</span></span>
+<span><span class="co">#&gt;     pSdr               6</span></span>
 <span></span>
 <span><span class="co"># one declaration, three commodities -- and one supply object, three processes</span></span>
 <span><span class="va">ava</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_land</span>, name <span class="op">=</span> <span class="st">"pSupAva"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -905,6 +1157,53 @@ everywhere else – a row with no cluster is shared by every tier:</p>
 <span>  discount <span class="op">=</span> <span class="fl">0.05</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">scen_coal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod_coal</span>, name <span class="op">=</span> <span class="st">"art_coal"</span>, ondisk <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> checking declarations<span style="color: #00BB00;">✔</span> checking declarations <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> expanding vintage/cluster variants</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> expanding vintage/cluster variants <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing commodity clusters</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> materializing commodity clusters <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather clusters<span style="color: #00BB00;">✔</span> materializing weather clusters <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather transforms<span style="color: #00BB00;">✔</span> materializing weather transforms <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: object names</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process classes<span style="color: #00BB00;">✔</span> collecting sets: process classes <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: timeframes<span style="color: #00BB00;">✔</span> collecting sets: timeframes <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process inputs/outputs<span style="color: #00BB00;">✔</span> collecting sets: process inputs/outputs <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: membership comm sets<span style="color: #00BB00;">✔</span> collecting sets: membership comm sets <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process regions<span style="color: #00BB00;">✔</span> collecting sets: process regions <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: membership + closure<span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> settings parameters (discount, period length, timeslice share)<span style="color: #00BB00;">✔</span> settings parameters (discount, period length, timeslice share) <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: calendar + lifespan<span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> interpolating parameters over milestone years<span style="color: #00BB00;">✔</span> interpolating parameters over milestone years <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> calendar-filter: restricting parameters to declared timeslices<span style="color: #00BB00;">✔</span> calendar-filter: restricting parameters to declared timeslices <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter<span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: cost aggregation<span style="color: #00BB00;">✔</span> building maps: cost aggregation <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing model-size summary<span style="color: #00BB00;">✔</span> computing model-size summary <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; model_size: art_coal</span></span>
+<span><span class="co">#&gt;   parameters : 200 value, 359 maps, 15 sets</span></span>
+<span><span class="co">#&gt;   param rows : 203</span></span>
+<span><span class="co">#&gt;   estimate   : ~382 variables, ~371 constraints (from gating maps)</span></span>
+<span><span class="co">#&gt;   top parameters by rows:</span></span>
+<span><span class="co">#&gt;     pTimesliceAgg      30</span></span>
+<span><span class="co">#&gt;     pTechCact2cout     24</span></span>
+<span><span class="co">#&gt;     pTimesliceWeight   18</span></span>
+<span><span class="co">#&gt;     pSupCost           12</span></span>
+<span><span class="co">#&gt;     pSupAva            12</span></span>
+<span><span class="co">#&gt;     pDemand            12</span></span>
+<span><span class="co">#&gt;     pImportRowPrice    12</span></span>
+<span><span class="co">#&gt;     pTechEac           12</span></span>
+<span><span class="co">#&gt;     pTechInvcost       12</span></span>
+<span><span class="co">#&gt;     pTechCap           12</span></span>
+<span><span class="co">#&gt;     pPeriodLen         6</span></span>
+<span><span class="co">#&gt;     ordYear            6</span></span>
+<span><span class="co">#&gt;     pYearFraction      6</span></span>
+<span><span class="co">#&gt;     pWacc              6</span></span>
+<span><span class="co">#&gt;     pSdr               6</span></span>
 <span></span>
 <span><span class="va">ef</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_coal</span>, name <span class="op">=</span> <span class="st">"pEmissionFactor"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">ef</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">ef</span><span class="op">)</span></span>
@@ -1095,6 +1394,67 @@ grades – two of the three grades share one regime here.</p>
 <span>  overwrite <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  echo <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> checking declarations<span style="color: #00BB00;">✔</span> checking declarations <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> expanding vintage/cluster variants</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> expanding vintage/cluster variants <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing commodity clusters</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> materializing commodity clusters <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather clusters<span style="color: #00BB00;">✔</span> materializing weather clusters <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather transforms<span style="color: #00BB00;">✔</span> materializing weather transforms <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: object names</span></span>
+<span><span class="co">#&gt; Warning: calendar 'two_seasons' is representative at 'SEASON': its slices span</span></span>
+<span><span class="co">#&gt; 2 x the length of one SEASON. `share` carries the repetition, so anything with</span></span>
+<span><span class="co">#&gt; state between timeslices -- storage above all -- is scaled by it and comes out</span></span>
+<span><span class="co">#&gt; 2 times too large. Declare the repetition in `weight` and leave `share` at the</span></span>
+<span><span class="co">#&gt; length of one SEASON; `Sum(share * weight)` must still be 1.</span></span>
+<span><span class="co">#&gt; (interpolate_model())</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process classes<span style="color: #00BB00;">✔</span> collecting sets: process classes <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: timeframes</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: timeframes <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process inputs/outputs</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: process inputs/outputs <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: membership comm sets</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: membership comm sets <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process regions<span style="color: #00BB00;">✔</span> collecting sets: process regions <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: membership + closure</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> settings parameters (discount, period length, timeslice share)<span style="color: #00BB00;">✔</span> settings parameters (discount, period length, timeslice share) <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: calendar + lifespan</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> interpolating parameters over milestone years<span style="color: #00BB00;">✔</span> interpolating parameters over milestone years <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> calendar-filter: restricting parameters to declared timeslices<span style="color: #00BB00;">✔</span> calendar-filter: restricting parameters to declared timeslices <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: cost aggregation<span style="color: #00BB00;">✔</span> building maps: cost aggregation <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing model-size summary<span style="color: #00BB00;">✔</span> computing model-size summary <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; model_size: art_sites</span></span>
+<span><span class="co">#&gt;   parameters : 200 value, 359 maps, 15 sets</span></span>
+<span><span class="co">#&gt;   param rows : 69</span></span>
+<span><span class="co">#&gt;   estimate   : ~146 variables, ~139 constraints (from gating maps)</span></span>
+<span><span class="co">#&gt;   top parameters by rows:</span></span>
+<span><span class="co">#&gt;     pSupAva            6</span></span>
+<span><span class="co">#&gt;     pTechEac           6</span></span>
+<span><span class="co">#&gt;     pTechOlife         6</span></span>
+<span><span class="co">#&gt;     pTechInvcost       6</span></span>
+<span><span class="co">#&gt;     pTechNCap2AInp     6</span></span>
+<span><span class="co">#&gt;     pTimesliceAgg      5</span></span>
+<span><span class="co">#&gt;     pWeather           4</span></span>
+<span><span class="co">#&gt;     pDemand            4</span></span>
+<span><span class="co">#&gt;     pImportRowPrice    4</span></span>
+<span><span class="co">#&gt;     pTimesliceShare    3</span></span>
+<span><span class="co">#&gt;     pTimesliceWeight   3</span></span>
+<span><span class="co">#&gt;     pWacc              3</span></span>
+<span><span class="co">#&gt;     pSdr               3</span></span>
+<span><span class="co">#&gt;     pTechWeatherAf     3</span></span>
+<span><span class="co">#&gt;     pTechCap2act       3</span></span>
+<span><span class="co">#&gt; Warning: `echo` has been renamed `verbose`: pass `verbose = ` instead. `echo`</span></span>
+<span><span class="co">#&gt; still works and will be removed in a future release.</span></span>
 <span><span class="fu"><a href="../reference/getVariants.html">getVariants</a></span><span class="op">(</span><span class="va">scen_site</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                name      class         base vintage cluster</span></span>
 <span><span class="co">#&gt; 1 RES_LAND_WIN_CL01     supply RES_LAND_WIN    &lt;NA&gt;      01</span></span>

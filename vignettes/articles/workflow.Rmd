@@ -39,7 +39,7 @@ set_registry_file(file.path(wf, "energyRt_registry.csv"))
 
 topia_elc <- topia$modules$electricity
 mod <- newModel("TOPIA", data = topia_elc$repo,
-                calendar = topia$modules$calendars$s4_h24,
+                calendar = calendars[["d365_h24_1dpm"]],
                 region   = topia_elc$regions,
                 horizon  = topia$modules$horizons$BY2025_50_by10,
                 discount = 0.05)
@@ -63,7 +63,7 @@ TRUE` unwraps a single match into the object itself.
 ```{r getobject}
 repo <- topia_elc$repo
 names(getObject(repo, class = "technology"))        # all technologies
-names(getObject(repo, class = "supply", region = "W1"))
+names(getObject(repo, class = "supply", region = "R01"))
 getObject(repo, name = "ECOA", drop = TRUE)@invcost # the ECOA object itself
 ```
 
@@ -111,7 +111,7 @@ ECOA <- update(ECOA, invcost = data.frame(invcost = 2500))  # pricier coal capex
 repo_hi <- add(repo, ECOA, overwrite = TRUE)                # swap it back in
 
 mod_hi  <- newModel("TOPIA_HI", data = repo_hi,
-                    calendar = topia$modules$calendars$s4_h24,
+                    calendar = calendars[["d365_h24_1dpm"]],
                     region = topia_elc$regions,
                     horizon = topia$modules$horizons$BY2025_50_by10,
                     discount = 0.05)
@@ -362,10 +362,13 @@ annualises the shorter sample. Interpolation normalises the weights on
 construction and reports the factor it applied:
 
 ```{r sample-calendar}
-timetable <- topia$modules$calendars$s4_h24@timetable
-# two of the four seasons
-timetable_2s <- timetable[timetable$SEASON %in% c("WIN", "SUM"), ]
-calendar_s2h24 <- newCalendar(timetable = timetable_2s, name = "s2h24",
+timetable <- calendars[["d365_h24_1dpm"]]@timetable
+# half of the sampled days -- this calendar is indexed by day and hour, so a
+# day is the unit to cut; filtering on a dimension it does not carry would
+# quietly keep everything
+keep_days <- sort(unique(as.character(timetable$YDAY)))[c(1, 3, 5, 7, 9, 11)]
+timetable_2s <- timetable[as.character(timetable$YDAY) %in% keep_days, ]
+calendar_s2h24 <- newCalendar(timetable = timetable_2s, name = "d6h24",
                               year_fraction = sum(timetable_2s$share))
 
 scen_t <- interpolate_model(mod, "S2", calendar_s2h24) |>

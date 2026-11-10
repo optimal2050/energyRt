@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,8 +25,10 @@
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -235,6 +237,13 @@
 
         </dt>
         <dd>An S4 class to represent a supply of a commodity</dd>
+
+        <dt>
+
+          <code><a href="energyRt-validity.html">energyRt-validity</a></code>
+
+        </dt>
+        <dd>Object construction and validity in energyRt</dd>
       </dl></div><div class="section level2">
       <h2 id="building-a-model">Building a model<a class="anchor" aria-label="anchor" href="#building-a-model"></a></h2>
 
@@ -538,10 +547,10 @@
 
         <dt>
 
-          <code><a href="plot_geoscale.html">plot_geoscale()</a></code>
+          <code><a href="energyRt-deprecated.html">plot_map()</a></code> <code><a href="energyRt-deprecated.html">plot_heatmap()</a></code> <code><a href="energyRt-deprecated.html">plot_trade_map()</a></code> <code><a href="energyRt-deprecated.html">plot_trade_network()</a></code> <code><a href="energyRt-deprecated.html">plot_share_frontier()</a></code> <code><a href="energyRt-deprecated.html">plot_geoscale()</a></code>
 
         </dt>
-        <dd>Draw a model's geoscale</dd>
+        <dd>Deprecated plotting names</dd>
 
         <dt>
 
@@ -965,6 +974,13 @@
 
         <dt>
 
+          <code><a href="getUnit.html">getUnit()</a></code>
+
+        </dt>
+        <dd>Unit of an object's own measure</dd>
+
+        <dt>
+
           <code><a href="accessors.html">getScenario()</a></code> <code><a href="accessors.html">getModel()</a></code> <code><a href="accessors.html">getRepository()</a></code> <code><a href="accessors.html">getDataset()</a></code> <code><a href="accessors.html">open_project()</a></code>
 
         </dt>
@@ -1044,10 +1060,10 @@
 
         <dt>
 
-          <code><a href="plot_share_frontier.html">plot_share_frontier()</a></code>
+          <code><a href="energyRt-deprecated.html">plot_map()</a></code> <code><a href="energyRt-deprecated.html">plot_heatmap()</a></code> <code><a href="energyRt-deprecated.html">plot_trade_map()</a></code> <code><a href="energyRt-deprecated.html">plot_trade_network()</a></code> <code><a href="energyRt-deprecated.html">plot_share_frontier()</a></code> <code><a href="energyRt-deprecated.html">plot_geoscale()</a></code>
 
         </dt>
-        <dd>Plot feasible share-mix diagram for technology inputs/outputs</dd>
+        <dd>Deprecated plotting names</dd>
 
         <dt>
 
@@ -1239,6 +1255,13 @@
 
         <dt>
 
+          <code><a href="gg_trade_map.html">gg_trade_map()</a></code> <code><a href="gg_trade_map.html">autoplot(<i>&lt;trade&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Map inter-regional trade routes</dd>
+
+        <dt>
+
           <code><a href="plot_calendar_method.html">autoplot(<i>&lt;calendar&gt;</i>)</a></code>
 
         </dt>
@@ -1253,10 +1276,31 @@
 
         <dt>
 
-          <code><a href="plot_trade_map.html">plot_trade_map()</a></code> <code><a href="plot_trade_map.html">autoplot(<i>&lt;trade&gt;</i>)</a></code>
+          <code><a href="gg_heatmap.html">gg_heatmap()</a></code>
 
         </dt>
-        <dd>Map inter-regional trade routes</dd>
+        <dd>Heatmap of timeslice-indexed values over a calendar</dd>
+
+        <dt>
+
+          <code><a href="gg_map.html">gg_map()</a></code>
+
+        </dt>
+        <dd>Map model results by region</dd>
+
+        <dt>
+
+          <code><a href="gg_share_frontier.html">gg_share_frontier()</a></code>
+
+        </dt>
+        <dd>Plot feasible share-mix diagram for technology inputs/outputs</dd>
+
+        <dt>
+
+          <code><a href="gg_trade_network.html">gg_trade_network()</a></code>
+
+        </dt>
+        <dd>Plot trade as a network: capacities and flows between regions</dd>
 
         <dt>
 
@@ -1267,24 +1311,10 @@
 
         <dt>
 
-          <code><a href="plot_heatmap.html">plot_heatmap()</a></code>
+          <code><a href="energyRt-deprecated.html">plot_map()</a></code> <code><a href="energyRt-deprecated.html">plot_heatmap()</a></code> <code><a href="energyRt-deprecated.html">plot_trade_map()</a></code> <code><a href="energyRt-deprecated.html">plot_trade_network()</a></code> <code><a href="energyRt-deprecated.html">plot_share_frontier()</a></code> <code><a href="energyRt-deprecated.html">plot_geoscale()</a></code>
 
         </dt>
-        <dd>Heatmap of timeslice-indexed values over a calendar</dd>
-
-        <dt>
-
-          <code><a href="plot_map.html">plot_map()</a></code>
-
-        </dt>
-        <dd>Map model results by region</dd>
-
-        <dt>
-
-          <code><a href="plot_trade_network.html">plot_trade_network()</a></code>
-
-        </dt>
-        <dd>Plot trade as a network: capacities and flows between regions</dd>
+        <dd>Deprecated plotting names</dd>
 
         <dt>
 
@@ -1897,7 +1927,7 @@
 
         <dt>
 
-          <code><a href="getUnits.html">getUnits(<i>&lt;commodity&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;technology&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;supply&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;demand&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;import&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;export&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;storage&gt;</i>)</a></code>
+          <code><a href="getUnits.html">getUnits(<i>&lt;commodity&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;technology&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;supply&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;demand&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;import&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;export&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;storage&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;trade&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;tax&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;subsidy&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;weather&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;calendar&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;config&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;settings&gt;</i>)</a></code>
 
         </dt>
         <dd>Get parameter units for energyRt class objects</dd>

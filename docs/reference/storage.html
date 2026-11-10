@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,8 +25,10 @@
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -663,7 +665,7 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 
 
 <dt id="arg-duration">duration<a class="anchor" aria-label="anchor" href="#arg-duration"></a></dt>
-<dd><p>data.frame. How long the store can run at its rated output: the ratio of storing capacity to (dis)charging capacity. <code>duration = 6</code> on an hourly calendar is a 6-hour store. Renamed from <code>cap2stg</code> in v0.80; the old spelling is refused since v0.90. It is a BOUND on (storage, region, year): <code>duration.fx</code> ties energy to power, <code>duration.lo</code>/<code>duration.up</code> let the model choose the ratio – which only bites when the storing side is priced, via <code>@storage$invcost</code>. The bare <code>duration</code> column is the scalar shorthand and is normalised to <code>duration.fx</code> at construction. A ONE-SIDED range opens the other side (an <code>up</code> alone does not inherit the default <code>lo</code> of 1). Saying nothing leaves the slot empty and the parameter default of <code>[1, 1]</code> ties energy to power at one hour, which is the pre-v0.84 behaviour.</p>
+<dd><p>data.frame. How long the store can run at its rated output: the ratio of storing capacity to (dis)charging capacity, in ENERGY per POWER in the stored commodity's own units – PJ per GW for an ELC store, NOT hours. The equations multiply it by the discharging capacity with no conversion, so an h-hour store is <code>h * 0.0036</code> when energy is PJ and power GW: a 4-hour battery is <code>0.0144</code>. Renamed from <code>cap2stg</code> in v0.80; the old spelling is refused since v0.90. It is a BOUND on (storage, region, year): <code>duration.fx</code> ties energy to power, <code>duration.lo</code>/<code>duration.up</code> let the model choose the ratio – which only bites when the storing side is priced, via <code>@storage$invcost</code>. The bare <code>duration</code> column is the scalar shorthand and is normalised to <code>duration.fx</code> at construction. A ONE-SIDED range opens the other side (an <code>up</code> alone does not inherit the default <code>lo</code> of 1). Saying nothing leaves the slot empty and the parameter default of <code>[1, 1]</code> ties energy to power at one hour, which is the pre-v0.84 behaviour.</p>
 <dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage.</p></dd>
 
@@ -680,7 +682,7 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 <dd><p>numeric. Capacity-to-storage ratio (storage duration).</p></dd>
 
 <dt>duration.lo</dt>
-<dd><p>numeric. Lower bound on the energy-to-power ratio, in hours.</p></dd>
+<dd><p>numeric. Lower bound on the energy-to-power ratio, in energy per power in the stored commodity's own units (PJ/GW for an ELC store), not hours. See the slot description.</p></dd>
 
 <dt>duration.up</dt>
 <dd><p>numeric. Upper bound on the energy-to-power ratio, in hours.</p></dd>
@@ -766,6 +768,9 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 <dt>weather</dt>
 <dd><p>character. Name of the weather factor to apply.</p></dd>
 
+<dt>unit</dt>
+<dd><p>character. Optional. The unit this process EXPECTS from the series named in <code>weather</code>, e.g. "degC". Per row, because one process may read a temperature from one series and a wind speed from another. Where this and the weather object's own <code>@units$wval</code> are both declared and differ, that is an error: nothing in the model converts between weather units, so a coefficient fitted to one measure and applied to another is wrong in a way no output reveals. Empty on either side claims nothing and is not checked.</p></dd>
+
 <dt>transform</dt>
 <dd><p>character. Optional name of a function in the weather object's <code>@misc$transform</code>: the factor reads the series that function derives from the raw one, materialised at interpolation. NA reads the raw series.</p></dd>
 
@@ -805,14 +810,14 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 
 
 <dt id="arg-units">units<a class="anchor" aria-label="anchor" href="#arg-units"></a></dt>
-<dd><p>data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in the cost, capacity and activity columns are bare. A declared <code>costs</code> that disagrees with the model's <code>config@currency</code> is an error rather than a silent conversion; leave a column empty to claim nothing. One unit per kind: a storage prices three capacities but states <code>capacity</code> once.</p>
+<dd><p>data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in the cost, capacity and activity columns are bare. A declared <code>currency</code> that disagrees with the model's own is an error rather than a silent conversion; leave a column empty to claim nothing. One unit per kind: a storage prices three capacities but states <code>capacity</code> once.</p>
 <dl><dt>capacity</dt>
 <dd><p>character. Unit of capacity.</p></dd>
 
 <dt>activity</dt>
 <dd><p>character. Unit of the activity variable.</p></dd>
 
-<dt>costs</dt>
+<dt>currency</dt>
 <dd><p>character. Currency of the cost columns.</p></dd>
 
 

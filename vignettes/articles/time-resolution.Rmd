@@ -109,7 +109,7 @@ seasons are `WIN/SPR/SUM/FAL` in calendar order):
 
 ```{r calendars-data}
 names(calendars)
-topia$modules$calendars$topia_seasons@desc
+topia$modules$calendars$d365_h24@desc
 s4 <- as.data.frame(calendars$s4@timetable)[, c("SEASON", "share")]
 s4$share <- round(s4$share, 4)
 s4
@@ -121,11 +121,14 @@ partial years natively — declared timeslices, weights, and storage
 cycles all follow the sample:
 
 ```{r calendars-sampled}
-calendars$s4_h24_subset_2seasons@year_fraction   # WIN + SUM
+calendars$d365_h24_1dpm@year_fraction   # one day per month
 ```
 
-Pick one and pass it to `newModel(calendar = ...)`; the TOPIA vignettes use
-`calendars$s4_h24` throughout.
+Pick one and pass it to `newModel(calendar = ...)`. A calendar has to hold
+the timeslices the model's own data is declared at: the TOPIA kit's profiles
+are measured on `d365_h24`, so its vignettes use that calendar or a sampled
+subset of it such as `d365_h24_1dpm`. A design whose labels the data never
+mentions is refused at interpolation, not quietly ignored.
 
 # Fiscal and non-calendar years
 

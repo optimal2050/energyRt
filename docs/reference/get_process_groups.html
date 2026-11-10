@@ -15,7 +15,7 @@ different inputs and stay separate however alike their costs look."><meta proper
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,8 +33,10 @@ different inputs and stay separate however alike their costs look."><meta proper
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -113,9 +115,8 @@ keys of its <code>clusters</code> argument.</p>
 <code><a href="aggregate_model_regions.html">aggregate_model_regions()</a></code> to apply it.</p>
 <p>Other geoscale:
 <code><a href="check_geoscale_regions.html">check_geoscale_regions()</a></code>,
+<code><a href="gg_map.html">gg_map()</a></code>,
 <code><a href="model_clusters.html">model_clusters()</a></code>,
-<code><a href="plot_geoscale.html">plot_geoscale()</a></code>,
-<code><a href="plot_map.html">plot_map()</a></code>,
 <code><a href="process_cluster_sweep.html">process_cluster_sweep()</a></code>,
 <code><a href="setGeoscale.html">setCalendar,config-method</a></code></p></div>
     </div>
@@ -132,16 +133,21 @@ keys of its <code>clusters</code> argument.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># families of processes that share a commodity signature, with their members</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">get_process_groups</span><span class="op">(</span><span class="va">mod</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   group      class                  signature  n members</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1  ECOA technology   in:COA|out:ELC|aux:|grp: 11    ECOA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2  EGAS technology   in:GAS|out:ELC|aux:|grp: 11    EGAS</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4  ESOL technology in:|out:ELC|aux:LANDS|grp: 11    ESOL</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5  EWIN technology in:|out:ELC|aux:LANDW|grp: 11    EWIN</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                            regions</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 W1,W2,C1,C2,C3,C4,C5,C6,E1,E2,E3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 W1,W2,C1,C2,C3,C4,C5,C6,E1,E2,E3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 W1,W2,C1,C2,C3,C4,C5,C6,E1,E2,E3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 W1,W2,C1,C2,C3,C4,C5,C6,E1,E2,E3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    group      class                  signature  n</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19   TRD      trade                 TRD::ELC:: 14</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1   ECOA technology   in:COA|out:ELC|aux:|grp: 12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4   ESOL technology in:|out:ELC|aux:LANDS|grp: 12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5   EWIN technology in:|out:ELC|aux:LANDW|grp: 12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                                                                            members</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19 TBD_ELC_R02_R03,TBD_ELC_R02_R05,TBD_ELC_R04_R05,TBD_ELC_R04_R06,TBD_ELC_R05_R06,TBD_ELC_R02_R07,TBD_ELC_R03_R07,TBD_ELC_R05_R07,TBD_ELC_R07_R08,TBD_ELC_R08_R09,TBD_ELC_R06_R10,TBD_ELC_R09_R10,TBD_ELC_R10_R11,TBD_ELC_R11_R12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1                                                                                                                                                                                                                             ECOA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4                                                                                                                                                                                                                             ESOL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5                                                                                                                                                                                                                             EWIN</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                            regions</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19     R02,R03,R05,R04,R06,R07,R08,R09,R10,R11,R12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  R01,R02,R03,R04,R05,R06,R07,R08,R09,R10,R11,R12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  R01,R02,R03,R04,R05,R06,R07,R08,R09,R10,R11,R12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5  R01,R09,R10,R11,R12,R02,R03,R04,R05,R06,R07,R08</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

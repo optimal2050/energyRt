@@ -29,7 +29,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,8 +49,10 @@
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -299,10 +301,10 @@ reports what an aggregation did.</li>
 <code><a href="../reference/subset_model_regions.html">subset_model_regions()</a></code> samples regions and warns when a
 sample splits a cell a process spans.</li>
 <li>
-<strong>Maps.</strong> <code><a href="../reference/plot_geoscale.html">plot_geoscale()</a></code>,
-<code><a href="../reference/plot_map.html">plot_map()</a></code> for any solved variable carrying a region,
-<code><a href="../reference/plot_trade_map.html">plot_trade_map()</a></code> and <code><a href="../reference/plot_trade_network.html">plot_trade_network()</a></code> for
-flows.</li>
+<strong>Maps.</strong> <code><a href="https://optimal2050.github.io/geoscales/r/reference/gg_geoscale.html" class="external-link">geoscales::gg_geoscale()</a></code> for the
+geography itself, <code><a href="../reference/gg_map.html">gg_map()</a></code> for any solved variable carrying
+a region, <code><a href="../reference/gg_trade_map.html">gg_trade_map()</a></code> and
+<code><a href="../reference/gg_trade_network.html">gg_trade_network()</a></code> for flows.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -525,9 +527,8 @@ variable, with <code>merge = TRUE</code> for set labels,
 technology, a storage (LCOS) or a trade route (LCOT) analytically — no
 solver — per vintage, cluster and region, from either a declared object
 or a solved scenario; results are cached on disk.
-<code><a href="../reference/tech_share_frontier.html">tech_share_frontier()</a></code> and
-<code><a href="../reference/plot_share_frontier.html">plot_share_frontier()</a></code> show how the merit order shifts with
-a share constraint.</li>
+<code><a href="../reference/tech_share_frontier.html">tech_share_frontier()</a></code> and <code><a href="../reference/gg_share_frontier.html">gg_share_frontier()</a></code>
+show how the merit order shifts with a share constraint.</li>
 <li>
 <strong>Comparison.</strong> <code><a href="../reference/compare_scenarios.html">compare_scenarios()</a></code>
 (solved results, or runs of one scenario), <code><a href="../reference/compare_models.html">compare_models()</a></code>
@@ -588,7 +589,7 @@ comparisons, and solved scenarios (<code>type = "generation"</code>,
 and <code>top_n</code>).</li>
 <li>
 <strong>Maps</strong> — see the space axis above — and
-<code><a href="../reference/plot_heatmap.html">plot_heatmap()</a></code> for a timeslice × region view.</li>
+<code><a href="../reference/gg_heatmap.html">gg_heatmap()</a></code> for a timeslice × region view.</li>
 <li>
 <strong>Reports.</strong> <code><a href="../reference/report.html">report()</a></code> renders any energyRt
 object — fourteen element classes plus the model, repository and

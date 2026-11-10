@@ -17,7 +17,7 @@ intended for direct use by the user."><meta property="og:image" content="https:/
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,8 +35,10 @@ intended for direct use by the user."><meta property="og:image" content="https:/
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -109,7 +111,7 @@ intended for direct use by the user.</p>
 
 
 <dt><code>interpolation</code></dt>
-<dd><p>character. Interpolation rule for numeric parameters across years.  Recognized values are any combination of "back", "inter", "forth", e.g., "back.inter" or "forth.inter", indicating the direction of interpolation.</p></dd>
+<dd><p>character. Interpolation rule for a numeric parameter across years: any combination of the three directions <code>back</code> (extrapolate backward from the earliest anchor), <code>inter</code> (interpolate between anchors) and <code>forth</code> (extrapolate forward from the latest), joined by dots – <code>back.inter.forth</code>, <code>inter.forth</code>, <code>inter</code>. That spelling is canonical and is what gets stored. The short symmetric spellings are accepted wherever a rule is given and normalised to it: <code>bwd</code> for <code>back</code>, <code>int</code> or <code>mid</code> for <code>inter</code>, <code>fwd</code> (also <code>forw</code>, <code>frw</code>) for <code>forth</code>, so <code>bwd.mid.fwd</code> and <code>back.inter.forth</code> are the same rule. An unknown token is an error. An empty rule interpolates between anchors and extrapolates past neither.</p></dd>
 
 
 <dt><code>inClass</code></dt>

@@ -3,7 +3,7 @@
 data, a variable its solved output. Every variable declared by the model
 has one of these, pre-populated from the baked specification when a modOut
 is created and filled with solved values by read_solution() – exactly as
-modInp@parameters is populated from data-raw/modInp.yml.
+modInp@parameters is populated from data-raw/parameters.yml.
 The specification itself is composed at build time in data-raw/DATASET.R:
 dimensions, gating map and description come from the GAMS source via gams2x,
 the emitted column names and the positive/free declaration are parsed out of
@@ -14,7 +14,7 @@ getData()."><meta property="og:description" content="The counterpart of class-pa
 data, a variable its solved output. Every variable declared by the model
 has one of these, pre-populated from the baked specification when a modOut
 is created and filled with solved values by read_solution() – exactly as
-modInp@parameters is populated from data-raw/modInp.yml.
+modInp@parameters is populated from data-raw/parameters.yml.
 The specification itself is composed at build time in data-raw/DATASET.R:
 dimensions, gating map and description come from the GAMS source via gams2x,
 the emitted column names and the positive/free declaration are parsed out of
@@ -29,7 +29,7 @@ getData()."><meta property="og:image" content="https://energyRt.org/logo.png"><s
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,8 +47,10 @@ getData()."><meta property="og:image" content="https://energyRt.org/logo.png"><s
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -87,7 +89,7 @@ getData()."><meta property="og:image" content="https://energyRt.org/logo.png"><s
 data, a <code>variable</code> its solved output. Every variable declared by the model
 has one of these, pre-populated from the baked specification when a <code>modOut</code>
 is created and filled with solved values by <code><a href="read.html">read_solution()</a></code> – exactly as
-<code>modInp@parameters</code> is populated from <code>data-raw/modInp.yml</code>.</p>
+<code>modInp@parameters</code> is populated from <code>data-raw/parameters.yml</code>.</p>
 <p>The specification itself is composed at build time in <code>data-raw/DATASET.R</code>:
 dimensions, gating map and description come from the GAMS source via gams2x,
 the emitted column names and the positive/free declaration are parsed out of
