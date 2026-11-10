@@ -32,6 +32,84 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 ### New features
 
+- **One object can override a parameter’s default or interpolation rule
+  for its own rows.** `@defVal` and `@interpolation` on `technology`,
+  `storage`, `trade`, `supply`, `demand`, `import`, `export`, `weather`,
+  `tax` and `subsidy`, keyed by the short column name the value is
+  written under:
+
+  ``` r
+
+  tech@interpolation$af.up <- "inter"   # this technology only
+  weather@defVal$wval      <- 3
+  ```
+
+  A parameter name works too and is resolved (`pTechAf.up`, or `pTechAf`
+  for every bound at once), and any accepted rule spelling is
+  normalised. A key naming no column or parameter of that class is an
+  **error**, not a silent no-op. These are the third of three layers –
+  the catalogue, then `config@defVal`/`@interpolation`, then the object
+  – and a value equal to the layer above it records nothing, so a model
+  that sets no override interpolates exactly as it did before.
+
+- A weather series may declare what it measures, and a process what it
+  expects. `weather@units$wval` states the series’ own unit; the new
+  `unit` column of `technology@weather`, `storage@weather`,
+  `trade@weather` and `supply@weather` states what that row expects from
+  the series it names – per row, because one process may read a
+  temperature from one series and a wind speed from another. Where both
+  are declared and differ,
+  [`newModel()`](https://energyRt.org/reference/newModel.md) and
+  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+  stop:
+
+      1 weather unit mismatch(es):
+        technology HP expects degK from weather 'TEMP', which declares degC
+
+  Both sides are optional and silence is the default, so a model that
+  has never heard of weather units is unaffected. Nothing is converted:
+  a coefficient fitted to one measure and applied to another is wrong,
+  and there is no conversion in a model to reconcile them. The
+  coefficient itself stays a `factor` either way – the relation is
+  reciprocal for a temperature and direct for other measures, so it is
+  not derived.
+
+- [`getUnits()`](https://energyRt.org/reference/getUnits.md) works on a
+  `config` (and a `settings`), reporting the model’s rates and its
+  dummy-flow prices. `config` has no catalogued columns of its own —
+  `settings` contains `config` and the shared slots are filed under the
+  child — so the lookup resolves through that relation.
+
+- [`getUnits()`](https://energyRt.org/reference/getUnits.md) works for
+  `trade`, `tax`, `subsidy`, `weather` and `calendar`, which had no
+  method. `trade` reports all 40 of its columns, with `{comm}` resolved
+  from the new `@units$comm`; `tax` and `subsidy` gained a `@units` slot
+  of their own (`comm` and `currency`), since a levy is a rate and both
+  halves are needed to read it. `demand`, `import` and `export` gained a
+  `currency` column, so `price` resolves where it could not.
+
+- [`getUnit()`](https://energyRt.org/reference/getUnit.md) reads an
+  object’s own measure, beside
+  [`getUnits()`](https://energyRt.org/reference/getUnits.md) for the
+  table of its parameter units.
+
+- A weather series reports its declared unit:
+  `newWeather(unit = "degC")` makes
+  [`getUnits()`](https://energyRt.org/reference/getUnits.md) say `degC`
+  where it says `{wval}` for an undeclared one. Dimensionless stays the
+  default, and the coefficients that read the series stay a `factor`
+  either way — the relation is reciprocal for a temperature and direct
+  for other measures, so it is not derived.
+
+- `aggregate_model_regions(resolve_conflicts = )` decides what happens
+  to a value with no merged form, such as a lifetime or a levy rate. The
+  default stops and names the object, the column and the regions that
+  disagree; `"force"` takes their mean and `"drop"` leaves the value
+  unset, so the parameter falls back to its default rather than to a
+  fabricated number. Both warn and record what was resolved in each
+  object’s `@misc$aggregation`, which also records the level every
+  object was aggregated to.
+
 - `newHorizon(base_year = )` marks one milestone as GIVEN rather than
   decided. The marked year is interpolated as any other but never
   reaches the solver, and the milestones before it are historical and
@@ -90,6 +168,16 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   reports unservable demand, missing process inputs and binding supply
   ceilings, on a model or an interpolated scenario;
   `interpolate_model(check = TRUE)` runs it.
+
+- [`check_feasibility()`](https://energyRt.org/reference/check_feasibility.md)
+  is aware of economic retirement. A requirement that follows from
+  standing capacity is forced only while that capacity must stand, so
+  findings carry a `retirement` column and are reported under both
+  settings – off (the whole stock stands) and on (what the `ret.up` /
+  `ret.fx` bounds still pin) – with the model’s own setting named in the
+  report and in the `retirement_actual` attribute.
+  `interpolate_model(check = TRUE)` stops only on findings under the
+  live setting, since a finding under the other one is a counterfactual.
 
 #### Model building
 
@@ -370,9 +458,9 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 - [`draw()`](https://energyRt.org/reference/draw.md) process diagrams;
   [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
   for objects, calendars, horizons, scenarios and comparisons;
-  [`plot_map()`](https://energyRt.org/reference/plot_map.md),
-  [`plot_trade_map()`](https://energyRt.org/reference/plot_trade_map.md),
-  [`plot_trade_network()`](https://energyRt.org/reference/plot_trade_network.md).
+  [`plot_map()`](https://energyRt.org/reference/energyRt-deprecated.md),
+  [`plot_trade_map()`](https://energyRt.org/reference/energyRt-deprecated.md),
+  [`plot_trade_network()`](https://energyRt.org/reference/energyRt-deprecated.md).
 
 - `getMix("generation")` includes technology consumption, so a process
   that consumes the balanced commodity appears as a sink instead of
@@ -451,6 +539,107 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 ### Breaking changes
 
+- The figure functions that return a ggplot object are named `gg_*`:
+  [`gg_map()`](https://energyRt.org/reference/gg_map.md),
+  [`gg_heatmap()`](https://energyRt.org/reference/gg_heatmap.md),
+  [`gg_trade_map()`](https://energyRt.org/reference/gg_trade_map.md),
+  [`gg_trade_network()`](https://energyRt.org/reference/gg_trade_network.md),
+  [`gg_share_frontier()`](https://energyRt.org/reference/gg_share_frontier.md).
+  The `plot_*` names forward with a one-time warning and go before 1.0.
+  [`plot_geoscale()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  is deprecated without a successor here: call
+  [`geoscales::gg_geoscale()`](https://optimal2050.github.io/geoscales/r/reference/gg_geoscale.html)
+  on `getGeoscale(object)`.
+
+- [`plot()`](https://energyRt.org/reference/draw.md) on every energyRt
+  class now draws the figure and returns it invisibly, like base
+  [`plot()`](https://energyRt.org/reference/draw.md);
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  returns the ggplot to modify.
+
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  on a calendar is drawn by
+  [`timescales::gg_calendar()`](https://optimal2050.github.io/timescales/r/reference/gg_calendar.html).
+  `labels` takes `"name"`, `"timeslice"` or `"none"` (`label_by` is
+  gone), the text colour is automatic (`label_color` is gone) and
+  `show_leafs` is gone: subset the calendar first. `reference` stays.
+
+- The `s4_h24_subset_2seasons` and `m12_h24_subset_4months` calendars
+  are removed: both sampled an already-representative design, so their
+  weight was the product of two reductions.
+
+- `weather@defVal`, `tax@defVal` and `subsidy@defVal` are the override
+  table above, not a number. The `defVal =` argument is unchanged – a
+  bare number folds into the column the class owns (`wval`; a levy’s
+  `inp`/`out`/`bal`), and `defVal = 0` equals the catalogue default and
+  so records nothing. The three slots were **inert**: nothing read a
+  levy’s, and a weather’s reached no parameter, so this gives them the
+  effect they always described.
+
+- **`config@currency` is gone, folded into `config@units$currency`.**
+  The model declares its generic units in one slot, with the same column
+  names an object uses, so the check compares `currency` with `currency`
+  rather than a differently-named scalar:
+
+  ``` r
+
+  newModel("demo", currency = "MUSD")                        # unchanged
+  newModel("demo", units = data.frame(currency = "MUSD"))    # the same thing
+  ```
+
+  `currency =` is unchanged as an argument and a saved config’s
+  `@currency` is migrated from the orphaned attribute, as `@unit` is.
+  `config@units` also carries `comm`, `capacity`, `activity` and `use` —
+  the model’s generic units, declared and reported. Nothing here
+  converts a value.
+
+- **The scalar `@unit` slot is gone.** A commodity’s, a flow’s or a
+  weather series’ own measure lives in `@units`, the same slot a process
+  already used: `@units$comm` for the commodity an object is counted in,
+  `@units$wval` for a weather value. `commodity`, `demand`, `import`,
+  `export` and `weather` gained the slot; `supply` carried both shapes
+  and lost the scalar one. Read it with the new
+  [`getUnit()`](https://energyRt.org/reference/getUnit.md) accessor,
+  which returns one value or `NA_character_`:
+
+  ``` r
+
+  co <- newCommodity("ELC", desc = "Electricity", unit = "GWh")
+  getUnit(co)        # "GWh"  -- was co@unit
+  co@units$comm      # "GWh"  -- where it is stored
+  ```
+
+  `unit =` is unchanged as a constructor and
+  [`update()`](https://energyRt.org/reference/update.md) argument, so
+  authoring code does not move; it writes the column, and an explicit
+  `units =` in the same call wins. A saved object’s `@unit` is
+  **migrated**, not lost: a slot removed from a class definition
+  survives deserialization as a plain attribute, and both
+  [`getUnit()`](https://energyRt.org/reference/getUnit.md) and the unit
+  resolver read it.
+
+  Three places declared units in two shapes under two names one letter
+  apart, which is why six classes could not state a currency at all and
+  `trade` could not state the commodity its 39 priced columns are
+  measured in.
+
+- `config@defVal` and `config@interpolation` are **empty override tables
+  keyed by parameter name**, not pre-filled tables keyed by column name.
+  Set `config@interpolation$pDemand <- "inter"` or
+  `config@defVal$pTechAf.up <- 0.5`; a key naming no parameter is an
+  error. Every parameter is now overridable, where 103 of 190 columns
+  were not. A model or scenario saved before this release carries the
+  old ~100-column table in these slots and must have it cleared or
+  re-keyed.
+
+  A parameter’s default and interpolation rule are declared in one
+  place, the catalogue (`data-raw/parameters.yml`).
+  `data-raw/config_default_values.yml`,
+  `data-raw/config_default_interpolation.yml`, `R/defaults.R`, `.defVal`
+  and `.defInt` are gone: they were a second copy of every default,
+  keyed by bare column name, and had drifted — `stock` resolved to
+  `trade`’s rule for `technology` too.
+
 - `solve_myopic()` is renamed
   **[`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md)**,
   with `myopic_objective()` to
@@ -524,6 +713,165 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 ### Bug fixes
 
+- A resource grade declares the regions it exists in, so narrowing a
+  model’s regions can delete a grade outright.
+  [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
+  dropped the roster row but left the rows keyed on that grade in
+  `@aeff`, `@invcost`, `@fixom` and `@af`, and interpolating the
+  sub-model then refused it (“Undeclared cluster label(s)”). The
+  orphaned rows are dropped with the grade, and an object none of whose
+  grades is in the sample leaves it.
+
+- [`levcost()`](https://energyRt.org/reference/levcost.md) averaged a
+  graded resource’s profiles into one capacity factor, so every grade of
+  a technology came out at the same levelized cost – the one thing
+  grading them is for. Each cell is now priced at its own grade’s
+  capacity factor.
+  [`levcost()`](https://energyRt.org/reference/levcost.md) also failed
+  outright on a graded or availability-bounded resource, naming regions
+  its mini-model does not declare.
+
+- A container report’s levelized-cost table reported the first cell of a
+  process declaring vintages or grades as the cost of the whole process,
+  dropping the rest. It now carries one row per cell, with its vintage
+  and grade.
+
+- Calendars whose timeslices stand for several of the unit their
+  timeframe names – `s4_h24`, `m12_h24`, `wd7_h24`, `w52_h24` – carried
+  the repetition as a longer `share`, and `share` scales every
+  per-timeslice bound. Storage built on them was oversized by that
+  factor, while costs and annual totals stayed right. The repetition is
+  now a timeslice weight, so a model returns the same capacities and
+  objective on any of them.
+  [`newCalendar()`](https://energyRt.org/reference/newCalendar.md) and
+  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+  warn when a leaf timeframe’s timeslices are longer than the unit it is
+  named after.
+
+- `commodity@emis$unit` and `@agg$unit` are **rates**, reported as
+  declared. [`getUnits()`](https://energyRt.org/reference/getUnits.md)
+  divided both by the commodity’s own unit, which was right for neither:
+  an emission factor’s denominator is already this commodity (`"kt/PJ"`
+  was reported as `kt/PJ/{comm}`), while an aggregation coefficient’s
+  *numerator* is the one that matches it (`"kt"` on a `kt` aggregate was
+  reported as `kt/{comm}`). A new check warns when either column holds a
+  quantity instead of a rate, and when the side that must agree with
+  `@units$comm` does not – a warning, never an error, since a unit is
+  reported and cross-checked and never converted.
+
+- [`getUnits()`](https://energyRt.org/reference/getUnits.md) on a
+  `commodity` errored with “argument is of length zero” whenever the
+  commodity declared no unit, which is every commodity in the shipped
+  test models: the default was
+  [`character()`](https://rdrr.io/r/base/character.html) and
+  [`nzchar()`](https://rdrr.io/r/base/nchar.html) on it returns
+  `logical(0)`.
+
+- A unit declared in `@units$comm` was read as a **commodity name** by
+  the undeclared-name and unused-name checks, which sweep every slot for
+  a column called `comm`. A model with
+  `newCommodity("ELC", unit = "MWh")` failed to build with “The model
+  references undeclared name(s): commodity: MWh”.
+
+- **`storage@duration` and `@inp2stg` were reported in hours, which is
+  wrong.** `duration` is energy capacity per unit of power capacity in
+  the stored commodity’s own units — PJ per GW for an ELC store —
+  because the equations multiply it by the discharging capacity with no
+  conversion. A four-hour battery is `4 * 0.0036 = 0.0144`, not `4`.
+  `inp2stg` is its inverse. The numbers in a model are unchanged; what
+  [`getUnits()`](https://energyRt.org/reference/getUnits.md) and the
+  class documentation claimed about them was not.
+
+- **Units now cover the classes that had none.** `trade`’s 40
+  parameters, the 24 weather coefficients, `tax`, `subsidy`, `calendar`
+  and the discount rates all report a unit where they reported nothing:
+  254 of 321 catalogued columns carry one, against 135 before. `wacc`
+  and `sdr` are `1/year` rather than a bare fraction, and a weather
+  coefficient is `factor` — dimensionless but explicitly *not* bounded
+  by 1, since low temperature raising conductivity can put output above
+  nameplate.
+
+- The `@units` money column is **`currency`**, not `costs`:
+  `units = data.frame(capacity = "GW", activity = "GWh", currency = "MEUR")`.
+  The token is money in every formula and never stands alone, so `costs`
+  named the quantity the formula builds by dividing. `costs` is still
+  accepted and normalised on input, so existing code keeps working.
+
+- The short interpolation-rule spellings now work. `bwd` for `back`,
+  `int` or `mid` for `inter`, `fwd` (also `forw`, `frw`) for `forth`, in
+  any combination: `bwd.mid.fwd` is `back.inter.forth`. They were
+  documented as aliases but errored with “Wrong interpolation rule”,
+  because the token set was defined three times — a substring strip in
+  the validator, a loose regex in one engine, literal matches in the
+  other. There is one table now, every spelling is normalised to the
+  canonical `back.inter.forth` form on the way in, and an unknown token
+  is an error naming the accepted set.
+
+- A parameter’s **unit** is declared with it, as `unit:` on the
+  parameter in `data-raw/parameters.yml`, rather than in three
+  hand-written lists in `R/units.R`.
+  [`getUnits()`](https://energyRt.org/reference/getUnits.md) is
+  unchanged in shape and gains the formulas those lists could no longer
+  reach: 22 of their keys addressed columns that do not exist, so
+  `technology@ceff$grp.share.*` and twelve storage `aeff` columns had
+  silently lost their units.
+
+- **A constraint’s terms move with it.** `@lhs` is a list, so no slot
+  loop reached it: aggregating regions moved a constraint’s row domain
+  and its right-hand side but left each term’s coefficients, and the
+  regions it sums over, naming regions that had been merged away – which
+  then matched nothing. A coefficient that differs across the merged
+  regions is refused, because the merged one would have to be weighted
+  by the variable it multiplies, which is not known before the solve.
+
+- **An object with no size of its own is weighted by the scale.**
+  Aggregating regions took a plain mean wherever the object carried no
+  capacity to weight by – a weather profile has none – so every region
+  counted equally, although the documentation promised a size-weighted
+  mean. The weight now comes from the geoscale (area, or whatever weight
+  it declares), which a profile cannot supply for itself.
+
+- **Values that add are no longer averaged.** A storage start level is
+  energy, like `stg.stock`, and a per-region constraint right-hand side
+  is the budget of the rows being merged; both were averaged across
+  regions. `payback` is a lifetime, like `olife`, and is now copied
+  rather than averaged, including storage’s `out.`, `inp.` and `stg.`
+  forms, which an exact-name lookup had missed.
+
+- **[`recast_model_calendar()`](https://energyRt.org/reference/recast_model_calendar.md)
+  treats `cluster` as an identifier**, not as a value to recast.
+
+- **A wildcard row beside named rows is no longer ignored.** An NA in a
+  key column means “every member of that dimension”, but interpolation
+  treated the NA as a member of its own: a base-year anchor written
+  `region = NA, timeslice = NA` became a separate series, anchored
+  nothing, and was dropped – the later milestone’s value was back-cast
+  over it as if the row were absent. Every class was affected (reported
+  on `demand`, reproduced on `supply`). A wildcard row is now broadcast
+  onto the members its own object operates at, with explicit rows still
+  winning cell by cell, so the two spellings of “all regions” give the
+  same answer. Declaring the column and omitting it already worked and
+  is unchanged.
+
+- **A zero supply ceiling bound instead of reading as unbounded.**
+  `ava.up = 0` was excluded from `mSupAvaUp`, which kept only rows with
+  `value != 0` although the upper bound’s default is `Inf`. The
+  parameter carried the zero, no equation read it, and the supply solved
+  without a limit. The gate now drops only genuinely default bounds
+  (`Inf` for `up`, `0` for `lo`), so a declared zero closes the supply
+  as written.
+
+- [`check_feasibility()`](https://energyRt.org/reference/check_feasibility.md)
+  read its tables from `@data` and its declarations from the object
+  slots directly, so it saw nothing of a table parked in the scenario’s
+  store
+  ([`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
+  empties `@data` above `energyRt.ondisk_min_rows`), nothing of a map
+  defined by a rule, and nothing of an object saved on disk – and
+  reported “no contradiction” instead of checking, silently, on exactly
+  the large models where it matters. Every query now goes through
+  `get_data_slot()` and `get_lazy_data()`.
+
 - [`open_project()`](https://energyRt.org/reference/accessors.md)
   returns the option values it replaced, as documented. It collected
   them from the `set_*()` calls, which report the previously SET value –
@@ -548,13 +896,13 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   so an object priced in another currency sat in a model until something
   unrelated failed much later.
 
-- [`plot_trade_network()`](https://energyRt.org/reference/plot_trade_network.md)
+- [`plot_trade_network()`](https://energyRt.org/reference/energyRt-deprecated.md)
   draws routes declared at any level of a geoscale `map`. It placed
   nodes at one level – the finest, unless `level =` named another – so a
   corridor declared where its commodity is balanced was dropped with a
   warning about regions “not in `map`”. `level =` still selects one
   level, and
-  [`plot_trade_map()`](https://energyRt.org/reference/plot_trade_map.md)
+  [`plot_trade_map()`](https://energyRt.org/reference/energyRt-deprecated.md)
   already drew every level – the two views now agree.
 
 - [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
@@ -751,8 +1099,8 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   longer repeats arrows.
 - [`newCosts()`](https://energyRt.org/reference/newCosts.md) is
   debugged, with an example in the Topia tutorial.
-- [`tsl2hour()`](https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html)
-  identifies n-digit hours; it previously worked for two only.
+- `tsl2hour()` identifies n-digit hours; it previously worked for two
+  only.
 
 ## energyRt 0.50.7-dev
 

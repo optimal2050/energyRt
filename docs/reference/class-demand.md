@@ -17,9 +17,25 @@ An S4 class to declare a demand in the model
   character. Name of the commodity for which the demand will be
   specified.
 
-- `unit`:
+- `units`:
 
-  character. Optional unit of the commodity.
+  data.frame. Units this object is measured in, for reference and for
+  carrying them with it: an object moved between models is only
+  meaningful where the units agree, and nothing else in the object
+  records them. Up to version 0.91 the object's own measure was a slot
+  of its own, `@unit`.
+
+  comm
+
+  : character. The commodity this object is counted in, e.g. "GWh" or
+    "PJ". Set by the `unit =` argument of the constructor. Leave it
+    empty to claim nothing: a unit is reported and cross-checked, never
+    converted.
+
+  currency
+
+  : character. Currency of the cost columns. A currency that disagrees
+    with the model's own is an error rather than a silent conversion.
 
 - `demand`:
 
@@ -109,6 +125,27 @@ An S4 class to declare a demand in the model
   demand in the case of used NAs. Error will be returned if specified
   regions in `@demand` are not mensioned in the `@region` slot (if the
   slot is not empty).
+
+- `defVal`:
+
+  data.frame. Optional per-object override of a parameter's DEFAULT,
+  keyed by the short column name the value is written under –
+  `defVal$af.up <- 1` on a technology, `defVal$wval <- 3` on a weather
+  series. Empty by default, and one column per override. A parameter
+  name also works and is resolved (`pTechAf.up`, or `pTechAf` for both
+  bounds). A key that names no column or parameter of this class is an
+  error, not a silent no-op. This is the last of three layers: the
+  catalogue (`data-raw/parameters.yml`), then `config@defVal`, then
+  this; a value equal to what the layer before it says records nothing.
+
+- `interpolation`:
+
+  data.frame. Optional per-object override of a parameter's
+  INTERPOLATION RULE, keyed exactly as `defVal` above:
+  `interpolation$af.up <- "inter"`. Any accepted spelling of a rule
+  works and is normalised, so `bwd.mid.fwd` is `back.inter.forth`. The
+  override applies to THIS object's rows only: every other object of the
+  class keeps the rule the catalogue or `config` gives it.
 
 - `misc`:
 

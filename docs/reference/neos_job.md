@@ -19,7 +19,7 @@ neos_final_results(job, pw, timeout = 120)
 
 neos_get_output_file(job, pw, fileName, timeout = 120)
 
-neos_wait(job, pw, poll = 5, max_wait = 600, verbose = TRUE)
+neos_wait(job, pw, poll = 5, max_wait = 600, verbose = isVerbose())
 ```
 
 ## Arguments

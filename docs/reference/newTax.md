@@ -10,6 +10,7 @@ newTax(
   name = "",
   desc = "",
   comm = "",
+  units = data.frame(),
   geoframe = character(),
   region = character(),
   process = character(),
@@ -42,6 +43,22 @@ newTax(
 
   character. Commodity filter: the commodity or commodities the levy
   applies to. Empty means every commodity the chosen base reaches.
+
+- units:
+
+  data.frame. Units the levy is stated in. A levy is a rate – currency
+  per unit of whatever its base counts – so both halves are needed to
+  read it, and neither is converted.
+
+  comm
+
+  : character. Unit of the commodity the levy is charged on, where its
+    base counts a commodity flow.
+
+  currency
+
+  : character. Currency of the rate columns. A currency that disagrees
+    with the model's own is an error rather than a silent conversion.
 
 - geoframe:
 
@@ -107,8 +124,15 @@ newTax(
 
 - defVal:
 
-  numeric. Default value of the tax for not specified sets, 0 if not
-  specified.
+  data.frame. Optional per-object override of a parameter's DEFAULT,
+  keyed by the short column name the value is written under –
+  `defVal$af.up <- 1` on a technology, `defVal$wval <- 3` on a weather
+  series. Empty by default, and one column per override. A parameter
+  name also works and is resolved (`pTechAf.up`, or `pTechAf` for both
+  bounds). A key that names no column or parameter of this class is an
+  error, not a silent no-op. This is the last of three layers: the
+  catalogue (`data-raw/parameters.yml`), then `config@defVal`, then
+  this; a value equal to what the layer before it says records nothing.
 
 - tax:
 

@@ -1,29 +1,17 @@
 # Visualize a Calendar object
 
-Draws the calendar's time-structure as stacked rows (one per timeframe,
-`ANNUAL` on top), where each rectangle is a time-timeslice sized by its
-share of the year. `autoplot()` is the ggplot2-idiomatic entry point and
-returns the same `ggplot` object as
-[`plot()`](https://energyRt.org/reference/draw.md).
+Draws the calendar's time structure as an icicle: one row per timeframe,
+`ANNUAL` on top, each rectangle a timeslice sized by its share of the
+year. The figure is
+[`timescales::gg_calendar()`](https://optimal2050.github.io/timescales/r/reference/gg_calendar.html)
+on the calendar's timetable; `autoplot()` returns it,
+[`plot()`](https://energyRt.org/reference/draw.md) draws it.
 
 ## Usage
 
 ``` r
 # S3 method for class 'calendar'
-autoplot(
-  object,
-  ...,
-  fill = c("order", "share", "weight"),
-  color_pattern = c("within", "global"),
-  palette = "D",
-  labels = TRUE,
-  label_by = c("name", "timeslice", "none"),
-  label_color = "auto",
-  max_labels = 60L,
-  border = NA,
-  show_leafs = NULL,
-  reference = NULL
-)
+autoplot(object, ..., reference = NULL)
 ```
 
 ## Arguments
@@ -34,81 +22,17 @@ autoplot(
 
 - ...:
 
-  Passed to `plot_calendar()`.
-
-- fill:
-
-  One of `"order"` (chronology, default), `"share"` (year-share of the
-  timeslice), or `"weight"` — the metric mapped to rectangle fill color.
-
-- color_pattern:
-
-  For `fill = "order"`, how the color gradient is applied: `"within"`
-  (default) colors each level over its own timeslices — a full
-  `h00`→`h23` gradient recycled every day, `d001`→`d365` over the year —
-  so each row shows its cyclical structure; `"global"` colors by
-  absolute chronology (leaf order `1…n`, e.g. `0…8760`). Ignored for
-  `"share"`/`"weight"`.
-
-- palette:
-
-  Viridis color option (e.g. `"D"`, `"C"`, `"magma"`) for the fill
-  scale.
-
-- labels:
-
-  Logical; draw labels inside the rectangles (master on/off).
-
-- label_by:
-
-  What to label each rectangle with: `"name"` (default) the individual
-  level name (e.g. `HOUR` cells become `h00`…`h23`, `YDAY` cells
-  `d001`…`d365`), `"timeslice"` the full timeslice path (e.g.
-  `d001_h00`), or `"none"`.
-
-- label_color:
-
-  Text color for the labels. `"auto"` (default) contrasts each label
-  with its cell — white on the darker part of the gradient, dark on the
-  lighter part — so labels stay readable on dark fills. Pass any single
-  color (e.g. `"black"`, `"white"`) to use it for all labels.
-
-- max_labels:
-
-  Integer; timeframes with more timeslices than this are left unlabeled
-  to avoid clutter.
-
-- border:
-
-  Rectangle outline color. `NA` (default) draws no outline, so a
-  high-resolution row (e.g. 8760 hourly timeslices) reads as a smooth
-  gradient instead of a solid block of borders. Pass e.g. `"grey30"` to
-  outline timeslices on coarse calendars.
-
-- show_leafs:
-
-  Select which timeslices to draw (`NULL`, default, shows all). Two
-  forms:
-
-  - an unnamed vector filtering the finest (leaf) level — leaf timeslice
-    names (e.g. `"d001_h05"`) or integer leaf indices (e.g. `1:100` for
-    the first 100 leaves);
-
-  - a named list filtering per timeframe level, combined with AND, e.g.
-    `list(YDAY = "d100", HOUR = 5:10)` — for each level a character
-    vector of that level's timeslice names or integer positions among
-    its timeslices (`HOUR = 5:10` selects the 5th–10th hours). The kept
-    timeslices are packed left-to-right and the x-axis spans their total
-    year-share. Colors stay stable (e.g. `h05` keeps its color whether
-    or not other hours are shown).
+  Passed to
+  [`timescales::gg_calendar()`](https://optimal2050.github.io/timescales/r/reference/gg_calendar.html)
+  (`type = "icicle"`): `fill`, `color_pattern`, `palette`, `labels`,
+  `max_labels`, `max_segments`, `border`.
 
 - reference:
 
-  Optional full `calendar`. When supplied, `x` is treated as a *subset*
-  of `reference`: the plot lays out `reference`'s full structure but
-  fills only the timeslices present in `x` (matched by timeslice name),
-  leaving the unselected timeslices empty. Use it to see which part of a
-  full calendar a sampled/subset calendar covers.
+  Optional full `calendar`. When supplied, `object` is drawn as a subset
+  of it: the layout is the reference's, and the timeslices absent from
+  `object` are left empty. Use it to see which part of a full calendar a
+  sampled calendar covers.
 
 ## Value
 
@@ -122,11 +46,7 @@ cal <- newCalendar(make_timetable(timeslices3), name = "m12h24")
 plot(cal)
 autoplot(cal, fill = "share")
 
-# Subset view: show which timeslices a reduced calendar covers within the full one
-autoplot(calendars$d365_h24_1dpm,
-         reference = calendars$d365_h24)
-
-# Zoom into specific timeslices: day 100, hours 5-10
-autoplot(calendars$d365_h24, show_leafs = list(YDAY = "d100", HOUR = 5:10))
+# which timeslices a reduced calendar covers within the full one
+autoplot(calendars$d365_h24_1dpm, reference = calendars$d365_h24)
 } # }
 ```

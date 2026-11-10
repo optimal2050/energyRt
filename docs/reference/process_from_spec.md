@@ -46,7 +46,6 @@ if (nzchar(f)) process_from_spec(f)
 #> Name:  ECOA 
 #> desc:  Coal condensing power plant 
 #> cap2act:  31.536 
-#> region: ""
 #> 
 #>  input 
 #>   comm unit group combustion
@@ -64,8 +63,8 @@ if (nzchar(f)) process_from_spec(f)
 #> 
 #> 
 #>  units 
-#>   capacity  use activity costs
-#> 1       GW <NA>       PJ  MUSD
+#>   capacity  use activity currency
+#> 1       GW <NA>       PJ     MUSD
 #> 
 #> 
 #>  ceff 
@@ -104,5 +103,13 @@ if (nzchar(f)) process_from_spec(f)
 #>  vintage 
 #>   vintage region cluster start end olife
 #> 1    <NA>   <NA>    <NA>    NA  NA    40
+#> 
+#> 
+#>  defVal 
+#> data frame with 0 columns and 1 row
+#> 
+#> 
+#>  interpolation 
+#> data frame with 0 columns and 1 row
 #> 
 ```

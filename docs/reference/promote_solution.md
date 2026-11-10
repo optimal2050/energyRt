@@ -8,7 +8,7 @@ the solution.
 ## Usage
 
 ``` r
-promote_solution(object, run = NULL, save = TRUE, verbose = TRUE)
+promote_solution(object, run = NULL, save = TRUE, verbose = isVerbose())
 ```
 
 ## Arguments
@@ -24,7 +24,7 @@ promote_solution(object, run = NULL, save = TRUE, verbose = TRUE)
 
 - save:
 
-  logical; write the scenario shell afterwards, so a reload resolves to
+  logical; write the saved scenario afterwards, so a reload resolves to
   the promoted store. On by default — without it the store exists and
   nothing points at it.
 

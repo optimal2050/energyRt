@@ -16,17 +16,45 @@ settings.
 
   character. Description of the configuration object for own references.
 
-- `currency`:
+- `units`:
 
-  character. Optional. The currency every cost in the model is stated
-  in, and the unit of the objective. Unset (the default) claims nothing,
-  which is how every model written before this slot behaves. Declared,
-  it is checked against each object's own `@units$costs`: an object that
-  names a different currency is an error, not a conversion, because
-  there is no exchange rate in the model to convert with. The point is
-  objects moving between models – a technology priced in `MUSD` added to
-  a model counting `bnEUR` is a mistake that no number in the output
-  reveals.
+  data.frame. Optional. The model's generic units: what everything in it
+  is expressed in, and the declared fallback for an object that states
+  nothing of its own. The columns are the ones an object's `@units`
+  uses, so the two levels can be compared directly. Every column is
+  optional and an empty one claims nothing, which is how every model
+  written before this slot behaves. Nothing here converts a value: a
+  unit is declared, reported and cross-checked only.
+
+  comm
+
+  : character. The model's generic unit for a commodity flow, e.g.
+    "GWh".
+
+  capacity
+
+  : character. The model's generic unit of capacity, e.g. "GW".
+
+  activity
+
+  : character. The model's generic unit of activity.
+
+  use
+
+  : character. The model's generic unit of use; falls back to `activity`
+    when empty.
+
+  currency
+
+  : character. The currency every cost in the model is stated in, and
+    the unit of the objective. Declared, it is checked against each
+    object's own `@units$currency`: an object naming a different
+    currency is an error, not a conversion, because there is no exchange
+    rate in the model to convert with. The point is objects moving
+    between models – a technology priced in `MUSD` added to a model
+    counting `bnEUR` is a mistake that no number in the output reveals.
+    It was the `@currency` slot up to version 0.91; `currency =` is
+    still the argument that sets it.
 
 - `region`:
 
@@ -105,19 +133,22 @@ settings.
 
 - `defVal`:
 
-  data.frame. Default values of model parameters. The data frame with
-  the default values for every parameter in the model, used to fill the
-  missing values in the model objects. The values are used in the
-  interpolation step. The data is stored in `energyRt::.defVal` object
-  and can be overwritten by the user and supplied to the model as a
-  parameter.
+  data.frame. Model-wide OVERRIDES of parameter default values, applied
+  at the interpolation step. Empty unless set: a parameter's own default
+  is declared once, in the catalogue (`data-raw/parameters.yml`), and a
+  column here replaces it for the whole model. One column per override,
+  named after the PARAMETER – `pDemand` for a single value, `pTechAf.lo`
+  / `pTechAf.up` for a bound. A column naming no parameter is an error,
+  not a silent no-op. Up to version 0.91 this table was pre-filled with
+  every column of the model and keyed by column name; a table saved then
+  must be cleared or re-keyed.
 
 - `interpolation`:
 
-  data.frame. Default interpolation rules for every parameter in the
-  model. The data frame with the default interpolation rules is stored
-  in `energyRt::.defInt` object and can be overwritten by the user and
-  supplied to the model as a parameter.
+  data.frame. Model-wide OVERRIDES of parameter interpolation rules,
+  keyed exactly as `defVal` and subject to the same rules. Empty unless
+  set; each parameter's own rule is declared in the catalogue
+  (`data-raw/parameters.yml`).
 
 - `debug`:
 

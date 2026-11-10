@@ -28,6 +28,7 @@ Other options:
 [`en_config_path()`](https://energyRt.org/reference/en_config.md),
 [`en_config_show()`](https://energyRt.org/reference/en_config_show.md),
 [`get_exchange_format()`](https://energyRt.org/reference/exchange_format.md),
+`get_project_root()`,
 [`get_storage_format()`](https://energyRt.org/reference/storage_format.md),
 [`isVerbose()`](https://energyRt.org/reference/isVerbose.md),
 [`set_log_file()`](https://energyRt.org/reference/log.md),

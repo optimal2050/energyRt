@@ -19,6 +19,22 @@ production, consumption, or balance of a commodity.
   character. Commodity filter: the commodity or commodities the levy
   applies to. Empty means every commodity the chosen base reaches.
 
+- `units`:
+
+  data.frame. Units the levy is stated in. A levy is a rate – currency
+  per unit of whatever its base counts – so both halves are needed to
+  read it, and neither is converted.
+
+  comm
+
+  : character. Unit of the commodity the levy is charged on, where its
+    base counts a commodity flow.
+
+  currency
+
+  : character. Currency of the rate columns. A currency that disagrees
+    with the model's own is an error rather than a silent conversion.
+
 - `geoframe`:
 
   character. Optional. The geoscale level this object's regions are
@@ -83,8 +99,15 @@ production, consumption, or balance of a commodity.
 
 - `defVal`:
 
-  numeric. Default value of the subsidy for not specified sets, 0 if not
-  specified.
+  data.frame. Optional per-object override of a parameter's DEFAULT,
+  keyed by the short column name the value is written under –
+  `defVal$af.up <- 1` on a technology, `defVal$wval <- 3` on a weather
+  series. Empty by default, and one column per override. A parameter
+  name also works and is resolved (`pTechAf.up`, or `pTechAf` for both
+  bounds). A key that names no column or parameter of this class is an
+  error, not a silent no-op. This is the last of three layers: the
+  catalogue (`data-raw/parameters.yml`), then `config@defVal`, then
+  this; a value equal to what the layer before it says records nothing.
 
 - `subsidy`:
 
@@ -180,6 +203,15 @@ production, consumption, or balance of a commodity.
 
   : numeric. Per unit of the variable named in `variable`. Used only
     with the escape hatch.
+
+- `interpolation`:
+
+  data.frame. Optional per-object override of a parameter's
+  INTERPOLATION RULE, keyed exactly as `defVal` above:
+  `interpolation$af.up <- "inter"`. Any accepted spelling of a rule
+  works and is normalised, so `bwd.mid.fwd` is `back.inter.forth`. The
+  override applies to THIS object's rows only: every other object of the
+  class keeps the rule the catalogue or `config` gives it.
 
 - `misc`:
 

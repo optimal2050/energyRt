@@ -16,6 +16,7 @@ aggregate_model_regions(
   clusters = NULL,
   as = c("clusters", "objects"),
   name = NULL,
+  resolve_conflicts = FALSE,
   verbose = isVerbose(),
   .trade_parts = NULL
 )
@@ -60,6 +61,15 @@ aggregate_model_regions(
   Name for the aggregated model. `NULL` (default) appends `level` to the
   source model's name.
 
+- resolve_conflicts:
+
+  What to do with a value that has no merged form, such as a lifetime or
+  a levy rate. `FALSE` (default) stops, naming the object, the column
+  and the regions that disagree. `"force"` (or `TRUE`) takes their mean;
+  `"drop"` leaves the merged value unset, so the parameter falls back to
+  its default rather than to a fabricated number. Both warn and record
+  what was resolved in each object's `@misc$aggregation`.
+
 - verbose:
 
   Report what was aggregated, merged and dropped.
@@ -81,11 +91,17 @@ geoscale. With `clusters`, the grouping is attached and readable with
 Every region-keyed slot is recast. Extensive quantities – capacities,
 demand, supply availability, import and export limits – are summed over
 the regions of each parent. Intensive ones – efficiencies, availability
-factors, costs, weather values – take a mean weighted by the object's
-own size in each region, so an aggregated value stays within the range
-of the values it came from. When the weights of a group are all zero the
-mean is unweighted, which keeps a group of empty regions at their common
-value rather than undefined.
+factors, costs, weather values – take a weighted mean, so an aggregated
+value stays within the range of the values it came from. The weight is
+the object's own size in each region where it carries one; an object
+that does not – a weather profile has no size – is weighted by the
+geoscale instead, by area or whatever weight it declares. When the
+weights of a group are all zero the mean is unweighted, which keeps a
+group of empty regions at their common value rather than undefined.
+
+Values with no merged form at all, such as a lifetime or a levy rate,
+are copied, and a difference between regions stops the aggregation
+unless `resolve_conflicts` says otherwise.
 
 Trade is different: a trade object is one region pair, so corridors that
 land inside a single parent region become internal and are dropped, and
@@ -158,6 +174,7 @@ mod <- newModel("MINI", data = repo, calendar = calendars$annual,
 # roll the two regions up into the zone they share
 agg <- aggregate_model_regions(mod, geoscale = topia$geoscales$squares,
                                level = "zone")
+#> Error: 2 of the model's 2 region(s) are not atoms of the geoscale, so their data would be dropped silently: W1, W2. The geoscale must be keyed the way the model is.
 get_region(agg)
-#> [1] "WEST"
+#> Error: object 'agg' not found
 ```

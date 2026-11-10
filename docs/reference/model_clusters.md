@@ -6,7 +6,7 @@ did when it was given `clusters`: which regions were merged into which
 cluster, the `k` it used, the sweep it chose from when `k` was `"auto"`,
 and a geoscale carrying a `cluster` geoframe so the grouping can be
 plotted with
-[`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md).
+[`plot_geoscale()`](https://energyRt.org/reference/energyRt-deprecated.md).
 
 ## Usage
 
@@ -35,8 +35,7 @@ empty list when the model was aggregated plainly.
 Other geoscale:
 [`check_geoscale_regions()`](https://energyRt.org/reference/check_geoscale_regions.md),
 [`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md),
-[`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md),
-[`plot_map()`](https://energyRt.org/reference/plot_map.md),
+[`gg_map()`](https://energyRt.org/reference/gg_map.md),
 [`process_cluster_sweep()`](https://energyRt.org/reference/process_cluster_sweep.md),
 [`setCalendar,config-method`](https://energyRt.org/reference/setGeoscale.md)
 

@@ -110,9 +110,7 @@ Other topia: [`topia`](https://energyRt.org/reference/topia.md),
 ``` r
 # weather, demand and stock for two regions of the TOPIA map
 prof <- topia_profiles(c("W1", "W2"), calendar = "s4_h24")
+#> Error: no TOPIA profile for region 'W1'. Known codes: R01, R02, R03, R04, R05, R06, R07, R08, R09, R10, R11, R12, Z1, Z2, Z3, Z4, Z5, TOPIA
 head(prof$weather, 3)
-#>   resource region timeslice   wval
-#> 1     WHYD     W1   FAL_h00 0.2265
-#> 2     WHYD     W1   FAL_h01 0.2265
-#> 3     WHYD     W1   FAL_h02 0.2265
+#> Error: object 'prof' not found
 ```

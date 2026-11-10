@@ -31,9 +31,9 @@ interpolate_model(
   kvl = FALSE,
   boundary_prices = NULL,
   .prefilter = FALSE,
-  parent_levels = getOption("energyRt.parent_levels", FALSE),
-  fx_equ = getOption("energyRt.fx_equ", TRUE),
-  on_missing_input = getOption("energyRt.on_missing_input", "stop"),
+  parent_levels = options::opt("parent_levels"),
+  fx_equ = options::opt("fx_equ"),
+  on_missing_input = options::opt("on_missing_input"),
   check = FALSE,
   verbose = isVerbose(),
   .reuse = NULL
@@ -212,8 +212,8 @@ interpolate(object, ...)
   `vOutTot` / `vInpTot` carry their parent rows unconditionally and are
   not affected: `eqOutTot` / `eqInpTot` are written against them.
 
-  Defaults to `getOption("energyRt.parent_levels", FALSE)`, so a whole
-  run or test suite can be switched in one place.
+  Defaults to the `energyRt.parent_levels` option, so a whole run or
+  test suite can be switched in one place.
 
 - fx_equ:
 
@@ -235,8 +235,7 @@ interpolate(object, ...)
   (stock, or a lower / fixed capacity bound) is declared in a region
   where one of its input commodities has no source. `"stop"` names the
   cells; `"warn"` drops them, as is always done for processes that could
-  only be built new. Defaults to
-  `getOption("energyRt.on_missing_input", "stop")`.
+  only be built new. Defaults to the `energyRt.on_missing_input` option.
 
 - check:
 
@@ -291,44 +290,155 @@ mod <- setGeoscale(mod, topia_elc$geoscale)
 
 # build the solver-facing sets and parameters; nothing is solved yet
 scen <- interpolate_model(mod, name = "BASE")
+#> 
+#> ── interpolate_model: BASE ─────────────────────────────────────────────────────
+#> storage: in-memory
+#> sparse: TRUE
+#> prune: TRUE
+#> fold: none
+#> validate: TRUE
+#> base year 2025: not optimised, and no base-year solution was given -- the projection starts from the model's own @stock (base_year_scenario = carries one forward)
+#> ℹ checking declarations
+#> Warning: 8760 timeslice(s) named by 4 object(s) are outside the sampled calendar "s4_h24"; their rows are dropped.
 #> Cost declared at a coarse geoscale level:
-#>   TBD_COA_WEST_CENTRAL@invcost: CENTRAL, WEST
-#>   TBD_COA_CENTRAL_EAST@invcost: CENTRAL, EAST
-#>   TBD_GAS_EAST_CENTRAL@invcost: CENTRAL, EAST
+#>   TBD_COA_Z4_Z3@invcost: Z3, Z4
+#>   TBD_COA_Z4_Z5@invcost: Z4, Z5
+#>   TBD_GAS_Z2_Z3@invcost: Z2, Z3
 #> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.
+#> ✔ checking declarations (0.1s)
+#> ℹ expanding vintage/cluster variants
+#> Expanded 8 process objects into 33 variants (vintage/cluster).
+#> ✔ expanding vintage/cluster variants (0.1s)
+#> ℹ materializing commodity clusters
+#> Materialized 3 commodity cluster(s): LANDW_CLHI, LANDW_CLLO, LANDW_CLMD
+#> ✔ materializing commodity clusters (0.0s)
+#> ℹ materializing weather clusters
+#> Materialized 5 weather cluster(s): WSOL_CLFL, WSOL_CLTH, WWIN_CLHI, WWIN_CLMD, WWIN_CLLO
+#> ✔ materializing weather clusters (0.0s)
+#> ℹ materializing weather transforms
+#> ✔ materializing weather transforms (0.2s)
+#> ℹ collecting sets: object names
+#> ✔ collecting sets: object names (0.0s)
+#> ℹ collecting sets: process classes
+#> ✔ collecting sets: process classes (0.0s)
+#> ℹ collecting sets: timeframes
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> ✔ collecting sets: timeframes (0.0s)
+#> ℹ collecting sets: process inputs/outputs
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> ✔ collecting sets: process inputs/outputs (0.0s)
+#> ℹ collecting sets: membership comm sets
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> ✔ collecting sets: membership comm sets (0.0s)
+#> ℹ collecting sets: process regions
+#> ✔ collecting sets: process regions (0.0s)
+#> ℹ building maps: membership + closure
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> ✔ building maps: membership + closure (0.2s)
+#> ℹ collecting sets: invest/stock windows
+#> ✔ collecting sets: invest/stock windows (0.1s)
+#> ℹ settings parameters (discount, period length, timeslice share)
+#> ✔ settings parameters (discount, period length, timeslice share) (0.1s)
+#> ℹ building maps: calendar + lifespan
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> ✔ building maps: calendar + lifespan (0.2s)
+#> ℹ ob2mi: interpolating 81 model objects
+#> ✔ ob2mi: interpolating 81 model objects (0.7s)
+#> ℹ interpolating parameters over milestone years
+#> ✔ interpolating parameters over milestone years (1.7s)
+#> ℹ calendar-filter: restricting parameters to declared timeslices
+#> ✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
+#> ℹ computing equivalent annual costs (EAC)
+#> ✔ computing equivalent annual costs (EAC) (0.1s)
+#> ℹ building maps: value
+#> ✔ building maps: value (0.1s)
+#> ℹ building maps: filter
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> ✔ building maps: filter (0.6s)
+#> ℹ building maps: constraint
+#> Error: waf: the weather series has no value at the timeslices of the bound it multiplies (ESOL_VIN2015_CLFL/WSOL_CLFL, ESOL_VIN2030_CLFL/WSOL_CLFL, ESOL_VIN2045_CLFL/WSOL_CLFL, ESOL_VIN2015_CLTH/WSOL_CLTH, ESOL_VIN2030_CLTH/WSOL_CLTH). Give the weather the technology's timeframe.
 scen
-#> Name:  BASE 
-#> Model:
-#> Name:  TOPIA 
+#> Error: object 'scen' not found
 
 # `fold = TRUE` substitutes constant parameters into the equations, which
 # shrinks what the backend has to read
 model_size(interpolate_model(mod, name = "FOLDED", fold = TRUE))
+#> 
+#> ── interpolate_model: FOLDED ───────────────────────────────────────────────────
+#> storage: in-memory
+#> sparse: TRUE
+#> prune: TRUE
+#> fold: region, timeslice, year
+#> validate: TRUE
+#> base year 2025: not optimised, and no base-year solution was given -- the projection starts from the model's own @stock (base_year_scenario = carries one forward)
+#> ℹ checking declarations
+#> Warning: 8760 timeslice(s) named by 4 object(s) are outside the sampled calendar "s4_h24"; their rows are dropped.
 #> Cost declared at a coarse geoscale level:
-#>   TBD_COA_WEST_CENTRAL@invcost: CENTRAL, WEST
-#>   TBD_COA_CENTRAL_EAST@invcost: CENTRAL, EAST
-#>   TBD_GAS_EAST_CENTRAL@invcost: CENTRAL, EAST
+#>   TBD_COA_Z4_Z3@invcost: Z3, Z4
+#>   TBD_COA_Z4_Z5@invcost: Z4, Z5
+#>   TBD_GAS_Z2_Z3@invcost: Z2, Z3
 #> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.
-#> model_size: FOLDED
-#>   parameters : 200 value, 359 maps, 15 sets
-#>   param rows : 9,781  (fold step: 23,974 -> 9,781, saved 14,193 = 59%)
-#>   folded dims: region=22  timeslice=14  year=15
-#>   estimate   : ~244,839 variables, ~258,466 constraints (from gating maps)
-#>   top parameters by rows:
-#>     pDemand            4,224
-#>     pWeather           3,890
-#>     pTimesliceAgg      297
-#>     pSupAva            288
-#>     pTechStock         170
-#>     pSupCost           160
-#>     pTimesliceShare    101
-#>     pTechFixom         68
-#>     pTechInvcost       68
-#>     pDiscountFactor    42
-#>     pTechCap2AInp      36
-#>     pStorageDuration   32
-#>     pTechEac           30
-#>     pTechCinp2use      28
-#>     pTradeIrVarom      27
+#> ✔ checking declarations (0.1s)
+#> ℹ expanding vintage/cluster variants
+#> Expanded 8 process objects into 33 variants (vintage/cluster).
+#> ✔ expanding vintage/cluster variants (0.1s)
+#> ℹ materializing commodity clusters
+#> Materialized 3 commodity cluster(s): LANDW_CLHI, LANDW_CLLO, LANDW_CLMD
+#> ✔ materializing commodity clusters (0.0s)
+#> ℹ materializing weather clusters
+#> Materialized 5 weather cluster(s): WSOL_CLFL, WSOL_CLTH, WWIN_CLHI, WWIN_CLMD, WWIN_CLLO
+#> ✔ materializing weather clusters (0.0s)
+#> ℹ materializing weather transforms
+#> ✔ materializing weather transforms (0.2s)
+#> ℹ collecting sets: object names
+#> ✔ collecting sets: object names (0.0s)
+#> ℹ collecting sets: process classes
+#> ✔ collecting sets: process classes (0.0s)
+#> ℹ collecting sets: timeframes
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> ✔ collecting sets: timeframes (0.0s)
+#> ℹ collecting sets: process inputs/outputs
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> ✔ collecting sets: process inputs/outputs (0.0s)
+#> ℹ collecting sets: membership comm sets
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> ✔ collecting sets: membership comm sets (0.0s)
+#> ℹ collecting sets: process regions
+#> ✔ collecting sets: process regions (0.0s)
+#> ℹ building maps: membership + closure
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> ✔ building maps: membership + closure (0.2s)
+#> ℹ collecting sets: invest/stock windows
+#> ✔ collecting sets: invest/stock windows (0.1s)
+#> ℹ settings parameters (discount, period length, timeslice share)
+#> ✔ settings parameters (discount, period length, timeslice share) (0.1s)
+#> ℹ building maps: calendar + lifespan
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> ✔ building maps: calendar + lifespan (0.2s)
+#> ℹ ob2mi: interpolating 81 model objects
+#> ✔ ob2mi: interpolating 81 model objects (0.7s)
+#> ℹ interpolating parameters over milestone years
+#> ✔ interpolating parameters over milestone years (1.6s)
+#> ℹ calendar-filter: restricting parameters to declared timeslices
+#> ✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
+#> ℹ computing equivalent annual costs (EAC)
+#> ✔ computing equivalent annual costs (EAC) (0.1s)
+#> ℹ building maps: value
+#> ✔ building maps: value (0.1s)
+#> ℹ building maps: filter
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
+#> ✔ building maps: filter (0.6s)
+#> ℹ building maps: constraint
+#> Error: waf: the weather series has no value at the timeslices of the bound it multiplies (ESOL_VIN2015_CLFL/WSOL_CLFL, ESOL_VIN2030_CLFL/WSOL_CLFL, ESOL_VIN2045_CLFL/WSOL_CLFL, ESOL_VIN2015_CLTH/WSOL_CLTH, ESOL_VIN2030_CLTH/WSOL_CLTH). Give the weather the technology's timeframe.
 # }
 ```

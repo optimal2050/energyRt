@@ -134,15 +134,14 @@ seasons are `WIN/SPR/SUM/FAL` in calendar order):
 ``` r
 
 names(calendars)
-#>  [1] "annual"                 "d365"                   "d365_h24"              
-#>  [4] "m12"                    "m12a"                   "q4"                    
-#>  [7] "s4"                     "s4_h24"                 "m12_h24"               
-#> [10] "wd7_h24"                "w52_h24"                "s4_h24_subset_2seasons"
-#> [13] "m12_h24_subset_4months" "m12_subset_q1"          "d365_h24_1dps"         
-#> [16] "d365_h24_1dpm"          "s4_hp3"                 "m12_d365_h24"          
-#> [19] "m12_d365_h24_1dpm"
-topia$modules$calendars$topia_seasons@desc
-#> [1] "TOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK), 12 timeslices"
+#>  [1] "annual"            "m12"               "m12a"             
+#>  [4] "q4"                "s4"                "s4_h24"           
+#>  [7] "m12_h24"           "wd7_h24"           "w52_h24"          
+#> [10] "d365"              "d365_h24"          "s4_hp3"           
+#> [13] "m12_subset_q1"     "d365_h24_1dps"     "d365_h24_1dpm"    
+#> [16] "m12_d365_h24"      "m12_d365_h24_1dpm"
+topia$modules$calendars$d365_h24@desc
+#> [1] "YDAY/HOUR calendar (8760 timeslices; truncated, regular) (timescales 0.7.2)"
 s4 <- as.data.frame(calendars$s4@timetable)[, c("SEASON", "share")]
 s4$share <- round(s4$share, 4)
 s4
@@ -160,12 +159,16 @@ cycles all follow the sample:
 
 ``` r
 
-calendars$s4_h24_subset_2seasons@year_fraction   # WIN + SUM
-#> [1] 0.4986301
+calendars$d365_h24_1dpm@year_fraction   # one day per month
+#> [1] 0.03287671
 ```
 
-Pick one and pass it to `newModel(calendar = ...)`; the TOPIA vignettes
-use `calendars$s4_h24` throughout.
+Pick one and pass it to `newModel(calendar = ...)`. A calendar has to
+hold the timeslices the model’s own data is declared at: the TOPIA kit’s
+profiles are measured on `d365_h24`, so its vignettes use that calendar
+or a sampled subset of it such as `d365_h24_1dpm`. A design whose labels
+the data never mentions is refused at interpolation, not quietly
+ignored.
 
 ## Fiscal and non-calendar years
 

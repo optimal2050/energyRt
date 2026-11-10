@@ -26,7 +26,7 @@ solve_guided(
   on_infeasible = c("relax", "stop"),
   overwrite = FALSE,
   keep_scenarios = TRUE,
-  verbose = TRUE
+  verbose = isVerbose()
 )
 ```
 

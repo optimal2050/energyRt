@@ -32,10 +32,10 @@ cycle will be a calendar day).
   its units with it. An object moved between models is only meaningful
   where the units agree, and nothing else in the object records them:
   the numbers in the cost, capacity and activity columns are bare. A
-  declared `costs` that disagrees with the model's `config@currency` is
-  an error rather than a silent conversion; leave a column empty to
-  claim nothing. One unit per kind: a storage prices three capacities
-  but states `capacity` once.
+  declared `currency` that disagrees with the model's own is an error
+  rather than a silent conversion; leave a column empty to claim
+  nothing. One unit per kind: a storage prices three capacities but
+  states `capacity` once.
 
   capacity
 
@@ -45,7 +45,7 @@ cycle will be a calendar day).
 
   : character. Unit of the activity variable.
 
-  costs
+  currency
 
   : character. Currency of the cost columns.
 
@@ -988,10 +988,13 @@ cycle will be a calendar day).
 - `duration`:
 
   data.frame. How long the store can run at its rated output: the ratio
-  of storing capacity to (dis)charging capacity. `duration = 6` on an
-  hourly calendar is a 6-hour store. Renamed from `cap2stg` in v0.80;
-  the old spelling is refused since v0.90. It is a BOUND on (storage,
-  region, year): `duration.fx` ties energy to power,
+  of storing capacity to (dis)charging capacity, in ENERGY per POWER in
+  the stored commodity's own units – PJ per GW for an ELC store, NOT
+  hours. The equations multiply it by the discharging capacity with no
+  conversion, so an h-hour store is `h * 0.0036` when energy is PJ and
+  power GW: a 4-hour battery is `0.0144`. Renamed from `cap2stg` in
+  v0.80; the old spelling is refused since v0.90. It is a BOUND on
+  (storage, region, year): `duration.fx` ties energy to power,
   `duration.lo`/`duration.up` let the model choose the ratio – which
   only bites when the storing side is priced, via `@storage$invcost`.
   The bare `duration` column is the scalar shorthand and is normalised
@@ -1024,7 +1027,9 @@ cycle will be a calendar day).
 
   duration.lo
 
-  : numeric. Lower bound on the energy-to-power ratio, in hours.
+  : numeric. Lower bound on the energy-to-power ratio, in energy per
+    power in the stored commodity's own units (PJ/GW for an ELC store),
+    not hours. See the slot description.
 
   duration.up
 
@@ -1151,6 +1156,17 @@ cycle will be a calendar day).
 
   : character. Name of the weather factor to apply.
 
+  unit
+
+  : character. Optional. The unit this process EXPECTS from the series
+    named in `weather`, e.g. "degC". Per row, because one process may
+    read a temperature from one series and a wind speed from another.
+    Where this and the weather object's own `@units$wval` are both
+    declared and differ, that is an error: nothing in the model converts
+    between weather units, so a coefficient fitted to one measure and
+    applied to another is wrong in a way no output reveals. Empty on
+    either side claims nothing and is not checked.
+
   transform
 
   : character. Optional name of a function in the weather object's
@@ -1211,6 +1227,27 @@ cycle will be a calendar day).
   logical. Incidates if the retirement of the storage should be
   optimized. Also requires the same parameter in the `model` or
   `scenario` class to be set to TRUE to be effective.
+
+- `defVal`:
+
+  data.frame. Optional per-object override of a parameter's DEFAULT,
+  keyed by the short column name the value is written under –
+  `defVal$af.up <- 1` on a technology, `defVal$wval <- 3` on a weather
+  series. Empty by default, and one column per override. A parameter
+  name also works and is resolved (`pTechAf.up`, or `pTechAf` for both
+  bounds). A key that names no column or parameter of this class is an
+  error, not a silent no-op. This is the last of three layers: the
+  catalogue (`data-raw/parameters.yml`), then `config@defVal`, then
+  this; a value equal to what the layer before it says records nothing.
+
+- `interpolation`:
+
+  data.frame. Optional per-object override of a parameter's
+  INTERPOLATION RULE, keyed exactly as `defVal` above:
+  `interpolation$af.up <- "inter"`. Any accepted spelling of a rule
+  works and is normalised, so `bwd.mid.fwd` is `back.inter.forth`. The
+  override applies to THIS object's rows only: every other object of the
+  class keeps the rule the catalogue or `config` gives it.
 
 - `misc`:
 

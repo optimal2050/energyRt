@@ -14,7 +14,7 @@ prepare_for_sharing(
   keep_runs = FALSE,
   keep_reports = FALSE,
   keep_solver = FALSE,
-  verbose = TRUE
+  verbose = isVerbose()
 )
 ```
 
@@ -70,7 +70,7 @@ producing a folder that fails on the recipient's machine.
 Two things it does **not** do, deliberately. It will not write in place:
 the point is an artifact beside the working original. And it does not
 re-save through `save_scenario(path = )`, which for an already-stored
-scenario writes only the shell and leaves the data behind.
+scenario writes only the scenario object and leaves the data behind.
 
 A scenario that *references* a model or dataset store rather than
 embedding it cannot be made self-contained by copying alone; those

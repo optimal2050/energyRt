@@ -147,17 +147,18 @@ Other topia:
 
 ``` r
 names(topia)
-#> [1] "geoscales" "links"     "weather"   "demand"    "stock"     "modules"  
+#> [1] "geoscales" "links"     "weather"   "demand"    "stock"     "grades"   
+#> [7] "modules"  
 names(topia$geoscales)
 #> [1] "squares"   "honeycomb" "island"    "continent"
 head(topia$weather)
-#>     dataset calendar resource region timeslice   wval
-#> 1 simulated   s4_h24     WSOL     W1   FAL_h00 0.0189
-#> 2 simulated   s4_h24     WSOL     W1   FAL_h01 0.0189
-#> 3 simulated   s4_h24     WSOL     W1   FAL_h02 0.0189
-#> 4 simulated   s4_h24     WSOL     W1   FAL_h03 0.0189
-#> 5 simulated   s4_h24     WSOL     W1   FAL_h04 0.0212
-#> 6 simulated   s4_h24     WSOL     W1   FAL_h05 0.0655
+#>     dataset calendar resource region cluster timeslice wval
+#> 1 simulated   s4_h24     WSOL    R01    <NA>   FAL_h00    0
+#> 2 simulated   s4_h24     WSOL    R01    <NA>   FAL_h01    0
+#> 3 simulated   s4_h24     WSOL    R01    <NA>   FAL_h02    0
+#> 4 simulated   s4_h24     WSOL    R01    <NA>   FAL_h03    0
+#> 5 simulated   s4_h24     WSOL    R01    <NA>   FAL_h04    0
+#> 6 simulated   s4_h24     WSOL    R01    <NA>   FAL_h05    0
 topia$stock
 #>   tech gw
 #> 1 ECOA  6

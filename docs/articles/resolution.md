@@ -1,0 +1,204 @@
+# Changing a model's resolution
+
+A model is written at one resolution and solved at another more often
+than not. The resolution may be reduced to fit a solver, to explore a
+design before committing to an overnight run, or to answer a question
+that the finest resolution obscures. energyRt offers several routes to
+do this, and they are not interchangeable: each changes a different
+thing, and the results of each mean something different.
+
+This article maps the routes. Two companion articles cover one axis each
+in depth, `vignette("time-resolution")` and
+`vignette("space-resolution")`, with `vignette("region-aggregation")`
+working through a full spatial example.
+
+Resolution is not the only way to make a model smaller, and the routes
+below are not the only ones that do. `vignette("model-size")` maps the
+same ground by cost rather than by axis: it adds the horizon reductions
+and the drivers that bound decisions instead of removing cells, and it
+sorts every route by whether the answer is still the full model’s.
+
+## Four operations, often confused
+
+Four distinct things are frequently described with the same words.
+
+**Subsetting** keeps part of a model and discards the rest. The result
+is a smaller model of a smaller system, and it answers questions about
+that part.
+
+**Coarsening** keeps the whole system but describes it with fewer
+regions or fewer timeslices. The result is a smaller model of the same
+system, and its answer approximates the finer model’s in a direction
+that is not always predictable.
+
+**Sampling** keeps the whole system and the whole year, but represents
+the year with a subset of its periods, reweighted so that the sample
+still stands for a full year. Each sample estimates the same quantity;
+samples are replicates.
+
+**Decomposition** leaves the model alone and splits the *solve*,
+recombining afterwards. Whether the parts add up depends on what was
+split.
+
+The last distinction causes the most trouble in practice. Regional
+sub-problems solved without trade have objectives that **sum** to the
+full problem’s. Timeslice samples have objectives that must **not** be
+summed, because each already represents a whole year; they form a
+distribution, and
+[`sample_summary()`](https://energyRt.org/reference/sample_summary.md)
+is the way to read it.
+
+## Space
+
+| Operation | Verb |
+|----|----|
+| Keep a sub-territory | [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md) |
+| Keep a sub-territory, during interpolation | `interpolate_model(geoscale = )` with a filtered geoscale |
+| Coarsen to a declared level | `aggregate_model_regions(level = )` |
+| Coarsen into derived groups | `aggregate_model_regions(clusters = )` |
+| Inspect candidate groupings | [`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md), [`process_cluster_sweep()`](https://energyRt.org/reference/process_cluster_sweep.md) |
+| Split the solve by region | [`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md) |
+
+Subsetting cuts a model down to the regions named. Trade routes with one
+endpoint outside the kept set are replaced by boundary stubs, an import
+or an export carrying the price at which the severed neighbour would
+have traded. Without a price the route is dropped instead, which makes
+the sub-model an island and generally understates its options.
+[`boundary_window()`](https://energyRt.org/reference/boundary_window.md)
+derives a plausible price band from the model’s own demand.
+
+``` r
+
+library(energyRt)
+topia_elc <- topia$modules$electricity
+mod <- newModel("TOPIA", data = topia_elc$repo,
+                calendar = calendars[["d365_h24_1dpm"]],
+                region   = topia_elc$regions,
+                horizon  = topia$modules$horizons$BY2025_50_by10,
+                discount = 0.05)
+mod <- setGeoscale(mod, topia_elc$geoscale)
+
+west <- subset_model_regions(mod, region = c("R01", "R02", "R03"))
+```
+
+Aggregation is a different operation: no region leaves the system, but
+several become one. Every parameter of every object must then be
+combined, and how it is combined depends on what the parameter means.
+Extensive quantities — capacities, stocks, availability volumes, demands
+— are summed. Intensive ones — efficiencies, costs per unit,
+availability factors — take a mean weighted by the size of each
+contributing region.
+
+Aggregation bounds the finer answer in neither direction. With uniform
+efficiency across the merged regions the coarse objective is lower,
+because merging removes transport limits. With heterogeneous efficiency
+it is higher, because averaging destroys the ability to dispatch the
+best unit first. Both directions are demonstrated in the test suite.
+
+``` r
+
+zones <- aggregate_model_regions(mod, level = "zone")
+```
+
+A clustering is the same operation over groups derived from data rather
+than declared, and the clustering itself is a scale-construction method
+supplied by `nestedscales`. Because the groups are derived, the sweep
+showing how quality varies with the number of groups is reported rather
+than resolved: energyRt does not choose a number of clusters.
+
+## Time
+
+| Operation | Verb |
+|----|----|
+| Move a model onto another calendar | [`recast_model_calendar()`](https://energyRt.org/reference/recast_model_calendar.md) |
+| Draw timeslice samples | [`calendar_samples()`](https://energyRt.org/reference/calendar_samples.md) |
+| Solve each sample | [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md) |
+| Split the horizon | [`horizon_windows()`](https://energyRt.org/reference/horizon_windows.md), [`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md) |
+| Guide an expensive solve with cheap ones | [`solve_guided()`](https://energyRt.org/reference/solve_guided.md) |
+
+Recasting moves every timeslice-indexed value onto a new calendar.
+Coarsening takes a weighted mean, which conserves the annual total
+exactly; refining copies the coarse value onto each finer slice, which
+conserves nothing but invents nothing either. The rule follows from the
+equations: a timeslice-indexed value is a rate, multiplied by the
+slice’s weight wherever it enters a cost or a cumulative total.
+
+``` r
+
+annual <- recast_model_calendar(mod, topia$modules$calendars$annual)
+```
+
+A recast model is not a smaller answer to the same question. Its
+dispatch, its costs and its objective are its own, and comparing them
+against the fine model’s compares two models rather than measuring an
+error.
+
+Sampling is distinct from recasting. The calendar keeps its structure;
+only some periods are retained, and those carry a weight scaling them
+back up to a full year. A sample must keep at least two members at every
+level below the year, because the surviving level columns are what
+define the leaf timeslices. Dropping a level entirely renames the
+leaves, the model’s data silently stops matching, and the result solves
+to zero.
+
+## Processes and variants
+
+A process may be described once or as a family of variants: vintages
+differing by build year, clusters differing by resource class, loss
+tranche or price step. `expand_variants()` turns the declaration into
+separate processes and
+[`combine_vintages()`](https://energyRt.org/reference/combine_vintages.md)
+performs the reverse for vintages.
+
+What a cluster means differs by class, and this governs what may be
+merged. On a technology or a storage it is a parallel sub-process; on a
+trade, a tranche of a piecewise-linear loss curve; on a supply, import
+or export, a step of a price curve; on a demand, a sub-regional share.
+Tranche efficiencies are derived from tranche shares, so the two cannot
+be merged independently.
+
+## Reducing size without changing resolution
+
+`interpolate_model(fold = , sparse = , prune = )`,
+[`trim_parameters()`](https://energyRt.org/reference/trim_parameters.md)
+and `drop_default_values()` make a model smaller without changing what
+it represents. These are representation choices rather than resolution
+choices and they do not alter the answer.
+[`model_size()`](https://energyRt.org/reference/model_size.md) reports
+what they achieved.
+
+## Direction
+
+The balance layer aggregates and never disaggregates. Fine commodity
+totals are summed into coarse ones; a coarse quantity is never split
+across finer cells. This is deliberate, and it is why an object may be
+declared coarser than the commodities it consumes but never coarser than
+those it produces or stores.
+
+In consequence, disaggregation can only mean building a finer model
+before interpolation. No operation takes a solved coarse result and
+distributes it over finer regions or slices, and none is planned. Where
+a region subset would split a group that some object is declared over,
+[`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
+stops rather than guessing: an unchanged parent resource overstates a
+shared pool, a proportional share understates an indivisible one, and
+there is no safe default. The error names the three ways forward —
+extend the region set, aggregate to the coarser level first, or declare
+the objects on the finer regions.
+
+## What is not supported
+
+Several operations are refused rather than approximated, each for a
+stated reason.
+
+- Aggregating a weather stream carrying a non-linear transform: the mean
+  of a transform is not the transform of the mean.
+- Aggregating weather between two levels when neither is the finest,
+  which needs a level-aware crosswalk that does not exist.
+- Aggregating trade routes that carry weather factors.
+- Grouping corridors carrying reactance or resistance above the floor:
+  parallel AC circuits divide flow by impedance, not by optimisation.
+- Cross-cutting groupings, where a region belongs to two parallel
+  hierarchies that do not nest.
+- Region grouping for demand, weather and commodity objects, none of
+  which is a process with archetypes.

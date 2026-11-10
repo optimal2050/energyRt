@@ -32,9 +32,9 @@ character, the full hash (the store uses its first 8 characters).
 ``` r
 repo <- newRepository("r", newCommodity("ELC", unit = "MWh"))
 repository_hash(repo)
-#> [1] "90c6e2abf5a6c5720e6c10b405cb8d9f"
+#> [1] "3427382a1e34f6efa1863716f8d93af5"
 
 # the hash follows the content: adding an object changes it
 repository_hash(add(repo, newCommodity("COA", unit = "MMBtu")))
-#> [1] "4c97faf9ed708b46f7a686e044d72449"
+#> [1] "965548fbd3dfb3f41be2532550171ce4"
 ```

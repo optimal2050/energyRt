@@ -80,9 +80,8 @@ either – the number depends on what the model is for.
 Other geoscale:
 [`check_geoscale_regions()`](https://energyRt.org/reference/check_geoscale_regions.md),
 [`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md),
+[`gg_map()`](https://energyRt.org/reference/gg_map.md),
 [`model_clusters()`](https://energyRt.org/reference/model_clusters.md),
-[`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md),
-[`plot_map()`](https://energyRt.org/reference/plot_map.md),
 [`setCalendar,config-method`](https://energyRt.org/reference/setGeoscale.md)
 
 ## Examples

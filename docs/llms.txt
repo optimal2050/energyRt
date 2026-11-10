@@ -358,6 +358,8 @@ constructor below and carries its data in slots.
   class to represent a commodity tax
 - [`supply-class`](https://energyRt.org/reference/supply-class.md) : An
   S4 class to represent a supply of a commodity
+- [`energyRt-validity`](https://energyRt.org/reference/energyRt-validity.md)
+  : Object construction and validity in energyRt
 
 ## Building a model
 
@@ -495,8 +497,13 @@ coarse balances roll up without a `trade` route for every pair.
 - [`check_geoscale_regions()`](https://energyRt.org/reference/check_geoscale_regions.md)
   : Check a geoscale against the model's declared regions
 
-- [`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md) :
-  Draw a model's geoscale
+- [`plot_map()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  [`plot_heatmap()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  [`plot_trade_map()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  [`plot_trade_network()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  [`plot_share_frontier()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  [`plot_geoscale()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  : Deprecated plotting names
 
 - [`get_region()`](https://energyRt.org/reference/get_region.md) :
   Collect the regions an object operates in
@@ -693,6 +700,9 @@ Getting tidy data out of a solved scenario.
 - [`getObject()`](https://energyRt.org/reference/getObject.md) :
   Retrieve model objects from a repository, model or scenario
 
+- [`getUnit()`](https://energyRt.org/reference/getUnit.md) : Unit of an
+  object's own measure
+
 - [`getScenario()`](https://energyRt.org/reference/accessors.md)
   [`getModel()`](https://energyRt.org/reference/accessors.md)
   [`getRepository()`](https://energyRt.org/reference/accessors.md)
@@ -731,8 +741,13 @@ scenario.
   cost of commodity production
 - [`tech_share_frontier()`](https://energyRt.org/reference/tech_share_frontier.md)
   : Extract feasible share ranges for grouped inputs/outputs
-- [`plot_share_frontier()`](https://energyRt.org/reference/plot_share_frontier.md)
-  : Plot feasible share-mix diagram for technology inputs/outputs
+- [`plot_map()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  [`plot_heatmap()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  [`plot_trade_map()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  [`plot_trade_network()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  [`plot_share_frontier()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  [`plot_geoscale()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  : Deprecated plotting names
 - [`clear_levcost_cache()`](https://energyRt.org/reference/clear_levcost_cache.md)
   : Clear cached levcost results
 - [`storage_duration()`](https://energyRt.org/reference/storage_duration.md)
@@ -829,22 +844,31 @@ Plots and diagrams.
   [`autoplot(`*`<scenarios_cmp>`*`)`](https://energyRt.org/reference/compare_scenarios.md)
   [`plot(`*`<scenarios_cmp>`*`)`](https://energyRt.org/reference/compare_scenarios.md)
   : Compare solved scenarios (or runs of one scenario)
+- [`gg_trade_map()`](https://energyRt.org/reference/gg_trade_map.md)
+  [`autoplot(`*`<trade>`*`)`](https://energyRt.org/reference/gg_trade_map.md)
+  : Map inter-regional trade routes
 - [`autoplot(`*`<calendar>`*`)`](https://energyRt.org/reference/plot_calendar_method.md)
   : Visualize a Calendar object
 - [`autoplot(`*`<horizon>`*`)`](https://energyRt.org/reference/plot_horizon_method.md)
   : Visualize a Horizon object
-- [`plot_trade_map()`](https://energyRt.org/reference/plot_trade_map.md)
-  [`autoplot(`*`<trade>`*`)`](https://energyRt.org/reference/plot_trade_map.md)
-  : Map inter-regional trade routes
+- [`gg_heatmap()`](https://energyRt.org/reference/gg_heatmap.md) :
+  Heatmap of timeslice-indexed values over a calendar
+- [`gg_map()`](https://energyRt.org/reference/gg_map.md) : Map model
+  results by region
+- [`gg_share_frontier()`](https://energyRt.org/reference/gg_share_frontier.md)
+  : Plot feasible share-mix diagram for technology inputs/outputs
+- [`gg_trade_network()`](https://energyRt.org/reference/gg_trade_network.md)
+  : Plot trade as a network: capacities and flows between regions
 - [`draw()`](https://energyRt.org/reference/draw.md)
   [`draw.technology()`](https://energyRt.org/reference/draw.md) : Draw a
   schematic representation of a process
-- [`plot_heatmap()`](https://energyRt.org/reference/plot_heatmap.md) :
-  Heatmap of timeslice-indexed values over a calendar
-- [`plot_map()`](https://energyRt.org/reference/plot_map.md) : Map model
-  results by region
-- [`plot_trade_network()`](https://energyRt.org/reference/plot_trade_network.md)
-  : Plot trade as a network: capacities and flows between regions
+- [`plot_map()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  [`plot_heatmap()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  [`plot_trade_map()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  [`plot_trade_network()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  [`plot_share_frontier()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  [`plot_geoscale()`](https://energyRt.org/reference/energyRt-deprecated.md)
+  : Deprecated plotting names
 - [`object_image()`](https://energyRt.org/reference/object_image.md) :
   Image or icon attached to a model object
 - [`theme_energyRt()`](https://energyRt.org/reference/theme_energyRt.md)
@@ -1164,6 +1188,13 @@ Small helpers, conversions and accessors.
   [`getUnits(`*`<import>`*`)`](https://energyRt.org/reference/getUnits.md)
   [`getUnits(`*`<export>`*`)`](https://energyRt.org/reference/getUnits.md)
   [`getUnits(`*`<storage>`*`)`](https://energyRt.org/reference/getUnits.md)
+  [`getUnits(`*`<trade>`*`)`](https://energyRt.org/reference/getUnits.md)
+  [`getUnits(`*`<tax>`*`)`](https://energyRt.org/reference/getUnits.md)
+  [`getUnits(`*`<subsidy>`*`)`](https://energyRt.org/reference/getUnits.md)
+  [`getUnits(`*`<weather>`*`)`](https://energyRt.org/reference/getUnits.md)
+  [`getUnits(`*`<calendar>`*`)`](https://energyRt.org/reference/getUnits.md)
+  [`getUnits(`*`<config>`*`)`](https://energyRt.org/reference/getUnits.md)
+  [`getUnits(`*`<settings>`*`)`](https://energyRt.org/reference/getUnits.md)
   : Get parameter units for energyRt class objects
 
 - [`commodity_properties()`](https://energyRt.org/reference/commodity_properties.md)
@@ -1220,11 +1251,17 @@ Small helpers, conversions and accessors.
 
 - [Model bricks](https://energyRt.org/articles/model-bricks.md):
 
+- [Reducing a model's
+  size](https://energyRt.org/articles/model-size.md):
+
 - [Aggregating regions without averaging them
   away](https://energyRt.org/articles/region-aggregation.md):
 
 - [Reports and levelized
   costs](https://energyRt.org/articles/reports.md):
+
+- [Changing a model's
+  resolution](https://energyRt.org/articles/resolution.md):
 
 - [Development Status and
   Roadmap](https://energyRt.org/articles/roadmap.md):

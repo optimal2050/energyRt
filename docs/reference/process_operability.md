@@ -44,6 +44,36 @@ mod <- newModel(
                   capacity = data.frame(stock = 1, cap.up = 0)),
     newDemand("D", commodity = "ELC", demand = data.frame(demand = 1))))
 scen <- interpolate_model(mod, name = "op_example")
+#> 
+#> ── interpolate_model: op_example ───────────────────────────────────────────────
+#> storage: in-memory
+#> sparse: TRUE
+#> prune: TRUE
+#> fold: none
+#> validate: TRUE
+#> ℹ checking declarations
+#> ✔ checking declarations (0.0s)
+#> ℹ expanding vintage/cluster variants
+#> ✔ expanding vintage/cluster variants (0.0s)
+#> ℹ materializing commodity clusters
+#> ✔ materializing commodity clusters (0.0s)
+#> ℹ materializing weather clusters
+#> ✔ materializing weather clusters (0.0s)
+#> ℹ materializing weather transforms
+#> ✔ materializing weather transforms (0.2s)
+#> ℹ collecting sets: object names
+#> ✔ collecting sets: object names (0.0s)
+#> ℹ collecting sets: process classes
+#> ✔ collecting sets: process classes (0.0s)
+#> ℹ collecting sets: timeframes
+#> ✔ collecting sets: timeframes (0.0s)
+#> ℹ collecting sets: process inputs/outputs
+#> ✔ collecting sets: process inputs/outputs (0.0s)
+#> ℹ collecting sets: membership comm sets
+#> ✔ collecting sets: membership comm sets (0.0s)
+#> ℹ collecting sets: process regions
+#> ✔ collecting sets: process regions (0.0s)
+#> ℹ building maps: membership + closure
 #> Warning: non-unique value when setting 'row.names': 'ELC'
 #> Error in `.rowNamesDF<-`(x, value = value): duplicate 'row.names' are not allowed
 process_operability(scen)

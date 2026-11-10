@@ -99,7 +99,7 @@ mod <- newModel("TOPIA", data = topia$modules$electricity$repo,
 # 96 hourly timeslices collapse to 4 seasons: the same model, small enough
 # to solve in a second
 light <- recast_model_calendar(mod, calendar = calendars$s4)
-#> recast onto calendar 's4' (96 -> 4 timeslices): 4 table(s), 8,448 -> 352 row(s); 6 timeframe declaration(s) -> SEASON (verbose = TRUE lists them).
+#> recast onto calendar 's4' (96 -> 4 timeslices): 0 table(s), 0 -> 0 row(s); 6 timeframe declaration(s) -> SEASON: HYD@timeframe (HOUR); H2@timeframe (HOUR); ELC@timeframe (HOUR); WSOL@timeframe (HOUR); WWIN@timeframe (HOUR); WHYD@timeframe (HOUR).
 #> Dispatch, costs and the objective are the recast model's own, not the source model's.
 getCalendar(light)
 #> An object of class "calendar"
@@ -107,7 +107,7 @@ getCalendar(light)
 #> [1] "s4"
 #> 
 #> Slot "desc":
-#> [1] "SEASON calendar (4 timeslices; complete, regular) (timescales 0.6.0)"
+#> [1] "SEASON calendar (4 timeslices; complete, regular) (timescales 0.7.2)"
 #> 
 #> Slot "timeframes":
 #> $ANNUAL
@@ -201,10 +201,10 @@ getCalendar(light)
 dem <- getObject(light, name = "DEM_ELC", drop = TRUE)
 head(dem@demand)
 #>   cluster region year timeslice   demand
-#> 1    <NA>     C1 2025       WIN 432.5774
-#> 2    <NA>     C1 2025       SPR 391.8829
-#> 3    <NA>     C1 2025       SUM 405.4693
-#> 4    <NA>     C1 2025       FAL 395.0703
-#> 5    <NA>     C1 2030       WIN 475.8351
-#> 6    <NA>     C1 2030       SPR 431.0712
+#> 1    <NA>    R01 2025  d001_h00 1.314840
+#> 2    <NA>    R01 2025  d001_h01 1.309818
+#> 3    <NA>    R01 2025  d001_h02 1.299658
+#> 4    <NA>    R01 2025  d001_h03 1.322146
+#> 5    <NA>    R01 2025  d001_h04 1.330137
+#> 6    <NA>    R01 2025  d001_h05 1.338699
 ```

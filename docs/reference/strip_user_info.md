@@ -13,7 +13,7 @@ strip_user_info(
   scope = c("share", "store"),
   keep_solver = FALSE,
   confirm = FALSE,
-  verbose = TRUE
+  verbose = isVerbose()
 )
 ```
 

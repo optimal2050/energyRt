@@ -24,8 +24,15 @@ Two calls run every scenario in this vignette:
 expands the model over regions, years and timeslices;
 [`solve_scenario()`](https://energyRt.org/reference/solve_model.md)
 writes the solver files, runs the default solver (set once above) and
-reads the solution. `echo = FALSE` keeps the solver log out of the page
-— drop it to watch GLPK work.
+reads the solution. `verbose = FALSE` keeps the solver log out of the
+page — drop it to watch the solver work.
+
+The horizon marks 2025 as its base year, so each scenario is **two**
+solves and not one: the base year on its own, then the projection that
+starts from it.
+[`solve_base_year()`](https://energyRt.org/reference/solve_base_year.md)
+does the first, and `base_year_scenario =` hands its result to the
+second.
 
 ## The TOPIA model
 
@@ -38,7 +45,13 @@ I: building the model*.)
 ``` r
 
 topia_elc <- topia$modules$electricity           # the model
-calendar_s4h24 <- topia$modules$calendars$s4_h24
+# A SAMPLED calendar: one day per month, every hour of it, drawn from the
+# model's own `d365_h24`. The kit's weather is measured on that calendar, so a
+# sample of its labels resolves against the same series while the LP shrinks
+# about thirty-fold -- which is what makes this vignette runnable. `s4_h24`
+# would not: its labels (`WIN_h00`) are not `d365_h24`'s (`d001_h00`), so
+# every weather row would be dropped and the renewables would run unbounded.
+calendar_sample <- calendars[["d365_h24_1dpm"]]
 horizon_BY2025_50_by10 <- topia$modules$horizons$BY2025_50_by10
 topia_elc$regions
 ```
@@ -49,25 +62,58 @@ topia_elc$regions
 
 set_progress_bar()
 mod <- newModel("TOPIA", data = topia_elc$repo,
-                calendar = calendar_s4h24,
+                calendar = calendar_sample,
                 region = topia_elc$regions,
                 horizon = horizon_BY2025_50_by10, discount = 0.05)
 mod <- setGeoscale(mod, topia_elc$geoscale)
-scen_BASE <- interpolate_model(mod, name = "BASE", verbose = TRUE, check = TRUE)
+```
 
-scen_BASE <- solve_scenario(scen_BASE, echo = TRUE)
-getData(scen_BASE, "vObjective", merge = TRUE) # total system cost, MUSD
+### The base year
+
+2025 is given, not chosen, so it is solved by itself.
+[`solve_base_year()`](https://energyRt.org/reference/solve_base_year.md)
+slices the base year out of the horizon, switches endogenous retirement
+off – an observed retirement is data – and returns the solved scenario
+together with the ledger of what it decided.
+
+A well-stated base year builds nothing: every generator standing in 2025
+is already in the fleet. New capacity here means the input data
+understates the system, and capacity left idle means it overstates it.
+
+``` r
+
+by <- solve_base_year(mod, name = "BY2025", verbose = FALSE)
+getData(by, "vObjective", merge = TRUE)   # the base year's own cost, MUSD
+
+# nothing should appear here
+new_by <- getData(by, "vTechNewCap", merge = TRUE)
+new_by[new_by$value > 1e-6, ]
+```
+
+### The projection
+
+`base_year_scenario =` carries the base year forward: what it decided
+becomes exogenous stock, and the solved years are 2030, 2040 and 2050.
+
+``` r
+
+scen_BASE <- interpolate_model(mod, name = "BASE", base_year_scenario = by,
+                               verbose = TRUE, check = TRUE)
+scen_BASE@modInp@sets$year                # 2030, 2040, 2050
+
+scen_BASE <- solve_scenario(scen_BASE, verbose = TRUE)
+getData(scen_BASE, "vObjective", merge = TRUE) # projection cost, MUSD
 ```
 
 The regions are wired west to east with bi-directional transmission
 links (`TBD_ELC_*`), and the fuels move zone to zone.
-[`plot_trade_map()`](https://energyRt.org/reference/plot_trade_map.md)
-draws that network over a map layout — pass any of `topia$geoscales`,
-here `honeycomb`:
+[`gg_trade_map()`](https://energyRt.org/reference/gg_trade_map.md) draws
+that network over a map layout — pass any of `topia$geoscales`, here
+`honeycomb`:
 
 ``` r
 
-plot_trade_map(topia_elc$repo, map = topia$geoscales$honeycomb)
+gg_trade_map(topia_elc$repo, map = topia$geoscales$honeycomb)
 ```
 
 ## Reading the solution
@@ -135,9 +181,9 @@ electrolyser is a load, and a large one. Three further readings of the
 same figure are worth making explicit.
 
 - The **storage band is empty** – the battery is never built. At a
-  four-season calendar the multi-day calm spells that make storage
-  valuable are not present to be found, and the model has cheaper ways
-  to meet a peak.
+  sampled calendar the multi-day calm spells that make storage valuable
+  are not present to be found, and the model has cheaper ways to meet a
+  peak.
 - **Trade does not appear as a consumer.** `vTradeIr` moves electricity
   between regions rather than out of the system, and no electricity is
   exported to the rest of the world, so at system level trade shows up
@@ -277,23 +323,30 @@ autoplot(scen_BASE, "generation", timeslice = "^SUM_")
 ## Scenarios: layering the levers
 
 Each scenario adds a pre-built lever to the base model. The pattern is
-always `interpolate_model(mod, name, LEVER)` then
-[`solve_scenario()`](https://energyRt.org/reference/solve_model.md):
+always `interpolate_model(mod, name, LEVER, base_year_scenario = by)`
+then
+[`solve_scenario()`](https://energyRt.org/reference/solve_model.md).
+Every scenario starts from the same base year: 2025 is an observation,
+so a lever cannot change it.
 
 ``` r
 
 # emissions cap
-scen_CO2CAP <- interpolate_model(mod, "CO2CAP", topia_elc$CO2_CAP) |>
-  solve_scenario(echo = FALSE)
+scen_CO2CAP <- interpolate_model(mod, "CO2CAP", topia_elc$CO2_CAP,
+                                 base_year_scenario = by) |>
+  solve_scenario(verbose = FALSE)
 # carbon tax
-scen_CTAX <- interpolate_model(mod, "CARBONTAX", topia_elc$CT_CO2) |>
-  solve_scenario(echo = FALSE)
+scen_CTAX <- interpolate_model(mod, "CARBONTAX", topia_elc$CT_CO2,
+                               base_year_scenario = by) |>
+  solve_scenario(verbose = FALSE)
 # early fossil retirement
-scen_ERET <- interpolate_model(mod, "EARLY_RET", topia_elc$EARLY_RET) |>
-  solve_scenario(echo = FALSE)
+scen_ERET <- interpolate_model(mod, "EARLY_RET", topia_elc$EARLY_RET,
+                               base_year_scenario = by) |>
+  solve_scenario(verbose = FALSE)
 # renewable-backed hydrogen
-scen_GRN <- interpolate_model(mod, "GREEN_H2", topia_elc$GREEN_H2) |>
-  solve_scenario(echo = FALSE)
+scen_GRN <- interpolate_model(mod, "GREEN_H2", topia_elc$GREEN_H2,
+                              base_year_scenario = by) |>
+  solve_scenario(verbose = FALSE)
 ```
 
 The third lever, `EARLY_RET`, puts a declining per-region ceiling on
@@ -308,9 +361,10 @@ gas fleet alive to 2050, unlimited LNG above the domestic cap,
 transmission to a neighbour, and an electrolyser that can soak up
 surplus and sell the hydrogen – so shifting electricity in time has to
 beat all of them before it earns its capital. Check `vStorageOutCap`
-across the scenarios before concluding either way, and note that at a
-four-season calendar the multi-day calm spells that make storage
-valuable are not present to be found.
+across the scenarios before concluding either way, and note that on a
+sampled calendar the multi-day calm spells that make storage valuable
+are not present to be found: the sample takes one day per month, so
+nothing in it lasts longer than a night.
 
 Compare the scenarios with
 [`compare_scenarios()`](https://energyRt.org/reference/compare_scenarios.md):

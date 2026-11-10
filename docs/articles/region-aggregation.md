@@ -50,7 +50,7 @@ gs <- topia$geoscales$honeycomb
 regions <- geoscale_regions(gs, geoframe = "region")
 geo <- as.data.frame(geoscale_leaftable(gs))
 
-plot_geoscale(gs, type = "map")
+gg_geoscale(gs, type = "map")
 ```
 
 ## The plants
@@ -520,7 +520,9 @@ with no new plotting code:
 
 cl <- model_clusters(mod_7)
 
-plot_geoscale(cl$ECOA$geoscale, style = "map", geoframe = "cluster")
+membership <- as.data.frame(geoscale_leaftable(cl$ECOA$geoscale))
+gg_geoscale(cl$ECOA$geoscale, type = "map", data = membership,
+            geoframe = "region", z = "cluster")
 ```
 
 The atoms are coloured by the cluster they joined. Every cluster is one
@@ -529,7 +531,7 @@ constraint, visible rather than asserted.
 
 ``` r
 
-plot_geoscale(cl$ECOA$geoscale, type = "icicle")
+gg_geoscale(cl$ECOA$geoscale, type = "icicle")
 ```
 
 The icicle reads `nation > zone > cluster > region`: the cluster layer

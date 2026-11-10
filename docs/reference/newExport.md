@@ -12,6 +12,7 @@ newExport(
   desc = "",
   commodity = "",
   unit = NULL,
+  units = data.frame(),
   reserve = data.frame(),
   export = data.frame(),
   cluster = data.frame(),
@@ -41,7 +42,28 @@ update(object, ...)
 
 - unit:
 
-  character. Unit of the exported commodity.
+  character, the object's own measure, stored in `@units$comm`. See
+  [`getUnit()`](https://energyRt.org/reference/getUnit.md).
+
+- units:
+
+  data.frame. Units this object is measured in, for reference and for
+  carrying them with it: an object moved between models is only
+  meaningful where the units agree, and nothing else in the object
+  records them. Up to version 0.91 the object's own measure was a slot
+  of its own, `@unit`.
+
+  comm
+
+  : character. The commodity this object is counted in, e.g. "GWh" or
+    "PJ". Set by the `unit =` argument of the constructor. Leave it
+    empty to claim nothing: a unit is reported and cross-checked, never
+    converted.
+
+  currency
+
+  : character. Currency of the cost columns. A currency that disagrees
+    with the model's own is an error rather than a silent conversion.
 
 - reserve:
 

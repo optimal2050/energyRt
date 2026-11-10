@@ -22,7 +22,7 @@ registry is updated.
 ## Usage
 
 ``` r
-upgrade_scenario_layout(path, verbose = TRUE)
+upgrade_scenario_layout(path, verbose = isVerbose())
 ```
 
 ## Arguments

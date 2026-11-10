@@ -3,11 +3,12 @@
 The short, name-first accessors over the project stores (see the
 scenario-management article). `getScenario("base")` resolves the name
 through the registry (falling back to a scan of the scenarios store),
-loads the thin on-disk shell, and CACHES it in the session bank `.scen`
-— a second call is free, and a scenario re-saved on disk is reloaded
-automatically (the cache is stamped with the folder manifest's `updated`
-field). [`getData()`](https://energyRt.org/reference/getData.md) accepts
-names directly and uses this cache:
+loads the thin on-disk scenario object, and CACHES it in the session
+bank `.scen` — a second call is free, and a scenario re-saved on disk is
+reloaded automatically (the cache is stamped with the folder manifest's
+`updated` field).
+[`getData()`](https://energyRt.org/reference/getData.md) accepts names
+directly and uses this cache:
 `getData(c("base", "policy"), name = "vTechOut", merge = TRUE)`.
 
 `getModel()`, `getRepository()` and `getDataset()` are the typed
@@ -55,7 +56,7 @@ getRepository(name, hash = NULL, verbose = FALSE)
 
 getDataset(name, hash = NULL, verbose = FALSE)
 
-open_project(path = ".", verbose = TRUE)
+open_project(path, verbose = isVerbose())
 ```
 
 ## Arguments

@@ -14,22 +14,27 @@ moves between them, and what the model checks for you.
 
 ## Where units live
 
-Units are declared in three places, and they answer three different
-questions.
+One slot carries units, and its columns name what is being measured.
 
-| Where | Slot | Question it answers |
+| Where | Column | Question it answers |
 |----|----|----|
-| Commodity | `@unit` | in what measure is this commodity balanced? |
-| Process | `@units` | what are this process’s capacity, activity and cost units? |
+| Commodity, or a flow | `@units$comm` | in what measure is this commodity counted? |
+| Process | `@units$capacity`, `$activity`, `$use` | what are this process’s capacity and activity units? |
+| Anything priced | `@units$currency` | what money are its costs in? |
+| Weather | `@units$wval` | what does the series measure, if anything? |
 | Model | `config@units` | what should everything be expressed in? |
 
-A commodity’s `@unit` is its **native measure** — the one the model
-balances it in. Electricity in GWh, coal in PJ, water in Mm3.
+A commodity’s `@units$comm` is its **native measure** — the one the
+model balances it in. Electricity in GWh, coal in PJ, water in Mm3. The
+`unit =` argument of a constructor writes it, and
+[`getUnit()`](https://energyRt.org/reference/getUnit.md) reads it back:
 
 ``` r
 
 ELC <- newCommodity("ELC", desc = "Electricity", unit = "GWh")
 COA <- newCommodity("COA", desc = "Steam coal",  unit = "PJ")
+getUnit(COA)
+#> [1] "PJ"
 ```
 
 A process declares its own units in `@units`, which is where a cost
@@ -41,7 +46,7 @@ EGAS <- newTechnology(
   name = "EGAS", desc = "Gas turbine",
   input  = data.frame(comm = "GAS", unit = "PJ"),
   output = data.frame(comm = "ELC", unit = "GWh"),
-  units  = data.frame(capacity = "GW", activity = "GWh", costs = "MEUR"),
+  units  = data.frame(capacity = "GW", activity = "GWh", currency = "MEUR"),
   invcost = data.frame(invcost = 0.9),         # MEUR per GW
   varom   = data.frame(varom = 0.003),         # MEUR per GWh
   cap2act = 8760)                              # 1 GW × 8760 h = 8760 GWh
@@ -68,6 +73,15 @@ Where a process leaves a unit undeclared,
 [`getUnits()`](https://energyRt.org/reference/getUnits.md) shows the
 placeholder token (`{costs}`, `{capacity}`, `{activity}`) rather than
 guessing.
+
+Up to version 0.91 a commodity’s and a flow’s own measure was a slot of
+its own, `@unit`, beside the `@units` table a process carried. The two
+are one slot now, so
+[`getUnit()`](https://energyRt.org/reference/getUnit.md) and
+[`getUnits()`](https://energyRt.org/reference/getUnits.md) read the same
+place. `unit =` is still the constructor argument, which is why the code
+above is unchanged, and a saved object’s `@unit` is migrated to
+`@units$comm` when it is read.
 
 ## Dimensions and conversion
 
@@ -168,7 +182,7 @@ Chain them and a volume of coal becomes an energy. Given the properties,
 chain itself:
 
 > **Not in this build.** Commodity-aware conversion is not available in
-> energyRt 0.91.1.9000. The calls below are shown for reference; their
+> energyRt 0.91.3.9000. The calls below are shown for reference; their
 > output will appear here once the feature lands.
 
 ``` r
@@ -245,7 +259,7 @@ a year.
 Write the year into the unit:
 
 > **Not in this build.** Year-tagged currency is not available in
-> energyRt 0.91.1.9000. The calls below are shown for reference; their
+> energyRt 0.91.3.9000. The calls below are shown for reference; their
 > output will appear here once the feature lands.
 
 ``` r
@@ -292,21 +306,46 @@ returns exactly what it always did — so
 
 A model has exactly one currency whether it says so or not: the
 objective adds every cost together with coefficient 1, across regions as
-well as processes. So declare it, and let interpolation do the
-arithmetic:
-
-> **Not in this build.** A model-level unit target is not available in
-> energyRt 0.91.1.9000. The calls below are shown for reference; their
-> output will appear here once the feature lands.
+well as processes. So declare it, in the same slot and under the same
+column name an object uses:
 
 ``` r
 
-mod <- newModel("demo", units = data.frame(costs = "MUSD2020"))
+mod <- newModel("demo", units = data.frame(currency = "MUSD"))
+mod@config@units$currency
+#> [1] "MUSD"
 ```
 
-Processes that declare a different currency in their own `@units$costs`
-are converted to the model target during interpolation, and the
-conversion is reported rather than applied silently:
+`currency =` is the shorter way to write the same thing, and what every
+example before this release used: `newModel("demo", currency = "MUSD")`.
+It was the `config@currency` slot up to version 0.91.
+
+What this enforces today is agreement, not conversion. An object that
+declares a currency must declare the model’s; one that declares nothing
+claims nothing and is left alone. The check runs at
+[`newModel()`](https://energyRt.org/reference/newModel.md), because
+there is no exchange rate in a model and so nothing to reconcile a
+mismatch with:
+
+``` r
+
+COAL <- newSupply("COAL", commodity = "COA", unit = "PJ",
+                  units = data.frame(currency = "bnEUR"))
+newModel("demo", currency = "MUSD", data = add(newRepository("r"), COAL))
+#> Error:
+#> ! the model counts in 'MUSD', but 1 object(s) are priced in another currency:
+#>   COAL: bnEUR
+#> There is no exchange rate in a model, so this is not converted. Restate the costs, or clear `@units$currency` to claim nothing.
+```
+
+Normalising a model’s money — converting each object’s costs to the
+declared target during interpolation, and reporting every factor applied
+rather than applying it silently — is the next step and is not in this
+release:
+
+> **Not in this build.** Currency normalisation is not available in
+> energyRt 0.91.3.9000. The calls below are shown for reference; their
+> output will appear here once the feature lands.
 
     i Currency normalisation -> MUSD2020
         WIND_OFF, WIND_ON, PV      MEUR2015   × 1.163   (deflate_then_fx)

@@ -4,10 +4,10 @@ Returns a data.frame describing each parameter in the object along with
 its inferred unit. Units are derived from the unit slots stored on the
 object (`@unit` for commodity, `@units` for technology) and the
 dimensional semantics of each parameter (e.g. investment cost is
-`{costs}/{capacity}`).
+`{currency}/{capacity}`).
 
 Unresolved base units are shown as placeholder tokens (`{capacity}`,
-`{activity}`, `{costs}`) when the corresponding `@units` slot is not
+`{activity}`, `{currency}`) when the corresponding `@units` slot is not
 set.
 
 ## Usage
@@ -32,6 +32,27 @@ getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
 getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
 
 # S4 method for class 'storage'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+# S4 method for class 'trade'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+# S4 method for class 'tax'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+# S4 method for class 'subsidy'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+# S4 method for class 'weather'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+# S4 method for class 'calendar'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+# S4 method for class 'config'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+# S4 method for class 'settings'
 getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
 ```
 
@@ -60,8 +81,8 @@ getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
 
 - units:
 
-  named list of base units (`capacity`, `activity`, `use`, `costs`) for
-  the classes that carry no `@units` slot. `NULL` (default) resolves
+  named list of base units (`capacity`, `activity`, `use`, `currency`)
+  for the classes that carry no `@units` slot. `NULL` (default) resolves
   what it can from the object and leaves the rest as placeholder tokens.
 
 ## Value

@@ -2,8 +2,9 @@
 
 Test the current reporting level. `isVerbose()` gates user-facing
 progress messages, `isDebug()` gates internal consistency warnings that
-are silent in normal use. Set the levels with `options(en.verbose = )` /
-`options(en.debug = )`, or `set_option("verbose", )`.
+are silent in normal use. Set the levels with
+`options(energyRt.verbose = )` / `options(energyRt.debug = )`, or
+`set_option("verbose", )`.
 
 Both accept a level (`0`, `1`, `2`, ...) or a logical, which is read as
 `1`/`0`.
@@ -33,6 +34,7 @@ Other options:
 [`en_config_show()`](https://energyRt.org/reference/en_config_show.md),
 [`get_default_solver()`](https://energyRt.org/reference/default_solver.md),
 [`get_exchange_format()`](https://energyRt.org/reference/exchange_format.md),
+`get_project_root()`,
 [`get_storage_format()`](https://energyRt.org/reference/storage_format.md),
 [`set_log_file()`](https://energyRt.org/reference/log.md),
 [`set_option()`](https://energyRt.org/reference/en_option.md),
@@ -46,7 +48,7 @@ Other options:
 
 ``` r
 isVerbose()
-#> [1] FALSE
+#> [1] TRUE
 isDebug(2)
 #> [1] FALSE
 ```

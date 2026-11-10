@@ -24,7 +24,7 @@ package name to `env`.
 
   option:
 
-  : en.gams_path
+  : energyRt.gams_path
 
   envvar:
 
@@ -38,7 +38,7 @@ package name to `env`.
 
   option:
 
-  : en.gdxlib_path
+  : energyRt.gdxlib_path
 
   envvar:
 
@@ -52,7 +52,7 @@ package name to `env`.
 
   option:
 
-  : en.python_path
+  : energyRt.python_path
 
   envvar:
 
@@ -66,7 +66,7 @@ package name to `env`.
 
   option:
 
-  : en.julia_path
+  : energyRt.julia_path
 
   envvar:
 
@@ -80,7 +80,7 @@ package name to `env`.
 
   option:
 
-  : en.glpk_path
+  : energyRt.glpk_path
 
   envvar:
 
@@ -94,7 +94,7 @@ package name to `env`.
 
   option:
 
-  : en.neos_email
+  : energyRt.neos_email
 
   envvar:
 
@@ -108,7 +108,7 @@ package name to `env`.
 
   option:
 
-  : en.neos_endpoint
+  : energyRt.neos_endpoint
 
   envvar:
 
@@ -122,7 +122,7 @@ package name to `env`.
 
   option:
 
-  : en.solver
+  : energyRt.solver
 
   envvar:
 
@@ -136,7 +136,7 @@ package name to `env`.
 
   option:
 
-  : en.scenarios_path
+  : energyRt.scenarios_path
 
   envvar:
 
@@ -151,7 +151,7 @@ package name to `env`.
 
   option:
 
-  : en.registry_file
+  : energyRt.registry_file
 
   envvar:
 
@@ -165,7 +165,7 @@ package name to `env`.
 
   option:
 
-  : en.models_path
+  : energyRt.models_path
 
   envvar:
 
@@ -179,7 +179,7 @@ package name to `env`.
 
   option:
 
-  : en.repositories_path
+  : energyRt.repositories_path
 
   envvar:
 
@@ -194,7 +194,7 @@ package name to `env`.
 
   option:
 
-  : en.datasets_path
+  : energyRt.datasets_path
 
   envvar:
 
@@ -208,7 +208,7 @@ package name to `env`.
 
   option:
 
-  : en.log_file
+  : energyRt.log_file
 
   envvar:
 
@@ -222,7 +222,7 @@ package name to `env`.
 
   option:
 
-  : en.profile_dir
+  : energyRt.profile_dir
 
   envvar:
 
@@ -236,7 +236,7 @@ package name to `env`.
 
   option:
 
-  : en.reports_path
+  : energyRt.reports_path
 
   envvar:
 
@@ -250,7 +250,7 @@ package name to `env`.
 
   option:
 
-  : en.levcost_cache_path
+  : energyRt.levcost_cache_path
 
   envvar:
 
@@ -265,7 +265,7 @@ package name to `env`.
 
   option:
 
-  : en.path_builders
+  : energyRt.path_builders
 
   envvar:
 
@@ -279,7 +279,7 @@ package name to `env`.
 
   option:
 
-  : en.storage_format
+  : energyRt.storage_format
 
   envvar:
 
@@ -294,7 +294,7 @@ package name to `env`.
 
   option:
 
-  : en.storage_compression
+  : energyRt.storage_compression
 
   envvar:
 
@@ -309,7 +309,7 @@ package name to `env`.
 
   option:
 
-  : en.storage_compression_level
+  : energyRt.storage_compression_level
 
   envvar:
 
@@ -324,7 +324,7 @@ package name to `env`.
 
   option:
 
-  : en.exchange_format
+  : energyRt.exchange_format
 
   envvar:
 
@@ -339,7 +339,7 @@ package name to `env`.
 
   option:
 
-  : en.exchange_compression
+  : energyRt.exchange_compression
 
   envvar:
 
@@ -354,22 +354,268 @@ package name to `env`.
 
   option:
 
-  : en.exchange_compression_level
+  : energyRt.exchange_compression_level
 
   envvar:
 
   : ENERGYRT_EXCHANGE_COMPRESSION_LEVEL (evaluated if possible, raw
     string otherwise)
 
+- fx_equ:
+
+  default:
+
+  :     TRUE
+
+  option:
+
+  : energyRt.fx_equ
+
+  envvar:
+
+  : ENERGYRT_FX_EQU (evaluated if possible, raw string otherwise)
+
+- parent_levels:
+
+  default:
+
+  :     FALSE
+
+  option:
+
+  : energyRt.parent_levels
+
+  envvar:
+
+  : ENERGYRT_PARENT_LEVELS (evaluated if possible, raw string otherwise)
+
+- on_missing_input:
+
+  default:
+
+  :     "stop"
+
+  option:
+
+  : energyRt.on_missing_input
+
+  envvar:
+
+  : ENERGYRT_ON_MISSING_INPUT (evaluated if possible, raw string
+    otherwise)
+
+- threads:
+
+  default:
+
+  :     0L
+
+  option:
+
+  : energyRt.threads
+
+  envvar:
+
+  : ENERGYRT_THREADS (evaluated if possible, raw string otherwise)
+
+- map_rules:
+
+  default:
+
+  :     TRUE
+
+  option:
+
+  : energyRt.map_rules
+
+  envvar:
+
+  : ENERGYRT_MAP_RULES (evaluated if possible, raw string otherwise)
+
+- map_rules_verify:
+
+  default:
+
+  :     FALSE
+
+  option:
+
+  : energyRt.map_rules_verify
+
+  envvar:
+
+  : ENERGYRT_MAP_RULES_VERIFY (evaluated if possible, raw string
+    otherwise)
+
+- base_maps:
+
+  default:
+
+  :     FALSE
+
+  option:
+
+  : energyRt.base_maps
+
+  envvar:
+
+  : ENERGYRT_BASE_MAPS (evaluated if possible, raw string otherwise)
+
+- base_maps_verify:
+
+  default:
+
+  :     FALSE
+
+  option:
+
+  : energyRt.base_maps_verify
+
+  envvar:
+
+  : ENERGYRT_BASE_MAPS_VERIFY (evaluated if possible, raw string
+    otherwise)
+
+- model_checks_stop:
+
+  default:
+
+  :     FALSE
+
+  option:
+
+  : energyRt.model_checks_stop
+
+  envvar:
+
+  : ENERGYRT_MODEL_CHECKS_STOP (evaluated if possible, raw string
+    otherwise)
+
+- mm_keep_wildcards:
+
+  default:
+
+  :     FALSE
+
+  option:
+
+  : energyRt.mm_keep_wildcards
+
+  envvar:
+
+  : ENERGYRT_MM_KEEP_WILDCARDS (evaluated if possible, raw string
+    otherwise)
+
+- save_mode:
+
+  default:
+
+  :     "ref"
+
+  option:
+
+  : energyRt.save_mode
+
+  envvar:
+
+  : ENERGYRT_SAVE_MODE (evaluated if possible, raw string otherwise)
+
+- ondisk_min_rows:
+
+  default:
+
+  :     1e+05
+
+  option:
+
+  : energyRt.ondisk_min_rows
+
+  envvar:
+
+  : ENERGYRT_ONDISK_MIN_ROWS (evaluated if possible, raw string
+    otherwise)
+
+- param_ref_min_rows:
+
+  default:
+
+  :     1e+06
+
+  option:
+
+  : energyRt.param_ref_min_rows
+
+  envvar:
+
+  : ENERGYRT_PARAM_REF_MIN_ROWS (evaluated if possible, raw string
+    otherwise)
+
+- scen_file_mb_limit:
+
+  default:
+
+  :     256
+
+  option:
+
+  : energyRt.scen_file_mb_limit
+
+  envvar:
+
+  : ENERGYRT_SCEN_FILE_MB_LIMIT (evaluated if possible, raw string
+    otherwise)
+
+- lazy_hash:
+
+  default:
+
+  :     TRUE
+
+  option:
+
+  : energyRt.lazy_hash
+
+  envvar:
+
+  : ENERGYRT_LAZY_HASH (evaluated if possible, raw string otherwise)
+
+- mem_gc_full:
+
+  default:
+
+  :     FALSE
+
+  option:
+
+  : energyRt.mem_gc_full
+
+  envvar:
+
+  : ENERGYRT_MEM_GC_FULL (evaluated if possible, raw string otherwise)
+
+- project_root:
+
+  default:
+
+  :     quote(file.path(tempdir(), "energyRt"))
+
+  option:
+
+  : energyRt.project_root
+
+  envvar:
+
+  : ENERGYRT_PROJECT_ROOT (evaluated if possible, raw string otherwise)
+
 - verbose:
 
   default:
 
-  :     0
+  :     1
 
   option:
 
-  : en.verbose
+  : energyRt.verbose
 
   envvar:
 
@@ -383,7 +629,7 @@ package name to `env`.
 
   option:
 
-  : en.debug
+  : energyRt.debug
 
   envvar:
 
@@ -397,7 +643,7 @@ package name to `env`.
 
   option:
 
-  : en.progress_bar
+  : energyRt.progress_bar
 
   envvar:
 

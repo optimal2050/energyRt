@@ -22,25 +22,28 @@ supply object with given specifications.
   its units with it. An object moved between models is only meaningful
   where the units agree, and nothing else in the object records them:
   the numbers in `cost`/`invcost` and the capacity and activity columns
-  are bare. A declared `costs` that disagrees with the model's
-  `config@currency` is an error rather than a silent conversion; leave a
-  column empty to claim nothing.
+  are bare. A declared `currency` that disagrees with the model's own is
+  an error rather than a silent conversion; leave a column empty to
+  claim nothing.
+
+  comm
+
+  : character. The commodity this object is counted in, e.g. "GWh" or
+    "PJ". Set by the `unit =` argument of the constructor. Leave it
+    empty to claim nothing: a unit is reported and cross-checked, never
+    converted.
 
   activity
 
   : character. Unit of the activity variable.
 
-  costs
+  currency
 
   : character. Currency of the cost columns.
 
 - `commodity`:
 
   character. The supplied commodity short name.
-
-- `unit`:
-
-  character. The main unit of the commodity used in the model.
 
 - `weather`:
 
@@ -55,6 +58,17 @@ supply object with given specifications.
 
   : character. Name of the weather factor to apply. Must match the
     weather factor names in a `weather` class in the model.
+
+  unit
+
+  : character. Optional. The unit this process EXPECTS from the series
+    named in `weather`, e.g. "degC". Per row, because one process may
+    read a temperature from one series and a wind speed from another.
+    Where this and the weather object's own `@units$wval` are both
+    declared and differ, that is an error: nothing in the model converts
+    between weather units, so a coefficient fitted to one measure and
+    applied to another is wrong in a way no output reveals. Empty on
+    either side claims nothing and is not checked.
 
   transform
 
@@ -234,6 +248,27 @@ supply object with given specifications.
   character. Regions where the supply process exists. Must include all
   regions used in other slots. `availability` and `reserve` slots also
   limit possible regions.
+
+- `defVal`:
+
+  data.frame. Optional per-object override of a parameter's DEFAULT,
+  keyed by the short column name the value is written under –
+  `defVal$af.up <- 1` on a technology, `defVal$wval <- 3` on a weather
+  series. Empty by default, and one column per override. A parameter
+  name also works and is resolved (`pTechAf.up`, or `pTechAf` for both
+  bounds). A key that names no column or parameter of this class is an
+  error, not a silent no-op. This is the last of three layers: the
+  catalogue (`data-raw/parameters.yml`), then `config@defVal`, then
+  this; a value equal to what the layer before it says records nothing.
+
+- `interpolation`:
+
+  data.frame. Optional per-object override of a parameter's
+  INTERPOLATION RULE, keyed exactly as `defVal` above:
+  `interpolation$af.up <- "inter"`. Any accepted spelling of a rule
+  works and is normalised, so `bwd.mid.fwd` is `back.inter.forth`. The
+  override applies to THIS object's rows only: every other object of the
+  class keeps the rule the catalogue or `config` gives it.
 
 - `misc`:
 

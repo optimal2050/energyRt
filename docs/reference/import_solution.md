@@ -19,7 +19,7 @@ import_solution(
   save = TRUE,
   promote = FALSE,
   cleanup = FALSE,
-  verbose = TRUE
+  verbose = isVerbose()
 )
 ```
 

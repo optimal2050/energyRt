@@ -89,7 +89,7 @@ costs, and exogenous shocks (weather factors).
 
   : character. Unit of activity variable of the technology.
 
-  costs
+  currency
 
   : character. Currency of costs variable of the technology.
 
@@ -497,6 +497,17 @@ costs, and exogenous shocks (weather factors).
 
   : character. Name of the applied weather factor, required, must match
     the weather factor names in a `weather` class in the model.
+
+  unit
+
+  : character. Optional. The unit this process EXPECTS from the series
+    named in `weather`, e.g. "degC". Per row, because one process may
+    read a temperature from one series and a wind speed from another.
+    Where this and the weather object's own `@units$wval` are both
+    declared and differ, that is an error: nothing in the model converts
+    between weather units, so a coefficient fitted to one measure and
+    applied to another is wrong in a way no output reveals. Empty on
+    either side claims nothing and is not checked.
 
   transform
 
@@ -940,6 +951,27 @@ costs, and exogenous shocks (weather factors).
   reduce flow variables – those stay at the commodity's level; it
   removes activity variables and equation rows. If specified, must
   include all regions used in other slots.
+
+- `defVal`:
+
+  data.frame. Optional per-object override of a parameter's DEFAULT,
+  keyed by the short column name the value is written under –
+  `defVal$af.up <- 1` on a technology, `defVal$wval <- 3` on a weather
+  series. Empty by default, and one column per override. A parameter
+  name also works and is resolved (`pTechAf.up`, or `pTechAf` for both
+  bounds). A key that names no column or parameter of this class is an
+  error, not a silent no-op. This is the last of three layers: the
+  catalogue (`data-raw/parameters.yml`), then `config@defVal`, then
+  this; a value equal to what the layer before it says records nothing.
+
+- `interpolation`:
+
+  data.frame. Optional per-object override of a parameter's
+  INTERPOLATION RULE, keyed exactly as `defVal` above:
+  `interpolation$af.up <- "inter"`. Any accepted spelling of a rule
+  works and is normalised, so `bwd.mid.fwd` is `back.inter.forth`. The
+  override applies to THIS object's rows only: every other object of the
+  class keeps the rule the catalogue or `config` gives it.
 
 - `misc`:
 

@@ -10,7 +10,7 @@ removed here re-renders on demand.
 ## Usage
 
 ``` r
-clear_report_cache(x = NULL, dry_run = TRUE, verbose = TRUE)
+clear_report_cache(x = NULL, dry_run = TRUE, verbose = isVerbose())
 ```
 
 ## Arguments

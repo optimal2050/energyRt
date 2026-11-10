@@ -39,7 +39,8 @@ slotNames("technology")
 #> [16] "varom"              "invcost"            "cluster"           
 #> [19] "vintage"            "capacity"           "optimizeRetirement"
 #> [22] "fullYear"           "timeframe"          "geoframe"          
-#> [25] "region"             "misc"              
+#> [25] "region"             "defVal"             "interpolation"     
+#> [28] "misc"              
 energyRt:::get_slot_doc("technology", "input") |> cat()
 #> data.frame. Main commodities input. Main commodities are linked to the process capacity and activity. Their parameters are defined in the `ceff` slot.
 #>   \describe{
@@ -85,7 +86,8 @@ energyRt:::get_slot_doc("commodity", "agg") |> cat()
 #>     \item{cluster}{character. Tier this row applies to, NA for every tier. See the `cluster` slot: grades of one commodity differ in exactly this kind of data (carbon content, heat value), so a row may be shared or per tier.
 #> }
 #>     \item{comm}{character. Name of a commodity being aggregated.}
-#>     \item{unit}{character. Unit of the commodity being aggregated.}
+#>     \item{unit}{character. Unit of the aggregation coefficient, as a RATE: THIS commodity's unit over the member's, e.g. "kt/t". Members may each be in a different measure (H2 in kg or GWh, CH4 in PJ, NO3 in t), so the denominator varies by row while the numerator must agree with this commodity's `@units$comm`. Reported as declared; nothing is converted.
+#> }
 #>     \item{agg}{numeric. weight of the commodity in the aggregation, must be set for all aggregated commodities.
 #> }
 #>  }

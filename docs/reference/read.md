@@ -40,7 +40,7 @@ read(object, run = NULL, ..., ondisk = !isInMemory(object))
   it is read, instead of returning the whole solution in memory; the
   returned `@modOut` is then an on-disk object read lazily. Defaults to
   `!isInMemory(obj)`. Needs a run folder, so an external `solver.dir`
-  falls back to memory. The scenario shell still has to be saved:
+  falls back to memory. The saved scenario still has to be saved:
   [`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
   records the store, and skips rewriting it.
 

@@ -169,12 +169,12 @@ which derives a variant instead of re-typing the object.
   [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
   samples regions and warns when a sample splits a cell a process spans.
 - **Maps.**
-  [`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md),
-  [`plot_map()`](https://energyRt.org/reference/plot_map.md) for any
-  solved variable carrying a region,
-  [`plot_trade_map()`](https://energyRt.org/reference/plot_trade_map.md)
-  and
-  [`plot_trade_network()`](https://energyRt.org/reference/plot_trade_network.md)
+  [`geoscales::gg_geoscale()`](https://optimal2050.github.io/geoscales/r/reference/gg_geoscale.html)
+  for the geography itself,
+  [`gg_map()`](https://energyRt.org/reference/gg_map.md) for any solved
+  variable carrying a region,
+  [`gg_trade_map()`](https://energyRt.org/reference/gg_trade_map.md) and
+  [`gg_trade_network()`](https://energyRt.org/reference/gg_trade_network.md)
   for flows.
 
 ## Axis three: the solve route
@@ -360,7 +360,7 @@ The model definition does not change between them.
   object or a solved scenario; results are cached on disk.
   [`tech_share_frontier()`](https://energyRt.org/reference/tech_share_frontier.md)
   and
-  [`plot_share_frontier()`](https://energyRt.org/reference/plot_share_frontier.md)
+  [`gg_share_frontier()`](https://energyRt.org/reference/gg_share_frontier.md)
   show how the merit order shifts with a share constraint.
 - **Comparison.**
   [`compare_scenarios()`](https://energyRt.org/reference/compare_scenarios.md)
@@ -417,8 +417,8 @@ The model definition does not change between them.
   `"fuel"`, `"storage"`, with `by = "vintage"` / `"cluster"` fan-outs,
   faceting and `top_n`).
 - **Maps** — see the space axis above — and
-  [`plot_heatmap()`](https://energyRt.org/reference/plot_heatmap.md) for
-  a timeslice × region view.
+  [`gg_heatmap()`](https://energyRt.org/reference/gg_heatmap.md) for a
+  timeslice × region view.
 - **Reports.** [`report()`](https://energyRt.org/reference/report.md)
   renders any energyRt object — fourteen element classes plus the model,
   repository and scenario containers — to HTML, PDF, Word or TeX.

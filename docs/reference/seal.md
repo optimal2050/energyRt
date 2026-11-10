@@ -36,38 +36,44 @@ registry is refreshed.
 ## Usage
 
 ``` r
-seal_model(x, verbose = TRUE)
+seal_model(x, verbose = isVerbose())
 
 unseal_model(x, force = FALSE, verbose = TRUE)
 
-seal_repository(x, verbose = TRUE)
+seal_repository(x, verbose = isVerbose())
 
-unseal_repository(x, force = FALSE, verbose = TRUE)
+unseal_repository(x, force = FALSE, verbose = isVerbose())
 
-seal_dataset(x, verbose = TRUE)
+seal_dataset(x, verbose = isVerbose())
 
-unseal_dataset(x, verbose = TRUE)
+unseal_dataset(x, verbose = isVerbose())
 
-seal_scenario(x, inputs = TRUE, outputs = FALSE, verbose = TRUE)
+seal_scenario(x, inputs = TRUE, outputs = FALSE, verbose = isVerbose())
 
 unseal_scenario(
   x,
   inputs = TRUE,
   outputs = TRUE,
   force = FALSE,
-  verbose = TRUE
+  verbose = isVerbose()
 )
 
-mark_delete(x, importance = 0, type = NULL, verbose = TRUE, version = NULL)
+mark_delete(
+  x,
+  importance = 0,
+  type = NULL,
+  verbose = isVerbose(),
+  version = NULL
+)
 
-unmark_delete(x, type = NULL, verbose = TRUE, version = NULL)
+unmark_delete(x, type = NULL, verbose = isVerbose(), version = NULL)
 
 delete_marked(
   types = NULL,
   max_importance = 0,
   dry_run = TRUE,
   ignore_refs = FALSE,
-  verbose = TRUE
+  verbose = isVerbose()
 )
 ```
 

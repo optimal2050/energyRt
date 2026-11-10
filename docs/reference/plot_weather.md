@@ -15,7 +15,7 @@ factor) of a `weather` object, in one of three styles:
 - `"area"` — the same as `"line"` with filled areas.
 
 The value axis (fill for the heatmap, `y` for line/area) is labelled
-with the object's `@unit` (or `"capacity factor"` if unset).
+with the object's own unit (or `"capacity factor"` if unset).
 
 ## Usage
 

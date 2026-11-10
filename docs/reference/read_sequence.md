@@ -15,7 +15,7 @@ on a scenario reloaded from disk rather than only on the live result.
 ## Usage
 
 ``` r
-read_sequence(object, sequence = NULL, type = NULL, verbose = TRUE)
+read_sequence(object, sequence = NULL, type = NULL, verbose = isVerbose())
 ```
 
 ## Arguments

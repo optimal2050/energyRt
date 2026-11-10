@@ -72,11 +72,11 @@ solve(a, b, ...)
   for `solve_model()`, arguments are routed to
   [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
   (settings / calendar / horizon / model data) or to the solver run
-  (`solver.dir`, `transient`, `force`, `read.solution`, `wait`, `echo`,
-  `run`, `run.conflict`, `n.threads`, ...). For `solve_scenario()`,
-  arguments are passed to `.executeScenario()`. Set `echo = FALSE` for a
-  quiet run: it silences both the progress messages and the solver's own
-  console output.
+  (`solver.dir`, `transient`, `force`, `read.solution`, `wait`,
+  `verbose`, `run`, `run.conflict`, `n.threads`, ...). For
+  `solve_scenario()`, arguments are passed to `.executeScenario()`. Set
+  `verbose = FALSE` for a quiet run: it silences both the progress
+  messages and the solver's own console output.
 
   `run` doubles as the run label: `TRUE`/`FALSE` keeps its historical
   meaning (run the solver or only write the script), while a character

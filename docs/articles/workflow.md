@@ -29,11 +29,18 @@ set_registry_file(file.path(wf, "energyRt_registry.csv"))
 
 topia_elc <- topia$modules$electricity
 mod <- newModel("TOPIA", data = topia_elc$repo,
-                calendar = topia$modules$calendars$s4_h24,
+                calendar = calendars[["d365_h24_1dps"]],
                 region   = topia_elc$regions,
                 horizon  = topia$modules$horizons$BY2025_50_by10,
                 discount = 0.05)
 mod <- setGeoscale(mod, topia_elc$geoscale)
+
+# One zone, one day per season: this article is about the workflow, not the
+# scale, and it solves four full projections below. `subset_model_regions()`
+# rather than a smaller `region =` argument, because the fuel supplies are
+# declared per ZONE and a bare subset would leave them naming regions the
+# model no longer has.
+mod <- subset_model_regions(mod, region = c("R04", "R05", "R06"))
 ```
 
 ``` r
@@ -41,6 +48,60 @@ mod <- setGeoscale(mod, topia_elc$geoscale)
 # interpolate + solve on the bundled GLPK; echo = FALSE keeps the log quiet
 scen <- interpolate_model(mod, name = "BASE") |>
   solve_scenario(solver = solver_options$glpk, echo = FALSE)
+#> ℹ checking declarations
+#> ✔ checking declarations (0.1s)
+#> ℹ expanding vintage/cluster variants
+#> ✔ expanding vintage/cluster variants (0.1s)
+#> ℹ materializing commodity clusters
+#> ✔ materializing commodity clusters (0.1s)
+#> ℹ materializing weather clusters
+#> ✔ materializing weather clusters (0.0s)
+#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
+#> ℹ collecting sets: object names✔ collecting sets: object names (0.0s)
+#> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
+#> ℹ collecting sets: timeframes
+#> ✔ collecting sets: timeframes (0.0s)
+#> ℹ collecting sets: process inputs/outputs
+#> ✔ collecting sets: process inputs/outputs (0.0s)
+#> ℹ collecting sets: membership comm sets
+#> ✔ collecting sets: membership comm sets (0.0s)
+#> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
+#> ℹ building maps: membership + closure
+#> ✔ building maps: membership + closure (0.2s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
+#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
+#> ℹ building maps: calendar + lifespan
+#> ✔ building maps: calendar + lifespan (0.2s)
+#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.6s)
+#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
+#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
+#> ℹ building maps: value✔ building maps: value (0.1s)
+#> ℹ building maps: filter
+#> ✔ building maps: filter (0.4s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
+#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
+#> ℹ computing model-size summary✔ computing model-size summary (0.1s)
+#> model_size: BASE
+#>   parameters : 200 value, 359 maps, 15 sets
+#>   param rows : 26,382
+#>   estimate   : ~56,283 variables, ~59,392 constraints (from gating maps)
+#>   top parameters by rows:
+#>     pTechCinp2use      5,472
+#>     pStorageInpEff     3,456
+#>     pStorageOutEff     3,456
+#>     pTechUse2cact      2,880
+#>     pWeather           2,535
+#>     pTradeIrVarom      1,728
+#>     pTradeIrEff        1,728
+#>     pTimesliceAgg      891
+#>     pDemand            864
+#>     pExportRowPrice    864
+#>     pExportRow         864
+#>     pTimesliceWeight   303
+#>     pTechAf            288
+#>     pTechFixom         132
+#>     pTechInvcost       132
 ```
 
 ## Selecting objects: `getObject()`
@@ -58,7 +119,7 @@ their data). By default it returns a named list keyed by object name;
 repo <- topia_elc$repo
 names(getObject(repo, class = "technology"))        # all technologies
 #> [1] "ECOA"  "EGAS"  "ENUC"  "ESOL"  "EWIN"  "EHYD"  "EBIO"  "H2ELC"
-names(getObject(repo, class = "supply", region = "W1"))
+names(getObject(repo, class = "supply", region = "R01"))
 #> [1] "SUP_BIO"   "RES_LANDS" "RES_LANDW"
 getObject(repo, name = "ECOA", drop = TRUE)@invcost # the ECOA object itself
 #>   vintage cluster region year invcost wacc payback eac retcost
@@ -81,17 +142,17 @@ otherwise); every frame carries a `scenario` and a `name` column.
 ``` r
 
 getData(scen, "vObjective", merge = TRUE)$value      # total system cost, MEUR
-#> [1] 205569.8
+#> [1] 50622.22
 
 gen <- getData(scen, "vTechOut", comm = "ELC", merge = TRUE)
 head(gen[, c("scenario", "tech", "region", "year", "timeslice", "value")], 4)
 #> # A tibble: 4 × 6
 #>   scenario tech  region  year timeslice value
 #>   <chr>    <chr> <chr>  <int> <chr>     <dbl>
-#> 1 BASE     EBIO  C2      2040 WIN_h00    17.1
-#> 2 BASE     EBIO  C2      2040 WIN_h01    17.1
-#> 3 BASE     EBIO  C2      2040 WIN_h02    17.1
-#> 4 BASE     EBIO  C2      2040 WIN_h03    17.1
+#> 1 BASE     ECOA  R04     2030 d015_h00   0.86
+#> 2 BASE     ECOA  R04     2030 d015_h01   0.86
+#> 3 BASE     ECOA  R04     2030 d015_h02   0.86
+#> 4 BASE     ECOA  R04     2030 d015_h03   0.86
 ```
 
 The `...` accept set filters, exact (`comm = "ELC"`) or regex
@@ -148,10 +209,12 @@ ECOA <- update(ECOA, invcost = data.frame(invcost = 2500))  # pricier coal capex
 repo_hi <- add(repo, ECOA, overwrite = TRUE)                # swap it back in
 
 mod_hi  <- newModel("TOPIA_HI", data = repo_hi,
-                    calendar = topia$modules$calendars$s4_h24,
+                    calendar = calendars[["d365_h24_1dps"]],
                     region = topia_elc$regions,
                     horizon = topia$modules$horizons$BY2025_50_by10,
                     discount = 0.05)
+mod_hi  <- setGeoscale(mod_hi, topia_elc$geoscale)
+mod_hi  <- subset_model_regions(mod_hi, region = c("R04", "R05", "R06"))
 ```
 
 (For an already-interpolated scenario,
@@ -176,9 +239,9 @@ scenario and model sharing a name appear once):
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpMpeqlg/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\Rtmp8G8dJ2/wf"
 basename(scen@path)
-#> [1] "BASE-TOPIA-s4_h24-BY2025_50_by10"
+#> [1] "BASE-TOPIA-d365_h24_1dps-BY2025_50_by10_main"
 ```
 
 Saving a scenario writes an **Arrow-backed** folder that mirrors the
@@ -260,11 +323,11 @@ identical(getScenario("BASE")@name, ld@name)
 ``` r
 
 basename(saved@path)                                 # the scenario folder
-#> [1] "BASE-TOPIA-s4_h24-BY2025_50_by10"
+#> [1] "BASE-TOPIA-d365_h24_1dps-BY2025_50_by10_main"
 isInMemory(saved)                                    # FALSE -- data is on disk
 #> [1] TRUE
 getData(ld, "vObjective", merge = TRUE)$value        # lazy read, no full load
-#> [1] 205569.8
+#> [1] 50622.22
 ```
 
 ``` r
@@ -312,6 +375,61 @@ them from the registry on the fly.)
 # add the CO2 cap lever
 scen_cap <- interpolate_model(mod, "CO2CAP", topia_elc$CO2_CAP) |>
   solve_scenario(solver = solver_options$glpk, echo = FALSE)
+#> ℹ checking declarations
+#> ✔ checking declarations (0.1s)
+#> ℹ expanding vintage/cluster variants
+#> ✔ expanding vintage/cluster variants (0.2s)
+#> ℹ materializing commodity clusters
+#> ✔ materializing commodity clusters (0.0s)
+#> ℹ materializing weather clusters
+#> ✔ materializing weather clusters (0.0s)
+#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
+#> ℹ collecting sets: object names✔ collecting sets: object names (0.0s)
+#> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
+#> ℹ collecting sets: timeframes
+#> ✔ collecting sets: timeframes (0.0s)
+#> ℹ collecting sets: process inputs/outputs
+#> ✔ collecting sets: process inputs/outputs (0.0s)
+#> ℹ collecting sets: membership comm sets
+#> ✔ collecting sets: membership comm sets (0.0s)
+#> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
+#> ℹ building maps: membership + closure
+#> ✔ building maps: membership + closure (0.1s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
+#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
+#> ℹ building maps: calendar + lifespan
+#> ✔ building maps: calendar + lifespan (0.2s)
+#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.6s)
+#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
+#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.1s)
+#> ℹ building maps: value✔ building maps: value (0.1s)
+#> ℹ building maps: filter
+#> ✔ building maps: filter (0.4s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
+#> ℹ compiling 1 user constraint(s) / cost term(s)✔ compiling 1 user constraint(s) / cost term(s) (0.0s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
+#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
+#> ℹ computing model-size summary✔ computing model-size summary (0.1s)
+#> model_size: CO2CAP
+#>   parameters : 201 value, 361 maps, 15 sets
+#>   param rows : 26,385
+#>   estimate   : ~56,283 variables, ~59,392 constraints (from gating maps)
+#>   top parameters by rows:
+#>     pTechCinp2use      5,472
+#>     pStorageInpEff     3,456
+#>     pStorageOutEff     3,456
+#>     pTechUse2cact      2,880
+#>     pWeather           2,535
+#>     pTradeIrVarom      1,728
+#>     pTradeIrEff        1,728
+#>     pTimesliceAgg      891
+#>     pDemand            864
+#>     pExportRowPrice    864
+#>     pExportRow         864
+#>     pTimesliceWeight   303
+#>     pTechAf            288
+#>     pTechFixom         132
+#>     pTechInvcost       132
 ```
 
 ``` r
@@ -333,7 +451,7 @@ emis |>
 sapply(list(BASE = scen, CO2CAP = scen_cap),
        function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
 #>   BASE CO2CAP 
-#> 205570 240456
+#>  50622  50636
 ```
 
 A scenario that adds a lever to an interpolated one can be **built on
@@ -343,6 +461,7 @@ what the cap adds, and the result equals interpolating from scratch:
 ``` r
 
 scen_cap2 <- interpolate_model(mod, "CO2CAP", topia_elc$CO2_CAP, base = scen)
+#> ℹ base 'BASE': adding 0 levies, 1 constraint(s) / cost term(s)
 sum(compare_inputs(scen_cap2, scen_cap)$summary$status != "identical")
 #> [1] 0
 ```
@@ -364,26 +483,26 @@ in-memory footprint:
 model_size(scen)
 #> model_size: BASE
 #>   parameters : 200 value, 359 maps, 15 sets
-#>   param rows : 124,391
-#>   estimate   : ~244,839 variables, ~258,466 constraints (from gating maps)
+#>   param rows : 26,382
+#>   estimate   : ~56,283 variables, ~59,392 constraints (from gating maps)
 #>   top parameters by rows:
-#>     pTechCinp2use      25,728
-#>     pStorageInpEff     16,896
-#>     pStorageOutEff     16,896
-#>     pWeather           15,560
-#>     pTechUse2cact      13,056
-#>     pTradeIrVarom      8,468
-#>     pTradeIrEff        8,468
-#>     pDemand            4,224
-#>     pExportRowPrice    4,224
-#>     pExportRow         4,224
-#>     pTimesliceAgg      1,188
-#>     pTechFixom         676
-#>     pTechInvcost       676
-#>     pTimesliceWeight   404
-#>     pTechCap2AInp      396
+#>     pTechCinp2use      5,472
+#>     pStorageInpEff     3,456
+#>     pStorageOutEff     3,456
+#>     pTechUse2cact      2,880
+#>     pWeather           2,535
+#>     pTradeIrVarom      1,728
+#>     pTradeIrEff        1,728
+#>     pTimesliceAgg      891
+#>     pDemand            864
+#>     pExportRowPrice    864
+#>     pExportRow         864
+#>     pTimesliceWeight   303
+#>     pTechAf            288
+#>     pTechFixom         132
+#>     pTechInvcost       132
 size(scen)
-#> [1] "25.6 Mb"
+#> [1] "22.5 Mb"
 ```
 
 For a systematic check that a build is correct *and* efficient,
@@ -466,25 +585,87 @@ and the scenario is declared, validated and solved on the sample.
 
 A sampled calendar is a **row subset of the full calendar’s timetable**
 plus an explicit `year_fraction` — the fraction of the year the sample
-covers. Timeslice weights annualise the sample inside the solver (the
-top slice carries weight `1/year_fraction`), so the objective is an
-*estimate* of the full model’s — and exactly equals it when the sampled
-slices are representative:
+covers. Timeslice weights annualise the sample inside the solver: the
+sampled slices carry weight `1/year_fraction`, while the top slice stays
+full-year magnitude with share and weight 1. The objective is therefore
+an *estimate* of the full model’s, and equals it exactly when the
+sampled slices are representative.
+
+The subset inherits the full year’s `weight` column, which no longer
+annualises the shorter sample. Interpolation normalises the weights on
+construction and reports the factor it applied:
 
 ``` r
 
-timetable <- topia$modules$calendars$s4_h24@timetable
-# two of the four seasons
-timetable_2s <- timetable[timetable$SEASON %in% c("WIN", "SUM"), ]
-calendar_s2h24 <- newCalendar(timetable = timetable_2s, name = "s2h24",
+timetable <- calendars[["d365_h24_1dps"]]@timetable
+# half of the sampled days -- this calendar is indexed by day and hour, so a
+# day is the unit to cut; filtering on a dimension it does not carry would
+# quietly keep everything
+keep_days <- sort(unique(as.character(timetable$YDAY)))[c(1, 3)]
+timetable_2s <- timetable[as.character(timetable$YDAY) %in% keep_days, ]
+calendar_s2h24 <- newCalendar(timetable = timetable_2s, name = "d6h24",
                               year_fraction = sum(timetable_2s$share))
 
 scen_t <- interpolate_model(mod, "S2", calendar_s2h24) |>
   solve_scenario(solver = solver_options$glpk, echo = FALSE)
+#> ℹ checking declarations
+#> ✔ checking declarations (0.1s)
+#> ℹ expanding vintage/cluster variants
+#> ✔ expanding vintage/cluster variants (0.1s)
+#> ℹ materializing commodity clusters
+#> ✔ materializing commodity clusters (0.0s)
+#> ℹ materializing weather clusters
+#> ✔ materializing weather clusters (0.0s)
+#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
+#> ℹ collecting sets: object names✔ collecting sets: object names (0.0s)
+#> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
+#> ℹ collecting sets: timeframes
+#> ✔ collecting sets: timeframes (0.0s)
+#> ℹ collecting sets: process inputs/outputs
+#> ✔ collecting sets: process inputs/outputs (0.0s)
+#> ℹ collecting sets: membership comm sets
+#> ✔ collecting sets: membership comm sets (0.0s)
+#> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
+#> ℹ building maps: membership + closure
+#> ✔ building maps: membership + closure (0.2s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
+#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
+#> ℹ building maps: calendar + lifespan
+#> ✔ building maps: calendar + lifespan (0.2s)
+#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.7s)
+#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
+#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.1s)
+#> ℹ building maps: value✔ building maps: value (0.1s)
+#> ℹ building maps: filter
+#> ✔ building maps: filter (0.3s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
+#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
+#> ℹ computing model-size summary✔ computing model-size summary (0.1s)
+#> model_size: S2
+#>   parameters : 200 value, 359 maps, 15 sets
+#>   param rows : 13,663
+#>   estimate   : ~28,911 variables, ~30,292 constraints (from gating maps)
+#>   top parameters by rows:
+#>     pTechCinp2use      2,736
+#>     pStorageInpEff     1,728
+#>     pStorageOutEff     1,728
+#>     pTechUse2cact      1,440
+#>     pWeather           1,260
+#>     pTradeIrVarom      864
+#>     pTradeIrEff        864
+#>     pTimesliceAgg      447
+#>     pDemand            432
+#>     pExportRowPrice    432
+#>     pExportRow         432
+#>     pTimesliceWeight   153
+#>     pTechAf            144
+#>     pTechFixom         132
+#>     pTechInvcost       132
 sapply(list(full = scen, sampled = scen_t),
        function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
 #>    full sampled 
-#>  205570  218324
+#>   50622   60891
 ```
 
 Two traps: pass `year_fraction` **explicitly** (it is not recomputed
@@ -553,8 +734,67 @@ Filtering the geoscale to `R1 + R2` and interpolating drops the
 gs12 <- filter_geoscale(gs, "region", c("R1", "R2"),
                         drop_empty_geoframes = TRUE)
 scen12 <- interpolate_model(m3, "S12", gs12)
-#> spatial sample: sub-territory solve on 2 of 3 regions
-#> spatial sample: kept 2 region(s); dropped 1 object(s) and 1 trade route(s) outside the sample (verbose = TRUE lists them)
+#> 
+#> ── interpolate_model: S12 ──────────────────────────────────────────────────────
+#> storage: in-memory
+#> sparse: TRUE
+#> prune: TRUE
+#> fold: none
+#> validate: TRUE
+#> spatial sample: sub-territory solve on 2 of 3 regions (km2 66.7% of the parent)
+#> spatial sample: dropping trade route TR23: R2 -> R3 (no boundary price; no stub)
+#> spatial sample: kept 2 region(s); dropped 1 object(s) and 1 trade route(s) outside the sample
+#> ℹ checking declarations✔ checking declarations (0.0s)
+#> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.0s)
+#> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
+#> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
+#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
+#> ℹ collecting sets: object names✔ collecting sets: object names (0.0s)
+#> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
+#> ℹ collecting sets: timeframes✔ collecting sets: timeframes (0.0s)
+#> ℹ collecting sets: process inputs/outputs✔ collecting sets: process inputs/outputs (0.0s)
+#> ℹ collecting sets: membership comm sets✔ collecting sets: membership comm sets (0.0s)
+#> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
+#> ℹ building maps: membership + closure✔ building maps: membership + closure (0.1s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
+#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
+#> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.1s)
+#> ℹ ob2mi: interpolating 5 model objects
+#> ✔ ob2mi: interpolating 5 model objects (0.0s)
+#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
+#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
+#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
+#> ℹ building maps: value✔ building maps: value (0.0s)
+#> ℹ building maps: filter✔ building maps: filter (0.1s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
+#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
+#> ℹ validating parameters
+#> ✔ validating parameters (0.1s)
+#> ℹ computing model-size summary✔ computing model-size summary (0.0s)
+#> ────────────────────────────────────────────────────────────────────────────────
+#> dimensions: 3 regions, 2 commodities, 3 processes, 1 years, 1 timeslices
+#> model_size: S12
+#>   parameters : 200 value, 359 maps, 15 sets
+#>   param rows : 26
+#>   estimate   : ~47 variables, ~42 constraints (from gating maps)
+#>   top parameters by rows:
+#>     pWacc              3
+#>     pSdr               3
+#>     pSupCost           2
+#>     pDemand            2
+#>     pTechEac           2
+#>     pTechOlife         2
+#>     pTechInvcost       2
+#>     pTechAf            2
+#>     pPeriodLen         1
+#>     ordYear            1
+#>     cardYear           1
+#>     pTimesliceShare    1
+#>     pTimesliceWeight   1
+#>     pTimesliceAgg      1
+#>     pYearFraction      1
+#> Map rules: mTechTimeslice, mSupTimeslice, mCommTimeslice, mvTechAct, mvTechOut, meqTechAfUp, meqTechActSng kept as rules, tables dropped
 as.character(scen12@settings@region)
 #> [1] "R1" "R2"
 ```
@@ -568,8 +808,67 @@ via `boundary_prices`; routes without a price row are just dropped:
 
 bp <- data.frame(src = "R2", dst = "R3", price = 50, cap.up = 4)
 scen12p <- interpolate_model(m3, "S12P", gs12, boundary_prices = bp)
-#> spatial sample: sub-territory solve on 2 of 3 regions
-#> spatial sample: kept 2 region(s); dropped 1 object(s) and 1 trade route(s) outside the sample (verbose = TRUE lists them)
+#> 
+#> ── interpolate_model: S12P ─────────────────────────────────────────────────────
+#> storage: in-memory
+#> sparse: TRUE
+#> prune: TRUE
+#> fold: none
+#> validate: TRUE
+#> spatial sample: sub-territory solve on 2 of 3 regions (km2 66.7% of the parent)
+#> spatial sample: dropping trade route TR23: R2 -> R3 (EXP_TR23_R22R3 stub added)
+#> spatial sample: kept 2 region(s); dropped 1 object(s) and 1 trade route(s) outside the sample
+#> ℹ checking declarations✔ checking declarations (0.0s)
+#> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.0s)
+#> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
+#> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
+#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
+#> ℹ collecting sets: object names✔ collecting sets: object names (0.0s)
+#> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
+#> ℹ collecting sets: timeframes✔ collecting sets: timeframes (0.0s)
+#> ℹ collecting sets: process inputs/outputs✔ collecting sets: process inputs/outputs (0.0s)
+#> ℹ collecting sets: membership comm sets✔ collecting sets: membership comm sets (0.0s)
+#> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
+#> ℹ building maps: membership + closure✔ building maps: membership + closure (0.1s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
+#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
+#> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.1s)
+#> ℹ ob2mi: interpolating 6 model objects
+#> ✔ ob2mi: interpolating 6 model objects (0.0s)
+#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
+#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
+#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.2s)
+#> ℹ building maps: value✔ building maps: value (0.0s)
+#> ℹ building maps: filter✔ building maps: filter (0.1s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
+#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
+#> ℹ validating parameters
+#> ✔ validating parameters (0.1s)
+#> ℹ computing model-size summary✔ computing model-size summary (0.0s)
+#> ────────────────────────────────────────────────────────────────────────────────
+#> dimensions: 3 regions, 2 commodities, 4 processes, 1 years, 1 timeslices
+#> model_size: S12P
+#>   parameters : 200 value, 359 maps, 15 sets
+#>   param rows : 28
+#>   estimate   : ~54 variables, ~48 constraints (from gating maps)
+#>   top parameters by rows:
+#>     pWacc              3
+#>     pSdr               3
+#>     pSupCost           2
+#>     pDemand            2
+#>     pTechEac           2
+#>     pTechOlife         2
+#>     pTechInvcost       2
+#>     pTechAf            2
+#>     pPeriodLen         1
+#>     ordYear            1
+#>     cardYear           1
+#>     pTimesliceShare    1
+#>     pTimesliceWeight   1
+#>     pTimesliceAgg      1
+#>     pYearFraction      1
+#> Map rules: mExpTimeslice, mTechTimeslice, mSupTimeslice, mCommTimeslice, mvTechAct, mvTechOut, meqTechAfUp, meqTechActSng kept as rules, tables dropped
 grep("^EXP", as.character(scen12p@modInp@sets$expp), value = TRUE)
 #> [1] "EXP_TR23_R22R3"
 ```

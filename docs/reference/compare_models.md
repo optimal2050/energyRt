@@ -86,11 +86,11 @@ mod2 <- add(mod, sup_gas, overwrite = TRUE)
 cmp <- compare_models(mod, mod2, names = c("base", "dear gas"))
 cmp
 #> model comparison: base vs dear gas
-#> changed: 1  same: 47 
+#> changed: 1  same: 50 
 #> 
 #> --- Objects ---
 #>     name  class   hash_a   hash_b  status
-#>  SUP_GAS supply 4d4340e5 c74858d7 changed
+#>  SUP_GAS supply 0b416d94 c07c29a9 changed
 #> Configuration: identical.
 #> 
 #> Drill down with print(x, name = "SUP_GAS")

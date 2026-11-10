@@ -29,10 +29,17 @@ parts of the trade network (aka transmission lines).
   its units with it. An object moved between models is only meaningful
   where the units agree, and nothing else in the object records them:
   the numbers in the cost, capacity and activity columns are bare. A
-  declared `costs` that disagrees with the model's `config@currency` is
-  an error rather than a silent conversion; leave a column empty to
-  claim nothing. One unit per kind: a storage prices three capacities
-  but states `capacity` once.
+  declared `currency` that disagrees with the model's own is an error
+  rather than a silent conversion; leave a column empty to claim
+  nothing. One unit per kind: a storage prices three capacities but
+  states `capacity` once.
+
+  comm
+
+  : character. The commodity this object is counted in, e.g. "GWh" or
+    "PJ". The unit of the traded flow, which `markup`, `varom` and the
+    `ava` bounds are all stated per. Leave it empty to claim nothing: a
+    unit is reported and cross-checked, never converted.
 
   capacity
 
@@ -42,7 +49,7 @@ parts of the trade network (aka transmission lines).
 
   : character. Unit of the activity variable.
 
-  costs
+  currency
 
   : character. Currency of the cost columns.
 
@@ -293,6 +300,17 @@ parts of the trade network (aka transmission lines).
   weather
 
   : character. Name of the weather object.
+
+  unit
+
+  : character. Optional. The unit this process EXPECTS from the series
+    named in `weather`, e.g. "degC". Per row, because one process may
+    read a temperature from one series and a wind speed from another.
+    Where this and the weather object's own `@units$wval` are both
+    declared and differ, that is an error: nothing in the model converts
+    between weather units, so a coefficient fitted to one measure and
+    applied to another is wrong in a way no output reveals. Empty on
+    either side claims nothing and is not checked.
 
   src
 
@@ -660,6 +678,27 @@ parts of the trade network (aka transmission lines).
   logical. Incidates if the retirement of the trade object should be
   optimized. Also requires the same parameter in the `model` or
   `scenario` class to be set to TRUE to be effective.
+
+- `defVal`:
+
+  data.frame. Optional per-object override of a parameter's DEFAULT,
+  keyed by the short column name the value is written under –
+  `defVal$af.up <- 1` on a technology, `defVal$wval <- 3` on a weather
+  series. Empty by default, and one column per override. A parameter
+  name also works and is resolved (`pTechAf.up`, or `pTechAf` for both
+  bounds). A key that names no column or parameter of this class is an
+  error, not a silent no-op. This is the last of three layers: the
+  catalogue (`data-raw/parameters.yml`), then `config@defVal`, then
+  this; a value equal to what the layer before it says records nothing.
+
+- `interpolation`:
+
+  data.frame. Optional per-object override of a parameter's
+  INTERPOLATION RULE, keyed exactly as `defVal` above:
+  `interpolation$af.up <- "inter"`. Any accepted spelling of a rule
+  works and is normalised, so `bwd.mid.fwd` is `back.inter.forth`. The
+  override applies to THIS object's rows only: every other object of the
+  class keeps the rule the catalogue or `config` gives it.
 
 - `misc`:
 

@@ -20,11 +20,17 @@
 
 - [Model bricks](https://energyRt.org/articles/model-bricks.md):
 
+- [Reducing a model's
+  size](https://energyRt.org/articles/model-size.md):
+
 - [Aggregating regions without averaging them
   away](https://energyRt.org/articles/region-aggregation.md):
 
 - [Reports and levelized
   costs](https://energyRt.org/articles/reports.md):
+
+- [Changing a model's
+  resolution](https://energyRt.org/articles/resolution.md):
 
 - [Development Status and
   Roadmap](https://energyRt.org/articles/roadmap.md):

@@ -12,6 +12,7 @@ newCommodity(
   timeframe = character(),
   geoframe = character(),
   unit = character(),
+  units = data.frame(),
   cluster = data.frame(),
   agg = data.frame(),
   emis = data.frame(),
@@ -63,7 +64,16 @@ newCommodity(
 
 - unit:
 
-  character. The main unit of the commodity used in the model.
+  character, the object's own measure, stored in `@units$comm`. See
+  [`getUnit()`](https://energyRt.org/reference/getUnit.md).
+
+- units:
+
+  data.frame. Units this object is measured in, for reference and for
+  carrying them with it: an object moved between models is only
+  meaningful where the units agree, and nothing else in the object
+  records them. Up to version 0.91 the object's own measure was a slot
+  of its own, `@unit`.
 
 - cluster:
 
@@ -118,7 +128,12 @@ newCommodity(
 
   unit
 
-  : character. Unit of the commodity being aggregated.
+  : character. Unit of the aggregation coefficient, as a RATE: THIS
+    commodity's unit over the member's, e.g. "kt/t". Members may each be
+    in a different measure (H2 in kg or GWh, CH4 in PJ, NO3 in t), so
+    the denominator varies by row while the numerator must agree with
+    this commodity's `@units$comm`. Reported as declared; nothing is
+    converted.
 
   agg
 
@@ -144,7 +159,12 @@ newCommodity(
 
   unit
 
-  : character. Unit of the emission factor.
+  : character. Unit of the emission factor, as a RATE: the emitted
+    commodity's unit over THIS commodity's, e.g. "kt/PJ". The numerator
+    stays in the emitted commodity's own measure – a leakage factor is
+    counted in GHG units, not the carrier's – and the denominator must
+    agree with this commodity's `@units$comm`. Reported as declared;
+    nothing is converted.
 
   emis
 
@@ -258,6 +278,11 @@ newCommodity(name = "ELC", desc = "Electricity", unit = "GWh")
 #> Name:  ELC 
 #> desc:  Electricity 
 #> unit:  GWh 
+#> 
+#>  units 
+#>   comm
+#> 1  GWh
+#> 
 
 # physical properties give `convert()` the physics to move between measures
 newCommodity(
@@ -268,15 +293,20 @@ newCommodity(
     unit = c("GJ/t", "t/m3"),
     comment = c("IEA average, other bituminous", "bulk, as stockpiled")
   ),
-  emis = data.frame(comm = "CO2", unit = "Mt", emis = 0.0946)
+  emis = data.frame(comm = "CO2", unit = "Mt/PJ", emis = 0.0946)
 )
 #> Name:  COA 
 #> desc:  Steam coal 
 #> unit:  PJ 
 #> 
+#>  units 
+#>   comm
+#> 1   PJ
+#> 
+#> 
 #>  emis 
-#>   comm unit   emis
-#> 1  CO2   Mt 0.0946
+#>   comm  unit   emis
+#> 1  CO2 Mt/PJ 0.0946
 #> 
 #> 
 #>  property 

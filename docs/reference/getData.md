@@ -291,9 +291,12 @@ getData(
   resolution, as stored), `"lowest"` (aggregate/sum flows up to the
   coarsest level, normally `ANNUAL`), `"all"` (return every timeframe
   level stacked), or an explicit calendar level name (e.g. `"SEASON"`,
-  `"YDAY"`) to aggregate to that level. Non-timeslice data, and
-  state/level variables (e.g. `vStorageLevel`) for which summing over
-  timeslices is meaningless, are returned unchanged.
+  `"YDAY"`) to aggregate to that level. Non-timeslice data is returned
+  unchanged. How a variable combines is declared per variable (`recast`
+  in `data-raw/variables.yml`): a quantity is summed at the child/target
+  weight ratio, while a state/level variable (e.g. `vStorageLevel`)
+  takes its CLOSING value, with the swing inside each target slice
+  recorded in `attr(x, "absorbed")`.
 
   The default was `"lowest"` up to v0.80 and is now `"highest"`,
   matching the spatial twin `geoframe`, whose default `"finest"` has
@@ -312,10 +315,13 @@ getData(
   resolution as stored), `"coarsest"` (aggregate up to the top geoscale
   level), `"all"` (return every level stacked), or an explicit geoscale
   level name (e.g. `"zone"`, `"nation"`). Requires a geoscale on the
-  model; without one this is inert. Inter-regional flow variables (e.g.
-  `vTradeIr`) are returned unchanged, because summing a flow across
-  regions double-counts it — the spatial counterpart of leaving state
-  variables alone under `timeframe`.
+  model; without one this is inert. How a variable combines is declared
+  per variable (`recast` in `data-raw/variables.yml`): a quantity is
+  summed, while an inter-regional flow (e.g. `vTradeIr`) is summed only
+  where it CROSSES the new border. Rows whose endpoints land in the same
+  target region are no longer a transfer, so they leave the total and
+  are recorded as in-region flow in `attr(x, "absorbed")` rather than
+  double-counted.
 
 - process:
 

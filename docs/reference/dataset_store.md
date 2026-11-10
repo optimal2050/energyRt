@@ -64,7 +64,7 @@ save_dataset(
   rehash = TRUE,
   memo = "",
   hash = NULL,
-  verbose = TRUE
+  verbose = isVerbose()
 )
 
 load_dataset(
@@ -73,7 +73,7 @@ load_dataset(
   path = NULL,
   evaluate = FALSE,
   strict = FALSE,
-  verbose = TRUE
+  verbose = isVerbose()
 )
 ```
 

@@ -39,11 +39,18 @@ set_registry_file(file.path(wf, "energyRt_registry.csv"))
 
 topia_elc <- topia$modules$electricity
 mod <- newModel("TOPIA", data = topia_elc$repo,
-                calendar = calendars[["d365_h24_1dpm"]],
+                calendar = calendars[["d365_h24_1dps"]],
                 region   = topia_elc$regions,
                 horizon  = topia$modules$horizons$BY2025_50_by10,
                 discount = 0.05)
 mod <- setGeoscale(mod, topia_elc$geoscale)
+
+# One zone, one day per season: this article is about the workflow, not the
+# scale, and it solves four full projections below. `subset_model_regions()`
+# rather than a smaller `region =` argument, because the fuel supplies are
+# declared per ZONE and a bare subset would leave them naming regions the
+# model no longer has.
+mod <- subset_model_regions(mod, region = c("R04", "R05", "R06"))
 ```
 
 ```{r base-solve}
@@ -111,10 +118,12 @@ ECOA <- update(ECOA, invcost = data.frame(invcost = 2500))  # pricier coal capex
 repo_hi <- add(repo, ECOA, overwrite = TRUE)                # swap it back in
 
 mod_hi  <- newModel("TOPIA_HI", data = repo_hi,
-                    calendar = calendars[["d365_h24_1dpm"]],
+                    calendar = calendars[["d365_h24_1dps"]],
                     region = topia_elc$regions,
                     horizon = topia$modules$horizons$BY2025_50_by10,
                     discount = 0.05)
+mod_hi  <- setGeoscale(mod_hi, topia_elc$geoscale)
+mod_hi  <- subset_model_regions(mod_hi, region = c("R04", "R05", "R06"))
 ```
 
 (For an already-interpolated scenario, `update_parameter(scen, param, data)`
@@ -362,11 +371,11 @@ annualises the shorter sample. Interpolation normalises the weights on
 construction and reports the factor it applied:
 
 ```{r sample-calendar}
-timetable <- calendars[["d365_h24_1dpm"]]@timetable
+timetable <- calendars[["d365_h24_1dps"]]@timetable
 # half of the sampled days -- this calendar is indexed by day and hour, so a
 # day is the unit to cut; filtering on a dimension it does not carry would
 # quietly keep everything
-keep_days <- sort(unique(as.character(timetable$YDAY)))[c(1, 3, 5, 7, 9, 11)]
+keep_days <- sort(unique(as.character(timetable$YDAY)))[c(1, 3)]
 timetable_2s <- timetable[as.character(timetable$YDAY) %in% keep_days, ]
 calendar_s2h24 <- newCalendar(timetable = timetable_2s, name = "d6h24",
                               year_fraction = sum(timetable_2s$share))

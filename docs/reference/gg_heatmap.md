@@ -1,0 +1,70 @@
+# Heatmap of timeslice-indexed values over a calendar
+
+Lays timeslice-indexed values on a 2-D grid whose axes follow the
+calendar structure: the finest timeframe becomes the y-axis, the
+next-finest the x-axis, and any coarser level(s) become facets — e.g.
+for a `d365_h24` calendar, `x = day-of-year`, `y = hour-of-day`. Useful
+for load curves, renewable profiles, prices, and other sub-annual
+series.
+
+## Usage
+
+``` r
+gg_heatmap(
+  object,
+  calendar = NULL,
+  value = NULL,
+  facet = NULL,
+  palette = "D",
+  name = NULL
+)
+```
+
+## Arguments
+
+- object:
+
+  A `data.frame` with a `timeslice` column and a numeric value column, a
+  named numeric vector (names are timeslices), or a `calendar` object
+  (then the timeslice `share` — or `value` column — is shown).
+
+- calendar:
+
+  A `calendar` object giving the layout (matched to `x` by timeslice),
+  or the name of one (e.g. `"d365_h24"`). Required: the layout is read
+  from the calendar, never guessed from the timeslice names.
+
+- value:
+
+  Name of the value column in `x` (defaults to the single numeric
+  column, or `share` for a calendar).
+
+- facet:
+
+  Optional timeframe level(s) to facet by. `"month"` over a day-of-year
+  format splits the year into monthly panels (x = day-of-month).
+
+- palette:
+
+  Viridis color option for the fill scale.
+
+- name:
+
+  Legend title (defaults to the value name).
+
+## Value
+
+A `ggplot` object.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+data("calendars", package = "energyRt")
+cal <- calendars$d365_h24
+prof <- data.frame(timeslice = cal@timetable$timeslice,
+                   load  = runif(nrow(cal@timetable)))
+gg_heatmap(prof, calendar = cal, value = "load")
+gg_heatmap(prof, calendar = cal, value = "load", facet = "month")
+} # }
+```

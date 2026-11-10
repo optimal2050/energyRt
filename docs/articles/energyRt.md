@@ -169,7 +169,7 @@ BASE <- solve_model(
   object = HELLO,
   name = "BASE",
   solver = solver_options$glpk,
-  echo = FALSE
+  verbose = FALSE
 )
 ```
 
@@ -269,25 +269,14 @@ BASE <- save_scenario(
   object = BASE,
   verbose = FALSE
 )
-#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpA5YfBB/energyRt-intro/BASE-HELLO-HELLO_HORIZON'
-#> Directory size: 0.24 MB
 
 project_registry <- load_registry()
 project_registry[, c("type", "name", "parent")]
-#> # A tibble: 33 × 3
-#>    type     name  parent
-#>    <chr>    <chr> <chr> 
-#>  1 model    HELLO ""    
-#>  2 scenario BASE  ""    
-#>  3 run      glpk  "BASE"
-#>  4 scenario BASE  ""    
-#>  5 run      glpk  "BASE"
-#>  6 scenario BASE  ""    
-#>  7 run      glpk  "BASE"
-#>  8 scenario BASE  ""    
-#>  9 run      glpk  "BASE"
-#> 10 scenario BASE  ""    
-#> # ℹ 23 more rows
+#> # A tibble: 2 × 3
+#>   type     name  parent
+#>   <chr>    <chr> <chr> 
+#> 1 scenario BASE  ""    
+#> 2 run      glpk  "BASE"
 
 BASE <- load_scenario(
   path = "BASE",
@@ -374,7 +363,7 @@ TOPIA_SAMPLES <- solve_by_sample(
   name = "TOPIA_SAMPLES",
   samples = SEASON_SAMPLES,
   solver = solver_options$glpk,
-  echo = FALSE,
+  verbose = FALSE,
   verbose = FALSE
 )
 sample_summary(
@@ -430,7 +419,7 @@ if (julia_ready) {
     object = HELLO,
     name = "BASE_JULIA",
     solver = solver_options$julia_highs,
-    echo = FALSE
+    verbose = FALSE
   )
 }
 
@@ -442,7 +431,7 @@ if (pyomo_ready) {
     object = HELLO,
     name = "BASE_PYOMO",
     solver = solver_options$pyomo_cbc,
-    echo = FALSE
+    verbose = FALSE
   )
 }
 ```

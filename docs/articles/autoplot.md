@@ -30,19 +30,18 @@ objects.
 
 data("calendars", package = "energyRt")
 names(calendars)
-#>  [1] "annual"                 "d365"                   "d365_h24"              
-#>  [4] "m12"                    "m12a"                   "q4"                    
-#>  [7] "s4"                     "s4_h24"                 "m12_h24"               
-#> [10] "wd7_h24"                "w52_h24"                "s4_h24_subset_2seasons"
-#> [13] "m12_h24_subset_4months" "m12_subset_q1"          "d365_h24_1dps"         
-#> [16] "d365_h24_1dpm"          "s4_hp3"                 "m12_d365_h24"          
-#> [19] "m12_d365_h24_1dpm"
+#>  [1] "annual"            "m12"               "m12a"             
+#>  [4] "q4"                "s4"                "s4_h24"           
+#>  [7] "m12_h24"           "wd7_h24"           "w52_h24"          
+#> [10] "d365"              "d365_h24"          "s4_hp3"           
+#> [13] "m12_subset_q1"     "d365_h24_1dps"     "d365_h24_1dpm"    
+#> [16] "m12_d365_h24"      "m12_d365_h24_1dpm"
 ```
 
 [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
-(or the equivalent [`plot()`](https://energyRt.org/reference/draw.md))
-draws each timeframe as a row of rectangles sized by each timeslice’s
-share of the year:
+returns each timeframe as a row of rectangles sized by each timeslice’s
+share of the year; [`plot()`](https://energyRt.org/reference/draw.md)
+draws the same figure:
 
 ``` r
 
@@ -84,44 +83,18 @@ autoplot(calendars$s4_hp3, fill = "share")
 
 ### Labels
 
-Each cell can be labelled by its individual level name (`"name"`, the
-default, e.g. `h00`…`h23`) or by the full timeslice path (`"timeslice"`,
-e.g. `d001_h00`). Label text auto-contrasts with the fill; override it
-with `label_color`.
+Each cell is labelled by its member name (`labels = "name"`, the
+default, e.g. `h00`…`h23`) or by the full timeslice path
+(`labels = "timeslice"`, e.g. `d001_h00`); `labels = FALSE` draws none.
+Label text contrasts with the fill automatically, and rows with more
+cells than `max_labels` stay unlabelled.
 
 ``` r
 
-# zoom (see below) so labels are legible
-autoplot(calendars$d365_h24,
-         show_leafs = list(YDAY = "d001", HOUR = 1:24),
-         label_by = "name")
+autoplot(calendars$s4_hp3, labels = "timeslice")
 ```
 
 ![](autoplot_files/figure-html/cal-labels-1.png)
-
-### Zooming with `show_leafs`
-
-`show_leafs` selects which timeslices to draw. Pass a named list to
-filter per timeframe level (character = timeslice names, numeric =
-positions among that level’s timeslices), or an unnamed vector to filter
-the finest level directly.
-
-``` r
-
-# day 100, hours 5-10
-autoplot(calendars$d365_h24, show_leafs = list(YDAY = "d100", HOUR = 5:10))
-```
-
-![](autoplot_files/figure-html/cal-zoom-1.png)
-
-``` r
-
-
-# the first 48 leaf timeslices (first two days)
-autoplot(calendars$d365_h24, show_leafs = 1:48)
-```
-
-![](autoplot_files/figure-html/cal-zoom-2.png)
 
 ### Subset view
 
@@ -158,9 +131,9 @@ autoplot(calendars$s4_hp3, palette = "magma", border = "grey40") +
 lays every timeslice out in one row per timeframe. When a value is
 indexed by a *two-dimensional* calendar — day-of-year × hour, month ×
 hour — a **heatmap** reads more naturally:
-[`plot_heatmap()`](https://energyRt.org/reference/plot_heatmap.md) puts
-the finest timeframe on `y`, the next on `x`, and any coarser levels
-into facets. The layout is taken from the calendar, which you pass as
+[`gg_heatmap()`](https://energyRt.org/reference/gg_heatmap.md) puts the
+finest timeframe on `y`, the next on `x`, and any coarser levels into
+facets. The layout is taken from the calendar, which you pass as
 `calendar =` – either a calendar object or the name of one, such as
 `"d365_h24"`.
 
@@ -180,7 +153,7 @@ prof <- data.frame(
               15 * cos(2 * pi * yday / 365))
 
 # x = YDAY, y = HOUR
-plot_heatmap(prof, calendar = calendar_d365h24, value = "load")
+gg_heatmap(prof, calendar = calendar_d365h24, value = "load")
 ```
 
 ![](autoplot_files/figure-html/hm-day-1.png)
@@ -191,7 +164,7 @@ panel per month:
 ``` r
 
 # 12 panels
-plot_heatmap(prof, calendar = calendar_d365h24, value = "load",
+gg_heatmap(prof, calendar = calendar_d365h24, value = "load",
              facet = "month")
 ```
 
@@ -205,22 +178,24 @@ exactly as for
 
 Any timeslice-indexed model data lays out the same way. Here
 **electricity demand** and a **solar capacity factor** from the packaged
-TOPIA kit, on its season × hour calendar (`s4_h24`): pull the object
-with [`getObject()`](https://energyRt.org/reference/getObject.md), take
-one region (and, for demand, one year), and pass the `timeslice` + value
+TOPIA kit, on its hourly calendar (`d365_h24`): pull the object with
+[`getObject()`](https://energyRt.org/reference/getObject.md), take one
+region (and, for demand, one year), and pass the `timeslice` + value
 columns to
-[`plot_heatmap()`](https://energyRt.org/reference/plot_heatmap.md). The
-`name` argument carries the value’s unit onto the colour bar.
+[`gg_heatmap()`](https://energyRt.org/reference/gg_heatmap.md). The
+`name` argument carries the value’s unit onto the colour bar. A graded
+resource ships one series per grade, so the solar object is cut to one
+mounting as well as one region – two series on one timeslice have
+nothing to lay out.
 
 ``` r
 
 repo <- topia$modules$electricity$repo
-calendar_s4h24 <- calendars$s4_h24
 
 DEM <- getObject(repo, name = "DEM_ELC", drop = TRUE)
-dem <- subset(as.data.frame(DEM@demand), region == "W1" & year == 2050)
-plot_heatmap(dem[, c("timeslice", "demand")], calendar = calendar_s4h24,
-             value = "demand", name = "PJ")
+dem <- subset(as.data.frame(DEM@demand), region == "R02" & year == 2025)
+gg_heatmap(dem[, c("timeslice", "demand")], calendar = calendar_d365h24,
+             value = "demand", name = "GWh", facet = "month")
 ```
 
 ![](autoplot_files/figure-html/hm-demand-1.png)
@@ -228,9 +203,9 @@ plot_heatmap(dem[, c("timeslice", "demand")], calendar = calendar_s4h24,
 ``` r
 
 WSOL <- getObject(repo, name = "WSOL", drop = TRUE)
-wsol <- subset(as.data.frame(WSOL@weather), region == "W1")
-plot_heatmap(wsol[, c("timeslice", "wval")], calendar = calendar_s4h24,
-             value = "wval", name = "capacity factor")
+wsol <- subset(as.data.frame(WSOL@weather), region == "R02" & cluster == "FL")
+gg_heatmap(wsol[, c("timeslice", "wval")], calendar = calendar_d365h24,
+             value = "wval", name = "capacity factor", facet = "month")
 ```
 
 ![](autoplot_files/figure-html/hm-weather-1.png)
@@ -354,7 +329,8 @@ factor — per region and timeslice.
 offers three views via `type =`: a calendar **heatmap** (the default),
 and diurnal **line** / **area** charts. Because the timeslice layout
 (here season × hour) can’t be inferred from the timeslice names alone,
-pass the model’s `calendar`; the value’s unit (`@unit`, or
+pass the model’s `calendar`; the value’s unit
+([`getUnit()`](https://energyRt.org/reference/getUnit.md), or
 `"capacity factor"` when unset) labels the value axis — the fill legend
 for the heatmap, the y-axis for line/area.
 
@@ -362,10 +338,9 @@ for the heatmap, the y-axis for line/area.
 
 WSOL <- getObject(topia$modules$electricity$repo,
                   name = "WSOL", drop = TRUE)
-calendar_s4h24 <- calendars$s4_h24
 
 # heatmap (default), faceted by region
-autoplot(WSOL, calendar = calendar_s4h24)
+autoplot(WSOL, calendar = calendar_d365h24)
 ```
 
 ![](autoplot_files/figure-html/wea-1.png)
@@ -375,14 +350,14 @@ season, the capacity factor on the y-axis:
 
 ``` r
 
-autoplot(WSOL, style = "line", calendar = calendar_s4h24)
+autoplot(WSOL, style = "line", calendar = calendar_d365h24)
 ```
 
 ![](autoplot_files/figure-html/wea-line-1.png)
 
 ``` r
 
-autoplot(WSOL, style = "area", calendar = calendar_s4h24)     # or filled areas
+autoplot(WSOL, style = "area", calendar = calendar_d365h24)   # or filled areas
 ```
 
 ![](autoplot_files/figure-html/wea-line-2.png)
@@ -392,8 +367,9 @@ autoplot(WSOL, style = "area", calendar = calendar_s4h24)     # or filled areas
 - Every method returns a `ggplot`, so `+ theme_*()`, `+ labs()`,
   `+ scale_*()` etc. all work.
 - [`plot()`](https://energyRt.org/reference/draw.md) is available for
-  `calendar` and `horizon` and produces the same figure as
-  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html).
+  `calendar` and `horizon`: it draws the
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  figure and returns it invisibly.
 - [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
   also works on the result of
   [`levcost()`](https://energyRt.org/reference/levcost.md) (levelized

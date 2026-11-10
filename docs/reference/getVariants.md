@@ -70,43 +70,86 @@ getVariants(mod)
 #> 8       SUP_BIO_CLS2     supply   SUP_BIO    <NA>      S2
 #> 9       SUP_BIO_CLS3     supply   SUP_BIO    <NA>      S3
 #> 10    RES_LANDW_CLHI     supply RES_LANDW    <NA>      HI
-#> 11    RES_LANDW_CLLO     supply RES_LANDW    <NA>      LO
-#> 12      ESOL_VIN2015 technology      ESOL    2015    <NA>
-#> 13      ESOL_VIN2030 technology      ESOL    2030    <NA>
-#> 14      ESOL_VIN2045 technology      ESOL    2045    <NA>
-#> 15 EWIN_VIN2015_CLHI technology      EWIN    2015      HI
-#> 16 EWIN_VIN2030_CLHI technology      EWIN    2030      HI
-#> 17 EWIN_VIN2045_CLHI technology      EWIN    2045      HI
-#> 18 EWIN_VIN2015_CLLO technology      EWIN    2015      LO
-#> 19 EWIN_VIN2030_CLLO technology      EWIN    2030      LO
-#> 20 EWIN_VIN2045_CLLO technology      EWIN    2045      LO
-#> 21   STG_ELC_VIN2025    storage   STG_ELC    2025    <NA>
-#> 22   STG_ELC_VIN2035    storage   STG_ELC    2035    <NA>
-#> 23   STG_ELC_VIN2045    storage   STG_ELC    2045    <NA>
-#> 24     H2ELC_VIN2030 technology     H2ELC    2030    <NA>
-#> 25     H2ELC_VIN2040 technology     H2ELC    2040    <NA>
-#> 26     H2ELC_VIN2050 technology     H2ELC    2050    <NA>
+#> 11    RES_LANDW_CLMD     supply RES_LANDW    <NA>      MD
+#> 12    RES_LANDW_CLLO     supply RES_LANDW    <NA>      LO
+#> 13 ESOL_VIN2015_CLFL technology      ESOL    2015      FL
+#> 14 ESOL_VIN2030_CLFL technology      ESOL    2030      FL
+#> 15 ESOL_VIN2045_CLFL technology      ESOL    2045      FL
+#> 16 ESOL_VIN2015_CLTH technology      ESOL    2015      TH
+#> 17 ESOL_VIN2030_CLTH technology      ESOL    2030      TH
+#> 18 ESOL_VIN2045_CLTH technology      ESOL    2045      TH
+#> 19 EWIN_VIN2015_CLHI technology      EWIN    2015      HI
+#> 20 EWIN_VIN2030_CLHI technology      EWIN    2030      HI
+#> 21 EWIN_VIN2045_CLHI technology      EWIN    2045      HI
+#> 22 EWIN_VIN2015_CLMD technology      EWIN    2015      MD
+#> 23 EWIN_VIN2030_CLMD technology      EWIN    2030      MD
+#> 24 EWIN_VIN2045_CLMD technology      EWIN    2045      MD
+#> 25 EWIN_VIN2015_CLLO technology      EWIN    2015      LO
+#> 26 EWIN_VIN2030_CLLO technology      EWIN    2030      LO
+#> 27 EWIN_VIN2045_CLLO technology      EWIN    2045      LO
+#> 28   STG_ELC_VIN2025    storage   STG_ELC    2025    <NA>
+#> 29   STG_ELC_VIN2035    storage   STG_ELC    2035    <NA>
+#> 30   STG_ELC_VIN2045    storage   STG_ELC    2045    <NA>
+#> 31     H2ELC_VIN2030 technology     H2ELC    2030    <NA>
+#> 32     H2ELC_VIN2040 technology     H2ELC    2040    <NA>
+#> 33     H2ELC_VIN2050 technology     H2ELC    2050    <NA>
 getVariants(mod, class = "technology")
 #>                 name      class  base vintage cluster
-#> 1       ESOL_VIN2015 technology  ESOL    2015    <NA>
-#> 2       ESOL_VIN2030 technology  ESOL    2030    <NA>
-#> 3       ESOL_VIN2045 technology  ESOL    2045    <NA>
-#> 4  EWIN_VIN2015_CLHI technology  EWIN    2015      HI
-#> 5  EWIN_VIN2030_CLHI technology  EWIN    2030      HI
-#> 6  EWIN_VIN2045_CLHI technology  EWIN    2045      HI
-#> 7  EWIN_VIN2015_CLLO technology  EWIN    2015      LO
-#> 8  EWIN_VIN2030_CLLO technology  EWIN    2030      LO
-#> 9  EWIN_VIN2045_CLLO technology  EWIN    2045      LO
-#> 10     H2ELC_VIN2030 technology H2ELC    2030    <NA>
-#> 11     H2ELC_VIN2040 technology H2ELC    2040    <NA>
-#> 12     H2ELC_VIN2050 technology H2ELC    2050    <NA>
+#> 1  ESOL_VIN2015_CLFL technology  ESOL    2015      FL
+#> 2  ESOL_VIN2030_CLFL technology  ESOL    2030      FL
+#> 3  ESOL_VIN2045_CLFL technology  ESOL    2045      FL
+#> 4  ESOL_VIN2015_CLTH technology  ESOL    2015      TH
+#> 5  ESOL_VIN2030_CLTH technology  ESOL    2030      TH
+#> 6  ESOL_VIN2045_CLTH technology  ESOL    2045      TH
+#> 7  EWIN_VIN2015_CLHI technology  EWIN    2015      HI
+#> 8  EWIN_VIN2030_CLHI technology  EWIN    2030      HI
+#> 9  EWIN_VIN2045_CLHI technology  EWIN    2045      HI
+#> 10 EWIN_VIN2015_CLMD technology  EWIN    2015      MD
+#> 11 EWIN_VIN2030_CLMD technology  EWIN    2030      MD
+#> 12 EWIN_VIN2045_CLMD technology  EWIN    2045      MD
+#> 13 EWIN_VIN2015_CLLO technology  EWIN    2015      LO
+#> 14 EWIN_VIN2030_CLLO technology  EWIN    2030      LO
+#> 15 EWIN_VIN2045_CLLO technology  EWIN    2045      LO
+#> 16     H2ELC_VIN2030 technology H2ELC    2030    <NA>
+#> 17     H2ELC_VIN2040 technology H2ELC    2040    <NA>
+#> 18     H2ELC_VIN2050 technology H2ELC    2050    <NA>
 
 # a process gains variants from its own @cluster / @vintage tables
 getObject(topia_elc$repo, name = "EWIN", drop = TRUE)@cluster
-#>   cluster                     desc region cap.share.fx act.share.lo
-#> 1      HI exposed ridges and coast   <NA>           NA           NA
-#> 2      LO      open inland terrain   <NA>           NA           NA
-#>   act.share.up act.share.fx order
-#> 1           NA           NA     1
-#> 2           NA           NA     2
+#>    cluster                    desc region cap.share.fx act.share.lo
+#> 1       HI exposed coast and ridge    R01           NA           NA
+#> 2       HI exposed coast and ridge    R09           NA           NA
+#> 3       HI exposed coast and ridge    R10           NA           NA
+#> 4       HI exposed coast and ridge    R11           NA           NA
+#> 5       HI exposed coast and ridge    R12           NA           NA
+#> 6       MD            open country    R01           NA           NA
+#> 7       MD            open country    R02           NA           NA
+#> 8       MD            open country    R11           NA           NA
+#> 9       MD            open country    R12           NA           NA
+#> 10      LO          inland terrain    R02           NA           NA
+#> 11      LO          inland terrain    R03           NA           NA
+#> 12      LO          inland terrain    R04           NA           NA
+#> 13      LO          inland terrain    R05           NA           NA
+#> 14      LO          inland terrain    R06           NA           NA
+#> 15      LO          inland terrain    R07           NA           NA
+#> 16      LO          inland terrain    R08           NA           NA
+#> 17      LO          inland terrain    R09           NA           NA
+#>    act.share.up act.share.fx order
+#> 1            NA           NA     1
+#> 2            NA           NA     1
+#> 3            NA           NA     1
+#> 4            NA           NA     1
+#> 5            NA           NA     1
+#> 6            NA           NA     2
+#> 7            NA           NA     2
+#> 8            NA           NA     2
+#> 9            NA           NA     2
+#> 10           NA           NA     3
+#> 11           NA           NA     3
+#> 12           NA           NA     3
+#> 13           NA           NA     3
+#> 14           NA           NA     3
+#> 15           NA           NA     3
+#> 16           NA           NA     3
+#> 17           NA           NA     3
 ```

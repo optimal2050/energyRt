@@ -2,8 +2,8 @@
 
 The batch companion of `load_scenario()`: resolves scenario NAMES
 through the project registry (all registered scenarios by default) and
-loads each as a thin on-disk shell. The result — a named list, or a
-filled environment — feeds
+loads each as a thin on-disk scenario object. The result — a named list,
+or a filled environment — feeds
 [`getData()`](https://energyRt.org/reference/getData.md) directly:
 `getData(load_scenarios(), name = "vTechOut", merge = TRUE)`.
 
@@ -20,10 +20,10 @@ load_scenario(
   env = .scen,
   overwrite = FALSE,
   ignore_errors = FALSE,
-  verbose = TRUE
+  verbose = isVerbose()
 )
 
-load_scenarios(names = NULL, run = NULL, env = NULL, verbose = TRUE)
+load_scenarios(names = NULL, run = NULL, env = NULL, verbose = isVerbose())
 ```
 
 ## Arguments

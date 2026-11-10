@@ -10,6 +10,7 @@ newWeather(
   name = "",
   desc = "",
   unit = as.character(NA),
+  units = data.frame(),
   geoframe = character(),
   region = character(),
   timeframe = character(),
@@ -36,7 +37,16 @@ update(object, ...)
 
 - unit:
 
-  character. Unit of the weather factor.
+  character, the object's own measure, stored in `@units$wval`. See
+  [`getUnit()`](https://energyRt.org/reference/getUnit.md).
+
+- units:
+
+  data.frame. Unit of the weather series. A weather factor is
+  DIMENSIONLESS by default and that is the common case; a unit is
+  declared only when the series carries a real measure, and then it is
+  used for reporting and for a cross-check against what a process
+  expects – never for conversion.
 
 - geoframe:
 
@@ -67,7 +77,15 @@ update(object, ...)
 
 - defVal:
 
-  numeric. Default value of the weather factor, 0 by default.
+  data.frame. Optional per-object override of a parameter's DEFAULT,
+  keyed by the short column name the value is written under –
+  `defVal$af.up <- 1` on a technology, `defVal$wval <- 3` on a weather
+  series. Empty by default, and one column per override. A parameter
+  name also works and is resolved (`pTechAf.up`, or `pTechAf` for both
+  bounds). A key that names no column or parameter of this class is an
+  error, not a silent no-op. This is the last of three layers: the
+  catalogue (`data-raw/parameters.yml`), then `config@defVal`, then
+  this; a value equal to what the layer before it says records nothing.
 
 - cluster:
 
@@ -156,7 +174,7 @@ weather object with given specifications.
 ## Details
 
 Weather factors are separated from the model parameters and can be added
-or replaced for different scenarios. !!!Additional details...
+or replaced for different scenarios.
 
 ## Examples
 

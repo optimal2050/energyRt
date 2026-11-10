@@ -39,7 +39,8 @@ newSupply(
 
 - unit:
 
-  character. The main unit of the commodity used in the model.
+  character, the object's own measure, stored in `@units$comm`. See
+  [`getUnit()`](https://energyRt.org/reference/getUnit.md).
 
 - weather:
 
@@ -54,6 +55,17 @@ newSupply(
 
   : character. Name of the weather factor to apply. Must match the
     weather factor names in a `weather` class in the model.
+
+  unit
+
+  : character. Optional. The unit this process EXPECTS from the series
+    named in `weather`, e.g. "degC". Per row, because one process may
+    read a temperature from one series and a wind speed from another.
+    Where this and the weather object's own `@units$wval` are both
+    declared and differ, that is an error: nothing in the model converts
+    between weather units, so a coefficient fitted to one measure and
+    applied to another is wrong in a way no output reveals. Empty on
+    either side claims nothing and is not checked.
 
   transform
 
@@ -240,15 +252,22 @@ newSupply(
   its units with it. An object moved between models is only meaningful
   where the units agree, and nothing else in the object records them:
   the numbers in `cost`/`invcost` and the capacity and activity columns
-  are bare. A declared `costs` that disagrees with the model's
-  `config@currency` is an error rather than a silent conversion; leave a
-  column empty to claim nothing.
+  are bare. A declared `currency` that disagrees with the model's own is
+  an error rather than a silent conversion; leave a column empty to
+  claim nothing.
+
+  comm
+
+  : character. The commodity this object is counted in, e.g. "GWh" or
+    "PJ". Set by the `unit =` argument of the constructor. Leave it
+    empty to claim nothing: a unit is reported and cross-checked, never
+    converted.
 
   activity
 
   : character. Unit of the activity variable.
 
-  costs
+  currency
 
   : character. Currency of the cost columns.
 

@@ -14,7 +14,8 @@ newHorizon(
   force_BY_interval_to_1_year = TRUE,
   base_year = NULL,
   desc = NULL,
-  name = NULL
+  name = NULL,
+  misc = NULL
 )
 
 # S4 method for class 'horizon'
@@ -81,6 +82,10 @@ update(object, ..., warn_nodata = TRUE)
   character. Name of the horizon object. Used to distinguish between
   different horizons in the model or scenario, including the automatic
   creation of the folder name for the model/scenario scripts.
+
+- misc:
+
+  list. Any additional data or information to store in the object.
 
 - object:
 
@@ -162,6 +167,9 @@ newHorizon(2020:2050)
 #> Slot "base_year":
 #> integer(0)
 #> 
+#> Slot "misc":
+#> list()
+#> 
 newHorizon(2020:2030, desc = "One-year intervals")
 #> An object of class "horizon"
 #> Slot "name":
@@ -191,6 +199,9 @@ newHorizon(2020:2030, desc = "One-year intervals")
 #> Slot "base_year":
 #> integer(0)
 #> 
+#> Slot "misc":
+#> list()
+#> 
 newHorizon(2020:2030, c(1, 2, 5, 10), desc = "Different length intervals")
 #> An object of class "horizon"
 #> Slot "name":
@@ -212,6 +223,9 @@ newHorizon(2020:2030, c(1, 2, 5, 10), desc = "Different length intervals")
 #> 
 #> Slot "base_year":
 #> integer(0)
+#> 
+#> Slot "misc":
+#> list()
 #> 
 newHorizon(2020:2035, c(1, 2, 5, 5, 5))
 #> An object of class "horizon"
@@ -237,6 +251,9 @@ newHorizon(2020:2035, c(1, 2, 5, 5, 5))
 #> Slot "base_year":
 #> integer(0)
 #> 
+#> Slot "misc":
+#> list()
+#> 
 newHorizon(2020:2050, c(1, 2, 5, 7, 1))
 #> An object of class "horizon"
 #> Slot "name":
@@ -260,6 +277,9 @@ newHorizon(2020:2050, c(1, 2, 5, 7, 1))
 #> 
 #> Slot "base_year":
 #> integer(0)
+#> 
+#> Slot "misc":
+#> list()
 #> 
 
 newHorizon(intervals = data.frame(
@@ -288,6 +308,9 @@ newHorizon(intervals = data.frame(
 #> Slot "base_year":
 #> integer(0)
 #> 
+#> Slot "misc":
+#> list()
+#> 
 
 newHorizon(period = 2020:2050,
            intervals = data.frame(
@@ -315,6 +338,9 @@ newHorizon(period = 2020:2050,
 #> Slot "base_year":
 #> integer(0)
 #> 
+#> Slot "misc":
+#> list()
+#> 
 
 newHorizon(2020:2050, c(3, 2, 5, 10),
            desc = "Pay attention to the length of the first interval")
@@ -340,6 +366,9 @@ newHorizon(2020:2050, c(3, 2, 5, 10),
 #> 
 #> Slot "base_year":
 #> integer(0)
+#> 
+#> Slot "misc":
+#> list()
 #> 
 
 # Explicit display labels; `mid` remains the model key
@@ -368,6 +397,9 @@ newHorizon(intervals = data.frame(
 #> Slot "base_year":
 #> integer(0)
 #> 
+#> Slot "misc":
+#> list()
+#> 
 
 newHorizon(period = 2020:2040,
            intervals = data.frame(
@@ -394,5 +426,8 @@ newHorizon(period = 2020:2040,
 #> 
 #> Slot "base_year":
 #> integer(0)
+#> 
+#> Slot "misc":
+#> list()
 #> 
 ```

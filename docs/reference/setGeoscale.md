@@ -82,9 +82,8 @@ model's `@config`, matching how `@calendar` is resolved.
 Other geoscale:
 [`check_geoscale_regions()`](https://energyRt.org/reference/check_geoscale_regions.md),
 [`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md),
+[`gg_map()`](https://energyRt.org/reference/gg_map.md),
 [`model_clusters()`](https://energyRt.org/reference/model_clusters.md),
-[`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md),
-[`plot_map()`](https://energyRt.org/reference/plot_map.md),
 [`process_cluster_sweep()`](https://energyRt.org/reference/process_cluster_sweep.md)
 
 ## Examples

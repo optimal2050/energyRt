@@ -146,7 +146,7 @@ update(object, ...)
 
   : character. Unit of activity variable of the technology.
 
-  costs
+  currency
 
   : character. Currency of costs variable of the technology.
 
@@ -536,6 +536,17 @@ update(object, ...)
 
   : character. Name of the applied weather factor, required, must match
     the weather factor names in a `weather` class in the model.
+
+  unit
+
+  : character. Optional. The unit this process EXPECTS from the series
+    named in `weather`, e.g. "degC". Per row, because one process may
+    read a temperature from one series and a wind speed from another.
+    Where this and the weather object's own `@units$wval` are both
+    declared and differ, that is an error: nothing in the model converts
+    between weather units, so a coefficient fitted to one measure and
+    applied to another is wrong in a way no output reveals. Empty on
+    either side claims nothing and is not checked.
 
   transform
 

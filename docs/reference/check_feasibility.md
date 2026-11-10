@@ -23,7 +23,7 @@ Two checks run:
 ## Usage
 
 ``` r
-check_feasibility(object, years = NULL, verbose = TRUE)
+check_feasibility(object, years = NULL, verbose = isVerbose())
 ```
 
 ## Arguments

@@ -8,7 +8,7 @@ stays listed and readable. **Dry-run by default.**
 ## Usage
 
 ``` r
-drop_solver_outputs(object, runs = NULL, dry_run = TRUE, verbose = TRUE)
+drop_solver_outputs(object, runs = NULL, dry_run = TRUE, verbose = isVerbose())
 ```
 
 ## Arguments

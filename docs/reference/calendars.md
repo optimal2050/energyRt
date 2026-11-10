@@ -67,15 +67,6 @@ A named list of `calendar` objects:
 
   Full hourly year: 365 days x 24 hours (8760 timeslices).
 
-- s4_h24_subset_2seasons:
-
-  SAMPLED: `s4_h24` filtered to WIN+SUM; `year_fraction` ~ 0.499.
-
-- m12_h24_subset_4months:
-
-  SAMPLED: `m12_h24` filtered to m01/m04/m07/m10; `year_fraction` ~
-  0.337.
-
 - m12_subset_q1:
 
   SAMPLED: `m12` filtered to Jan-Mar; `year_fraction` = 90/365.
@@ -128,12 +119,11 @@ are `topia$modules$unit$calendars`.
 
 ``` r
 names(calendars)
-#>  [1] "annual"                 "d365"                   "d365_h24"              
-#>  [4] "m12"                    "m12a"                   "q4"                    
-#>  [7] "s4"                     "s4_h24"                 "m12_h24"               
-#> [10] "wd7_h24"                "w52_h24"                "s4_h24_subset_2seasons"
-#> [13] "m12_h24_subset_4months" "m12_subset_q1"          "d365_h24_1dps"         
-#> [16] "d365_h24_1dpm"          "s4_hp3"                 "m12_d365_h24"          
-#> [19] "m12_d365_h24_1dpm"     
+#>  [1] "annual"            "m12"               "m12a"             
+#>  [4] "q4"                "s4"                "s4_h24"           
+#>  [7] "m12_h24"           "wd7_h24"           "w52_h24"          
+#> [10] "d365"              "d365_h24"          "s4_hp3"           
+#> [13] "m12_subset_q1"     "d365_h24_1dps"     "d365_h24_1dpm"    
+#> [16] "m12_d365_h24"      "m12_d365_h24_1dpm"
 plot(calendars$s4_hp3)
 ```

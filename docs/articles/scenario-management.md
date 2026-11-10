@@ -136,6 +136,57 @@ without it, the label defaults to the solver directory name
 
 scen <- interpolate_model(mod, name = "BASE") |>
   solve_scenario(solver = solver_options$glpk, echo = FALSE)
+#> ℹ checking declarations✔ checking declarations (0.0s)
+#> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.0s)
+#> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
+#> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
+#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
+#> ℹ collecting sets: object names
+#> ✔ collecting sets: object names (0.0s)
+#> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
+#> ℹ collecting sets: timeframes
+#> ✔ collecting sets: timeframes (0.0s)
+#> ℹ collecting sets: process inputs/outputs
+#> ✔ collecting sets: process inputs/outputs (0.0s)
+#> ℹ collecting sets: membership comm sets
+#> ✔ collecting sets: membership comm sets (0.0s)
+#> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
+#> ℹ building maps: membership + closure
+#> ✔ building maps: membership + closure (0.1s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
+#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
+#> ℹ building maps: calendar + lifespan
+#> ✔ building maps: calendar + lifespan (0.1s)
+#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
+#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
+#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
+#> ℹ building maps: value✔ building maps: value (0.0s)
+#> ℹ building maps: filter
+#> ✔ building maps: filter (0.1s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.0s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
+#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
+#> ℹ computing model-size summary✔ computing model-size summary (0.0s)
+#> model_size: BASE
+#>   parameters : 200 value, 359 maps, 15 sets
+#>   param rows : 95
+#>   estimate   : ~140 variables, ~128 constraints (from gating maps)
+#>   top parameters by rows:
+#>     pTimesliceAgg      27
+#>     pTimesliceWeight   15
+#>     pSupCost           12
+#>     pDemand            12
+#>     pTimesliceShare    5
+#>     pPeriodLen         3
+#>     ordYear            3
+#>     pYearFraction      3
+#>     pWacc              3
+#>     pSdr               3
+#>     pTechFixom         3
+#>     pTechStock         3
+#>     cardYear           1
+#>     pTechCap2act       1
+#>     pTechOlife         1
 scen <- solve_scenario(scen, solver = solver_options$glpk, echo = FALSE,
                    force = TRUE, run = "glpk-alt")
 scenario_runs(scen)[, c("run", "status", "solver_name", "objective", "active")]
@@ -157,11 +208,9 @@ throwaway folder.
 ``` r
 
 scen <- save_scenario(scen, verbose = FALSE)
-#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpmsSq76/sm-demo/scenarios/BASE-SM-smc'
-#> Directory size: 0.39 MB
 sort(list.files(scen@path))
 #> [1] "class"        "format"       "layout"       "logfile.csv"  "runs"        
-#> [6] "scen.RData"   "scenario.yml"
+#> [6] "scen.rds"     "scenario.yml"
 ```
 
 The folder *names* — the `<name-model-calendar-horizon>` slug, store
@@ -211,7 +260,7 @@ list_versions("SM", type = "model")
 #> # A tibble: 1 × 7
 #>   status  name  type  version  sealed_at            refs size_mb
 #>   <chr>   <chr> <chr> <chr>    <dttm>              <int>   <dbl>
-#> 1 current SM    model fb9ba598 2026-11-04 06:13:06     0       0
+#> 1 current SM    model ea94b58e 2026-11-10 02:26:58     0       0
 ```
 
 **Only sealed versions are referenced.** A scenario records the model it
@@ -223,8 +272,6 @@ version lists the scenario among its dependents:
 ``` r
 
 scen <- save_scenario(scen, verbose = FALSE)
-#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpmsSq76/sm-demo/scenarios/BASE-SM-smc'
-#> Directory size: 0.39 MB
 yaml::read_yaml(file.path(scen@path, "scenario.yml"))$model[c("name", "source")]
 #> $name
 #> [1] "SM"
@@ -235,7 +282,7 @@ list_dependents("SM", type = "model")[, c("type", "name", "version")]
 #> # A tibble: 1 × 3
 #>   type     name  version 
 #>   <chr>    <chr> <chr>   
-#> 1 scenario BASE  fb9ba598
+#> 1 scenario BASE  ea94b58e
 ```
 
 A model that is not sealed is copied into the scenario folder
@@ -293,6 +340,7 @@ interpolated REF instead of from scratch:
 fee <- newCosts("FEE", variable = "vTechAct", mult = 2,
                 subset = list(tech = "TECH"))
 scen_fee <- interpolate_model(mod, fee, name = "FEE", base = scen)
+#> ℹ base 'BASE': adding 0 levies, 1 constraint(s) / cost term(s)
 ```
 
 What is reused depends on what is added:
@@ -312,6 +360,58 @@ confirms:
 ``` r
 
 full <- interpolate_model(mod, fee, name = "FEE_FULL")
+#> ℹ checking declarations✔ checking declarations (0.0s)
+#> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.0s)
+#> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
+#> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
+#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
+#> ℹ collecting sets: object names
+#> ✔ collecting sets: object names (0.0s)
+#> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
+#> ℹ collecting sets: timeframes
+#> ✔ collecting sets: timeframes (0.0s)
+#> ℹ collecting sets: process inputs/outputs
+#> ✔ collecting sets: process inputs/outputs (0.0s)
+#> ℹ collecting sets: membership comm sets
+#> ✔ collecting sets: membership comm sets (0.0s)
+#> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
+#> ℹ building maps: membership + closure
+#> ✔ building maps: membership + closure (0.1s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
+#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
+#> ℹ building maps: calendar + lifespan
+#> ✔ building maps: calendar + lifespan (0.1s)
+#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
+#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
+#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
+#> ℹ building maps: value✔ building maps: value (0.0s)
+#> ℹ building maps: filter
+#> ✔ building maps: filter (0.1s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.0s)
+#> ℹ compiling 1 user constraint(s) / cost term(s)✔ compiling 1 user constraint(s) / cost term(s) (0.0s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
+#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
+#> ℹ computing model-size summary✔ computing model-size summary (0.0s)
+#> model_size: FEE_FULL
+#>   parameters : 200 value, 360 maps, 15 sets
+#>   param rows : 95
+#>   estimate   : ~143 variables, ~128 constraints (from gating maps)
+#>   top parameters by rows:
+#>     pTimesliceAgg      27
+#>     pTimesliceWeight   15
+#>     pSupCost           12
+#>     pDemand            12
+#>     pTimesliceShare    5
+#>     pPeriodLen         3
+#>     ordYear            3
+#>     pYearFraction      3
+#>     pWacc              3
+#>     pSdr               3
+#>     pTechFixom         3
+#>     pTechStock         3
+#>     cardYear           1
+#>     pTechCap2act       1
+#>     pTechOlife         1
 sum(compare_inputs(scen_fee, full)$summary$status != "identical")
 #> [1] 0
 ```
@@ -402,9 +502,58 @@ solves inside.
 scen_low <- interpolate_model(make_mod(c(50, 50, 50)), name = "BASE",
                               overwrite = TRUE) |>
   solve_scenario(solver = solver_options$glpk, echo = FALSE, variant = "low")
+#> ℹ checking declarations✔ checking declarations (0.0s)
+#> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.0s)
+#> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
+#> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
+#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
+#> ℹ collecting sets: object names
+#> ✔ collecting sets: object names (0.1s)
+#> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
+#> ℹ collecting sets: timeframes
+#> ✔ collecting sets: timeframes (0.0s)
+#> ℹ collecting sets: process inputs/outputs
+#> ✔ collecting sets: process inputs/outputs (0.0s)
+#> ℹ collecting sets: membership comm sets
+#> ✔ collecting sets: membership comm sets (0.0s)
+#> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
+#> ℹ building maps: membership + closure
+#> ✔ building maps: membership + closure (0.0s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
+#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
+#> ℹ building maps: calendar + lifespan
+#> ✔ building maps: calendar + lifespan (0.1s)
+#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
+#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
+#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
+#> ℹ building maps: value✔ building maps: value (0.0s)
+#> ℹ building maps: filter
+#> ✔ building maps: filter (0.2s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.0s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
+#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
+#> ℹ computing model-size summary✔ computing model-size summary (0.0s)
+#> model_size: BASE
+#>   parameters : 200 value, 359 maps, 15 sets
+#>   param rows : 95
+#>   estimate   : ~140 variables, ~128 constraints (from gating maps)
+#>   top parameters by rows:
+#>     pTimesliceAgg      27
+#>     pTimesliceWeight   15
+#>     pSupCost           12
+#>     pDemand            12
+#>     pTimesliceShare    5
+#>     pPeriodLen         3
+#>     ordYear            3
+#>     pYearFraction      3
+#>     pWacc              3
+#>     pSdr               3
+#>     pTechFixom         3
+#>     pTechStock         3
+#>     cardYear           1
+#>     pTechCap2act       1
+#>     pTechOlife         1
 scen_low <- save_scenario(scen_low, verbose = FALSE)
-#> Scenario 'BASE' saved in 'C:/Users/admin/AppData/Local/Temp/RtmpmsSq76/sm-demo/scenarios/BASE-SM-smc'
-#> Directory size: 0.7 MB
 scenario_runs(scen_low)[, c("run", "variant", "modinp", "objective")]
 #> # A tibble: 3 × 4
 #>   run      variant modinp objective

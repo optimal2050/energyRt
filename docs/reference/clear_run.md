@@ -8,7 +8,7 @@ so those operations proceed again.
 ## Usage
 
 ``` r
-clear_run(object, run, verbose = TRUE)
+clear_run(object, run, verbose = isVerbose())
 ```
 
 ## Arguments

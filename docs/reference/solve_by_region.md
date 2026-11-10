@@ -28,7 +28,7 @@ solve_by_region(
   on_error = c("stop", "continue"),
   overwrite = FALSE,
   keep_scenarios = TRUE,
-  verbose = TRUE
+  verbose = isVerbose()
 )
 ```
 

@@ -49,5 +49,5 @@ mod <- newModel("TOPIA", data = topia_elc$repo,
                 discount = 0.05)
 mod <- setGeoscale(mod, topia_elc$geoscale)
 get_region(mod)
-#>  [1] "W1" "W2" "C1" "C2" "C3" "C4" "C5" "C6" "E1" "E2" "E3"
+#>  [1] "R01" "R02" "R03" "R04" "R05" "R06" "R07" "R08" "R09" "R10" "R11" "R12"
 ```

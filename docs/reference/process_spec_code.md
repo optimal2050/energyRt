@@ -37,7 +37,7 @@ cat(process_spec_code(spec))
 #> newTechnology(
 #>   name = "ECOA",
 #>   desc = "Coal-fired power plant, subcritical",
-#>   units = list(capacity = "GW", activity = "GWh", costs = "MUSD"),
+#>   units = list(capacity = "GW", activity = "GWh", currency = "MUSD"),
 #>   cap2act = 8760,
 #>   optimizeRetirement = TRUE,
 #>   input = data.frame(
@@ -67,9 +67,9 @@ cat(process_spec_code(spec))
 #>     olife = c(30),
 #>     stringsAsFactors = FALSE),
 #>   capacity = data.frame(
-#>     region = c("W1", "W2", "C1", "C2", "C3", "C4", "C5", "C6", "E1", "E2", "E3", "W1", "W2", "C1", "C2", "C3", "C4", "C5", "C6", "E1", "E2", "E3"),
-#>     year = c(2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050),
-#>     stock = c(8.0, 4.0, 1.0, 1.0, 1.0, 1.0, 3.0, 1.0, 1.0, 1.0, 1.0, 2.4, 1.2, 0.3, 0.3, 0.3, 0.3, 0.9, 0.3, 0.3, 0.3, 0.3),
+#>     region = c("R01", "R02", "R03", "R04", "R05", "R06", "R07", "R08", "R09", "R10", "R11", "R12", "R01", "R02", "R03", "R04", "R05", "R06", "R07", "R08", "R09", "R10", "R11", "R12"),
+#>     year = c(2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2025, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050, 2050),
+#>     stock = c(1.0, 1.0, 1.0, 1.0, 1.0, 3.0, 1.0, 8.0, 4.0, 1.0, 1.0, 1.0, 0.3, 0.3, 0.3, 0.3, 0.3, 0.9, 0.3, 2.4, 1.2, 0.3, 0.3, 0.3),
 #>     stringsAsFactors = FALSE)
 #> )
 ```

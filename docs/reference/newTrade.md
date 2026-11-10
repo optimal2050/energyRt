@@ -624,6 +624,17 @@ newTrade(
 
   : character. Name of the weather object.
 
+  unit
+
+  : character. Optional. The unit this process EXPECTS from the series
+    named in `weather`, e.g. "degC". Per row, because one process may
+    read a temperature from one series and a wind speed from another.
+    Where this and the weather object's own `@units$wval` are both
+    declared and differ, that is an error: nothing in the model converts
+    between weather units, so a coefficient fitted to one measure and
+    applied to another is wrong in a way no output reveals. Empty on
+    either side claims nothing and is not checked.
+
   src
 
   : character. Source region of the route, NA for every route.
@@ -675,10 +686,17 @@ newTrade(
   its units with it. An object moved between models is only meaningful
   where the units agree, and nothing else in the object records them:
   the numbers in the cost, capacity and activity columns are bare. A
-  declared `costs` that disagrees with the model's `config@currency` is
-  an error rather than a silent conversion; leave a column empty to
-  claim nothing. One unit per kind: a storage prices three capacities
-  but states `capacity` once.
+  declared `currency` that disagrees with the model's own is an error
+  rather than a silent conversion; leave a column empty to claim
+  nothing. One unit per kind: a storage prices three capacities but
+  states `capacity` once.
+
+  comm
+
+  : character. The commodity this object is counted in, e.g. "GWh" or
+    "PJ". The unit of the traded flow, which `markup`, `varom` and the
+    `ava` bounds are all stated per. Leave it empty to claim nothing: a
+    unit is reported and cross-checked, never converted.
 
   capacity
 
@@ -688,7 +706,7 @@ newTrade(
 
   : character. Unit of the activity variable.
 
-  costs
+  currency
 
   : character. Currency of the cost columns.
 

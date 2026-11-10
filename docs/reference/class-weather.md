@@ -6,7 +6,7 @@ influence operation of processes in the model.
 ## Details
 
 Weather factors are separated from the model parameters and can be added
-or replaced for different scenarios. !!!Additional details...
+or replaced for different scenarios.
 
 ## Slots
 
@@ -18,9 +18,13 @@ or replaced for different scenarios. !!!Additional details...
 
   character. Description of the weather factor.
 
-- `unit`:
+- `units`:
 
-  character. Unit of the weather factor.
+  data.frame. Unit of the weather series. A weather factor is
+  DIMENSIONLESS by default and that is the common case; a unit is
+  declared only when the series carries a real measure, and then it is
+  used for reporting and for a cross-check against what a process
+  expects – never for conversion.
 
 - `geoframe`:
 
@@ -51,7 +55,15 @@ or replaced for different scenarios. !!!Additional details...
 
 - `defVal`:
 
-  numeric. Default value of the weather factor, 0 by default.
+  data.frame. Optional per-object override of a parameter's DEFAULT,
+  keyed by the short column name the value is written under –
+  `defVal$af.up <- 1` on a technology, `defVal$wval <- 3` on a weather
+  series. Empty by default, and one column per override. A parameter
+  name also works and is resolved (`pTechAf.up`, or `pTechAf` for both
+  bounds). A key that names no column or parameter of this class is an
+  error, not a silent no-op. This is the last of three layers: the
+  catalogue (`data-raw/parameters.yml`), then `config@defVal`, then
+  this; a value equal to what the layer before it says records nothing.
 
 - `cluster`:
 
@@ -120,6 +132,15 @@ or replaced for different scenarios. !!!Additional details...
   wval
 
   : numeric. Weather factor value.
+
+- `interpolation`:
+
+  data.frame. Optional per-object override of a parameter's
+  INTERPOLATION RULE, keyed exactly as `defVal` above:
+  `interpolation$af.up <- "inter"`. Any accepted spelling of a rule
+  works and is normalised, so `bwd.mid.fwd` is `back.inter.forth`. The
+  override applies to THIS object's rows only: every other object of the
+  class keeps the rule the catalogue or `config` gives it.
 
 - `misc`:
 
