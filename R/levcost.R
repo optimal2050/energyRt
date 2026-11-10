@@ -397,16 +397,39 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
       methods::slot(tech, sl) <- x[keep, , drop = FALSE]
     }
   }
+  # A cluster declares the regions it exists in (`@cluster$region`), so the
+  # region subset above can leave the clustered slots naming a label that no
+  # longer survives. Second pass, after the first has settled `@cluster`.
+  cl <- tryCatch(methods::slot(tech, "cluster"), error = function(e) NULL)
+  if (is.data.frame(cl) && "cluster" %in% names(cl)) {
+    live <- unique(as.character(cl$cluster))
+    live <- live[!is.na(live) & nzchar(live)]
+    for (sl in methods::slotNames(tech)) {
+      if (identical(sl, "cluster")) next
+      x <- tryCatch(methods::slot(tech, sl), error = function(e) NULL)
+      if (!is.data.frame(x) || !"cluster" %in% names(x) || nrow(x) == 0) next
+      lab  <- as.character(x$cluster)
+      keep <- is.na(lab) | !nzchar(lab) | lab %in% live
+      methods::slot(tech, sl) <- x[keep, , drop = FALSE]
+    }
+  }
   tech
 }
 
-# Annual (share-weighted) capacity factor of a weather object, by region & year.
+# Annual (share-weighted) capacity factor of a weather object, by region, year
+# and -- when the profile is clustered -- resource cluster.
 # `timeslice_share` (from the native calendar) supplies the per-timeslice weights; when
-# absent a plain mean is used. Returns a data.frame(region, year, cf).
+# absent a plain mean is used. Returns a data.frame(region, year, cluster, cf);
+# `cluster` is NA for an unclustered profile.
+#
+# Grouping on the cluster is not cosmetic: a graded resource ships one series
+# per grade in a single object, and averaging them gives every grade the same
+# availability -- which is the one thing grading them was for.
 .levcost_weather_annual_cf <- function(wobj, timeslice_share) {
   wd <- tryCatch(wobj@weather, error = function(e) NULL)
   if (is.null(wd) || nrow(wd) == 0 || !"wval" %in% names(wd))
-    return(data.frame(region = character(), year = integer(), cf = numeric()))
+    return(data.frame(region = character(), year = integer(),
+                      cluster = character(), cf = numeric()))
   wcol <- NULL
   if (!is.null(timeslice_share) && "timeslice" %in% names(timeslice_share)) {
     wcol <- if ("share" %in% names(timeslice_share)) "share"
@@ -416,10 +439,16 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
   # years; `split()` on a factor would silently drop NA groups).
   agg_by <- function(df, wc) {
     yk  <- ifelse(is.na(df$year), "\rNA", as.character(df$year))
-    key <- paste(as.character(df$region), yk, sep = "\r")
+    ck  <- if ("cluster" %in% names(df))
+             ifelse(is.na(df$cluster), "\rNA", as.character(df$cluster))
+           else rep("\rNA", nrow(df))
+    key <- paste(as.character(df$region), yk, ck, sep = "\r")
     do.call(rbind, lapply(split(df, key), function(d) {
       cf <- if (is.null(wc)) mean(d$wval) else sum(d$wval * d[[wc]]) / sum(d[[wc]])
-      data.frame(region = d$region[1], year = d$year[1], cf = cf,
+      data.frame(region = d$region[1], year = d$year[1],
+                 cluster = if ("cluster" %in% names(d))
+                   as.character(d$cluster[1]) else NA_character_,
+                 cf = cf,
                  stringsAsFactors = FALSE)
     }))
   }
@@ -484,8 +513,13 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
   reasons
 }
 
+# `cluster`: the one grade this process IS, for an already-expanded cell. Such
+# a cell carries no `@cluster` roster -- expansion resolved it -- so the grade
+# cannot be read off the object, and without it every grade's CF would be
+# written to the cell and the roster check would reject the cluster labels.
+# Given it, the cell gets its own grade's CF as a plain, unkeyed availability.
 .levcost_weatherize_annual <- function(tech, weather_objects, timeslice_share,
-                                       verbose = TRUE) {
+                                       cluster = NULL, verbose = TRUE) {
   wdf <- tech@weather
   if (nrow(wdf) == 0) return(tech)
   wmap <- list()
@@ -504,6 +538,23 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
     }
     cf <- .levcost_weather_annual_cf(wobj, timeslice_share)
     if (nrow(cf) == 0) next
+    # Keep only the grades this process declares. For an expanded cell
+    # `@cluster` holds one label, so the cell gets its own grade's CF; for the
+    # unexpanded parent every declared grade gets a row of its own. A cluster
+    # named on the link row itself narrows it further.
+    live <- if (is.data.frame(tech@cluster) && "cluster" %in% names(tech@cluster))
+      unique(as.character(tech@cluster$cluster)) else character()
+    if ("cluster" %in% names(wr) && !is.na(wr$cluster) &&
+        nzchar(as.character(wr$cluster)))
+      live <- as.character(wr$cluster)
+    if (!is.null(cluster) && length(cluster) == 1L && !is.na(cluster) &&
+        nzchar(as.character(cluster)))
+      live <- as.character(cluster)
+    live <- live[!is.na(live) & nzchar(live)]
+    if (length(live) > 0 && any(!is.na(cf$cluster))) {
+      cf <- cf[is.na(cf$cluster) | cf$cluster %in% live, , drop = FALSE]
+      if (nrow(cf) == 0) next
+    }
     bound <- NULL
     for (b in c("fx", "up", "lo")) {
       col <- paste0("waf.", b)
@@ -514,17 +565,23 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
     if (is.null(bound)) { bound <- "up"; coef <- 1 }
     r <- af_proto[rep(1L, nrow(cf)), , drop = FALSE]
     if (nrow(r) == 0) {                       # empty @af: build a fresh frame
-      r <- data.frame(region = cf$region, year = cf$year, timeslice = NA_character_,
+      r <- data.frame(cluster = cf$cluster,
+                      region = cf$region, year = cf$year, timeslice = NA_character_,
                       af.lo = NA_real_, af.up = NA_real_, af.fx = NA_real_,
                       rampup = NA_real_, rampdown = NA_real_,
                       stringsAsFactors = FALSE)
+      if (all(is.na(cf$cluster))) r$cluster <- NULL
       af_cols <- names(r)
     } else {
       r$region <- cf$region; r$year <- cf$year
       if ("timeslice" %in% af_cols) r$timeslice <- NA_character_
+      if ("cluster" %in% af_cols) r$cluster <- cf$cluster
     }
     afc <- paste0("af.", bound)
     if (afc %in% af_cols) r[[afc]] <- coef * cf$cf
+    # An expanded cell has no roster to validate a label against, so its grade
+    # is carried by the object, not by a column.
+    if (!is.null(cluster) && "cluster" %in% names(r)) r$cluster <- NA_character_
     new_rows[[length(new_rows) + 1L]] <- r
   }
   if (length(new_rows) > 0) {
@@ -1730,6 +1787,28 @@ levcost_chain_ <- function(
 # Rows that differ by year or timeslice are preserved in every case: the
 # collapse happens WITHIN such a group, never across it.
 #' @noRd
+# Re-region every region-bearing slot of an object onto the mini-model's own
+# regions. `@supply` was the only slot handled here, which is enough until a
+# CLUSTERED object appears: a cluster declares its scope in `@cluster$region`,
+# so a resource grade that exists in four regions kept naming the other eight
+# and the mini-model failed its declaration check ("references undeclared
+# region(s)"). Spreading, rather than subsetting, is what the surrounding code
+# does: the mini-model's region is a stand-in, so one representative row per
+# cluster is replicated onto it.
+#' @noRd
+.lc_reregion <- function(s, regions) {
+  if (!isS4(s)) return(s)
+  if (.hasSlot(s, "region") && length(s@region) > 0) s@region <- regions
+  for (sl in methods::slotNames(s)) {
+    if (identical(sl, "region")) next
+    d <- tryCatch(methods::slot(s, sl), error = function(e) NULL)
+    if (is.data.frame(d) && nrow(d) > 0 && "region" %in% names(d)) {
+      methods::slot(s, sl) <- .levcost_spread_region(d, regions)
+    }
+  }
+  s
+}
+
 .levcost_spread_region <- function(df, regions) {
   if (is.null(df) || nrow(df) == 0 || length(regions) == 0) return(df)
   if (!"region" %in% names(df)) return(df)
@@ -2303,16 +2382,19 @@ Price it with `timeframe = \"native\"` and a matching `calendar = `.",
       # (capacity then sizes to af = 1). A variant cell is pinned to its
       # artificial region, so CF rows written for the real region are
       # relabelled to the cell's own.
-      tech_objects <- lapply(tech_objects, function(t) {
+      cell_cl <- if (has_variants && "cluster" %in% names(vprov))
+        as.character(vprov$cluster) else rep(NA_character_, length(tech_objects))
+      tech_objects <- Map(function(t, cl) {
         if (nrow(t@weather) == 0) return(t)
         t2 <- .levcost_weatherize_annual(t, wobjs, native_timeslice_share,
+                                         cluster = if (is.na(cl)) NULL else cl,
                                          verbose = FALSE)
         if (has_variants && nrow(t2@af) > 0 && "region" %in% names(t2@af)) {
           hit <- !is.na(t2@af$region) & t2@af$region == region
           t2@af$region[hit] <- t2@region[1]
         }
         t2
-      })
+      }, tech_objects, cell_cl)
     }
     weather_objects <- list()
     calendar <- newCalendar()          # annual, single ANNUAL timeslice
@@ -2369,16 +2451,10 @@ Price it with `timeframe = \"native\"` and a matching `calendar = `.",
   supply_objects <- list()
   for (cm in in_comms) {
     if (!is.null(repo_supplies[[cm]])) {
-      sup <- repo_supplies[[cm]]
-      if (isS4(sup)) {
-        if (.hasSlot(sup, "region") && length(sup@region) > 0)
-          sup@region <- reg_all
-        if (.hasSlot(sup, "supply") &&
-            nrow(sup@supply) > 0 &&
-            "region" %in% names(sup@supply))
-          sup@supply <- .levcost_spread_region(sup@supply, reg_all)
-      }
-      supply_objects[[cm]] <- sup
+      # Every region-bearing slot, not just @supply: an availability-bounded
+      # or clustered resource also names regions in @availability / @cluster,
+      # and a leftover name fails the mini-model's declaration check.
+      supply_objects[[cm]] <- .lc_reregion(repo_supplies[[cm]], reg_all)
     } else {
       fc_val <- .fuel_cost_or(fuel_costs, cm)
       supply_objects[[cm]] <- newSupply(
@@ -2400,16 +2476,7 @@ Price it with `timeframe = \"native\"` and a matching `calendar = `.",
   for (.cm in aux_inp_comms) {
     if (!is.null(supply_objects[[.cm]])) next   # already handled in step 9
     if (!is.null(repo_supplies[[.cm]])) {
-      sup <- repo_supplies[[.cm]]
-      if (isS4(sup)) {
-        if (.hasSlot(sup, "region") && length(sup@region) > 0)
-          sup@region <- reg_all
-        if (.hasSlot(sup, "supply") &&
-            nrow(sup@supply) > 0 &&
-            "region" %in% names(sup@supply))
-          sup@supply <- .levcost_spread_region(sup@supply, reg_all)
-      }
-      supply_objects[[.cm]] <- sup
+      supply_objects[[.cm]] <- .lc_reregion(repo_supplies[[.cm]], reg_all)
     } else {
       # priced like fuels when `fuel_costs` names the aux commodity
       # (e.g. a charging-infrastructure cost per GWh); zero otherwise
@@ -2519,23 +2586,18 @@ Price it with `timeframe = \"native\"` and a matching `calendar = `.",
   # model would reference regions it does not declare.
   build_and_solve_ <- function(demand_objs, suffix = "", techs = tech_objects,
                                regions = reg_all, debug_df = backstop_debug) {
-    sups <- supply_objects
-    if (!identical(regions, reg_all))
-      sups <- lapply(sups, function(s) {
-        if (!isS4(s)) return(s)
-        if (.hasSlot(s, "region") && length(s@region) > 0) s@region <- regions
-        if (.hasSlot(s, "supply") && nrow(s@supply) > 0 &&
-            "region" %in% names(s@supply))
-          s@supply <- .levcost_spread_region(s@supply, regions)
-        s
-      })
+    # Re-region unconditionally: the artificial per-variant regions of a
+    # vintaged or clustered technology are never the model's real ones either,
+    # so `regions == reg_all` is not a reason to skip this.
+    sups <- lapply(supply_objects, .lc_reregion, regions = regions)
+    wobj <- lapply(weather_objects, .lc_reregion, regions = regions)
     mdl <- newModel(
       name     = paste0("levcost_", tech_name, suffix),
       desc     = paste0("Mini model for levelized cost of '", tech_name, "'"),
       data     = newRepository("repo_lc",
                    c(unname(commodity_objects), unname(techs),
                      unname(sups), unname(demand_objs),
-                     weather_objects)),
+                     unname(wobj))),
       region   = regions,
       discount = discount,
       calendar = calendar,

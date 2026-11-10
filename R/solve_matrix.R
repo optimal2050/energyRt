@@ -28,8 +28,7 @@
 
   r <- multimod::solve_mps(mps, sol_file = a$sol_file, control = a$control,
                            require_optimal = FALSE, verbose = isTRUE(arg$verbose),
-                           solver = a$solver, where = a$where,
-                           remote = a$remote)
+                           solver = a$solver, where = a$where)
   if (isTRUE(arg$verbose)) {
     cat("  ", a$solver, " (", a$where, "): ", r$status_message, ", objective ",
         format(r$objective, digits = 10), "\n", sep = "")
@@ -104,22 +103,11 @@
     }
   }
 
-  remote <- list()
-  if (identical(where, "remote")) {
-    remote <- list(flavor = s$cloud_flavor %||% "a10g-large",
-                   timeout = s$cloud_timeout %||% "3h",
-                   namespace = s$cloud_namespace,
-                   image = s$cloud_image %||% "python:3.12",
-                   provider = s$cloud_provider %||% "hf_jobs",
-                   poll = s$cloud_poll %||% 15,
-                   max_wait = s$cloud_max_wait %||% Inf,
-                   # the handle outlives the session: a killed R session can
-                   # still poll, cancel or fetch the job
-                   handle_file = fp(solver.dir, "cloud_job.yml"),
-                   name = paste0("energyrt-", scen_name))
-  }
-  list(solver = solver, where = where, control = control, remote = remote,
-       sol_file = fp(solver.dir, if (identical(where, "remote")) "model.sol.gz" else "model.sol"))
+  # `where` is "local" or "wsl": multimod solves on this machine. A rented
+  # machine is reached through mmcloud, which owns the transport settings and
+  # the job handle, so no cloud fields are assembled here.
+  list(solver = solver, where = where, control = control,
+       sol_file = fp(solver.dir, "model.sol"))
 }
 
 # The `hf_*` option names are gone: transport settings are `cloud_*` and solver

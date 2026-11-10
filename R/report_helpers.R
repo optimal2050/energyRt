@@ -259,6 +259,93 @@ report_plot_png <- function(p, w_in, h_in = NULL, dpi = 150) {
   tmp
 }
 
+# Colour a report figure by energy carrier.
+#
+# energypal's palette is keyed on carrier NAMES ("Coal", "Natural Gas", ...),
+# so it belongs on a plot whose discrete variable is a fuel, a commodity or a
+# technology -- and nowhere near one whose variable is a region. Applied
+# blindly, every level of a twelve-region plot misses the palette and the
+# figure comes out in one `unmapped_color`, which is worse than the default
+# hues. So the levels are matched first and the palette is used only when most
+# of them are carriers.
+#
+# `options(energyRt.report_palette = "none")` turns it off; any other value is
+# passed to energypal as the palette name ("carriers" by default).
+#' @noRd
+.report_energy_palette <- function(p, min_share = 0.5) {
+  pal <- getOption("energyRt.report_palette", "carriers")
+  if (identical(pal, "none") || is.null(pal)) return(p)
+  if (!requireNamespace("energypal", quietly = TRUE)) return(p)
+  if (!inherits(p, "ggplot")) return(p)
+
+  # a scale the figure set for itself wins: replacing it would both override a
+  # deliberate choice and make ggplot2 warn
+  has_scale <- function(aes_name) {
+    sc <- tryCatch(p$scales$scales, error = function(e) NULL)
+    if (!length(sc)) return(FALSE)
+    any(vapply(sc, function(s)
+      aes_name %in% tryCatch(s$aesthetics, error = function(e) character()),
+      logical(1)))
+  }
+
+  # the levels behind an aesthetic, read off the mapping and the data without
+  # building the plot (ggplot_build() on every figure would be costly)
+  levels_of <- function(aes_name) {
+    maps <- c(list(tryCatch(p$mapping, error = function(e) NULL)),
+              lapply(tryCatch(p$layers, error = function(e) list()),
+                     function(l) tryCatch(l$mapping, error = function(e) NULL)))
+    datas <- c(list(tryCatch(p$data, error = function(e) NULL)),
+               lapply(tryCatch(p$layers, error = function(e) list()),
+                      function(l) tryCatch(l$data, error = function(e) NULL)))
+    for (i in seq_along(maps)) {
+      m <- maps[[i]]
+      if (is.null(m) || !aes_name %in% names(m)) next
+      nm <- tryCatch(rlang::as_label(m[[aes_name]]),
+                     error = function(e) NA_character_)
+      if (is.na(nm)) next
+      for (d in c(datas[i], datas[1])) {
+        if (is.data.frame(d) && nm %in% names(d)) {
+          v <- unique(as.character(d[[nm]]))
+          return(v[!is.na(v) & nzchar(v)])
+        }
+      }
+    }
+    character()
+  }
+
+  # share of levels energypal recognises as carriers
+  matched <- function(v) {
+    if (!length(v)) return(0)
+    m <- tryCatch(energypal::energypal_match(v, palette = pal, warn = FALSE),
+                  error = function(e) NULL)
+    if (is.null(m)) return(0)
+    hit <- if (is.data.frame(m)) {
+      col <- intersect(c("matched", "name", "match", "target"), names(m))
+      ok <- if (length(col)) !is.na(m[[col[1]]]) else rep(FALSE, nrow(m))
+      # An ambiguous fuzzy hit is counted as a MISS. The matcher resolves
+      # `EGAS` to "EGS" (enhanced geothermal) that way, so a plot keyed on
+      # process codes would colour the gas fleet as geothermal and look
+      # deliberate. A guess that cannot be told from a match is not one.
+      if ("method" %in% names(m))
+        ok <- ok & !(as.character(m$method) %in% "fuzzy_ambiguous")
+      ok
+    } else !is.na(m)
+    mean(as.logical(hit))
+  }
+
+  for (a in c("fill", "colour")) {
+    if (has_scale(a)) next
+    v <- levels_of(a)
+    if (!length(v) || matched(v) < min_share) next
+    sc <- tryCatch(
+      if (a == "fill") energypal::scale_fill_energy(palette = pal)
+      else energypal::scale_colour_energy(palette = pal),
+      error = function(e) NULL)
+    if (!is.null(sc)) p <- p + sc
+  }
+  p
+}
+
 #' @describeIn report_helpers Emit a ggplot as a report figure: in-plot
 #'   `title`/`subtitle` are dropped (the document names the figure), the
 #'   height follows the facet layout unless `h_in` is given, and `caption`
@@ -268,7 +355,8 @@ report_fig <- function(p, w_in = 7, h_in = NULL, caption = NULL, frac = 1,
                        dpi = 150, output = report_output()) {
   if (is.null(p)) return(invisible(NULL))
   if (inherits(p, "ggplot"))
-    p <- p + ggplot2::labs(title = NULL, subtitle = NULL)
+    p <- .report_energy_palette(p) +
+      ggplot2::labs(title = NULL, subtitle = NULL)
   report_img(report_plot_png(p, w_in, h_in, dpi = dpi), frac,
              output = output, caption = caption)
 }

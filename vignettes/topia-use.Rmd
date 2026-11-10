@@ -63,7 +63,13 @@ build the blocks yourself following *TOPIA I: building the model*.)
 
 ```{r select}
 topia_elc <- topia$modules$electricity           # the model
-calendar_s4h24 <- topia$modules$calendars$s4_h24
+# A SAMPLED calendar: one day per month, every hour of it, drawn from the
+# model's own `d365_h24`. The kit's weather is measured on that calendar, so a
+# sample of its labels resolves against the same series while the LP shrinks
+# about thirty-fold -- which is what makes this vignette runnable. `s4_h24`
+# would not: its labels (`WIN_h00`) are not `d365_h24`'s (`d001_h00`), so
+# every weather row would be dropped and the renewables would run unbounded.
+calendar_sample <- calendars[["d365_h24_1dpm"]]
 horizon_BY2025_50_by10 <- topia$modules$horizons$BY2025_50_by10
 topia_elc$regions
 ```
@@ -73,7 +79,7 @@ topia_elc$regions
 ```{r base}
 set_progress_bar()
 mod <- newModel("TOPIA", data = topia_elc$repo,
-                calendar = calendar_s4h24,
+                calendar = calendar_sample,
                 region = topia_elc$regions,
                 horizon = horizon_BY2025_50_by10, discount = 0.05)
 mod <- setGeoscale(mod, topia_elc$geoscale)
@@ -181,7 +187,7 @@ Generation runs well above final demand, and the chart says why: the
 electrolyser is a load, and a large one. Three further readings of the same
 figure are worth making explicit.
 
-* The **storage band is empty** -- the battery is never built. At a four-season
+* The **storage band is empty** -- the battery is never built. At a sampled
   calendar the multi-day calm spells that make storage valuable are not present
   to be found, and the model has cheaper ways to meet a peak.
 * **Trade does not appear as a consumer.** `vTradeIr` moves electricity between
@@ -345,8 +351,9 @@ alive to 2050, unlimited LNG above the domestic cap, transmission to a
 neighbour, and an electrolyser that can soak up surplus and sell the hydrogen
 -- so shifting electricity in time has to beat all of them before it earns its
 capital. Check `vStorageOutCap` across the scenarios before concluding either
-way, and note that at a four-season calendar the multi-day calm spells that
-make storage valuable are not present to be found.
+way, and note that on a sampled calendar the multi-day calm spells that make
+storage valuable are not present to be found: the sample takes one day per
+month, so nothing in it lasts longer than a night.
 
 Compare the scenarios with `compare_scenarios()`: the overview carries every
 run's objective (with differences against the baseline), the value tables

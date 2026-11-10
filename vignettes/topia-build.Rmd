@@ -24,8 +24,11 @@ knitr::opts_chunk$set(
   fig.height = 4.2,
   fig.retina = TRUE
 )
-# maps need sf; set TRUE to draw them
-have_sf <- requireNamespace("sf", quietly = TRUE)
+# The map chunks gate themselves with `requireNamespace("sf")` in the chunk
+# option rather than on a variable set here: the dataset builder purls this
+# file and evaluates it in its own environment, where a variable from this
+# chunk is not in scope, so the option errored and those chunks were skipped
+# -- silently, and they are the ones carrying the figures.
 ```
 
 # Overview
@@ -111,7 +114,7 @@ zones <- geoscale_regions(gs, geoframe = "zone")
 zones
 ```
 
-```{r maps, eval = have_sf, fig.height = 5.2, fig.cap = "The honeycomb layout."}
+```{r maps, eval = requireNamespace("sf", quietly = TRUE), fig.height = 5.2, fig.cap = "The honeycomb layout."}
 plot_geoscale(gs, type = "map")
 ```
 
@@ -149,8 +152,8 @@ Solar and wind are available everywhere -- what differs is which *grades* of
 each a region can offer, and the capacity factor its own weather delivers. The
 grades are measured rather than assigned: see "Input profiles" below.
 
-```{r geoscale-stack, eval = have_sf, fig.height = 5.2, fig.cap = "The spatial hierarchy in a 3D stack."}
-geoscale_autoplot(gs,
+```{r geoscale-stack, eval = requireNamespace("sf", quietly = TRUE), fig.height = 5.2, fig.cap = "The spatial hierarchy in a 3D stack."}
+gg_geoscale(gs,
   type = "stack", view = "pyramid", direction = "up",
   outline = c("zone"), outline_colour = "black",
   frame = TRUE, frame_fill = alpha("grey60", 0.10)
@@ -326,15 +329,15 @@ repo_commodities <- newRepository(
 
 # Supply and resources
 
-Each fossil fuel comes from one zone and one only: coal from `SW`, where the
-lignite basin is, gas from `NW`, where the shale is. The other zones have
+Each fossil fuel comes from one zone and one only: coal from `Z4`, where the
+lignite basin is, gas from `Z2`, where the shale is. The other zones have
 neither, so everything they burn arrives over a corridor or from the rest of
 the world -- which is what gives the map a direction and the corridors
-something to carry. Because gas is pooled across its zone, `R01` can draw fuel
-from the `NW` pool although no wire reaches it: fuel can cross water, and
-electricity here cannot. Biomass is available in each region, and nuclear fuel
-is supplied in `R04`. For zone-pooled fuels, `ava.up` applies to the entire
-zone.
+something to carry. `R01` is the exception twice over: it is alone in `Z1`, so
+it is in neither fuel's zone and no wire reaches it either. It burns the
+biomass available in every region, runs on its own weather, and buys the rest
+from the rest of the world. Nuclear fuel is supplied in `R04`. For
+zone-pooled fuels, `ava.up` applies to the entire zone.
 
 None of the three is a single price. A resource gets dearer as it is used up
 -- the accessible seam first, then the deep one -- and that is a **supply
@@ -538,7 +541,7 @@ land_w <- grades |>
             ava.up = round(avail * WIND_KM2_PER_CELL, 1))
 
 land_s <- grades |>
-  filter(resource == "WSOL", cluster == "FIX") |>
+  filter(resource == "WSOL", cluster == "FL") |>
   transmute(region, ava.up = round(avail * SOL_KM2_PER_CELL, 1))
 
 # what that land is worth in GW, which is the number to sanity-check
@@ -575,8 +578,8 @@ win_cl <- tibble::tribble(
 
 sol_cl <- tibble::tribble(
   ~cluster,                 ~desc, ~order,
-    "FIX",          "fixed tilt",      1,
-    "TRK", "single-axis tracking",      2
+     "FL",                   "fixed tilt",      1,
+     "TH", "horizontal single-axis track",      2
 ) |>
   inner_join(
     grades |> filter(resource == "WSOL") |> distinct(cluster, region),
@@ -1000,7 +1003,9 @@ available for new construction throughout the horizon.
 # solve is what sized this: a plant that runs no hour in 2025 is not a fleet,
 # it is an assumption, so the regions whose gas never started -- the lignite
 # basin, the forestry belt and the run-of-river valley, which have coal, hydro
-# and imports -- carry none.
+# and imports -- carry none. `R06` and `R11` were raised after a base-year run
+# on the full hourly year built peaking gas there: the twelve-day sample the
+# sizing began from does not contain the hours that call for it.
 gas_fleet <- tibble::tribble(
   ~region, ~GW,
   "R01",     4,
@@ -1008,8 +1013,8 @@ gas_fleet <- tibble::tribble(
   "R03",     6,
   "R04",     1,
   "R05",     1,
-  "R06",     1,
-  "R11",     1,
+  "R06",     2,
+  "R11",   1.5,
   "R12",     1
 )
 
@@ -1124,7 +1129,7 @@ but plentiful. Which one a region builds is a question about its terrain.
 # and has no legacy fleet.
 sol_cap <- data.frame(
   vintage = "2015",
-  cluster = "FIX",
+  cluster = "FL",
   region = rep(regions, times = 2),
   year = rep(c(2025, 2050), each = length(regions)),
   stock = rep(c(1, 0), each = length(regions))
@@ -1163,13 +1168,13 @@ ESOL <- newTechnology(
   # tracking field is spread wider.
   cluster = sol_cl,
   invcost = data.frame(
-    cluster = rep(c("FIX", "TRK"), each = 3),
+    cluster = rep(c("FL", "TH"), each = 3),
     vintage = rep(c("2015", "2030", "2045"), times = 2),
     invcost = convert("USD/kW", "MUSD/GW",
                       c(650, 450, 350, 780, 540, 420))
   ),
   fixom = data.frame(
-    cluster = rep(c("FIX", "TRK"), each = 3),
+    cluster = rep(c("FL", "TH"), each = 3),
     vintage = rep(c("2015", "2030", "2045"), times = 2),
     fixom = c(12, 10, 9, 15, 13, 11)
   ),
@@ -1178,7 +1183,7 @@ ESOL <- newTechnology(
     unit = "km2"
   ),
   aeff = data.frame(
-    cluster = rep(c("FIX", "TRK"), each = 3),
+    cluster = rep(c("FL", "TH"), each = 3),
     vintage = rep(c("2015", "2030", "2045"), times = 2),
     acomm = "LANDS",
     cap2ainp = c(20, 16, 14, 28, 23, 20) # km2 of land per GW standing
@@ -1456,7 +1461,23 @@ STG_ELC <- newStorage(
     stg.invcost = convert("USD/kWh", "MUSD/GWh", c(200, 110, 70)),
     out.invcost = convert("USD/kW", "MUSD/GW", c(150, 120, 95))
   ),
-  seff = data.frame(inpeff = 0.95, outeff = 0.95)
+  seff = data.frame(inpeff = 0.95, outeff = 0.95),
+  # The windy east already stores: a base-year run on the full hourly year
+  # builds 1.9 GW in `R11` and 1.0 GW in `R12` from nothing, which says the
+  # fleet standing in 2025 includes batteries there and the kit was not
+  # declaring them. Both halves are declared -- the power rating AND the
+  # reservoir, four hours of it, because `duration` is a constraint between
+  # two stocks and not a way to derive one from the other: a declared power
+  # rating with no reservoir behind it makes the base year build the
+  # reservoir instead. It halves by 2050, so the projection replaces the
+  # fleet rather than inheriting it forever.
+  capacity = data.frame(
+    vintage = "2025",
+    region    = rep(c("R11", "R12"), times = 2),
+    year      = rep(c(2025, 2050), each = 2),
+    out.stock = c(2.0, 1.10, 1.0, 0.55),
+    stg.stock = c(8.0, 4.40, 4.0, 2.20)
+  )
 )
 draw(STG_ELC)
 
@@ -1511,14 +1532,27 @@ knitr::kable(
 )
 ```
 
-Each linked pair becomes one bidirectional corridor carrying `ELC`, with 3 GW
-of existing capacity, 97% transfer efficiency, 350 MUSD/GW investment cost and
-a 2 USD/MWh wheeling cost. `cap2act` converts corridor capacity from GW to
-GWh. The upper triangle is enough: a pair is one object, declared in both
-directions inside it.
+Each linked pair becomes one bidirectional corridor carrying `ELC`, with 97%
+transfer efficiency, 350 MUSD/GW investment cost and a 2 USD/MWh wheeling
+cost. `cap2act` converts corridor capacity from GW to GWh. The upper triangle
+is enough: a pair is one object, declared in both directions inside it.
+
+Existing capacity is 3 GW on most corridors and 8 GW where **both** endpoints
+carry the `HI` wind grade. The windy east is meshed more strongly than the
+rest because that is where the wind is: a grid gets built out to collect it.
+The rule is read off the resource data rather than listed by hand, so it
+follows the grades wherever a rebuild puts them. Its practical effect is that
+the base year installs nothing -- at a flat 3 GW the 2025 run buys 3.1 GW of
+extra wire between the two windiest regions, which would make the base year a
+forecast rather than an observation of a fleet that exists.
 
 ```{r trade-elc}
 pairs <- which(links & upper.tri(links), arr.ind = TRUE)
+
+hi_wind <- unique(as.character(
+  win_cl$region[win_cl$cluster == "HI"]
+))
+elc_stock <- function(a, b) if (all(c(a, b) %in% hi_wind)) 8 else 3
 
 repo_transmission <- newRepository("topia_transmission")
 
@@ -1544,7 +1578,7 @@ for (i in seq_len(nrow(pairs))) {
       teff = 0.97
     ),
     cap2act = convert("GW*year", "GWh", 1),
-    capacity = data.frame(stock = 3),
+    capacity = data.frame(stock = elc_stock(a, b)),
     invcost = data.frame(
       region = c(a, b),
       invcost = 350
@@ -1560,7 +1594,6 @@ for (i in seq_len(nrow(pairs))) {
 }
 
 names(repo_transmission)
-# repo_transmission@data$TBD_ELC_C4_C6 <- NULL
 ```
 
 ## Fuel corridors
@@ -1571,13 +1604,13 @@ written out rather than looped because they live at a different geoframe:
 are not in the region matrix.
 
 The two fuels move differently, which is the point of separating them. Coal
-leaves the basin in `SW` on **two** corridors, to `NE` and to `SE`, and runs
+leaves the basin in `Z4` on **two** corridors, to `Z3` and to `Z5`, and runs
 in **both** directions on each, so a surplus can travel either way. Gas has
-**one** pipe and it runs **one way**, `NW` to `NE`: a pipeline is built to
+**one** pipe and it runs **one way**, `Z2` to `Z3`: a pipeline is built to
 deliver from a field to a market, and declaring a single `routes` row is how
 that is said -- the model then cannot send gas back, whatever the prices do.
-Neither fuel reaches `NW` by rail or `SE` by pipe: those zones buy from the
-rest of the world instead, which is what the import objects are for. Coal corridors
+Neither fuel reaches `Z1` at all: the remote zone buys from the rest of the
+world instead, which is what the import objects are for. Coal corridors
 carry 60 PJ/year at 99% efficiency, the gas pipe 40 PJ/year at 98%. Their
 capacity unit is PJ/year, so `cap2act = 1`.
 
@@ -1695,28 +1728,30 @@ straight arrows between region centroids; `plot_trade_network()` curves the
 edges and scales them by capacity, which separates the links that are not
 borders on this particular layout.
 
-```{r trade-plot-map, eval = have_sf, fig.height = 4.5}
+```{r trade-plot-map, eval = requireNamespace("sf", quietly = TRUE), fig.height = 4.5}
 plot_trade_map(repo_transmission, map = gs)
 plot_trade_map(repo_fuel_trade, map = gs, comm = "GAS", level = "zone")
 plot_trade_map(repo_fuel_trade, map = gs, comm = "COA", level = "zone")
 
 ```
 
-```{r trade-plot-network, eval = have_sf, fig.height = 4.5}
+```{r trade-plot-network, eval = requireNamespace("sf", quietly = TRUE), fig.height = 4.5}
 plot_trade_network(repo_transmission, map = gs)
 ```
 
 The fuel corridors run zone to zone, so they are absent from a region-level
 drawing and need `level =` to appear at all:
 
-```{r trade-plot-zone, eval = have_sf, fig.height = 4.5}
+```{r trade-plot-zone, eval = requireNamespace("sf", quietly = TRUE), fig.height = 4.5}
 plot_trade_network(repo_transmission, map = gs, level = "zone")
 ```
 
-A single corridor draws on its own:
+A single corridor draws on its own. `R10`-`R11` is the one worth looking at:
+both its endpoints carry the `HI` wind grade, so it is one of the three built
+out to 8 GW rather than 3.
 
-```{r trade-plot-one, eval = have_sf, fig.height = 4}
-autoplot(getObject(repo_transmission, name = "TBD_ELC_C3_C4", drop = TRUE),
+```{r trade-plot-one, eval = requireNamespace("sf", quietly = TRUE), fig.height = 4}
+autoplot(getObject(repo_transmission, name = "TBD_ELC_R10_R11", drop = TRUE),
          map = gs)
 ```
 

@@ -126,9 +126,9 @@ topia_calendars <- c(calendars, unit_calendars)
 # resource is poor. Tracking is new in the horizon and has no legacy fleet.
 .TOPIA_WIN_STOCK <- c(R10.HI = 2.5, R11.HI = 2.0, R12.HI = 1.5, R09.HI = 1.0,
                       R01.HI = 0.4, R11.MD = 0.5, R12.MD = 0.4, R02.MD = 0.3)
-.TOPIA_SOL_STOCK <- c(R03.FIX = 2.0, R02.FIX = 1.5, R05.FIX = 0.8,
-                      R06.FIX = 0.8, R07.FIX = 0.6, R08.FIX = 0.6,
-                      R04.FIX = 0.5)
+.TOPIA_SOL_STOCK <- c(R03.FL = 2.0, R02.FL = 1.5, R05.FL = 0.8,
+                      R06.FL = 0.8, R07.FL = 0.6, R08.FL = 0.6,
+                      R04.FL = 0.5)
 
 build_topia <- function(regions = .topia_regions[1:3],
                          calendar = "s4_h24",

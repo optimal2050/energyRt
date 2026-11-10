@@ -254,18 +254,32 @@ NULL
     .el_pair("regions", .slot_chr_report(object, "region")),
     .el_pair("default value", .slot_chr_report(object, "defVal")),
     .el_pair("observations", NROW(w)),
+    .el_pair("grades", if (is.data.frame(w) && "cluster" %in% names(w) &&
+                           !all(is.na(w$cluster)))
+      paste(sort(unique(stats::na.omit(as.character(w$cluster)))),
+            collapse = ", ") else ""),
     .el_pair("value range", rng)))
   stats <- if (want("stats_df") && is.data.frame(w) && length(vcol) > 0 &&
                "region" %in% names(w)) tryCatch({
     v <- suppressWarnings(as.numeric(w[[vcol[1]]]))
-    ag <- stats::aggregate(list(value = v), by = list(region = w$region),
+    # A weather object may carry one series per CLUSTER -- a resource grade,
+    # or a mounting on the same ground -- and those differ by design.
+    # Averaging across them reports a number that describes no site: a region
+    # holding a 0.60 grade and a 0.37 grade would read 0.49, which is neither
+    # of them. Group by the cluster wherever one is declared.
+    by <- list(region = as.character(w$region))
+    has_cl <- "cluster" %in% names(w) && !all(is.na(w$cluster))
+    if (has_cl) by$cluster <- as.character(w$cluster)
+    ag <- stats::aggregate(list(value = v), by = by,
       FUN = function(z) c(min = min(z, na.rm = TRUE),
                           mean = mean(z, na.rm = TRUE),
                           max = max(z, na.rm = TRUE)))
-    data.frame(region = ag$region, min = signif(ag$value[, "min"], 4),
-               mean = signif(ag$value[, "mean"], 4),
-               max = signif(ag$value[, "max"], 4),
-               stringsAsFactors = FALSE)
+    out <- data.frame(region = ag$region, stringsAsFactors = FALSE)
+    if (has_cl) out$cluster <- ag$cluster
+    out$min <- signif(ag$value[, "min"], 4)
+    out$mean <- signif(ag$value[, "mean"], 4)
+    out$max <- signif(ag$value[, "max"], 4)
+    out[order(out$region, if (has_cl) out$cluster else 0L), , drop = FALSE]
   }, error = function(e) NULL) else NULL
   main <- if (gg_ok && want("main_plot")) {
     tryCatch(ggplot2::autoplot(object, style = "heatmap"),

@@ -39,6 +39,14 @@ topia_sample <- readRDS(.sample_rds)
 # `cluster` names the resource grade (wind) or the mounting (solar) a series
 # belongs to. The simulated set has one series per resource and so carries NA,
 # which reads as "the only one".
+# The solar mountings carry the merra2ools array-type codes: `FL` a fixed
+# tilted array, `TH` a horizontal single-axis tracker (merra2ools writes them
+# lower case, `fl` / `th`; upper case here so they read like the wind grades
+# beside them). The committed sample was written with the older `FIX` / `TRK`,
+# so it is relabelled as it is read rather than regenerated -- refreshing it
+# needs sources only the maintainer holds, and the series are unchanged.
+.SOL_MOUNTING <- c(FIX = "FL", TRK = "TH")
+
 .keep_w <- c("dataset", "calendar", "resource", "region", "cluster",
              "timeslice", "wval")
 .keep_d <- c("dataset", "calendar", "region", "timeslice", "load")
@@ -46,6 +54,9 @@ topia_sample <- readRDS(.sample_rds)
   x <- as.data.frame(x)
   x$dataset <- tag
   if (!"cluster" %in% names(x)) x$cluster <- NA_character_
+  cl <- as.character(x$cluster)
+  hit <- !is.na(cl) & cl %in% names(.SOL_MOUNTING)
+  if (any(hit)) x$cluster[hit] <- unname(.SOL_MOUNTING[cl[hit]])
   x
 }
 
@@ -54,13 +65,25 @@ topia_sample <- readRDS(.sample_rds)
 # built from, and the cells AVAILABLE in that grade -- which is what the
 # model's buildable potential is sized from.
 topia_grades <- as.data.frame(topia_sample$grades)
+# the grades table names the same mountings and is relabelled with them, or
+# the model's cluster roster joins against labels the weather no longer uses
+# and comes out empty
+.gcl <- as.character(topia_grades$cluster)
+.ghit <- !is.na(.gcl) & .gcl %in% names(.SOL_MOUNTING)
+if (any(.ghit)) topia_grades$cluster[.ghit] <- unname(.SOL_MOUNTING[.gcl[.ghit]])
 
 topia_weather <- rbind(.tag(topia_sim$weather, "simulated")[, .keep_w],
                        .tag(topia_sample$weather, "sample")[, .keep_w])
 topia_demand <- rbind(.tag(topia_sim$demand, "simulated")[, .keep_d],
                       .tag(topia_sample$demand, "sample")[, .keep_d])
 
-topia_weather$wval <- round(as.numeric(topia_weather$wval), 4)
+# 3 decimals, not 4: rounding to 4 put a floor of exactly 1e-4 on the
+# capacity factors, and that floor became the smallest coefficient in the LP
+# (in `eqTechAfUp` against `vTechCap`) -- four orders below the median entry,
+# carrying no physical content, and widening the matrix range an interior
+# point method has to work across. At 3 decimals the floor is 1e-3 and the
+# ~1.5% of values below it round to zero, where they are dropped as sparse.
+topia_weather$wval <- round(as.numeric(topia_weather$wval), 3)
 topia_demand$load <- round(as.numeric(topia_demand$load), 4)
 for (.k in setdiff(.keep_w, "wval")) {
   topia_weather[[.k]] <- factor(as.character(topia_weather[[.k]]))

@@ -524,6 +524,25 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* A resource grade declares the regions it exists in, so narrowing a model's
+  regions can delete a grade outright. `subset_model_regions()` dropped the
+  roster row but left the rows keyed on that grade in `@aeff`, `@invcost`,
+  `@fixom` and `@af`, and interpolating the sub-model then refused it
+  ("Undeclared cluster label(s)"). The orphaned rows are dropped with the
+  grade, and an object none of whose grades is in the sample leaves it.
+
+* `levcost()` averaged a graded resource's profiles into one capacity factor,
+  so every grade of a technology came out at the same levelized cost -- the
+  one thing grading them is for. Each cell is now priced at its own grade's
+  capacity factor. `levcost()` also failed outright on a graded or
+  availability-bounded resource, naming regions its mini-model does not
+  declare.
+
+* A container report's levelized-cost table reported the first cell of a
+  process declaring vintages or grades as the cost of the whole process,
+  dropping the rest. It now carries one row per cell, with its vintage and
+  grade.
+
 * Calendars whose timeslices stand for several of the unit their timeframe
   names -- `s4_h24`, `m12_h24`, `wd7_h24`, `w52_h24` -- carried the repetition
   as a longer `share`, and `share` scales every per-timeslice bound. Storage

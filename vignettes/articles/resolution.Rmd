@@ -22,6 +22,12 @@ This article maps the routes. Two companion articles cover one axis each in
 depth, `vignette("time-resolution")` and `vignette("space-resolution")`, with
 `vignette("region-aggregation")` working through a full spatial example.
 
+Resolution is not the only way to make a model smaller, and the routes below
+are not the only ones that do. `vignette("model-size")` maps the same ground
+by cost rather than by axis: it adds the horizon reductions and the drivers
+that bound decisions instead of removing cells, and it sorts every route by
+whether the answer is still the full model's.
+
 ## Four operations, often confused
 
 Four distinct things are frequently described with the same words.

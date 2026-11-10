@@ -1493,10 +1493,42 @@ Levelized cost section will be omitted.")
   if (nrow(ol) > 0) add("olife", ol$olife[1])
   st <- .lifespan_resolve(p, "start")
   if (nrow(st) > 0) add("start", st$start[1])
+  # A clustered process is several parallel sub-processes -- resource grades,
+  # mountings, loss tranches -- and a cluster may be declared only where it
+  # exists. Naming them, with the count of regions each reaches, is the
+  # difference between "a wind farm" and "a wind farm on the exposed coast".
+  cl <- gs("cluster")
+  if (is.data.frame(cl) && nrow(cl) > 0 && "cluster" %in% names(cl)) {
+    u <- unique(as.character(cl$cluster))
+    u <- u[!is.na(u)]
+    if (length(u) > 0) {
+      lab <- if ("region" %in% names(cl) && !all(is.na(cl$region))) {
+        n <- vapply(u, function(k) length(unique(
+          cl$region[as.character(cl$cluster) == k])), 1L)
+        paste0(u, " (", n, ifelse(n == 1, " region", " regions"), ")")
+      } else u
+      add("grades", paste(lab, collapse = ", "))
+    }
+  }
   cap <- gs("capacity")
   if (is.data.frame(cap) && "stock" %in% names(cap)) {
     v <- cap$stock[!is.na(cap$stock)]
     if (length(v) > 0) add("stock (total)", signif(sum(v), 4))
+    # the fleet standing in the FIRST declared year, split by grade: a stock
+    # declared at both ends of the horizon would otherwise be counted twice
+    if ("cluster" %in% names(cap) && "year" %in% names(cap)) {
+      d <- cap[!is.na(cap$stock) & !is.na(cap$cluster), , drop = FALSE]
+      # A stock may be declared without a year (it stands in every year);
+      # min() over no year at all is Inf and would drop every row.
+      if (any(!is.na(d$year)))
+        d <- d[is.na(d$year) | d$year == min(d$year, na.rm = TRUE), , drop = FALSE]
+      d <- d[d$stock > 0, , drop = FALSE]
+      if (nrow(d) > 0) {
+        bg <- tapply(d$stock, as.character(d$cluster), sum)
+        add("stock by grade",
+            paste(paste0(names(bg), " ", signif(bg, 4)), collapse = ", "))
+      }
+    }
   }
   w <- gs("weather")
   if (is.data.frame(w) && nrow(w) > 0) add("weather", as.character(w$weather))
@@ -1875,16 +1907,42 @@ Levelized cost section will be omitted.")
     else stats::setNames(character(0), character(0))
 
   levcost_df <- if (want("levcost_df")) tryCatch({
+    # One row per PRICED THING, which for a process declaring vintages or
+    # resource grades is one row per cell, not one for the process. A graded
+    # wind farm is six costs and they differ by a factor of two; reporting
+    # the first of them as "the" levelized cost of the process reports one
+    # grade and silently drops the rest.
     rows <- lapply(names(lc), function(nm) {
+      grp <- unname(idx_map[nm])
+      blank <- function(n) rep(NA_character_, n)
+      if (inherits(lc[[nm]], "levcost_variants")) {
+        v <- attr(lc[[nm]], "by_variant_npv")
+        if (is.null(v) || nrow(v) == 0) return(NULL)
+        return(data.frame(
+          process = nm,
+          variant = as.character(v$variant),
+          vintage = if ("vintage" %in% names(v)) as.character(v$vintage)
+                    else blank(nrow(v)),
+          cluster = if ("cluster" %in% names(v)) as.character(v$cluster)
+                    else blank(nrow(v)),
+          group = grp,
+          levcost_npv = signif(as.numeric(v$levcost_npv), 5),
+          stringsAsFactors = FALSE))
+      }
       npv <- lc[[nm]][["levcost_npv"]]
       if (is.null(npv) || length(npv) == 0) return(NULL)
-      data.frame(process = nm, group = unname(idx_map[nm]),
+      data.frame(process = nm, variant = NA_character_,
+                 vintage = NA_character_, cluster = NA_character_,
+                 group = grp,
                  levcost_npv = signif(as.numeric(npv)[1], 5),
                  stringsAsFactors = FALSE)
     })
     rows <- Filter(Negate(is.null), rows)
     if (length(rows) > 0) {
       lcdf <- do.call(rbind, rows)
+      # a column nothing filled is noise in the table, not information
+      for (cl in c("variant", "vintage", "cluster"))
+        if (all(is.na(lcdf[[cl]]))) lcdf[[cl]] <- NULL
       # most expensive first, so a template cap shows what matters
       lcdf[order(-lcdf$levcost_npv), , drop = FALSE]
     } else NULL

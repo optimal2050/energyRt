@@ -309,8 +309,20 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
     if (!is.null(h)) keep_wx <- unique(c(keep, as.character(h$region)))
   }
 
+  # A cluster roster, or NULL for an object that has no grades at all. Used
+  # both before and after the pruning below, to tell "never clustered" from
+  # "clustered, and none of its grades is in the sample".
+  cl_rows <- function(el) {
+    if (!.hasSlot(el, "cluster")) return(NULL)
+    v <- tryCatch(methods::slot(el, "cluster"), error = function(e) NULL)
+    if (!is.data.frame(v) || !"cluster" %in% names(v)) return(NULL)
+    v
+  }
+
   prune_obj <- function(el, nm) {
     if (!methods::is(el, "trade")) {
+      cl_before <- cl_rows(el)
+      had_cl <- !is.null(cl_before) && nrow(cl_before) > 0
       keep <- if (methods::is(el, "weather")) keep_wx else keep
       # A non-trade object declares its scope in `@region`. Narrowing the
       # scenario's region set without narrowing the DECLARATIONS leaves an
@@ -338,6 +350,26 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
           methods::slot(el, sl) <-
             v[is.na(v$region) | v$region %in% keep |
                 !(v$region %in% declared), , drop = FALSE]
+        }
+      }
+      # A cluster roster carries a `region` column -- a grade declares the
+      # regions it exists in -- so the pruning above can delete a grade
+      # outright. The rows keyed on it elsewhere (@aeff, @invcost, @fixom, @af)
+      # do not carry a region and so survive, leaving the object naming a
+      # label its own roster no longer declares; interpolation then refuses it
+      # ("Undeclared cluster label(s)"). Second pass, once @cluster has settled.
+      cl0 <- cl_rows(el)
+      if (!is.null(cl0)) {
+        live <- unique(as.character(cl0$cluster))
+        live <- live[!is.na(live) & nzchar(live)]
+        if (!length(live) && had_cl) return(NULL)        # no grade here at all
+        for (sl in methods::slotNames(el)) {
+          if (identical(sl, "cluster")) next
+          v <- methods::slot(el, sl)
+          if (!is.data.frame(v) || !nrow(v) || !"cluster" %in% names(v)) next
+          lab <- as.character(v$cluster)
+          methods::slot(el, sl) <-
+            v[is.na(lab) | !nzchar(lab) | lab %in% live, , drop = FALSE]
         }
       }
       return(el)

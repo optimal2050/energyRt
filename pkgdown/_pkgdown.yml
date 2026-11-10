@@ -70,6 +70,8 @@ navbar:
         href: articles/time-resolution.html
       - text: Space resolution
         href: articles/space-resolution.html
+      - text: Reducing model size
+        href: articles/model-size.html
       - text: Storage
         href: articles/storage.html
       - text: Vintages & clusters

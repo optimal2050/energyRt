@@ -67,7 +67,10 @@ WIND_CL <- list(
 # broader shoulder and a flatter midday. (`cf_cells_solar_opt` is not a third
 # option: it matches the fixed file to -0.1%, so the shipped file is already
 # optimally tilted.)
-SOLAR_SRC <- c(FIX = "solar", TRK = "hsat")
+# merra2ools array-type codes: `FL` fixed tilted, `TH` horizontal
+# single-axis tracking. The source files are named for the workflow that
+# produced them, the clusters for the array they describe.
+SOLAR_SRC <- c(FL = "solar", TH = "hsat")
 SOLAR_MIN <- 0.14      # best-12 CF below which tracking is not offered
 
 MAXD <- 2.2   # deg, cap on a territory's radius
@@ -144,14 +147,14 @@ stopifnot(length(HOURS) == 8760L, length(DAYS) == 365L)
   # SOLAR: the same cells under two technologies. The cell pick is made once,
   # on the fixed-tilt file, so FIX and TRK stand on the same ground and differ
   # only by what is mounted there.
-  as_ <- ann(SOLAR_SRC[["FIX"]])
+  as_ <- ann(SOLAR_SRC[["FL"]])
   ssel <- list()
   for (i in seq_len(nrow(SITE))) {
     r <- SITE$region[i]
     a <- as_[as_$cell_id %in% cells$cell_id[cells$own == i], ]
     navail <- nrow(a)
     a <- a[order(-a$cf), ][seq_len(min(NTOP, nrow(a))), ]
-    cls <- if (mean(a$cf) >= SOLAR_MIN) names(SOLAR_SRC) else "FIX"
+    cls <- if (mean(a$cf) >= SOLAR_MIN) names(SOLAR_SRC) else "FL"
     for (cl in cls) {
       ssel[[length(ssel) + 1L]] <- data.frame(
         region = r, cluster = cl, cell_id = a$cell_id, ann_cf = a$cf,
