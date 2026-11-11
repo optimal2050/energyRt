@@ -11,6 +11,58 @@
 #' @include class-weather.R class-model.R class-repository.R
 
 
+# Which milestones are GIVEN rather than optimised, as layers drawn OVER the
+# bars. The interval rects are opaque and span the whole panel height, so a
+# band behind them would be invisible; the given years are washed over
+# instead, history more heavily than the base year because history enters no
+# LP at all while the base year is solved on its own.
+#
+# `annotate()` rather than `geom_rect(aes())`: these layers carry no data and
+# must add nothing to the fill scale, which the year gradient already owns.
+#' @noRd
+.horizon_given_layers <- function(y, by, hjust) {
+  if (is.null(by) || !length(by) || !(by %in% y$mid)) return(list())
+  span <- function(rows) c(min(rows$start) - hjust, max(rows$end) + (1 - hjust))
+  out <- list()
+  hist_rows <- y[y$mid < by, ]
+  if (nrow(hist_rows) > 0) {
+    xh <- span(hist_rows)
+    out <- c(out, list(ggplot2::annotate(
+      "rect", xmin = xh[1], xmax = xh[2], ymin = 0, ymax = 1,
+      fill = "white", alpha = 0.72)))
+  }
+  xb <- span(y[y$mid == by, ])
+  c(out, list(ggplot2::annotate(
+    "rect", xmin = xb[1], xmax = xb[2], ymin = 0, ymax = 1,
+    fill = "white", alpha = 0.28)))
+}
+
+# The boundary at the last given year, drawn ON TOP of everything. It is a
+# separate layer from the washes because the milestone vlines are added after
+# them and would paint over it -- and because the base-year interval is one
+# year by default, this rule lands exactly on that year's dashed milestone
+# line, so it has to be solid, heavier and a colour nothing else in the figure
+# uses, or it simply is not there.
+#' @noRd
+.horizon_given_rule <- function(y, by, hjust) {
+  if (is.null(by) || !length(by) || !(by %in% y$mid)) return(list())
+  xb <- max(y$end[y$mid == by]) + (1 - hjust)
+  list(ggplot2::annotate("segment", x = xb, xend = xb, y = 0, yend = 1,
+                         colour = "#E84B35", linewidth = 1.2))
+}
+
+# What the wash means. A translucent state is explained in prose here rather
+# than with a legend, as in plot_process_windows(); the fill legend is the
+# year gradient's.
+#' @noRd
+.horizon_given_caption <- function(by, has_history) {
+  paste(c(paste0("washed: given, not optimised (base year ", by, ")"),
+          if (has_history) "lighter: historical, enters no LP",
+          "rule: last given year",
+          "dashed: milestone"),
+        collapse = " · ")
+}
+
 plot_horizon <- function(object, ..., palette = "D") {
 
   check_package("ggplot2")
@@ -42,7 +94,13 @@ plot_horizon <- function(object, ..., palette = "D") {
         xmin = start - hjust, xmax = end + (1 - hjust),
         ymin = 0, ymax = 1,
         fill = mid),
-      color = "black") +
+      color = "black")
+
+  # the given years, washed over the bars; empty for an unmarked horizon
+  .by <- .base_year(object)
+  p <- p + .horizon_given_layers(y, .by, hjust)
+
+  p <- p +
     ggplot2::geom_vline(xintercept = y$mid, color = "white", alpha = 0.75) +
     ggplot2::geom_vline(xintercept = y$mid, linetype = "dashed") +
     ggplot2::scale_fill_viridis_c(option = palette, end = 0.9,
@@ -63,8 +121,14 @@ plot_horizon <- function(object, ..., palette = "D") {
       plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 12, face = "italic")
     )
 
+  p <- p + .horizon_given_rule(y, .by, hjust)
+
   if (!is_empty(object@name)) {p <- p + ggplot2::labs(title = object@name)}
   if (!is_empty(object@desc)) {p <- p + ggplot2::labs(subtitle = object@desc)}
+  if (!is.null(.by) && length(.by) && .by %in% y$mid) {
+    p <- p + ggplot2::labs(caption = .horizon_given_caption(
+      .by, any(y$mid < .by)))
+  }
   p
 }
 
@@ -81,6 +145,13 @@ plot_horizon <- function(object, ..., palette = "D") {
 #' `autoplot()` is the ggplot2-idiomatic entry point and returns the same
 #' `ggplot` object as [plot()], so the result can be further customised with
 #' `+ ...` layers.
+#'
+#' When the horizon carries a base year, the milestones that are GIVEN rather
+#' than optimised are washed out and a rule is drawn at the last given year:
+#' milestones before the base year are history and enter no LP at all, so they
+#' are washed more heavily than the base year, which is solved on its own by
+#' [solve_base_year()]. The caption says which is which. A horizon with no
+#' base year is drawn unchanged.
 #'
 #' @param object An object of class `horizon`.
 #' @rdname plot_horizon_method
@@ -1766,6 +1837,14 @@ gg_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
 #'   unreadable.
 #' @param angle Rotation (degrees) for the x-axis tick labels; overlapping labels
 #'   are dropped so dense sub-annual axes stay legible. Default `45`; `0` = flat.
+#' @param group Column driving the line/area colour (line and area styles).
+#'   `NULL` (default) picks the first key column that varies within a
+#'   (region, year, timeslice) cell -- `cluster` on a clustered weather
+#'   factor -- and falls back to the coarse calendar level. A line always
+#'   connects one series only, whatever this is set to.
+#' @param facet Faceting column(s), overriding the default of `region` and
+#'   `year`. Set `facet = "cluster"` with `group = "region"` to swap the
+#'   two, or `facet = character(0)` to draw a single panel.
 #' @param ... Reserved for future use.
 #'
 #' @return A `ggplot` object (or `NULL`, invisibly, if there is nothing to plot).
@@ -1779,7 +1858,8 @@ gg_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
 #' }
 plot_weather <- function(object, style = c("heatmap", "line", "area"),
                          calendar = NULL, palette = "D",
-                         datetime = FALSE, angle = 45, region = NULL, ...) {
+                         datetime = FALSE, angle = 45, region = NULL,
+                         group = NULL, facet = NULL, ...) {
   check_package("ggplot2")
   style <- match.arg(style)
 
@@ -1802,7 +1882,8 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
   sub <- if (length(dsc) == 1 && !is.na(dsc) && nzchar(dsc)) dsc else NULL
   return(.plot_profile(d, style = style, calendar = calendar,
                        palette = palette, datetime = datetime, angle = angle,
-                       unit_lab = unit_lab, title = ttl, subtitle = sub))
+                       unit_lab = unit_lab, title = ttl, subtitle = sub,
+                       group = group, facet = facet))
 }
 
 # Shared sub-annual profile engine behind plot_weather() and plot_demand()
@@ -1813,7 +1894,8 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
 # numeric (e.g. day of year), so long calendars read as a gradient.
 .plot_profile <- function(d, style, calendar = NULL, palette = "D",
                           datetime = FALSE, angle = 45, unit_lab = "value",
-                          title = NULL, subtitle = NULL) {
+                          title = NULL, subtitle = NULL,
+                          group = NULL, facet = NULL) {
   reg_multi <- "region" %in% names(d) && length(unique(d$region)) > 1
   yr_multi  <- "year" %in% names(d) &&
     length(unique(d$year[!is.na(d$year)])) > 1
@@ -1880,7 +1962,42 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
     }
   }
 
-  facets <- c(if (reg_multi && !region_axis) "region", if (yr_multi) "year", cfac)
+  facets <- if (!is.null(facet)) intersect(as.character(facet), names(d)) else
+    c(if (reg_multi && !region_axis) "region", if (yr_multi) "year", cfac)
+
+  # Key columns separate rows WITHIN a (region, year, timeslice) cell -- on a
+  # clustered weather factor that is `cluster`. They must enter the grouping,
+  # or one line connects every key's value at each x position instead of
+  # following a single series.
+  kcols <- setdiff(names(d), c("region", "year", "timeslice", "wval",
+                               ".coarse", ".fine", ".dtm", x_col, y_col,
+                               fine, coarse, facets))
+  # character/factor only: a key identifies a series, a numeric column is a
+  # value (plot_demand() passes `demand` alongside `wval`).
+  kcols <- kcols[vapply(kcols, function(k) (is.character(d[[k]]) ||
+                          is.factor(d[[k]])) &&
+                          length(unique(d[[k]])) > 1L, logical(1))]
+
+  if (is.null(group)) {
+    group <- if (length(kcols)) kcols[[1]] else coarse
+  } else if (!group %in% names(d)) {
+    .say("`group` column '", group, "' is not in the data; using the default.")
+    group <- if (length(kcols)) kcols[[1]] else coarse
+  }
+  # The series identity is the colour key plus every other key still varying,
+  # so a line never jumps between series.
+  gcols <- intersect(unique(c(group, coarse, kcols)), names(d))
+  if (length(gcols)) d$.series <- interaction(d[gcols], drop = TRUE)
+
+  # `.key_scale()` maps a NUMBER past `.plot_max_keys` levels, so a discrete
+  # colour key is recoded to its level index and the labels come back from
+  # `glev`. `glev` NULL means the column was numeric to begin with.
+  glev <- NULL
+  if (!is.null(group) && !is.numeric(d[[group]])) {
+    glev <- levels(d[[group]]) %||% sort(unique(as.character(d[[group]])))
+    d[[group]] <- .key_index(d[[group]], glev)
+  }
+
   if (length(facets) > 0) d <- .facet_cap(d, facets)
 
   ttl <- title
@@ -1902,16 +2019,16 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
       ggplot2::theme(panel.grid = ggplot2::element_blank())
     xc <- x_col
   } else {
-    if (is.null(coarse)) {
+    if (is.null(group)) {
       # group = 1 so geom_line connects points across a discrete (factor) x;
       # without it a factor x makes each point its own group and nothing draws.
       p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[[fine]], y = .data[["wval"]],
                                            group = 1))
     } else {
       p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[[fine]], y = .data[["wval"]],
-                                           colour = .data[[coarse]],
-                                           fill = .data[[coarse]],
-                                           group = .data[[coarse]]))
+                                           colour = .data[[group]],
+                                           fill = .data[[group]],
+                                           group = .data[[".series"]]))
     }
     p <- p +
       # `position = "identity"` overlays the groups, so the areas genuinely
@@ -1920,23 +2037,21 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
        else ggplot2::geom_area(position = "identity", alpha = 0.35,
                                na.rm = TRUE)) +
       ggplot2::labs(x = nice(fine), y = unit_lab,
-                    colour = nice(coarse), fill = nice(coarse),
+                    colour = nice(group), fill = nice(group),
                     title = ttl, subtitle = sub) +
       theme_energyRt()
     if (style == "line") p <- p + ggplot2::guides(fill = "none")
-    if (!is.null(coarse)) {
-      num <- is.numeric(d[[coarse]])
-      nm_c <- nice(coarse)
-      if (num) {
+    if (!is.null(group)) {
+      nm_c <- nice(group)
+      if (is.null(glev)) {
         p <- p + ggplot2::scale_colour_viridis_c(option = palette, end = 0.9,
                                                  name = nm_c)
         if (style == "area")
           p <- p + ggplot2::scale_fill_viridis_c(option = palette, end = 0.9,
                                                  name = nm_c)
       } else {
-        lv <- levels(d[[coarse]]) %||% sort(unique(as.character(d[[coarse]])))
-        p <- p + .key_scale(lv, palette, nm_c, aes = "colour")
-        if (style == "area") p <- p + .key_scale(lv, palette, nm_c)
+        p <- p + .key_scale(glev, palette, nm_c, aes = "colour")
+        if (style == "area") p <- p + .key_scale(glev, palette, nm_c)
       }
     }
     xc <- fine

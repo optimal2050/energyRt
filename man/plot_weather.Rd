@@ -13,6 +13,8 @@ plot_weather(
   datetime = FALSE,
   angle = 45,
   region = NULL,
+  group = NULL,
+  facet = NULL,
   ...
 )
 
@@ -51,6 +53,16 @@ character vector names them; a single number takes that many, in the order
 they appear. Useful on converted continental models, where a weather factor
 can carry dozens of regions and faceting on all of them leaves the panels
 unreadable.}
+
+\item{group}{Column driving the line/area colour (line and area styles).
+\code{NULL} (default) picks the first key column that varies within a
+(region, year, timeslice) cell -- \code{cluster} on a clustered weather
+factor -- and falls back to the coarse calendar level. A line always
+connects one series only, whatever this is set to.}
+
+\item{facet}{Faceting column(s), overriding the default of \code{region} and
+\code{year}. Set \code{facet = "cluster"} with \code{group = "region"} to swap the
+two, or \code{facet = character(0)} to draw a single panel.}
 
 \item{...}{Reserved for future use.}
 }

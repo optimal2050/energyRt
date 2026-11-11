@@ -385,3 +385,108 @@ test_that("an un-vintaged storage still returns a plain levcost", {
   # deprecated spelling of `by_variant =`)
   expect_error(levcost(x, by_variant = TRUE), "vintages or clusters")
 })
+
+# ── per-part annuity ─────────────────────────────────────────────────────────
+# A battery's inverter and its energy have different lives; each part is
+# annualised over its own payback at its own wacc, as the solver's eac.R does.
+
+.lcs_mixed_life <- function() {
+  .lcs_battery(
+    invcost = data.frame(stg.invcost = 100, out.invcost = 50, inp.invcost = 20,
+                         out.wacc = 0.05, inp.wacc = 0.05, stg.wacc = 0.07,
+                         out.payback = 10, inp.payback = 10, stg.payback = 30),
+    fixom = data.frame(), varom = data.frame(),
+    vintage = data.frame(olife = 30L))
+}
+
+test_that("each part is annualised over its own payback and wacc", {
+  x <- levcost(.lcs_mixed_life(), cycles = 300, price = 0, discount = 0.05,
+               horizon = newHorizon(period = 2020L), method = "analytic",
+               verbose = FALSE)
+  crf <- function(r, n) r / (1 - (1 + r)^-n)
+  stg <- 1 / 0.95                     # level drawn per unit delivered
+  out <- stg / 4                      # duration 4
+  # no inp2out: the charger is sized by its own flow over its half-cycle
+  inp <- stg / 0.9 * 300 / (8760 * energyRt:::.lcs_half)
+  hand <- (100 * crf(0.07, 30) * stg + 50 * crf(0.05, 10) * out +
+             20 * crf(0.05, 10) * inp) / 300
+  expect_equal(unname(x$levcost_npv), hand, tolerance = 1e-10)
+})
+
+test_that("analytic equals solve when the parts have different paybacks", {
+  skip_if_no_solver()
+  p <- .lcs_pair(.lcs_mixed_life(), cycles = 300, price = 10, discount = 0.05,
+                 horizon = newHorizon(period = 2020:2029))
+  expect_equal(unname(p$a$levcost_npv), unname(p$s$levcost_npv),
+               tolerance = .lcs_tol)
+  m <- merge(p$a$cost_breakdown_npv, p$s$cost_breakdown_npv, by = "component")
+  expect_equal(m$value.x, m$value.y, tolerance = .lcs_tol)
+})
+
+test_that("a part without its own payback takes the discharger's", {
+  base <- .lcs_mixed_life()
+  same <- base
+  same@invcost$stg.payback <- NA_real_
+  same@invcost$stg.wacc <- NA_real_
+  ref <- base
+  ref@invcost$stg.payback <- 10
+  ref@invcost$stg.wacc <- 0.05
+  h <- newHorizon(period = 2020L)
+  a <- levcost(same, cycles = 300, discount = 0.05, horizon = h,
+               method = "analytic", verbose = FALSE)
+  b <- levcost(ref, cycles = 300, discount = 0.05, horizon = h,
+               method = "analytic", verbose = FALSE)
+  expect_equal(unname(a$levcost_npv), unname(b$levcost_npv), tolerance = 1e-12)
+})
+
+# ── clusters, and the tables straight from the storage method ────────────────
+
+.lcs_clustered <- function() {
+  newStorage(
+    "STG_CL", commodity = "ELC", region = "R1",
+    input = list(comm = "ELC", cap2act = 8760),
+    storage = list(comm = "ELC"),
+    cluster = data.frame(cluster = c("short", "long")),
+    invcost = data.frame(stg.invcost = 100, out.invcost = 50),
+    seff = data.frame(inpeff = 0.9, outeff = 0.95),
+    duration = data.frame(cluster = c("short", "long"), duration.fx = c(2, 8)),
+    vintage = data.frame(olife = 20L))
+}
+
+test_that("a clustered storage is priced per cluster, at its own duration", {
+  h <- newHorizon(period = 2020L)
+  x <- levcost(.lcs_clustered(), cycles = 300, discount = 0.05, horizon = h,
+               method = "analytic", verbose = FALSE)
+  expect_s3_class(x, "levcost_variants")
+  npv <- levcost(x, by_variant = "npv")
+  expect_setequal(npv$cluster, c("short", "long"))
+  crf <- function(r, n) r / (1 - (1 + r)^-n)
+  stg <- 1 / 0.95
+  hand <- function(d) (100 * stg + 50 * stg / d) * crf(0.05, 20) / 300
+  expect_equal(npv$levcost_npv[npv$cluster == "short"], hand(2), tolerance = 1e-10)
+  expect_equal(npv$levcost_npv[npv$cluster == "long"], hand(8), tolerance = 1e-10)
+})
+
+test_that("by_variant on the storage itself returns the per-cell tables", {
+  h <- newHorizon(period = 2020:2029)
+  args <- list(cycles = 365, price = 10, discount = 0.05, horizon = h,
+               method = "analytic", verbose = FALSE)
+  x <- do.call(levcost, c(list(.lcs_vintaged()), args))
+  for (what in c("levcost", "npv", "components")) {
+    direct <- do.call(levcost, c(list(.lcs_vintaged()), args,
+                                 list(by_variant = what)))
+    expect_equal(direct, levcost(x, by_variant = what), info = what)
+  }
+  cl <- do.call(levcost, c(list(.lcs_clustered()), args,
+                           list(by_variant = "npv")))
+  expect_true(all(c("vintage", "cluster", "levcost_npv") %in% names(cl)))
+})
+
+test_that("by_region prices a storage once per region", {
+  stg <- .lcs_battery(region = c("R1", "R2"))
+  x <- levcost(stg, cycles = 300, discount = 0.05,
+               horizon = newHorizon(period = 2020L), method = "analytic",
+               verbose = FALSE, by_region = TRUE)
+  expect_s3_class(x, "levcost_list")
+  expect_setequal(names(x), c("R1", "R2"))
+})

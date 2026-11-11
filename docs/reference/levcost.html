@@ -80,7 +80,7 @@ without re-solving: <code>levcost(lc, by_variant = "npv")</code>.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">levcost</span><span class="op">(</span><span class="va">object</span>, <span class="va">comm</span>, <span class="va">name</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S4 method for class 'storage'</span></span>
-<span><span class="fu">levcost</span><span class="op">(</span><span class="va">object</span>, <span class="va">comm</span>, <span class="va">name</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">levcost</span><span class="op">(</span><span class="va">object</span>, <span class="va">comm</span>, <span class="va">name</span>, by_variant <span class="op">=</span> <span class="cn">FALSE</span>, by_region <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S4 method for class 'trade'</span></span>
 <span><span class="fu">levcost</span><span class="op">(</span><span class="va">object</span>, <span class="va">comm</span>, <span class="va">name</span>, <span class="va">...</span><span class="op">)</span></span>
@@ -250,7 +250,7 @@ tables attached to <code>scenario@misc</code>.</p></dd>
 
 
 <dt id="arg-by-variant">by_variant<a class="anchor" aria-label="anchor" href="#arg-by-variant"></a></dt>
-<dd><p>for a technology declaring vintages or clusters: <code>FALSE</code>
+<dd><p>for a technology or storage declaring vintages or clusters: <code>FALSE</code>
 (default) returns the result object; <code>TRUE</code> (= <code>"levcost"</code>), <code>"npv"</code> or
 <code>"components"</code> returns that per-variant table instead. Passing an existing
 result — <code>levcost(lc, by_variant = "npv")</code> — extracts without re-solving.</p></dd>
@@ -263,7 +263,7 @@ regions it spans. <code>TRUE</code> prices it once PER region and returns a
 efficiency vary by region actually has. levcost() builds a single-region
 mini-model, so without this a multi-region process reports only its first
 region's cost. On a container the entries are named <code>&lt;process&gt;@&lt;region&gt;</code>.
-A <code>trade</code> is unaffected: it spans two regions by construction and is
+A <code>storage</code> is priced the same way. A <code>trade</code> is unaffected: it spans two regions by construction and is
 priced across both at once.</p></dd>
 
 </dl></div>

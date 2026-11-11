@@ -347,6 +347,8 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 * `levcost()`: analytic levelized cost of technologies, storage (LCOS) and
   trade (LCOT) per vintage, cluster and region; ex-post per variant on a solved
   scenario.
+* `levcost()` on a storage takes `by_variant =` and `by_region =`, as on a
+  technology: the table per vintage and cluster, or one result per region.
 * `draw()` process diagrams; `autoplot()` for objects, calendars, horizons,
   scenarios and comparisons; `plot_map()`, `plot_trade_map()`,
   `plot_trade_network()`.
@@ -521,6 +523,10 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   settings stored by earlier versions are still read.
 * `get_hf_token()` and `set_hf_token()` are removed: use
   `mmcloud::get_hf_token()` and `mmcloud::set_hf_token()`.
+
+* `autoplot()` on a `horizon` marks the milestones that are given rather than
+  optimised: the base year and any milestones before it are washed out, with a
+  rule at the last given year and a caption naming the states.
 
 ## Bug fixes
 
@@ -799,6 +805,9 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 * `levcost()` of a storage sized a charger with no `inp2out` or `inp2stg` like
   the discharger, and a discharger with no `duration` at one hour of storage.
   Each is now sized by its own flow, as in the solved model.
+* `levcost()` of a storage annualised every part over the discharger's payback
+  and wacc. The charger, discharger and energy now each use their own, as in
+  the solved model; a battery whose store outlives its inverter was overpriced.
 * Auxiliary flows (`aeff`) of a process were lost when it gave the coefficient
   for all timeslices and another process gave the same coefficient for named
   timeslices.

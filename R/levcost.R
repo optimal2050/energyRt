@@ -182,7 +182,7 @@
 #'   A technology with no vintages or clusters is unaffected and still returns a
 #'   single \code{"levcost"} object.
 #'
-#' @param by_variant for a technology declaring vintages or clusters: `FALSE`
+#' @param by_variant for a technology or storage declaring vintages or clusters: `FALSE`
 #'   (default) returns the result object; `TRUE` (= `"levcost"`), `"npv"` or
 #'   `"components"` returns that per-variant table instead. Passing an existing
 #'   result — `levcost(lc, by_variant = "npv")` — extracts without re-solving.
@@ -192,7 +192,7 @@
 #'   efficiency vary by region actually has. levcost() builds a single-region
 #'   mini-model, so without this a multi-region process reports only its first
 #'   region's cost. On a container the entries are named `<process>@<region>`.
-#'   A `trade` is unaffected: it spans two regions by construction and is
+#'   A `storage` is priced the same way. A `trade` is unaffected: it spans two regions by construction and is
 #'   priced across both at once.
 #' @export
 #'
@@ -284,11 +284,22 @@ setMethod("levcost", "technology",
   })
 
 #' @rdname levcost
-setMethod("levcost", "storage", function(object, comm, name, ...) {
-  comm_arg <- if (missing(comm)) NULL else comm
-  .levcost_with_cache("storage", object, c(list(comm = comm_arg), list(...)),
-                      levcost_storage_)
-})
+setMethod("levcost", "storage",
+  function(object, comm, name, by_variant = FALSE, by_region = FALSE, ...) {
+    comm_arg <- if (missing(comm)) NULL else comm
+    dots <- list(...)
+    price_in <- function(d) {
+      res <- .levcost_with_cache("storage", object, c(list(comm = comm_arg), d),
+                                 levcost_storage_)
+      if (isFALSE(by_variant)) res else .levcost_by_variant(res, by_variant)
+    }
+    if (isTRUE(by_region)) {
+      return(.levcost_each_region(
+        function(r) { d <- dots; d$region <- r; price_in(d) },
+        .levcost_tech_regions(object), what = "storage"))
+    }
+    price_in(dots)
+  })
 
 #' @rdname levcost
 setMethod("levcost", "trade", function(object, comm, name, ...) {

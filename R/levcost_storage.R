@@ -162,19 +162,26 @@
   life <- .la_lifespan(object, region)
   olife <- if (is.na(life$olife)) Inf else life$olife
 
-  # annuity, per part, on that part's own capacity. All three share one
-  # lifetime and one wacc/payback -- see the note in R/eac.R:251-253; the
-  # per-part wacc/payback columns exist but the solver does not read them.
-  rate <- .la_series(object@invcost, "out.wacc", years, region,
-                     default = NA_real_, what = "out.wacc")
-  if (all(is.na(rate))) rate <- rep(ctx$discount, ny)
-  pb <- .la_series(object@invcost, "out.payback", years, region,
-                   default = NA_real_, what = "out.payback")
-  span <- if (all(!is.na(pb)) && all(pb > 0)) pb[1] else olife
+  # annuity, per part, on that part's own capacity, at that part's own wacc
+  # and payback; a part without them takes the discharger's (`out.*`), then
+  # the discount rate and the operational life -- the order R/eac.R's
+  # `.eac_one()` resolves the solver's pStorage{Stg,Inp}Eac in.
+  part_series <- function(p, what) {
+    v <- .la_series(object@invcost, paste0(p, ".", what), years, region,
+                    default = NA_real_, what = paste0(p, ".", what))
+    if (all(is.na(v)) && p != "out")
+      v <- .la_series(object@invcost, paste0("out.", what), years, region,
+                      default = NA_real_, what = paste0("out.", what))
+    v
+  }
 
   eac <- rep(0, ny)
   eac_parts <- list()
   for (p in c("out", "stg", "inp")) {
+    rate <- part_series(p, "wacc")
+    if (all(is.na(rate))) rate <- rep(ctx$discount, ny)
+    pb <- part_series(p, "payback")
+    span <- if (all(!is.na(pb)) && all(pb > 0)) pb[1] else olife
     inv <- .la_series(object@invcost, paste0(p, ".invcost"), years, region,
                       default = 0, what = paste0(p, ".invcost"))
     ue <- .la_series(object@invcost, paste0(p, ".eac"), years, region,

@@ -373,3 +373,65 @@ test_that("a style that cannot label from `units` says so", {
   expect_silent(p <- ggplot2::autoplot(.ua_supply(), style = "bar"))
   expect_s3_class(p, "ggplot")
 })
+
+# Base year and history in autoplot(horizon) ----------------------------------
+# The three states the plot has to distinguish are energyRt's own: milestones
+# before the base year enter no LP, the base year is solved alone, the rest is
+# optimised. A horizon with no base year must be untouched.
+
+.hz_unmarked <- function() {
+  newHorizon(period = 2020:2050, intervals = c(5, 5, 5))
+}
+
+.hz_with_history <- function() {
+  # no shipped horizon has history: the base year is the FIRST milestone in
+  # topia's, so `mid < base_year` is empty there
+  newHorizon(intervals = data.frame(
+    start = c(2015, 2016, 2021, 2026, 2036, 2046),
+    mid   = c(2015, 2020, 2025, 2030, 2040, 2050),
+    end   = c(2015, 2020, 2025, 2035, 2045, 2055)),
+    base_year = 2025L)
+}
+
+test_that("an unmarked horizon is drawn without the given-year highlight", {
+  skip_if_not_installed("ggplot2")
+  p <- ggplot2::autoplot(.hz_unmarked())
+  expect_s3_class(p, "ggplot")
+  expect_false("GeomSegment" %in% .ap_geoms(p))
+  expect_null(p$labels$caption)
+})
+
+test_that("a marked horizon washes the base year and rules its last year", {
+  skip_if_not_installed("ggplot2")
+  hz <- newHorizon(period = 2025:2055, intervals = c(1, 10, 10, 10),
+                   base_year = 2025L)
+  p <- ggplot2::autoplot(hz)
+  g <- .ap_geoms(p)
+  expect_true("GeomRect" %in% g)
+  expect_true("GeomSegment" %in% g)
+  expect_match(p$labels$caption, "given, not optimised", fixed = TRUE)
+  # this horizon's base year IS its first milestone, so there is no history
+  expect_false(grepl("historical", p$labels$caption, fixed = TRUE))
+})
+
+test_that("milestones before the base year are named as historical", {
+  skip_if_not_installed("ggplot2")
+  p <- ggplot2::autoplot(.hz_with_history())
+  expect_match(p$labels$caption, "historical", fixed = TRUE)
+  expect_match(p$labels$caption, "given, not optimised", fixed = TRUE)
+  # one wash for history, one for the base year, plus the interval bars
+  n_rect <- sum(.ap_geoms(p) == "GeomRect")
+  expect_gte(n_rect, 3L)
+})
+
+test_that("the highlight follows hjust", {
+  skip_if_not_installed("ggplot2")
+  hz <- .hz_with_history()
+  p0 <- ggplot2::autoplot(hz, hjust = 1)
+  p1 <- ggplot2::autoplot(hz, hjust = 0)
+  seg <- function(p) {
+    i <- which(.ap_geoms(p) == "GeomSegment")[1]
+    p$layers[[i]]$data$x[1]
+  }
+  expect_false(isTRUE(all.equal(seg(p0), seg(p1))))
+})

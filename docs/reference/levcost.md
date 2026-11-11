@@ -12,7 +12,7 @@ without re-solving: `levcost(lc, by_variant = "npv")`.
 levcost(object, comm, name, ...)
 
 # S4 method for class 'storage'
-levcost(object, comm, name, ...)
+levcost(object, comm, name, by_variant = FALSE, by_region = FALSE, ...)
 
 # S4 method for class 'trade'
 levcost(object, comm, name, ...)
@@ -192,9 +192,9 @@ levcost(object, comm, name, by_variant = FALSE, ...)
 
 - by_variant:
 
-  for a technology declaring vintages or clusters: `FALSE` (default)
-  returns the result object; `TRUE` (= `"levcost"`), `"npv"` or
-  `"components"` returns that per-variant table instead. Passing an
+  for a technology or storage declaring vintages or clusters: `FALSE`
+  (default) returns the result object; `TRUE` (= `"levcost"`), `"npv"`
+  or `"components"` returns that per-variant table instead. Passing an
   existing result — `levcost(lc, by_variant = "npv")` — extracts without
   re-solving.
 
@@ -206,8 +206,9 @@ levcost(object, comm, name, by_variant = FALSE, ...)
   vary by region actually has. levcost() builds a single-region
   mini-model, so without this a multi-region process reports only its
   first region's cost. On a container the entries are named
-  `<process>@<region>`. A `trade` is unaffected: it spans two regions by
-  construction and is priced across both at once.
+  `<process>@<region>`. A `storage` is priced the same way. A `trade` is
+  unaffected: it spans two regions by construction and is priced across
+  both at once.
 
 ## Value
 

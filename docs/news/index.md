@@ -455,6 +455,10 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   levelized cost of technologies, storage (LCOS) and trade (LCOT) per
   vintage, cluster and region; ex-post per variant on a solved scenario.
 
+- [`levcost()`](https://energyRt.org/reference/levcost.md) on a storage
+  takes `by_variant =` and `by_region =`, as on a technology: the table
+  per vintage and cluster, or one result per region.
+
 - [`draw()`](https://energyRt.org/reference/draw.md) process diagrams;
   [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
   for objects, calendars, horizons, scenarios and comparisons;
@@ -710,6 +714,11 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   [`mmcloud::get_hf_token()`](https://rdrr.io/pkg/mmcloud/man/hf_token.html)
   and
   [`mmcloud::set_hf_token()`](https://rdrr.io/pkg/mmcloud/man/hf_token.html).
+
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  on a `horizon` marks the milestones that are given rather than
+  optimised: the base year and any milestones before it are washed out,
+  with a rule at the last given year and a caption naming the states.
 
 ### Bug fixes
 
@@ -1051,6 +1060,12 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   sized a charger with no `inp2out` or `inp2stg` like the discharger,
   and a discharger with no `duration` at one hour of storage. Each is
   now sized by its own flow, as in the solved model.
+
+- [`levcost()`](https://energyRt.org/reference/levcost.md) of a storage
+  annualised every part over the discharger’s payback and wacc. The
+  charger, discharger and energy now each use their own, as in the
+  solved model; a battery whose store outlives its inverter was
+  overpriced.
 
 - Auxiliary flows (`aeff`) of a process were lost when it gave the
   coefficient for all timeslices and another process gave the same

@@ -106,6 +106,8 @@ object's own unit (or <code>"capacity factor"</code> if unset).</p>
 <span>  datetime <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  angle <span class="op">=</span> <span class="fl">45</span>,</span>
 <span>  region <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  group <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  facet <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -162,6 +164,20 @@ character vector names them; a single number takes that many, in the order
 they appear. Useful on converted continental models, where a weather factor
 can carry dozens of regions and faceting on all of them leaves the panels
 unreadable.</p></dd>
+
+
+<dt id="arg-group">group<a class="anchor" aria-label="anchor" href="#arg-group"></a></dt>
+<dd><p>Column driving the line/area colour (line and area styles).
+<code>NULL</code> (default) picks the first key column that varies within a
+(region, year, timeslice) cell – <code>cluster</code> on a clustered weather
+factor – and falls back to the coarse calendar level. A line always
+connects one series only, whatever this is set to.</p></dd>
+
+
+<dt id="arg-facet">facet<a class="anchor" aria-label="anchor" href="#arg-facet"></a></dt>
+<dd><p>Faceting column(s), overriding the default of <code>region</code> and
+<code>year</code>. Set <code>facet = "cluster"</code> with <code>group = "region"</code> to swap the
+two, or <code>facet = character(0)</code> to draw a single panel.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

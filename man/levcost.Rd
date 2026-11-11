@@ -13,7 +13,7 @@
 \usage{
 levcost(object, comm, name, ...)
 
-\S4method{levcost}{storage}(object, comm, name, ...)
+\S4method{levcost}{storage}(object, comm, name, by_variant = FALSE, by_region = FALSE, ...)
 
 \S4method{levcost}{trade}(object, comm, name, ...)
 
@@ -127,7 +127,7 @@ tables attached to \code{scenario@misc}.}
 \item{\code{verbose}}{Logical, default \code{TRUE}.}
 }}
 
-\item{by_variant}{for a technology declaring vintages or clusters: \code{FALSE}
+\item{by_variant}{for a technology or storage declaring vintages or clusters: \code{FALSE}
 (default) returns the result object; \code{TRUE} (= \code{"levcost"}), \code{"npv"} or
 \code{"components"} returns that per-variant table instead. Passing an existing
 result — \code{levcost(lc, by_variant = "npv")} — extracts without re-solving.}
@@ -138,7 +138,7 @@ regions it spans. \code{TRUE} prices it once PER region and returns a
 efficiency vary by region actually has. levcost() builds a single-region
 mini-model, so without this a multi-region process reports only its first
 region's cost. On a container the entries are named \verb{<process>@<region>}.
-A \code{trade} is unaffected: it spans two regions by construction and is
+A \code{storage} is priced the same way. A \code{trade} is unaffected: it spans two regions by construction and is
 priced across both at once.}
 }
 \value{

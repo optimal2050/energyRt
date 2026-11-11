@@ -28,6 +28,8 @@ plot_weather(
   datetime = FALSE,
   angle = 45,
   region = NULL,
+  group = NULL,
+  facet = NULL,
   ...
 )
 
@@ -85,6 +87,20 @@ autoplot(
   appear. Useful on converted continental models, where a weather factor
   can carry dozens of regions and faceting on all of them leaves the
   panels unreadable.
+
+- group:
+
+  Column driving the line/area colour (line and area styles). `NULL`
+  (default) picks the first key column that varies within a (region,
+  year, timeslice) cell – `cluster` on a clustered weather factor – and
+  falls back to the coarse calendar level. A line always connects one
+  series only, whatever this is set to.
+
+- facet:
+
+  Faceting column(s), overriding the default of `region` and `year`. Set
+  `facet = "cluster"` with `group = "region"` to swap the two, or
+  `facet = character(0)` to draw a single panel.
 
 - ...:
 
