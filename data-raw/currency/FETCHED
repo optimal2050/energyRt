@@ -1,0 +1,9 @@
+fetched: 2026-11-12
+source: World Bank World Development Indicators
+licence: CC BY 4.0 -- https://datacatalog.worldbank.org/public-licenses
+attribution: The World Bank: World Development Indicators
+note: PA.NUS.FCRF credits IMF International Financial Statistics
+
+PA.NUS.FCRF  fx  rows=17226  years=1960-2025
+NY.GDP.DEFL.ZS  gdp  rows=17226  years=1960-2025
+FP.CPI.TOTL  cpi  rows=17226  years=1960-2025

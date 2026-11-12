@@ -68,37 +68,47 @@ test_that("every calling convention in the wild is honoured", {
   expect_null(attributes(convert("MWh", "kWh")))
 })
 
-test_that("currency spellings all resolve to their documented rate", {
+test_that("every currency spelling resolves to its code's rate times its scale", {
+  # The rates are GENERATED from `currency_fx` at its base year, so this
+  # asserts the relation rather than numbers that move at every refresh.
+  y <- attr(currency_fx, "base_year")
+  at <- currency_fx[currency_fx$year == y, ]
+  for (i in seq_len(nrow(currency_codes))) {
+    sp <- currency_codes$spelling[i]
+    r <- at$lcu_per_usd[at$code == currency_codes$code[i]]
+    expect_length(r, 1L)
+    expect_equal(convert(sp, "USD"), currency_codes$scale[i] / r, info = sp)
+  }
+  # anchors a regenerated table must never move
   expect_equal(convert("USD", "USD"), 1)
   expect_equal(convert("cents", "USD"), 0.01)
   expect_equal(convert("mills", "USD"), 0.001)
-  expect_equal(convert("EUR", "USD"), 1.1)
-  expect_equal(convert("Euro", "USD"), 1.1)
-  expect_equal(convert("INR", "USD"), 0.0121)
-  expect_equal(convert("JPY", "USD"), 1 / 140, tolerance = 1e-12)
-  expect_equal(convert("Japanese yen", "USD"), 1 / 140, tolerance = 1e-12)
-  expect_equal(convert("CNY", "USD"), 1 / 7.15, tolerance = 1e-12)
-  expect_equal(convert("RMB", "USD"), 1 / 7.15, tolerance = 1e-12)
-  expect_equal(convert("Chinese yuan", "USD"), 1 / 7.15, tolerance = 1e-12)
   expect_equal(convert("MUSD", "USD"), 1e6)
-  expect_equal(convert("MEUR", "MUSD"), 1.1)
-  expect_equal(convert("€", "USD"), 1.1)
-  expect_equal(convert("₹", "USD"), 0.0121)
-  expect_equal(convert("円", "USD"), 1 / 140, tolerance = 1e-12)
-  expect_equal(convert("元", "USD"), 1 / 7.15, tolerance = 1e-12)
+  # Direction. A euro buys more than a dollar and a yen buys less, so these
+  # fail if `lcu_per_usd` is ever read as USD-per-unit -- the one error in this
+  # subsystem that produces plausible-looking numbers.
+  expect_gt(convert("EUR", "USD"), 1)
+  expect_lt(convert("JPY", "USD"), 1)
+  # One published value, so a wholesale swap of the table is caught: the 2020
+  # euro averaged 1.1422 USD.
+  f20 <- currency_fx$lcu_per_usd[currency_fx$code == "EUR" &
+                                   currency_fx$year == 2020]
+  expect_equal(1 / f20, 1.1422, tolerance = 1e-3)
 })
 
-test_that("the crore-INR family is internally consistent", {
-  # 1 crore = 1e7, so every spelling must equal 1e7 x the INR rate. Today that
-  # holds only by hand-arithmetic in the shipped data -- nothing enforces it,
-  # which is the bug the alias_of/scale migration is meant to make impossible.
-  crore <- c("crore_INR", "cr.INR", "cr. INR", "crore INR", "INR (in cr.)",
-             "cr. ₹", "cr.₹", "crore ₹")
+test_that("the crore-INR family is derived rather than copied", {
+  # 1 crore = 1e7, so every crore spelling must equal 1e7 x the INR rate. This
+  # now holds by construction: `currency_codes` gives each spelling a code and
+  # a scale, and the coefficient is scale / rate. Before, the eight spellings
+  # carried eight independent copies of one hand-typed number with nothing
+  # relating them to INR at all.
+  crore <- currency_codes$spelling[currency_codes$code == "INR" &
+                                     currency_codes$scale == 1e7]
+  expect_length(crore, 8L)
   for (u in crore) {
-    expect_equal(convert(u, "USD"), 121000, info = u)
     expect_equal(convert(u, "USD"), 1e7 * convert("INR", "USD"), info = u)
+    expect_equal(convert(u, "MUSD"), 10 * convert("INR", "USD"), info = u)
   }
-  expect_equal(convert("crore INR", "MUSD"), 0.121)
 })
 
 test_that("vignette call sites produce their published values", {
@@ -219,9 +229,10 @@ test_that("KNOWN-WRONG: the parser treats unit names as regex and evals them", {
   # eval(parse())s it, so any name with a regex metacharacter detonates.
   expect_error(convert("USD/gal (US)", "USD/L"), "could not find function")
                                                  # FIXME: 1 / 3.785411784
-  expect_error(convert("INR (in cr.)/PJ", "MUSD/PJ"), "unexpected") # FIXME: 0.121
+  expect_error(convert("INR (in cr.)/PJ", "MUSD/PJ"), "unexpected")
+                                      # FIXME: 10 x the INR rate, per MUSD
   # ...while the same spelling resolves standalone
-  expect_equal(convert("INR (in cr.)", "USD"), 121000)
+  expect_equal(convert("INR (in cr.)", "USD"), 1e7 * convert("INR", "USD"))
 })
 
 test_that("KNOWN-WRONG: prefix/unit collisions and missing prefixes", {

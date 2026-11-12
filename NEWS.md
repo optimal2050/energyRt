@@ -86,6 +86,18 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   stay a `factor` either way — the relation is reciprocal for a temperature and
   direct for other measures, so it is not derived.
 
+* Exchange rates and deflators ship as data: `currency_fx` (one rate per
+  currency and year), `currency_deflator` (price indices on a GDP or a CPI
+  basis, for moving money between years) and `currency_codes` (every spelling
+  `convert()` accepts, resolved to an ISO code and a scale). All three are
+  built by `data-raw/currency.R` from World Bank series, which also generates
+  the currency rates in `convert_data` -- those were typed by hand before and
+  could not be rebuilt.
+
+  `attr(currency_fx, "base_year")` is the year untagged money is read at.
+  A crore or a cent is now derived from its currency's rate through `scale`,
+  rather than carrying its own copy of a number.
+
 * `aggregate_model_regions(resolve_conflicts = )` decides what happens to a
   value with no merged form, such as a lifetime or a levy rate. The default
   stops and names the object, the column and the regions that disagree;
@@ -422,6 +434,13 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   and `defVal = 0` equals the catalogue default and so records nothing. The
   three slots were **inert**: nothing read a levy's, and a weather's reached no
   parameter, so this gives them the effect they always described.
+
+* **The currency rates in `convert_data` moved.** They were undated and not
+  all from the same year -- a euro rate from one year sat beside a yen rate
+  from another -- and are now generated from `currency_fx` at one declared
+  base year. `convert("MEUR", "MUSD")` and every other cross-currency
+  conversion returns a different number; conversions within one currency,
+  such as `convert("EUR/kW", "MEUR/GW")`, are unaffected.
 
 * **`config@currency` is gone, folded into `config@units$currency`.** The model
   declares its generic units in one slot, with the same column names an object

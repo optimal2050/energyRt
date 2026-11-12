@@ -1,0 +1,31 @@
+Third-party content distributed with energyRt
+=============================================
+
+energyRt itself is licensed under the Apache License (>= 2); see LICENSE.
+The following bundled data is covered by other terms.
+
+World Bank World Development Indicators
+---------------------------------------
+
+Datasets: currency_fx, currency_deflator, and the Currency rates in
+          convert_data
+
+Series:   PA.NUS.FCRF     official exchange rate, LCU per US$, period average
+          NY.GDP.DEFL.ZS  GDP deflator
+          FP.CPI.TOTL     consumer price index
+
+Attribution: The World Bank: World Development Indicators
+
+Licence:  Creative Commons Attribution 4.0 International (CC BY 4.0)
+          https://datacatalog.worldbank.org/public-licenses
+          https://data.worldbank.org/summary-terms-of-use
+
+Note:     PA.NUS.FCRF credits IMF International Financial Statistics as its
+          own source.
+
+The World Bank does not endorse this package or its use of the data, and
+makes no warranties with respect to the data. The same attribution
+requirement passes to anyone redistributing this data onward.
+
+The pull date and per-series row counts are recorded in
+data-raw/currency/FETCHED, which is not shipped in the package build.

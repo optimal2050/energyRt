@@ -39,7 +39,7 @@ Suggests: shiny, DT, pak, knitr, rmarkdown, sf, ggplot2,
         testthat (>= 3.0.0), devtools, openxlsx, jsonlite, readxl,
         httr2, xml2, base64enc, tinytex, patchwork,
         waldo, withr, mmcloud, DBI, RSQLite, multimod, ps, energypal,
-        nestedscales, glpsol
+        nestedscales, glpsol, countrycode
 Remotes: optimal2050/geoscales, optimal2050/timescales,
         optimal2050/energypal,
         optimal2050/nestedscales
@@ -99,6 +99,7 @@ Collate:
     'compare_values.R'
     'config_file.R'
     'convert.R'
+    'currency-data.R'
     'currency.R'
     'data.R'
     'data2slots.R'
