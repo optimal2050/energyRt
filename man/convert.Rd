@@ -8,9 +8,29 @@
 \alias{add_to_convert}
 \title{Convert units}
 \usage{
-\S4method{convert}{character}(from, to, x = 1, database = "base", ...)
+\S4method{convert}{character}(
+  from,
+  to,
+  x = 1,
+  database = "base",
+  currency_route = "deflate_then_fx",
+  basis = "gdp",
+  from_year = NULL,
+  to_year = NULL,
+  ...
+)
 
-\S4method{convert}{numeric}(x = 1, from, to, database = "base", ...)
+\S4method{convert}{numeric}(
+  x = 1,
+  from,
+  to,
+  database = "base",
+  currency_route = "deflate_then_fx",
+  basis = "gdp",
+  from_year = NULL,
+  to_year = NULL,
+  ...
+)
 
 \S4method{add_to_convert}{character,character,numeric}(
   type,
@@ -31,6 +51,18 @@
 
 \item{database}{character name of a database with units (\code{base} by default, other options are not implemented yet).}
 
+\item{currency_route}{how to combine the exchange rate with the deflators:
+\code{"deflate_then_fx"} (the default) deflates in the source currency and
+converts at the target year, which is the World Bank and IPCC convention;
+\code{"fx_then_deflate"} converts at the source year and deflates in the
+target currency; \code{"both"} returns one value per route, named.}
+
+\item{basis}{which price index deflates, \code{"gdp"} (the default) or \code{"cpi"}.
+Technology cost data is often published on a CPI basis.}
+
+\item{from_year, to_year}{the currency year, as an alternative to writing it
+into the unit. \code{convert(1, "MEUR", "MUSD", from_year = 2015, to_year = 2020)} is \code{convert(1, "MEUR2015", "MUSD2020")}.}
+
 \item{...}{currently ignored}
 
 \item{type}{character, type of the unit (one of "Energy", "Power", "Mass", "Time", "Length", "Area", "Pressure", "Density", "Volume", "Flow Rates", "Currency").}
@@ -47,20 +79,35 @@
 \code{TRUE} (default) replaces them and \code{FALSE} raises an error instead.}
 }
 \value{
-numeric vector with converted values
+numeric vector with converted values, or one value per route when
+\code{currency_route = "both"}.
 
 updated \code{convert_data} in the \code{.GlobalEnv}, the values will not update the package data.
 }
 \description{
-Convert units
-
-Add units to convert function
+A currency may carry a four-digit year -- \code{MEUR2015}, \code{MUSD2020} -- because
+money is the one unit whose value moves in time. Converting between two
+currency-years needs an exchange rate and a price index, and the two can be
+applied in either order: deflating in the source currency and converting at
+the target year is not the same as converting at the source year and
+deflating in the target currency. The gap between them IS the change in the
+real exchange rate over the interval, and \code{convert()} warns when it is
+material.
+}
+\details{
+Money with no year on either side is read at \code{\link[=currency_base_year]{currency_base_year()}} and
+behaves exactly as it always did.
 }
 \examples{
 convert("MWh", "kWh")
 convert("kWh", "MJ")
 convert("kWh/kg", "MJ/t", 1e-3)
 convert("cents/kWh", "USD/MWh")
+
+# money with a year
+convert(1, "MUSD2015", "MUSD2020")    # an inflation question
+convert(1, "MEUR2020", "MUSD2020")    # an exchange-rate question
+convert(1, "MEUR2015", "MUSD2020", currency_route = "both")
 convert(1000, "kWh", "MWh")
 convert("kWh", "MJ")
 convert(1, "kWh/kg", "MJ/t")
