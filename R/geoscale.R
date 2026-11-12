@@ -71,7 +71,7 @@ NULL
 #'
 #' @family geoscale
 #' @name setGeoscale
-#' @aliases setGeoscale getGeoscale getCalendar setCalendar
+#' @aliases setGeoscale getGeoscale
 NULL
 
 #' @rdname setGeoscale
@@ -110,17 +110,17 @@ setMethod("getGeoscale", signature(obj = "scenario"), function(obj, ...) {
 # `getCalendar` was declared as a generic in generics.R but never given a
 # method, so `getCalendar(mod)` failed. Added here alongside its spatial twin.
 
-#' @rdname setGeoscale
+#' @rdname setCalendar
 #' @export
 setMethod("getCalendar", signature(obj = "config"), function(obj) obj@calendar)
 
-#' @rdname setGeoscale
+#' @rdname setCalendar
 #' @export
 setMethod("getCalendar", signature(obj = "model"), function(obj) {
   obj@config@calendar
 })
 
-#' @rdname setGeoscale
+#' @rdname setCalendar
 #' @export
 setMethod("getCalendar", signature(obj = "scenario"), function(obj) {
   obj@settings@calendar

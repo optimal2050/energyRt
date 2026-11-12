@@ -256,12 +256,25 @@ newHorizon <- function(
     intervals$start[2] <- intervals$end[1] + 1L
     intervals$mid[2] <- intervals$start[1] + 1L
     intervals$label[2] <- NA_character_
+    # Rebuilt column by column to coerce the four it owns, so anything ELSE on
+    # the table has to be carried over explicitly or it is dropped here and
+    # nowhere else: `.check_intervals()` ignores unknown columns and
+    # `.fill_interval_labels()` preserves them. `calendar` is the live case --
+    # a per-year calendar assignment would vanish on a horizon that forces its
+    # base-year interval to one year.
+    .extra <- setdiff(names(intervals), c("start", "mid", "end", "label"))
+    .keep <- if (length(.extra)) {
+      as.data.table(intervals)[, .extra, with = FALSE]
+    } else {
+      NULL
+    }
     intervals <- data.table(
       start = as.integer(intervals$start),
       mid = as.integer(intervals$mid),
       end = as.integer(intervals$end),
       label = as.character(intervals$label)
     )
+    if (!is.null(.keep)) intervals <- cbind(intervals, .keep)
     intervals <- intervals[order(start)]
     .check_intervals(intervals) # double-check
   }
@@ -374,6 +387,23 @@ setMethod("update", "horizon", function(object, ..., warn_nodata = TRUE) {
   # columns' class
   for (i in c("start", "mid", "end")) {
     .check_integer(x[[i]], paste0(": intefvals$", i))
+  }
+
+  # `calendar` is optional: it names the calendar a milestone is solved on,
+  # resolved against `config@misc$calendars` at interpolation. NA (or an absent
+  # column) means the model calendar, which is every horizon written before
+  # per-year calendars existed. The NAME is not checked here -- a horizon does
+  # not know the config it will join -- only the shape.
+  if (!is.null(x[["calendar"]])) {
+    cl <- x[["calendar"]]
+    if (!is.character(cl) && !all(is.na(cl))) {
+      stop("`intervals$calendar` must be a character column of calendar names")
+    }
+    cl <- as.character(cl)
+    if (any(!is.na(cl) & !nzchar(trimws(cl)))) {
+      stop("`intervals$calendar` must not contain empty strings; use NA for ",
+           "the model calendar")
+    }
   }
 
   # `label` is optional on input and filled from `mid` when absent; NA is

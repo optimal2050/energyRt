@@ -27,6 +27,36 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* **A milestone year can be solved on a sample of the model calendar.** Hourly
+  where the investment decisions land, cheaper in the years that only carry
+  the trajectory between them:
+
+  ```r
+  mod <- setCalendar(mod, calendars$d365_h24_1dpm, years = 2040)
+  getYearCalendars(mod)
+  ```
+
+  The horizon names a calendar per milestone (`horizon@intervals$calendar`)
+  and the calendars themselves live in `config@misc$calendars`; an absent
+  column is one calendar for every year, as before. A year's calendar must be
+  a *sample* of the model's -- the same timeframe levels, slices from the same
+  universe, the same `share` per slice -- which `setCalendar()` checks, naming
+  the level or slice at fault. Each year's weights come from its own calendar,
+  so every year still annualises exactly, and the variable and equation
+  domains carry only the slices their year has. `fold` may not include the
+  timeslice axis while a per-year calendar is declared.
+
+* `sample_calendar()` is exported: it builds a calendar from a subset of
+  another's timeslices, keeping the parent's names, levels and shares and
+  carrying the weights that annualise. It was internal to
+  `solve_by_sample()`. `timescales::filter_calendar()` is the same operation
+  on a `timescales::Calendar`.
+
+* `setCalendar()` gained `model` and `scenario` methods, and accepts a
+  `calendar` object. Both were documented from 0.92 but neither existed: the
+  only method took `newCalendar()`'s arguments, so passing a calendar -- the
+  form the help page showed -- failed on the name assertion.
+
 * **Money carries a year.** `convert(1, "MEUR2015", "MUSD2020")` is an
   exchange-rate question and an inflation question at once, and the two routes
   through it -- deflate then convert, or convert then deflate -- do not agree:
@@ -448,6 +478,11 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Breaking changes
 
+* `setCalendar()`'s first argument after the object is now `calendar`, which
+  takes a calendar object. Passing `newCalendar()`'s arguments by name
+  (`setCalendar(cfg, name = , timetable = )`) is unchanged; passing them
+  positionally is not.
+
 * **A model's currency and an object's are reconciled, not merely compared.**
   An object priced in another currency used to be an error at `newModel()`;
   where `convert()` can answer it, it is now converted at interpolation and
@@ -582,6 +617,17 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   rule at the last given year and a caption naming the states.
 
 ## Bug fixes
+
+* `pYearFraction` is the fraction of the year a milestone's timeslices cover,
+  read from that year's calendar. It came from `settings@yearFraction` -- a
+  slot deprecated as unwired -- whose single row was recycled across the year
+  rows rather than joined on `year`, so it reported 1 however the calendar was
+  sampled. No equation reads the parameter today, but all four backends
+  declare it.
+
+* `newHorizon()` kept every column of an `intervals` table except on the path
+  that forces the base-year interval to one year, which rebuilt the table from
+  a fixed four columns and dropped the rest.
 
 * A resource grade declares the regions it exists in, so narrowing a model's
   regions can delete a grade outright. `subset_model_regions()` dropped the

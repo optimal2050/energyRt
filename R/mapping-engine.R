@@ -363,14 +363,25 @@ recipe_closure <- function(scen, names, fmp) {
   dplyr::bind_rows(rows)
 }
 
-# Timeslices of each process = the leaf timeslices of its operating (finest) timeframe.
+# Timeslices of each process = the leaf timeslices of its operating (finest)
+# timeframe, PER YEAR: `(process, year, timeslice)`.
+#
+# Two callers want opposite things from it. `.filter_timeslice()`
+# (mapping-filter.R) feeds the variable domains -- `mvTechAct`, `mvSupOut`,
+# `mvStorage*` -- which are keyed by year and must admit only the slices a year
+# has, so they merge on `year` and gate. `.proc_timeslice_map()`
+# (mapping-builders.R) feeds the membership maps, which are keyed by process
+# and timeslice only, so it projects `year` away and keeps the union over
+# years. Hence the year column lives here, once, rather than in either caller.
 .process_timeslice_df <- function(scen) {
   cal <- scen@settings@calendar
   # Rebuilt by each calendar-family builder; the table depends only on the
-  # object roster (timeframe slots are fixed for the run) and the calendar.
+  # object roster (timeframe slots are fixed for the run), the calendar, and
+  # the per-year calendar assignment.
   .interp_memo(
     key = "process_timeslice_df",
-    fingerprint = list(.interp_model_fp(scen), cal@name, cal@default_timeframe),
+    fingerprint = list(.interp_model_fp(scen), cal@name, cal@default_timeframe,
+                       .year_calendar_names(scen)),
     compute = function() {
       frames <- cal@timeframes
       ptf    <- get_process_timeframe(scen)  # named list: process -> timeframe
@@ -381,7 +392,7 @@ recipe_closure <- function(scen, names, fmp) {
         if (length(sl) == 0) sl <- tf
         data.frame(process = p, timeslice = as.character(sl), stringsAsFactors = FALSE)
       })
-      dplyr::bind_rows(rows)
+      .by_year_slices(scen, dplyr::bind_rows(rows))
     }
   )
 }
@@ -1335,6 +1346,16 @@ recipe_value <- function(scen, names, fmp) {
   }
   snext_pf <- gdf("mTimesliceNext")       # cycle closes within the parent timeframe
   snext_fy <- gdf("mTimesliceFYearNext")  # cycle closes over the whole year
+  # A year solved on a sample of the model calendar closes its cycle within
+  # the sample: two seasons chain S1 -> S2 -> S1, where the model calendar
+  # would say S1 follows S4. Reading the year-less maps there pairs the level
+  # at S1 with a predecessor the year does not have, and the left join below
+  # then yields an NA predecessor -- an unconstrained level, which is free
+  # energy reported as OPTIMAL. NULL unless a milestone names a calendar.
+  .ys_pf <- .year_successor_df(scen, "next_in_timeframe")
+  .ys_fy <- .year_successor_df(scen, "next_in_year")
+  if (!is.null(.ys_pf)) snext_pf <- .ys_pf
+  if (!is.null(.ys_fy)) snext_fy <- .ys_fy
   if (is.null(snext_pf) && is.null(snext_fy)) return(scen)
 
   # Per-storage fullYear flag.
@@ -1369,9 +1390,15 @@ recipe_value <- function(scen, names, fmp) {
 
   join_prev <- function(df, nextmap) {
     if (is.null(nextmap) || nrow(df) == 0) return(NULL)
+    # per-year relation: match within the year as well, so a slice takes the
+    # predecessor its OWN year has
+    by <- if ("year" %in% colnames(nextmap) && "year" %in% colnames(df)) {
+      c("year", timeslice = "timeslicep")
+    } else {
+      c(timeslice = "timeslicep")
+    }
     df |>
-      dplyr::left_join(nextmap, by = c(timeslice = "timeslicep"),
-                       suffix = c(".x", ".y")) |>
+      dplyr::left_join(nextmap, by = by, suffix = c(".x", ".y")) |>
       dplyr::rename(timeslicep = "timeslice.y")
   }
   fy_part <- if (length(fy_stg) > 0) {
@@ -1684,6 +1711,10 @@ recipe_value <- function(scen, names, fmp) {
   mvTechAct   <- gdf("mvTechAct")
   timesliceNextFY <- gdf("mTimesliceFYearNext")
   timesliceNext   <- gdf("mTimesliceNext")
+  .ys_fy <- .year_successor_df(scen, "next_in_year")
+  .ys_pf <- .year_successor_df(scen, "next_in_timeframe")
+  if (!is.null(.ys_fy)) timesliceNextFY <- .ys_fy
+  if (!is.null(.ys_pf)) timesliceNext <- .ys_pf
 
   build_one <- function(scen, src_name, map_name) {
     if (!(map_name %in% names)) return(scen)
@@ -1705,7 +1736,15 @@ recipe_value <- function(scen, names, fmp) {
     if (nrow(m) == 0) return(.set_map(scen, map_name, NULL, fmp))
     join_next <- function(df, nextmap) {
       if (is.null(nextmap) || nrow(df) == 0) return(NULL)
-      dplyr::left_join(df, nextmap, by = "timeslice")
+      # as in the storage balance: a sampled year ramps within its own cycle,
+      # so the successor comes from that year's relation and no pair names a
+      # slice the year does not have
+      by <- if ("year" %in% colnames(nextmap) && "year" %in% colnames(df)) {
+        c("year", "timeslice")
+      } else {
+        "timeslice"
+      }
+      dplyr::left_join(df, nextmap, by = by)
     }
     fy_part <- if (length(fy_techs) > 0) {
       join_next(m[m$tech %in% fy_techs, , drop = FALSE], timesliceNextFY)

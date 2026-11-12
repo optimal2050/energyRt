@@ -1408,8 +1408,27 @@ setMethod(
                filter(pDiscountFactor, year %in% obj@parameters$year@data$year)
                # pDiscountFactor
       )
+    # `pYearFraction` is the fraction of the year a milestone's timeslices
+    # cover: 1 on a full calendar, less where the year is solved on a SAMPLE
+    # of one (0.5 for two of four seasons).
+    #
+    # It used to be filled from `settings@yearFraction` -- a slot deprecated
+    # as "experimental, unwired" (interpolation.R warns on any attempt to set
+    # it) whose one-row prototype `(year = NA, fraction = 1)` was RECYCLED
+    # across the year rows rather than joined on `year`. So it read 1 for
+    # every year however the calendar was sampled, and a second row would
+    # have misaligned the years silently. The calendar is where the number
+    # lives, and with a calendar per milestone each year has its own.
     pYearFraction <- .get_data_slot(obj@parameters$year)
-    pYearFraction$value <- app@yearFraction$fraction
+    .yfd <- tryCatch(.year_fraction_df(scen), error = function(e) NULL)
+    if (!is.null(.yfd)) {
+      v <- .yfd$fraction[match(as.integer(pYearFraction$year),
+                               as.integer(.yfd$year))]
+      v[!is.finite(v)] <- 1
+      pYearFraction$value <- v
+    } else {
+      pYearFraction$value <- 1
+    }
     obj@parameters[["pYearFraction"]] <-
       .dat2par(obj@parameters[["pYearFraction"]], pYearFraction)
     scen@modInp <- obj

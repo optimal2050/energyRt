@@ -37,7 +37,18 @@
 # The table is written for the builders that read it; the rule (R/map-rules.R)
 # is recorded beside it and defines the map once the tables are stripped.
 .proc_timeslice_map <- function(scen, name, cls, key, fmp) {
-  scen <- .set_cal(scen, name, .proc_timeslice_for(.process_timeslice_df(scen), get_process_class(scen), cls, key), fmp)
+  # `.process_timeslice_df()` is per year; a membership map is not. It answers
+  # "can this process ever have this timeslice", the union over years, which is
+  # how every template uses it -- always conjoined with a year-keyed domain.
+  # The year gate lives in those domains (`mvTechAct` and friends), so the
+  # column is dropped here rather than widening nine maps and every reference
+  # to them in four solver templates.
+  df <- .proc_timeslice_for(.process_timeslice_df(scen),
+                            get_process_class(scen), cls, key)
+  if (!is.null(df) && "year" %in% names(df)) {
+    df <- dplyr::distinct(df[, setdiff(names(df), "year"), drop = FALSE])
+  }
+  scen <- .set_cal(scen, name, df, fmp)
   .set_map_rule(scen, name, .proc_timeslice_rule(scen, cls, key))
 }
 map_mCommTimeslice  <- function(scen, fmp) {

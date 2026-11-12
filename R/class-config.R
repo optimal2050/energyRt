@@ -161,12 +161,69 @@ setMethod("initialize", "config", function(.Object, ...) {
 })
 
 ## setCalendar ###############################################################
-#' @rdname setGeoscale
+#' @rdname setCalendar
 #' @export
-setMethod("setCalendar", signature(obj = "config"), function(obj, ...) {
-  obj@calendar <- newCalendar(...)
-  obj
+setMethod("setCalendar", signature(obj = "config"),
+          function(obj, calendar = NULL, years = NULL, ...) {
+  .set_calendar_on(obj, calendar, years, ...)
 })
+
+# The one implementation behind the three methods.
+#
+# `calendar` takes a calendar OBJECT -- which is what `calendars$d365_h24` and
+# `calendar_samples()` hand you, and what `timeslices.R` has documented all
+# along -- or is left out, in which case `...` builds one through
+# `newCalendar()`, the only thing this used to accept.
+#
+# With `years`, the calendar is not the model's: it is registered in
+# `misc$calendars` and named on those milestone rows of the horizon, which is
+# the per-year assignment. Validated at once, because a mismatch found here
+# names the call that made it.
+#' @noRd
+.set_calendar_on <- function(obj, calendar = NULL, years = NULL, ...) {
+  cal <- if (methods::is(calendar, "calendar")) calendar else {
+    if (!is.null(calendar)) {
+      stop("`calendar` must be a calendar object (see `calendars`), or left ",
+           "out to build one from the remaining arguments.", call. = FALSE)
+    }
+    newCalendar(...)
+  }
+  if (is.null(years)) {
+    obj@calendar <- cal
+    return(obj)
+  }
+  years <- as.integer(years)
+  if (!length(years) || anyNA(years)) {
+    stop("`years` must be one or more milestone years.", call. = FALSE)
+  }
+  nm <- cal@name
+  if (!length(nm) || is.na(nm) || !nzchar(nm)) {
+    stop("a calendar assigned to particular years needs a name, which is how ",
+         "the horizon refers to it: newCalendar(name = ...) or ",
+         "calendar_samples(..., name = ...).", call. = FALSE)
+  }
+  iv <- data.table::as.data.table(obj@horizon@intervals)
+  if (!nrow(iv)) {
+    stop("the horizon has no intervals, so there are no years to assign to.",
+         call. = FALSE)
+  }
+  mid <- as.integer(iv$mid)
+  unknown <- setdiff(years, mid)
+  if (length(unknown)) {
+    stop("not a milestone year of this horizon: ",
+         paste(unknown, collapse = ", "), "
+The milestones are ",
+         paste(mid, collapse = ", "), ".", call. = FALSE)
+  }
+  if (is.null(iv[["calendar"]])) iv$calendar <- NA_character_
+  iv$calendar[mid %in% years] <- nm
+  obj@horizon@intervals <- iv
+  reg <- if (is.list(obj@misc$calendars)) obj@misc$calendars else list()
+  reg[[nm]] <- cal
+  obj@misc$calendars <- reg
+  .check_year_calendars(obj)
+  obj
+}
 
 ## setGeoscale / getGeoscale ##################################################
 #' @param geoscale a `geoscales::GeoScale` object, or `NULL` to clear it.

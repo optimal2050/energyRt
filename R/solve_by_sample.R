@@ -22,7 +22,7 @@
 #
 # Samples keep the full calendar's timeslice names. A selection need not be a
 # complete cross: the constructor builds an irregular calendar from the rows
-# chosen, and `.sample_calendar()` names its timeslices after the full
+# chosen, and `sample_calendar()` names its timeslices after the full
 # calendar, so a label that becomes unique in the sample is not shortened.
 # `calendar_samples()` still draws whole members of `level`.
 # =============================================================================#
@@ -214,7 +214,59 @@ calendar_samples <- function(calendar, level = NULL, sample_size = NULL,
 # One sample's calendar. Never drops a level: a level left with a single member
 # would be re-derived away by .complete_calendar(), renaming the leaves and
 # detaching the model's data from them.
-.sample_calendar <- function(cal, slices, counts = NULL, name = "sample") {
+#' Build a calendar from a sample of another's timeslices
+#'
+#' @description
+#' Returns a calendar holding only the chosen timeslices of `cal`, with the
+#' weights that make it annualise: a sample covering half the year weighs each
+#' of its slices twice. Used to solve a model, or one of its milestone years,
+#' on part of the calendar rather than all of it.
+#'
+#' @details
+#' A sample keeps the parent's timeslice NAMES, its timeframe levels and its
+#' `share` per slice. Only membership and `weight` change, so a model keyed on
+#' the parent's labels still matches, and `sum(share * weight)` is 1 per level
+#' as in any calendar.
+#'
+#' At least two members must survive at every level below the year. Dropping a
+#' level instead re-derives the leaf names -- `WIN_h00` becomes `h00` -- after
+#' which the model's data matches nothing and the result solves to zero without
+#' complaint. That is refused rather than attempted, naming the level at fault.
+#'
+#' `counts` carries a bootstrap repeat: a slice drawn twice cannot be a
+#' repeated row, since a calendar holds each timeslice once, so the repetition
+#' becomes a scaled `share`.
+#'
+#' `timescales::filter_calendar()` is the same operation on a
+#' `timescales::Calendar`, selecting by timeframe and label and recording the
+#' parent and the coverage in the object's metadata. This one works on
+#' energyRt's own calendar class, which is why it exists separately: timescales
+#' is a Suggests-only relationship, consulted when the shipped calendars are
+#' built and never at runtime.
+#'
+#' @param cal a `calendar` to sample.
+#' @param slices the timeslices to keep. Any level: a leaf set, or coarser
+#'   members with every finer slice beneath them.
+#' @param counts optional named integer vector of repeat counts per timeslice,
+#'   for a draw with replacement.
+#' @param name name for the sampled calendar. A calendar assigned to
+#'   particular years with [setCalendar()] needs one, since the horizon refers
+#'   to it by name.
+#' @return A `calendar` covering part of the year, with
+#'   `@year_fraction` set to the surviving `sum(share)`.
+#' @seealso [calendar_samples()] to plan a set of draws,
+#'   [solve_by_sample()] to solve them as replicates, and [setCalendar()] to
+#'   give one to particular milestone years.
+#' @export
+#' @examples
+#' cal <- calendars$s4_h24
+#' # two of the four seasons, with every hour beneath them
+#' smp <- sample_calendar(cal, grep("^(WIN|SUM)", cal@timeslice_share$timeslice,
+#'                                  value = TRUE), name = "half")
+#' smp@year_fraction
+#' # share is the parent's; weight annualises
+#' head(smp@timeslice_share, 3)
+sample_calendar <- function(cal, slices, counts = NULL, name = "sample") {
   tt <- data.table::as.data.table(cal@timetable)
   keep <- as.character(tt$timeslice) %in% slices
   if (!any(keep)) {
@@ -436,7 +488,7 @@ solve_by_sample <- function(object, name = NULL, ...,
               nrow(rows), " slice(s)", if (nzchar(sfx)) ", floored" else "", ")")
     }
     sol <- tryCatch({
-      cal_k <- .sample_calendar(cal, rows$timeslice, counts = cnt,
+      cal_k <- sample_calendar(cal, rows$timeslice, counts = cnt,
                                name = paste0("cs_", sid))
       args <- c(list(mod, name = name), extra,
                 list(cal_k, path = seq_path, overwrite = TRUE),

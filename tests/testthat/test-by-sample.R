@@ -77,23 +77,23 @@ test_that("calendar_samples refuses a sample that would collapse a level", {
   expect_true(all(sizes >= 2 * 24))
 })
 
-test_that(".sample_calendar keeps two members and the chosen slices", {
+test_that("sample_calendar keeps two members and the chosen slices", {
   cal <- bs_cal()
   leaf <- bs_leaf()
 
   # one season collapses SEASON
-  expect_error(.sample_calendar(cal, grep("^WIN_", leaf, value = TRUE)),
+  expect_error(sample_calendar(cal, grep("^WIN_", leaf, value = TRUE)),
                "at least two members")
 
   # a ragged selection is an irregular calendar of exactly those slices
   ragged <- setdiff(leaf, "WIN_h00")
-  rc <- .sample_calendar(cal, ragged)
+  rc <- sample_calendar(cal, ragged)
   expect_identical(as.character(rc@timeframes[[length(rc@timeframes)]]),
                    ragged)
   expect_equal(sum(rc@timetable$share), rc@year_fraction)
 
   # two whole seasons are fine, and the leaf labels are preserved
-  ok <- .sample_calendar(cal, grep("^(WIN|SUM)_", leaf, value = TRUE))
+  ok <- sample_calendar(cal, grep("^(WIN|SUM)_", leaf, value = TRUE))
   expect_s4_class(ok, "calendar")
   expect_identical(length(as.character(
     ok@timeframes[[length(ok@timeframes)]])), 48L)
@@ -110,8 +110,8 @@ test_that("a bootstrap repeat becomes a scaled share", {
   two <- grep("^(WIN|SUM)_", leaf, value = TRUE)
   cnt <- stats::setNames(rep(1L, length(two)), two)
   cnt[grepl("^WIN_", names(cnt))] <- 2L            # winter drawn twice
-  c1 <- .sample_calendar(cal, two, counts = cnt)
-  base <- .sample_calendar(cal, two)
+  c1 <- sample_calendar(cal, two, counts = cnt)
+  base <- sample_calendar(cal, two)
   # doubling winter raises the year fraction by winter's own share
   expect_gt(c1@year_fraction, base@year_fraction)
   expect_identical(length(as.character(
@@ -384,7 +384,7 @@ test_that("`path =` alone no longer refuses a base", {
     interpolate_model(mod, name = "bs_pb_base"), verbose = FALSE))
   suppressMessages(seal_scenario(base, inputs = TRUE, outputs = FALSE,
                                  verbose = FALSE))
-  cal2 <- energyRt:::.sample_calendar(
+  cal2 <- sample_calendar(
     bs_cal(), utils::head(bs_leaf(), 48), name = "bs_pb_half")
 
   d <- suppressMessages(interpolate_model(

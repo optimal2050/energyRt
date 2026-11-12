@@ -76,7 +76,7 @@ test_that("a ragged sample keeps the full calendar's names", {
   cal <- suppressMessages(newCalendar(name = "irr", timetable = .irr_timetable()))
   # an uneven pick across days and months
   pick <- c("d001_h00", "d001_h12", "d002_h12", "d032_h00", "d033_h12")
-  sc <- .sample_calendar(cal, pick)
+  sc <- sample_calendar(cal, pick)
   expect_identical(sc@timeframes$HOUR, pick)
   expect_identical(sc@timeframes$YDAY, c("d001", "d002", "d032", "d033"))
   expect_identical(sc@timeframes$MONTH, c("m01", "m02"))

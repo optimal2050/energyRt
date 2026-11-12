@@ -166,6 +166,8 @@ reference:
   - tsl_sets
   - make_timetable
   - recast_model_calendar
+  - setCalendar
+  - getYearCalendars
   - autoplot.calendar
   - autoplot.horizon
   - year_label
@@ -259,6 +261,7 @@ reference:
   - recursive_objective
   - sequence_coverage
   - calendar_samples
+  - sample_calendar
   - sample_summary
   - boundary_window
   - guided_windows

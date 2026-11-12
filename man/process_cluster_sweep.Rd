@@ -77,6 +77,6 @@ Other geoscale:
 \code{\link[=get_process_groups]{get_process_groups()}},
 \code{\link[=gg_map]{gg_map()}},
 \code{\link[=model_clusters]{model_clusters()}},
-\code{\link{setCalendar,config-method}}
+\code{\link{setGeoscale,config-method}}
 }
 \concept{geoscale}

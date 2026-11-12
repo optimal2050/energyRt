@@ -12,7 +12,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
 Most models worth building are larger than the solver available to them. The
-usual response is to make the model smaller, and energyRt offers eight ways to
+usual response is to make the model smaller, and energyRt offers nine ways to
 do it. They are not interchangeable: each removes something different, and
 each pays for the saving in a different currency.
 
@@ -23,7 +23,7 @@ years, or merely the freedom to decide. *Whether any value is recomputed* — a
 reduction that only drops rows leaves every remaining number exactly as
 declared, while one that merges cells must combine values, and combining them
 is where meaning can be lost. *Whether the answer is still the full model's* —
-two of the eight reductions are exact, five approximate, and three of the
+two of the nine reductions are exact, six approximate, and three of the
 approximations report their own error.
 
 This article treats each reduction in the same six terms. A companion article,
@@ -94,6 +94,64 @@ blocks and covers it completely; `"random"` draws disjoint samples without
 replacement, so coverage may be partial; `"bootstrap"` draws with replacement,
 and a member drawn twice becomes a scaled share rather than a repeated row,
 because a calendar holds each timeslice once.
+
+## A calendar per milestone year
+
+- **Reduces** the number of timeslices in the years that name a cheaper
+  calendar, leaving the rest at the model's own. A pathway hourly in 2030 and
+  2050 and solved on twelve sampled days in 2040 carries 9126 slices in the
+  first two years and 301 in the third.
+- **Recomputes nothing.** A year's calendar must be a *sample* of the model's:
+  the same timeframe levels, slices drawn from the same universe, the same
+  `share` for a slice the two share. What differs is which slices a year has
+  and `pTimesliceWeight`, which carries that year's own weight, so each year
+  still annualises exactly. Rows outside a year's slices are dropped, not
+  averaged.
+- **Size** falls in proportion to the slices dropped, but only in the years
+  that drop them: the variable and equation domains are keyed by year, so a
+  sampled year contributes fewer dispatch, storage and flow cells while a full
+  year contributes all of its own.
+- **The answer is approximate in the sampled years alone.** Those years smooth
+  extremes exactly as a whole-model sample does, so peaking capacity and
+  storage are what suffer, while the years solved in full are untouched.
+  Investment decided in a sampled year still constrains the pathway, which is
+  the reason to keep the years where capacity is chosen at full resolution and
+  sample the ones that only carry the trajectory between them. Where the data
+  is symmetric across the sampled dimension the reduction is exact.
+- **Used for** long pathways whose intra-annual detail matters at the
+  milestones whose investment is being decided and not in between.
+- **Driven by** `setCalendar(mod, cal, years = )`, which registers the
+  calendar and names it on those milestones of the horizon;
+  `getYearCalendars()` reads back the calendar each milestone will be solved
+  on. `sample_calendar()` builds the sample where no shipped calendar is the
+  one wanted — `d365_h24_1dpm` below is a shipped sample of `d365_h24`, and
+  `timescales::filter_calendar()` is the same operation on a
+  `timescales::Calendar`. The sample must keep at least two members at every
+  level below the year:
+  a year may sample the model calendar but not coarsen it, because dropping a
+  level renames the leaf timeslices and the year's data would stop matching.
+  `setCalendar()` refuses anything that is not a sample, naming the level or
+  the slice at fault.
+
+```{r year_calendars}
+# hourly throughout, except 2040 on one sampled day per month
+hourly <- newModel("TOPIA_H", data = topia_elc$repo,
+                   calendar = calendars[["d365_h24"]],
+                   region   = topia_elc$regions,
+                   horizon  = topia$modules$horizons$BY2025_50_by10,
+                   discount = 0.05)
+hourly <- setGeoscale(hourly, topia_elc$geoscale)
+hourly <- setCalendar(hourly, calendars[["d365_h24_1dpm"]], years = 2040)
+
+# 2025, 2030 and 2050 on 9126 slices; 2040 on 301
+getYearCalendars(hourly)
+hourly@config@horizon@intervals[, c("mid", "calendar")]
+```
+
+Folding cannot include the timeslice axis while a milestone has a calendar of
+its own: a whole-column fold asserts that a value is uniform across every
+timeslice, and the years no longer share a timeslice set.
+`interpolate_model(fold = c("region", "year"))` remains available.
 
 ## Calendar coarsening
 
@@ -401,6 +459,7 @@ actually achieved, rather than what it was expected to achieve.
 | Is the base year measured rather than decided? | a given base year — exact, and usually the largest single win |
 | Does the question concern a few regions? | region subsetting — exact when nothing crosses the boundary |
 | Does the answer hinge on intra-annual detail? | coarsen the calendar, or sample it and report the spread |
+| Does it hinge on that detail in some years more than others? | a calendar per milestone year — full where the investment is decided |
 | Does it hinge on resource quality? | aggregate with clusters, never plainly |
 | Is the full horizon simply too large? | guided solving, whose gap is measurable; sequential only where foresight is genuinely absent |
 | Is the model merely slow to build or store? | `fold`, `sparse`, `prune`, `trim_parameters()` |
@@ -428,9 +487,12 @@ level. A model fine in two regions and coarse in the remaining forty-eight
 cannot yet be declared, although the refusals that stand in the way are all
 stated and none is fundamental.
 
-**Uneven resolution across time.** One calendar serves every milestone year.
-A pathway with 8760 hours in 2030, 2040 and 2050 and a twelve-day sample in
-2035 and 2045 cannot yet be declared.
+**A coarser year, rather than a sampled one.** A milestone may be solved on a
+sample of the model calendar (above), but not on a calendar with fewer
+timeframe levels: daily in 2035 where the model is hourly. Dropping a level
+re-derives the leaf timeslice names, after which the year's data matches
+nothing and it solves to zero without complaint, so the assignment is refused
+rather than attempted.
 
 **A boundary price taken from a solved model.** `boundary_window()` sizes a
 stub's quantity but refuses to invent its price, and nothing derives that

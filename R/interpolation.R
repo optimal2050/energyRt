@@ -522,6 +522,44 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   }
   scen@model <- object # keep scen@model in sync with the (possibly extended) model
 
+  # A milestone may name a calendar of its own, which must be a SAMPLE of the
+  # model calendar (same levels, slices from its universe, same share). Checked
+  # here because `scen@settings` now carries both halves -- the horizon with
+  # its `calendar` column and the registry in `misc$calendars`, copied slot for
+  # slot by `.config_to_settings()` -- and because every way of getting it
+  # wrong is silent downstream: an unregistered name leaves a year with no
+  # slices, a dropped level renames the leaves. `setCalendar(years =)` checks
+  # the same thing at assignment; this catches a horizon or settings object
+  # passed through `...`, and a model assembled by hand.
+  .check_year_calendars(scen)
+  # Folding a whole column over the timeslice axis asserts that the value is
+  # uniform across the WHOLE set -- which silently assumes every year has the
+  # same slices. Both fold layers (R/fold.R here, and multimod's) project a
+  # membership map onto a fixed pair of columns and would drop the year.
+  # Refused rather than folded wrongly; the saving a per-year calendar gives
+  # is the point of it, and folding on top is a later piece of work.
+  if (!is.null(.year_calendar_names(scen)) &&
+        (isTRUE(fold) || "timeslice" %in% as.character(fold))) {
+    stop("`fold` cannot include the timeslice axis while a milestone has a ",
+         "calendar of its own: a whole-column fold asserts the value is ",
+         "uniform across every timeslice, and the years no longer share a ",
+         "timeslice set.
+Use fold = FALSE, or fold = c(\"region\", ",
+         "\"year\").", call. = FALSE)
+  }
+  # A sampled year's weights are its own: a season standing for two seasons
+  # weighs 2, so that the year still annualises to one year. `obj2modInp.R`
+  # already prefers `calendar@misc$pTimesliceWeight` over broadcasting the
+  # year-less weight vector across every year, so filling that hook is the
+  # whole of it. Without this the membership gating alone would leave a
+  # sampled year with the full calendar's weight of 1 and it would silently
+  # count as a FRACTION of a year -- a wrong answer rather than an error,
+  # which is why the two land together.
+  .ytw <- .year_timeslice_weights(scen)
+  if (!is.null(.ytw)) {
+    scen@settings@calendar@misc$pTimesliceWeight <- .ytw
+  }
+
   # Costs priced in another currency are converted HERE, on the build copy,
   # now that the model is complete -- objects arriving through `...` are folded
   # in just above -- and before variant expansion clones them. `.model_given`
@@ -1448,6 +1486,11 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # op log above needs set_log_file(); this appends whenever a sink resolves.
   .interp_profile_log(scen, object, ondisk,
                       difftime(Sys.time(), .log_t0, units = "secs"))
+  # A year solved on a sample of the model calendar keeps only its own
+  # timeslices. Runs here because every map is built by now, and before the
+  # rule tables are stripped so a gated table is what a rule is verified
+  # against. A no-op when no milestone names a calendar of its own.
+  scen <- .filter_year_slices(scen, verbose = verbose)
   # maps defined by a rule keep the rule only (R/map-rules.R)
   scen <- .strip_rule_tables(scen, verbose = verbose)
   # the model as given; .scen_build_model() rebuilds the expanded copy

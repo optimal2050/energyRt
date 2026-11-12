@@ -754,7 +754,8 @@ getData.scenario <- function(
   # Sub-annual time aggregation (timeslice roll-up), see `timeframe` argument.
   if (length(ll) > 0) {
     cal <- tryCatch(object[[1]]@settings@calendar, error = function(e) NULL)
-    if (!is.null(cal)) ll <- .apply_timeframe(ll, cal, timeframe)
+    ycal <- tryCatch(getYearCalendars(object[[1]]), error = function(e) NULL)
+    if (!is.null(cal)) ll <- .apply_timeframe(ll, cal, timeframe, ycal)
   }
 
   # Spatial roll-up, see `geoframe`. Inert without a geoscale, and
@@ -1093,7 +1094,26 @@ getData.default <- function(object, ...) {
   left_join(x, tv, by = col)
 }
 
-.aggregate_timeframe_df <- function(df, calendar, target_rank) {
+.aggregate_timeframe_df <- function(df, calendar, target_rank,
+                                     year_calendars = NULL) {
+  # A milestone solved on a SAMPLE of the model calendar rolls up with its own
+  # weights. The ratio below is child-weight over target-weight, and a sampled
+  # season carries a larger weight than a full-calendar one (it stands for
+  # more of the year), so reading the model calendar's weights for every year
+  # would understate a sampled year's annual total by exactly its
+  # `year_fraction`. NULL -- no milestone naming a calendar -- skips this
+  # entirely, so nothing changes for a model that declares none.
+  if (!is.null(year_calendars) && nrow(df) &&
+        "year" %in% names(df) && length(unique(df$year)) > 1L) {
+    ys <- as.character(df$year)
+    if (any(ys %in% names(year_calendars))) {
+      pieces <- lapply(split(seq_len(nrow(df)), ys), function(i) {
+        cl <- year_calendars[[ys[i[1]]]] %||% calendar
+        .aggregate_timeframe_df(df[i, , drop = FALSE], cl, target_rank)
+      })
+      return(dplyr::bind_rows(pieces))
+    }
+  }
   if (is.na(target_rank)) {
     return(df)
   }
@@ -1272,7 +1292,8 @@ getData.default <- function(object, ...) {
 #   "highest" -> native (unchanged); "lowest" -> coarsest (ANNUAL);
 #   "all"     -> native + every coarser aggregate, stacked;
 #   <level>   -> aggregate to that named calendar level.
-.apply_timeframe <- function(ll, calendar, timeframe) {
+.apply_timeframe <- function(ll, calendar, timeframe,
+                             year_calendars = NULL) {
   if (length(ll) == 0) {
     return(ll)
   }
@@ -1291,7 +1312,8 @@ getData.default <- function(object, ...) {
       if (!("timeslice" %in% names(df)) || !("value" %in% names(df))) {
         return(df)
       }
-      pieces <- lapply(ranks, function(r) .aggregate_timeframe_df(df, calendar, r))
+      pieces <- lapply(ranks, function(r)
+        .aggregate_timeframe_df(df, calendar, r, year_calendars))
       dplyr::distinct(dplyr::bind_rows(pieces))
     })
     names(out) <- names(ll)
@@ -1309,7 +1331,8 @@ getData.default <- function(object, ...) {
       "or a calendar level name: ", paste(names(rank), collapse = ", ")
     )
   }
-  lapply(ll, function(df) .aggregate_timeframe_df(df, calendar, target_rank))
+  lapply(ll, function(df)
+    .aggregate_timeframe_df(df, calendar, target_rank, year_calendars))
 }
 
 

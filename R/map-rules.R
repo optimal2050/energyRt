@@ -237,6 +237,12 @@
 # (timeframe, timeslice) for the given timeframes: a frame's slices from the
 # calendar, or the frame's own name when it lists none (as the table
 # builders do)
+# `(timeframe, year, timeslice)`. The `year` column is what makes a rule
+# year-aware, and it costs nothing to carry: a rule whose `cols` name `year`
+# -- `.mvTechAct_rule()`, `.mvTechOut_rule()`, the variable domains -- joins on
+# it and so admits only the slices that year's calendar has, while a rule whose
+# `cols` do not name it projects it away and stays the union over years, which
+# is what a membership map should be. Neither needed an edit of its own.
 .timeframe_timeslice_df <- function(scen, timeframes) {
   frames <- scen@settings@calendar@timeframes
   tfs <- unique(as.character(timeframes))
@@ -245,7 +251,7 @@
     if (length(sl) == 0) sl <- tf
     data.frame(timeframe = tf, timeslice = as.character(sl), stringsAsFactors = FALSE)
   })
-  dplyr::bind_rows(rows)
+  .by_year_slices(scen, dplyr::bind_rows(rows))
 }
 
 # (process, timeframe) with the calendar's default for a process without one;
