@@ -102,7 +102,7 @@ REQUIRED whenever any other slot carries a \code{cluster} label, and AUTHORITATI
 
 \item{region}{character. Regions where the supply process exists. Must include all regions used in other slots. \code{availability} and \code{reserve} slots also limit possible regions.}
 
-\item{units}{data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in \code{cost}/\code{invcost} and the capacity and activity columns are bare. A declared \code{currency} that disagrees with the model's own is an error rather than a silent conversion; leave a column empty to claim nothing.
+\item{units}{data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in \code{cost}/\code{invcost} and the capacity and activity columns are bare. A declared \code{currency} that disagrees with the model's own is converted to it at interpolation, with every factor reported; one with no conversion at all is refused. Leave a column empty to claim nothing.
 
 \describe{
 \item{comm}{character. The commodity this object is counted in, e.g. "GWh" or "PJ". Set by the \verb{unit =} argument of the constructor. Leave it empty to claim nothing: a unit is reported and cross-checked, never converted.

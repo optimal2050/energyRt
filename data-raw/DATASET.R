@@ -18,6 +18,18 @@ source("data-raw/maps.R")
 )
 
 # data, visible to user ####
+
+# The currency datasets (`currency_codes`, `currency_fx`, `currency_deflator`)
+# and the `Currency` block of `convert_data` are NOT built here: they come from
+# a network pull, and a run of this script must not silently reach for one or
+# replace rates a release was built on. They are rebuilt deliberately:
+#
+#   source("data-raw/currency.R"); currency_fetch(); currency_write()
+#
+# `currency_fetch()` refreshes the cached series in data-raw/currency/ (see the
+# FETCHED stamp there for the pull date and the licence); `currency_write()`
+# rebuilds from the cache alone. Re-freezing the rates moves every
+# cross-currency answer, so it belongs in its own commit with a NEWS bullet.
 # usethis::use_data(topia_continent, topia_island,
 #                   topia_honeycomb, topia_squares,
 #                   internal = FALSE, overwrite = TRUE)

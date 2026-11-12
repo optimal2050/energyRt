@@ -79,10 +79,12 @@ into the unit. \code{convert(1, "MEUR", "MUSD", from_year = 2015, to_year = 2020
 \code{TRUE} (default) replaces them and \code{FALSE} raises an error instead.}
 }
 \value{
-numeric vector with converted values, or one value per route when
-\code{currency_route = "both"}.
+\code{convert()}: a numeric vector of converted values, or one value per
+route, named, when \code{currency_route = "both"}.
 
-updated \code{convert_data} in the \code{.GlobalEnv}, the values will not update the package data.
+\code{add_to_convert()}: invisibly, an updated \code{convert_data} ASSIGNED IN
+\code{.GlobalEnv}. The package's own data is not changed, and the assignment is
+lost with the session.
 }
 \description{
 A currency may carry a four-digit year -- \code{MEUR2015}, \code{MUSD2020} -- because
@@ -95,8 +97,15 @@ real exchange rate over the interval, and \code{convert()} warns when it is
 material.
 }
 \details{
-Money with no year on either side is read at \code{\link[=currency_base_year]{currency_base_year()}} and
-behaves exactly as it always did.
+A year is read only where the unit is a currency: \code{MWh2020} is an unknown
+unit, not a dated one.
+
+Money with no year on either side consults no price index and never warns --
+it is a pure exchange rate, read at \code{\link[=currency_base_year]{currency_base_year()}}. That rate is
+generated from \link{currency_fx} at one stated base year; before version 0.93 it
+was typed in by hand and undated, with a euro rate from one year beside a
+yen rate from another, so untagged cross-currency answers moved once, at
+that release. A conversion within one currency -- \code{convert("EUR/kW", "MEUR/GW")}, a ratio of prefixes -- did not move and consults nothing.
 }
 \examples{
 convert("MWh", "kWh")
@@ -108,13 +117,29 @@ convert("cents/kWh", "USD/MWh")
 convert(1, "MUSD2015", "MUSD2020")    # an inflation question
 convert(1, "MEUR2020", "MUSD2020")    # an exchange-rate question
 convert(1, "MEUR2015", "MUSD2020", currency_route = "both")
+
+# the value first, which is the same call with the arguments the other way
 convert(1000, "kWh", "MWh")
-convert("kWh", "MJ")
-convert(1, "kWh/kg", "MJ/t")
 convert(5, "cents/kWh", "USD/MWh")
-## Not run:
-convert_data$base$Currency
-add_to_convert("Currency", unit = "JPY", coef = 140)
-convert_data$base$Currency
-## End(Not run)
+convert(1, "MEUR", "MUSD", from_year = 2015, to_year = 2020)
+
+# `coef` is the factor to the type's BASE unit, which is its FIRST column
+# -- the joule for Energy, not the GJ or the MWh a modeller thinks in -- so
+# a dekatherm (10 therms, 1.055 GJ) is entered as 1.055e9.
+convert_data$base$Energy[, 1:4]
+\dontrun{
+add_to_convert("Energy", unit = "dekatherm", coef = 1.055e9)
+convert(1, "dekatherm", "GJ")   # 1.055
+}
+
+# NOT the way to add a currency rate: a currency coefficient is generated
+# from `currency_fx` at one base year, and overwriting one here would put
+# it out of step with every other currency in the table. Use
+# `add_currency_fx()`, which is dated and keyed by ISO code.
+}
+\seealso{
+\link{currency_fx} and \link{currency_deflator} for the data behind a dated
+conversion, \code{\link[=currency_base_year]{currency_base_year()}} and \code{\link[=add_currency_fx]{add_currency_fx()}} to read or
+extend it, and \code{\link[=normalize_model_currency]{normalize_model_currency()}} to convert a whole model's
+costs at once.
 }

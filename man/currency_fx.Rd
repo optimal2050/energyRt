@@ -10,7 +10,9 @@ A data frame of one row per currency and year:
 \item{code}{ISO 4217 currency code}
 \item{year}{calendar year}
 \item{lcu_per_usd}{units of the currency per US dollar, annual average}
-\item{source}{the series the value came from}
+\item{source}{the series the value came from, \code{"numeraire"} for the US
+dollar's own rows, which are 1 by definition rather than by
+measurement, or \code{"user"} for a row from \code{\link[=add_currency_fx]{add_currency_fx()}}}
 }
 }
 \source{
@@ -36,7 +38,11 @@ euro rate because there was no euro.
 
 \code{attr(currency_fx, "base_year")} is the year untagged money is read at --
 the latest year the table covers for a quorum of currencies, and the year
-\code{convert_data$base$Currency} is generated from.
+\code{convert_data$base$Currency} is generated from. \code{\link[=currency_base_year]{currency_base_year()}}
+reads it, or sets it elsewhere.
+
+The table stops at the year it was built from. \code{\link[=add_currency_fx]{add_currency_fx()}} adds a
+row, or replaces one, for the current session.
 }
 \examples{
 attr(currency_fx, "base_year")

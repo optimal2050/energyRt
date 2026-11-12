@@ -522,6 +522,20 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   }
   scen@model <- object # keep scen@model in sync with the (possibly extended) model
 
+  # Costs priced in another currency are converted HERE, on the build copy,
+  # now that the model is complete -- objects arriving through `...` are folded
+  # in just above -- and before variant expansion clones them. `.model_given`
+  # is deliberately NOT normalised: `scen@model` keeps the values as authored,
+  # `scen@modInp` carries the converted ones, and every factor applied is in
+  # `scen@misc$currency` with the exchange-rate and deflator rows behind it.
+  # NULL when the model declares no currency, or when every factor is 1, so a
+  # model that tags nothing interpolates bit-identically.
+  .cur <- .normalize_currency(object, verbose = verbose)
+  if (!is.null(.cur)) {
+    object <- .cur$model
+    scen@misc$currency <- .cur$report
+  }
+
   # Variant naming is stored twice -- on the model config and, copied from it, on
   # the scenario settings. Settings is a COPY, not an override point: variant
   # names are minted from the model, so a divergence would mean the scenario
@@ -5551,6 +5565,10 @@ setMethod("interpolate", signature(object = "scenario"),
                                verbose = FALSE)
     for (r in own) m <- add(m, r)
   }
+  # ... and the currency normalisation, for the same reason: `scen@model` is
+  # the model as authored, so a copy rebuilt from it has to be converted again
+  # or it disagrees with the scenario's own tables. `levcost()` reads this copy.
+  m <- .currency_reapply(m, scen@misc$currency)
   b <- .build_model(m, prefix = .variant_prefix(scen@settings),
                     verbose = verbose)
   out <- b$model

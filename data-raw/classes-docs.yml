@@ -236,8 +236,9 @@ class:
         agree, and nothing else in the object records them: the numbers in
         `cost`/`invcost` and the capacity and activity columns are bare. A
         declared `currency` that disagrees with the model's own is
-        an error rather than a silent conversion; leave a column empty to
-        claim nothing.
+        converted to it at interpolation, with every factor reported; one
+        with no conversion at all is refused. Leave a column empty to claim
+        nothing.
       columns:
         comm:
           type: character
@@ -505,8 +506,10 @@ class:
         currency:
           type: character
           description: >
-            Currency of the cost columns. A currency that disagrees with the
-            model's own is an error rather than a silent conversion.
+            Currency of the cost columns, optionally with a year
+            (`MUSD2020`). One that disagrees with the model's own is
+            converted at interpolation and reported, or refused where no
+            conversion exists.
     demand:
       type: data.frame
       description: Specification of the demand.
@@ -1369,8 +1372,9 @@ class:
         it. An object moved between models is only meaningful where the units
         agree, and nothing else in the object records them: the numbers in the
         cost, capacity and activity columns are bare. A declared `currency`
-        that disagrees with the model's own is an error rather than a
-        silent conversion; leave a column empty to claim nothing. One unit per
+        that disagrees with the model's own is converted to it at
+        interpolation, with every factor reported; one with no conversion at
+        all is refused. Leave a column empty to claim nothing. One unit per
         kind: a storage prices three capacities but states `capacity` once.
       columns:
         capacity:
@@ -2322,8 +2326,9 @@ class:
         it. An object moved between models is only meaningful where the units
         agree, and nothing else in the object records them: the numbers in the
         cost, capacity and activity columns are bare. A declared `currency`
-        that disagrees with the model's own is an error rather than a
-        silent conversion; leave a column empty to claim nothing. One unit per
+        that disagrees with the model's own is converted to it at
+        interpolation, with every factor reported; one with no conversion at
+        all is refused. Leave a column empty to claim nothing. One unit per
         kind: a storage prices three capacities but states `capacity` once.
       columns:
         comm:
@@ -2973,8 +2978,10 @@ class:
         currency:
           type: character
           description: >
-            Currency of the cost columns. A currency that disagrees with the
-            model's own is an error rather than a silent conversion.
+            Currency of the cost columns, optionally with a year
+            (`MUSD2020`). One that disagrees with the model's own is
+            converted at interpolation and reported, or refused where no
+            conversion exists.
     reserve:
       type: data.frame
       description: >
@@ -3159,8 +3166,10 @@ class:
         currency:
           type: character
           description: >
-            Currency of the cost columns. A currency that disagrees with the
-            model's own is an error rather than a silent conversion.
+            Currency of the cost columns, optionally with a year
+            (`MUSD2020`). One that disagrees with the model's own is
+            converted at interpolation and reported, or refused where no
+            conversion exists.
     reserve:
       type: data.frame
       description: >
@@ -3634,8 +3643,10 @@ class:
         currency:
           type: character
           description: >
-            Currency of the rate columns. A currency that disagrees with the
-            model's own is an error rather than a silent conversion.
+            Currency of the rate columns, optionally with a year
+            (`MUSD2020`). One that disagrees with the model's own is
+            converted at interpolation and reported, or refused where no
+            conversion exists.
     geoframe:
       type: character
       description: >
@@ -3832,8 +3843,10 @@ class:
         currency:
           type: character
           description: >
-            Currency of the rate columns. A currency that disagrees with the
-            model's own is an error rather than a silent conversion.
+            Currency of the rate columns, optionally with a year
+            (`MUSD2020`). One that disagrees with the model's own is
+            converted at interpolation and reported, or refused where no
+            conversion exists.
     geoframe:
       type: character
       description: >

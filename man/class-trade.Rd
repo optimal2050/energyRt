@@ -24,7 +24,7 @@ Create separate trade objects to optimize different parts of the trade network
 
 \item{\code{desc}}{character. Description of the trade object.}
 
-\item{\code{units}}{data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in the cost, capacity and activity columns are bare. A declared \code{currency} that disagrees with the model's own is an error rather than a silent conversion; leave a column empty to claim nothing. One unit per kind: a storage prices three capacities but states \code{capacity} once.
+\item{\code{units}}{data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in the cost, capacity and activity columns are bare. A declared \code{currency} that disagrees with the model's own is converted to it at interpolation, with every factor reported; one with no conversion at all is refused. Leave a column empty to claim nothing. One unit per kind: a storage prices three capacities but states \code{capacity} once.
 
 \describe{
 \item{comm}{character. The commodity this object is counted in, e.g. "GWh" or "PJ". The unit of the traded flow, which \code{markup}, \code{varom} and the \code{ava} bounds are all stated per. Leave it empty to claim nothing: a unit is reported and cross-checked, never converted.

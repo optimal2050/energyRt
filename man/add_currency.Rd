@@ -23,7 +23,9 @@ add_currency_deflator(
 
 \item{lcu_per_usd}{units of the currency per US dollar. Note the direction:
 it is what the source series publishes, and the reciprocal of
-\code{convert_data}'s coefficients.}
+\code{convert_data}'s coefficients. Adding one for a year the tables do not
+reach also adds the numeraire's own row for that year, which is 1 by
+definition, so a cross rate has both of its sides.}
 
 \item{source}{free text recording where the number came from.}
 

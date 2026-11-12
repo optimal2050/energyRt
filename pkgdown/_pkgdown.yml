@@ -402,6 +402,9 @@ reference:
   - model_structure
   - prefix
   - solver_options
+  - currency_codes
+  - currency_fx
+  - currency_deflator
   - vre_cf
   - vre_storage_duration
 
@@ -436,6 +439,10 @@ reference:
   - commodity_property
   - convert_data
   - convert,character-method
+  - currency_base_year
+  - add_currency_fx
+  - add_currency_deflator
+  - normalize_model_currency
   - renameSets
   - revalueSets
   - register_weather_transform

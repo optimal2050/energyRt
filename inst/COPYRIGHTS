@@ -23,6 +23,24 @@ Licence:  Creative Commons Attribution 4.0 International (CC BY 4.0)
 Note:     PA.NUS.FCRF credits IMF International Financial Statistics as its
           own source.
 
+Changes:  The series are not shipped as published. CC BY 4.0 asks that
+          changes be stated, so:
+            * rows are re-keyed from country and year to CURRENCY and year,
+              with one row per currency union rather than per member;
+            * the numeraire's own rows are synthesised, since a US dollar is
+              one US dollar in every year by definition rather than by
+              measurement (they carry source = "numeraire");
+            * a currency with no deflator of its own takes one from a member
+              economy, named in currency_deflator$area -- the euro deflates
+              on Germany, there being no euro-area series;
+            * a year with no value, or a non-positive one, is dropped rather
+              than interpolated or carried forward;
+            * the Currency rates in convert_data are derived from
+              currency_fx at one base year, as its reciprocal (US dollars
+              per unit, where the series publishes units per US dollar).
+          data-raw/currency.R is the whole derivation, and nothing else
+          touches the values.
+
 The World Bank does not endorse this package or its use of the data, and
 makes no warranties with respect to the data. The same attribution
 requirement passes to anyone redistributing this data onward.

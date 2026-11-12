@@ -125,6 +125,20 @@ test_that("a material disagreement between routes warns", {
                       expect_silent(convert(1, "MJPY2012", "MUSD2023")))
 })
 
+test_that("the figures the units article quotes hold against the tables", {
+  # `vignettes/articles/units.Rmd` computes both from the shipped tables
+  # rather than quoting them, because an earlier draft quoted numbers the
+  # tables did not support ("better than 0.1%" and "a factor of 2.2"). These
+  # pin what the data says, so a refreshed pull that moves them is noticed
+  # rather than silently changing the prose.
+  spread <- function(a, b) {
+    r <- suppressWarnings(convert(1, a, b, currency_route = "both"))
+    max(r) / min(r)
+  }
+  expect_equal(spread("MEUR2015", "MUSD2020"), 1.0330, tolerance = 1e-3)
+  expect_equal(spread("MJPY2012", "MUSD2023"), 2.0689, tolerance = 1e-3)
+})
+
 test_that("both returns one value per route, named, and refuses a vector", {
   r <- suppressWarnings(
     convert(1, "MJPY2012", "MUSD2023", currency_route = "both"))

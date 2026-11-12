@@ -40,10 +40,14 @@ test_that("complete = TRUE reports empty parameters with resolved tokens", {
 
 # The model's currency, at construction ---------------------------------------
 #
-# There is no exchange rate in a model, so a cost priced in another currency is
-# an error rather than something converted. It used to be raised only by
-# `interpolate_model()`, which let a mismatched object sit in a model until
-# something much later failed.
+# A cost priced in another currency is reconciled where it can be and refused
+# where it cannot. Up to 0.92 any mismatch was an error -- there was no
+# exchange rate in the package to reconcile one with; since 0.93 there is
+# sourced annual data behind `convert()`, so a mismatch it can answer is work
+# for `normalize_model_currency()` (test-currency-normalize.R) and only a pair
+# with no conversion at all stops construction. The check runs at
+# `newModel()`, not only at `interpolate_model()`, which used to let a
+# mismatched object sit in a model until something much later failed.
 
 .cur_repo <- function(costs = "MUSD") {
   sup <- newSupply("SUP_COA", commodity = "COA", unit = "PJ",
@@ -52,10 +56,21 @@ test_that("complete = TRUE reports empty parameters with resolved tokens", {
   newRepository("cur") |> add(newCommodity("COA", unit = "PJ"), sup)
 }
 
-test_that("newModel() refuses an object priced in another currency", {
+test_that("newModel() refuses a currency it cannot convert from", {
+  # `bnEUR` is not a unit at all: no factor exists, so the costs in the
+  # objective would be a sum of numbers that do not share a measure.
   expect_error(
-    newModel("CUR", currency = "cr.INR", region = "R1", data = .cur_repo()),
-    "counts in 'cr.INR'")
+    newModel("CUR", currency = "MUSD", region = "R1",
+             data = .cur_repo(costs = "bnEUR")),
+    "cannot be reached from")
+})
+
+test_that("newModel() accepts a mismatch convert() can answer", {
+  # crore rupees against millions of dollars is an exchange rate, and one the
+  # shipped tables carry. The conversion itself happens at interpolation.
+  expect_s4_class(
+    newModel("CUR1", currency = "cr.INR", region = "R1", data = .cur_repo()),
+    "model")
 })
 
 test_that("a matching currency, and none at all, both construct", {

@@ -34,7 +34,7 @@ See \code{\link[=getUnit]{getUnit()}}.}
 \describe{
 \item{comm}{character. The commodity this object is counted in, e.g. "GWh" or "PJ". Set by the \verb{unit =} argument of the constructor. Leave it empty to claim nothing: a unit is reported and cross-checked, never converted.
 }
-\item{currency}{character. Currency of the cost columns. A currency that disagrees with the model's own is an error rather than a silent conversion.
+\item{currency}{character. Currency of the cost columns, optionally with a year (\code{MUSD2020}). One that disagrees with the model's own is converted at interpolation and reported, or refused where no conversion exists.
 }
 }}
 

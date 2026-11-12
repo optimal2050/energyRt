@@ -99,7 +99,9 @@ currency_base_year <- function(year = NULL) {
 #' @param year calendar year.
 #' @param lcu_per_usd units of the currency per US dollar. Note the direction:
 #'   it is what the source series publishes, and the reciprocal of
-#'   `convert_data`'s coefficients.
+#'   `convert_data`'s coefficients. Adding one for a year the tables do not
+#'   reach also adds the numeraire's own row for that year, which is 1 by
+#'   definition, so a cross rate has both of its sides.
 #' @param index a price index. Only ratios between years are used, so its base
 #'   does not matter, but it must share a base with the other years of the same
 #'   currency and basis.
@@ -120,6 +122,21 @@ add_currency_fx <- function(code, year, lcu_per_usd, source = "user") {
     stop("`lcu_per_usd` must be positive", call. = FALSE)
   }
   .currency_env$fx <- .merge_rows(.currency_env$fx, d, .CURRENCY_KEYS$fx)
+  # A cross rate needs both sides, and the numeraire is 1 in every year by
+  # definition rather than by measurement -- so adding next year's euro rate
+  # is enough on its own. Without this, every use of this function for the
+  # common case (a rate newer than the release) needs a line of boilerplate
+  # saying that a dollar is worth a dollar.
+  num <- d$year[d$code != "USD"]
+  num <- num[!(num %in% .currency_data("fx")$year[
+    .currency_data("fx")$code == "USD"])]
+  if (length(num)) {
+    .currency_env$fx <- .merge_rows(
+      .currency_env$fx,
+      data.frame(code = "USD", year = unique(num), lcu_per_usd = 1,
+                 source = "numeraire", stringsAsFactors = FALSE),
+      .CURRENCY_KEYS$fx)
+  }
   invisible(d)
 }
 
@@ -155,6 +172,49 @@ add_currency_deflator <- function(code, year, index, basis = "gdp",
 }
 
 # ---------------------------------------------------------------------------
+# Provenance
+# ---------------------------------------------------------------------------
+
+# `normalize_model_currency()` has to report WHICH rows a factor was built
+# from. The lookups are the only thing that knows, so rather than re-deriving
+# them from the formula -- two implementations of one rule, free to drift --
+# each lookup records the row it returned while a trace is open. The trace is
+# opened around the route actually taken, not around `.currency_factor()`,
+# which evaluates both.
+#' @noRd
+.currency_trace_begin <- function() {
+  .currency_env$trace <- list(fx = list(), deflator = list())
+  invisible(NULL)
+}
+
+#' @noRd
+.currency_trace_row <- function(what, row) {
+  tr <- .currency_env$trace
+  if (is.null(tr)) return(invisible(NULL))
+  k <- paste(unlist(row[1, .CURRENCY_KEYS[[what]]]), collapse = "|")
+  tr[[what]][[k]] <- row
+  .currency_env$trace <- tr
+  invisible(NULL)
+}
+
+# The rows consulted since the trace opened, one data.frame per table, and the
+# trace closed. NULL for a table nothing read: a same-currency factor needs no
+# exchange rate and a same-year one needs no deflator.
+#' @noRd
+.currency_trace_end <- function() {
+  tr <- .currency_env$trace
+  .currency_env$trace <- NULL
+  if (is.null(tr)) return(NULL)
+  lapply(tr, function(x) {
+    if (!length(x)) return(NULL)
+    out <- do.call(rbind, x)
+    out <- out[order(out$code, out$year), , drop = FALSE]
+    row.names(out) <- NULL
+    out
+  })
+}
+
+# ---------------------------------------------------------------------------
 # Lookups
 # ---------------------------------------------------------------------------
 
@@ -163,29 +223,31 @@ add_currency_deflator <- function(code, year, index, basis = "gdp",
 #' @noRd
 .fx_rate <- function(code, year) {
   d <- .currency_data("fx")
-  v <- d$lcu_per_usd[d$code == code & d$year == year]
-  if (!length(v)) {
+  i <- which(d$code == code & d$year == year)
+  if (!length(i)) {
     yy <- d$year[d$code == code]
     stop("no exchange rate for ", code, " in ", year,
          if (length(yy)) paste0(" (have ", min(yy), "-", max(yy), ")")
          else " (currency not in the table)",
          "\nAdd one with add_currency_fx().", call. = FALSE)
   }
-  v[1]
+  .currency_trace_row("fx", d[i[1], , drop = FALSE])
+  d$lcu_per_usd[i[1]]
 }
 
 #' @noRd
 .deflator <- function(code, year, basis) {
   d <- .currency_data("deflator")
-  v <- d$index[d$code == code & d$year == year & d$basis == basis]
-  if (!length(v)) {
+  i <- which(d$code == code & d$year == year & d$basis == basis)
+  if (!length(i)) {
     yy <- d$year[d$code == code & d$basis == basis]
     stop("no ", basis, " deflator for ", code, " in ", year,
          if (length(yy)) paste0(" (have ", min(yy), "-", max(yy), ")")
          else paste0(" (no ", basis, " series for ", code, ")"),
          "\nAdd one with add_currency_deflator().", call. = FALSE)
   }
-  v[1]
+  .currency_trace_row("deflator", d[i[1], , drop = FALSE])
+  d$index[i[1]]
 }
 
 # Units of `b` per unit of `a` in `year`.

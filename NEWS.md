@@ -27,6 +27,34 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* **Money carries a year.** `convert(1, "MEUR2015", "MUSD2020")` is an
+  exchange-rate question and an inflation question at once, and the two routes
+  through it -- deflate then convert, or convert then deflate -- do not agree:
+  the gap is the change in the real exchange rate over the interval. Both are
+  computed, the World Bank and IPCC convention (`"deflate_then_fx"`) is the
+  default, and a material disagreement warns.
+
+  ```r
+  convert(1, "MEUR2015", "MUSD2020")
+  convert(1, "MEUR2015", "MUSD2020", currency_route = "both")
+  convert(1, "MEUR", "MUSD", from_year = 2015, to_year = 2020)
+  ```
+
+  `basis = "cpi"` deflates on consumer prices instead of GDP. A year is read
+  only where the unit is a currency: `MWh2020` is still an unknown unit.
+  `currency_base_year()` reads or sets the year untagged money is read at, and
+  `add_currency_fx()` / `add_currency_deflator()` add a rate or an index for
+  the session.
+
+* **`normalize_model_currency()` converts a model's costs to one
+  currency-year**, and reports every factor it applied rather than applying it
+  silently. `interpolate_model()` runs it on the copy it builds from, so a
+  model's objects keep the values they were written with while the scenario
+  carries the converted ones, and `scen@misc$currency` records each factor with
+  the exchange-rate and deflator rows behind it. The columns it converts are
+  every parameter whose declared unit carries the currency token; physical
+  units are not normalised.
+
 * **One object can override a parameter's default or interpolation rule for its
   own rows.** `@defVal` and `@interpolation` on `technology`, `storage`,
   `trade`, `supply`, `demand`, `import`, `export`, `weather`, `tax` and
@@ -419,6 +447,12 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   the same region and timeslice (hourly matching, not unbundling).
 
 ## Breaking changes
+
+* **A model's currency and an object's are reconciled, not merely compared.**
+  An object priced in another currency used to be an error at `newModel()`;
+  where `convert()` can answer it, it is now converted at interpolation and
+  reported. A pair with no conversion at all -- `bnEUR` is not a unit -- is
+  still refused, at construction.
 
 * The figure functions that return a ggplot object are named `gg_*`: `gg_map()`, `gg_heatmap()`, `gg_trade_map()`, `gg_trade_network()`, `gg_share_frontier()`. The `plot_*` names forward with a one-time warning and go before 1.0. `plot_geoscale()` is deprecated without a successor here: call `geoscales::gg_geoscale()` on `getGeoscale(object)`.
 * `plot()` on every energyRt class now draws the figure and returns it invisibly, like base `plot()`; `autoplot()` returns the ggplot to modify.

@@ -22,7 +22,7 @@ production, consumption, or balance of a commodity.
 \describe{
 \item{comm}{character. Unit of the commodity the levy is charged on, where its base counts a commodity flow.
 }
-\item{currency}{character. Currency of the rate columns. A currency that disagrees with the model's own is an error rather than a silent conversion.
+\item{currency}{character. Currency of the rate columns, optionally with a year (\code{MUSD2020}). One that disagrees with the model's own is converted at interpolation and reported, or refused where no conversion exists.
 }
 }}
 

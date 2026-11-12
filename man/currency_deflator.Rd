@@ -12,7 +12,8 @@ A data frame of one row per currency, basis and year:
 \item{year}{calendar year}
 \item{basis}{\code{"gdp"} or \code{"cpi"}}
 \item{index}{the price index, in its own base}
-\item{source}{the series the value came from}
+\item{source}{the series the value came from, or \code{"user"} for a row from
+\code{\link[=add_currency_deflator]{add_currency_deflator()}}}
 }
 }
 \source{

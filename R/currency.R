@@ -13,9 +13,16 @@
 ##
 ## Two declarations close that. `config@units$currency` states what the model
 ## counts in -- one per model, the unit of the objective. `@units$currency` on an object
-## states what IT was priced in, and travels with it. Where both are declared
-## and disagree, that is an error: there is no exchange rate in the model, so
-## there is nothing to convert with.
+## states what IT was priced in, and travels with it.
+##
+## Where both are declared and disagree, the question is whether the pair can
+## be RECONCILED. Since 0.93 there is sourced annual data behind `convert()`,
+## so `MEUR2015` against `MUSD2020` is a conversion with a factor and a
+## provenance, carried out on the interpolation copy by
+## `normalize_model_currency()` and reported object by object. What remains an
+## error is a pair with no conversion at all -- `bnEUR` is not a unit, `euros`
+## is not a spelling -- because then the sum in the objective is of numbers
+## that do not share a measure and nothing can say by how much.
 ##
 ## Both are optional and unset claims nothing, so a model written before the
 ## slots existed behaves exactly as it did.
@@ -58,9 +65,15 @@ NULL
   if (length(v)) v[1] else NULL
 }
 
-# Every object that names a currency must name the model's. Silence when
-# either side declares nothing: the check is opt-in, and a model that has
-# never heard of currencies is not suddenly wrong.
+# Every object that names a currency must name one the model's can be reached
+# from. Silence when either side declares nothing: the check is opt-in, and a
+# model that has never heard of currencies is not suddenly wrong.
+#
+# A mismatch `convert()` can answer is not an error here -- it is work for
+# `normalize_model_currency()`, which does it on the interpolation copy and
+# reports every factor. Only a mismatch with no conversion stops the build.
+# The route warning is suppressed: this asks whether a path EXISTS, and the
+# normalisation that follows raises it once where it matters.
 #' @noRd
 .check_model_currency <- function(mod) {
   cur <- .model_currency(mod)
@@ -69,14 +82,24 @@ NULL
   if (!length(objs)) return(invisible(NULL))
   own <- vapply(objs, function(o) .object_units(o, "currency") %||% NA_character_,
                 character(1))
-  bad <- !is.na(own) & own != cur
-  if (!any(bad)) return(invisible(NULL))
+  off <- !is.na(own) & own != cur
+  if (!any(off)) return(invisible(NULL))
+  why <- character(0)
+  for (d in unique(own[off])) {
+    e <- tryCatch({
+      suppressWarnings(convert(1, d, cur))
+      NULL
+    }, error = function(e) conditionMessage(e))
+    if (!is.null(e)) why[[d]] <- sub("\n.*$", "", e)
+  }
+  if (!length(why)) return(invisible(NULL))
+  bad <- off & own %in% names(why)
   nm <- names(objs)[bad]
   stop("the model counts in '", cur, "', but ", sum(bad), " object(s) are ",
-       "priced in another currency:\n  ",
-       paste(sprintf("%s: %s", nm, own[bad]), collapse = "\n  "),
-       "\nThere is no exchange rate in a model, so this is not converted. ",
-       "Restate the costs, or clear `@units$currency` to claim nothing.",
+       "priced in a currency it cannot be reached from:\n  ",
+       paste(sprintf("%s: %s", nm, own[bad]), collapse = "\n  "), "\n  ",
+       paste(sprintf("%s -> %s: %s", names(why), cur, why), collapse = "\n  "),
+       "\nRestate the costs, or clear `@units$currency` to claim nothing.",
        call. = FALSE)
 }
 

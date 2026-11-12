@@ -43,14 +43,20 @@
 #'
 #' `attr(currency_fx, "base_year")` is the year untagged money is read at --
 #' the latest year the table covers for a quorum of currencies, and the year
-#' `convert_data$base$Currency` is generated from.
+#' `convert_data$base$Currency` is generated from. [currency_base_year()]
+#' reads it, or sets it elsewhere.
+#'
+#' The table stops at the year it was built from. [add_currency_fx()] adds a
+#' row, or replaces one, for the current session.
 #'
 #' @format A data frame of one row per currency and year:
 #' \describe{
 #'   \item{code}{ISO 4217 currency code}
 #'   \item{year}{calendar year}
 #'   \item{lcu_per_usd}{units of the currency per US dollar, annual average}
-#'   \item{source}{the series the value came from}
+#'   \item{source}{the series the value came from, `"numeraire"` for the US
+#'     dollar's own rows, which are 1 by definition rather than by
+#'     measurement, or `"user"` for a row from [add_currency_fx()]}
 #' }
 #' @source World Bank World Development Indicators, series `PA.NUS.FCRF`
 #'   (official exchange rate, LCU per US$, period average), which credits IMF
@@ -88,7 +94,8 @@
 #'   \item{year}{calendar year}
 #'   \item{basis}{`"gdp"` or `"cpi"`}
 #'   \item{index}{the price index, in its own base}
-#'   \item{source}{the series the value came from}
+#'   \item{source}{the series the value came from, or `"user"` for a row from
+#'     [add_currency_deflator()]}
 #' }
 #' @source World Bank World Development Indicators, series `NY.GDP.DEFL.ZS`
 #'   (GDP deflator) and `FP.CPI.TOTL` (consumer price index). Licensed
