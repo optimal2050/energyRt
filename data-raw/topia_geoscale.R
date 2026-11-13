@@ -1,6 +1,6 @@
 # topia$geoscales + per-layout region codes ##################################
 #
-# TOPIA's hierarchy is `nation TOPIA -> zone {NW, NE, SW, SE} -> region`, with
+# TOPIA's hierarchy is `nation TOPIA -> zone {Z1..Z5} -> province`, with
 # twelve regions coded `R01`-`R12`, three to a zone.
 #
 # THE POINT OF THE CODES. Every zone is a compact group of touching
@@ -64,14 +64,19 @@ library(sf)
 geo <- data.frame(
   nation = "TOPIA",
   zone   = unname(.topia_zone_of[.topia_regions]),
-  region = .topia_regions,
+  # The finest geoframe is `province`, NOT `region`: energyRt already uses
+  # `region` for the model's own spatial dimension, and a geoscale frame of
+  # the same name makes `level = "region"` read as the generic one. The atom
+  # key column `region` is still created, by the constructor, as a copy of
+  # `province` -- that is the contract geoscales offers a downstream model.
+  province = .topia_regions,
   name   = unname(.topia_names[.topia_regions]),
   stringsAsFactors = FALSE
 )
 
 stopifnot(
-  nrow(geo) == 12L, !anyDuplicated(geo$region), !anyNA(geo$name),
-  identical(geo$region, .topia_regions),
+  nrow(geo) == 12L, !anyDuplicated(geo$province), !anyNA(geo$name),
+  identical(geo$province, .topia_regions),
   identical(sort(unique(geo$zone)), sort(.topia_zones)),
   identical(as.integer(table(geo$zone)[.topia_zones]), c(1L, 2L, 3L, 4L, 2L))
 )
@@ -116,7 +121,7 @@ for (nm in names(map)) {
   nbl <- stats::setNames(lapply(nb, function(i) reg[i]), reg)
   nbl <- suppressMessages(.sea_link(x, nbl))
   split_zones <- names(which(!vapply(
-    split(reg, geo$zone[match(reg, geo$region)]),
+    split(reg, geo$zone[match(reg, geo$province)]),
     .connected, logical(1), nbl = nbl)))
   cat(sprintf("%-10s zones: %s\n", nm,
       if (length(split_zones)) paste("SPLIT:", paste(split_zones, collapse = ", "))
@@ -131,17 +136,17 @@ for (nm in names(map)) {
 topia_geoscales <- lapply(stats::setNames(nm = names(map)), function(nm) {
   gs <- geoscales::geoscale_from_leaftable(
     geo,
-    geoframes = c("nation", "zone", "region"),
-    key = "region",
+    geoframes = c("nation", "zone", "province"),
+    key = "province",
     weights = character(),
     name = paste0("topia_", nm),
-    desc = paste0("TOPIA reference regions (", nm,
-                  " layout), nested nation -> zone -> region"),
+    desc = paste0("TOPIA reference provinces (", nm,
+                  " layout), nested nation -> zone -> province"),
     labels = "name"
   )
   gs <- geoscales::attach_geometry_geoscale(gs, map[[nm]][, "region"],
                                             by = "region",
-                                            geoframe = "region")
+                                            geoframe = "province")
   withCallingHandlers(
     gs <- geoscales::add_area_geoscale(gs, name = "area"),
     warning = function(w) {
@@ -156,31 +161,31 @@ for (nm in names(topia_geoscales)) {
   stopifnot(
     inherits(gs, "geoscales::GeoScale"),
     identical(geoscales::geoscale_geoframes(gs),
-              c("nation", "zone", "region")),
-    setequal(geoscales::geoscale_regions(gs, "region"), .topia_regions),
+              c("nation", "zone", "province")),
+    setequal(geoscales::geoscale_regions(gs, "province"), .topia_regions),
     nrow(geoscales::geoscale_geometry(gs, "zone")) == length(.topia_zones)
   )
 }
 
 # -- the hierarchy a MODEL is solved on --------------------------------------
-# The same nation -> zone -> region table with NO geometry: `setGeoscale()`
+# The same nation -> zone -> province table with NO geometry: `setGeoscale()`
 # only needs the membership, and the kits narrow this to their own regions.
 # Keeping it separate means a model carries no polygons, and the four layouts'
 # maps stay the dataset's single copy of the geometry.
 topia_model_geoscale <- geoscales::geoscale_from_leaftable(
   geo,
-  geoframes = c("nation", "zone", "region"),
-  key = "region",
+  geoframes = c("nation", "zone", "province"),
+  key = "province",
   weights = character(),
   name = "topia",
-  desc = "TOPIA hierarchy (nation -> zone -> region), no geometry",
+  desc = "TOPIA hierarchy (nation -> zone -> province), no geometry",
   labels = "name"
 )
 stopifnot(
   inherits(topia_model_geoscale, "geoscales::GeoScale"),
   identical(geoscales::geoscale_geoframes(topia_model_geoscale),
-            c("nation", "zone", "region"))
+            c("nation", "zone", "province"))
 )
 
 cat("topia$geoscales: ", length(topia_geoscales), " layouts x ", nrow(geo),
-    " regions in ", length(unique(geo$zone)), " zones\n", sep = "")
+    " provinces in ", length(unique(geo$zone)), " zones\n", sep = "")

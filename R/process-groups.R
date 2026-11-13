@@ -276,8 +276,12 @@ get_process_groups <- function(x, regions = NULL) {
          "`requireNamespace(\"sf\")` (or `library(sf)`) before filtering, ",
          "and rebuild the geoscale.", call. = FALSE)
   }
-  m <- geoscales::geoscale_geometry(gs, "region")
-  reg <- as.character(m$region)
+  # The finest geoframe, read rather than assumed: a model's own hierarchy
+  # may call it anything, and `region` is only guaranteed as the ATOM KEY
+  # column of the leaftable, not as a geoframe name.
+  fine <- geoscales::geoscale_geoframes(gs, finest = TRUE)
+  m <- geoscales::geoscale_geometry(gs, fine)
+  reg <- as.character(m[[fine]])
   tt <- sf::st_touches(m)
   a <- matrix(FALSE, length(reg), length(reg), dimnames = list(reg, reg))
   for (i in seq_along(reg)) a[i, tt[[i]]] <- TRUE

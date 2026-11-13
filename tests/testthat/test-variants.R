@@ -268,7 +268,7 @@ test_that("an activity share must be a fraction", {
 dr_regions <- c("R01", "R03", "R08", "R09")
 
 dr_geoscale <- function() {
-  geoscales::filter_geoscale(topia$geoscales$honeycomb, "region", dr_regions)
+  geoscales::filter_geoscale(topia$geoscales$honeycomb, "province", dr_regions)
 }
 
 skip_if_no_geo <- function() {

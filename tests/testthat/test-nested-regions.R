@@ -552,5 +552,5 @@ test_that("well-formed chains are silent", {
   expect_silent(.geo_hierarchy(nr_geoscale(), c("R1", "R2")))
   expect_silent(.geo_hierarchy(topia$geoscales$honeycomb,
                                geoscales::geoscale_regions(
-                                 topia$geoscales$honeycomb, "region")))
+                                 topia$geoscales$honeycomb, "province")))
 })

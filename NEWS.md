@@ -616,7 +616,31 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   optimised: the base year and any milestones before it are washed out, with a
   rule at the last given year and a caption naming the states.
 
+## Breaking changes
+
+* **TOPIA's finest geoframe is `province`, not `region`.** `region` is
+  energyRt's own spatial dimension -- `newModel(region = )` and the `region`
+  column of every parameter table -- so a geoframe of the same name made
+  `level = "region"` read as the generic one. The hierarchy is now
+  `nation -> zone -> province` over the same codes `R01`..`R12`, and
+  `geoframe = "province"` addresses the finest level:
+
+  ```r
+  geoscale_regions(topia$geoscales$honeycomb, geoframe = "province")
+  filter_geoscale(topia$geoscales$honeycomb, "province", c("R04", "R05"))
+  ```
+
+  The leaftable still carries a `region` column -- the atom key, a copy of
+  `province` -- so anything joining on `region` is unaffected, and the model's
+  regions are still the twelve codes. `level = "zone"` and `level = "nation"`
+  are unchanged.
+
 ## Bug fixes
+
+* A geoscale whose finest geoframe is not called `region` now works throughout.
+  `get_process_groups()` and the clustered aggregation read that name from the
+  geoscale instead of assuming it, and `gg_trade_map()` accepts a plain `sf`
+  keyed on it rather than requiring a column called `region`.
 
 * `get_process_groups()` labels a corridor family with its own prefix.
   A trade named `<prefix>_<src>_<dst>` -- one separator, which is what

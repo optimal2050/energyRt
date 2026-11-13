@@ -203,8 +203,8 @@ test_that("topia ships one Geoscale per layout, sharing one hierarchy", {
                   c("squares", "honeycomb", "island", "continent"))
 
   g0 <- topia$geoscales$honeycomb
-  expect_equal(geoscales::geoscale_geoframes(g0), c("nation", "zone", "region"))
-  expect_setequal(geoscales::geoscale_regions(g0, "region"),
+  expect_equal(geoscales::geoscale_geoframes(g0), c("nation", "zone", "province"))
+  expect_setequal(geoscales::geoscale_regions(g0, "province"),
                   sprintf("R%02d", 1:12))
   # four zones of three, in the canonical order
   expect_equal(geoscales::geoscale_children(g0, "zone", "NW"),
@@ -216,14 +216,14 @@ test_that("topia ships one Geoscale per layout, sharing one hierarchy", {
 
   # The four layouts differ ONLY in the polygons they carry. `area` is measured
   # from those, so compare the hierarchy columns and leave it out.
-  cols <- c("nation", "zone", "region", "name")
+  cols <- c("nation", "zone", "province", "name")
   ref <- geoscales::geoscale_leaftable(g0)[, cols]
   for (nm in names(topia$geoscales)) {
     gs <- topia$geoscales[[nm]]
     expect_s3_class(gs, "geoscales::GeoScale")
     expect_equal(geoscales::geoscale_leaftable(gs)[, cols], ref,
                  label = paste0("hierarchy of ", nm))
-    expect_equal(length(geoscales::geoscale_geometry(gs, "region")$region), 12L,
+    expect_equal(nrow(geoscales::geoscale_geometry(gs, "province")), 12L,
                  label = paste0("features in ", nm))
   }
 })
@@ -241,8 +241,8 @@ test_that("every zone is one contiguous block on every layout", {
   # dissolves to several disjoint parts, so assert connectedness directly.
   geo <- geoscales::geoscale_leaftable(topia$geoscales[[1]])
   for (nm in names(topia$geoscales)) {
-    x <- geoscales::geoscale_geometry(topia$geoscales[[nm]], "region")
-    reg <- as.character(x$region)
+    x <- geoscales::geoscale_geometry(topia$geoscales[[nm]], "province")
+    reg <- as.character(x$province)
     nbl <- setNames(lapply(sf::st_touches(x), function(i) reg[i]), reg)
     # an offshore region touches nothing and joins its nearest neighbour
     # across the sea -- one explicit link, not a distance tolerance (a
@@ -293,15 +293,15 @@ test_that("a shipped geoscale subsets to a model's regions", {
   # geoscales verb, which keeps the geometry and the `area` weight
   full <- topia$geoscales$honeycomb
   # a subset that spans two zones: the whole NW plus one SW region
-  gs <- geoscales::filter_geoscale(full, "region", c("R01", "R03", "R08"))
-  expect_setequal(geoscales::geoscale_regions(gs, "region"), c("R01", "R03", "R08"))
+  gs <- geoscales::filter_geoscale(full, "province", c("R01", "R03", "R08"))
+  expect_setequal(geoscales::geoscale_regions(gs, "province"), c("R01", "R03", "R08"))
   expect_setequal(geoscales::geoscale_regions(gs, "zone"), c("NW", "SW"))
   expect_equal(geoscales::geoscale_weights(gs), "area")
-  expect_equal(length(geoscales::geoscale_geometry(gs, "region")$region), 3L)
+  expect_equal(nrow(geoscales::geoscale_geometry(gs, "province")), 3L)
 
-  gsw <- geoscales::filter_geoscale(full, "region", c("R01", "R03"))
+  gsw <- geoscales::filter_geoscale(full, "province", c("R01", "R03"))
   expect_equal(geoscales::geoscale_regions(gsw, "zone"), "NW")
-  expect_error(geoscales::filter_geoscale(full, "region", "R99"))
+  expect_error(geoscales::filter_geoscale(full, "province", "R99"))
 })
 
 test_that("gg_map delegates drawing to geoscales::gg_geoscale", {
@@ -317,7 +317,7 @@ test_that("gg_map delegates drawing to geoscales::gg_geoscale", {
   regs <- c("R01", "R03")
   mod <- setGeoscale(vt_model(name = "gm", regions = regs),
                      geoscales::filter_geoscale(topia$geoscales$honeycomb,
-                                                "region", regs))
+                                                "province", regs))
   sol <- vt_solve(vt_interp(mod, "gm"))
 
   p <- gg_map(sol, "capacity")
@@ -327,7 +327,7 @@ test_that("gg_map delegates drawing to geoscales::gg_geoscale", {
   expect_equal(p$labels$title, "capacity")
   expect_null(p$labels$subtitle)
   # the level names the legend instead of the subtitle
-  expect_equal(p$labels$fill, "region")
+  expect_equal(p$labels$fill, "province")
   # viridis, not ggplot's default blue gradient
   fills <- ggplot2::ggplot_build(p)$data[[1]]$fill
   expect_true(any(grepl("^#", fills)))
@@ -348,7 +348,7 @@ test_that("gg_trade_map keeps working on a CRS-less map", {
                                       dst = c("R03", "R06")))
   # a plain `sf` straight out of the geoscale: no `x`/`y` columns, so this
   # also pins that gg_trade_map() derives the label anchors itself
-  m <- geoscales::geoscale_geometry(topia$geoscales$honeycomb, "region")
+  m <- geoscales::geoscale_geometry(topia$geoscales$honeycomb, "province")
   expect_false(any(c("x", "y") %in% names(m)))
   p <- gg_trade_map(trd, map = m)
   geoms <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
@@ -363,7 +363,7 @@ test_that("gg_trade_map draws sf layers when the map has a CRS", {
   trd <- newTrade("TRD", commodity = "ELC",
                   routes = data.frame(src = c("R01", "R03"),
                                       dst = c("R03", "R06")))
-  m <- geoscales::geoscale_geometry(topia$geoscales$honeycomb, "region")
+  m <- geoscales::geoscale_geometry(topia$geoscales$honeycomb, "province")
   sf::st_crs(m) <- 4326
   p <- gg_trade_map(trd, map = m)
   geoms <- vapply(p$layers, function(l) class(l$geom)[1], character(1))

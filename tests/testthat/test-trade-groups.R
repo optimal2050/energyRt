@@ -17,7 +17,7 @@ skip_if_no_grouping <- function() {
 tg_regions <- c("R01", "R03", "R08", "R09")
 
 tg_geoscale <- function() {
-  geoscales::filter_geoscale(topia$geoscales$honeycomb, "region", tg_regions)
+  geoscales::filter_geoscale(topia$geoscales$honeycomb, "province", tg_regions)
 }
 
 tg_corridor <- function(nm, s, d, cap, teff, react = NA_real_) {

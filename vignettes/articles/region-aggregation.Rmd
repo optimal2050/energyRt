@@ -58,7 +58,7 @@ TOPIA's eleven regions nest into three zones.
 
 ```{r regions}
 gs <- topia$geoscales$honeycomb
-regions <- geoscale_regions(gs, geoframe = "region")
+regions <- geoscale_regions(gs, geoframe = "province")
 geo <- as.data.frame(geoscale_leaftable(gs))
 
 gg_geoscale(gs, type = "map")
@@ -184,7 +184,7 @@ later. `E2a` removes it and measures what it was worth.
 
 ```{r links}
 links <- gs |>
-  geoscale_geometry(geoframe = "region") |>
+  geoscale_geometry(geoframe = "province") |>
   sf::st_touches() |>
   as.data.frame() |>
   transmute(src = regions[row.id], dst = regions[col.id]) |>
@@ -361,7 +361,7 @@ edge that crosses a zone boundary:
 
 ```{r adjacency}
 touching <- gs |>
-  geoscale_geometry(geoframe = "region") |>
+  geoscale_geometry(geoframe = "province") |>
   sf::st_touches(sparse = FALSE)
 
 sum(touching) / 2                                   # pairs on the map
@@ -500,7 +500,7 @@ cl <- model_clusters(mod_7)
 
 membership <- as.data.frame(geoscale_leaftable(cl$ECOA$geoscale))
 gg_geoscale(cl$ECOA$geoscale, type = "map", data = membership,
-            geoframe = "region", z = "cluster")
+            geoframe = "province", z = "cluster")
 ```
 
 The atoms are coloured by the cluster they joined. Every cluster is one

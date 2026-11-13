@@ -143,7 +143,7 @@ build_topia <- function(regions = .topia_regions[1:3],
 
   # the layout's place in the hierarchy: which zones it spans, and how many of
   # each zone's regions it carries (the endowments scale with that)
-  zone_of <- stats::setNames(geo$zone, geo$region)
+  zone_of <- stats::setNames(geo$zone, geo$province)
   zones   <- unique(unname(zone_of[regions]))
   zcount  <- table(unname(zone_of[regions]))
 
@@ -519,10 +519,10 @@ build_topia <- function(regions = .topia_regions[1:3],
   for (trd in trades) repo <- add(repo, trd)
   repo <- add(repo, DEM_ELC)
 
-  # the hierarchy this layout is solved on: the shipped nation -> zone -> region
+  # the hierarchy this layout is solved on: the shipped nation -> zone -> province
   # table narrowed to its own regions, without geometry (the layouts' polygons
   # live in `topia$geoscales`)
-  gscale <- geoscales::filter_geoscale(topia_model_geoscale, geoframe = "region",
+  gscale <- geoscales::filter_geoscale(topia_model_geoscale, geoframe = "province",
                                        region = regions,
                                        drop_empty_geoframes = FALSE)
 

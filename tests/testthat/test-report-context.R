@@ -114,7 +114,7 @@ test_that("the map needs GEOMETRY, not just a geoscale", {
   skip_if_not_installed("sf")
   skip_if_not_installed("ggplot2")
   gs_map <- topia$geoscales$continent
-  regs <- geoscales::geoscale_regions(gs_map, "region")[1:2]
+  regs <- geoscales::geoscale_regions(gs_map, "province")[1:2]
   EWIN_map <- update(EWIN, region = regs,
                      capacity = data.frame(region = regs, cap.up = c(20, 8)))
   p <- plot_of(EWIN_map, ctx(EWIN_map, geoscale = gs_map))

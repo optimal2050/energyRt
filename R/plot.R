@@ -2452,6 +2452,15 @@ autoplot.trade <- function(object, map = NULL, ...) {
     # columns; since 0.91 the layouts live inside `topia$geoscales`, so derive
     # them from the polygons when they are absent -- same rule as the geoscale
     # path below.
+    # A geoscale whose finest geoframe is not called `region` hands out
+    # geometry keyed on that name instead, so adopt a single unambiguous key
+    # column rather than demanding one particular word for it.
+    if (inherits(map, "sf") && !"region" %in% names(map)) {
+      cand <- setdiff(names(map), c("x", "y", attr(map, "sf_column")))
+      cand <- cand[vapply(cand, function(n)
+        is.character(map[[n]]) || is.factor(map[[n]]), logical(1))]
+      if (length(cand) == 1L) names(map)[names(map) == cand] <- "region"
+    }
     if (inherits(map, "sf") && !all(c("x", "y") %in% names(map))) {
       check_package("sf")
       xy <- sf::st_coordinates(suppressWarnings(sf::st_point_on_surface(

@@ -9,14 +9,20 @@ A named list of five elements:
 \describe{
 \item{geoscales}{named list of four \link[geoscales:GeoScale]{geoscales::GeoScale} objects
 (\code{squares}, \code{honeycomb}, \code{island}, \code{continent}). Each carries the same
-hierarchy -- \verb{nation TOPIA -> zone WEST/CENTRAL/EAST -> region} over
-\code{W1}, \code{W2}, \code{C1}..\code{C6}, \code{E1}..\code{E3} -- and that layout's polygons, plus a
+hierarchy -- \verb{nation TOPIA -> zone Z1..Z5 -> province} over
+\code{R01}..\code{R12} -- and that layout's polygons, plus a
 planar \code{area} weight. This is the dataset's ONLY copy of the geometry:
 the plain \code{topia$map} and the \code{topia$geo} hierarchy table were removed in
-0.91. Get either back with \code{geoscales::geoscale_geometry(gs, "region")}
-and \code{geoscales::geoscale_leaftable(gs)}. Every layout draws the same
-eleven regions in different places, and each assigns the codes so that a
-zone is one contiguous block on that picture.}
+0.91. Get either back with
+\code{geoscales::geoscale_geometry(gs, "province")} and
+\code{geoscales::geoscale_leaftable(gs)}. Every layout draws the same twelve
+provinces in different places, and each assigns the codes so that a
+zone is one contiguous block on that picture. The finest geoframe is
+\code{province}, not \code{region}: energyRt uses \code{region} for a model's own
+spatial dimension, so a geoframe of that name would make
+\code{level = "region"} ambiguous. The leaftable still carries a \code{region}
+column -- the atom key, a copy of \code{province} -- so anything joining on
+\code{region} is unaffected.}
 \item{weather}{deterministic solar / wind / hydro capacity factors for the
 three teaching calendars. Columns \code{calendar}
 (\code{s4_h24}/\code{m12_h24}/\code{topia_seasons}), \code{resource}
@@ -66,10 +72,10 @@ front. \code{BY2025_50_by10} = milestones 2025/2030/2040/2050, a base year
 then 10-year intervals (its periods run to 2055). Each milestone is the
 MID-point of its period, so that is where its costs are discounted
 from. \code{BY2025} = the base year alone, for the unit kits.}
-\item{electricity}{THE model, over all eleven regions \code{W1}, \code{W2},
-\code{C1}..\code{C6}, \code{E1}..\code{E3}: \code{repo} (the repository), \code{regions}, \code{calendar}
+\item{electricity}{THE model, over all twelve provinces
+\code{R01}..\code{R12}: \code{repo} (the repository), \code{regions}, \code{calendar}
 (the name of the calendar it was built for), \code{geoscale} (its
-\code{nation -> zone -> region} hierarchy, without geometry -- a model MUST
+\code{nation -> zone -> province} hierarchy, without geometry -- a model MUST
 carry it, see the examples), and the scenario levers \code{CO2_CAP},
 \code{CT_CO2}, \code{EARLY_RET} and \code{GREEN_H2}, which are NOT in \code{repo} and
 are added to a scenario on top of it. Built by
@@ -106,7 +112,7 @@ topia$stock
 
 \dontrun{
 gs <- topia$geoscales$honeycomb          # hierarchy + that layout's polygons
-geoscales::geoscale_leaftable(gs)        # the region table
+geoscales::geoscale_leaftable(gs)        # the province table
 plot_geoscale(gs, type = "map")
 
 um <- topia$modules$electricity

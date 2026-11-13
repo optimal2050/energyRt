@@ -92,20 +92,32 @@ convert("PJ", "GWh", 1) # 277.7778 -- the fuel/electricity bridge
 convert("GW*year", "GWh", 1) # 8760     -- cap2act for electricity
 ```
 
-# Regions and the map
+# Provinces and the map
 
-TOPIA has twelve regions, `R01`--`R12`. The `squares`, `honeycomb`, `island`,
-and `continent` layouts in `topia$geoscales` share these region names: each
-layout draws them in different places, chosen so that every zone comes out as
-one compact group of neighbours, and the model sees only the codes.
+TOPIA's territory divides into twelve **provinces**, `R01`--`R12`. The
+`squares`, `honeycomb`, `island`, and `continent` layouts in `topia$geoscales`
+share these codes: each layout draws them in different places, chosen so that
+every zone comes out as one compact group of neighbours, and the model sees
+only the codes.
 
-`R01` is the remote region. It is detached on two of the four layouts and
+Two words are in play and they are not the same one. **`region`** is
+energyRt's own spatial dimension -- what `newModel(region = )` takes and what
+the `region` column of every parameter table keys on. **`province`** is the
+name of TOPIA's finest geoframe, the level its own geography is divided at.
+Here the two coincide: the model is solved on the twelve provinces, so its
+regions *are* the provinces. They are kept apart because a geoframe called
+`region` would make `level = "region"` read as the generic dimension rather
+than as a place in TOPIA's hierarchy, and because a real model names its own
+levels -- states, NUTS2, balancing areas -- which is the arrangement this
+teaches.
+
+`R01` is the remote province. It is detached on two of the four layouts and
 carries no transmission at all, so it has to meet its own demand in every hour
 from what it holds locally.
 
 ```{r regions}
 gs <- topia$geoscales$honeycomb
-regions <- geoscale_regions(gs, geoframe = "region")
+regions <- geoscale_regions(gs, geoframe = "province")
 regions
 
 # the zones the fossil fuels balance on, and where the rest of the world
@@ -118,30 +130,35 @@ zones
 plot_geoscale(gs, type = "map")
 ```
 
-## Zones: the region hierarchy
+## Zones: the province hierarchy
 
-The regions nest into five zones of uneven size and one nation.
+The provinces nest into five zones of uneven size and one nation.
 `geoscale_leaftable()` returns this hierarchy.
 
 ```{r geoscale}
 geo <- as.data.frame(geoscale_leaftable(gs))
 
-knitr::kable(geo, caption = "Regional hierarchy")
+# `region` is the ATOM KEY the constructor adds -- a copy of the finest
+# geoframe, so a downstream model can always join on one name. It is dropped
+# from the printed table because it repeats `province`.
+knitr::kable(geo[, setdiff(names(geo), "region")],
+             caption = "The province hierarchy")
 ```
 
-The zones are deliberately uneven -- 1, 2, 3, 4 and 2 regions. A zone is where
-the fossil fuels balance, so its size decides how large a pool a region can
-draw on, and an even grouping would have made that uniform and uninteresting.
+The zones are deliberately uneven -- 1, 2, 3, 4 and 2 provinces. A zone is
+where the fossil fuels balance, so its size decides how large a pool a province
+can draw on, and an even grouping would have made that uniform and
+uninteresting.
 
-| zone | regions | resource | load |
+| zone | provinces | resource | load |
 |---|---|---|---|
 | `Z1` | `R01` | the island: the best wind in the model and the least sun, alone and with no wire | small, winter-peaking |
 | `Z2` | `R02`--`R03` | the sun: the highest solar yield, little wind, the domestic gas | moderate, evening peak |
 | `Z3` | `R04`--`R06` | the firm interior: the nuclear station, the mountain reservoir, the calmest air in the model | large and flat, industrial |
 | `Z4` | `R07`--`R10` | the belt: run-of-river, the lignite basin, forestry, and the north-coast wind at its eastern end | mixed |
-| `Z5` | `R11`--`R12` | the windy coast: exposed sites at both regions, poor sun | small, dense at the load centre |
+| `Z5` | `R11`--`R12` | the windy coast: exposed sites at both provinces, poor sun | small, dense at the load centre |
 
-Each region is endowed differently, and the endowment is what the model is
+Each province is endowed differently, and the endowment is what the model is
 about: `R01` an island with no wire and no fuel of its own, `R02` and `R03` the
 solar potential with `R03` holding the domestic gas, `R04` the nuclear
 incumbent, `R05` the reservoir, `R06` industry, `R07` run-of-river, `R08` the
@@ -256,7 +273,7 @@ BIO <- newCommodity(
   desc = "Biomass residues, carbon-neutral",
   unit = "PJ",
   timeframe = "ANNUAL",
-  geoframe = "region" # the lower level in Topia is named "region"
+  geoframe = "province" # TOPIA's finest geoframe
 )
 
 NUC <- newCommodity(
@@ -278,7 +295,7 @@ LANDS <- newCommodity(
   desc = "Land suitable for solar siting",
   unit = "km2",
   timeframe = "ANNUAL",
-  geoframe = "region"
+  geoframe = "province"
 )
 
 LANDW <- newCommodity(
@@ -286,7 +303,7 @@ LANDW <- newCommodity(
   desc = "Land suitable for wind siting",
   unit = "km2",
   timeframe = "ANNUAL",
-  geoframe = "region",
+  geoframe = "province",
   # tiers, not labels: exposed coast, open country and inland terrain must not
   # pool, so the commodity becomes one balance per tier and a clustered wind
   # farm draws on the tier its own cluster names. The three tiers match the
@@ -304,7 +321,7 @@ H2 <- newCommodity(
   desc = "Hydrogen, lower heating value",
   unit = "GWh",
   timeframe = "HOUR",
-  geoframe = "region"
+  geoframe = "province"
 )
 
 ELC <- newCommodity(

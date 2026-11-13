@@ -16,14 +16,20 @@
 #' \describe{
 #'   \item{geoscales}{named list of four [geoscales::GeoScale] objects
 #'     (`squares`, `honeycomb`, `island`, `continent`). Each carries the same
-#'     hierarchy -- `nation TOPIA -> zone WEST/CENTRAL/EAST -> region` over
-#'     `W1`, `W2`, `C1`..`C6`, `E1`..`E3` -- and that layout's polygons, plus a
+#'     hierarchy -- `nation TOPIA -> zone Z1..Z5 -> province` over
+#'     `R01`..`R12` -- and that layout's polygons, plus a
 #'     planar `area` weight. This is the dataset's ONLY copy of the geometry:
 #'     the plain `topia$map` and the `topia$geo` hierarchy table were removed in
-#'     0.91. Get either back with `geoscales::geoscale_geometry(gs, "region")`
-#'     and `geoscales::geoscale_leaftable(gs)`. Every layout draws the same
-#'     eleven regions in different places, and each assigns the codes so that a
-#'     zone is one contiguous block on that picture.}
+#'     0.91. Get either back with
+#'     `geoscales::geoscale_geometry(gs, "province")` and
+#'     `geoscales::geoscale_leaftable(gs)`. Every layout draws the same twelve
+#'     provinces in different places, and each assigns the codes so that a
+#'     zone is one contiguous block on that picture. The finest geoframe is
+#'     `province`, not `region`: energyRt uses `region` for a model's own
+#'     spatial dimension, so a geoframe of that name would make
+#'     `level = "region"` ambiguous. The leaftable still carries a `region`
+#'     column -- the atom key, a copy of `province` -- so anything joining on
+#'     `region` is unaffected.}
 #'   \item{weather}{deterministic solar / wind / hydro capacity factors for the
 #'     three teaching calendars. Columns `calendar`
 #'     (`s4_h24`/`m12_h24`/`topia_seasons`), `resource`
@@ -57,10 +63,10 @@
 #'     then 10-year intervals (its periods run to 2055). Each milestone is the
 #'     MID-point of its period, so that is where its costs are discounted
 #'     from. `BY2025` = the base year alone, for the unit kits.}
-#'   \item{electricity}{THE model, over all eleven regions `W1`, `W2`,
-#'     `C1`..`C6`, `E1`..`E3`: `repo` (the repository), `regions`, `calendar`
+#'   \item{electricity}{THE model, over all twelve provinces
+#'     `R01`..`R12`: `repo` (the repository), `regions`, `calendar`
 #'     (the name of the calendar it was built for), `geoscale` (its
-#'     `nation -> zone -> region` hierarchy, without geometry -- a model MUST
+#'     `nation -> zone -> province` hierarchy, without geometry -- a model MUST
 #'     carry it, see the examples), and the scenario levers `CO2_CAP`,
 #'     `CT_CO2`, `EARLY_RET` and `GREEN_H2`, which are NOT in `repo` and
 #'     are added to a scenario on top of it. Built by
@@ -99,7 +105,7 @@
 #'
 #' \dontrun{
 #' gs <- topia$geoscales$honeycomb          # hierarchy + that layout's polygons
-#' geoscales::geoscale_leaftable(gs)        # the region table
+#' geoscales::geoscale_leaftable(gs)        # the province table
 #' plot_geoscale(gs, type = "map")
 #'
 #' um <- topia$modules$electricity

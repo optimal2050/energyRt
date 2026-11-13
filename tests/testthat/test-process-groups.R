@@ -18,7 +18,7 @@ cr_par <- data.frame(region = cr_regions,
                      invcost = c(1000, 1500, 1020, 1480))
 
 cr_geoscale <- function() {
-  geoscales::filter_geoscale(topia$geoscales$honeycomb, "region", cr_regions)
+  geoscales::filter_geoscale(topia$geoscales$honeycomb, "province", cr_regions)
 }
 
 cr_model <- function(with_trade = TRUE) {
@@ -536,10 +536,12 @@ test_that("the clustering comes back as a geoscale with a `cluster` frame", {
                                verbose = FALSE)
   gs <- model_clusters(m)$ECOA$geoscale
   expect_true(is_geoscale(gs))
-  # nation > zone > cluster > region, so plot_geoscale(geoframe = "cluster")
-  # and the icicle both work with no new plotting code
+  # nation > zone > cluster > province, so plot_geoscale(geoframe = "cluster")
+  # and the icicle both work with no new plotting code. The finest frame is
+  # the PARENT's, whatever that model calls it -- the clustering inserts a
+  # level, it does not rename the one beneath.
   expect_equal(geoscales::geoscale_geoframes(gs),
-               c("nation", "zone", "cluster", "region"))
+               c("nation", "zone", "cluster", "province"))
   lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
   expect_setequal(lt$region, cr_regions)
   expect_equal(anyDuplicated(lt$region), 0L)

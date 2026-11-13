@@ -117,7 +117,7 @@ test_that(".report_call_params dispatches by closure arity", {
       regs <- c("R01", "R03")
       mod <- setGeoscale(vt_model(name = "rvgeo", regions = regs),
                         geoscales::filter_geoscale(
-                          topia$geoscales$honeycomb, "region", regs))
+                          topia$geoscales$honeycomb, "province", regs))
       sol <<- vt_solve(vt_interp(mod, "rvgeo"))
     }
     sol
@@ -221,7 +221,7 @@ test_that("the full scenario template renders its pages", {
   regs <- c("R01", "R03")
   mod <- setGeoscale(vt_model(name = "rvfull", regions = regs),
                      geoscales::filter_geoscale(
-                          topia$geoscales$honeycomb, "region", regs))
+                          topia$geoscales$honeycomb, "province", regs))
   mod@misc$logos <- c(.rv_png(), .rv_png())
   sol <- vt_solve(vt_interp(mod, "rvfull"))
   sol <- suppressMessages(solve_scenario(sol, solver = "glpk", run = "alt",
@@ -292,7 +292,7 @@ test_that("docx page break lands in word/document.xml", {
 test_that("the geoscale draws as map, icicle, and stack", {
   skip_if_no_geoscales()
   skip_if_not_installed("ggplot2")
-  gs <- geoscales::filter_geoscale(topia$geoscales$honeycomb, "region",
+  gs <- geoscales::filter_geoscale(topia$geoscales$honeycomb, "province",
                                    c("R01", "R03", "R08"))
   expect_s3_class(geoscales::gg_geoscale(gs, type = "icicle"), "ggplot")
   skip_if_not_installed("sf")

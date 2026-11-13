@@ -48,14 +48,14 @@ stopifnot(requireNamespace("sf", quietly = TRUE))
 
 # the canonical order, which the matrix is keyed on
 .link_regions <- as.character(
-  geoscales::geoscale_regions(topia_geoscales[[1]], geoframe = "region"))
+  geoscales::geoscale_regions(topia_geoscales[[1]], geoframe = "province"))
 
 .ISOLATED <- "R01"
 
 # Border matrix of one layout: TRUE where two regions share an EDGE.
 .borders <- function(gs) {
-  g <- sf::st_as_sf(geoscales::geoscale_geometry(gs, geoframe = "region"))
-  key <- intersect(c("region", "name", "id"), names(g))[1]
+  g <- sf::st_as_sf(geoscales::geoscale_geometry(gs, geoframe = "province"))
+  key <- intersect(c("province", "region", "name", "id"), names(g))[1]
   reg <- as.character(g[[key]])
   nb <- suppressMessages(suppressWarnings(
     sf::st_relate(g, g, pattern = "F***1****")))
