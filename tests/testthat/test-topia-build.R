@@ -18,7 +18,8 @@ test_that("every default is an identity, not a rebuild", {
 test_that("the kit shape is the dataset's own, so the two interchange", {
   k <- build_topia(quiet = TRUE)
   expect_identical(names(k), names(tb_kit()))
-  expect_identical(names(k)[1:4], c("regions", "calendar", "repo", "geoscale"))
+  expect_identical(names(k)[1:5],
+                   c("regions", "groups", "calendar", "repo", "geoscale"))
   expect_s4_class(k$repo, "repository")
 })
 
@@ -103,10 +104,10 @@ test_that("the levers that carry a shape are narrowed with the model", {
 test_that("levers are chosen by name, or dropped", {
   k <- build_topia(levers = c("CT_CO2", "CO2_CAP"), quiet = TRUE)
   # named in the dataset's order, whatever order they were asked in
-  expect_identical(names(k), c("regions", "calendar", "repo", "geoscale",
-                               "CO2_CAP", "CT_CO2"))
+  expect_identical(names(k), c("regions", "groups", "calendar", "repo",
+                               "geoscale", "CO2_CAP", "CT_CO2"))
   expect_identical(names(build_topia(levers = FALSE, quiet = TRUE)),
-                   c("regions", "calendar", "repo", "geoscale"))
+                   c("regions", "groups", "calendar", "repo", "geoscale"))
   expect_error(build_topia(levers = "NO_SUCH", quiet = TRUE), "unknown lever")
 })
 
@@ -150,8 +151,6 @@ test_that("an argument that is not built yet is refused, not ignored", {
   # The whole point: a case asking for one of these must fail rather than come
   # back shaped like the default and silently wrong.
   for (call in list(
-    function() build_topia(techs = "ECOA", quiet = TRUE),
-    function() build_topia(modules = "-hydrogen", quiet = TRUE),
     function() build_topia(clusters = FALSE, quiet = TRUE),
     function() build_topia(demand = 2, quiet = TRUE),
     function() build_topia(weather = "simulated", quiet = TRUE),
@@ -166,4 +165,141 @@ test_that("quiet is quiet, and the default reports what it built", {
   skip_if_not_installed("geoscales")
   expect_silent(build_topia("Z3", quiet = TRUE))
   expect_message(build_topia(quiet = FALSE), "build_topia: 12 regions")
+})
+
+# --------------------------------------------------------------------------- #
+# Process selection and the dependency closure.
+# --------------------------------------------------------------------------- #
+
+tb_names <- function(k) names(getObject(k$repo))
+
+# Covers the R API: build_topia(techs=)
+test_that("dropping a burner takes its whole fuel chain with it", {
+  k <- build_topia(techs = "-ECOA", quiet = TRUE)
+  n <- tb_names(k)
+  # nothing burns coal any more, so the fuel, both sources and both corridors
+  # go -- this is the closure, and doing it by hand is where a kit ends up
+  # with a supply feeding nothing
+  expect_false(any(c("ECOA", "COA", "SUP_COA", "IMP_COA",
+                     "TBD_COA_Z4_Z3", "TBD_COA_Z4_Z5") %in% n))
+  # gas is untouched, and so is its corridor
+  expect_true(all(c("EGAS", "GAS", "SUP_GAS", "IMP_GAS",
+                    "TBD_GAS_Z2_Z3") %in% n))
+})
+
+test_that("an aux commodity is a consumer, so land follows its plants", {
+  # `LANDS` is named in `@aux`/`@aeff` as `acomm`, not as an input `comm`.
+  # Read only `comm` and solar looks like it consumes nothing, the land pool
+  # looks unused, and it is dropped out from under the plant that needs it.
+  with_sol <- build_topia(techs = "ESOL", quiet = TRUE)
+  expect_true(all(c("ESOL", "LANDS", "RES_LANDS") %in% tb_names(with_sol)))
+
+  no_sol <- build_topia(techs = "-ESOL", quiet = TRUE)
+  expect_false(any(c("ESOL", "LANDS", "RES_LANDS") %in% tb_names(no_sol)))
+  # wind keeps its own pool
+  expect_true(all(c("EWIN", "LANDW", "RES_LANDW") %in% tb_names(no_sol)))
+})
+
+test_that("a store and a corridor do not keep their own commodity alive", {
+  # Both sit on BOTH ends of one commodity -- `STG_H2` takes H2 in and puts
+  # H2 out, a coal corridor carries COA either way -- so counting them as
+  # consumers or producers lets a commodity hold itself up after its last
+  # real user is gone.
+  k <- build_topia(techs = "-H2ELC", quiet = TRUE)
+  expect_false(any(c("H2ELC", "H2", "STG_H2", "EXP_H2") %in% tb_names(k)))
+  # the electricity store survives: ELC has real producers and a real consumer
+  expect_true("STG_ELC" %in% tb_names(k))
+})
+
+test_that("CO2 is reachable only as an emission, and must survive", {
+  # Nothing takes CO2 in or puts it out: it is declared on `COA` and `GAS` as
+  # `@emis`. Judged on flows alone it looks orphaned, and dropping it takes
+  # the carbon cap and the tax with it.
+  k <- build_topia(techs = "-ECOA", quiet = TRUE)
+  expect_true("CO2" %in% tb_names(k))
+  expect_true(all(c("CO2_CAP", "CT_CO2") %in% names(k)))
+
+  # with nothing burning at all there is no CO2, and the levers go too
+  v <- build_topia(techs = "vre", quiet = TRUE)
+  expect_false("CO2" %in% tb_names(v))
+  expect_false(any(c("CO2_CAP", "CT_CO2") %in% names(v)))
+})
+
+# Covers the R API: build_topia(modules=)
+test_that("modules use the article's own nine groups", {
+  k <- build_topia(quiet = TRUE)
+  expect_setequal(names(k$groups),
+                  c("commodities", "supply", "weather", "generators",
+                    "storage", "hydrogen", "transmission", "fuel_trade",
+                    "demand"))
+  # the groups partition the repository: every object in exactly one
+  g <- unlist(k$groups, use.names = FALSE)
+  expect_setequal(g, tb_names(k))
+  expect_equal(anyDuplicated(g), 0L)
+
+  h <- build_topia(modules = "-hydrogen", quiet = TRUE)
+  expect_false(any(c("H2ELC", "STG_H2", "EXP_H2", "H2") %in% tb_names(h)))
+  expect_true("STG_ELC" %in% tb_names(h))
+})
+
+test_that("a keyword is derived from the objects, not from a list", {
+  vre <- build_topia(techs = "vre", quiet = TRUE)
+  th <- build_topia(techs = "thermal", quiet = TRUE)
+  tech_of <- function(k) names(Filter(function(o) methods::is(o, "technology"),
+                                      getObject(k$repo)))
+  # a VRE plant is one that declares a weather series
+  expect_setequal(tech_of(vre), c("ESOL", "EWIN", "EHYD"))
+  # a thermal one is one that burns its input
+  expect_setequal(tech_of(th), c("ECOA", "EGAS", "EBIO"))
+})
+
+test_that("a lever naming a process that is gone goes with it", {
+  # `EARLY_RET` caps ECOA and EGAS by name; `GREEN_H2` sums over H2ELC, ESOL,
+  # EWIN and EHYD. Left in place they reference a process the model does not
+  # declare, and the model is refused before it is ever interpolated.
+  expect_false("EARLY_RET" %in% names(build_topia(techs = "-ECOA",
+                                                  quiet = TRUE)))
+  expect_false("GREEN_H2" %in% names(build_topia(techs = "-H2ELC",
+                                                 quiet = TRUE)))
+  expect_true(all(c("EARLY_RET", "GREEN_H2") %in%
+                    names(build_topia(quiet = TRUE))))
+})
+
+test_that("no kept process is left naming an object that is gone", {
+  for (sel in list(list(techs = "-ECOA"), list(techs = c("EGAS", "ESOL")),
+                   list(techs = "vre"), list(modules = "-hydrogen"))) {
+    k <- do.call(build_topia, c(sel, list(quiet = TRUE)))
+    ob <- getObject(k$repo)
+    n <- names(ob)
+    # every weather series a kept process names is still there
+    wref <- unique(unlist(lapply(ob, energyRt:::.tb_wrefs), use.names = FALSE))
+    expect_true(all(wref %in% n),
+                label = paste(names(sel), sel, collapse = " "))
+    # and every commodity it touches
+    cm <- unique(unlist(lapply(
+      Filter(function(o) !methods::is(o, "commodity") &&
+                         !methods::is(o, "weather"), ob),
+      energyRt:::.tb_touches), use.names = FALSE))
+    expect_true(all(cm %in% n), label = paste(names(sel), sel, collapse = " "))
+  }
+})
+
+test_that("a selection is all keeps or all drops, and names are checked", {
+  expect_error(build_topia(techs = c("EGAS", "-ECOA"), quiet = TRUE),
+               "not both")
+  expect_error(build_topia(techs = "NOPE", quiet = TRUE), "unknown keyword")
+  expect_error(build_topia(modules = "-nope", quiet = TRUE), "unknown modules")
+})
+
+test_that("process selection composes with a region subset", {
+  skip_if_not_installed("geoscales")
+  k <- build_topia("R01", techs = c("EGAS", "ESOL"), quiet = TRUE)
+  expect_equal(k$regions, "R01")
+  n <- tb_names(k)
+  expect_setequal(
+    names(Filter(function(o) methods::is(o, "technology"), getObject(k$repo))),
+    c("EGAS", "ESOL"))
+  # the island has no wire on any layout, and no coal is burned here
+  expect_false(any(grepl("^TBD_", n)))
+  expect_false("COA" %in% n)
 })

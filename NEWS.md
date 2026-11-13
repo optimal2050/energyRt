@@ -43,11 +43,23 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   model -- `GREEN_H2`, whose `for.each` names every province, and `CO2_CAP`,
   whose cap is a per-province allowance times the province count.
 
+  `techs` and `modules` select processes, and a dependency closure follows
+  them: drop every coal burner and `COA`, `SUP_COA`, `IMP_COA` and both coal
+  corridors go too. `modules` uses the nine sub-repositories the article
+  builds the model from, carried through as `topia$modules$electricity$groups`
+  rather than re-derived.
+
+  ```r
+  build_topia(techs = "-ECOA")        # and the whole coal chain with it
+  build_topia(techs = "vre")          # declares a weather series
+  build_topia(modules = "-hydrogen")  # the chain declared across 3 sections
+  ```
+
   It authors nothing: every object it returns was declared in *TOPIA I*, which
   generates the shipped data files. With every argument at its default it
-  returns `topia$modules$electricity` unchanged. `techs`, `modules`,
-  `clusters`, `demand`, `weather`, `level` and a different `calendar` or
-  `horizon` are not built yet and are refused rather than ignored.
+  returns `topia$modules$electricity` unchanged. `clusters`, `demand`,
+  `weather`, `level` and a different `calendar` or `horizon` are not built yet
+  and are refused rather than ignored.
 
 * **A milestone year can be solved on a sample of the model calendar.** Hourly
   where the investment decisions land, cheaper in the years that only carry

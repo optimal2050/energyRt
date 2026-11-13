@@ -38,7 +38,18 @@ built so far.}
 
 \item{calendar, horizon}{not built yet; only the shipped values are accepted.}
 
-\item{techs, modules, clusters, demand, weather}{not built yet.}
+\item{techs}{which technologies to keep, or to drop with a leading \code{-}
+(\code{c("-EBIO", "-H2ELC")}). Two keywords are derived from the objects
+rather than listed: \code{"vre"} is a technology declaring a weather series,
+\code{"thermal"} one that burns its input. Keeps and drops cannot be mixed.}
+
+\item{modules}{which of the article's nine sub-repositories to keep, or to
+drop with a leading \code{-}: \code{commodities}, \code{supply}, \code{weather},
+\code{generators}, \code{storage}, \code{hydrogen}, \code{transmission}, \code{fuel_trade},
+\code{demand}. \code{modules = "-hydrogen"} strips in one word the chain the
+article declares across three sections.}
+
+\item{clusters, demand, weather}{not built yet.}
 
 \item{levers}{\code{TRUE} for all four, \code{FALSE} for none, or names.}
 
@@ -73,6 +84,16 @@ With every argument at its default the result is \code{topia$modules$electricity
 beneath it, so a request never cuts a zone in half by accident -- which
 matters because \code{COA} and \code{GAS} balance at the zone, and a subset that
 splits one is refused by \code{\link[=subset_model_regions]{subset_model_regions()}} rather than averaged.
+
+Selecting processes pulls a \strong{dependency closure} behind it: drop every
+coal burner and \code{COA}, \code{SUP_COA}, \code{IMP_COA} and both coal corridors go too,
+because nothing is left to use them. A storage and a corridor are not
+counted as consumers or producers while deciding this -- one time-shifts
+and the other moves, so counting them lets a commodity keep itself alive
+after its last real user is gone. \code{CO2} is reachable only as an emission
+declared on \code{COA} and \code{GAS}, and is kept on that basis. A lever naming a
+process that is gone goes with it, since it would otherwise reference what
+the model does not declare.
 
 The two levers that carry a spatial shape are narrowed with the model:
 \code{GREEN_H2}, whose \code{for.each} names every province, and \code{CO2_CAP}, whose cap

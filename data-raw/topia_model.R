@@ -58,8 +58,15 @@ for (.i in seq_along(.exprs)) {
   eval(.exprs[[.i]], .env)
 }
 
+# The nine sub-repositories the vignette builds the model from. They are
+# combined into one flat `repo`, so their membership would be lost -- and
+# `build_topia(modules = )` would have to re-derive it by rule, a second
+# authority for something the article already states. Carried over instead.
+.repo_groups <- c("commodities", "supply", "weather", "generators", "storage",
+                  "hydrogen", "transmission", "fuel_trade", "demand")
+
 .need <- c("regions", "repo", "gs", "CO2_CAP", "CT_CO2", "EARLY_RET",
-           "GREEN_H2")
+           "GREEN_H2", paste0("repo_", .repo_groups))
 .miss <- .need[!vapply(.need, exists, logical(1), envir = .env, inherits = FALSE)]
 if (length(.miss)) {
   stop("the vignette did not leave: ", paste(.miss, collapse = ", "),
@@ -69,6 +76,8 @@ if (length(.miss)) {
 
 topia_model <- list(
   regions   = .env$regions,
+  groups    = lapply(stats::setNames(nm = .repo_groups), function(g)
+                names(.env[[paste0("repo_", g)]])),
   # the name of the calendar the vignette built on, read from the object it
   # used rather than restated -- the two drifted when this was a literal
   calendar  = .env$calendar@name,
@@ -85,7 +94,24 @@ stopifnot(
   methods::is(topia_model$repo, "repository"),
   length(getObject(topia_model$repo)) > 0L
 )
+# Every object belongs to exactly one group, and the groups together are the
+# model: a group that drifts out of the repository, or an object the article
+# builds outside the nine, breaks the build here rather than in a subset.
+local({
+  g <- unlist(topia_model$groups, use.names = FALSE)
+  o <- names(getObject(topia_model$repo))
+  if (!setequal(g, o) || anyDuplicated(g)) {
+    stop("the sub-repositories do not partition `repo`: ",
+         "only in groups = ", paste(setdiff(g, o), collapse = ", "),
+         "; only in repo = ", paste(setdiff(o, g), collapse = ", "),
+         "; duplicated = ", paste(unique(g[duplicated(g)]), collapse = ", "),
+         call. = FALSE)
+  }
+})
+message("topia_model groups: ",
+        paste(sprintf("%s %d", names(topia_model$groups),
+                      lengths(topia_model$groups)), collapse = ", "))
 message("topia_model: ", length(topia_model$regions), " regions, ",
         length(getObject(topia_model$repo)), " objects")
 
-rm(.vig, .topia_sofar, .src, .env, .exprs, .i, .f, .need, .miss)
+rm(.vig, .topia_sofar, .src, .env, .exprs, .i, .f, .need, .miss, .repo_groups)
