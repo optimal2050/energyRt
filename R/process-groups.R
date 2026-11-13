@@ -128,7 +128,12 @@ NULL
   if (length(r) == 1L) r else NA_character_
 }
 
-# Longest common prefix of the member names, trimmed of a trailing separator.
+# Longest common prefix of the member names, cut back to a part boundary.
+#
+# The prefix alone is not a label: `ECOA_R01` and `ECOA_R09` share `ECOA_R0`,
+# and `R0` is half a region code. Where the names carry separators the stem has
+# to end at one, so half a part cannot reach the label; where they carry none
+# there is nothing to cut back to and the prefix stands.
 #' @noRd
 .name_stem <- function(nms) {
   if (length(nms) == 1L) return(nms)
@@ -136,7 +141,10 @@ NULL
   n <- min(lengths(ch)); k <- 0L
   while (k < n && length(unique(vapply(ch, function(x) x[k + 1L], ""))) == 1L)
     k <- k + 1L
-  stem <- sub("[^A-Za-z0-9]+$", "", substr(nms[1], 1, k))
+  pre <- substr(nms[1], 1, k)
+  if (grepl("[^A-Za-z0-9]", pre))
+    pre <- sub("[^A-Za-z0-9][A-Za-z0-9]*$", "", pre)
+  stem <- sub("[^A-Za-z0-9]+$", "", pre)
   if (nzchar(stem)) stem else nms[1]
 }
 

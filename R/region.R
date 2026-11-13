@@ -1114,15 +1114,37 @@ These values have no merged form. Declare one value for ",
 # (commodity) and on how they are split (cluster names): corridors with
 # different loss-tranche structures cannot share one set of tranche shares.
 
-#' The object name with its `_<src>__<dst>` tail removed
+#' The object name with its endpoint tail removed
+#'
+#' A corridor family is keyed on this, so a name carrying its endpoints has to
+#' give them up: `TBD_ELC_R02_R03` and `TBD_GAS_Z2_Z3` are two families and not
+#' one. Three forms are recognised, in order -- the endpoints the object
+#' actually connects written with a doubled separator, the same written with a
+#' single one, and then any `__` tail whatever it names, since a doubled
+#' separator cannot occur inside a region code. Only the single-separator form
+#' needs the routes to disambiguate it, which is why they are tried first.
+#'
+#' A name encoding no endpoints keeps the generic label. The commodity is
+#' already part of [.agg_trade_key()], so corridors are not merged across
+#' commodities by it.
 #' @noRd
 .agg_trade_prefix <- function(obj) {
   nm <- obj@name
   rt <- obj@routes
   if (is.data.frame(rt) && nrow(rt)) {
-    tl <- paste0("_", rt$src[1], "__", rt$dst[1])
-    if (endsWith(nm, tl)) return(substr(nm, 1L, nchar(nm) - nchar(tl)))
+    ends <- unique(c(as.character(rt$src[1]), as.character(rt$dst[1])))
+    if (length(ends) == 2L) {
+      tails <- c(paste0("_", ends[1], "__", ends[2]),
+                 paste0("_", ends[2], "__", ends[1]),
+                 paste0("_", ends[1], "_", ends[2]),
+                 paste0("_", ends[2], "_", ends[1]))
+      for (tl in tails) {
+        if (endsWith(nm, tl)) return(substr(nm, 1L, nchar(nm) - nchar(tl)))
+      }
+    }
   }
+  cut <- sub("_[^_]+__[^_]+$", "", nm)
+  if (!identical(cut, nm) && nzchar(cut)) return(cut)
   "TRD"
 }
 

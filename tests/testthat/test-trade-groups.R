@@ -64,6 +64,26 @@ tg_trades <- function(m) {
   vapply(tr, function(o) o@name, character(1))
 }
 
+# The shipped model is the case the label rule exists for: its corridors are
+# named `<prefix>_<src>_<dst>` with ONE separator, which the endpoint tail had
+# to be read off the routes to recognise. Read wrongly, all three commodities
+# fall under the generic label and `clusters = list(<family> = k)` has no key
+# that names any of them.
+# Covers the R API: get_process_groups()
+test_that("the shipped corridors are three families, one per commodity", {
+  skip_if_no_grouping()
+  g <- get_process_groups(topia$modules$electricity$repo)
+  tg <- g[g$class == "trade", , drop = FALSE]
+
+  expect_setequal(tg$group, c("TBD_ELC", "TBD_COA", "TBD_GAS"))
+  expect_false("TRD" %in% tg$group)
+  # electricity moves region to region, the fuels zone to zone, so the
+  # families differ in size as well as in name
+  expect_equal(tg$n[tg$group == "TBD_ELC"], 14L)
+  expect_equal(tg$n[tg$group == "TBD_COA"], 2L)
+  expect_equal(tg$n[tg$group == "TBD_GAS"], 1L)
+})
+
 # Covers the R API: get_process_groups()
 test_that("corridors of one prefix and commodity form ONE family", {
   skip_if_no_grouping()

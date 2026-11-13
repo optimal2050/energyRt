@@ -618,6 +618,16 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* `get_process_groups()` labels a corridor family with its own prefix.
+  A trade named `<prefix>_<src>_<dst>` -- one separator, which is what
+  bi-directional corridors use -- was read as carrying no endpoints and fell
+  back to a constant, so every family in a model came back under one label and
+  `aggregate_model_regions(clusters = )` had no key that named any of them.
+
+* A process group's label no longer ends inside a name part. `ECOA_R01` and
+  `ECOA_R09` were labelled `ECOA_R0`, half a region code, because the longest
+  common prefix was taken as the stem.
+
 * `pYearFraction` is the fraction of the year a milestone's timeslices cover,
   read from that year's calendar. It came from `settings@yearFraction` -- a
   slot deprecated as unwired -- whose single row was recycled across the year
