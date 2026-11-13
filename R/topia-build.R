@@ -23,7 +23,11 @@
 .TB_PRESETS <- list(
   full   = list(),
   island = list(regions = "R01"),
-  zone   = list(regions = "Z3")
+  zone   = list(regions = "Z3"),
+  # the one that has to be quick: a single province, a day per season, and
+  # the two plants that make the trade-off visible
+  tiny   = list(regions = "R01", calendar = "d365_h24_1dps",
+                techs = c("EGAS", "ESOL"))
 )
 
 #' @noRd
@@ -378,6 +382,123 @@
   lv[!hits]
 }
 
+# --- time ------------------------------------------------------------------ #
+
+# A calendar by name, from TOPIA's own two or from the shipped catalogue.
+#' @noRd
+.tb_resolve_calendar <- function(x, ds) {
+  if (methods::is(x, "calendar")) return(x)
+  if (is.list(x)) {
+    stop("build_topia(calendar = ) does not take a per-milestone list yet. ",
+         "Build the model and use `setCalendar(mod, cal, years = )`, which ",
+         "is what that form would call.", call. = FALSE)
+  }
+  x <- as.character(x)[1]
+  cal <- ds$modules$calendars[[x]] %||% energyRt::calendars[[x]]
+  if (is.null(cal)) {
+    stop("build_topia(calendar = ): unknown calendar \"", x, "\". TOPIA ",
+         "ships ", paste(names(ds$modules$calendars), collapse = ", "),
+         "; the catalogue adds ",
+         paste(setdiff(names(energyRt::calendars),
+                       names(ds$modules$calendars)), collapse = ", "), ".",
+         call. = FALSE)
+  }
+  cal
+}
+
+# The timeslices a calendar carries at its finest frame -- where the measured
+# series and the demand curve are keyed.
+#' @noRd
+.tb_leaves <- function(cal) {
+  tf <- cal@timeframes
+  as.character(tf[[length(tf)]])
+}
+
+# Re-key the series and the demand curve onto a cheaper calendar.
+#
+# Only a SAMPLE of the model calendar is accepted -- one whose timeslices are
+# a subset of its own. That is not a restriction invented here: the measured
+# wind and solar grades exist on `d365_h24` alone, and a calendar with its own
+# timeslice names (`s4_h24`, whose series are a simulated stand-in with no
+# grades at all) would leave every clustered technology with no weather row
+# and running unbounded. Refusing is the point; the silent version of this is
+# a renewable fleet with no ceiling.
+#
+# Nothing is authored: the shipped objects are kept and their data slot is
+# replaced with the rows that survive, so a weather series keeps its name, its
+# units and its timeframe.
+#' @noRd
+.tb_retime <- function(ob, cal, model_cal, quiet) {
+  if (identical(cal@name, model_cal@name)) return(ob)
+  leaf <- .tb_leaves(cal)
+  full <- .tb_leaves(model_cal)
+  if (!all(leaf %in% full)) {
+    stop("build_topia(calendar = \"", cal@name, "\"): its timeslices are ",
+         "not a sample of \"", model_cal@name, "\"'s, so the shipped series ",
+         "do not match it. ", sum(!leaf %in% full), " of ", length(leaf),
+         " are unknown (e.g. ",
+         paste(utils::head(setdiff(leaf, full), 3), collapse = ", "),
+         "). Samples of the hourly year -- ",
+         paste(grep("^d365_h24", names(energyRt::calendars), value = TRUE),
+               collapse = ", "),
+         " -- keep the parent's timeslice names and do match.",
+         call. = FALSE)
+  }
+  # what a full year of the parent calendar carries, to hold the totals fixed
+  wfull <- as.data.frame(model_cal@timeslice_share)
+  wsamp <- as.data.frame(cal@timeslice_share)
+  wf <- stats::setNames(wfull$weight, as.character(wfull$timeslice))
+  ws <- stats::setNames(wsamp$weight, as.character(wsamp$timeslice))
+
+  cut <- function(df, col) {
+    if (!is.data.frame(df) || !nrow(df) || !"timeslice" %in% names(df))
+      return(df)
+    df[as.character(df$timeslice) %in% leaf, , drop = FALSE]
+  }
+  for (nm in names(ob)) {
+    o <- ob[[nm]]
+    if (methods::is(o, "weather")) {
+      d <- cut(o@weather)
+      if (!nrow(d)) {
+        stop("build_topia(calendar = \"", cal@name, "\"): the series \"", nm,
+             "\" has no row left on it.", call. = FALSE)
+      }
+      o@weather <- d
+      ob[[nm]] <- o
+    } else if (methods::is(o, "demand")) {
+      d <- o@demand
+      if (is.data.frame(d) && nrow(d) && "timeslice" %in% names(d)) {
+        # The annual energy is held FIXED: a sample is a cheaper view of the
+        # same year, not a smaller year, and cases are only comparable if the
+        # demand they must meet is the same. Scaling per (region, year) keeps
+        # the shape the sample does carry.
+        key <- interaction(d$region, d$year, drop = TRUE)
+        tot <- tapply(d$demand * wf[as.character(d$timeslice)], key, sum)
+        dc <- cut(d)
+        if (!nrow(dc)) {
+          stop("build_topia(calendar = \"", cal@name, "\"): \"", nm,
+               "\" has no row left on it.", call. = FALSE)
+        }
+        keyc <- interaction(dc$region, dc$year, drop = FALSE,
+                            lex.order = FALSE)
+        keyc <- factor(as.character(keyc), levels = levels(key))
+        cur <- tapply(dc$demand * ws[as.character(dc$timeslice)], keyc, sum)
+        f <- as.numeric(tot[as.character(keyc)]) /
+             as.numeric(cur[as.character(keyc)])
+        f[!is.finite(f)] <- 1
+        dc$demand <- dc$demand * f
+        o@demand <- dc
+        ob[[nm]] <- o
+      }
+    }
+  }
+  if (!quiet) {
+    message("  re-timed to ", cal@name, ": ", length(leaf), " of ",
+            length(full), " timeslices, annual energy held fixed")
+  }
+  ob
+}
+
 #' TOPIA instances, cut from the shipped model
 #'
 #' @description
@@ -410,6 +531,15 @@
 #' process that is gone goes with it, since it would otherwise reference what
 #' the model does not declare.
 #'
+#' A cheaper `calendar` re-keys the series and the demand curve onto it, and
+#' the **annual energy is held fixed**: a sample is a cheaper view of the same
+#' year, not a smaller year, and two cases are only comparable if the demand
+#' they must meet is the same. Only a sample of the model calendar is
+#' accepted. The measured wind and solar grades exist on `d365_h24` alone, so
+#' a calendar with timeslice names of its own -- `s4_h24`, whose series are a
+#' simulated stand-in with no grades at all -- would leave every clustered
+#' technology with no weather row and running unbounded.
+#'
 #' The two levers that carry a spatial shape are narrowed with the model:
 #' `GREEN_H2`, whose `for.each` names every province, and `CO2_CAP`, whose cap
 #' is a per-province allowance times the province count and so is rescaled by
@@ -438,7 +568,11 @@
 #'   `generators`, `storage`, `hydrogen`, `transmission`, `fuel_trade`,
 #'   `demand`. `modules = "-hydrogen"` strips in one word the chain the
 #'   article declares across three sections.
-#' @param calendar,horizon not built yet; only the shipped values are accepted.
+#' @param calendar a calendar name or object. It must be a **sample** of the
+#'   model's own -- its timeslices a subset of `d365_h24`'s -- which
+#'   `d365_h24_1dpm` (301) and `d365_h24_1dps` (101) are. Anything else is
+#'   refused, naming the slices that do not match.
+#' @param horizon `"BY2025_50_by10"`, `"BY2025"`, or a `horizon` object.
 #' @param clusters,demand,weather not built yet.
 #' @param levers `TRUE` for all four, `FALSE` for none, or names.
 #' @param as `"kit"` (the named list the dataset itself uses, so the two are
@@ -491,26 +625,27 @@ build_topia <- function(regions = NULL,
            ".", call. = FALSE)
     }
     args <- .TB_PRESETS[[preset]]
-    if (!is.null(args$regions)) {
-      if (!is.null(regions)) {
-        stop("build_topia(): give `preset` or `regions`, not both -- ",
-             "preset \"", preset, "\" already sets regions = ",
-             paste(args$regions, collapse = ", "), ".", call. = FALSE)
+    given <- list(regions = regions, techs = techs)
+    for (a in names(args)) {
+      if (!is.null(given[[a]])) {
+        stop("build_topia(): give `preset` or `", a, "`, not both -- preset ",
+             "\"", preset, "\" already sets ", a, " = ",
+             paste(args[[a]], collapse = ", "), ".", call. = FALSE)
       }
-      regions <- args$regions
     }
-    note <- paste0("preset \"", preset, "\" = regions ",
-                   paste(args$regions %||% "all", collapse = ", "))
+    if (!is.null(args$regions)) regions <- args$regions
+    if (!is.null(args$techs)) techs <- args$techs
+    if (!is.null(args$calendar)) calendar <- args$calendar
+    note <- paste0("preset \"", preset, "\" = ",
+                   paste(vapply(names(args), function(a)
+                     paste0(a, " ", paste(args[[a]], collapse = "/")),
+                     character(1)), collapse = ", "),
+                   if (!length(args)) "the shipped model" else "")
   }
 
   # -- not built yet, refused rather than ignored ---------------------------
   .tb_todo(!identical(level, "province"), "level",
            "coarsening to zone or nation aggregates the source tables")
-  .tb_todo(!identical(calendar, "d365_h24"), "calendar",
-           "another calendar needs demand and weather re-timed through ",
-           "topia_profiles()")
-  .tb_todo(!identical(horizon, "BY2025_50_by10"), "horizon",
-           "a different horizon re-keys the year-indexed slots")
   .tb_todo(!isTRUE(clusters), "clusters",
            "re-grading the VRE clusters merges weather series")
   .tb_todo(!identical(demand, 1) && !identical(demand, 1L), "demand",
@@ -564,14 +699,30 @@ build_topia <- function(regions = NULL,
     stop("build_topia(regions = ) selected nothing.", call. = FALSE)
   }
 
-  cal <- ds$modules$calendars[[calendar]]
-  hor <- ds$modules$horizons[[horizon]]
+  cal <- .tb_resolve_calendar(calendar, ds)
+  model_cal <- ds$modules$calendars[[kit$calendar]]
+  hor <- if (methods::is(horizon, "horizon")) horizon else {
+    h <- ds$modules$horizons[[as.character(horizon)[1]]]
+    if (is.null(h)) {
+      stop("build_topia(horizon = ): unknown horizon \"", horizon,
+           "\". TOPIA ships: ",
+           paste(names(ds$modules$horizons), collapse = ", "), ".",
+           call. = FALSE)
+    }
+    h
+  }
 
-  base_repo <- if (!length(gone)) kit$repo else
+  retimed <- !identical(cal@name, model_cal@name)
+  if (retimed) {
+    ob <- .tb_retime(ob, cal, model_cal, quiet)
+    if (!length(gone)) gone <- character(0)
+  }
+
+  base_repo <- if (!length(gone) && !retimed) kit$repo else
     do.call(newRepository, c(list(name = "topia"), unname(ob[keep_n])))
 
   whole <- length(keep) == length(all_r)
-  if (whole && identical(gs, kit$geoscale) && !length(gone)) {
+  if (whole && identical(gs, kit$geoscale) && !length(gone) && !retimed) {
     # Nothing to cut: the shipped objects are returned as they are, which is
     # what makes the default an identity rather than a rebuild.
     repo <- kit$repo
@@ -608,7 +759,7 @@ build_topia <- function(regions = NULL,
   }
   out <- c(list(regions = keep),
            if (is.null(grp)) NULL else list(groups = grp),
-           list(calendar = kit$calendar, repo = repo, geoscale = geo),
+           list(calendar = cal@name, repo = repo, geoscale = geo),
            lv)
 
   if (!quiet) {

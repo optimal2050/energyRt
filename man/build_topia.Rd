@@ -36,7 +36,12 @@ shipped model carries), \code{"island"} or \code{"continent"}.}
 \item{level}{the geoframe the model's own regions are. Only \code{"province"} is
 built so far.}
 
-\item{calendar, horizon}{not built yet; only the shipped values are accepted.}
+\item{calendar}{a calendar name or object. It must be a \strong{sample} of the
+model's own -- its timeslices a subset of \code{d365_h24}'s -- which
+\code{d365_h24_1dpm} (301) and \code{d365_h24_1dps} (101) are. Anything else is
+refused, naming the slices that do not match.}
+
+\item{horizon}{\code{"BY2025_50_by10"}, \code{"BY2025"}, or a \code{horizon} object.}
 
 \item{techs}{which technologies to keep, or to drop with a leading \code{-}
 (\code{c("-EBIO", "-H2ELC")}). Two keywords are derived from the objects
@@ -94,6 +99,15 @@ after its last real user is gone. \code{CO2} is reachable only as an emission
 declared on \code{COA} and \code{GAS}, and is kept on that basis. A lever naming a
 process that is gone goes with it, since it would otherwise reference what
 the model does not declare.
+
+A cheaper \code{calendar} re-keys the series and the demand curve onto it, and
+the \strong{annual energy is held fixed}: a sample is a cheaper view of the same
+year, not a smaller year, and two cases are only comparable if the demand
+they must meet is the same. Only a sample of the model calendar is
+accepted. The measured wind and solar grades exist on \code{d365_h24} alone, so
+a calendar with timeslice names of its own -- \code{s4_h24}, whose series are a
+simulated stand-in with no grades at all -- would leave every clustered
+technology with no weather row and running unbounded.
 
 The two levers that carry a spatial shape are narrowed with the model:
 \code{GREEN_H2}, whose \code{for.each} names every province, and \code{CO2_CAP}, whose cap

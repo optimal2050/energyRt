@@ -55,11 +55,26 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   build_topia(modules = "-hydrogen")  # the chain declared across 3 sections
   ```
 
+  `calendar` re-keys the series and the demand curve onto a cheaper sample of
+  the hourly year, holding the annual energy fixed, so a case stays comparable
+  with the full model:
+
+  ```r
+  build_topia(preset = "tiny")                 # 1 region, 101 timeslices
+  build_topia(calendar = "d365_h24_1dpm")      # one day a month
+  ```
+
+  Only a sample is accepted -- one whose timeslices are a subset of the model
+  calendar's. `s4_h24` carries names of its own and a simulated stand-in with
+  no resource grades, so it would leave every clustered technology with no
+  weather row and running unbounded; it is refused, naming the slices that do
+  not match.
+
   It authors nothing: every object it returns was declared in *TOPIA I*, which
   generates the shipped data files. With every argument at its default it
   returns `topia$modules$electricity` unchanged. `clusters`, `demand`,
-  `weather`, `level` and a different `calendar` or `horizon` are not built yet
-  and are refused rather than ignored.
+  `weather` and `level` are not built yet and are refused rather than
+  ignored.
 
 * **A milestone year can be solved on a sample of the model calendar.** Hourly
   where the investment decisions land, cheaper in the years that only carry

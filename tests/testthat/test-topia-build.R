@@ -154,9 +154,7 @@ test_that("an argument that is not built yet is refused, not ignored", {
     function() build_topia(clusters = FALSE, quiet = TRUE),
     function() build_topia(demand = 2, quiet = TRUE),
     function() build_topia(weather = "simulated", quiet = TRUE),
-    function() build_topia(level = "zone", quiet = TRUE),
-    function() build_topia(calendar = "s4_h24", quiet = TRUE),
-    function() build_topia(horizon = "BY2025", quiet = TRUE))) {
+    function() build_topia(level = "zone", quiet = TRUE))) {
     expect_error(call(), "is not built yet")
   }
 })
@@ -302,4 +300,74 @@ test_that("process selection composes with a region subset", {
   # the island has no wire on any layout, and no coal is burned here
   expect_false(any(grepl("^TBD_", n)))
   expect_false("COA" %in% n)
+})
+
+# --------------------------------------------------------------------------- #
+# Time: re-keying the series and the demand curve onto a cheaper calendar.
+# --------------------------------------------------------------------------- #
+
+tb_annual <- function(k) {
+  d <- getObject(k$repo)$DEM_ELC@demand
+  cal <- topia$modules$calendars[[k$calendar]] %||% calendars[[k$calendar]]
+  w <- as.data.frame(cal@timeslice_share)
+  sum(d$demand * stats::setNames(w$weight,
+                                 as.character(w$timeslice))[
+                                   as.character(d$timeslice)])
+}
+
+# Covers the R API: build_topia(calendar=)
+test_that("a sample of the hourly year keeps the annual energy", {
+  full <- build_topia(quiet = TRUE)
+  for (nm in c("d365_h24_1dpm", "d365_h24_1dps")) {
+    k <- build_topia(calendar = nm, quiet = TRUE)
+    expect_equal(k$calendar, nm)
+    # fewer rows...
+    expect_lt(nrow(getObject(k$repo)$DEM_ELC@demand),
+              nrow(getObject(full$repo)$DEM_ELC@demand))
+    # ...but the same year. A sample is a cheaper VIEW of the year, not a
+    # smaller year: two cases are only comparable if the demand they must
+    # meet is the same.
+    expect_equal(tb_annual(k), tb_annual(full), tolerance = 1e-8)
+  }
+})
+
+test_that("the measured grades survive a sample", {
+  k <- build_topia(calendar = "d365_h24_1dps", quiet = TRUE)
+  ob <- getObject(k$repo)
+  expect_setequal(unique(ob$WSOL@weather$cluster), c("FL", "TH"))
+  expect_setequal(unique(ob$WWIN@weather$cluster), c("HI", "MD", "LO"))
+  expect_gt(nrow(ob$WHYD@weather), 0L)
+})
+
+test_that("a calendar that is not a sample is refused, and says why", {
+  # `s4_h24` carries its OWN timeslice names and a simulated stand-in with no
+  # grades, so every clustered technology would lose its weather rows and run
+  # unbounded. That is the whole reason this is a refusal and not a warning.
+  expect_error(build_topia(calendar = "s4_h24", quiet = TRUE),
+               "not a sample")
+  expect_error(build_topia(calendar = "m12_h24", quiet = TRUE),
+               "not a sample")
+  expect_error(build_topia(calendar = "nope", quiet = TRUE),
+               "unknown calendar")
+  # the per-milestone form points at the verb that does it
+  expect_error(build_topia(calendar = list(default = "d365_h24"),
+                           quiet = TRUE), "setCalendar")
+})
+
+test_that("a horizon is taken by name or object", {
+  k <- build_topia(horizon = "BY2025", as = "model", quiet = TRUE)
+  expect_s4_class(k, "model")
+  expect_error(build_topia(horizon = "nope", quiet = TRUE), "unknown horizon")
+})
+
+# Covers the R API: build_topia(preset=)
+test_that("preset tiny is small enough to be worth having", {
+  skip_if_not_installed("geoscales")
+  k <- build_topia(preset = "tiny", quiet = TRUE)
+  expect_equal(k$regions, "R01")
+  expect_equal(k$calendar, "d365_h24_1dps")
+  expect_lt(length(getObject(k$repo)), 15L)
+  # a preset cannot contradict an argument it sets
+  expect_error(build_topia(preset = "tiny", techs = "ECOA", quiet = TRUE),
+               "not both")
 })
