@@ -172,6 +172,7 @@ Collate:
     'status.R'
     'storage_duration.R'
     'techspec.R'
+    'topia-build.R'
     'topia.R'
     'trade_kvl.R'
     'variants.R'

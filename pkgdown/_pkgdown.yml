@@ -400,6 +400,7 @@ reference:
   desc: Data bundled with the package for the examples and articles.
   contents:
   - topia
+  - build_topia
   - topia_profile
   - topia_profiles
   - model_structure

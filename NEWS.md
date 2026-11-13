@@ -27,6 +27,28 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* **`build_topia()` cuts smaller cases from the shipped model.** One call for
+  a province, a zone or a sample, resolving the parts that are tedious by
+  hand:
+
+  ```r
+  build_topia("Z3", as = "model")      # the zone, ready to interpolate
+  build_topia(preset = "island")       # R01: no wire, no domestic fuel
+  identical(build_topia(), topia$modules$electricity)   # TRUE
+  ```
+
+  A zone code expands to the provinces beneath it, so a request does not cut
+  a zone the fossil fuels balance on; one that still does is refused and names
+  the province to add. The two levers carrying a spatial shape travel with the
+  model -- `GREEN_H2`, whose `for.each` names every province, and `CO2_CAP`,
+  whose cap is a per-province allowance times the province count.
+
+  It authors nothing: every object it returns was declared in *TOPIA I*, which
+  generates the shipped data files. With every argument at its default it
+  returns `topia$modules$electricity` unchanged. `techs`, `modules`,
+  `clusters`, `demand`, `weather`, `level` and a different `calendar` or
+  `horizon` are not built yet and are refused rather than ignored.
+
 * **A milestone year can be solved on a sample of the model calendar.** Hourly
   where the investment decisions land, cheaper in the years that only carry
   the trajectory between them:
