@@ -290,3 +290,51 @@ test_that("interpolate_model(check=) stops only on the live setting", {
                                        check = TRUE, verbose = FALSE)),
     "scenario")
 })
+
+# A row declared with no region applies to every region -- the usual way to
+# write a one-region model. aggregate() drops NA keys, so such rows were
+# dropped (a supply ceiling silently vanished) or crashed the demand check.
+.cf_noregion <- function(ava = 6, dem = 10, import = FALSE,
+                         regions = c("R1", "R2")) {
+  objs <- list(
+    newCommodity("ELC", timeframe = "ANNUAL"),
+    newSupply("SUPELC", commodity = "ELC",
+              supply = data.frame(cost = 1, ava.up = ava)),
+    newDemand("DEM", commodity = "ELC", demand = data.frame(demand = dem)))
+  if (import) {
+    objs <- c(objs, list(newImport("IMPELC", commodity = "ELC",
+                                   import = data.frame(price = 1))))
+  }
+  newModel("CFNR", region = regions, data = newRepository("cfnr", objs))
+}
+
+test_that("a demand and a supply declared for no region are checked in every region", {
+  f <- check_feasibility(.cf_noregion(ava = 6, dem = 10), verbose = FALSE)
+  expect_equal(nrow(f), 2L)
+  expect_setequal(f$region, c("R1", "R2"))
+  expect_equal(unique(f$check), "demand-vs-supply")
+  expect_equal(unique(f$shortfall), 4)
+})
+
+test_that("a no-region requirement within the no-region ceiling is not reported", {
+  f <- check_feasibility(.cf_noregion(ava = 12, dem = 10), verbose = FALSE)
+  expect_equal(nrow(f), 0L)
+})
+
+test_that("an import declared for no region protects every region", {
+  f <- check_feasibility(.cf_noregion(ava = 6, dem = 10, import = TRUE),
+                         verbose = FALSE)
+  expect_equal(nrow(f), 0L)
+})
+
+test_that("a declared region on the object bounds the no-region rows", {
+  m <- newModel("CFOR", region = c("R1", "R2"), data = newRepository("cfor", list(
+    newCommodity("ELC", timeframe = "ANNUAL"),
+    newSupply("SUPELC", commodity = "ELC", region = "R1",
+              supply = data.frame(cost = 1, ava.up = 6)),
+    newDemand("DEM", commodity = "ELC", region = "R1",
+              demand = data.frame(demand = 10)))))
+  f <- check_feasibility(m, verbose = FALSE)
+  expect_equal(nrow(f), 1L)
+  expect_equal(f$region, "R1")
+})

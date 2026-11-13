@@ -25,16 +25,42 @@
 #' @include check.R
 NULL
 
+# A declared row with no region applies to every region the object covers:
+# its own `@region` when set, else the model's regions. aggregate() and
+# merge() drop NA keys, so such rows are expanded before either sees them.
+# With no region known at all (a bare repository declaring none) the rows
+# carry one label, "(all)", on both the requirement and the ceiling side.
+#' @noRd
+.feas_obj_regions <- function(o, regions) {
+  own <- if (methods::.hasSlot(o, "region")) as.character(o@region) else character()
+  own <- own[!is.na(own) & nzchar(own)]
+  if (length(own)) own else if (length(regions)) regions else "(all)"
+}
+
+#' @noRd
+.feas_expand_region <- function(d, fill) {
+  if (!nrow(d)) return(d)
+  if (!("region" %in% names(d))) d$region <- NA_character_
+  d$region <- as.character(d$region)
+  na <- is.na(d$region)
+  if (!any(na)) return(d)
+  e <- d[rep(which(na), each = length(fill)), , drop = FALSE]
+  e$region <- rep(fill, times = sum(na))
+  rbind(d[!na, , drop = FALSE], e)
+}
+
 # Regions that can bring `comm` into `region` from outside: an import, or a
 # trade route arriving. Either one makes a local ceiling non-binding, so a
 # shortfall against it proves nothing.
 #' @noRd
-.feas_backstops <- function(objs, comm) {
+.feas_backstops <- function(objs, comm, regions = character()) {
   imp <- unlist(lapply(objs, function(o) {
     if (!methods::is(o, "import")) return(NULL)
     if (!identical(as.character(o@commodity), comm)) return(NULL)
     d <- .feas_slot(o, "import")
-    if ("region" %in% names(d)) as.character(d$region) else as.character(o@region)
+    r <- if ("region" %in% names(d)) as.character(d$region) else character()
+    if (!length(r) || anyNA(r)) r <- c(r[!is.na(r)], .feas_obj_regions(o, regions))
+    r
   }), use.names = FALSE)
   trd <- unlist(lapply(objs, function(o) {
     if (!methods::is(o, "trade")) return(NULL)
@@ -48,12 +74,13 @@ NULL
 # `ava.up`. A commodity with no bounded supply at all has no ceiling, and is
 # not reported on.
 #' @noRd
-.feas_supply_ceiling <- function(objs, comm) {
+.feas_supply_ceiling <- function(objs, comm, regions = character()) {
   parts <- lapply(objs, function(o) {
     if (!methods::is(o, "supply")) return(NULL)
     if (!identical(as.character(o@commodity), comm)) return(NULL)
     d <- .feas_slot(o, "supply")
-    if (!nrow(d) || !("region" %in% names(d))) return(NULL)
+    if (!nrow(d)) return(NULL)
+    d <- .feas_expand_region(d, .feas_obj_regions(o, regions))
     v <- if ("ava.fx" %in% names(d) && any(!is.na(d$ava.fx))) d$ava.fx else NULL
     if (is.null(v)) v <- if ("ava.up" %in% names(d)) d$ava.up else NA_real_
     yr <- if ("year" %in% names(d)) d$year else NA_integer_
@@ -102,7 +129,7 @@ NULL
 }
 
 #' @noRd
-.feas_aux_from_stock <- function(objs, ret_on = FALSE) {
+.feas_aux_from_stock <- function(objs, ret_on = FALSE, regions = character()) {
   parts <- lapply(objs, function(o) {
     if (!methods::.hasSlot(o, "aeff") || !methods::.hasSlot(o, "capacity")) {
       return(NULL)
@@ -137,7 +164,8 @@ NULL
              drop = FALSE]
     e <- e[, intersect(c(key, "acomm", "cap2ainp"), names(e)), drop = FALSE]
     j <- if (length(key)) merge(cp, e, by = key) else merge(cp, e)
-    if (!nrow(j) || !all(c("region", "acomm") %in% names(j))) return(NULL)
+    if (!nrow(j) || !("acomm" %in% names(j))) return(NULL)
+    j <- .feas_expand_region(j, .feas_obj_regions(o, regions))
     if (!("year" %in% names(j))) j$year <- NA_integer_
     data.frame(process = o@name, acomm = as.character(j$acomm),
                region = as.character(j$region),
@@ -151,13 +179,14 @@ NULL
 
 # A declared demand is a requirement by construction.
 #' @noRd
-.feas_demand <- function(objs) {
+.feas_demand <- function(objs, regions = character()) {
   parts <- lapply(objs, function(o) {
     if (!methods::is(o, "demand")) return(NULL)
     d <- .feas_slot(o, "demand")
     if (!nrow(d) || !("demand" %in% names(d))) return(NULL)
     d <- d[!is.na(d$demand), , drop = FALSE]
-    if (!nrow(d) || !("region" %in% names(d))) return(NULL)
+    if (!nrow(d)) return(NULL)
+    d <- .feas_expand_region(d, .feas_obj_regions(o, regions))
     yr <- if ("year" %in% names(d)) as.integer(d$year) else NA_integer_
     # A demand given for no particular year applies to every year, so it has
     # nothing to group on, and aggregate() drops NA groups. It travels on the
@@ -167,6 +196,7 @@ NULL
       list(value = d$demand),
       list(region = as.character(d$region), ykey = ykey),
       sum, na.rm = TRUE)
+    if (!nrow(agg)) return(NULL)
     agg$year <- suppressWarnings(as.integer(agg$ykey))
     agg$process <- o@name
     agg$acomm <- as.character(o@commodity)
@@ -896,12 +926,19 @@ check_feasibility <- function(object, years = NULL, verbose = isVerbose()) {
   # taken up. A declared demand is forced either way.
   ret_any <- .feas_ret_declared(objs, tryCatch(object@config,
                                                error = function(e) NULL))
+  # what a row declared for no region expands to: the model's regions, or,
+  # for a bare repository, every region its objects name
+  regions <- get_region(object)
+  if (!length(regions)) {
+    regions <- unique(unlist(lapply(objs, get_region), use.names = FALSE))
+  }
   settings <- if (ret_any) c("off", "on") else "off"
   req <- do.call(rbind, lapply(settings, function(sg) {
     r <- rbind(
-      tag(.feas_aux_from_stock(objs, ret_on = identical(sg, "on")),
+      tag(.feas_aux_from_stock(objs, ret_on = identical(sg, "on"),
+                               regions = regions),
           "aux-from-stock"),
-      tag(.feas_demand(objs), "demand-vs-supply"))
+      tag(.feas_demand(objs, regions = regions), "demand-vs-supply"))
     if (is.null(r) || !nrow(r)) return(NULL)
     r$retirement <- sg
     r
@@ -918,9 +955,9 @@ check_feasibility <- function(object, years = NULL, verbose = isVerbose()) {
                drop = FALSE]
   }
   found <- lapply(unique(req$acomm), function(cm) {
-    ceil <- .feas_supply_ceiling(objs, cm)
+    ceil <- .feas_supply_ceiling(objs, cm, regions = regions)
     if (is.null(ceil)) return(NULL)          # no ceiling, nothing to contradict
-    safe <- .feas_backstops(objs, cm)
+    safe <- .feas_backstops(objs, cm, regions = regions)
     r <- req[req$acomm == cm & !(req$region %in% safe), , drop = FALSE]
     if (!nrow(r)) return(NULL)
     r$ckey <- ifelse(is.na(r$cluster), "..any", r$cluster)
