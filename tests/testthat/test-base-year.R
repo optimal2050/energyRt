@@ -330,3 +330,36 @@ test_that("getData(base_year = TRUE) labels its source and refuses vObjective", 
   expect_warning(getData(plain, "pDemand", merge = TRUE, base_year = TRUE),
                  "records no base year")
 })
+
+# --------------------------------------------------------------------------- #
+# A period year that belongs to no interval is modelled by nothing, which is a
+# legitimate snapshot horizon and also what a mistyped interval table looks
+# like. It is reported, not refused.
+# --------------------------------------------------------------------------- #
+
+test_that("newHorizon() warns about period years no interval covers", {
+  expect_warning(
+    h <- newHorizon(intervals = data.frame(
+      start = c(2025, 2030, 2040, 2050),
+      mid   = c(2025, 2030, 2040, 2050),
+      end   = c(2025, 2030, 2040, 2050))),
+    "belong to no interval")
+  # built anyway, and the runs are named rather than every year listed
+  expect_equal(nrow(h@intervals), 4L)
+  w <- tryCatch(newHorizon(intervals = data.frame(
+      start = c(2025, 2030, 2040, 2050),
+      mid   = c(2025, 2030, 2040, 2050),
+      end   = c(2025, 2030, 2040, 2050))),
+    warning = function(e) conditionMessage(e))
+  expect_match(w, "2026-2029")
+  expect_match(w, "22 of 26")
+})
+
+test_that("a horizon whose intervals cover the period is silent", {
+  expect_silent(newHorizon(2025:2050))
+  expect_silent(newHorizon(2020:2030, c(1, 2, 5, 10)))
+  expect_silent(newHorizon(intervals = data.frame(
+    start = c(2025, 2026, 2036),
+    mid   = c(2025, 2030, 2040),
+    end   = c(2025, 2035, 2045))))
+})

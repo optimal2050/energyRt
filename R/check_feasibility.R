@@ -692,6 +692,75 @@ NULL
 }
 
 #' @noRd
+# A commodity whose balance is an EQUALITY must be consumed rather than
+# spilled, so a supply forced to arise in a year when nothing can take it is a
+# contradiction in the data.
+#
+# The sinks are read from the GATING MAPS, not from the declarations: a
+# process absent from `mvTechInp` in a year cannot consume there whatever its
+# object says, which is how a vintage starting later than the supply is
+# caught. The declared form of this defect is invisible -- a supply declared
+# at two milestones is interpolated across the years between them, and it is
+# those filled years that have no consumer.
+#' @noRd
+.feas_sink_keys <- function(mi) {
+  maps <- c("mvTechInp", "mvTechAInp", "mvStorageInp", "mvStorageAInp",
+            "mvTradeIr", "mvExportRow", "mExportRow", "pDemand")
+  out <- character()
+  for (nm in maps) {
+    d <- .feas_par(mi, nm)
+    if (is.null(d) || !nrow(d) || !"comm" %in% names(d)) next
+    rc <- intersect(c("region", "src", "from"), names(d))[1]
+    if (is.na(rc) || !"year" %in% names(d)) next
+    out <- c(out, paste(as.character(d$comm), as.character(d[[rc]]),
+                        as.integer(d$year)))
+  }
+  unique(out)
+}
+
+#' @noRd
+.feas_forced_supply_rows <- function(mi, years = NULL) {
+  empty <- data.frame(check = character(), commodity = character(),
+                      region = character(), year = integer(),
+                      required = numeric(), available = numeric(),
+                      shortfall = numeric(), forced_by = character(),
+                      stringsAsFactors = FALSE)
+  fx <- .feas_par(mi, "meqBalFx")
+  av <- .feas_par(mi, "pSupAva")
+  if (is.null(fx) || is.null(av)) return(empty)
+  if (!all(c("comm", "region", "year") %in% names(fx))) return(empty)
+  if (!all(c("comm", "region", "year", "value") %in% names(av))) return(empty)
+  if (!"type" %in% names(av)) return(empty)
+  av <- av[!is.na(av$type) & av$type %in% c("fx", "lo") &
+             !is.na(av$value) & av$value > 0, , drop = FALSE]
+  if (!nrow(av)) return(empty)
+  # only where the balance is an equality in that very cell: under "LO" a
+  # surplus is allowed to go nowhere and nothing is contradicted
+  fxk <- unique(paste(as.character(fx$comm), as.character(fx$region),
+                      as.integer(fx$year)))
+  av$k <- paste(as.character(av$comm), as.character(av$region),
+                as.integer(av$year))
+  av <- av[av$k %in% fxk, , drop = FALSE]
+  if (!nrow(av)) return(empty)
+  if (!is.null(years)) {
+    av <- av[as.integer(av$year) %in% as.integer(years), , drop = FALSE]
+    if (!nrow(av)) return(empty)
+  }
+  av <- av[!av$k %in% .feas_sink_keys(mi), , drop = FALSE]
+  if (!nrow(av)) return(empty)
+  supc <- intersect(c("sup", "supply", "process"), names(av))[1]
+  agg <- stats::aggregate(
+    list(required = av$value),
+    list(commodity = as.character(av$comm), region = as.character(av$region),
+         year = as.integer(av$year),
+         forced_by = if (is.na(supc)) "" else as.character(av[[supc]])),
+    sum, na.rm = TRUE)
+  data.frame(check = "forced-supply-no-sink", commodity = agg$commodity,
+             region = agg$region, year = agg$year, required = agg$required,
+             available = 0, shortfall = agg$required,
+             forced_by = agg$forced_by, stringsAsFactors = FALSE)
+}
+
 .feas_interp <- function(mi, years = NULL) {
   key <- c("comm", "region", "year", "timeslice")
   req <- NULL
@@ -770,6 +839,15 @@ NULL
       cf
     }))
     emis <- rbind(emis, cf)
+  }
+  # retirement-independent: a forced supply with no sink is contradicted
+  # whether or not standing capacity may be shed
+  fs <- .feas_forced_supply_rows(mi, years)
+  if (nrow(fs)) {
+    emis <- rbind(emis, do.call(rbind, lapply(settings, function(sg) {
+      fs$retirement <- sg
+      fs
+    })))
   }
   fin <- function(x) {
     if (nrow(emis)) x <- rbind(x, emis)
@@ -861,7 +939,7 @@ NULL
 #' will make such a model feasible, and an infeasible solve will not say
 #' which constraint was to blame.
 #'
-#' Two checks run:
+#' Three checks run:
 #'
 #' \describe{
 #'   \item{`aux-from-stock`}{exogenous capacity (`@capacity$stock`) consumes
@@ -872,6 +950,15 @@ NULL
 #'   \item{`demand-vs-supply`}{a declared `demand` exceeds the bounded supply
 #'     of its commodity in the same region and year, again with no import and
 #'     no inbound route.}
+#'   \item{`forced-supply-no-sink`}{the mirror case: a commodity whose balance
+#'     is an equality (`limtype = "FX"`) is forced to arise -- `ava.fx`, or a
+#'     positive `ava.lo` -- in a region and year where nothing can consume it.
+#'     Under the default `"LO"` balance a surplus may go nowhere and nothing is
+#'     contradicted, so only an equality is reported. The sinks are read from
+#'     the interpolated gating maps rather than the declarations, which is what
+#'     catches a consumer whose `vintage` starts later than the supply does:
+#'     a supply declared at two milestones is interpolated across the years
+#'     between them, and it is those filled years that have no consumer.}
 #' }
 #'
 #' @section What a clean result does NOT mean:

@@ -499,6 +499,150 @@
   ob
 }
 
+# ---- where the series come from -------------------------------------------
+#
+# `weather` and `demand` take the name of a shipped dataset or a data frame
+# shaped like the matching element of `topia_profiles()`, so the output of one
+# is the input of the other. Nothing is authored: the frames are written into
+# the shipped objects' data slots, which keeps each series' name, units and
+# timeframe.
+#
+# A dataset NAME is fetched at the model's own calendar, so the re-timing
+# below applies to it unchanged. A set that was not built for that calendar is
+# refused, naming the calendars it does cover.
+
+#' @noRd
+.tb_source <- function(x, what, regions, model_cal, ds) {
+  if (is.null(x)) return(NULL)
+  if (is.data.frame(x)) return(x)
+  if (!is.character(x) || length(x) != 1L) {
+    stop("build_topia(", what, " = ): give the name of a shipped dataset or ",
+         "a data.frame shaped like topia_profiles()$", what, ".",
+         call. = FALSE)
+  }
+  tbl <- as.data.frame(ds[[what]])
+  sets <- unique(as.character(tbl$dataset))
+  if (!x %in% sets) {
+    stop("build_topia(", what, " = \"", x, "\"): TOPIA ships ",
+         paste0("\"", sets, "\"", collapse = ", "), ".", call. = FALSE)
+  }
+  have <- unique(as.character(tbl$calendar[tbl$dataset == x]))
+  if (!model_cal@name %in% have) {
+    stop("build_topia(", what, " = \"", x, "\"): that set is built for ",
+         paste0("\"", have, "\"", collapse = ", "), ", not for the model's ",
+         "calendar \"", model_cal@name, "\", so its timeslices do not match ",
+         "the shipped objects. Pass the frame itself to use it.",
+         call. = FALSE)
+  }
+  topia_profiles(regions, calendar = model_cal@name, dataset = x)[[what]]
+}
+
+# Replace the weather series and the demand curve in place.
+#
+# A weather frame must cover every (cluster, region) pair the object's roster
+# declares: a clustered technology left with no weather row runs unbounded,
+# which no later step can see.
+#
+# A demand frame carrying `load` is a relative shape and is scaled to the
+# annual energy the shipped object already holds, per region and year. One
+# carrying `demand` is taken as given. The invariant is
+# `sum(demand * weight) = annual` -- WEIGHT, not share: share is the fraction
+# of the year one occurrence covers and is the same on every calendar.
+#' @noRd
+.tb_reprofile <- function(ob, w, d, model_cal, quiet) {
+  if (is.null(w) && is.null(d)) return(ob)
+  tsh <- as.data.frame(model_cal@timeslice_share)
+  wt <- stats::setNames(tsh$weight, as.character(tsh$timeslice))
+  cls <- vapply(ob, function(x) class(x)[1], character(1))
+
+  if (!is.null(w)) {
+    need <- c("resource", "region", "timeslice", "wval")
+    if (!all(need %in% names(w))) {
+      stop("build_topia(weather = ): the frame needs columns ",
+           paste(need, collapse = ", "), "; missing ",
+           paste(setdiff(need, names(w)), collapse = ", "), ".",
+           call. = FALSE)
+    }
+    if (is.null(w$cluster)) w$cluster <- NA_character_
+    unknown <- setdiff(unique(as.character(w$timeslice)), names(wt))
+    if (length(unknown)) {
+      stop("build_topia(weather = ): ", length(unknown), " timeslice(s) are ",
+           "not in the model's calendar \"", model_cal@name, "\" (e.g. ",
+           paste(utils::head(unknown, 3), collapse = ", "), ").",
+           call. = FALSE)
+    }
+    for (nm in names(ob)[cls == "weather"]) {
+      src <- w[as.character(w$resource) == nm, , drop = FALSE]
+      if (!nrow(src)) next
+      rost <- ob[[nm]]@cluster
+      if (nrow(rost)) {
+        want <- paste(rost$cluster, rost$region)
+        got <- paste(as.character(src$cluster), as.character(src$region))
+        miss <- setdiff(want, got)
+        if (length(miss)) {
+          stop("build_topia(weather = ): \"", nm, "\" declares ",
+               nrow(rost), " (cluster, region) pair(s) and the frame covers ",
+               nrow(rost) - length(miss), ". Missing e.g. ",
+               paste(utils::head(miss, 3), collapse = "; "),
+               ". A set without grades needs `clusters = FALSE`.",
+               call. = FALSE)
+        }
+      }
+      src$year <- if (is.null(src$year)) NA_integer_ else src$year
+      ob[[nm]]@weather <-
+        src[, c("cluster", "region", "year", "timeslice", "wval")]
+    }
+    if (!quiet) message("  weather replaced: ", nrow(w), " rows")
+  }
+
+  if (!is.null(d)) {
+    dn <- names(ob)[cls == "demand"]
+    for (nm in dn) {
+      o <- ob[[nm]]
+      cur <- o@demand
+      src <- d
+      if (!all(c("region", "timeslice") %in% names(src))) {
+        stop("build_topia(demand = ): the frame needs columns region, ",
+             "timeslice and either load (a relative shape) or demand.",
+             call. = FALSE)
+      }
+      unknown <- setdiff(unique(as.character(src$timeslice)), names(wt))
+      if (length(unknown)) {
+        stop("build_topia(demand = ): ", length(unknown), " timeslice(s) are ",
+             "not in the model's calendar \"", model_cal@name, "\" (e.g. ",
+             paste(utils::head(unknown, 3), collapse = ", "), ").",
+             call. = FALSE)
+      }
+      if (!is.null(src$load)) {
+        ann <- tapply(cur$demand * wt[as.character(cur$timeslice)],
+                      list(as.character(cur$region), cur$year), sum)
+        den <- tapply(src$load * wt[as.character(src$timeslice)],
+                      as.character(src$region), sum)
+        yrs <- sort(unique(cur$year))
+        src <- do.call(rbind, lapply(yrs, function(y) {
+          r <- as.character(src$region)
+          data.frame(region = r, year = y, timeslice = as.character(src$timeslice),
+                     demand = as.numeric(ann[cbind(r, as.character(y))]) *
+                       src$load / as.numeric(den[r]),
+                     stringsAsFactors = FALSE)
+        }))
+      } else if (is.null(src$demand)) {
+        stop("build_topia(demand = ): the frame carries neither `load` ",
+             "(a relative shape) nor `demand`.", call. = FALSE)
+      }
+      if (is.null(src$year)) src$year <- sort(unique(cur$year))[1]
+      if (is.null(src$cluster)) src$cluster <- NA_character_
+      o@demand <- src[, c("cluster", "region", "year", "timeslice", "demand")]
+      ob[[nm]] <- o
+    }
+    if (!quiet) {
+      message("  demand replaced: ", nrow(ob[[dn[1]]]@demand),
+              " rows, annual energy per region held fixed")
+    }
+  }
+  ob
+}
+
 #' TOPIA instances, cut from the shipped model
 #'
 #' @description
@@ -573,7 +717,15 @@
 #'   `d365_h24_1dpm` (301) and `d365_h24_1dps` (101) are. Anything else is
 #'   refused, naming the slices that do not match.
 #' @param horizon `"BY2025_50_by10"`, `"BY2025"`, or a `horizon` object.
-#' @param clusters,demand,weather not built yet.
+#' @param weather,demand the name of a shipped dataset (`"sample"`,
+#'   `"simulated"`) or a `data.frame` shaped like the matching element of
+#'   [topia_profiles()] -- so the output of one is the input of the other. The
+#'   frames are written into the shipped objects, which keeps each series'
+#'   name, units and timeframe. A weather frame must cover every
+#'   `(cluster, region)` pair the object's roster declares; a demand frame
+#'   carrying `load` is a relative shape and is scaled to the annual energy
+#'   the shipped object holds, one carrying `demand` is taken as given.
+#' @param clusters not built yet.
 #' @param levers `TRUE` for all four, `FALSE` for none, or names.
 #' @param as `"kit"` (the named list the dataset itself uses, so the two are
 #'   interchangeable), `"model"` (a ready [newModel()] with the geoscale set),
@@ -605,7 +757,7 @@ build_topia <- function(regions = NULL,
                         techs = NULL,
                         modules = NULL,
                         clusters = TRUE,
-                        demand = 1,
+                        demand = NULL,
                         weather = NULL,
                         levers = TRUE,
                         as = c("kit", "model", "repository"),
@@ -648,9 +800,9 @@ build_topia <- function(regions = NULL,
            "coarsening to zone or nation aggregates the source tables")
   .tb_todo(!isTRUE(clusters), "clusters",
            "re-grading the VRE clusters merges weather series")
-  .tb_todo(!identical(demand, 1) && !identical(demand, 1L), "demand",
-           "rescaling demand re-normalises the year")
-  .tb_todo(!is.null(weather), "weather", "swapping the series re-times them")
+  .tb_todo(is.numeric(demand), "demand",
+           "a multiplier rescales the year; a dataset name or a frame is ",
+           "accepted instead")
 
   # -- processes --------------------------------------------------------------
   ob <- getObject(kit$repo)
@@ -712,17 +864,25 @@ build_topia <- function(regions = NULL,
     h
   }
 
+  # Replacing the series runs BEFORE re-timing, so a dataset fetched at the
+  # model's calendar is sampled by the same path as the shipped one.
+  src_w <- .tb_source(weather, "weather", keep, model_cal, ds)
+  src_d <- .tb_source(demand, "demand", keep, model_cal, ds)
+  reprofiled <- !is.null(src_w) || !is.null(src_d)
+  if (reprofiled) ob <- .tb_reprofile(ob, src_w, src_d, model_cal, quiet)
+
   retimed <- !identical(cal@name, model_cal@name)
   if (retimed) {
     ob <- .tb_retime(ob, cal, model_cal, quiet)
     if (!length(gone)) gone <- character(0)
   }
 
-  base_repo <- if (!length(gone) && !retimed) kit$repo else
+  base_repo <- if (!length(gone) && !retimed && !reprofiled) kit$repo else
     do.call(newRepository, c(list(name = "topia"), unname(ob[keep_n])))
 
   whole <- length(keep) == length(all_r)
-  if (whole && identical(gs, kit$geoscale) && !length(gone) && !retimed) {
+  if (whole && identical(gs, kit$geoscale) && !length(gone) && !retimed &&
+      !reprofiled) {
     # Nothing to cut: the shipped objects are returned as they are, which is
     # what makes the default an identity rather than a rebuild.
     repo <- kit$repo

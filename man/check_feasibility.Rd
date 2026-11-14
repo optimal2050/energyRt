@@ -26,7 +26,7 @@ contradiction in the data: no solver setting, starting point or tolerance
 will make such a model feasible, and an infeasible solve will not say
 which constraint was to blame.
 
-Two checks run:
+Three checks run:
 
 \describe{
 \item{\code{aux-from-stock}}{exogenous capacity (\verb{@capacity$stock}) consumes
@@ -37,6 +37,15 @@ contradiction.}
 \item{\code{demand-vs-supply}}{a declared \code{demand} exceeds the bounded supply
 of its commodity in the same region and year, again with no import and
 no inbound route.}
+\item{\code{forced-supply-no-sink}}{the mirror case: a commodity whose balance
+is an equality (\code{limtype = "FX"}) is forced to arise -- \code{ava.fx}, or a
+positive \code{ava.lo} -- in a region and year where nothing can consume it.
+Under the default \code{"LO"} balance a surplus may go nowhere and nothing is
+contradicted, so only an equality is reported. The sinks are read from
+the interpolated gating maps rather than the declarations, which is what
+catches a consumer whose \code{vintage} starts later than the supply does:
+a supply declared at two milestones is interpolated across the years
+between them, and it is those filled years that have no consumer.}
 }
 }
 \section{What a clean result does NOT mean}{

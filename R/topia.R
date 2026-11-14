@@ -414,6 +414,10 @@ topia_profiles <- function(regions,
       sel <- w$resource == keys$resource[i] &
         (if (is.na(cl)) is.na(w$cluster) else !is.na(w$cluster) & w$cluster == cl)
       v <- .topia_lookup(w[sel, ], regions, "wval", gm)
+      # No requested region carries this grade, so the series does not exist
+      # here: dropping the key keeps it out, while cbind() onto nothing would
+      # yield a two-column frame and fail the rbind below.
+      if (is.null(v) || !nrow(v)) return(NULL)
       cbind(resource = keys$resource[i], cluster = cl, v,
             stringsAsFactors = FALSE, row.names = NULL)
     }))

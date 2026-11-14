@@ -14,7 +14,7 @@ build_topia(
   techs = NULL,
   modules = NULL,
   clusters = TRUE,
-  demand = 1,
+  demand = NULL,
   weather = NULL,
   levers = TRUE,
   as = c("kit", "model", "repository"),
@@ -54,7 +54,16 @@ drop with a leading \code{-}: \code{commodities}, \code{supply}, \code{weather},
 \code{demand}. \code{modules = "-hydrogen"} strips in one word the chain the
 article declares across three sections.}
 
-\item{clusters, demand, weather}{not built yet.}
+\item{clusters}{not built yet.}
+
+\item{weather, demand}{the name of a shipped dataset (\code{"sample"},
+\code{"simulated"}) or a \code{data.frame} shaped like the matching element of
+\code{\link[=topia_profiles]{topia_profiles()}} -- so the output of one is the input of the other. The
+frames are written into the shipped objects, which keeps each series'
+name, units and timeframe. A weather frame must cover every
+\verb{(cluster, region)} pair the object's roster declares; a demand frame
+carrying \code{load} is a relative shape and is scaled to the annual energy
+the shipped object holds, one carrying \code{demand} is taken as given.}
 
 \item{levers}{\code{TRUE} for all four, \code{FALSE} for none, or names.}
 

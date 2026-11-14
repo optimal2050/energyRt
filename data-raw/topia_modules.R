@@ -139,6 +139,14 @@ build_topia <- function(regions = .topia_regions[1:3],
   cal  <- topia_calendars[[calendar]]
   if (is.null(cal)) stop("unknown calendar '", calendar, "'")
   prof <- topia_profiles(regions, calendar = calendar)
+  # The unit kits declare one series per resource, so the grades the profiles
+  # now carry are pooled to the resource before they are read.
+  prof$weather <- stats::aggregate(
+    wval ~ resource + region + timeslice,
+    data = prof$weather, FUN = mean)
+  prof$weather$cluster <- NA_character_
+  prof$weather <- prof$weather[, c("resource", "cluster", "region",
+                                   "timeslice", "wval")]
   mg   <- function(usd_kw) convert("USD/kW", "MUSD/GW", usd_kw)   # -> MUSD/GW
 
   # the layout's place in the hierarchy: which zones it spans, and how many of

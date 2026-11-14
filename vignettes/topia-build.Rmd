@@ -529,11 +529,13 @@ autoplot(SUP_BIO)
 # the same map. The quantity is proportional to each province's electricity
 # demand and sums to 45 PJ, around one per cent of generation once burnt.
 #
-# `ava.fx` fixes it rather than capping it: this much waste arises, no more and
-# no less. It is declared from 2030 because `EBIO` cannot be built before then
-# -- a fixed arrival with no plant to take it and an "FX" balance above would
-# make the base year infeasible, and the base year has to stay solvable with
-# nothing built.
+# `ava.up` caps the arising rather than fixing it: this much waste is there to
+# be burnt, free at the gate, and the plant takes as much of it as it wants.
+# Fixing it would instead force waste into the years before `EBIO`'s vintage
+# opens, where the "FX" balance above leaves nowhere for it to go, and no
+# horizon that models those years could solve. The equality still does its
+# work: nothing that arises may be spilled, and a free fuel is taken before a
+# priced one, so waste is burnt first wherever `EBIO` is built.
 wst <- tibble::tribble(
   ~region, ~wst_PJ,
   "R01",      1.4,
@@ -551,14 +553,18 @@ wst <- tibble::tribble(
 )
 stopifnot(abs(sum(wst$wst_PJ) - 45) < 1e-8)
 
+# The ceiling is the same in every milestone, the base year included: waste
+# follows people and does not wait for a power station. Whether any of it is
+# burnt is the model's choice, so the arising can stand from 2025 although
+# `EBIO`'s vintage opens in 2030.
 wst_supply <- wst |>
   tidyr::crossing(year = c(2025L, 2030L, 2040L, 2050L)) |>
-  mutate(ava.fx = ifelse(year == 2025L, 0, wst_PJ), cost = 0) |>
-  select(region, year, ava.fx, cost)
+  mutate(ava.up = wst_PJ, cost = 0) |>
+  select(region, year, ava.up, cost)
 
 SUP_WST <- newSupply(
   name = "SUP_WST",
-  desc = "Waste arising, free at the gate and compulsory to take",
+  desc = "Waste arising, free at the gate and not to be spilled",
   units = data.frame(
     activity = "PJ",
     costs = "MUSD"
@@ -568,7 +574,7 @@ SUP_WST <- newSupply(
   region = regions,
   supply = wst_supply
 )
-autoplot(SUP_WST, style = "map", map = gs, param = "ava.fx")
+autoplot(SUP_WST, style = "map", map = gs, param = "ava.up")
 
 
 SUP_NUC <- newSupply(
@@ -1485,13 +1491,14 @@ difference is a property of the *fuel* rather than of a second power station.
 No `grp.share` bounds are set, so the blend is whatever is cheapest.
 
 What the plant actually burns is decided by the two supplies rather than by
-anything in the technology, and they are opposites. Waste is free at the gate
-and compulsory: `WST` carries an `"FX"` balance and `SUP_WST` an `ava.fx`, and
-`EBIO` is its only consumer, so every PJ that arises has to be burnt. Biomass
-is optional and priced on a clustered regional curve -- one commodity, three
-steps per province -- from 3.6 MUSD/PJ for residues at the mill in the forestry
-province to 14.3 for long haul on the island. So the plant runs on waste as a
-floor and tops up with biomass only where biomass pays.
+anything in the technology, and they are opposites. Waste is free at the gate:
+`SUP_WST` carries an `ava.up` and no cost, and `WST` carries an `"FX"` balance,
+so what arises may not be spilled and `EBIO`, its only consumer, is the only
+place for it to go. Biomass is optional and priced on a clustered regional
+curve -- one commodity, three steps per province -- from 3.6 MUSD/PJ for
+residues at the mill in the forestry province to 14.3 for long haul on the
+island. So the plant burns the waste within reach before any biomass, and tops
+up with biomass only where biomass pays.
 
 Where that is depends on the carbon price, and the reason is worth keeping in
 view: at 0.35 efficiency biomass loses to gas almost entirely on efficiency

@@ -150,7 +150,8 @@ umod <- newModel("UNIT", data = uk$repo,
 
 Other topia:
 \code{\link[=topia_profile]{topia_profile()}},
-\code{\link[=topia_profiles]{topia_profiles()}}
+\code{\link[=topia_profiles]{topia_profiles()}},
+\code{\link[=topia_simulate]{topia_simulate()}}
 }
 \concept{topia}
 \keyword{datasets}

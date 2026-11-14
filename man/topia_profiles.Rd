@@ -85,6 +85,7 @@ head(prof$weather, 3)
 
 Other topia:
 \code{\link{topia}},
-\code{\link[=topia_profile]{topia_profile()}}
+\code{\link[=topia_profile]{topia_profile()}},
+\code{\link[=topia_simulate]{topia_simulate()}}
 }
 \concept{topia}

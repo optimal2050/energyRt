@@ -211,7 +211,7 @@ newHorizon <- function(
       # return before the assignment at the end of the function, so a
       # base year declared with a numeric `intervals` was discarded in
       # silence -- which is how TOPIA's horizon lost its own.
-      if (!is.null(base_year)) h@base_year <- .check_base_year(base_year, h)
+      h <- .finish_horizon(h, base_year)
       return(h)
     }
   } else if (!is.null(period)) { # intervals == NULL
@@ -224,12 +224,12 @@ newHorizon <- function(
     if (mid_is_end) intervals$mid <- intervals$end
     if (mid_is_start) intervals$mid <- intervals$start
     h@intervals <- .fill_interval_labels(intervals)
-    if (!is.null(base_year)) h@base_year <- .check_base_year(base_year, h)
+    h <- .finish_horizon(h, base_year)
     return(h) # one year steps
   } else if (is.null(period)) { # no data
     # a base year on an empty horizon has nothing to mark: `.check_base_year()`
     # says so rather than dropping it
-    if (!is.null(base_year)) h@base_year <- .check_base_year(base_year, h)
+    h <- .finish_horizon(h, base_year)
     return(h) # empty
   }
 
@@ -282,8 +282,61 @@ newHorizon <- function(
   if (mid_is_end) intervals$mid <- intervals$end
   if (mid_is_start) intervals$mid <- intervals$start
   h@intervals <- .fill_interval_labels(intervals)
-  if (!is.null(base_year)) h@base_year <- .check_base_year(base_year, h)
+  h <- .finish_horizon(h, base_year)
   return(h)
+}
+
+# Applied on EVERY return path of newHorizon(): the base year, and a warning
+# for period years that no interval covers.
+#
+# A period year outside every interval is modelled by nothing -- it is in the
+# horizon's span but carries no milestone, so no cost, demand or emission of
+# that year enters the problem. That is a legitimate way to build a snapshot
+# horizon, and it is also what a mistyped interval table looks like, so it is
+# reported rather than refused.
+#' @noRd
+.finish_horizon <- function(h, base_year) {
+  if (!is.null(base_year)) h@base_year <- .check_base_year(base_year, h)
+  if (length(h@period) && nrow(h@intervals)) {
+    covered <- unlist(Map(seq.int, h@intervals$start, h@intervals$end),
+                      use.names = FALSE)
+    gap <- setdiff(as.integer(h@period), as.integer(covered))
+    # Years before the base year enter no LP whatever the intervals say --
+    # history anchors interpolation and leaves the model -- so only the
+    # projection span is reported. A lone historical milestone followed by a
+    # hole is ordinary practice, not a mistake.
+    if (length(h@base_year)) gap <- gap[gap >= min(h@base_year)]
+    if (length(gap)) {
+      span <- if (length(h@base_year)) {
+        sum(as.integer(h@period) >= min(h@base_year))
+      } else {
+        length(h@period)
+      }
+      warning("newHorizon(): ", length(gap), " of ", span,
+              " year(s) in the period belong to no interval and are modelled ",
+              "by nothing (", .horizon_runs(gap), "). Each milestone stands ",
+              "for its own interval only, so flows in these years do not ",
+              "enter the problem.", call. = FALSE)
+    }
+  }
+  h
+}
+
+# Collapse a year vector to runs, so a warning names 2026-2029 rather than
+# every year in it.
+#' @noRd
+.horizon_runs <- function(y) {
+  y <- sort(unique(as.integer(y)))
+  brk <- c(0L, which(diff(y) != 1L), length(y))
+  out <- vapply(seq_len(length(brk) - 1L), function(i) {
+    z <- y[(brk[i] + 1L):brk[i + 1L]]
+    if (length(z) == 1L) as.character(z) else paste0(z[1], "-", z[length(z)])
+  }, character(1))
+  if (length(out) > 4L) {
+    paste0(paste(out[1:4], collapse = ", "), ", ...")
+  } else {
+    paste(out, collapse = ", ")
+  }
 }
 
 # The base year is ONE milestone of this horizon, and cannot be its last --

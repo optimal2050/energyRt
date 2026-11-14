@@ -338,3 +338,63 @@ test_that("a declared region on the object bounds the no-region rows", {
   expect_equal(nrow(f), 1L)
   expect_equal(f$region, "R1")
 })
+
+# --------------------------------------------------------------------------- #
+# forced-supply-no-sink: the mirror of demand-vs-supply.
+#
+# The case this exists for is invisible in the declarations: a supply declared
+# at two milestones is interpolated across the years between them, and it is
+# those filled years that can have no consumer. So the fixture is built with a
+# consumer whose vintage starts after the supply does, and checked on an
+# interpolated scenario at annual resolution.
+# --------------------------------------------------------------------------- #
+
+# A commodity that must be disposed of, arising from `arise_from` onward, and
+# one plant able to take it from `tech_from`.
+.cf_waste <- function(arise_from = 2026L, tech_from = 2030L,
+                      limtype = "FX", years = 2025:2032) {
+  WST <- newCommodity("WST", timeframe = "ANNUAL", limtype = limtype)
+  ELC <- newCommodity("ELC", timeframe = "ANNUAL")
+  sup <- data.frame(
+    year = c(2025L, arise_from, max(years)),
+    ava.fx = c(0, if (arise_from == 2025L) 10 else 0, 10),
+    cost = 0)
+  sup$ava.fx[sup$year == arise_from] <- 10
+  SUP <- newSupply("SUP_WST", commodity = "WST",
+                   units = data.frame(activity = "PJ", costs = "MUSD"),
+                   supply = sup)
+  BURN <- newTechnology(
+    "BURN",
+    input = data.frame(comm = "WST", unit = "PJ"),
+    output = data.frame(comm = "ELC", unit = "PJ"),
+    ceff = data.frame(comm = "WST", cinp2use = 1),
+    units = data.frame(capacity = "GW", activity = "PJ", costs = "MUSD"),
+    cap2act = 1, invcost = 1,
+    vintage = data.frame(start = tech_from, olife = 30L))
+  m <- newModel("CFW", region = "R1", discount = 0.05,
+                calendar = newCalendar(timeframe = "ANNUAL"),
+                horizon = newHorizon(years),
+                data = newRepository("cfw", WST, ELC, SUP, BURN))
+  suppressMessages(suppressWarnings(interpolate_model(m, name = "CFW")))
+}
+
+test_that("a forced arising with no consumer that year is a contradiction", {
+  f <- check_feasibility(.cf_waste(), verbose = FALSE)
+  g <- f[f$check == "forced-supply-no-sink", , drop = FALSE]
+  expect_gt(nrow(g), 0L)
+  expect_equal(unique(g$commodity), "WST")
+  # only the years between the arising and the plant, not after it
+  expect_true(all(g$year >= 2026L & g$year < 2030L))
+  expect_true(all(g$shortfall > 0))
+})
+
+test_that("the same model with the plant available from the start is clean", {
+  f <- check_feasibility(.cf_waste(tech_from = 2025L), verbose = FALSE)
+  expect_equal(sum(f$check == "forced-supply-no-sink"), 0L)
+})
+
+test_that("a surplus is only contradicted when the balance is an equality", {
+  # Under the default "LO" the excess may go nowhere, so nothing is forced.
+  f <- check_feasibility(.cf_waste(limtype = "LO"), verbose = FALSE)
+  expect_equal(sum(f$check == "forced-supply-no-sink"), 0L)
+})

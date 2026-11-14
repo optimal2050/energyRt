@@ -27,6 +27,31 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* **`topia_simulate()` generates TOPIA's weather and demand profiles.** The
+  shipped `"simulated"` dataset is one cached run of it; every other parameter
+  set is an alternative, and the result feeds
+  `build_topia(weather = , demand = )`.
+
+  ```r
+  topia_simulate(calendar = "d365_h24")                 # the defaults
+  topia_simulate(wind_season = rep(1, 12))              # no seasonal wind
+  topia_simulate(clusters = FALSE)                      # one series per resource
+  topia_simulate(jitter = 0.08, seed = 1)               # another draw
+  ```
+
+  Levels are calibrated against the measured set per resource, cluster and
+  province; the arguments change the shape. Clusters differ through
+  `wind_grade` and `solar_halflen`, so a grade is a different resource rather
+  than another ceiling on one series. The returned frames carry a `dataset`
+  attribute naming the generator and the parameters that differ from the
+  defaults.
+* **`build_topia(weather = , demand = )` replace the series.** Each takes the
+  name of a shipped dataset or a `data.frame` shaped like the matching element
+  of `topia_profiles()`, so the output of one is the input of the other. A
+  weather frame must cover every `(cluster, region)` pair the object declares;
+  a demand frame carrying `load` is a relative shape, scaled to the annual
+  energy the shipped object holds.
+
 * **`build_topia()` cuts smaller cases from the shipped model.** One call for
   a province, a zone or a sample, resolving the parts that are tedious by
   hand:
@@ -686,9 +711,10 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 * **`topia`'s `EBIO` is a multi-fuel plant.** It takes a grouped input over
   `BIO` and the new `WST` commodity, with `cinp2ginp` of 1.00 and 0.74 and no
   `grp.share` bounds, so one plant burns either fuel or any blend.
-* **`topia` gains `WST` and `SUP_WST`, and burning the waste is compulsory.**
-  `WST` carries `limtype = "FX"` so nothing may be spilled, and `SUP_WST` fixes
-  the arising with `ava.fx` from 2030.
+* **`topia` gains `WST` and `SUP_WST`.** `WST` carries `limtype = "FX"`, so
+  what arises may not be spilled, and `SUP_WST` offers it free at the gate
+  under an `ava.up` ceiling in every milestone. Waste is therefore the first
+  fuel `EBIO` burns wherever it is built.
 * **`topia`'s `EXP_H2` is bounded by a terminal.** It is declared in the five
   coastal provinces with an `exp.up` throughput each, where it was declared in
   all twelve at a bound high enough to be no bound at all.
@@ -698,6 +724,25 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* `check_feasibility()` reports a third contradiction,
+  `forced-supply-no-sink`: a commodity balanced as an equality that is forced
+  to arise where nothing can consume it. The sinks come from the interpolated
+  gating maps, so a consumer whose `vintage` starts after the supply does is
+  caught -- a case that is invisible in the declarations, because it is the
+  years interpolation fills between two milestones that have no consumer.
+* `newHorizon()` warns when years of the period belong to no interval. Such a
+  year is in the horizon's span but carries no milestone, so nothing of it
+  enters the problem; it used to be accepted silently.
+* TOPIA's waste arising is a ceiling (`ava.up`) rather than a fixed quantity.
+  Fixed, it forced waste to arise in the years before `EBIO`'s vintage opens,
+  where the equality balance left nowhere for it to go, so a horizon that
+  modelled those years was infeasible.
+* `topia_profiles()` no longer fails when a requested province carries none of
+  a resource's grades; the absent series is dropped instead of being returned
+  as a two-column frame.
+* `topia$weather`'s `"simulated"` set now carries the same grades as the
+  measured one. It had a single ungraded series per resource, which no
+  clustered technology could use.
 * A geoscale whose finest geoframe is not called `region` now works throughout.
   `get_process_groups()` and the clustered aggregation read that name from the
   geoscale instead of assuming it, and `gg_trade_map()` accepts a plain `sf`

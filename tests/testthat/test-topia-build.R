@@ -153,10 +153,48 @@ test_that("an argument that is not built yet is refused, not ignored", {
   for (call in list(
     function() build_topia(clusters = FALSE, quiet = TRUE),
     function() build_topia(demand = 2, quiet = TRUE),
-    function() build_topia(weather = "simulated", quiet = TRUE),
     function() build_topia(level = "zone", quiet = TRUE))) {
     expect_error(call(), "is not built yet")
   }
+})
+
+# Covers the R API: build_topia(weather=), build_topia(demand=)
+test_that("the series can be replaced by name or by frame", {
+  skip_if_not_installed("geoscales")
+  kit <- tb_kit()
+  # The shipped measured set is what the model already holds, so naming it
+  # round-trips: the same series come back and the annual energy is unchanged.
+  k <- build_topia(weather = "sample", demand = "sample", quiet = TRUE)
+  o1 <- getObject(k$repo)
+  o0 <- getObject(kit$repo)
+  expect_equal(o1$WSOL@weather$wval, o0$WSOL@weather$wval)
+  ann <- function(o) {
+    d <- o$DEM_ELC@demand
+    as.numeric(tapply(d$demand, as.character(d$region), sum))
+  }
+  expect_equal(ann(o1), ann(o0))
+
+  # A set built for another calendar is refused naming that calendar, rather
+  # than silently leaving the shipped series in place.
+  expect_error(build_topia(weather = "simulated", quiet = TRUE), "s4_h24")
+  expect_error(build_topia(weather = "nope", quiet = TRUE), "simulated")
+
+  # A frame whose timeslices are not the model's is refused naming the model's.
+  bad <- topia_profiles(kit$regions, calendar = "d365_h24")$demand
+  bad$timeslice <- "WIN_h01"
+  expect_error(build_topia(demand = bad, quiet = TRUE), "d365_h24")
+
+  # A `load` column is a relative shape and is scaled to the annual energy the
+  # shipped object already holds.
+  shape <- topia_profiles(kit$regions, calendar = "d365_h24")$demand
+  expect_equal(ann(getObject(build_topia(demand = shape, quiet = TRUE)$repo)),
+               ann(o0))
+
+  # A weather frame that covers none of a technology's declared grades is
+  # refused: a clustered technology left with no weather row runs unbounded.
+  flat <- topia_profiles(kit$regions, calendar = "d365_h24")$weather
+  flat$cluster <- NA_character_
+  expect_error(build_topia(weather = flat, quiet = TRUE), "clusters = FALSE")
 })
 
 test_that("quiet is quiet, and the default reports what it built", {

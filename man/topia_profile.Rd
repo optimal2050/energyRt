@@ -90,6 +90,7 @@ the reference dataset and the teaching kits.
 
 Other topia:
 \code{\link{topia}},
-\code{\link[=topia_profiles]{topia_profiles()}}
+\code{\link[=topia_profiles]{topia_profiles()}},
+\code{\link[=topia_simulate]{topia_simulate()}}
 }
 \concept{topia}
