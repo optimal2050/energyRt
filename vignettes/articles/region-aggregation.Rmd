@@ -105,10 +105,13 @@ One load shape for every region (PJ per timeslice), scaled to a level that
 rises west to east.
 
 ```{r demand}
-calendar <- topia$modules$calendars$topia_seasons
+calendar <- topia$modules$calendars$s4_h24
 
+# `topia$demand` is region-keyed, and this article wants ONE shape for every
+# region, so the provinces are pooled before the weights are formed.
 shape <- topia$demand |>
-  filter(calendar == "topia_seasons") |>
+  filter(calendar == "s4_h24") |>
+  summarise(load = sum(load), .by = timeslice) |>
   left_join(
     as.data.frame(calendar@timetable) |> select(timeslice, share),
     by = "timeslice"

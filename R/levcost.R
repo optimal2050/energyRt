@@ -48,9 +48,15 @@
 #' at ZERO here, because what it is worth is the commodity balance's dual and
 #' not a slot. The scenario path therefore reports a store's OWN cost per
 #' unit discharged, not its delivered cost; use \code{levcost()} on the
-#' \code{storage} object with \code{price =} for the latter. Likewise a
-#' technology with a \emph{grouped} input (whose per-commodity consumption
-#' is not a solution variable) reports no fuel component.
+#' \code{storage} object with \code{price =} for the latter.
+#'
+#' A \emph{grouped} input is priced like any other: \code{vTechInp} carries the
+#' consumption of each member commodity separately, so a multi-fuel technology
+#' reports one \code{supply} component covering the blend the solver chose.
+#' What a group does not get is a share \emph{frontier} --
+#' \code{tech_share_frontier()} skips a group in which no commodity declares an
+#' explicit \code{grp.share.up} or a positive \code{grp.share.lo}, since an
+#' unconstrained group has no band to report.
 #'
 #' @param object  A \code{technology} (or list thereof), \code{repository},
 #'   \code{model}, or solved \code{scenario} object.

@@ -754,18 +754,19 @@ horizon_BY2025 <- newHorizon(
   desc = "base year 2025 alone, the single-year horizon for the unit kits")
 
 topia_modules <- list(
-  info = paste("TOPIA teaching-model modules: a kit of energyRt building blocks",
-               "(commodity/supply repositories, weather, technologies, storage, a",
-               "ready base repository `$repo`), scenario levers (CO2_CAP, CT_CO2,",
-               "RES_SHARE, NO_NEW_NUC, EARLY_RET) and add-on modules (GAS_CURVE,",
-               "EWIN_SITES, ENUC_VINT), for region layouts under `$electricity`;",
-               "all-unit-input models with hand-checkable integer objectives under",
-               "`$unit`. Built by the TOPIA I vignette's explicit steps; mirrors",
+  info = paste("TOPIA teaching-model modules. `$electricity` is ONE model --",
+               "twelve provinces `R01`..`R12` in five zones, hourly, with a",
+               "ready repository `$repo`, the `$geoscale` hierarchy and four",
+               "scenario levers (CO2_CAP, CT_CO2, EARLY_RET, GREEN_H2) --",
+               "tangled from the TOPIA I vignette, which is its only authoring",
+               "site. `build_topia()` cuts smaller cases out of it.",
+               "`$calendars` holds the two calendars it runs on and",
+               "`$horizons` the two horizons; `$unit` holds the all-unit-input",
+               "models with hand-checkable integer objectives. Mirrors",
                "IDEEA::ideea_modules."),
-  # the calendars this model uses: the generic ones it borrows, plus its own.
-  # `d365_h24` is here because the measured `sample` profiles are hourly and
-  # are served at no other resolution.
-  # the two calendars TOPIA runs on, and nothing else
+  # the two calendars TOPIA runs on, and nothing else: `d365_h24` because the
+  # measured weather is hourly and is served at no other resolution, `s4_h24`
+  # as the small simulated stand-in.
   calendars = calendars[c("s4_h24", "d365_h24")],
   horizons  = list(BY2025_50_by10 = horizon_BY2025_50_by10,
                    BY2025         = horizon_BY2025),

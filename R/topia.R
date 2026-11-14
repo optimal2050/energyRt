@@ -30,18 +30,26 @@
 #'     `level = "region"` ambiguous. The leaftable still carries a `region`
 #'     column -- the atom key, a copy of `province` -- so anything joining on
 #'     `region` is unaffected.}
-#'   \item{weather}{deterministic solar / wind / hydro capacity factors for the
-#'     three teaching calendars. Columns `calendar`
-#'     (`s4_h24`/`m12_h24`/`topia_seasons`), `resource`
-#'     (`WSOL`/`WWIN`/`WHYD`), `timeslice` (e.g. `SUM_h12`, `m06_h12` or
-#'     `SUM_DAY`) and `wval` (capacity factor, 0-1). Attribute `source` records
-#'     whether it came from IDEEA reanalysis or the curated fallback.}
-#'   \item{demand}{a relative electricity-load shape by timeslice, for the same
-#'     three calendars. Columns `calendar`, `timeslice` and `load` (relative,
-#'     mean ~1); scale it by a region's annual demand and the timeslice shares
-#'     to get energy per timeslice.}
+#'   \item{weather}{solar / wind / hydro capacity factors for the two
+#'     calendars TOPIA runs on. Columns `dataset`, `calendar`
+#'     (`s4_h24`/`d365_h24`), `resource` (`WSOL`/`WWIN`/`WHYD`), `region`,
+#'     `cluster` (the resource grade, `NA` where ungraded), `timeslice` and
+#'     `wval` (capacity factor, 0-1). The `dataset` column is the split that
+#'     matters: `measured` carries the graded hourly series on `d365_h24` --
+#'     wind in `HI`/`MD`/`LO`, solar in `FL`/`TH` -- and `simulated` the small
+#'     stand-in on `s4_h24`, whose `cluster` is `NA` throughout. A clustered
+#'     technology therefore has no weather rows on `s4_h24`.}
+#'   \item{demand}{relative electricity-load shapes by province and timeslice,
+#'     for the same two calendars. Columns `dataset`, `calendar`, `region`,
+#'     `timeslice` and `load` (relative, mean ~1); scale by a province's annual
+#'     demand and the timeslice shares to get energy per timeslice.}
 #'   \item{stock}{deterministic base-year installed capacity per technology.
 #'     Columns `tech` and `gw`.}
+#'   \item{grades}{the resource grades the measured weather is split into:
+#'     `resource`, `region`, `cluster`, `ann_cf` (annual capacity factor),
+#'     `avail` (the ceiling, GW) and `cells` (how many grid cells it pools).
+#'     36 rows -- a province appears only in the grades its own ground
+#'     reaches.}
 #'   \item{modules}{the kit -- see below.}
 #' }
 #'
@@ -51,12 +59,15 @@
 #' the `topia-use` vignette).
 #' \describe{
 #'   \item{info}{a description string.}
-#'   \item{calendars}{the TOPIA calendars (`annual`/`topia_seasons`/
-#'     `s4_h24`/`m12_h24`) plus the symmetric unit calendars
-#'     (`unit_s4`, 4 equal seasons; `unit_s4h4`, 4x4). Note `annual`
-#'     cannot drive the shipped kits (`ELC` is balanced at the `HOUR` level
-#'     and [topia_profiles()] has no annual shapes); it ships as the
-#'     coarsest example calendar.}
+#'   \item{calendars}{the two calendars TOPIA runs on: `d365_h24` (365 days x
+#'     24 hours, 9,126 timeslices), which is the only one carrying the measured
+#'     graded weather, and `s4_h24` (4 seasons x 24 hours, 96), the small
+#'     simulated stand-in. Samples of the hourly calendar --
+#'     `d365_h24_1dpm` (301) and `d365_h24_1dps` (101) -- live in
+#'     [calendars] and keep `d365_h24`'s timeslice names, so the measured
+#'     grades survive being filtered onto them. The symmetric unit calendars
+#'     (`unit_s4`, 4 equal seasons; `unit_s4h4`, 4x4) ship beside the unit
+#'     kits under `$unit$calendars`, not here.}
 #'   \item{horizons}{planning horizons, named for their MILESTONES rather
 #'     than the period end, with `BY` marking a one-year base year at the
 #'     front. `BY2025_50_by10` = milestones 2025/2030/2040/2050, a base year
@@ -142,14 +153,17 @@
 # data-raw/topia_data.R) are expanded to a model's regions here; the weather
 # capacity factors can also be re-sourced at run time from IDEEA.
 #
-# Three target resolutions are supported, matching the saved calendars:
-#   "s4_h24"  -- 4 seasons x 24 hours (96 timeslices, the DEFAULT base case;
-#                      full diurnal detail so storage cycles), "WIN_h00".
-#   "m12_h24" -- 12 months x 24 hours (288 timeslices, higher resolution),
-#                      timeslices like "m01_h00".
-#   "topia_seasons" -- 4 seasons x 3 dayparts (12 timeslices), timeslices like "WIN_DAY".
-
-.topia_calendars <- c("s4_h24", "m12_h24", "topia_seasons", "d365_h24")
+# Two target resolutions carry saved profiles, and `topia_profiles()` offers
+# only those:
+#   "s4_h24"   -- 4 seasons x 24 hours (96 timeslices, the DEFAULT), "WIN_h00";
+#                 served by the `simulated` set, whose `cluster` is NA.
+#   "d365_h24" -- 365 days x 24 hours (9,126), "d001_h00"; served by the
+#                 `sample` set, which carries the resource grades.
+# The aggregation helpers below also know "m12_h24" and "topia_seasons",
+# because the `source = "ideea"` route reduces an hourly IDEEA series onto a
+# target calendar. Neither has saved profiles and "topia_seasons" has no
+# calendar object either (`calendars$s4_hp3` is its shape), so neither is
+# reachable through `topia_profiles()`.
 
 # ---- internal: map an IDEEA d365_h24 timeslice ("d001_h00") to a target timeslice -----
 .topia_season_of_month <- function(m) {
@@ -303,10 +317,10 @@
 #' Two input datasets ship and the caller chooses between them:
 #'
 #' \describe{
-#'   \item{`"simulated"`}{closed-form shapes on the small calendars
-#'     (`s4_h24`, `m12_h24`, `topia_seasons`). Demonstration data: it carries a
-#'     spatial gradient and a diurnal structure, and is not a resource estimate
-#'     for anywhere.}
+#'   \item{`"simulated"`}{closed-form shapes on the small calendar `s4_h24`.
+#'     Demonstration data: it carries a spatial gradient and a diurnal
+#'     structure, and is not a resource estimate for anywhere. Its `cluster`
+#'     is `NA` throughout, so it cannot serve a graded technology.}
 #'   \item{`"sample"`}{a measured hourly set on `d365_h24`. Multi-day calm
 #'     spells survive only at that resolution, so it is where flexibility has
 #'     something to earn -- reducing the hourly series to a handful of typical
@@ -322,14 +336,12 @@
 #' TOPIA data at all: it generates a synthetic step / sine / cosine / hex shape
 #' over any calendar and returns a single data.frame.
 #'
-#' @param regions character vector of region codes: a region of the TOPIA map
-#'   (`W1`, `W2`, `C1`--`C6`, `E1`--`E3`), a zone (`WEST`, `CENTRAL`, `EAST`)
-#'   or the nation (`TOPIA`). An unknown code is an error that lists what is
-#'   known.
+#' @param regions character vector of geoscale codes: a province of the TOPIA
+#'   map (`R01`--`R12`), a zone (`Z1`--`Z5`) or the nation (`TOPIA`). An
+#'   unknown code is an error that lists what is known.
 #' @param calendar target resolution: `"s4_h24"` (4 seasons x 24 hours, 96
-#'   timeslices, the default base case), `"m12_h24"` (12 months x 24 hours,
-#'   288), `"topia_seasons"` (4 seasons x 3 dayparts, 12) or `"d365_h24"`
-#'   (8760).
+#'   timeslices, the default) or `"d365_h24"` (365 days x 24 hours, 9,126).
+#'   These are the only two the shipped profiles are built for.
 #' @param dataset `"simulated"` or `"sample"`. `NULL` (the default) picks the
 #'   set built for `calendar` -- the sample for `"d365_h24"`, the simulated set
 #'   otherwise. Naming a pair that was not built is an error saying what each
@@ -353,12 +365,11 @@
 #' @family topia
 #' @export
 #' @examples
-#' # weather, demand and stock for two regions of the TOPIA map
-#' prof <- topia_profiles(c("W1", "W2"), calendar = "s4_h24")
+#' # weather, demand and stock for two provinces of the TOPIA map
+#' prof <- topia_profiles(c("R01", "R02"), calendar = "s4_h24")
 #' head(prof$weather, 3)
 topia_profiles <- function(regions,
-                           calendar = c("s4_h24", "m12_h24", "topia_seasons",
-                                        "d365_h24"),
+                           calendar = c("s4_h24", "d365_h24"),
                            dataset = NULL,
                            source = c("saved", "ideea"),
                            resources = c(WSOL = "WSOL", WWIN = "WWIN",

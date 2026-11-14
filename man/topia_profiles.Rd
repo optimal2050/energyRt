@@ -6,7 +6,7 @@
 \usage{
 topia_profiles(
   regions,
-  calendar = c("s4_h24", "m12_h24", "topia_seasons", "d365_h24"),
+  calendar = c("s4_h24", "d365_h24"),
   dataset = NULL,
   source = c("saved", "ideea"),
   resources = c(WSOL = "WSOL", WWIN = "WWIN", WHYD = "WHYD"),
@@ -15,15 +15,13 @@ topia_profiles(
 )
 }
 \arguments{
-\item{regions}{character vector of region codes: a region of the TOPIA map
-(\code{W1}, \code{W2}, \code{C1}--\code{C6}, \code{E1}--\code{E3}), a zone (\code{WEST}, \code{CENTRAL}, \code{EAST})
-or the nation (\code{TOPIA}). An unknown code is an error that lists what is
-known.}
+\item{regions}{character vector of geoscale codes: a province of the TOPIA
+map (\code{R01}--\code{R12}), a zone (\code{Z1}--\code{Z5}) or the nation (\code{TOPIA}). An
+unknown code is an error that lists what is known.}
 
 \item{calendar}{target resolution: \code{"s4_h24"} (4 seasons x 24 hours, 96
-timeslices, the default base case), \code{"m12_h24"} (12 months x 24 hours,
-288), \code{"topia_seasons"} (4 seasons x 3 dayparts, 12) or \code{"d365_h24"}
-(8760).}
+timeslices, the default) or \code{"d365_h24"} (365 days x 24 hours, 9,126).
+These are the only two the shipped profiles are built for.}
 
 \item{dataset}{\code{"simulated"} or \code{"sample"}. \code{NULL} (the default) picks the
 set built for \code{calendar} -- the sample for \code{"d365_h24"}, the simulated set
@@ -58,10 +56,10 @@ of three tidy data.frames.
 Two input datasets ship and the caller chooses between them:
 
 \describe{
-\item{\code{"simulated"}}{closed-form shapes on the small calendars
-(\code{s4_h24}, \code{m12_h24}, \code{topia_seasons}). Demonstration data: it carries a
-spatial gradient and a diurnal structure, and is not a resource estimate
-for anywhere.}
+\item{\code{"simulated"}}{closed-form shapes on the small calendar \code{s4_h24}.
+Demonstration data: it carries a spatial gradient and a diurnal
+structure, and is not a resource estimate for anywhere. Its \code{cluster}
+is \code{NA} throughout, so it cannot serve a graded technology.}
 \item{\code{"sample"}}{a measured hourly set on \code{d365_h24}. Multi-day calm
 spells survive only at that resolution, so it is where flexibility has
 something to earn -- reducing the hourly series to a handful of typical
@@ -78,8 +76,8 @@ TOPIA data at all: it generates a synthetic step / sine / cosine / hex shape
 over any calendar and returns a single data.frame.
 }
 \examples{
-# weather, demand and stock for two regions of the TOPIA map
-prof <- topia_profiles(c("W1", "W2"), calendar = "s4_h24")
+# weather, demand and stock for two provinces of the TOPIA map
+prof <- topia_profiles(c("R01", "R02"), calendar = "s4_h24")
 head(prof$weather, 3)
 }
 \seealso{

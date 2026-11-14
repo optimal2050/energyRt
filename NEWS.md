@@ -683,6 +683,18 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   `province` -- so anything joining on `region` is unaffected, and the model's
   regions are still the twelve codes. `level = "zone"` and `level = "nation"`
   are unchanged.
+* **`topia`'s `EBIO` is a multi-fuel plant.** It takes a grouped input over
+  `BIO` and the new `WST` commodity, with `cinp2ginp` of 1.00 and 0.74 and no
+  `grp.share` bounds, so one plant burns either fuel or any blend.
+* **`topia` gains `WST` and `SUP_WST`, and burning the waste is compulsory.**
+  `WST` carries `limtype = "FX"` so nothing may be spilled, and `SUP_WST` fixes
+  the arising with `ava.fx` from 2030.
+* **`topia`'s `EXP_H2` is bounded by a terminal.** It is declared in the five
+  coastal provinces with an `exp.up` throughput each, where it was declared in
+  all twelve at a bound high enough to be no bound at all.
+* `topia_profiles(calendar = )` accepts only `"s4_h24"` and `"d365_h24"`, the
+  two the shipped profiles are built for; `"m12_h24"` and `"topia_seasons"` are
+  removed.
 
 ## Bug fixes
 
@@ -1004,6 +1016,14 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Documentation
 
+* `?topia` documents what the dataset actually ships: the two calendars, the
+  `dataset`, `region` and `cluster` columns of `weather` and `demand`, and
+  `topia$grades`.
+* The `time-resolution` and `region-aggregation` articles use `s4_hp3` and
+  `s4_h24`; they reached for `topia_seasons`, which no longer ships.
+* `levcost()` documents that a grouped input is priced like any other and that
+  an unconstrained group has no share frontier; it had said a grouped input
+  reports no fuel component.
 * A rebuilt [pkgdown site](https://energyRt.org) with tutorial articles, and a
   runnable example on every public help page.
 * The testing strategy (tiers, the `@covers` matrix, goldens) is documented in

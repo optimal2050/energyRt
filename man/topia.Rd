@@ -23,18 +23,26 @@ spatial dimension, so a geoframe of that name would make
 \code{level = "region"} ambiguous. The leaftable still carries a \code{region}
 column -- the atom key, a copy of \code{province} -- so anything joining on
 \code{region} is unaffected.}
-\item{weather}{deterministic solar / wind / hydro capacity factors for the
-three teaching calendars. Columns \code{calendar}
-(\code{s4_h24}/\code{m12_h24}/\code{topia_seasons}), \code{resource}
-(\code{WSOL}/\code{WWIN}/\code{WHYD}), \code{timeslice} (e.g. \code{SUM_h12}, \code{m06_h12} or
-\code{SUM_DAY}) and \code{wval} (capacity factor, 0-1). Attribute \code{source} records
-whether it came from IDEEA reanalysis or the curated fallback.}
-\item{demand}{a relative electricity-load shape by timeslice, for the same
-three calendars. Columns \code{calendar}, \code{timeslice} and \code{load} (relative,
-mean ~1); scale it by a region's annual demand and the timeslice shares
-to get energy per timeslice.}
+\item{weather}{solar / wind / hydro capacity factors for the two
+calendars TOPIA runs on. Columns \code{dataset}, \code{calendar}
+(\code{s4_h24}/\code{d365_h24}), \code{resource} (\code{WSOL}/\code{WWIN}/\code{WHYD}), \code{region},
+\code{cluster} (the resource grade, \code{NA} where ungraded), \code{timeslice} and
+\code{wval} (capacity factor, 0-1). The \code{dataset} column is the split that
+matters: \code{measured} carries the graded hourly series on \code{d365_h24} --
+wind in \code{HI}/\code{MD}/\code{LO}, solar in \code{FL}/\code{TH} -- and \code{simulated} the small
+stand-in on \code{s4_h24}, whose \code{cluster} is \code{NA} throughout. A clustered
+technology therefore has no weather rows on \code{s4_h24}.}
+\item{demand}{relative electricity-load shapes by province and timeslice,
+for the same two calendars. Columns \code{dataset}, \code{calendar}, \code{region},
+\code{timeslice} and \code{load} (relative, mean ~1); scale by a province's annual
+demand and the timeslice shares to get energy per timeslice.}
 \item{stock}{deterministic base-year installed capacity per technology.
 Columns \code{tech} and \code{gw}.}
+\item{grades}{the resource grades the measured weather is split into:
+\code{resource}, \code{region}, \code{cluster}, \code{ann_cf} (annual capacity factor),
+\code{avail} (the ceiling, GW) and \code{cells} (how many grid cells it pools).
+36 rows -- a province appears only in the grades its own ground
+reaches.}
 \item{modules}{the kit -- see below.}
 }
 }
@@ -60,12 +68,15 @@ chosen region layout, solve it, and layer the levers to run scenarios (see
 the \code{topia-use} vignette).
 \describe{
 \item{info}{a description string.}
-\item{calendars}{the TOPIA calendars (\code{annual}/\code{topia_seasons}/
-\code{s4_h24}/\code{m12_h24}) plus the symmetric unit calendars
-(\code{unit_s4}, 4 equal seasons; \code{unit_s4h4}, 4x4). Note \code{annual}
-cannot drive the shipped kits (\code{ELC} is balanced at the \code{HOUR} level
-and \code{\link[=topia_profiles]{topia_profiles()}} has no annual shapes); it ships as the
-coarsest example calendar.}
+\item{calendars}{the two calendars TOPIA runs on: \code{d365_h24} (365 days x
+24 hours, 9,126 timeslices), which is the only one carrying the measured
+graded weather, and \code{s4_h24} (4 seasons x 24 hours, 96), the small
+simulated stand-in. Samples of the hourly calendar --
+\code{d365_h24_1dpm} (301) and \code{d365_h24_1dps} (101) -- live in
+\link{calendars} and keep \code{d365_h24}'s timeslice names, so the measured
+grades survive being filtered onto them. The symmetric unit calendars
+(\code{unit_s4}, 4 equal seasons; \code{unit_s4h4}, 4x4) ship beside the unit
+kits under \verb{$unit$calendars}, not here.}
 \item{horizons}{planning horizons, named for their MILESTONES rather
 than the period end, with \code{BY} marking a one-year base year at the
 front. \code{BY2025_50_by10} = milestones 2025/2030/2040/2050, a base year
