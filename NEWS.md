@@ -27,6 +27,16 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* **`is_divisible()` says which values a region subset may split.** For every
+  value column of every object a model declares above its own regions, it
+  reports the recast rule, whether the parent's value is divisible between its
+  children, and what to do: a quantity splits by the weight, a rate, a price
+  or a region-invariant scalar is replicated unchanged, and a fixed or floor
+  quantity (`cap.fx`, `ncap.lo`, `ava.fx`) is reported as `decide`, since
+  splitting it invents a value and replicating it double-counts. Called on a
+  model it lists only that model's coarse declarations; called with no
+  argument, the whole declared contract.
+
 * **Reports name the calendar each milestone is solved on.** Where milestones
   do not share one calendar, the model, scenario and config reports carry a
   `Calendar by milestone year` table -- year, calendar, timeslices,

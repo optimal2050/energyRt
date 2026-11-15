@@ -81,6 +81,208 @@ NULL
   column[is.na(match(paste(class, slot, column, sep = ""), ref))]
 }
 
+# --------------------------------------------------------------------------- #
+# is_divisible(): what a partial selection of children does to a parent's
+# value. The rules above are bidirectional -- `sum` means the quantity is the
+# total of its children, so it splits by the weight, while `weighted_mean`,
+# `mean` and `copy` mean the value is a rate, a price or an invariant and
+# holds for each child unchanged. `geoscales::geoscale_rule_action()` carries
+# both halves, so nothing here asks the caller and nothing guesses: the one
+# case the rule cannot settle is reported as such.
+# --------------------------------------------------------------------------- #
+
+# Fixed and floor bounds. `sum` says the quantity is extensive, but splitting a
+# FIXED quantity by the weight invents a number nobody gave -- a share of one
+# reactor in each part -- while replicating it double-counts. These are the
+# only columns the rule cannot decide, so they are reported `decide` rather
+# than resolved.
+.DIV_LUMPY_RE <- "(^|\\.)(fx|lo)$"
+
+# One row per value column, with where the rule came from.
+#' @noRd
+.div_rows <- function(cols, cls = NA_character_, slot = NA_character_,
+                      axis = "space") {
+  cols <- setdiff(unique(cols), .AGG_ID_COLS)
+  if (!length(cols)) {
+    return(tibble::tibble(
+      class = character(), slot = character(), column = character(),
+      rule = character(), source = character(), divisible = logical(),
+      action = character(), reason = character()))
+  }
+  rule <- if (is.na(cls) || is.na(slot)) {
+    stats::setNames(rep(NA_character_, length(cols)), cols)
+  } else {
+    .get_recast_rule(cls, slot, cols, axis)
+  }
+  src <- ifelse(is.na(rule), NA_character_, "declared")
+  todo <- is.na(rule)
+  # The inference the declared contract was seeded from, and which the
+  # aggregator still applies where the contract does not reach. Space only:
+  # there is no timeframe twin of `.AGG_EXTENSIVE_RE`.
+  if (any(todo) && identical(axis, "space")) {
+    rule[todo] <- .agg_rules(cols[todo],
+                             cls = if (is.na(cls)) NULL else cls,
+                             slot = if (is.na(slot)) NULL else slot)
+    src[todo] <- "inferred"
+  }
+  todo <- is.na(rule)
+  if (any(todo)) {
+    reg <- vapply(cols[todo], function(p) {
+      e <- tryCatch(geoscales::get_geoscale_rule(p), error = function(e) NULL)
+      if (is.null(e)) NA_character_ else as.character(e$rule)[1]
+    }, character(1))
+    rule[todo] <- reg
+    src[todo] <- ifelse(is.na(reg), NA_character_, "registry")
+  }
+  out <- tibble::tibble(
+    class = as.character(cls), slot = as.character(slot), column = cols,
+    rule = unname(rule), source = unname(src),
+    divisible = NA, action = NA_character_, reason = NA_character_)
+  known <- !is.na(out$rule)
+  if (any(known)) {
+    act <- geoscales::geoscale_rule_action(out$rule[known])
+    out$divisible[known] <- act$divisible
+    out$action[known] <- act$action
+    out$reason[known] <- c(
+      split = "a quantity: splits by the weight",
+      replicate = "a rate or an invariant: holds for every child",
+      none = "no downward meaning")[act$action]
+  }
+  out$reason[!known] <- "no rule declared, inferred or registered"
+  out$action[!known] <- "decide"
+  lumpy <- known & out$action == "split" & grepl(.DIV_LUMPY_RE, out$column)
+  out$divisible[lumpy] <- NA
+  out$action[lumpy] <- "decide"
+  out$reason[lumpy] <- paste("a fixed or floor quantity: splitting invents a",
+                             "value, replicating double-counts")
+  out
+}
+
+# Every value column of one object, slot by slot.
+#' @noRd
+.div_object <- function(object, axis = "space", slots = NULL) {
+  cls <- class(object)[1]
+  sl <- if (is.null(slots)) methods::slotNames(object) else slots
+  rows <- lapply(sl, function(s) {
+    v <- tryCatch(methods::slot(object, s), error = function(e) NULL)
+    if (!is.data.frame(v) || !ncol(v)) return(NULL)
+    num <- names(v)[vapply(v, is.numeric, logical(1))]
+    # A declared-but-empty column is contract, not data: the object shapes
+    # report what the object CARRIES. `is_divisible()` with no object is where
+    # the whole contract lives.
+    num <- num[vapply(num, function(cn) any(!is.na(v[[cn]])), logical(1))]
+    .div_rows(num, cls = cls, slot = s, axis = axis)
+  })
+  do.call(rbind, rows)
+}
+
+# The slots of one object that carry a region code the model does not declare,
+# i.e. a declaration sitting above the model's own regions.
+#' @noRd
+.div_coarse_slots <- function(object, atoms, finest = NA_character_) {
+  hit <- character()
+  r <- tryCatch(as.character(methods::slot(object, "region")),
+                error = function(e) character())
+  gf <- tryCatch(as.character(methods::slot(object, "geoframe")),
+                 error = function(e) character())
+  # A `@geoframe` naming the model's OWN finest frame is not a declaration
+  # above the regions -- it is the default said out loud.
+  coarse_gf <- length(gf) > 0L && nzchar(gf[1]) && !identical(gf[1], finest)
+  coarse_obj <- (length(r) > 0L && any(nzchar(r) & !r %in% atoms)) || coarse_gf
+  for (s in methods::slotNames(object)) {
+    v <- tryCatch(methods::slot(object, s), error = function(e) NULL)
+    if (!is.data.frame(v) || !nrow(v)) next
+    if (!"region" %in% names(v)) {
+      # A table with no region of its own inherits the object's declaration.
+      if (coarse_obj) hit <- c(hit, s)
+      next
+    }
+    rg <- as.character(v$region)
+    if (any(!is.na(rg) & nzchar(rg) & !rg %in% atoms)) hit <- c(hit, s)
+  }
+  unique(hit)
+}
+
+#' Which values split between a parent's children, and which do not
+#'
+#' Reports, column by column, what a partial selection of a region group does
+#' to a value declared at the group: a quantity (`sum`) splits by the weight,
+#' while a rate, a price or a region-invariant scalar is replicated unchanged.
+#' The direction of each rule comes from
+#' [geoscales::geoscale_rule_action()], and the rule itself is the one the
+#' aggregator uses, so this describes what the code does rather than a separate
+#' policy.
+#'
+#' One case the rule cannot settle: a **fixed or floor** quantity (`cap.fx`,
+#' `ncap.lo`, `ava.fx`, `res.lo` and their kin). Splitting it by the weight
+#' invents a value nobody gave and replicating it double-counts, so it is
+#' reported as `"decide"` and the caller says which it means.
+#'
+#' On a `model` it reports only the columns that model declares **above** its
+#' own regions -- usually a handful -- rather than the whole contract.
+#'
+#' @param object a `model`, a `repository`, any model object (a `technology`,
+#'   a `supply`, ...), or `NULL` for the whole declared contract.
+#' @param axis `"space"` (the default) or `"time"`. The space axis falls back
+#'   to the aggregator's own inference where nothing is declared; the time
+#'   axis does not, and reports `"decide"` instead.
+#' @param column optional character vector of column names to report on
+#'   directly, with no class or slot to declare them.
+#'
+#' @returns A tibble with one row per column: `class`, `slot`, `column`,
+#'   `rule`, `source` (`"declared"`, `"inferred"` or `"registry"`),
+#'   `divisible` (`NA` where the rule has no answer), `action` (`"split"`,
+#'   `"replicate"`, `"none"` or `"decide"`) and `reason`. The `model` and
+#'   `repository` shapes add the object `name` in front.
+#'
+#' @examples
+#' # the declared contract
+#' is_divisible()
+#'
+#' # single columns, with no class to declare them
+#' is_divisible(column = c("cap.up", "cap.fx", "eff"))
+#' @export
+is_divisible <- function(object = NULL, axis = c("space", "time"),
+                         column = NULL) {
+  axis <- match.arg(axis)
+  if (!is.null(column)) return(.div_rows(column, axis = axis))
+  if (is.null(object)) {
+    rows <- lapply(seq_len(nrow(.defRecast)), function(i) {
+      .div_rows(.defRecast$column[i], cls = .defRecast$class[i],
+                slot = .defRecast$slot[i], axis = axis)
+    })
+    return(do.call(rbind, rows))
+  }
+  if (inherits(object, "model") || inherits(object, "repository")) {
+    atoms <- if (inherits(object, "model")) {
+      as.character(object@config@region)
+    } else {
+      NULL
+    }
+    gs <- tryCatch(object@config@geoscale, error = function(e) NULL)
+    finest <- if (!is.null(gs) && is_geoscale(gs)) {
+      as.character(geoscales::geoscale_geoframes(gs, finest = TRUE))[1]
+    } else {
+      NA_character_
+    }
+    ob <- getObject(object)
+    rows <- lapply(names(ob), function(nm) {
+      o <- ob[[nm]]
+      sl <- if (is.null(atoms)) {
+        NULL
+      } else {
+        .div_coarse_slots(o, atoms, finest)
+      }
+      if (!is.null(sl) && !length(sl)) return(NULL)
+      d <- .div_object(o, axis = axis, slots = sl)
+      if (is.null(d) || !nrow(d)) return(NULL)
+      tibble::add_column(d, name = nm, .before = 1L)
+    })
+    return(do.call(rbind, rows))
+  }
+  .div_object(object, axis = axis)
+}
+
 #' Recast rules for the solution variables, by role
 #'
 #' DUPLICATE of `recast_by_role` in `data-raw/DATASET.R`, which resolves these
