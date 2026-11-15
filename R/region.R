@@ -451,6 +451,22 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
   # The objects are gone; now the references to them.
   mod <- .prune_weather_refs(mod, verbose = verbose)
 
+  # A cut can also leave an object with nothing left to do: `HYD` and `NUC`
+  # when the only province carrying them is gone, a store of a commodity
+  # nothing takes any more, a corridor with one end outside. That is the
+  # dependency closure's question, so the closure answers it here rather than
+  # the interpolator reporting "declared but unused" much later.
+  orphans <- .region_orphans(mod)
+  if (length(orphans) > 0L) {
+    mod <- .drop_objects_by_name(mod, orphans)
+    n_objs_dropped <- n_objs_dropped + length(orphans)
+    if (isTRUE(verbose)) {
+      .say2("spatial sample: removing ", length(orphans),
+            " object(s) left with nothing to do: ",
+            paste(orphans, collapse = ", "))
+    }
+  }
+
   # One line, always: what left the model. `verbose = TRUE` names each item.
   if (n_objs_dropped > 0L || n_routes_dropped > 0L) {
     # `keep` carries the covered coarse codes too; the count is of regions.
@@ -460,6 +476,8 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
               paste0(" (whole: ", paste(keep_up, collapse = ", "), ")") else "",
             "; dropped ", n_objs_dropped, " object(s) and ", n_routes_dropped,
             " trade route(s) outside the sample",
+            if (length(orphans)) paste0(" (", length(orphans),
+                                        " left with nothing to do)") else "",
             if (!isTRUE(verbose)) " (verbose = TRUE lists them)" else "")
   }
 
@@ -468,6 +486,57 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
     for (st in stubs) repo <- add(repo, st)
     mod <- add(mod, repo)
   }
+
+  # What the cut did, kept with the model the way `aggregate_model_regions()`
+  # keeps `@misc$aggregation`: a cut read back months later should not have to
+  # be re-derived from the regions that survived it.
+  mod@misc$subset <- list(
+    regions = setdiff(keep, keep_up),
+    covered = as.character(keep_up),
+    objects_dropped = n_objs_dropped,
+    routes_dropped = n_routes_dropped,
+    orphans = orphans,
+    stubs = vapply(stubs, function(x) x@name, character(1)))
+  mod
+}
+
+# Objects the closure can no longer reach: a source for something nothing
+# takes, a sink for something nothing makes, a store or a corridor that has
+# lost one side, a weather series nobody names, a commodity nothing touches.
+#
+# The walk itself is `.tb_closure()` (R/topia-build.R), which
+# `build_topia(techs = )` uses on the PROCESS axis. It is one function because
+# its four traps are easy to get wrong a second time: a storage and a corridor
+# sit on BOTH ends of a commodity, so counting them as consumers lets a
+# commodity keep itself alive; `CO2` is reachable only as `@emis`; land is
+# `acomm`, not `comm`; and a constraint's terms are S4 objects, for which
+# `is.list()` is FALSE. A complete model is unchanged by it -- TOPIA goes in
+# with 53 objects and comes out with 53.
+#' @noRd
+.region_orphans <- function(mod) {
+  ob <- tryCatch(getObject(mod), error = function(e) NULL)
+  if (!length(ob)) return(character(0))
+  nms <- names(ob)
+  setdiff(nms, .tb_closure(ob, nms))
+}
+
+# Remove named objects wherever they sit in the model's repositories.
+#' @noRd
+.drop_objects_by_name <- function(mod, nms) {
+  if (!length(nms)) return(mod)
+  strip <- function(r) {
+    if (!methods::is(r, "repository")) return(r)
+    for (nm in names(r@data)) {
+      el <- r@data[[nm]]
+      if (methods::is(el, "repository")) {
+        r@data[[nm]] <- strip(el)
+      } else if (nm %in% nms) {
+        r@data[[nm]] <- NULL
+      }
+    }
+    r
+  }
+  for (i in seq_along(mod@data)) mod@data[[i]] <- strip(mod@data[[i]])
   mod
 }
 

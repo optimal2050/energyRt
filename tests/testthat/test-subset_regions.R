@@ -181,3 +181,57 @@ test_that("a sub-territory solve announces itself even when quiet", {
                       verbose = FALSE),
     "sub-territory solve on 2 of 3 regions")
 })
+
+# --------------------------------------------------------------------------- #
+# The region-axis closure: a cut leaves objects with nothing left to do.
+# --------------------------------------------------------------------------- #
+
+# mk3 plus a hydro chain that exists in R3 alone -- its own commodity, its own
+# weather series, and the only plant that uses either.
+mk3_hyd <- function(regions = c("R1", "R2", "R3")) {
+  m <- mk3(regions = regions)
+  add(m, newRepository(
+    "hyd",
+    newCommodity("HYD", timeframe = "ANNUAL"),
+    newWeather("WHYD", timeframe = "ANNUAL",
+               weather = data.frame(region = "R3", wval = 0.5)),
+    newSupply("SUP_HYD", commodity = "HYD",
+              supply = data.frame(region = "R3", ava.up = 50, cost = 0)),
+    newTechnology("EHYD", region = "R3", input = list(comm = "HYD"),
+                  output = list(comm = "ELC"),
+                  weather = data.frame(weather = "WHYD", waf.up = 1),
+                  invcost = list(invcost = 900), olife = list(olife = 50),
+                  cap2act = 1)))
+}
+
+test_that("a cut drops what it leaves with nothing to do, and records it", {
+  m <- mk3_hyd()
+  expect_true(all(c("EHYD", "HYD", "SUP_HYD", "WHYD") %in%
+                    names(getObject(m))))
+
+  s <- suppressMessages(subset_model_regions(m, region = c("R1", "R2")))
+  left <- names(getObject(s))
+  # EHYD goes with its region; then HYD has no consumer, SUP_HYD no customer,
+  # and WHYD nothing that names it -- the closure, not the interpolator.
+  expect_false(any(c("EHYD", "HYD", "SUP_HYD", "WHYD") %in% left))
+  expect_true(all(c("ECOA", "SUP_COA", "ELC", "COA", "DEM_ELC") %in% left))
+  expect_setequal(s@misc$subset$orphans, c("HYD", "SUP_HYD", "WHYD"))
+  # EHYD left for having no region at all, which is not an orphan
+  expect_false("EHYD" %in% s@misc$subset$orphans)
+})
+
+test_that("the closure is a no-op on a model that loses no region", {
+  m <- mk3_hyd()
+  s <- suppressMessages(subset_model_regions(m, region = c("R1", "R2", "R3")))
+  expect_setequal(names(getObject(s)), names(getObject(m)))
+  expect_length(s@misc$subset$orphans, 0L)
+})
+
+test_that("the cut is recorded on the model", {
+  m <- mk3_hyd()
+  s <- suppressMessages(subset_model_regions(m, region = c("R1", "R2")))
+  rec <- s@misc$subset
+  expect_setequal(rec$regions, c("R1", "R2"))
+  expect_true(rec$objects_dropped >= 4L)
+  expect_equal(rec$routes_dropped, 0L)
+})

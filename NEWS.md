@@ -27,6 +27,16 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* **A region subset drops what it leaves with nothing to do.** Cutting the
+  only province that carries hydro used to leave `HYD`, its supply and its
+  weather series declared, and the interpolator reported them as "declared but
+  unused" much later. `subset_model_regions()` now runs the dependency closure
+  on the region axis and removes them at the cut, naming them under
+  `verbose = TRUE`. A model that loses no region is unchanged by it. The cut
+  also records what it did in `@misc$subset` -- regions kept, parents kept
+  whole, objects and routes dropped, orphans, stubs minted -- the way
+  aggregation records `@misc$aggregation`.
+
 * **`is_divisible()` says which values a region subset may split.** For every
   value column of every object a model declares above its own regions, it
   reports the recast rule, whether the parent's value is divisible between its
