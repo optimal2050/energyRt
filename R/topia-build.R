@@ -57,12 +57,13 @@
 # or an integer for the first n in canonical order. The result is always in
 # the model's own order, whatever order it was asked in.
 #' @noRd
-.tb_resolve_regions <- function(x, all_r, gs) {
+.tb_resolve_regions <- function(x, all_r, gs,
+                                arg = "build_topia(regions = )") {
   if (is.null(x)) return(all_r)
   if (is.numeric(x)) {
     n <- suppressWarnings(as.integer(x))
     if (length(n) != 1L || is.na(n) || n < 1L || n > length(all_r)) {
-      stop("build_topia(regions = ) as a count must be one whole number ",
+      stop(arg, " as a count must be one whole number ",
            "between 1 and ", length(all_r), "; got: ",
            paste(x, collapse = ", "), call. = FALSE)
     }
@@ -79,7 +80,7 @@
     f <- frames[vapply(frames, function(n) code %in% as.character(lt[[n]]),
                        logical(1))]
     if (!length(f)) {
-      stop("build_topia(regions = ): \"", code, "\" is not a code at any ",
+      stop(arg, ": \"", code, "\" is not a code at any ",
            "geoframe of this geoscale. Known: ",
            paste(vapply(frames, function(n)
              paste0(n, " ", paste(unique(stats::na.omit(as.character(lt[[n]]))),

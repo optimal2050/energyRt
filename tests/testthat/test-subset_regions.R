@@ -235,3 +235,20 @@ test_that("the cut is recorded on the model", {
   expect_true(rec$objects_dropped >= 4L)
   expect_equal(rec$routes_dropped, 0L)
 })
+
+test_that("a code at any geoframe names its regions", {
+  m <- setGeoscale(mk3_hyd(), gs3())
+  by_zone <- suppressMessages(subset_model_regions(m, region = "Z12"))
+  by_hand <- suppressMessages(subset_model_regions(m, region = c("R1", "R2")))
+  # asking for the zone IS asking for its members: same model, not merely a
+  # similar one
+  expect_identical(by_zone, by_hand)
+  expect_setequal(as.character(by_zone@config@region), c("R1", "R2"))
+})
+
+test_that("a code at no geoframe is refused, naming the frames", {
+  m <- setGeoscale(mk3_hyd(), gs3())
+  expect_error(subset_model_regions(m, region = "ZZ"),
+               "not a code at any geoframe")
+  expect_error(subset_model_regions(m, region = "ZZ"), "zone Z12/Z3")
+})

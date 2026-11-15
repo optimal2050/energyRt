@@ -167,6 +167,17 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
                                  verbose = isVerbose()) {
   stopifnot(inherits(object, "model"))
   r_m <- as.character(object@config@region)
+  # A code at ANY geoframe is accepted and expands to the regions beneath it,
+  # so the whole-group cut -- the only shape a multi-level model permits
+  # without a rule -- can be ASKED for ("Z3") rather than spelled out and then
+  # recognised. Expansion happens before anything else, so everything
+  # downstream sees the same region set either way.
+  gs_in <- tryCatch(object@config@geoscale, error = function(e) NULL)
+  if (!is.null(gs_in) && is_geoscale(gs_in) &&
+      length(setdiff(region, r_m)) > 0L) {
+    region <- .tb_resolve_regions(region, r_m, gs_in,
+                                  arg = "subset_model_regions(region = )")
+  }
   unknown <- setdiff(region, r_m)
   if (length(unknown) > 0L) {
     stop("region(s) not declared in the model: ",

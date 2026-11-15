@@ -27,6 +27,12 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* **`subset_model_regions(region = )` takes a code at any geoframe.**
+  `region = "Z3"` keeps the provinces of that zone and is identical to
+  spelling them out, so the whole-group cut -- the only shape a multi-level
+  model permits without a rule -- can be asked for instead of reconstructed.
+  A code at no geoframe is refused, naming the frames and their codes.
+
 * **A region subset drops what it leaves with nothing to do.** Cutting the
   only province that carries hydro used to leave `HYD`, its supply and its
   weather series declared, and the interpolator reported them as "declared but
