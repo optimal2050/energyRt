@@ -182,7 +182,7 @@ Chain them and a volume of coal becomes an energy. Given the properties,
 chain itself:
 
 > **Not in this build.** Commodity-aware conversion is not available in
-> energyRt 0.91.3.9000. The calls below are shown for reference; their
+> energyRt 0.91.4.9000. The calls below are shown for reference; their
 > output will appear here once the feature lands.
 
 ``` r
@@ -258,34 +258,43 @@ a year.
 
 Write the year into the unit:
 
-> **Not in this build.** Year-tagged currency is not available in
-> energyRt 0.91.3.9000. The calls below are shown for reference; their
-> output will appear here once the feature lands.
-
 ``` r
 
 convert(1, "MEUR2020", "MUSD2020")   # an exchange-rate question
+#> [1] 1.142196
 convert(1, "MUSD2015", "MUSD2020")   # an inflation question
+#> [1] 1.082839
 ```
 
 Those are two different problems and they need two different kinds of
 data: **exchange rates** move between currencies at one point in time,
 **deflators** move between points in time within one currency.
 
-|         | 2015       | →                      | 2020       |
-|---------|------------|------------------------|------------|
-| **EUR** | `MEUR2015` | *deflator (euro area)* | `MEUR2020` |
-| ↓       | *FX 2015*  |                        | *FX 2020*  |
-| **USD** | `MUSD2015` | *deflator (US)*        | `MUSD2020` |
+|         | 2015       | →                 | 2020       |
+|---------|------------|-------------------|------------|
+| **EUR** | `MEUR2015` | *deflator (euro)* | `MEUR2020` |
+| ↓       | *FX 2015*  |                   | *FX 2020*  |
+| **USD** | `MUSD2015` | *deflator (US)*   | `MUSD2020` |
+
+An exchange rate belongs to a currency, but a deflator belongs to an
+economy, and a currency need not be one: there is no euro-area deflator
+in these series, so the euro deflates on its largest member. Which
+economy stood in is recorded rather than implied — that is what
+`currency_deflator$area` is for.
 
 Read that table as a square. To get from the top-left to the
 bottom-right you can go along and then down, or down and then along —
 and **the two routes do not give the same answer**. That is not a defect
 in the arithmetic: the gap between them *is* the change in the real
 exchange rate over the interval, and it is zero only if purchasing power
-parity held. For EUR to USD between 2015 and 2020 the two agree to
-better than 0.1%; for JPY 2012 to USD 2023 they differ by a factor of
-2.2.
+parity held.
+
+How far apart they are is a question for the data. Between 2015 and 2020
+the euro and the dollar part company by 3.3%; between 2012 and 2023 the
+yen and the dollar differ by a factor of 2.07 — the yen lost half its
+dollar value over an interval in which Japanese prices barely moved,
+which is a large change in the real exchange rate and so a large gap
+between the routes.
 
 So both are always computed. The default follows the World Bank and IPCC
 convention — deflate in the source currency, then convert at the target
@@ -294,13 +303,48 @@ year — and you are warned when the routes disagree materially:
 ``` r
 
 convert(1, "MJPY2012", "MUSD2023")                              # default route
+#> [1] 0.007956359
 convert(1, "MJPY2012", "MUSD2023", currency_route = "both")     # see both
+#> deflate_then_fx fx_then_deflate 
+#>     0.007956359     0.016460766
 ```
 
-**Untagged money is left alone.** A conversion where neither side
-carries a year never consults an exchange-rate table, never warns, and
-returns exactly what it always did — so
-`convert("EUR/kW", "MEUR/GW", 2000)` is unaffected by any of this.
+Both tables are annual, cover every currency the series carry, and are
+built by `data-raw/currency.R` from a cached pull that ships with the
+sources, so a number in a result can be traced to the row it came from
+and the whole table can be rebuilt. They stop at the year they were
+built from; a rate newer than the release, or one of your own, goes in
+for the session:
+
+``` r
+
+add_currency_fx("EUR", 2026, 0.92, source = "my own estimate")
+convert(1, "MEUR2026", "MUSD2026")
+#> [1] 1.086957
+```
+
+**Untagged money consults no deflator.** A conversion where neither side
+carries a year is a pure exchange rate, read at the one year
+`attr(currency_fx, "base_year")` names, and it never warns. What did
+change in this release is where that rate comes from: the coefficients
+used to be typed in by hand and undated — they carried a euro rate from
+one year beside a yen rate from another — and they are now generated
+from the annual series at a single stated year. So untagged
+cross-currency answers moved once, here, and a conversion within one
+currency (`convert("EUR/kW", "MEUR/GW")`, a prefix ratio) did not move
+at all.
+
+``` r
+
+convert("EUR/kW", "MEUR/GW")        # a prefix ratio: no rate is consulted
+#> [1] 1
+attr(currency_fx, "base_year")      # the year untagged money is read at
+#> [1] 2025
+currency_base_year(2020)            # or pin it somewhere else
+convert("MEUR", "MUSD")
+#> [1] 1.142196
+currency_base_year(attr(currency_fx, "base_year"))
+```
 
 ## What the model enforces
 
@@ -320,12 +364,13 @@ mod@config@units$currency
 example before this release used: `newModel("demo", currency = "MUSD")`.
 It was the `config@currency` slot up to version 0.91.
 
-What this enforces today is agreement, not conversion. An object that
-declares a currency must declare the model’s; one that declares nothing
-claims nothing and is left alone. The check runs at
-[`newModel()`](https://energyRt.org/reference/newModel.md), because
-there is no exchange rate in a model and so nothing to reconcile a
-mismatch with:
+What this enforces is that the pair can be **reconciled**. An object
+that declares a currency must declare one the model’s can be reached
+from; one that declares nothing is in the model’s own currency, which is
+what a model-level declaration means. The check runs at
+[`newModel()`](https://energyRt.org/reference/newModel.md), so a
+declaration that leads nowhere is refused where it was written rather
+than surfacing in a model much later:
 
 ``` r
 
@@ -333,34 +378,66 @@ COAL <- newSupply("COAL", commodity = "COA", unit = "PJ",
                   units = data.frame(currency = "bnEUR"))
 newModel("demo", currency = "MUSD", data = add(newRepository("r"), COAL))
 #> Error:
-#> ! the model counts in 'MUSD', but 1 object(s) are priced in another currency:
+#> ! the model counts in 'MUSD', but 1 object(s) are priced in a currency it cannot be reached from:
 #>   COAL: bnEUR
-#> There is no exchange rate in a model, so this is not converted. Restate the costs, or clear `@units$currency` to claim nothing.
+#>   bnEUR -> MUSD: Unknown unit bnEUR
+#> Restate the costs, or clear `@units$currency` to claim nothing.
 ```
 
-Normalising a model’s money — converting each object’s costs to the
-declared target during interpolation, and reporting every factor applied
-rather than applying it silently — is the next step and is not in this
-release:
+A mismatch that *can* be converted is not an error, it is work. Where an
+object was priced in another currency-year, its costs are converted to
+the model’s and every factor applied is reported — never applied
+silently:
 
-> **Not in this build.** Currency normalisation is not available in
-> energyRt 0.91.3.9000. The calls below are shown for reference; their
-> output will appear here once the feature lands.
+``` r
 
-    i Currency normalisation -> MUSD2020
-        WIND_OFF, WIND_ON, PV      MEUR2015   × 1.163   (deflate_then_fx)
-        COAL_PP                    MUSD2015   × 1.080   (US GDP deflator)
-        17 objects untagged, assumed MUSD2020
+PV <- newTechnology("PV", units = data.frame(capacity = "GW",
+                                             currency = "MEUR2015"),
+                    invcost = data.frame(invcost = 700))
+GAS_SUP <- newSupply("GAS_SUP", commodity = "GAS", unit = "PJ",
+                     units = data.frame(currency = "MUSD2015"),
+                     supply = data.frame(cost = 8))
+mod <- newModel("demo", currency = "MUSD2020",
+                data = add(newRepository("r"), newCommodity("GAS"), PV,
+                           GAS_SUP))
+mod <- normalize_model_currency(mod)
+#> Currency normalisation -> MUSD2020
+#>     PV        MEUR2015   × 1.241     (deflate_then_fx)
+#>     GAS_SUP   MUSD2015   × 1.0828    (USD gdp deflator)
+```
 
-Every factor applied is recorded in `scen@misc$currency`, with the
-exchange-rate and deflator rows it came from, so a result can be traced
-back to its inputs. Objects themselves are left as you wrote them:
+The factors are the article’s two questions, one each: `PV` crosses a
+currency and a year, `GAS_SUP` crosses only a year and so moves on the
+US deflator alone, where the route cannot matter. Every one is recorded,
+with the exchange-rate and deflator rows behind it, so a result can be
+traced back to its inputs:
+
+``` r
+
+mod@misc$currency$objects
+#>          object      class     from declared   factor             note
+#> PV           PV technology MEUR2015     TRUE 1.241012  deflate_then_fx
+#> GAS_SUP GAS_SUP     supply MUSD2015     TRUE 1.082839 USD gdp deflator
+#>         converted
+#> PV           TRUE
+#> GAS_SUP      TRUE
+mod@misc$currency$deflator
+#>   code area year basis     index         source
+#> 1  EUR  DEU 2015   gdp  92.03751 NY.GDP.DEFL.ZS
+#> 2  EUR  DEU 2020   gdp 100.00000 NY.GDP.DEFL.ZS
+#> 3  USD  USA 2015   gdp  92.34986 NY.GDP.DEFL.ZS
+#> 4  USD  USA 2020   gdp 100.00000 NY.GDP.DEFL.ZS
+```
+
+[`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+does this on the copy it builds from, where the report lands in
+`scen@misc$currency`. Objects are therefore left as you wrote them:
 [`getData()`](https://energyRt.org/reference/getData.md) on a process
 returns the values you authored, while
 [`getData()`](https://energyRt.org/reference/getData.md) on the scenario
 returns the normalised ones.
 
-Two things this does **not** do yet, stated plainly so you do not assume
+Two things this does **not** do, stated plainly so you do not assume
 otherwise. Physical units are not normalised — a technology declaring
 its coal input in Mt while the commodity is PJ is not corrected, only
 conversion helpers know how to relate them. And normalising to a

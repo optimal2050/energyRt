@@ -82,7 +82,7 @@ Other geoscale:
 [`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md),
 [`gg_map()`](https://energyRt.org/reference/gg_map.md),
 [`model_clusters()`](https://energyRt.org/reference/model_clusters.md),
-[`setCalendar,config-method`](https://energyRt.org/reference/setGeoscale.md)
+[`setGeoscale,config-method`](https://energyRt.org/reference/setGeoscale.md)
 
 ## Examples
 

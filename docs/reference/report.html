@@ -10,7 +10,9 @@ scenario method uses the ex-post cost from the solved model).
 Without name, the container methods report the whole object:
 model / repository
 a full model report – the
-configuration (regions, horizon, calendar, discount), an inventory of
+configuration (regions, horizon, calendar, discount; and the calendar
+per milestone year where the milestones do not share one), an
+inventory of
 commodities / supplies / demands / trade / constraints, the process
 availability windows chart, and every technology and storage described
 one-by-one (diagram + key parameters).
@@ -34,7 +36,9 @@ scenario method uses the ex-post cost from the solved model).
 Without name, the container methods report the whole object:
 model / repository
 a full model report – the
-configuration (regions, horizon, calendar, discount), an inventory of
+configuration (regions, horizon, calendar, discount; and the calendar
+per milestone year where the milestones do not share one), an
+inventory of
 commodities / supplies / demands / trade / constraints, the process
 availability windows chart, and every technology and storage described
 one-by-one (diagram + key parameters).
@@ -55,7 +59,7 @@ when the calendar has one, emissions and cost tables.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.4.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,6 +85,7 @@ when the calendar has one, emissions and cost tables.
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/debugging.html">Validating &amp; debugging</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -121,7 +126,9 @@ embedded levelized cost is computed for that container / solution (the
 <code>scenario</code> method uses the <em>ex-post</em> cost from the solved model).</p>
 <p><strong>Without</strong> <code>name</code>, the container methods report the whole object:</p><dl><dt><code>model</code> / <code>repository</code></dt>
 <dd><p>a full model report – the
-configuration (regions, horizon, calendar, discount), an inventory of
+configuration (regions, horizon, calendar, discount; and the calendar
+per milestone year where the milestones do not share one), an
+inventory of
 commodities / supplies / demands / trade / constraints, the process
 availability windows chart, and every technology and storage described
 one-by-one (diagram + key parameters).</p></dd>

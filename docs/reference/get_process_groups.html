@@ -15,7 +15,7 @@ different inputs and stay separate however alike their costs look."><meta proper
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.4.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,6 +41,7 @@ different inputs and stay separate however alike their costs look."><meta proper
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/debugging.html">Validating &amp; debugging</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -118,7 +119,7 @@ keys of its <code>clusters</code> argument.</p>
 <code><a href="gg_map.html">gg_map()</a></code>,
 <code><a href="model_clusters.html">model_clusters()</a></code>,
 <code><a href="process_cluster_sweep.html">process_cluster_sweep()</a></code>,
-<code><a href="setGeoscale.html">setCalendar,config-method</a></code></p></div>
+<code><a href="setGeoscale.html">setGeoscale,config-method</a></code></p></div>
     </div>
 
     <div class="section level2">
@@ -133,18 +134,18 @@ keys of its <code>clusters</code> argument.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># families of processes that share a commodity signature, with their members</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">get_process_groups</span><span class="op">(</span><span class="va">mod</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    group      class                  signature  n</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19   TRD      trade                 TRD::ELC:: 14</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1   ECOA technology   in:COA|out:ELC|aux:|grp: 12</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4   ESOL technology in:|out:ELC|aux:LANDS|grp: 12</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5   EWIN technology in:|out:ELC|aux:LANDW|grp: 12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      group      class                  signature  n</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20 TBD_ELC      trade             TBD_ELC::ELC:: 14</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1     ECOA technology   in:COA|out:ELC|aux:|grp: 12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4     ESOL technology in:|out:ELC|aux:LANDS|grp: 12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5     EWIN technology in:|out:ELC|aux:LANDW|grp: 12</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                                                                            members</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19 TBD_ELC_R02_R03,TBD_ELC_R02_R05,TBD_ELC_R04_R05,TBD_ELC_R04_R06,TBD_ELC_R05_R06,TBD_ELC_R02_R07,TBD_ELC_R03_R07,TBD_ELC_R05_R07,TBD_ELC_R07_R08,TBD_ELC_R08_R09,TBD_ELC_R06_R10,TBD_ELC_R09_R10,TBD_ELC_R10_R11,TBD_ELC_R11_R12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20 TBD_ELC_R02_R03,TBD_ELC_R02_R05,TBD_ELC_R04_R05,TBD_ELC_R04_R06,TBD_ELC_R05_R06,TBD_ELC_R02_R07,TBD_ELC_R03_R07,TBD_ELC_R05_R07,TBD_ELC_R07_R08,TBD_ELC_R08_R09,TBD_ELC_R06_R10,TBD_ELC_R09_R10,TBD_ELC_R10_R11,TBD_ELC_R11_R12</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1                                                                                                                                                                                                                             ECOA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4                                                                                                                                                                                                                             ESOL</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5                                                                                                                                                                                                                             EWIN</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                            regions</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19     R02,R03,R05,R04,R06,R07,R08,R09,R10,R11,R12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20     R02,R03,R05,R04,R06,R07,R08,R09,R10,R11,R12</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1  R01,R02,R03,R04,R05,R06,R07,R08,R09,R10,R11,R12</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4  R01,R02,R03,R04,R05,R06,R07,R08,R09,R10,R11,R12</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5  R01,R09,R10,R11,R12,R02,R03,R04,R05,R06,R07,R08</span>

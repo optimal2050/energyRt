@@ -47,7 +47,7 @@ TOPIA’s eleven regions nest into three zones.
 ``` r
 
 gs <- topia$geoscales$honeycomb
-regions <- geoscale_regions(gs, geoframe = "region")
+regions <- geoscale_regions(gs, geoframe = "province")
 geo <- as.data.frame(geoscale_leaftable(gs))
 
 gg_geoscale(gs, type = "map")
@@ -97,10 +97,13 @@ that rises west to east.
 
 ``` r
 
-calendar <- topia$modules$calendars$topia_seasons
+calendar <- topia$modules$calendars$s4_h24
 
+# `topia$demand` is region-keyed, and this article wants ONE shape for every
+# region, so the provinces are pooled before the weights are formed.
 shape <- topia$demand |>
-  filter(calendar == "topia_seasons") |>
+  filter(calendar == "s4_h24") |>
+  summarise(load = sum(load), .by = timeslice) |>
   left_join(
     as.data.frame(calendar@timetable) |> select(timeslice, share),
     by = "timeslice"
@@ -180,7 +183,7 @@ than smuggled in later. `E2a` removes it and measures what it was worth.
 ``` r
 
 links <- gs |>
-  geoscale_geometry(geoframe = "region") |>
+  geoscale_geometry(geoframe = "province") |>
   sf::st_touches() |>
   as.data.frame() |>
   transmute(src = regions[row.id], dst = regions[col.id]) |>
@@ -372,7 +375,7 @@ every edge that crosses a zone boundary:
 ``` r
 
 touching <- gs |>
-  geoscale_geometry(geoframe = "region") |>
+  geoscale_geometry(geoframe = "province") |>
   sf::st_touches(sparse = FALSE)
 
 sum(touching) / 2                                   # pairs on the map
@@ -522,7 +525,7 @@ cl <- model_clusters(mod_7)
 
 membership <- as.data.frame(geoscale_leaftable(cl$ECOA$geoscale))
 gg_geoscale(cl$ECOA$geoscale, type = "map", data = membership,
-            geoframe = "region", z = "cluster")
+            geoframe = "province", z = "cluster")
 ```
 
 The atoms are coloured by the cluster they joined. Every cluster is one

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.4.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,6 +33,7 @@
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/debugging.html">Validating &amp; debugging</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -810,7 +811,7 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 
 
 <dt id="arg-units">units<a class="anchor" aria-label="anchor" href="#arg-units"></a></dt>
-<dd><p>data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in the cost, capacity and activity columns are bare. A declared <code>currency</code> that disagrees with the model's own is an error rather than a silent conversion; leave a column empty to claim nothing. One unit per kind: a storage prices three capacities but states <code>capacity</code> once.</p>
+<dd><p>data.frame. Key units of the object, for reference and for carrying its units with it. An object moved between models is only meaningful where the units agree, and nothing else in the object records them: the numbers in the cost, capacity and activity columns are bare. A declared <code>currency</code> that disagrees with the model's own is converted to it at interpolation, with every factor reported; one with no conversion at all is refused. Leave a column empty to claim nothing. One unit per kind: a storage prices three capacities but states <code>capacity</code> once.</p>
 <dl><dt>capacity</dt>
 <dd><p>character. Unit of capacity.</p></dd>
 

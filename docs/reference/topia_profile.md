@@ -109,7 +109,8 @@ for the realistic TOPIA curves,
 dataset and the teaching kits.
 
 Other topia: [`topia`](https://energyRt.org/reference/topia.md),
-[`topia_profiles()`](https://energyRt.org/reference/topia_profiles.md)
+[`topia_profiles()`](https://energyRt.org/reference/topia_profiles.md),
+[`topia_simulate()`](https://energyRt.org/reference/topia_simulate.md)
 
 ## Examples
 

@@ -15,8 +15,9 @@ uses the *ex-post* cost from the solved model).
 - `model` / `repository`:
 
   a full model report – the configuration (regions, horizon, calendar,
-  discount), an inventory of commodities / supplies / demands / trade /
-  constraints, the process availability windows chart, and every
+  discount; and the calendar per milestone year where the milestones do
+  not share one), an inventory of commodities / supplies / demands /
+  trade / constraints, the process availability windows chart, and every
   technology and storage described one-by-one (diagram + key
   parameters).
 

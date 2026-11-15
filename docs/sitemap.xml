@@ -3,6 +3,7 @@
 <url><loc>https://energyRt.org/AGENTS.html</loc></url>
 <url><loc>https://energyRt.org/articles/autoplot.html</loc></url>
 <url><loc>https://energyRt.org/articles/backends.html</loc></url>
+<url><loc>https://energyRt.org/articles/debugging.html</loc></url>
 <url><loc>https://energyRt.org/articles/energyRt.html</loc></url>
 <url><loc>https://energyRt.org/articles/features.html</loc></url>
 <url><loc>https://energyRt.org/articles/index.html</loc></url>
@@ -32,6 +33,7 @@
 <url><loc>https://energyRt.org/news/index.html</loc></url>
 <url><loc>https://energyRt.org/reference/accessors.html</loc></url>
 <url><loc>https://energyRt.org/reference/add.html</loc></url>
+<url><loc>https://energyRt.org/reference/add_currency.html</loc></url>
 <url><loc>https://energyRt.org/reference/aggregate_model_regions.html</loc></url>
 <url><loc>https://energyRt.org/reference/apply_bounds_to_model.html</loc></url>
 <url><loc>https://energyRt.org/reference/apply_domain_hints.html</loc></url>
@@ -48,6 +50,7 @@
 <url><loc>https://energyRt.org/reference/autoplot.sequence.html</loc></url>
 <url><loc>https://energyRt.org/reference/boundary_window.html</loc></url>
 <url><loc>https://energyRt.org/reference/build_mappings.html</loc></url>
+<url><loc>https://energyRt.org/reference/build_topia.html</loc></url>
 <url><loc>https://energyRt.org/reference/calendar.html</loc></url>
 <url><loc>https://energyRt.org/reference/calendars.html</loc></url>
 <url><loc>https://energyRt.org/reference/calendar_samples.html</loc></url>
@@ -98,6 +101,10 @@
 <url><loc>https://energyRt.org/reference/convert_parameter.html</loc></url>
 <url><loc>https://energyRt.org/reference/countdown_timer.html</loc></url>
 <url><loc>https://energyRt.org/reference/create_link_log_entry.html</loc></url>
+<url><loc>https://energyRt.org/reference/currency_base_year.html</loc></url>
+<url><loc>https://energyRt.org/reference/currency_codes.html</loc></url>
+<url><loc>https://energyRt.org/reference/currency_deflator.html</loc></url>
+<url><loc>https://energyRt.org/reference/currency_fx.html</loc></url>
 <url><loc>https://energyRt.org/reference/dataset_store.html</loc></url>
 <url><loc>https://energyRt.org/reference/default_solver.html</loc></url>
 <url><loc>https://energyRt.org/reference/design.html</loc></url>
@@ -136,6 +143,7 @@
 <url><loc>https://energyRt.org/reference/getUnit.html</loc></url>
 <url><loc>https://energyRt.org/reference/getUnits.html</loc></url>
 <url><loc>https://energyRt.org/reference/getVariants.html</loc></url>
+<url><loc>https://energyRt.org/reference/getYearCalendars.html</loc></url>
 <url><loc>https://energyRt.org/reference/get_default_value.html</loc></url>
 <url><loc>https://energyRt.org/reference/get_process_aux.html</loc></url>
 <url><loc>https://energyRt.org/reference/get_process_class.html</loc></url>
@@ -221,6 +229,7 @@
 <url><loc>https://energyRt.org/reference/newTax.html</loc></url>
 <url><loc>https://energyRt.org/reference/newTrade.html</loc></url>
 <url><loc>https://energyRt.org/reference/newWeather.html</loc></url>
+<url><loc>https://energyRt.org/reference/normalize_model_currency.html</loc></url>
 <url><loc>https://energyRt.org/reference/obj2mem.html</loc></url>
 <url><loc>https://energyRt.org/reference/object_image.html</loc></url>
 <url><loc>https://energyRt.org/reference/parse_domain_hint.html</loc></url>
@@ -269,6 +278,7 @@
 <url><loc>https://energyRt.org/reference/repository_hash.html</loc></url>
 <url><loc>https://energyRt.org/reference/repo_store.html</loc></url>
 <url><loc>https://energyRt.org/reference/revalueSets.html</loc></url>
+<url><loc>https://energyRt.org/reference/sample_calendar.html</loc></url>
 <url><loc>https://energyRt.org/reference/sample_summary.html</loc></url>
 <url><loc>https://energyRt.org/reference/save_scenario.html</loc></url>
 <url><loc>https://energyRt.org/reference/scenarios_path.html</loc></url>
@@ -277,6 +287,8 @@
 <url><loc>https://energyRt.org/reference/scenario_solutions.html</loc></url>
 <url><loc>https://energyRt.org/reference/seal.html</loc></url>
 <url><loc>https://energyRt.org/reference/sequence_coverage.html</loc></url>
+<url><loc>https://energyRt.org/reference/setCalendar.html</loc></url>
+<url><loc>https://energyRt.org/reference/setGeoscale,config-method.html</loc></url>
 <url><loc>https://energyRt.org/reference/setGeoscale.html</loc></url>
 <url><loc>https://energyRt.org/reference/size.html</loc></url>
 <url><loc>https://energyRt.org/reference/solution_ledger.html</loc></url>
@@ -307,6 +319,7 @@
 <url><loc>https://energyRt.org/reference/topia.html</loc></url>
 <url><loc>https://energyRt.org/reference/topia_profile.html</loc></url>
 <url><loc>https://energyRt.org/reference/topia_profiles.html</loc></url>
+<url><loc>https://energyRt.org/reference/topia_simulate.html</loc></url>
 <url><loc>https://energyRt.org/reference/trim_parameters.html</loc></url>
 <url><loc>https://energyRt.org/reference/update.html</loc></url>
 <url><loc>https://energyRt.org/reference/update_parameter.html</loc></url>

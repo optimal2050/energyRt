@@ -9,7 +9,7 @@ list of three tidy data.frames.
 ``` r
 topia_profiles(
   regions,
-  calendar = c("s4_h24", "m12_h24", "topia_seasons", "d365_h24"),
+  calendar = c("s4_h24", "d365_h24"),
   dataset = NULL,
   source = c("saved", "ideea"),
   resources = c(WSOL = "WSOL", WWIN = "WWIN", WHYD = "WHYD"),
@@ -22,16 +22,15 @@ topia_profiles(
 
 - regions:
 
-  character vector of region codes: a region of the TOPIA map (`W1`,
-  `W2`, `C1`–`C6`, `E1`–`E3`), a zone (`WEST`, `CENTRAL`, `EAST`) or the
-  nation (`TOPIA`). An unknown code is an error that lists what is
-  known.
+  character vector of geoscale codes: a province of the TOPIA map
+  (`R01`–`R12`), a zone (`Z1`–`Z5`) or the nation (`TOPIA`). An unknown
+  code is an error that lists what is known.
 
 - calendar:
 
   target resolution: `"s4_h24"` (4 seasons x 24 hours, 96 timeslices,
-  the default base case), `"m12_h24"` (12 months x 24 hours, 288),
-  `"topia_seasons"` (4 seasons x 3 dayparts, 12) or `"d365_h24"` (8760).
+  the default) or `"d365_h24"` (365 days x 24 hours, 9,126). These are
+  the only two the shipped profiles are built for.
 
 - dataset:
 
@@ -75,9 +74,10 @@ Two input datasets ship and the caller chooses between them:
 
 - `"simulated"`:
 
-  closed-form shapes on the small calendars (`s4_h24`, `m12_h24`,
-  `topia_seasons`). Demonstration data: it carries a spatial gradient
-  and a diurnal structure, and is not a resource estimate for anywhere.
+  closed-form shapes on the small calendar `s4_h24`. Demonstration data:
+  it carries a spatial gradient and a diurnal structure, and is not a
+  resource estimate for anywhere. Its `cluster` is `NA` throughout, so
+  it cannot serve a graded technology.
 
 - `"sample"`:
 
@@ -103,14 +103,17 @@ cosine / hex shape over any calendar and returns a single data.frame.
 [calendars](https://energyRt.org/reference/calendars.md)
 
 Other topia: [`topia`](https://energyRt.org/reference/topia.md),
-[`topia_profile()`](https://energyRt.org/reference/topia_profile.md)
+[`topia_profile()`](https://energyRt.org/reference/topia_profile.md),
+[`topia_simulate()`](https://energyRt.org/reference/topia_simulate.md)
 
 ## Examples
 
 ``` r
-# weather, demand and stock for two regions of the TOPIA map
-prof <- topia_profiles(c("W1", "W2"), calendar = "s4_h24")
-#> Error: no TOPIA profile for region 'W1'. Known codes: R01, R02, R03, R04, R05, R06, R07, R08, R09, R10, R11, R12, Z1, Z2, Z3, Z4, Z5, TOPIA
+# weather, demand and stock for two provinces of the TOPIA map
+prof <- topia_profiles(c("R01", "R02"), calendar = "s4_h24")
 head(prof$weather, 3)
-#> Error: object 'prof' not found
+#>   resource cluster region timeslice  wval
+#> 1     WHYD    <NA>    R01   FAL_h00 0.316
+#> 2     WHYD    <NA>    R01   FAL_h01 0.316
+#> 3     WHYD    <NA>    R01   FAL_h02 0.316
 ```

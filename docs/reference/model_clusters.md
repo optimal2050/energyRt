@@ -37,7 +37,7 @@ Other geoscale:
 [`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md),
 [`gg_map()`](https://energyRt.org/reference/gg_map.md),
 [`process_cluster_sweep()`](https://energyRt.org/reference/process_cluster_sweep.md),
-[`setCalendar,config-method`](https://energyRt.org/reference/setGeoscale.md)
+[`setGeoscale,config-method`](https://energyRt.org/reference/setGeoscale.md)
 
 ## Examples
 

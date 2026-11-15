@@ -172,7 +172,14 @@ settings.
 
 - `misc`:
 
-  list. Any additional data or information to store in the object.
+  list. Any additional data or information to store in the object. One
+  entry is read by the model: `misc$calendars`, a named list of
+  `calendar` objects a milestone year may be solved on instead of the
+  model calendar. The assignment itself is the `calendar` column of
+  `horizon@intervals`, which holds a name from this list or `NA` for the
+  model calendar; `setCalendar(mod, cal, years = ...)` writes both and
+  checks that each is a sample of the model calendar - same timeframe
+  levels, slices from its universe, the same share per slice.
 
 ## See also
 

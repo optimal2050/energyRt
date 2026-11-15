@@ -13,6 +13,13 @@ solved on its own by
 The caption says which is which. A horizon with no base year is drawn
 unchanged.
 
+A milestone that is solved on a calendar of its own –
+`intervals$calendar`, which
+[`setCalendar()`](https://energyRt.org/reference/setCalendar.md) writes
+with `years = ` – is labelled with that calendar's name inside its
+interval. The column holds names, so the figure needs nothing but the
+horizon.
+
 ## Usage
 
 ``` r

@@ -11,7 +11,7 @@ scenario settings."><meta property="og:image" content="https://energyRt.org/logo
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.4.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,7 @@ scenario settings."><meta property="og:image" content="https://energyRt.org/logo
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/debugging.html">Validating &amp; debugging</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -165,7 +166,7 @@ As an ARGUMENT (<code>newModel(discount = )</code>, <code>update(cfg, discount =
 
 
 <dt><code>misc</code></dt>
-<dd><p>list. Any additional data or information to store in the object.</p></dd>
+<dd><p>list. Any additional data or information to store in the object. One entry is read by the model: <code>misc$calendars</code>, a named list of <code>calendar</code> objects a milestone year may be solved on instead of the model calendar. The assignment itself is the <code>calendar</code> column of <code>horizon@intervals</code>, which holds a name from this list or <code>NA</code> for the model calendar; <code>setCalendar(mod, cal, years = ...)</code> writes both and checks that each is a sample of the model calendar - same timeframe levels, slices from its universe, the same share per slice.</p></dd>
 
 
 </dl></div>

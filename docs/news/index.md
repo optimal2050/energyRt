@@ -32,6 +32,177 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 ### New features
 
+- **Reports name the calendar each milestone is solved on.** Where
+  milestones do not share one calendar, the model, scenario and config
+  reports carry a `Calendar by milestone year` table – year, calendar,
+  timeslices, timeframes, and whether the year takes the model’s
+  calendar or one of its own – and the configuration gains a
+  `per-year calendars` row. A model whose years all share a calendar
+  reports exactly what it reported before.
+
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  on a `horizon` labels each interval with the calendar that milestone
+  is solved on, when `intervals$calendar` names one.
+
+- **[`topia_simulate()`](https://energyRt.org/reference/topia_simulate.md)
+  generates TOPIA’s weather and demand profiles.** The shipped
+  `"simulated"` dataset is one cached run of it; every other parameter
+  set is an alternative, and the result feeds
+  `build_topia(weather = , demand = )`.
+
+  ``` r
+
+  topia_simulate(calendar = "d365_h24")                 # the defaults
+  topia_simulate(wind_season = rep(1, 12))              # no seasonal wind
+  topia_simulate(clusters = FALSE)                      # one series per resource
+  topia_simulate(jitter = 0.08, seed = 1)               # another draw
+  ```
+
+  Levels are calibrated against the measured set per resource, cluster
+  and province; the arguments change the shape. Clusters differ through
+  `wind_grade` and `solar_halflen`, so a grade is a different resource
+  rather than another ceiling on one series. The returned frames carry a
+  `dataset` attribute naming the generator and the parameters that
+  differ from the defaults.
+
+- **`build_topia(weather = , demand = )` replace the series.** Each
+  takes the name of a shipped dataset or a `data.frame` shaped like the
+  matching element of
+  [`topia_profiles()`](https://energyRt.org/reference/topia_profiles.md),
+  so the output of one is the input of the other. A weather frame must
+  cover every `(cluster, region)` pair the object declares; a demand
+  frame carrying `load` is a relative shape, scaled to the annual energy
+  the shipped object holds.
+
+- **[`build_topia()`](https://energyRt.org/reference/build_topia.md)
+  cuts smaller cases from the shipped model.** One call for a province,
+  a zone or a sample, resolving the parts that are tedious by hand:
+
+  ``` r
+
+  build_topia("Z3", as = "model")      # the zone, ready to interpolate
+  build_topia(preset = "island")       # R01: no wire, no domestic fuel
+  identical(build_topia(), topia$modules$electricity)   # TRUE
+  ```
+
+  A zone code expands to the provinces beneath it, so a request does not
+  cut a zone the fossil fuels balance on; one that still does is refused
+  and names the province to add. The two levers carrying a spatial shape
+  travel with the model – `GREEN_H2`, whose `for.each` names every
+  province, and `CO2_CAP`, whose cap is a per-province allowance times
+  the province count.
+
+  `techs` and `modules` select processes, and a dependency closure
+  follows them: drop every coal burner and `COA`, `SUP_COA`, `IMP_COA`
+  and both coal corridors go too. `modules` uses the nine
+  sub-repositories the article builds the model from, carried through as
+  `topia$modules$electricity$groups` rather than re-derived.
+
+  ``` r
+
+  build_topia(techs = "-ECOA")        # and the whole coal chain with it
+  build_topia(techs = "vre")          # declares a weather series
+  build_topia(modules = "-hydrogen")  # the chain declared across 3 sections
+  ```
+
+  `calendar` re-keys the series and the demand curve onto a cheaper
+  sample of the hourly year, holding the annual energy fixed, so a case
+  stays comparable with the full model:
+
+  ``` r
+
+  build_topia(preset = "tiny")                 # 1 region, 101 timeslices
+  build_topia(calendar = "d365_h24_1dpm")      # one day a month
+  ```
+
+  Only a sample is accepted – one whose timeslices are a subset of the
+  model calendar’s. `s4_h24` carries names of its own and a simulated
+  stand-in with no resource grades, so it would leave every clustered
+  technology with no weather row and running unbounded; it is refused,
+  naming the slices that do not match.
+
+  It authors nothing: every object it returns was declared in *TOPIA I*,
+  which generates the shipped data files. With every argument at its
+  default it returns `topia$modules$electricity` unchanged. `clusters`,
+  `demand`, `weather` and `level` are not built yet and are refused
+  rather than ignored.
+
+- **A milestone year can be solved on a sample of the model calendar.**
+  Hourly where the investment decisions land, cheaper in the years that
+  only carry the trajectory between them:
+
+  ``` r
+
+  mod <- setCalendar(mod, calendars$d365_h24_1dpm, years = 2040)
+  getYearCalendars(mod)
+  ```
+
+  The horizon names a calendar per milestone
+  (`horizon@intervals$calendar`) and the calendars themselves live in
+  `config@misc$calendars`; an absent column is one calendar for every
+  year, as before. A year’s calendar must be a *sample* of the model’s –
+  the same timeframe levels, slices from the same universe, the same
+  `share` per slice – which
+  [`setCalendar()`](https://energyRt.org/reference/setCalendar.md)
+  checks, naming the level or slice at fault. Each year’s weights come
+  from its own calendar, so every year still annualises exactly, and the
+  variable and equation domains carry only the slices their year has.
+  `fold` may not include the timeslice axis while a per-year calendar is
+  declared.
+
+- [`sample_calendar()`](https://energyRt.org/reference/sample_calendar.md)
+  is exported: it builds a calendar from a subset of another’s
+  timeslices, keeping the parent’s names, levels and shares and carrying
+  the weights that annualise. It was internal to
+  [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md).
+  [`timescales::filter_calendar()`](https://optimal2050.github.io/timescales/r/reference/filter_calendar.html)
+  is the same operation on a
+  [`timescales::Calendar`](https://optimal2050.github.io/timescales/r/reference/Calendar.html).
+
+- [`setCalendar()`](https://energyRt.org/reference/setCalendar.md)
+  gained `model` and `scenario` methods, and accepts a `calendar`
+  object. Both were documented from 0.92 but neither existed: the only
+  method took
+  [`newCalendar()`](https://energyRt.org/reference/newCalendar.md)’s
+  arguments, so passing a calendar – the form the help page showed –
+  failed on the name assertion.
+
+- **Money carries a year.** `convert(1, "MEUR2015", "MUSD2020")` is an
+  exchange-rate question and an inflation question at once, and the two
+  routes through it – deflate then convert, or convert then deflate – do
+  not agree: the gap is the change in the real exchange rate over the
+  interval. Both are computed, the World Bank and IPCC convention
+  (`"deflate_then_fx"`) is the default, and a material disagreement
+  warns.
+
+  ``` r
+
+  convert(1, "MEUR2015", "MUSD2020")
+  convert(1, "MEUR2015", "MUSD2020", currency_route = "both")
+  convert(1, "MEUR", "MUSD", from_year = 2015, to_year = 2020)
+  ```
+
+  `basis = "cpi"` deflates on consumer prices instead of GDP. A year is
+  read only where the unit is a currency: `MWh2020` is still an unknown
+  unit.
+  [`currency_base_year()`](https://energyRt.org/reference/currency_base_year.md)
+  reads or sets the year untagged money is read at, and
+  [`add_currency_fx()`](https://energyRt.org/reference/add_currency.md)
+  /
+  [`add_currency_deflator()`](https://energyRt.org/reference/add_currency.md)
+  add a rate or an index for the session.
+
+- **[`normalize_model_currency()`](https://energyRt.org/reference/normalize_model_currency.md)
+  converts a model’s costs to one currency-year**, and reports every
+  factor it applied rather than applying it silently.
+  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+  runs it on the copy it builds from, so a model’s objects keep the
+  values they were written with while the scenario carries the converted
+  ones, and `scen@misc$currency` records each factor with the
+  exchange-rate and deflator rows behind it. The columns it converts are
+  every parameter whose declared unit carries the currency token;
+  physical units are not normalised.
+
 - **One object can override a parameter’s default or interpolation rule
   for its own rows.** `@defVal` and `@interpolation` on `technology`,
   `storage`, `trade`, `supply`, `demand`, `import`, `export`, `weather`,
@@ -100,6 +271,19 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   default, and the coefficients that read the series stay a `factor`
   either way — the relation is reciprocal for a temperature and direct
   for other measures, so it is not derived.
+
+- Exchange rates and deflators ship as data: `currency_fx` (one rate per
+  currency and year), `currency_deflator` (price indices on a GDP or a
+  CPI basis, for moving money between years) and `currency_codes` (every
+  spelling [`convert()`](https://energyRt.org/reference/convert.md)
+  accepts, resolved to an ISO code and a scale). All three are built by
+  `data-raw/currency.R` from World Bank series, which also generates the
+  currency rates in `convert_data` – those were typed by hand before and
+  could not be rebuilt.
+
+  `attr(currency_fx, "base_year")` is the year untagged money is read
+  at. A crore or a cent is now derived from its currency’s rate through
+  `scale`, rather than carrying its own copy of a number.
 
 - `aggregate_model_regions(resolve_conflicts = )` decides what happens
   to a value with no merged form, such as a lifetime or a levy rate. The
@@ -543,6 +727,21 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 ### Breaking changes
 
+- [`setCalendar()`](https://energyRt.org/reference/setCalendar.md)’s
+  first argument after the object is now `calendar`, which takes a
+  calendar object. Passing
+  [`newCalendar()`](https://energyRt.org/reference/newCalendar.md)’s
+  arguments by name (`setCalendar(cfg, name = , timetable = )`) is
+  unchanged; passing them positionally is not.
+
+- **A model’s currency and an object’s are reconciled, not merely
+  compared.** An object priced in another currency used to be an error
+  at [`newModel()`](https://energyRt.org/reference/newModel.md); where
+  [`convert()`](https://energyRt.org/reference/convert.md) can answer
+  it, it is now converted at interpolation and reported. A pair with no
+  conversion at all – `bnEUR` is not a unit – is still refused, at
+  construction.
+
 - The figure functions that return a ggplot object are named `gg_*`:
   [`gg_map()`](https://energyRt.org/reference/gg_map.md),
   [`gg_heatmap()`](https://energyRt.org/reference/gg_heatmap.md),
@@ -579,6 +778,14 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   so records nothing. The three slots were **inert**: nothing read a
   levy’s, and a weather’s reached no parameter, so this gives them the
   effect they always described.
+
+- **The currency rates in `convert_data` moved.** They were undated and
+  not all from the same year – a euro rate from one year sat beside a
+  yen rate from another – and are now generated from `currency_fx` at
+  one declared base year. `convert("MEUR", "MUSD")` and every other
+  cross-currency conversion returns a different number; conversions
+  within one currency, such as `convert("EUR/kW", "MEUR/GW")`, are
+  unaffected.
 
 - **`config@currency` is gone, folded into `config@units$currency`.**
   The model declares its generic units in one slot, with the same column
@@ -720,7 +927,121 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   optimised: the base year and any milestones before it are washed out,
   with a rule at the last given year and a caption naming the states.
 
+### Breaking changes
+
+- **TOPIA’s finest geoframe is `province`, not `region`.** `region` is
+  energyRt’s own spatial dimension – `newModel(region = )` and the
+  `region` column of every parameter table – so a geoframe of the same
+  name made `level = "region"` read as the generic one. The hierarchy is
+  now `nation -> zone -> province` over the same codes `R01`..`R12`, and
+  `geoframe = "province"` addresses the finest level:
+
+  ``` r
+
+  geoscale_regions(topia$geoscales$honeycomb, geoframe = "province")
+  filter_geoscale(topia$geoscales$honeycomb, "province", c("R04", "R05"))
+  ```
+
+  The leaftable still carries a `region` column – the atom key, a copy
+  of `province` – so anything joining on `region` is unaffected, and the
+  model’s regions are still the twelve codes. `level = "zone"` and
+  `level = "nation"` are unchanged.
+
+- **`topia`’s `EBIO` is a multi-fuel plant.** It takes a grouped input
+  over `BIO` and the new `WST` commodity, with `cinp2ginp` of 1.00 and
+  0.74 and no `grp.share` bounds, so one plant burns either fuel or any
+  blend.
+
+- **`topia` gains `WST` and `SUP_WST`.** `WST` carries `limtype = "FX"`,
+  so what arises may not be spilled, and `SUP_WST` offers it free at the
+  gate under an `ava.up` ceiling in every milestone. Waste is therefore
+  the first fuel `EBIO` burns wherever it is built.
+
+- **`topia`’s `EXP_H2` is bounded by a terminal.** It is declared in the
+  five coastal provinces with an `exp.up` throughput each, where it was
+  declared in all twelve at a bound high enough to be no bound at all.
+
+- `topia_profiles(calendar = )` accepts only `"s4_h24"` and
+  `"d365_h24"`, the two the shipped profiles are built for; `"m12_h24"`
+  and `"topia_seasons"` are removed.
+
 ### Bug fixes
+
+- The [`setCalendar()`](https://energyRt.org/reference/setCalendar.md)
+  example runs. Its horizon was built from
+  `newHorizon(c(2030, 2035, 2040), ...)`, where `period` is a span
+  rather than a list of milestones, so the years it then asked for were
+  not milestones of the horizon it built.
+
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  on a single-interval `horizon` shows both of its boundaries. The
+  leading tick was the first interval’s start unshifted, which collapses
+  onto the milestone whenever that interval is one year, leaving the
+  shipped one-year horizons as a slab with a single tick at the right
+  edge.
+
+- The year legend of `autoplot(<horizon>)` breaks on whole years; on a
+  short horizon the continuous scale put breaks between them (`2032.5`).
+
+- [`check_feasibility()`](https://energyRt.org/reference/check_feasibility.md)
+  reports a third contradiction, `forced-supply-no-sink`: a commodity
+  balanced as an equality that is forced to arise where nothing can
+  consume it. The sinks come from the interpolated gating maps, so a
+  consumer whose `vintage` starts after the supply does is caught – a
+  case that is invisible in the declarations, because it is the years
+  interpolation fills between two milestones that have no consumer.
+
+- [`newHorizon()`](https://energyRt.org/reference/newHorizon.md) warns
+  when years of the period belong to no interval. Such a year is in the
+  horizon’s span but carries no milestone, so nothing of it enters the
+  problem; it used to be accepted silently.
+
+- TOPIA’s waste arising is a ceiling (`ava.up`) rather than a fixed
+  quantity. Fixed, it forced waste to arise in the years before `EBIO`’s
+  vintage opens, where the equality balance left nowhere for it to go,
+  so a horizon that modelled those years was infeasible.
+
+- [`topia_profiles()`](https://energyRt.org/reference/topia_profiles.md)
+  no longer fails when a requested province carries none of a resource’s
+  grades; the absent series is dropped instead of being returned as a
+  two-column frame.
+
+- `topia$weather`’s `"simulated"` set now carries the same grades as the
+  measured one. It had a single ungraded series per resource, which no
+  clustered technology could use.
+
+- A geoscale whose finest geoframe is not called `region` now works
+  throughout.
+  [`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md)
+  and the clustered aggregation read that name from the geoscale instead
+  of assuming it, and
+  [`gg_trade_map()`](https://energyRt.org/reference/gg_trade_map.md)
+  accepts a plain `sf` keyed on it rather than requiring a column called
+  `region`.
+
+- [`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md)
+  labels a corridor family with its own prefix. A trade named
+  `<prefix>_<src>_<dst>` – one separator, which is what bi-directional
+  corridors use – was read as carrying no endpoints and fell back to a
+  constant, so every family in a model came back under one label and
+  `aggregate_model_regions(clusters = )` had no key that named any of
+  them.
+
+- A process group’s label no longer ends inside a name part. `ECOA_R01`
+  and `ECOA_R09` were labelled `ECOA_R0`, half a region code, because
+  the longest common prefix was taken as the stem.
+
+- `pYearFraction` is the fraction of the year a milestone’s timeslices
+  cover, read from that year’s calendar. It came from
+  `settings@yearFraction` – a slot deprecated as unwired – whose single
+  row was recycled across the year rows rather than joined on `year`, so
+  it reported 1 however the calendar was sampled. No equation reads the
+  parameter today, but all four backends declare it.
+
+- [`newHorizon()`](https://energyRt.org/reference/newHorizon.md) kept
+  every column of an `intervals` table except on the path that forces
+  the base-year interval to one year, which rebuilt the table from a
+  fixed four columns and dropped the rest.
 
 - A resource grade declares the regions it exists in, so narrowing a
   model’s regions can delete a grade outright.
@@ -1085,6 +1406,15 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 ### Documentation
 
+- [`?topia`](https://energyRt.org/reference/topia.md) documents what the
+  dataset actually ships: the two calendars, the `dataset`, `region` and
+  `cluster` columns of `weather` and `demand`, and `topia$grades`.
+- The `time-resolution` and `region-aggregation` articles use `s4_hp3`
+  and `s4_h24`; they reached for `topia_seasons`, which no longer ships.
+- [`levcost()`](https://energyRt.org/reference/levcost.md) documents
+  that a grouped input is priced like any other and that an
+  unconstrained group has no share frontier; it had said a grouped input
+  reports no fuel component.
 - A rebuilt [pkgdown site](https://energyRt.org) with tutorial articles,
   and a runnable example on every public help page.
 - The testing strategy (tiers, the `@covers` matrix, goldens) is

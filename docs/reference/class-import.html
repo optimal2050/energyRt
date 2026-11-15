@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.4.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,6 +33,7 @@
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/debugging.html">Validating &amp; debugging</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -102,7 +103,7 @@ define the price of the imported commodity.
 <dd><p>character. The commodity this object is counted in, e.g. "GWh" or "PJ". Set by the <code>unit =</code> argument of the constructor. Leave it empty to claim nothing: a unit is reported and cross-checked, never converted.</p></dd>
 
 <dt>currency</dt>
-<dd><p>character. Currency of the cost columns. A currency that disagrees with the model's own is an error rather than a silent conversion.</p></dd>
+<dd><p>character. Currency of the cost columns, optionally with a year (<code>MUSD2020</code>). One that disagrees with the model's own is converted at interpolation and reported, or refused where no conversion exists.</p></dd>
 
 
 </dl></dd>

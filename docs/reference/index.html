@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.4.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,6 +33,7 @@
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/debugging.html">Validating &amp; debugging</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -482,6 +483,20 @@
 
         <dt>
 
+          <code><a href="setCalendar.html">setCalendar(<i>&lt;config&gt;</i>)</a></code> <code><a href="setCalendar.html">setCalendar(<i>&lt;model&gt;</i>)</a></code> <code><a href="setCalendar.html">setCalendar(<i>&lt;scenario&gt;</i>)</a></code> <code><a href="setCalendar.html">getCalendar(<i>&lt;config&gt;</i>)</a></code> <code><a href="setCalendar.html">getCalendar(<i>&lt;model&gt;</i>)</a></code> <code><a href="setCalendar.html">getCalendar(<i>&lt;scenario&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Set or get a model's calendar, for every year or for particular years</dd>
+
+        <dt>
+
+          <code><a href="getYearCalendars.html">getYearCalendars()</a></code>
+
+        </dt>
+        <dd>Calendars by milestone year</dd>
+
+        <dt>
+
           <code><a href="plot_calendar_method.html">autoplot(<i>&lt;calendar&gt;</i>)</a></code>
 
         </dt>
@@ -512,7 +527,7 @@
 
       <dl><dt>
 
-          <code><a href="setGeoscale.html">setCalendar(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">setGeoscale(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">setGeoscale(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">setGeoscale(<i>&lt;scenario&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;scenario&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;scenario&gt;</i>)</a></code>
+          <code><a href="setGeoscale.html">setGeoscale(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">setGeoscale(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">setGeoscale(<i>&lt;scenario&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;scenario&gt;</i>)</a></code>
 
         </dt>
         <dd>Attach or read a model's geoscale</dd>
@@ -885,6 +900,13 @@
 
         </dt>
         <dd>Build a calendar-sample specification</dd>
+
+        <dt>
+
+          <code><a href="sample_calendar.html">sample_calendar()</a></code>
+
+        </dt>
+        <dd>Build a calendar from a sample of another's timeslices</dd>
 
         <dt>
 
@@ -1676,6 +1698,13 @@
 
         <dt>
 
+          <code><a href="build_topia.html">build_topia()</a></code>
+
+        </dt>
+        <dd>TOPIA instances, cut from the shipped model</dd>
+
+        <dt>
+
           <code><a href="topia_profile.html">topia_profile()</a></code>
 
         </dt>
@@ -1687,6 +1716,13 @@
 
         </dt>
         <dd>TOPIA input profiles</dd>
+
+        <dt>
+
+          <code><a href="topia_simulate.html">topia_simulate()</a></code>
+
+        </dt>
+        <dd>Synthetic TOPIA profiles</dd>
 
         <dt>
 
@@ -1708,6 +1744,27 @@
 
         </dt>
         <dd>Solver presets</dd>
+
+        <dt>
+
+          <code><a href="currency_codes.html">currency_codes</a></code>
+
+        </dt>
+        <dd>Currency spellings, and the ISO code and scale each denotes</dd>
+
+        <dt>
+
+          <code><a href="currency_fx.html">currency_fx</a></code>
+
+        </dt>
+        <dd>Annual exchange rates, local currency per US dollar</dd>
+
+        <dt>
+
+          <code><a href="currency_deflator.html">currency_deflator</a></code>
+
+        </dt>
+        <dd>Annual price indices, for moving money between years</dd>
 
         <dt>
 
@@ -1951,7 +2008,7 @@
           <code><a href="convert_data.html">convert_data</a></code>
 
         </dt>
-        <dd>Basic units conversion database for <code>convert</code> methods</dd>
+        <dd>The unit database <code><a href="../reference/convert.html">convert()</a></code> reads</dd>
 
         <dt>
 
@@ -1959,6 +2016,27 @@
 
         </dt>
         <dd>Convert units</dd>
+
+        <dt>
+
+          <code><a href="currency_base_year.html">currency_base_year()</a></code>
+
+        </dt>
+        <dd>The year untagged money is read at</dd>
+
+        <dt>
+
+          <code><a href="add_currency.html">add_currency_fx()</a></code> <code><a href="add_currency.html">add_currency_deflator()</a></code>
+
+        </dt>
+        <dd>Add an exchange rate or a price index</dd>
+
+        <dt>
+
+          <code><a href="normalize_model_currency.html">normalize_model_currency()</a></code>
+
+        </dt>
+        <dd>Convert a model's costs to one currency</dd>
 
         <dt>
 

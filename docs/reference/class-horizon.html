@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.4.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,6 +33,7 @@
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/debugging.html">Validating &amp; debugging</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -84,7 +85,8 @@
 
 
 <dt><code>intervals</code></dt>
-<dd><p>data.frame. Data frame with the start, middle, and end year of every modelled interval, plus an optional display <code>label</code>. <code>start</code>, <code>mid</code> and <code>end</code> are integer years; <code>mid</code> is the milestone and the model's key for the period. <code>label</code> is a character display name, unique across intervals, filled from <code>mid</code> when not given, and rendered fiscally (<code>FY2025-26</code>) when the calendar carries a non-January <code>year_start</code>. The label is presentation only and never reaches the solver – see <code><a href="year_label.html">year_label()</a></code>.</p></dd>
+<dd><p>data.frame. Data frame with the start, middle, and end year of every modelled interval, plus an optional display <code>label</code>. <code>start</code>, <code>mid</code> and <code>end</code> are integer years; <code>mid</code> is the milestone and the model's key for the period. <code>label</code> is a character display name, unique across intervals, filled from <code>mid</code> when not given, and rendered fiscally (<code>FY2025-26</code>) when the calendar carries a non-January <code>year_start</code>. The label is presentation only and never reaches the solver – see <code><a href="year_label.html">year_label()</a></code>.</p>
+<p>An optional <code>calendar</code> column names the calendar that milestone is solved on, taken from <code>config@misc$calendars</code>; <code>NA</code>, or no column at all, means the model calendar, which is every horizon written before per-year calendars existed. Write it with <code>setCalendar(mod, cal, years = ...)</code>, which also checks that the calendar is a sample of the model's.</p></dd>
 
 
 <dt><code>base_year</code></dt>

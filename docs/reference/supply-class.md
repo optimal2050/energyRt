@@ -23,8 +23,9 @@ supply object with given specifications.
   where the units agree, and nothing else in the object records them:
   the numbers in `cost`/`invcost` and the capacity and activity columns
   are bare. A declared `currency` that disagrees with the model's own is
-  an error rather than a silent conversion; leave a column empty to
-  claim nothing.
+  converted to it at interpolation, with every factor reported; one with
+  no conversion at all is refused. Leave a column empty to claim
+  nothing.
 
   comm
 

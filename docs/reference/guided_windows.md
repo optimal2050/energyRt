@@ -64,5 +64,6 @@ vapply(w, function(x) x$horizon@name, character(1))
 # forward instead, including the base period
 vapply(guided_windows(h, direction = "forward", include_base = TRUE),
        function(x) x$horizon@name, character(1))
+#> Warning: newHorizon(): 20 of 31 year(s) in the period belong to no interval and are modelled by nothing (2026-2045). Each milestone stands for its own interval only, so flows in these years do not enter the problem.
 #> [1] "g_2025_2050" "g_2030_2050" "g_2040_2050"
 ```

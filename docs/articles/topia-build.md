@@ -16,9 +16,9 @@ rather than kept as separate saved layouts.
 
 TOPIA uses uppercase set elements and typed process names.
 
-- **Set elements are uppercase:** regions, commodities, technologies,
-  groups, and user-defined timeslices use names such as `W1`, `COA`, and
-  `ECOA`.
+- **Set elements are uppercase:** provinces, commodities, technologies,
+  groups, and user-defined timeslices use names such as `R01`, `COA`,
+  and `ECOA`.
 
 - **Process names carry a type prefix:**
 
@@ -67,22 +67,33 @@ convert("GW*year", "GWh", 1) # 8760     -- cap2act for electricity
 #> [1] 8760
 ```
 
-## Regions and the map
+## Provinces and the map
 
-TOPIA has twelve regions, `R01`–`R12`. The `squares`, `honeycomb`,
-`island`, and `continent` layouts in `topia$geoscales` share these
-region names: each layout draws them in different places, chosen so that
-every zone comes out as one compact group of neighbours, and the model
-sees only the codes.
+TOPIA’s territory divides into twelve **provinces**, `R01`–`R12`. The
+`squares`, `honeycomb`, `island`, and `continent` layouts in
+`topia$geoscales` share these codes: each layout draws them in different
+places, chosen so that every zone comes out as one compact group of
+neighbours, and the model sees only the codes.
 
-`R01` is the remote region. It is detached on two of the four layouts
+Two words are in play and they are not the same one. **`region`** is
+energyRt’s own spatial dimension – what `newModel(region = )` takes and
+what the `region` column of every parameter table keys on.
+**`province`** is the name of TOPIA’s finest geoframe, the level its own
+geography is divided at. Here the two coincide: the model is solved on
+the twelve provinces, so its regions *are* the provinces. They are kept
+apart because a geoframe called `region` would make `level = "region"`
+read as the generic dimension rather than as a place in TOPIA’s
+hierarchy, and because a real model names its own levels – states,
+NUTS2, balancing areas – which is the arrangement this teaches.
+
+`R01` is the remote province. It is detached on two of the four layouts
 and carries no transmission at all, so it has to meet its own demand in
 every hour from what it holds locally.
 
 ``` r
 
 gs <- topia$geoscales$honeycomb
-regions <- geoscale_regions(gs, geoframe = "region")
+regions <- geoscale_regions(gs, geoframe = "province")
 regions
 #>  [1] "R01" "R02" "R03" "R04" "R05" "R06" "R07" "R08" "R09" "R10" "R11" "R12"
 
@@ -102,53 +113,56 @@ plot_geoscale(gs, type = "map")
 
 The honeycomb layout.
 
-### Zones: the region hierarchy
+### Zones: the province hierarchy
 
-The regions nest into five zones of uneven size and one nation.
-[`geoscale_leaftable()`](https://optimal2050.github.io/geoscales/r/reference/geoscale_leaftable.html)
-returns this hierarchy.
+The provinces nest into five zones of uneven size and one nation.
+`geoscale_leaftable()` returns this hierarchy.
 
 ``` r
 
 geo <- as.data.frame(geoscale_leaftable(gs))
 
-knitr::kable(geo, caption = "Regional hierarchy")
+# `region` is the ATOM KEY the constructor adds -- a copy of the finest
+# geoframe, so a downstream model can always join on one name. It is dropped
+# from the printed table because it repeats `province`.
+knitr::kable(geo[, setdiff(names(geo), "region")],
+             caption = "The province hierarchy")
 ```
 
-| nation | zone | region | name      |     area |
-|:-------|:-----|:-------|:----------|---------:|
-| TOPIA  | Z1   | R01    | Region 01 | 5.657862 |
-| TOPIA  | Z2   | R02    | Region 02 | 5.657862 |
-| TOPIA  | Z2   | R03    | Region 03 | 5.657862 |
-| TOPIA  | Z3   | R04    | Region 04 | 5.657862 |
-| TOPIA  | Z3   | R05    | Region 05 | 5.657862 |
-| TOPIA  | Z3   | R06    | Region 06 | 5.657862 |
-| TOPIA  | Z4   | R07    | Region 07 | 5.657862 |
-| TOPIA  | Z4   | R08    | Region 08 | 5.657862 |
-| TOPIA  | Z4   | R09    | Region 09 | 5.657862 |
-| TOPIA  | Z4   | R10    | Region 10 | 5.657862 |
-| TOPIA  | Z5   | R11    | Region 11 | 5.657862 |
-| TOPIA  | Z5   | R12    | Region 12 | 5.657862 |
+| nation | zone | province | name      |     area |
+|:-------|:-----|:---------|:----------|---------:|
+| TOPIA  | Z1   | R01      | Region 01 | 5.657862 |
+| TOPIA  | Z2   | R02      | Region 02 | 5.657862 |
+| TOPIA  | Z2   | R03      | Region 03 | 5.657862 |
+| TOPIA  | Z3   | R04      | Region 04 | 5.657862 |
+| TOPIA  | Z3   | R05      | Region 05 | 5.657862 |
+| TOPIA  | Z3   | R06      | Region 06 | 5.657862 |
+| TOPIA  | Z4   | R07      | Region 07 | 5.657862 |
+| TOPIA  | Z4   | R08      | Region 08 | 5.657862 |
+| TOPIA  | Z4   | R09      | Region 09 | 5.657862 |
+| TOPIA  | Z4   | R10      | Region 10 | 5.657862 |
+| TOPIA  | Z5   | R11      | Region 11 | 5.657862 |
+| TOPIA  | Z5   | R12      | Region 12 | 5.657862 |
 
-Regional hierarchy {.table}
+The province hierarchy {.table}
 
-The zones are deliberately uneven – 1, 2, 3, 4 and 2 regions. A zone is
-where the fossil fuels balance, so its size decides how large a pool a
-region can draw on, and an even grouping would have made that uniform
-and uninteresting.
+The zones are deliberately uneven – 1, 2, 3, 4 and 2 provinces. A zone
+is where the fossil fuels balance, so its size decides how large a pool
+a province can draw on, and an even grouping would have made that
+uniform and uninteresting.
 
-| zone | regions | resource | load |
+| zone | provinces | resource | load |
 |----|----|----|----|
 | `Z1` | `R01` | the island: the best wind in the model and the least sun, alone and with no wire | small, winter-peaking |
 | `Z2` | `R02`–`R03` | the sun: the highest solar yield, little wind, the domestic gas | moderate, evening peak |
 | `Z3` | `R04`–`R06` | the firm interior: the nuclear station, the mountain reservoir, the calmest air in the model | large and flat, industrial |
 | `Z4` | `R07`–`R10` | the belt: run-of-river, the lignite basin, forestry, and the north-coast wind at its eastern end | mixed |
-| `Z5` | `R11`–`R12` | the windy coast: exposed sites at both regions, poor sun | small, dense at the load centre |
+| `Z5` | `R11`–`R12` | the windy coast: exposed sites at both provinces, poor sun | small, dense at the load centre |
 
-Each region is endowed differently, and the endowment is what the model
-is about: `R01` an island with no wire and no fuel of its own, `R02` and
-`R03` the solar potential with `R03` holding the domestic gas, `R04` the
-nuclear incumbent, `R05` the reservoir, `R06` industry, `R07`
+Each province is endowed differently, and the endowment is what the
+model is about: `R01` an island with no wire and no fuel of its own,
+`R02` and `R03` the solar potential with `R03` holding the domestic gas,
+`R04` the nuclear incumbent, `R05` the reservoir, `R06` industry, `R07`
 run-of-river, `R08` the lignite basin, `R09` forestry and the first
 exposed coast, `R10` the wind peak, `R11` the load centre, `R12` the
 second wind peak.
@@ -296,7 +310,21 @@ BIO <- newCommodity(
   desc = "Biomass residues, carbon-neutral",
   unit = "PJ",
   timeframe = "ANNUAL",
-  geoframe = "region" # the lower level in Topia is named "region"
+  geoframe = "province" # TOPIA's finest geoframe
+)
+
+# `limtype` is the balance's inequality. Every other commodity here takes the
+# default "LO" -- supply must cover demand and surplus is allowed to go
+# nowhere. Waste is the one commodity that cannot: it arises whether or not
+# anyone wants it, and it has to be disposed of. "FX" makes the balance an
+# equality, so the waste a province produces must be burnt, not spilled.
+WST <- newCommodity(
+  name = "WST",
+  desc = "Municipal and industrial waste, must be disposed of",
+  unit = "PJ",
+  timeframe = "ANNUAL",
+  geoframe = "province",
+  limtype = "FX"
 )
 
 NUC <- newCommodity(
@@ -318,7 +346,7 @@ LANDS <- newCommodity(
   desc = "Land suitable for solar siting",
   unit = "km2",
   timeframe = "ANNUAL",
-  geoframe = "region"
+  geoframe = "province"
 )
 
 LANDW <- newCommodity(
@@ -326,7 +354,7 @@ LANDW <- newCommodity(
   desc = "Land suitable for wind siting",
   unit = "km2",
   timeframe = "ANNUAL",
-  geoframe = "region",
+  geoframe = "province",
   # tiers, not labels: exposed coast, open country and inland terrain must not
   # pool, so the commodity becomes one balance per tier and a clustered wind
   # farm draws on the tier its own cluster names. The three tiers match the
@@ -344,7 +372,7 @@ H2 <- newCommodity(
   desc = "Hydrogen, lower heating value",
   unit = "GWh",
   timeframe = "HOUR",
-  geoframe = "region"
+  geoframe = "province"
 )
 
 ELC <- newCommodity(
@@ -363,7 +391,7 @@ CO2 <- newCommodity(
 
 repo_commodities <- newRepository(
   name = "topia_commodities",
-  COA, GAS, BIO, NUC, LANDS, LANDW, HYD, H2, ELC, CO2
+  COA, GAS, BIO, WST, NUC, LANDS, LANDW, HYD, H2, ELC, CO2
 )
 ```
 
@@ -589,6 +617,66 @@ autoplot(SUP_BIO)
 
 
 
+# Waste follows people, not land: the load centre produces the most and the
+# land-rich, lightly loaded provinces the least -- the opposite gradient to
+# forestry biomass above, which is what makes the two resources interesting on
+# the same map. The quantity is proportional to each province's electricity
+# demand and sums to 45 PJ, around one per cent of generation once burnt.
+#
+# `ava.up` caps the arising rather than fixing it: this much waste is there to
+# be burnt, free at the gate, and the plant takes as much of it as it wants.
+# Fixing it would instead force waste into the years before `EBIO`'s vintage
+# opens, where the "FX" balance above leaves nowhere for it to go, and no
+# horizon that models those years could solve. The equality still does its
+# work: nothing that arises may be spilled, and a free fuel is taken before a
+# priced one, so waste is burnt first wherever `EBIO` is built.
+wst <- tibble::tribble(
+  ~region, ~wst_PJ,
+  "R01",      1.4,
+  "R02",      2.5,
+  "R03",      2.8,
+  "R04",      4.5,
+  "R05",      3.9,
+  "R06",      6.4,   # the industrial province
+  "R07",      3.6,
+  "R08",      4.5,
+  "R09",      3.4,
+  "R10",      2.2,   # land-rich and lightly loaded: the least waste
+  "R11",      6.7,   # the load centre: the most
+  "R12",      3.1
+)
+stopifnot(abs(sum(wst$wst_PJ) - 45) < 1e-8)
+
+# The ceiling is the same in every milestone, the base year included: waste
+# follows people and does not wait for a power station. Whether any of it is
+# burnt is the model's choice, so the arising can stand from 2025 although
+# `EBIO`'s vintage opens in 2030.
+wst_supply <- wst |>
+  tidyr::crossing(year = c(2025L, 2030L, 2040L, 2050L)) |>
+  mutate(ava.up = wst_PJ, cost = 0) |>
+  select(region, year, ava.up, cost)
+
+SUP_WST <- newSupply(
+  name = "SUP_WST",
+  desc = "Waste arising, free at the gate and not to be spilled",
+  units = data.frame(
+    activity = "PJ",
+    costs = "MUSD"
+  ),
+  commodity = "WST",
+  unit = "PJ",
+  region = regions,
+  supply = wst_supply
+)
+autoplot(SUP_WST, style = "map", map = gs, param = "ava.up")
+```
+
+![](topia-build_files/figure-html/supply-fuels-4.png)
+
+``` r
+
+
+
 SUP_NUC <- newSupply(
   name = "SUP_NUC",
   desc = "Nuclear fuel assemblies",
@@ -604,7 +692,7 @@ SUP_NUC <- newSupply(
 autoplot(SUP_NUC, style = "map", map = gs)
 ```
 
-![](topia-build_files/figure-html/supply-fuels-4.png)
+![](topia-build_files/figure-html/supply-fuels-5.png)
 
 Hydro inflow is available in `R05`, the mountain reservoir, and `R07`,
 the run-of-river valley, at zero cost. Solar and wind draw no fuel, but
@@ -794,9 +882,50 @@ autoplot(RES_HYD, style = "map", map = gs)
 ## Rest-of-world trade
 
 Coal and gas can be imported without a quantity limit in each zone at
-3.5 and 9.0 MUSD/PJ, respectively. Hydrogen can be sold outward from any
-region at 0.09 MUSD/GWh, capped at 38 GWh per region in each timeslice:
-the demand that makes electrolysis worth building.
+3.5 and 9.0 MUSD/PJ, respectively.
+
+Hydrogen is sold outward at 0.09 MUSD/GWh, and what matters about that
+number is how close it sits to the cost of making the stuff. An export
+price values a GWh of electricity at the price times the electrolyser’s
+conversion efficiency, 0.65 in 2030 rising to 0.74 in 2050. The
+electricity it has to buy is not priced at its fuel alone: a plant built
+to serve the export recovers its capital too, so coal delivers at about
+0.0405 MUSD/GWh (0.0245 of capital and fixed O&M, 0.016 of fuel) rather
+than the 0.016 the supply curve shows. The electrolyser then adds its
+own 1400 MUSD/GW over twenty-five years plus 40 MUSD/GW/year, roughly
+139 MUSD/GW/year, or 0.0159 MUSD/GWh if it runs flat out. A
+thermally-supplied export business therefore breaks even near
+0.0405/0.65 + 0.0159, about 0.078 MUSD/GWh, and 0.09 is a little above
+it.
+
+So the chain is in the money, and the question becomes *how much of it
+gets built* — which is settled by the export’s quantity bound, not its
+price. That is where this had been wrong. `exp.up` stood at 38 GWh per
+province in every timeslice, which over a year is 332,880 GWh per
+province and some four million nationally against 377,579 actually sold:
+not a bound at all. Unbounded, a business with a thin margin over a very
+large volume is worth building at any scale, and a full hourly solve
+duly sent 60% of all electricity generated in 2050 into electrolysis for
+export — 69.6 GW of electrolysers, more than coal and gas together.
+
+An export needs a port. Only the five provinces with a coast have a
+terminal here — the island, the two coasts and the load centre between
+them — and each has a throughput, 0.3 to 1.2 GWh per timeslice, sized on
+the province. That caps the business at 31,536 GWh a year, about a tenth
+of domestic electricity: visible, and no longer the system’s main
+purpose.
+
+Cutting the price instead was tried, and is the wrong instrument.
+Nothing in the shipped lever set pays for hydrogen — `GREEN_H2` is a
+constraint that caps electrolysis by renewable generation, and a carbon
+price makes hydrogen dearer from every source — so a price under the
+breakeven leaves the electrolyser, the store and the terminal idle in
+every scenario, which teaches nothing at all.
+
+A bounded pipeline is also what gives the hydrogen store below something
+to do: two hundred hours of it, between an electrolyser that follows the
+wind and a terminal that flows steadily. Against an unbounded export
+there was never a reason to store anything.
 
 ``` r
 
@@ -840,17 +969,24 @@ autoplot(IMP_GAS, style = "map", map = gs)
 
 
 
+# A terminal, not a hole in the map: throughput in GWh per timeslice, sized on
+# the province. The eight interior provinces have no port and no row here.
+h2_ports <- tibble::tribble(
+  ~region, ~exp.up,
+  "R01",      0.3,   # the island, small and alone
+  "R09",      0.5,   # the first exposed coast
+  "R10",      1.2,   # the wind peak, land-rich and lightly loaded
+  "R11",      0.6,   # the load centre, which has other uses for its power
+  "R12",      1.0    # the second wind peak
+)
+
 EXP_H2 <- newExport(
   name = "EXP_H2",
   desc = "Hydrogen export to the rest of the world",
   commodity = "H2",
   unit = "GWh",
-  region = regions,
-  export = data.frame(
-    region = regions,
-    price = 0.09,
-    exp.up = 38
-  )
+  region = h2_ports$region,
+  export = h2_ports |> mutate(price = 0.09)
 )
 autoplot(EXP_H2, style = "map", map = gs)
 ```
@@ -863,7 +999,7 @@ autoplot(EXP_H2, style = "map", map = gs)
 
 repo_supply <- newRepository(
   name = "topia_supply",
-  SUP_COA, SUP_GAS, SUP_BIO, SUP_NUC,
+  SUP_COA, SUP_GAS, SUP_BIO, SUP_WST, SUP_NUC,
   RES_LANDS, RES_LANDW, RES_HYD,
   IMP_COA, IMP_GAS
 )
@@ -1602,33 +1738,94 @@ autoplot(EHYD, map = gs, style = "map")
 
 ![](topia-build_files/figure-html/tech-hydro-1.png)
 
-### Biomass
+### Solid fuels: biomass and waste
 
-`EBIO` is a dispatchable, carbon-neutral biomass plant available for new
-builds from 2030.
+`EBIO` is the one technology here that burns more than one thing. It is
+dispatchable, carbon-neutral, available for new builds from 2030, and it
+is a **single flexible plant**: biomass and waste both enter through one
+input group, and nothing obliges it to burn one rather than the other.
+
+An input group is converted to *use* once, through `ginp2use` in `geff`,
+while each member commodity is converted into the group’s own unit by
+`cinp2ginp`. That split is what lets one plant take two fuels without
+being duplicated. Here the plant has a single efficiency, 0.35, which
+rides on `ginp2use` together with the PJ-to-GWh factor; the fuels then
+differ only in what a PJ of each is worth to it.
+
+| commodity | `cinp2ginp` | why |
+|----|---:|----|
+| `BIO` | 1.00 | a PJ of wood is a PJ of group fuel |
+| `WST` | 0.74 | wet and heterogeneous, and its steam is held cool against corrosion, so about a quarter less useful heat |
+
+Waste therefore burns at an effective 0.26 against biomass’s 0.35, and
+that difference is a property of the *fuel* rather than of a second
+power station. No `grp.share` bounds are set, so the blend is whatever
+is cheapest.
+
+What the plant actually burns is decided by the two supplies rather than
+by anything in the technology, and they are opposites. Waste is free at
+the gate: `SUP_WST` carries an `ava.up` and no cost, and `WST` carries
+an `"FX"` balance, so what arises may not be spilled and `EBIO`, its
+only consumer, is the only place for it to go. Biomass is optional and
+priced on a clustered regional curve – one commodity, three steps per
+province – from 3.6 MUSD/PJ for residues at the mill in the forestry
+province to 14.3 for long haul on the island. So the plant burns the
+waste within reach before any biomass, and tops up with biomass only
+where biomass pays.
+
+Where that is depends on the carbon price, and the reason is worth
+keeping in view: at 0.35 efficiency biomass loses to gas almost entirely
+on efficiency rather than on fuel price. Biomass and gas cost much the
+same per PJ at their cheapest, 3.6 against 3.2, but burning at 0.35
+where gas burns at 0.58 adds about 15 USD/MWh, and that is most of the
+gap. Carbon being free in the reference case, the top-up is nowhere;
+under `CT_CO2` it appears in the forestry province first.
 
 ``` r
 
 EBIO <- newTechnology(
   name = "EBIO",
-  desc = "Biomass power plant, carbon-neutral",
+  desc = "Solid-fuel plant, biomass and waste, carbon-neutral",
   units = data.frame(
     capacity = "GW",
     activity = "GWh",
     costs = "MUSD"
   ),
-  input = list(
-    comm = "BIO", 
-    unit = "PJ", 
+  # Both fuels enter through ONE group, so this is a single flexible plant
+  # rather than two: it can burn biomass, waste, or any mix of the two, and
+  # nothing here pins it to either.
+  input = data.frame(
+    comm = c("BIO", "WST"),
+    group = "S",
+    unit = "PJ",
     combustion = 1
   ),
-  output = list(
-    comm = "ELC", 
-    unit = "GWh"),
+  output = data.frame(
+    comm = "ELC",
+    unit = "GWh"
+  ),
+  group = data.frame(
+    group = "S",
+    desc = "Solid fuel, biomass or waste",
+    unit = "PJ"
+  ),
+  # `ginp2use` carries BOTH the PJ->GWh conversion and the efficiency, which
+  # keeps activity -- and therefore capacity and `invcost` -- measured in
+  # ELECTRICAL GWh, as every other generator here is. Putting the efficiency
+  # in `cact2cout` instead would leave activity measured in fuel and quietly
+  # re-rate `invcost` to a cost per kW of fuel input.
+  geff = data.frame(
+    group = "S",
+    ginp2use = convert("PJ", "GWh", 1) * 0.35
+  ),
+  # `cinp2ginp` is where the two fuels differ: a PJ of wood is a PJ of group
+  # fuel, a PJ of waste only 0.74 of one. Waste is wet and heterogeneous and
+  # its steam is kept cool to limit corrosion, so it yields about a quarter
+  # less useful heat -- the 0.26-against-0.35 difference, expressed as fuel
+  # quality inside one plant instead of as two plants.
   ceff = data.frame(
-    comm     = c("BIO", "ELC"),
-    cinp2use = c(0.35, NA),
-    use2cact = c(NA, convert("PJ", "GWh", 1))
+    comm = c("BIO", "WST"),
+    cinp2ginp = c(1, 0.74)
   ),
   cap2act = convert("GW*year", "GWh", 1),
   invcost = list(invcost = convert("USD/kW", "MUSD/GW", 1600)),
@@ -2127,7 +2324,7 @@ repo <- newRepository(
   repo_demand
 )
 repo
-#> repository 'topia': 51 objects.
+#> repository 'topia': 53 objects.
 ```
 
 ## The model

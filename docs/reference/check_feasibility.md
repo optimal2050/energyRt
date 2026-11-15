@@ -6,7 +6,7 @@ finding is a contradiction in the data: no solver setting, starting
 point or tolerance will make such a model feasible, and an infeasible
 solve will not say which constraint was to blame.
 
-Two checks run:
+Three checks run:
 
 - `aux-from-stock`:
 
@@ -19,6 +19,19 @@ Two checks run:
 
   a declared `demand` exceeds the bounded supply of its commodity in the
   same region and year, again with no import and no inbound route.
+
+- `forced-supply-no-sink`:
+
+  the mirror case: a commodity whose balance is an equality
+  (`limtype = "FX"`) is forced to arise – `ava.fx`, or a positive
+  `ava.lo` – in a region and year where nothing can consume it. Under
+  the default `"LO"` balance a surplus may go nowhere and nothing is
+  contradicted, so only an equality is reported. The sinks are read from
+  the interpolated gating maps rather than the declarations, which is
+  what catches a consumer whose `vintage` starts later than the supply
+  does: a supply declared at two milestones is interpolated across the
+  years between them, and it is those filled years that have no
+  consumer.
 
 ## Usage
 

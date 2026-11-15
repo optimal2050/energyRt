@@ -459,6 +459,16 @@ your own.
   Create timetable of time-timeslices from given structure as a list
 - [`recast_model_calendar()`](https://energyRt.org/reference/recast_model_calendar.md)
   : Recast a model onto another calendar
+- [`setCalendar(`*`<config>`*`)`](https://energyRt.org/reference/setCalendar.md)
+  [`setCalendar(`*`<model>`*`)`](https://energyRt.org/reference/setCalendar.md)
+  [`setCalendar(`*`<scenario>`*`)`](https://energyRt.org/reference/setCalendar.md)
+  [`getCalendar(`*`<config>`*`)`](https://energyRt.org/reference/setCalendar.md)
+  [`getCalendar(`*`<model>`*`)`](https://energyRt.org/reference/setCalendar.md)
+  [`getCalendar(`*`<scenario>`*`)`](https://energyRt.org/reference/setCalendar.md)
+  : Set or get a model's calendar, for every year or for particular
+  years
+- [`getYearCalendars()`](https://energyRt.org/reference/getYearCalendars.md)
+  : Calendars by milestone year
 - [`autoplot(`*`<calendar>`*`)`](https://energyRt.org/reference/plot_calendar_method.md)
   : Visualize a Calendar object
 - [`autoplot(`*`<horizon>`*`)`](https://energyRt.org/reference/plot_horizon_method.md)
@@ -471,16 +481,12 @@ your own.
 Multi-level regions. A commodity declares the level it balances on, and
 coarse balances roll up without a `trade` route for every pair.
 
-- [`setCalendar(`*`<config>`*`)`](https://energyRt.org/reference/setGeoscale.md)
-  [`setGeoscale(`*`<config>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+- [`setGeoscale(`*`<config>`*`)`](https://energyRt.org/reference/setGeoscale.md)
   [`getGeoscale(`*`<config>`*`)`](https://energyRt.org/reference/setGeoscale.md)
   [`setGeoscale(`*`<model>`*`)`](https://energyRt.org/reference/setGeoscale.md)
   [`getGeoscale(`*`<model>`*`)`](https://energyRt.org/reference/setGeoscale.md)
   [`setGeoscale(`*`<scenario>`*`)`](https://energyRt.org/reference/setGeoscale.md)
   [`getGeoscale(`*`<scenario>`*`)`](https://energyRt.org/reference/setGeoscale.md)
-  [`getCalendar(`*`<config>`*`)`](https://energyRt.org/reference/setGeoscale.md)
-  [`getCalendar(`*`<model>`*`)`](https://energyRt.org/reference/setGeoscale.md)
-  [`getCalendar(`*`<scenario>`*`)`](https://energyRt.org/reference/setGeoscale.md)
   : Attach or read a model's geoscale
 
 - [`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md)
@@ -668,6 +674,8 @@ primitives.
   : What a solve sequence covered
 - [`calendar_samples()`](https://energyRt.org/reference/calendar_samples.md)
   : Build a calendar-sample specification
+- [`sample_calendar()`](https://energyRt.org/reference/sample_calendar.md)
+  : Build a calendar from a sample of another's timeslices
 - [`sample_summary()`](https://energyRt.org/reference/sample_summary.md)
   : Summarise an ensemble across samples
 - [`boundary_window()`](https://energyRt.org/reference/boundary_window.md)
@@ -1073,10 +1081,14 @@ Data bundled with the package for the examples and articles.
 
 - [`topia`](https://energyRt.org/reference/topia.md) : The TOPIA
   reference dataset
+- [`build_topia()`](https://energyRt.org/reference/build_topia.md) :
+  TOPIA instances, cut from the shipped model
 - [`topia_profile()`](https://energyRt.org/reference/topia_profile.md) :
   Synthetic input shapes on a calendar (deterministic)
 - [`topia_profiles()`](https://energyRt.org/reference/topia_profiles.md)
   : TOPIA input profiles
+- [`topia_simulate()`](https://energyRt.org/reference/topia_simulate.md)
+  : Synthetic TOPIA profiles
 - [`model_structure`](https://energyRt.org/reference/model_structure.md)
   : Catalogue of the model vocabulary
 - [`prefix`](https://energyRt.org/reference/prefix.md)
@@ -1084,6 +1096,12 @@ Data bundled with the package for the examples and articles.
   prefix multipliers
 - [`solver_options`](https://energyRt.org/reference/solver_options.md) :
   Solver presets
+- [`currency_codes`](https://energyRt.org/reference/currency_codes.md) :
+  Currency spellings, and the ISO code and scale each denotes
+- [`currency_fx`](https://energyRt.org/reference/currency_fx.md) :
+  Annual exchange rates, local currency per US dollar
+- [`currency_deflator`](https://energyRt.org/reference/currency_deflator.md)
+  : Annual price indices, for moving money between years
 - [`vre_cf`](https://energyRt.org/reference/vre_cf.md) : Hourly wind and
   solar capacity factors, one site, one year
 - [`vre_storage_duration`](https://energyRt.org/reference/vre_storage_duration.md)
@@ -1205,12 +1223,23 @@ Small helpers, conversions and accessors.
 
 - [`convert_data`](https://energyRt.org/reference/convert_data.md) :
 
-  Basic units conversion database for `convert` methods
+  The unit database
+  [`convert()`](https://energyRt.org/reference/convert.md) reads
 
 - [`convert(`*`<character>`*`)`](https://energyRt.org/reference/convert.md)
   [`convert(`*`<numeric>`*`)`](https://energyRt.org/reference/convert.md)
   [`add_to_convert(`*`<character>`*`,`*`<character>`*`,`*`<numeric>`*`)`](https://energyRt.org/reference/convert.md)
   : Convert units
+
+- [`currency_base_year()`](https://energyRt.org/reference/currency_base_year.md)
+  : The year untagged money is read at
+
+- [`add_currency_fx()`](https://energyRt.org/reference/add_currency.md)
+  [`add_currency_deflator()`](https://energyRt.org/reference/add_currency.md)
+  : Add an exchange rate or a price index
+
+- [`normalize_model_currency()`](https://energyRt.org/reference/normalize_model_currency.md)
+  : Convert a model's costs to one currency
 
 - [`renameSets()`](https://energyRt.org/reference/renameSets.md) :
   Rename data.frame columns of list of data.frames.
@@ -1238,6 +1267,9 @@ Small helpers, conversions and accessors.
 
 - [Solver backends and
   solver_options](https://energyRt.org/articles/backends.md):
+
+- [Validating and debugging a
+  model](https://energyRt.org/articles/debugging.md):
 
 - [Get started with
   energyRt](https://energyRt.org/articles/energyRt.md):

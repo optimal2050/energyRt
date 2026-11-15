@@ -300,9 +300,16 @@ usual case for a store's charging electricity – is charged at ZERO here,
 because what it is worth is the commodity balance's dual and not a slot.
 The scenario path therefore reports a store's OWN cost per unit
 discharged, not its delivered cost; use `levcost()` on the `storage`
-object with `price =` for the latter. Likewise a technology with a
-*grouped* input (whose per-commodity consumption is not a solution
-variable) reports no fuel component.
+object with `price =` for the latter.
+
+A *grouped* input is priced like any other: `vTechInp` carries the
+consumption of each member commodity separately, so a multi-fuel
+technology reports one `supply` component covering the blend the solver
+chose. What a group does not get is a share *frontier* –
+[`tech_share_frontier()`](https://energyRt.org/reference/tech_share_frontier.md)
+skips a group in which no commodity declares an explicit `grp.share.up`
+or a positive `grp.share.lo`, since an unconstrained group has no band
+to report.
 
 ## Examples
 

@@ -1,0 +1,439 @@
+---
+title: "Validating and debugging a model"
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE
+)
+options(warn = 1)
+```
+
+A model can fail in two ways. It can fail loudly: the solver returns
+INFEASIBLE, and nothing in the solver log names the row that cannot be met. Or
+it can fail quietly: the solve returns OPTIMAL, but a missing value was
+replaced by a default, a process could never run, or the matrix carries
+coefficients the solver had to scale away. energyRt has a check for each stage
+of the model life cycle, and most of them need no solver at all.
+
+| Stage | Check | What it finds |
+|---|---|---|
+| Declared model | `check_feasibility()`, `interpolate_model(check = TRUE)` | forced requirements above ceilings that cannot be raised |
+| Interpolated scenario | `validate_scenario_parameters()` | missing, duplicated or out-of-domain parameter rows; storages and corridors without their governing equations |
+| | `process_operability()` | processes that cannot operate in a region and year, and why |
+| | `audit_coefficients()` | the coefficient range of each equation family |
+| Infeasible solve | dummy import / export on commodity balances | which balance cannot close, where and when |
+| | `multimod::lp_bounds()` | matrix rows whose activity range misses their bounds |
+| Solved scenario | `verify_solution()` | accounting identities recomputed from the solution |
+| | `compare_solve_settings()` | disagreement between backends or storage settings |
+
+This article walks through each check on a small model with one planted defect
+per stage. Every block runs on the bundled GLPK in a few seconds.
+
+```{r setup}
+library(energyRt)
+
+debug_project <- file.path(tempdir(), "debugging")
+set_scenarios_path(path = debug_project)
+set_models_path(path = file.path(debug_project, "models"))
+set_repositories_path(path = file.path(debug_project, "repositories"))
+set_registry_file(path = file.path(debug_project, "energyRt_registry.csv"))
+
+annual_timetable <- make_timetable(struct = list(ANNUAL = "ANNUAL"))
+
+annual <- newCalendar(
+  name = "annual",
+  timetable = annual_timetable
+)
+
+horizon_2030 <- newHorizon(period = 2030)
+```
+
+Energy is measured in PJ and costs in MEUR. With `cap2act = 1`, one unit of
+capacity produces 1 PJ per year.
+
+# Before interpolation: contradictions in the declarations
+
+Some infeasibilities are visible in the data before any decision is made: a
+demand larger than everything that can ever supply its commodity, or a stock
+of capacity that consumes an auxiliary commodity the model cannot provide.
+`check_feasibility()` compares such forced requirements with ceilings that no
+decision can raise, per commodity, region and year. In the model below the
+only source of electricity is a supply capped at 6, against a demand of 10.
+
+```{r feasibility, message = TRUE}
+ELC <- newCommodity(
+  name = "ELC",
+  desc = "Electricity",
+  timeframe = "ANNUAL",
+  unit = "PJ"
+)
+
+SUPELC <- newSupply(
+  name = "SUPELC",
+  desc = "Electricity supply with a fixed ceiling",
+  commodity = "ELC",
+  unit = "PJ",
+  supply = data.frame(
+    cost = 1,
+    ava.up = 6
+  )
+)
+
+DEMELC <- newDemand(
+  name = "DEMELC",
+  desc = "Electricity demand",
+  commodity = "ELC",
+  unit = "PJ",
+  demand = data.frame(demand = 10)
+)
+
+short_repo <- newRepository(
+  name = "short_repo",
+  ELC,
+  SUPELC,
+  DEMELC
+)
+
+short <- newModel(
+  name = "short",
+  desc = "Supply ceiling below demand",
+  region = "R1",
+  horizon = horizon_2030,
+  calendar = annual,
+  discount = 0.05,
+  repo = short_repo
+)
+
+check_feasibility(object = short)
+```
+
+The finding lists the requirement, the ceiling, the shortfall and the object
+that forces it. A declaration without a region applies to every region of the
+model, and one without a year to every year, which the table shows as `NA`.
+The same check runs inside `interpolate_model()` with `check = TRUE`, which
+then stops instead of building a scenario that would only come back
+INFEASIBLE:
+
+```{r feasibility-interp, message = TRUE, error = TRUE}
+SHORT <- interpolate_model(
+  object = short,
+  name = "SHORT",
+  check = TRUE,
+  verbose = FALSE
+)
+```
+
+A clean result does not mean the model is feasible. Everything that depends on
+a decision -- whether capacity can serve the load, whether a bound binds,
+whether dispatch closes in every timeslice -- is left to the solver.
+
+# After interpolation: parameters, operability and coefficients
+
+The running example from here on converts gas to electricity. The combined
+cycle plant has 5 units of standing capacity and is capped at 5; an open-cycle
+plant is declared but capped at zero; demand is 10.
+
+```{r model}
+GAS <- newCommodity(
+  name = "GAS",
+  desc = "Natural gas",
+  timeframe = "ANNUAL",
+  unit = "PJ"
+)
+
+SUPGAS <- newSupply(
+  name = "SUPGAS",
+  desc = "Natural gas supply",
+  commodity = "GAS",
+  unit = "PJ",
+  supply = data.frame(cost = 1)
+)
+
+CCGT <- newTechnology(
+  name = "CCGT",
+  desc = "Combined-cycle gas power plant",
+  input = list(comm = "GAS"),
+  output = list(comm = "ELC"),
+  cap2act = 1,
+  ceff = data.frame(
+    comm = "GAS",
+    cinp2use = 2
+  ),
+  capacity = data.frame(
+    stock = 5,
+    cap.up = 5
+  ),
+  invcost = data.frame(invcost = 100)
+)
+
+OCGT <- newTechnology(
+  name = "OCGT",
+  desc = "Open-cycle gas power plant",
+  input = list(comm = "GAS"),
+  output = list(comm = "ELC"),
+  cap2act = 1,
+  ceff = data.frame(
+    comm = "GAS",
+    cinp2use = 3
+  ),
+  capacity = data.frame(cap.up = 0),
+  invcost = data.frame(invcost = 50)
+)
+
+toy_repo <- newRepository(
+  name = "toy_repo",
+  GAS,
+  ELC,
+  SUPGAS,
+  CCGT,
+  OCGT,
+  DEMELC
+)
+
+toy <- newModel(
+  name = "toy",
+  desc = "Gas-to-power model with a capacity cap",
+  region = "R1",
+  horizon = horizon_2030,
+  calendar = annual,
+  discount = 0.05,
+  repo = toy_repo
+)
+
+BASE <- interpolate_model(
+  object = toy,
+  name = "BASE",
+  verbose = FALSE
+)
+```
+
+## Parameter consistency
+
+`interpolate_model()` validates the interpolated parameters by default
+(`validate = TRUE`) and warns about advisory findings. The same checks can be
+run again on any scenario to collect the findings as a table: index columns
+without values, duplicated keys, parameter rows outside their maps, maps not
+covered by their parameters (a value the solver would silently replace by its
+default), and objects whose flows lack their governing equations -- a storage
+without its balance chain or a corridor without its capacity link, either of
+which would supply a balance without limit and still solve to OPTIMAL.
+
+```{r validate}
+base_findings <- validate_scenario_parameters(
+  object = BASE,
+  action = "silent"
+)
+
+base_findings
+```
+
+The toy scenario has no findings of this kind.
+
+## Processes that cannot operate
+
+A process can be declared and still be unable to run: its input has no source
+in the region, it has no capacity and no investment window, or a bound fixes
+its capacity, availability or activity at zero. `process_operability()` lists
+such processes and the reason.
+
+```{r operability}
+process_operability(object = BASE)
+```
+
+Limits that act through the solution, such as an emission cap or a tax, are
+outside this check.
+
+## Coefficient ranges
+
+Wide coefficient ranges come from unit choices -- a capacity in MW against an
+hourly activity share, a ramp divided by a timeslice share -- and make a solver
+work harder or stop with a numerical failure. `audit_coefficients()` writes
+the scenario, reads the matrix back and summarises the non-zero coefficients
+per equation family, with the variable families at each end of the widest row.
+
+```{r audit}
+audit_coefficients(x = BASE)
+```
+
+# An infeasible solve
+
+None of the checks above finds the planted defect: the plant that can serve
+the load is capped at half of it, and the cap only bites once the model has to
+dispatch. The solve stops with a warning and the scenario status records it.
+
+```{r infeasible}
+BASE <- solve_scenario(
+  object = BASE,
+  solver = solver_options$glpk,
+  verbose = FALSE
+)
+
+BASE@status$optimal
+```
+
+## Dummy import and export on commodity balances
+
+The model has a built-in slack on every commodity balance: a dummy import that
+adds the commodity and a dummy export that removes it, each at a price per
+unit. Both are off by default. They are switched on through the `debug`
+argument of `newModel()`, a table with one row per commodity, region, year and
+timeslice; `NA` in any of these columns stands for all of them, and an
+infinite price keeps that side off.
+
+```{r slack}
+dummy_prices <- data.frame(
+  comm = NA_character_,
+  region = NA_character_,
+  year = NA_integer_,
+  timeslice = NA_character_,
+  dummyImport = 1e3,
+  dummyExport = 1e3
+)
+
+toy_slack <- newModel(
+  name = "toy_slack",
+  desc = "Gas-to-power model with dummy import and export",
+  region = "R1",
+  horizon = horizon_2030,
+  calendar = annual,
+  discount = 0.05,
+  debug = dummy_prices,
+  repo = toy_repo
+)
+
+SLACK <- interpolate_model(
+  object = toy_slack,
+  name = "SLACK",
+  verbose = FALSE
+)
+
+SLACK <- solve_scenario(
+  object = SLACK,
+  solver = solver_options$glpk,
+  verbose = FALSE
+)
+
+SLACK@status$optimal
+```
+
+With the slack the model solves, and the slack variables show which balance
+could not close and by how much:
+
+```{r slack-result}
+dummy_import <- getData(
+  object = SLACK,
+  name = "vDummyImport",
+  merge = TRUE
+)
+
+knitr::kable(
+  x = dummy_import,
+  caption = "Dummy import, PJ"
+)
+```
+
+Electricity in 2030 is short by 5: the gap between the demand and the capped
+plant. No dummy export is used. `summary()` reports the total cost of the
+slack, so a non-zero value is visible without querying the variables:
+
+```{r slack-summary}
+summary(object = SLACK)
+```
+
+The price should be well above every real cost in the model, so that the
+slack is used only where nothing else can close the balance. The slack does
+not cover user constraints (`newConstraint()`) or a bound that contradicts
+another bound; a model that stays infeasible with the slack on every
+commodity is infeasible for one of those reasons.
+
+## The matrix: implied bounds
+
+The direct-matrix route of the [multimod](https://github.com/optimal2050/multimod)
+package builds the same linear programme without a solver.
+`multimod::lp_bounds()` propagates the row and column bounds to a fixed point
+and lists the rows whose possible activity cannot reach their bounds.
+
+```{r lp-bounds, eval = requireNamespace("multimod", quietly = TRUE), results = "hide"}
+toy_mm <- multimod_from_energyRt(
+  object = BASE,
+  verbose = FALSE
+)
+
+toy_lp <- multimod::model_to_lp(model = toy_mm)
+
+toy_bounds <- multimod::lp_bounds(lp = toy_lp)
+```
+
+```{r lp-bounds-rows, eval = requireNamespace("multimod", quietly = TRUE)}
+infeasible_rows <- toy_bounds$bounds$infeasible
+
+toy_lp$row_index[infeasible_rows, ]
+```
+
+The flagged rows are the electricity output totals of region `R1` in 2030: the
+output that the capped plant can deliver does not reach what the balance
+requires. Propagation is row by row, so it finds conflicts that a single
+equation decides; a contradiction that only arises from several equations
+together passes it and is left to the dummy slack or to the solver.
+
+# After a solve: accounting identities
+
+A solve that returns OPTIMAL can still carry a defect in the solver, the model
+template, the writer or the reader. `verify_solution()` recomputes the core
+identities -- the commodity balance and its sign, the source and sink totals,
+the cost decomposition and the discounted objective -- from the solution
+tables and reports any row that does not close.
+
+```{r verify}
+slack_verified <- verify_solution(object = SLACK)
+
+slack_verified$ok
+
+print(
+  x = slack_verified,
+  detail = "issues"
+)
+```
+
+`verify_checks()` lists the available checks; `checks = "all"` adds the
+costlier ones.
+
+# Cross-checks between backends
+
+The objective of a model does not depend on the backend or on how the
+scenario is stored. Solving the same scenario with two backends, or with
+different storage settings, separates a modelling problem from a backend
+problem. `compare_solve_settings()` tabulates objective, time and status for
+every combination and flags disagreement per solver.
+
+```{r cross-check}
+slack_compared <- compare_solve_settings(
+  object = toy_slack,
+  settings = list(default = list()),
+  solvers = list(glpk = solver_options$glpk)
+)
+
+slack_compared$summary
+```
+
+Further solvers are added to the `solvers` list, for example
+`solver_options$mm_highs` or `solver_options$julia_highs` where installed.
+
+# A sequence for a failing model
+
+1. `check_feasibility()` on the model, or `interpolate_model(check = TRUE)`.
+2. The findings of `validate_scenario_parameters()` and
+   `process_operability()` on the interpolated scenario.
+3. For an INFEASIBLE solve: the dummy import and export on all commodities. A
+   non-zero slack names the commodity, region, year and timeslice; a model
+   that stays infeasible points to a user constraint or to conflicting bounds.
+4. `multimod::lp_bounds()` on the matrix for the rows that cannot be met.
+5. For an OPTIMAL but suspect solution: `verify_solution()`, then a second
+   backend.
+6. For numerical trouble (slow convergence, a solver that stops with a
+   numerical status): `audit_coefficients()`.

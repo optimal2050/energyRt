@@ -1,0 +1,69 @@
+# Add an exchange rate or a price index
+
+The shipped tables stop at the year they were built from. These add a
+row, or replace one, for the current session – a rate newer than the
+release, a currency the tables do not carry, or a deflator basis of your
+own.
+
+## Usage
+
+``` r
+add_currency_fx(code, year, lcu_per_usd, source = "user")
+
+add_currency_deflator(
+  code,
+  year,
+  index,
+  basis = "gdp",
+  area = NA_character_,
+  source = "user"
+)
+```
+
+## Arguments
+
+- code:
+
+  ISO 4217 currency code.
+
+- year:
+
+  calendar year.
+
+- lcu_per_usd:
+
+  units of the currency per US dollar. Note the direction: it is what
+  the source series publishes, and the reciprocal of `convert_data`'s
+  coefficients. Adding one for a year the tables do not reach also adds
+  the numeraire's own row for that year, which is 1 by definition, so a
+  cross rate has both of its sides.
+
+- source:
+
+  free text recording where the number came from.
+
+- index:
+
+  a price index. Only ratios between years are used, so its base does
+  not matter, but it must share a base with the other years of the same
+  currency and basis.
+
+- basis:
+
+  `"gdp"` or `"cpi"`, or a name of your own.
+
+- area:
+
+  the area the index is for, recorded for provenance.
+
+## Value
+
+Invisibly, the added rows.
+
+## Examples
+
+``` r
+add_currency_fx("EUR", 2026, 0.92, source = "my own estimate")
+convert("MEUR2026", "MUSD2026")
+#> [1] 1.086957
+```

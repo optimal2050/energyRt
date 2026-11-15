@@ -4,7 +4,7 @@ A named list of ready-to-use
 [calendar](https://energyRt.org/reference/class-calendar.md) objects
 covering common sub-annual time resolutions. Pass any element to
 [`newModel()`](https://energyRt.org/reference/newModel.md) /
-[`setCalendar()`](https://energyRt.org/reference/setGeoscale.md),
+[`setCalendar()`](https://energyRt.org/reference/setCalendar.md),
 inspect it with [`plot()`](https://energyRt.org/reference/draw.md) /
 `autoplot()`, or use it as a template for
 [`newCalendar()`](https://energyRt.org/reference/newCalendar.md).

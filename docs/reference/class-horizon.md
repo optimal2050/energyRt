@@ -34,6 +34,13 @@ An S4 class to represent model/scenario planning horizon with intervals
   The label is presentation only and never reaches the solver – see
   [`year_label()`](https://energyRt.org/reference/year_label.md).
 
+  An optional `calendar` column names the calendar that milestone is
+  solved on, taken from `config@misc$calendars`; `NA`, or no column at
+  all, means the model calendar, which is every horizon written before
+  per-year calendars existed. Write it with
+  `setCalendar(mod, cal, years = ...)`, which also checks that the
+  calendar is a sample of the model's.
+
 - `base_year`:
 
   integer. Optional single milestone year that is GIVEN rather than

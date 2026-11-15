@@ -86,7 +86,7 @@ mod2 <- add(mod, sup_gas, overwrite = TRUE)
 cmp <- compare_models(mod, mod2, names = c("base", "dear gas"))
 cmp
 #> model comparison: base vs dear gas
-#> changed: 1  same: 50 
+#> changed: 1  same: 52 
 #> 
 #> --- Objects ---
 #>     name  class   hash_a   hash_b  status

@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.4.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -100,7 +100,7 @@
     
 <p>Most models worth building are larger than the solver available to
 them. The usual response is to make the model smaller, and energyRt
-offers eight ways to do it. They are not interchangeable: each removes
+offers nine ways to do it. They are not interchangeable: each removes
 something different, and each pays for the saving in a different
 currency.</p>
 <p>Three questions separate them.</p>
@@ -109,8 +109,8 @@ geoscale, milestone years, or merely the freedom to decide. <em>Whether
 any value is recomputed</em> — a reduction that only drops rows leaves
 every remaining number exactly as declared, while one that merges cells
 must combine values, and combining them is where meaning can be lost.
-<em>Whether the answer is still the full model’s</em> — two of the eight
-reductions are exact, five approximate, and three of the approximations
+<em>Whether the answer is still the full model’s</em> — two of the nine
+reductions are exact, six approximate, and three of the approximations
 report their own error.</p>
 <p>This article treats each reduction in the same six terms. A companion
 article, <code>vignette("resolution")</code>, maps the same ground by
@@ -194,6 +194,76 @@ replacement, and a member drawn twice becomes a scaled share rather than
 a repeated row, because a calendar holds each timeslice once.</p>
 </div>
 <div class="section level3">
+<h3 id="a-calendar-per-milestone-year">A calendar per milestone year<a class="anchor" aria-label="anchor" href="#a-calendar-per-milestone-year"></a>
+</h3>
+<ul>
+<li>
+<strong>Reduces</strong> the number of timeslices in the years that
+name a cheaper calendar, leaving the rest at the model’s own. A pathway
+hourly in 2030 and 2050 and solved on twelve sampled days in 2040
+carries 9126 slices in the first two years and 301 in the third.</li>
+<li>
+<strong>Recomputes nothing.</strong> A year’s calendar must be a
+<em>sample</em> of the model’s: the same timeframe levels, slices drawn
+from the same universe, the same <code>share</code> for a slice the two
+share. What differs is which slices a year has and
+<code>pTimesliceWeight</code>, which carries that year’s own weight, so
+each year still annualises exactly. Rows outside a year’s slices are
+dropped, not averaged.</li>
+<li>
+<strong>Size</strong> falls in proportion to the slices dropped, but
+only in the years that drop them: the variable and equation domains are
+keyed by year, so a sampled year contributes fewer dispatch, storage and
+flow cells while a full year contributes all of its own.</li>
+<li>
+<strong>The answer is approximate in the sampled years
+alone.</strong> Those years smooth extremes exactly as a whole-model
+sample does, so peaking capacity and storage are what suffer, while the
+years solved in full are untouched. Investment decided in a sampled year
+still constrains the pathway, which is the reason to keep the years
+where capacity is chosen at full resolution and sample the ones that
+only carry the trajectory between them. Where the data is symmetric
+across the sampled dimension the reduction is exact.</li>
+<li>
+<strong>Used for</strong> long pathways whose intra-annual detail
+matters at the milestones whose investment is being decided and not in
+between.</li>
+<li>
+<strong>Driven by</strong>
+<code>setCalendar(mod, cal, years = )</code>, which registers the
+calendar and names it on those milestones of the horizon;
+<code><a href="../reference/getYearCalendars.html">getYearCalendars()</a></code> reads back the calendar each milestone
+will be solved on. <code><a href="../reference/sample_calendar.html">sample_calendar()</a></code> builds the sample
+where no shipped calendar is the one wanted — <code>d365_h24_1dpm</code>
+below is a shipped sample of <code>d365_h24</code>, and
+<code><a href="https://optimal2050.github.io/timescales/r/reference/filter_calendar.html" class="external-link">timescales::filter_calendar()</a></code> is the same operation on a
+<code><a href="https://optimal2050.github.io/timescales/r/reference/Calendar.html" class="external-link">timescales::Calendar</a></code>. The sample must keep at least two
+members at every level below the year: a year may sample the model
+calendar but not coarsen it, because dropping a level renames the leaf
+timeslices and the year’s data would stop matching.
+<code><a href="../reference/setCalendar.html">setCalendar()</a></code> refuses anything that is not a sample, naming
+the level or the slice at fault.</li>
+</ul>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># hourly throughout, except 2040 on one sampled day per month</span></span>
+<span><span class="va">hourly</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA_H"</span>, data <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">repo</span>,</span>
+<span>                   calendar <span class="op">=</span> <span class="va">calendars</span><span class="op">[[</span><span class="st">"d365_h24"</span><span class="op">]</span><span class="op">]</span>,</span>
+<span>                   region   <span class="op">=</span> <span class="va">topia_elc</span><span class="op">$</span><span class="va">regions</span>,</span>
+<span>                   horizon  <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">BY2025_50_by10</span>,</span>
+<span>                   discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
+<span><span class="va">hourly</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/setGeoscale.html">setGeoscale</a></span><span class="op">(</span><span class="va">hourly</span>, <span class="va">topia_elc</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span></span>
+<span><span class="va">hourly</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/setCalendar.html">setCalendar</a></span><span class="op">(</span><span class="va">hourly</span>, <span class="va">calendars</span><span class="op">[[</span><span class="st">"d365_h24_1dpm"</span><span class="op">]</span><span class="op">]</span>, years <span class="op">=</span> <span class="fl">2040</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 2025, 2030 and 2050 on 9126 slices; 2040 on 301</span></span>
+<span><span class="fu"><a href="../reference/getYearCalendars.html">getYearCalendars</a></span><span class="op">(</span><span class="va">hourly</span><span class="op">)</span></span>
+<span><span class="va">hourly</span><span class="op">@</span><span class="va">config</span><span class="op">@</span><span class="va">horizon</span><span class="op">@</span><span class="va">intervals</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"mid"</span>, <span class="st">"calendar"</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<p>Folding cannot include the timeslice axis while a milestone has a
+calendar of its own: a whole-column fold asserts that a value is uniform
+across every timeslice, and the years no longer share a timeslice set.
+<code>interpolate_model(fold = c("region", "year"))</code> remains
+available.</p>
+</div>
+<div class="section level3">
 <h3 id="calendar-coarsening">Calendar coarsening<a class="anchor" aria-label="anchor" href="#calendar-coarsening"></a>
 </h3>
 <ul>
@@ -224,7 +294,7 @@ and as the cheap intermediate stage of a guided solve.</li>
 <strong>Driven by</strong> <code><a href="../reference/recast_model_calendar.html">recast_model_calendar()</a></code>,
 over <code><a href="https://optimal2050.github.io/timescales/r/reference/recast_calendar.html" class="external-link">timescales::recast_calendar()</a></code>.</li>
 </ul>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">annual</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/recast_model_calendar.html">recast_model_calendar</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">annual</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># monthly hours, with one column moved by a rule other than its declared one</span></span>
@@ -263,7 +333,7 @@ measurement rather than a decision.</li>
 <code><a href="../reference/solve_base_year.html">solve_base_year()</a></code> and
 <code>interpolate_model(base_year_scenario = )</code>.</li>
 </ul>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># the horizon `mod` already carries: 2025 given, then 2030/2040/2050 decided</span></span>
 <span><span class="fu"><a href="../reference/newHorizon.html">newHorizon</a></span><span class="op">(</span>period <span class="op">=</span> <span class="fl">2025</span><span class="op">:</span><span class="fl">2055</span>, intervals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">10</span><span class="op">)</span>, base_year <span class="op">=</span> <span class="fl">2025</span><span class="op">)</span></span>
 <span></span>
@@ -305,7 +375,7 @@ representing agents who genuinely cannot see ahead.</li>
 <strong>Driven by</strong> <code><a href="../reference/horizon_windows.html">horizon_windows()</a></code> and
 <code><a href="../reference/solve_recursive.html">solve_recursive()</a></code>.</li>
 </ul>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># what the sequence will decide, before committing to it</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="../reference/horizon_windows.html">horizon_windows</a></span><span class="op">(</span><span class="fu"><a href="../reference/newModel.html">getHorizon</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span>, step <span class="op">=</span> <span class="fl">2L</span>, overlap <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span>,</span>
 <span>       <span class="kw">function</span><span class="op">(</span><span class="va">w</span><span class="op">)</span> <span class="va">w</span><span class="op">$</span><span class="va">horizon</span><span class="op">@</span><span class="va">name</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
@@ -353,7 +423,7 @@ continental dataset, and as the shard of a spatial decomposition.</li>
 <code><a href="../reference/boundary_window.html">boundary_window()</a></code> sizes the stub from the region’s own
 demand.</li>
 </ul>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">west</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/subset_model_regions.html">subset_model_regions</a></span><span class="op">(</span><span class="va">mod</span>, region <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R02"</span>, <span class="st">"R03"</span><span class="op">)</span><span class="op">)</span>   <span class="co"># zone Z2</span></span>
 <span></span>
 <span><span class="co"># the same cut, but facing an exterior rather than an edge: a stepped curve</span></span>
@@ -403,7 +473,7 @@ behaviour is asked of most regions.</li>
 which returns a model declared over the coarser regions and carrying the
 pruned geoscale.</li>
 </ul>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">repo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newRepository.html">newRepository</a></span><span class="op">(</span></span>
 <span>  <span class="st">"mini"</span>,</span>
 <span>  <span class="fu"><a href="../reference/newCommodity.html">newCommodity</a></span><span class="op">(</span><span class="st">"COA"</span>, unit <span class="op">=</span> <span class="st">"MMBtu"</span><span class="op">)</span>,</span>
@@ -463,7 +533,7 @@ grouping is a scale-construction method supplied by
 than chosen: <code>k = "auto"</code> picks the best average silhouette,
 which is a rule and not an answer.</li>
 </ul>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/get_process_groups.html">get_process_groups</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span>        <span class="co"># what could be merged, and over which regions</span></span>
 <span></span>
 <span><span class="co"># per family, never one k for the model:</span></span>
@@ -548,7 +618,7 @@ refined against the end state, and finally one full-horizon solve
 carrying the accumulated bounds. <code><a href="../reference/guided_gap.html">guided_gap()</a></code> reports the
 price.</li>
 </ul>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">gdd</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_guided.html">solve_guided</a></span><span class="op">(</span><span class="va">mod</span>, stages <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"endpoint"</span>, <span class="st">"pairs"</span>, <span class="st">"final"</span><span class="op">)</span>,</span>
 <span>                    slack <span class="op">=</span> <span class="fl">0.2</span>, mode <span class="op">=</span> <span class="st">"lo"</span>,</span>
 <span>                    calendar_guide <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">annual</span>,</span>
@@ -577,7 +647,7 @@ modelling cell. The answer is identical by construction;
 <code>options(energyRt.map_rules_verify = TRUE)</code> checks each rule
 against the table it replaces. These are representation choices, not
 resolution choices.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"COMPACT"</span>, fold <span class="op">=</span> <span class="cn">TRUE</span>, sparse <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/model_size.html">model_size</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="../reference/model_size.html">model_size()</a></code> is also the way to find out what any of the
@@ -610,15 +680,20 @@ to achieve.</p>
 <td>coarsen the calendar, or sample it and report the spread</td>
 </tr>
 <tr class="even">
+<td>Does it hinge on that detail in some years more than others?</td>
+<td>a calendar per milestone year — full where the investment is
+decided</td>
+</tr>
+<tr class="odd">
 <td>Does it hinge on resource quality?</td>
 <td>aggregate with clusters, never plainly</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Is the full horizon simply too large?</td>
 <td>guided solving, whose gap is measurable; sequential only where
 foresight is genuinely absent</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Is the model merely slow to build or store?</td>
 <td>
 <code>fold</code>, <code>sparse</code>, <code>prune</code>,
@@ -650,9 +725,13 @@ property of the model, not of the cell:
 one level. A model fine in two regions and coarse in the remaining
 forty-eight cannot yet be declared, although the refusals that stand in
 the way are all stated and none is fundamental.</p>
-<p><strong>Uneven resolution across time.</strong> One calendar serves
-every milestone year. A pathway with 8760 hours in 2030, 2040 and 2050
-and a twelve-day sample in 2035 and 2045 cannot yet be declared.</p>
+<p><strong>A coarser year, rather than a sampled one.</strong> A
+milestone may be solved on a sample of the model calendar (above), but
+not on a calendar with fewer timeframe levels: daily in 2035 where the
+model is hourly. Dropping a level re-derives the leaf timeslice names,
+after which the year’s data matches nothing and it solves to zero
+without complaint, so the assignment is refused rather than
+attempted.</p>
 <p><strong>A boundary price taken from a solved model.</strong>
 <code><a href="../reference/boundary_window.html">boundary_window()</a></code> sizes a stub’s quantity but refuses to
 invent its price, and nothing derives that price from a neighbour’s

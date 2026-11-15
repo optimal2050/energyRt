@@ -8,6 +8,9 @@
 - [Solver backends and
   solver_options](https://energyRt.org/articles/backends.md):
 
+- [Validating and debugging a
+  model](https://energyRt.org/articles/debugging.md):
+
 - [Get started with
   energyRt](https://energyRt.org/articles/energyRt.md):
 

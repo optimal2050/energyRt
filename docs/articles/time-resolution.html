@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.4.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -123,7 +123,7 @@ timeslice count is the main dial between realism and model size:</p>
 <td align="right">1</td>
 </tr>
 <tr class="even">
-<td><code>topia_seasons</code></td>
+<td><code>s4_hp3</code></td>
 <td>4 seasons × day/night/peak</td>
 <td align="right">12</td>
 </tr>
@@ -141,6 +141,11 @@ timeslice count is the main dial between realism and model size:</p>
 <td><code>d365</code></td>
 <td>365 days</td>
 <td align="right">365</td>
+</tr>
+<tr class="even">
+<td><code>d365_h24</code></td>
+<td>365 days × 24 hours</td>
+<td align="right">8,760</td>
 </tr>
 </tbody>
 </table>
@@ -401,14 +406,15 @@ follow it — annual bookkeeping stays cheap.</p>
 <h2 id="choosing-a-resolution">Choosing a resolution<a class="anchor" aria-label="anchor" href="#choosing-a-resolution"></a>
 </h2>
 <ul>
-<li>Start coarse (<code>topia_seasons</code>-like, ~12 timeslices) while
-the model structure is in flux — solves are instant.</li>
+<li>Start coarse (<code>s4_hp3</code>, 12 timeslices) while the model
+structure is in flux — solves are instant.</li>
 <li>Move to hour-within-season (<code>s4_h24</code>, 96) once storage,
 VRE profiles or peak pricing matter — intra-day dynamics need real
 hours.</li>
-<li>Full-year hourly detail (<code>m12_h24</code>, 288 or
-<code>d365</code>+hours) is for final runs; check tractability with
-<code><a href="../reference/model_size.html">model_size()</a></code> first.</li>
+<li>Full-year hourly detail (<code>m12_h24</code>, 288, or
+<code>d365_h24</code>, 8,760) is for final runs; check tractability with
+<code><a href="../reference/model_size.html">model_size()</a></code> first, and consider a sample of the hourly
+calendar (<code>d365_h24_1dpm</code>, 301) while iterating.</li>
 <li>On a <strong>multi-year</strong> horizon, interpolate with
 <code>fold = TRUE</code>. A weather series that is the same in every
 milestone year is stored once instead of once per year, which is usually

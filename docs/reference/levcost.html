@@ -13,7 +13,7 @@ without re-solving: levcost(lc, by_variant = "npv").'><meta property="og:image" 
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.4.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,6 +39,7 @@ without re-solving: levcost(lc, by_variant = "npv").'><meta property="og:image" 
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/debugging.html">Validating &amp; debugging</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -351,9 +352,14 @@ which is the usual case for a store's charging electricity – is charged
 at ZERO here, because what it is worth is the commodity balance's dual and
 not a slot. The scenario path therefore reports a store's OWN cost per
 unit discharged, not its delivered cost; use <code>levcost()</code> on the
-<code>storage</code> object with <code>price =</code> for the latter. Likewise a
-technology with a <em>grouped</em> input (whose per-commodity consumption
-is not a solution variable) reports no fuel component.</p>
+<code>storage</code> object with <code>price =</code> for the latter.</p>
+<p>A <em>grouped</em> input is priced like any other: <code>vTechInp</code> carries the
+consumption of each member commodity separately, so a multi-fuel technology
+reports one <code>supply</code> component covering the blend the solver chose.
+What a group does not get is a share <em>frontier</em> –
+<code><a href="tech_share_frontier.html">tech_share_frontier()</a></code> skips a group in which no commodity declares an
+explicit <code>grp.share.up</code> or a positive <code>grp.share.lo</code>, since an
+unconstrained group has no band to report.</p>
     </div>
 
     <div class="section level2">

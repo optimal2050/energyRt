@@ -37,7 +37,7 @@ Other geoscale:
 [`gg_map()`](https://energyRt.org/reference/gg_map.md),
 [`model_clusters()`](https://energyRt.org/reference/model_clusters.md),
 [`process_cluster_sweep()`](https://energyRt.org/reference/process_cluster_sweep.md),
-[`setCalendar,config-method`](https://energyRt.org/reference/setGeoscale.md)
+[`setGeoscale,config-method`](https://energyRt.org/reference/setGeoscale.md)
 
 ## Examples
 
@@ -45,6 +45,6 @@ Other geoscale:
 # returns the declared regions the geoscale cannot place, and warns about them
 gs <- topia$geoscales$squares
 check_geoscale_regions(gs, c("W1", "W2", "C1"))        # all placed: character(0)
-#> Warning: The geoscale has no code at level 'region' for 3 declared region(s): C1, W1, W2. Maps and region-level reporting will omit them.
+#> Warning: The geoscale has no code at level 'province' for 3 declared region(s): C1, W1, W2. Maps and region-level reporting will omit them.
 suppressWarnings(check_geoscale_regions(gs, c("W1", "NOWHERE")))
 ```

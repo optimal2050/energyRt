@@ -15,7 +15,7 @@ folded together by data-raw/topia_assemble.R.'><meta property="og:image" content
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.4.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,6 +41,7 @@ folded together by data-raw/topia_assemble.R.'><meta property="og:image" content
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/debugging.html">Validating &amp; debugging</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -88,32 +89,48 @@ folded together by <code>data-raw/topia_assemble.R</code>.</p>
     <p>A named list of five elements:</p><dl><dt>geoscales</dt>
 <dd><p>named list of four <a href="https://optimal2050.github.io/geoscales/r/reference/GeoScale.html" class="external-link">geoscales::GeoScale</a> objects
 (<code>squares</code>, <code>honeycomb</code>, <code>island</code>, <code>continent</code>). Each carries the same
-hierarchy – <code>nation TOPIA -&gt; zone WEST/CENTRAL/EAST -&gt; region</code> over
-<code>W1</code>, <code>W2</code>, <code>C1</code>..<code>C6</code>, <code>E1</code>..<code>E3</code> – and that layout's polygons, plus a
+hierarchy – <code>nation TOPIA -&gt; zone Z1..Z5 -&gt; province</code> over
+<code>R01</code>..<code>R12</code> – and that layout's polygons, plus a
 planar <code>area</code> weight. This is the dataset's ONLY copy of the geometry:
 the plain <code>topia$map</code> and the <code>topia$geo</code> hierarchy table were removed in
-0.91. Get either back with <code>geoscales::geoscale_geometry(gs, "region")</code>
-and <code>geoscales::geoscale_leaftable(gs)</code>. Every layout draws the same
-eleven regions in different places, and each assigns the codes so that a
-zone is one contiguous block on that picture.</p></dd>
+0.91. Get either back with
+<code>geoscales::geoscale_geometry(gs, "province")</code> and
+<code>geoscales::geoscale_leaftable(gs)</code>. Every layout draws the same twelve
+provinces in different places, and each assigns the codes so that a
+zone is one contiguous block on that picture. The finest geoframe is
+<code>province</code>, not <code>region</code>: energyRt uses <code>region</code> for a model's own
+spatial dimension, so a geoframe of that name would make
+<code>level = "region"</code> ambiguous. The leaftable still carries a <code>region</code>
+column – the atom key, a copy of <code>province</code> – so anything joining on
+<code>region</code> is unaffected.</p></dd>
 
 <dt>weather</dt>
-<dd><p>deterministic solar / wind / hydro capacity factors for the
-three teaching calendars. Columns <code>calendar</code>
-(<code>s4_h24</code>/<code>m12_h24</code>/<code>topia_seasons</code>), <code>resource</code>
-(<code>WSOL</code>/<code>WWIN</code>/<code>WHYD</code>), <code>timeslice</code> (e.g. <code>SUM_h12</code>, <code>m06_h12</code> or
-<code>SUM_DAY</code>) and <code>wval</code> (capacity factor, 0-1). Attribute <code>source</code> records
-whether it came from IDEEA reanalysis or the curated fallback.</p></dd>
+<dd><p>solar / wind / hydro capacity factors for the two
+calendars TOPIA runs on. Columns <code>dataset</code>, <code>calendar</code>
+(<code>s4_h24</code>/<code>d365_h24</code>), <code>resource</code> (<code>WSOL</code>/<code>WWIN</code>/<code>WHYD</code>), <code>region</code>,
+<code>cluster</code> (the resource grade, <code>NA</code> where ungraded), <code>timeslice</code> and
+<code>wval</code> (capacity factor, 0-1). The <code>dataset</code> column is the split that
+matters: <code>measured</code> carries the graded hourly series on <code>d365_h24</code> –
+wind in <code>HI</code>/<code>MD</code>/<code>LO</code>, solar in <code>FL</code>/<code>TH</code> – and <code>simulated</code> the small
+stand-in on <code>s4_h24</code>, whose <code>cluster</code> is <code>NA</code> throughout. A clustered
+technology therefore has no weather rows on <code>s4_h24</code>.</p></dd>
 
 <dt>demand</dt>
-<dd><p>a relative electricity-load shape by timeslice, for the same
-three calendars. Columns <code>calendar</code>, <code>timeslice</code> and <code>load</code> (relative,
-mean ~1); scale it by a region's annual demand and the timeslice shares
-to get energy per timeslice.</p></dd>
+<dd><p>relative electricity-load shapes by province and timeslice,
+for the same two calendars. Columns <code>dataset</code>, <code>calendar</code>, <code>region</code>,
+<code>timeslice</code> and <code>load</code> (relative, mean ~1); scale by a province's annual
+demand and the timeslice shares to get energy per timeslice.</p></dd>
 
 <dt>stock</dt>
 <dd><p>deterministic base-year installed capacity per technology.
 Columns <code>tech</code> and <code>gw</code>.</p></dd>
+
+<dt>grades</dt>
+<dd><p>the resource grades the measured weather is split into:
+<code>resource</code>, <code>region</code>, <code>cluster</code>, <code>ann_cf</code> (annual capacity factor),
+<code>avail</code> (the ceiling, GW) and <code>cells</code> (how many grid cells it pools).
+36 rows – a province appears only in the grades its own ground
+reaches.</p></dd>
 
 <dt>modules</dt>
 <dd><p>the kit – see below.</p></dd>
@@ -136,12 +153,15 @@ the <code>topia-use</code> vignette).</p><dl><dt>info</dt>
 <dd><p>a description string.</p></dd>
 
 <dt>calendars</dt>
-<dd><p>the TOPIA calendars (<code>annual</code>/<code>topia_seasons</code>/
-<code>s4_h24</code>/<code>m12_h24</code>) plus the symmetric unit calendars
-(<code>unit_s4</code>, 4 equal seasons; <code>unit_s4h4</code>, 4x4). Note <code>annual</code>
-cannot drive the shipped kits (<code>ELC</code> is balanced at the <code>HOUR</code> level
-and <code><a href="topia_profiles.html">topia_profiles()</a></code> has no annual shapes); it ships as the
-coarsest example calendar.</p></dd>
+<dd><p>the two calendars TOPIA runs on: <code>d365_h24</code> (365 days x
+24 hours, 9,126 timeslices), which is the only one carrying the measured
+graded weather, and <code>s4_h24</code> (4 seasons x 24 hours, 96), the small
+simulated stand-in. Samples of the hourly calendar –
+<code>d365_h24_1dpm</code> (301) and <code>d365_h24_1dps</code> (101) – live in
+<a href="calendars.html">calendars</a> and keep <code>d365_h24</code>'s timeslice names, so the measured
+grades survive being filtered onto them. The symmetric unit calendars
+(<code>unit_s4</code>, 4 equal seasons; <code>unit_s4h4</code>, 4x4) ship beside the unit
+kits under <code>$unit$calendars</code>, not here.</p></dd>
 
 <dt>horizons</dt>
 <dd><p>planning horizons, named for their MILESTONES rather
@@ -152,10 +172,10 @@ MID-point of its period, so that is where its costs are discounted
 from. <code>BY2025</code> = the base year alone, for the unit kits.</p></dd>
 
 <dt>electricity</dt>
-<dd><p>THE model, over all eleven regions <code>W1</code>, <code>W2</code>,
-<code>C1</code>..<code>C6</code>, <code>E1</code>..<code>E3</code>: <code>repo</code> (the repository), <code>regions</code>, <code>calendar</code>
+<dd><p>THE model, over all twelve provinces
+<code>R01</code>..<code>R12</code>: <code>repo</code> (the repository), <code>regions</code>, <code>calendar</code>
 (the name of the calendar it was built for), <code>geoscale</code> (its
-<code>nation -&gt; zone -&gt; region</code> hierarchy, without geometry – a model MUST
+<code>nation -&gt; zone -&gt; province</code> hierarchy, without geometry – a model MUST
 carry it, see the examples), and the scenario levers <code>CO2_CAP</code>,
 <code>CT_CO2</code>, <code>EARLY_RET</code> and <code>GREEN_H2</code>, which are NOT in <code>repo</code> and
 are added to a scenario on top of it. Built by
@@ -191,7 +211,8 @@ bridging) to 10. The arithmetic is written out in
 <a href="calendars.html">calendars</a>, <a href="horizons.html">horizons</a>, <code><a href="supply-curve.html">asSupplyCurve()</a></code>, the TOPIA vignettes</p>
 <p>Other topia:
 <code><a href="topia_profile.html">topia_profile()</a></code>,
-<code><a href="topia_profiles.html">topia_profiles()</a></code></p></div>
+<code><a href="topia_profiles.html">topia_profiles()</a></code>,
+<code><a href="topia_simulate.html">topia_simulate()</a></code></p></div>
     </div>
 
     <div class="section level2">
@@ -202,13 +223,13 @@ bridging) to 10. The arithmetic is written out in
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">geoscales</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "squares"   "honeycomb" "island"    "continent"</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">weather</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     dataset calendar resource region cluster timeslice wval</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 simulated   s4_h24     WSOL    R01    &lt;NA&gt;   FAL_h00    0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 simulated   s4_h24     WSOL    R01    &lt;NA&gt;   FAL_h01    0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 simulated   s4_h24     WSOL    R01    &lt;NA&gt;   FAL_h02    0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 simulated   s4_h24     WSOL    R01    &lt;NA&gt;   FAL_h03    0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 simulated   s4_h24     WSOL    R01    &lt;NA&gt;   FAL_h04    0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 simulated   s4_h24     WSOL    R01    &lt;NA&gt;   FAL_h05    0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     dataset calendar resource region cluster timeslice  wval</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 simulated   s4_h24     WHYD    R01    &lt;NA&gt;   WIN_h00 0.535</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 simulated   s4_h24     WHYD    R01    &lt;NA&gt;   WIN_h01 0.535</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 simulated   s4_h24     WHYD    R01    &lt;NA&gt;   WIN_h02 0.535</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 simulated   s4_h24     WHYD    R01    &lt;NA&gt;   WIN_h03 0.535</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 simulated   s4_h24     WHYD    R01    &lt;NA&gt;   WIN_h04 0.535</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 simulated   s4_h24     WHYD    R01    &lt;NA&gt;   WIN_h05 0.535</span>
 <span class="r-in"><span><span class="va">topia</span><span class="op">$</span><span class="va">stock</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   tech gw</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 ECOA  6</span>
@@ -220,7 +241,7 @@ bridging) to 10. The arithmetic is written out in
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="va">gs</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">geoscales</span><span class="op">$</span><span class="va">honeycomb</span>          <span class="co"># hierarchy + that layout's polygons</span></span></span>
-<span class="r-in"><span><span class="fu">geoscales</span><span class="fu">::</span><span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/geoscale_leaftable.html" class="external-link">geoscale_leaftable</a></span><span class="op">(</span><span class="va">gs</span><span class="op">)</span>        <span class="co"># the region table</span></span></span>
+<span class="r-in"><span><span class="fu">geoscales</span><span class="fu">::</span><span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/geoscale_leaftable.html" class="external-link">geoscale_leaftable</a></span><span class="op">(</span><span class="va">gs</span><span class="op">)</span>        <span class="co"># the province table</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="energyRt-deprecated.html">plot_geoscale</a></span><span class="op">(</span><span class="va">gs</span>, type <span class="op">=</span> <span class="st">"map"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">um</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span></span></span>

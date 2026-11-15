@@ -15,13 +15,14 @@ dispatchable, peak capacity is free. A **calendar** gives the model
 sub-annual **time timeslices**, and the timeslice count is the main dial
 between realism and model size:
 
-| calendar        | structure                  | timeslices |
-|-----------------|----------------------------|-----------:|
-| `annual`        | one annual timeslice       |          1 |
-| `topia_seasons` | 4 seasons × day/night/peak |         12 |
-| `s4_h24`        | 4 seasons × 24 hours       |         96 |
-| `m12_h24`       | 12 months × 24 hours       |        288 |
-| `d365`          | 365 days                   |        365 |
+| calendar   | structure                  | timeslices |
+|------------|----------------------------|-----------:|
+| `annual`   | one annual timeslice       |          1 |
+| `s4_hp3`   | 4 seasons × day/night/peak |         12 |
+| `s4_h24`   | 4 seasons × 24 hours       |         96 |
+| `m12_h24`  | 12 months × 24 hours       |        288 |
+| `d365`     | 365 days                   |        365 |
+| `d365_h24` | 365 days × 24 hours        |      8,760 |
 
 Model variables scale roughly linearly with timeslices — the
 96-timeslice TOPIA base case solves in seconds on GLPK, the
@@ -319,13 +320,15 @@ bookkeeping stays cheap.
 
 ## Choosing a resolution
 
-- Start coarse (`topia_seasons`-like, ~12 timeslices) while the model
-  structure is in flux — solves are instant.
+- Start coarse (`s4_hp3`, 12 timeslices) while the model structure is in
+  flux — solves are instant.
 - Move to hour-within-season (`s4_h24`, 96) once storage, VRE profiles
   or peak pricing matter — intra-day dynamics need real hours.
-- Full-year hourly detail (`m12_h24`, 288 or `d365`+hours) is for final
-  runs; check tractability with
-  [`model_size()`](https://energyRt.org/reference/model_size.md) first.
+- Full-year hourly detail (`m12_h24`, 288, or `d365_h24`, 8,760) is for
+  final runs; check tractability with
+  [`model_size()`](https://energyRt.org/reference/model_size.md) first,
+  and consider a sample of the hourly calendar (`d365_h24_1dpm`, 301)
+  while iterating.
 - On a **multi-year** horizon, interpolate with `fold = TRUE`. A weather
   series that is the same in every milestone year is stored once instead
   of once per year, which is usually the single largest saving in an

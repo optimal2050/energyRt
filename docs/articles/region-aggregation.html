@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.4.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -155,7 +155,7 @@ three change it, and in one of them the aggregated model comes out
 <p>TOPIA’s eleven regions nest into three zones.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">gs</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">geoscales</span><span class="op">$</span><span class="va">honeycomb</span></span>
-<span><span class="va">regions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/geoscale_regions.html" class="external-link">geoscale_regions</a></span><span class="op">(</span><span class="va">gs</span>, geoframe <span class="op">=</span> <span class="st">"region"</span><span class="op">)</span></span>
+<span><span class="va">regions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/geoscale_regions.html" class="external-link">geoscale_regions</a></span><span class="op">(</span><span class="va">gs</span>, geoframe <span class="op">=</span> <span class="st">"province"</span><span class="op">)</span></span>
 <span><span class="va">geo</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/geoscale_leaftable.html" class="external-link">geoscale_leaftable</a></span><span class="op">(</span><span class="va">gs</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/gg_geoscale.html" class="external-link">gg_geoscale</a></span><span class="op">(</span><span class="va">gs</span>, type <span class="op">=</span> <span class="st">"map"</span><span class="op">)</span></span></code></pre></div>
@@ -198,10 +198,13 @@ exact case.</p>
 <p>One load shape for every region (PJ per timeslice), scaled to a level
 that rises west to east.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">calendar</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">topia_seasons</span></span>
+<code class="sourceCode R"><span><span class="va">calendar</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span></span>
 <span></span>
+<span><span class="co"># `topia$demand` is region-keyed, and this article wants ONE shape for every</span></span>
+<span><span class="co"># region, so the provinces are pooled before the weights are formed.</span></span>
 <span><span class="va">shape</span> <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">demand</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">calendar</span> <span class="op">==</span> <span class="st">"topia_seasons"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">calendar</span> <span class="op">==</span> <span class="st">"s4_h24"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span>load <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">load</span><span class="op">)</span>, .by <span class="op">=</span> <span class="va">timeslice</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">calendar</span><span class="op">@</span><span class="va">timetable</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">timeslice</span>, <span class="va">share</span><span class="op">)</span>,</span>
 <span>    by <span class="op">=</span> <span class="st">"timeslice"</span></span>
@@ -273,7 +276,7 @@ than smuggled in later. <code>E2a</code> removes it and measures what it
 was worth.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">links</span> <span class="op">&lt;-</span> <span class="va">gs</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/geoscale_geometry.html" class="external-link">geoscale_geometry</a></span><span class="op">(</span>geoframe <span class="op">=</span> <span class="st">"region"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/geoscale_geometry.html" class="external-link">geoscale_geometry</a></span><span class="op">(</span>geoframe <span class="op">=</span> <span class="st">"province"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/geos_binary_pred.html" class="external-link">st_touches</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/transmute.html" class="external-link">transmute</a></span><span class="op">(</span>src <span class="op">=</span> <span class="va">regions</span><span class="op">[</span><span class="va">row.id</span><span class="op">]</span>, dst <span class="op">=</span> <span class="va">regions</span><span class="op">[</span><span class="va">col.id</span><span class="op">]</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -490,7 +493,7 @@ ones – the same argument as for the plants, one layer upstream.</p>
 drops every edge that crosses a zone boundary:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">touching</span> <span class="op">&lt;-</span> <span class="va">gs</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/geoscale_geometry.html" class="external-link">geoscale_geometry</a></span><span class="op">(</span>geoframe <span class="op">=</span> <span class="st">"region"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/geoscale_geometry.html" class="external-link">geoscale_geometry</a></span><span class="op">(</span>geoframe <span class="op">=</span> <span class="st">"province"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/geos_binary_pred.html" class="external-link">st_touches</a></span><span class="op">(</span>sparse <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">touching</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span>                                   <span class="co"># pairs on the map</span></span>
@@ -622,7 +625,7 @@ code:</p>
 <span></span>
 <span><span class="va">membership</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/geoscale_leaftable.html" class="external-link">geoscale_leaftable</a></span><span class="op">(</span><span class="va">cl</span><span class="op">$</span><span class="va">ECOA</span><span class="op">$</span><span class="va">geoscale</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/gg_geoscale.html" class="external-link">gg_geoscale</a></span><span class="op">(</span><span class="va">cl</span><span class="op">$</span><span class="va">ECOA</span><span class="op">$</span><span class="va">geoscale</span>, type <span class="op">=</span> <span class="st">"map"</span>, data <span class="op">=</span> <span class="va">membership</span>,</span>
-<span>            geoframe <span class="op">=</span> <span class="st">"region"</span>, z <span class="op">=</span> <span class="st">"cluster"</span><span class="op">)</span></span></code></pre></div>
+<span>            geoframe <span class="op">=</span> <span class="st">"province"</span>, z <span class="op">=</span> <span class="st">"cluster"</span><span class="op">)</span></span></code></pre></div>
 <p>The atoms are coloured by the cluster they joined. Every cluster is
 one connected blob and none crosses a zone boundary – that is the
 contiguity constraint, visible rather than asserted.</p>

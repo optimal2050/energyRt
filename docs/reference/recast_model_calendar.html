@@ -13,7 +13,7 @@ aggregate_model_regions()."><meta property="og:image" content="https://energyRt.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.4.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,6 +39,7 @@ aggregate_model_regions()."><meta property="og:image" content="https://energyRt.
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/debugging.html">Validating &amp; debugging</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -167,7 +168,7 @@ report the source model's numbers.</p>
 <span class="r-in"><span><span class="va">light</span> <span class="op">&lt;-</span> <span class="fu">recast_model_calendar</span><span class="op">(</span><span class="va">mod</span>, calendar <span class="op">=</span> <span class="va">calendars</span><span class="op">$</span><span class="va">s4</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> recast onto calendar 's4' (96 -&gt; 4 timeslices): 0 table(s), 0 -&gt; 0 row(s); 6 timeframe declaration(s) -&gt; SEASON: HYD@timeframe (HOUR); H2@timeframe (HOUR); ELC@timeframe (HOUR); WSOL@timeframe (HOUR); WWIN@timeframe (HOUR); WHYD@timeframe (HOUR).</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Dispatch, costs and the objective are the recast model's own, not the source model's.</span>
-<span class="r-in"><span><span class="fu"><a href="setGeoscale.html">getCalendar</a></span><span class="op">(</span><span class="va">light</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="setCalendar.html">getCalendar</a></span><span class="op">(</span><span class="va">light</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> An object of class "calendar"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Slot "name":</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "s4"</span>

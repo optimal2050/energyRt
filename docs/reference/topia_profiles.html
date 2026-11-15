@@ -11,7 +11,7 @@ of three tidy data.frames."><meta property="og:image" content="https://energyRt.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.4.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,7 @@ of three tidy data.frames."><meta property="og:image" content="https://energyRt.
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/debugging.html">Validating &amp; debugging</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
     <li><hr class="dropdown-divider"></li>
@@ -76,7 +77,7 @@ of three tidy data.frames.</p>
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">topia_profiles</span><span class="op">(</span></span>
 <span>  <span class="va">regions</span>,</span>
-<span>  calendar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"s4_h24"</span>, <span class="st">"m12_h24"</span>, <span class="st">"topia_seasons"</span>, <span class="st">"d365_h24"</span><span class="op">)</span>,</span>
+<span>  calendar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"s4_h24"</span>, <span class="st">"d365_h24"</span><span class="op">)</span>,</span>
 <span>  dataset <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  source <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"saved"</span>, <span class="st">"ideea"</span><span class="op">)</span>,</span>
 <span>  resources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>WSOL <span class="op">=</span> <span class="st">"WSOL"</span>, WWIN <span class="op">=</span> <span class="st">"WWIN"</span>, WHYD <span class="op">=</span> <span class="st">"WHYD"</span><span class="op">)</span>,</span>
@@ -90,17 +91,15 @@ of three tidy data.frames.</p>
 
 
 <dl><dt id="arg-regions">regions<a class="anchor" aria-label="anchor" href="#arg-regions"></a></dt>
-<dd><p>character vector of region codes: a region of the TOPIA map
-(<code>W1</code>, <code>W2</code>, <code>C1</code>–<code>C6</code>, <code>E1</code>–<code>E3</code>), a zone (<code>WEST</code>, <code>CENTRAL</code>, <code>EAST</code>)
-or the nation (<code>TOPIA</code>). An unknown code is an error that lists what is
-known.</p></dd>
+<dd><p>character vector of geoscale codes: a province of the TOPIA
+map (<code>R01</code>–<code>R12</code>), a zone (<code>Z1</code>–<code>Z5</code>) or the nation (<code>TOPIA</code>). An
+unknown code is an error that lists what is known.</p></dd>
 
 
 <dt id="arg-calendar">calendar<a class="anchor" aria-label="anchor" href="#arg-calendar"></a></dt>
 <dd><p>target resolution: <code>"s4_h24"</code> (4 seasons x 24 hours, 96
-timeslices, the default base case), <code>"m12_h24"</code> (12 months x 24 hours,
-288), <code>"topia_seasons"</code> (4 seasons x 3 dayparts, 12) or <code>"d365_h24"</code>
-(8760).</p></dd>
+timeslices, the default) or <code>"d365_h24"</code> (365 days x 24 hours, 9,126).
+These are the only two the shipped profiles are built for.</p></dd>
 
 
 <dt id="arg-dataset">dataset<a class="anchor" aria-label="anchor" href="#arg-dataset"></a></dt>
@@ -142,10 +141,10 @@ replicated across <code>regions</code>).</p>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Two input datasets ship and the caller chooses between them:</p>
 <dl><dt><code>"simulated"</code></dt>
-<dd><p>closed-form shapes on the small calendars
-(<code>s4_h24</code>, <code>m12_h24</code>, <code>topia_seasons</code>). Demonstration data: it carries a
-spatial gradient and a diurnal structure, and is not a resource estimate
-for anywhere.</p></dd>
+<dd><p>closed-form shapes on the small calendar <code>s4_h24</code>.
+Demonstration data: it carries a spatial gradient and a diurnal
+structure, and is not a resource estimate for anywhere. Its <code>cluster</code>
+is <code>NA</code> throughout, so it cannot serve a graded technology.</p></dd>
 
 <dt><code>"sample"</code></dt>
 <dd><p>a measured hourly set on <code>d365_h24</code>. Multi-day calm
@@ -167,16 +166,19 @@ over any calendar and returns a single data.frame.</p>
     <div class="dont-index"><p><a href="topia.html">topia</a>, <code><a href="topia_profile.html">topia_profile()</a></code>, <a href="calendars.html">calendars</a></p>
 <p>Other topia:
 <code><a href="topia.html">topia</a></code>,
-<code><a href="topia_profile.html">topia_profile()</a></code></p></div>
+<code><a href="topia_profile.html">topia_profile()</a></code>,
+<code><a href="topia_simulate.html">topia_simulate()</a></code></p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># weather, demand and stock for two regions of the TOPIA map</span></span></span>
-<span class="r-in"><span><span class="va">prof</span> <span class="op">&lt;-</span> <span class="fu">topia_profiles</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"W1"</span>, <span class="st">"W2"</span><span class="op">)</span>, calendar <span class="op">=</span> <span class="st">"s4_h24"</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> no TOPIA profile for region 'W1'. Known codes: R01, R02, R03, R04, R05, R06, R07, R08, R09, R10, R11, R12, Z1, Z2, Z3, Z4, Z5, TOPIA</span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># weather, demand and stock for two provinces of the TOPIA map</span></span></span>
+<span class="r-in"><span><span class="va">prof</span> <span class="op">&lt;-</span> <span class="fu">topia_profiles</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R01"</span>, <span class="st">"R02"</span><span class="op">)</span>, calendar <span class="op">=</span> <span class="st">"s4_h24"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">prof</span><span class="op">$</span><span class="va">weather</span>, <span class="fl">3</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'prof' not found</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   resource cluster region timeslice  wval</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1     WHYD    &lt;NA&gt;    R01   FAL_h00 0.316</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2     WHYD    &lt;NA&gt;    R01   FAL_h01 0.316</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3     WHYD    &lt;NA&gt;    R01   FAL_h02 0.316</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
