@@ -27,31 +27,15 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
-* **`subset_model_regions(region = )` takes a code at any geoframe.**
-  `region = "Z3"` keeps the provinces of that zone and is identical to
-  spelling them out, so the whole-group cut -- the only shape a multi-level
-  model permits without a rule -- can be asked for instead of reconstructed.
-  A code at no geoframe is refused, naming the frames and their codes.
+* `subset_model_regions(region = )` takes a code at any geoframe:
+  `region = "Z3"` keeps that zone's provinces.
 
-* **A region subset drops what it leaves with nothing to do.** Cutting the
-  only province that carries hydro used to leave `HYD`, its supply and its
-  weather series declared, and the interpolator reported them as "declared but
-  unused" much later. `subset_model_regions()` now runs the dependency closure
-  on the region axis and removes them at the cut, naming them under
-  `verbose = TRUE`. A model that loses no region is unchanged by it. The cut
-  also records what it did in `@misc$subset` -- regions kept, parents kept
-  whole, objects and routes dropped, orphans, stubs minted -- the way
-  aggregation records `@misc$aggregation`.
+* A region subset drops objects it leaves with nothing to do, and records the
+  cut in `@misc$subset`.
 
-* **`is_divisible()` says which values a region subset may split.** For every
-  value column of every object a model declares above its own regions, it
-  reports the recast rule, whether the parent's value is divisible between its
-  children, and what to do: a quantity splits by the weight, a rate, a price
-  or a region-invariant scalar is replicated unchanged, and a fixed or floor
-  quantity (`cap.fx`, `ncap.lo`, `ava.fx`) is reported as `decide`, since
-  splitting it invents a value and replicating it double-counts. Called on a
-  model it lists only that model's coarse declarations; called with no
-  argument, the whole declared contract.
+* `is_divisible()` reports, per value column, whether a value declared above
+  the subset's regions is carried as it stands or needs a ruling
+  (`rules = c(SUP_COA = "pooled")`).
 
 * **Reports name the calendar each milestone is solved on.** Where milestones
   do not share one calendar, the model, scenario and config reports carry a

@@ -2,9 +2,14 @@
 % Please edit documentation in R/recast.R
 \name{is_divisible}
 \alias{is_divisible}
-\title{Which values split between a parent's children, and which do not}
+\title{What a region subset needs ruling on, column by column}
 \usage{
-is_divisible(object = NULL, axis = c("space", "time"), column = NULL)
+is_divisible(
+  object = NULL,
+  axis = c("space", "time"),
+  column = NULL,
+  rules = NULL
+)
 }
 \arguments{
 \item{object}{a \code{model}, a \code{repository}, any model object (a \code{technology},
@@ -16,28 +21,35 @@ axis does not, and reports \code{"decide"} instead.}
 
 \item{column}{optional character vector of column names to report on
 directly, with no class or slot to declare them.}
+
+\item{rules}{named character vector or list of rulings for the columns
+reported \code{"decide"}, one of \code{"pooled"}, \code{"indivisible"} or \code{"drop"}.}
 }
 \value{
 A tibble with one row per column: \code{class}, \code{slot}, \code{column},
-\code{rule}, \code{source} (\code{"declared"}, \code{"inferred"} or \code{"registry"}),
-\code{divisible} (\code{NA} where the rule has no answer), \code{action} (\code{"split"},
-\code{"replicate"}, \code{"none"} or \code{"decide"}) and \code{reason}. The \code{model} and
-\code{repository} shapes add the object \code{name} in front.
+\code{rule} (the recast rule), \code{source} (\code{"declared"}, \code{"inferred"} or
+\code{"registry"}), \code{action} (\code{"replicate"}, \code{"none"}, \code{"decide"}, or
+\code{"split"} / \code{"keep"} / \code{"drop"} once a ruling settles it), \code{needs_rule},
+\code{rule_given} and \code{reason}. The \code{model} and \code{repository} shapes add the
+object \code{name} in front. \code{attr(x, "sufficient")} says whether every row is
+settled; \code{attr(x, "unmatched_rules")} names rulings that matched nothing.
 }
 \description{
 Reports, column by column, what a partial selection of a region group does
-to a value declared at the group: a quantity (\code{sum}) splits by the weight,
-while a rate, a price or a region-invariant scalar is replicated unchanged.
-The direction of each rule comes from
-\code{\link[geoscales:geoscale_rule_action]{geoscales::geoscale_rule_action()}}, and the rule itself is the one the
-aggregator uses, so this describes what the code does rather than a separate
-policy.
+to a value declared at the group. A rate, a price or a region-invariant
+scalar (\code{weighted_mean}, \code{mean}, \code{copy}) holds for each child unchanged, so
+it is carried as declared and nothing is asked. A quantity (\code{sum}) is not
+settled by its rule: dividing it by the weight invents a value nobody gave
+and keeping it whole in every part double-counts, so it is reported
+\code{"decide"} and the caller rules on it.
 }
 \details{
-One case the rule cannot settle: a \strong{fixed or floor} quantity (\code{cap.fx},
-\code{ncap.lo}, \code{ava.fx}, \code{res.lo} and their kin). Splitting it by the weight
-invents a value nobody gave and replicating it double-counts, so it is
-reported as \code{"decide"} and the caller says which it means.
+The three rulings are \code{"pooled"} (divide between the kept regions by the
+weight), \code{"indivisible"} (keep whole in every part) and \code{"drop"}. Supply
+them through \verb{rules =}, keyed most-specific-first on \code{"OBJ@column"},
+\code{"OBJ"}, \code{"class@column"} or \code{"class"}. \code{attr(x, "sufficient")} is \code{TRUE}
+when no row is left at \code{"decide"}, which is the test a region subset makes
+before it refuses.
 
 On a \code{model} it reports only the columns that model declares \strong{above} its
 own regions -- usually a handful -- rather than the whole contract.
@@ -48,4 +60,7 @@ is_divisible()
 
 # single columns, with no class to declare them
 is_divisible(column = c("cap.up", "cap.fx", "eff"))
+
+# a quantity asks; a ruling settles it
+is_divisible(column = "ava.up")
 }
