@@ -26,6 +26,7 @@ params:
   calendar_model_plot: NULL
   horizon_plot:        NULL
   horizon_df:          NULL
+  year_calendars_df:   NULL
   geo_map:             NULL
   geo_stack:           NULL
   geo_note:            NULL
@@ -118,10 +119,11 @@ tbl(params$run_info_df, caption = "Reported run")
 
 ```{r en-pb1, results='asis'}
 if (any_of(params$calendar_plot, params$calendar_model_plot,
-           params$horizon_plot, params$horizon_df)) pb()
+           params$horizon_plot, params$horizon_df,
+           params$year_calendars_df)) pb()
 ```
 
-```{r en-time-header, results='asis', eval=any_of(params$calendar_plot, params$horizon_plot, params$horizon_df)}
+```{r en-time-header, results='asis', eval=any_of(params$calendar_plot, params$horizon_plot, params$horizon_df, params$year_calendars_df)}
 cat("## Time structure\n")
 ```
 
@@ -145,6 +147,10 @@ energyRt::report_fig(params$horizon_plot, 8, 2.4, caption = "Planning horizon: m
 
 ```{r en-horizon-df, results='asis', eval=!is.null(params$horizon_df)}
 tbl(params$horizon_df, caption = "Horizon intervals")
+```
+
+```{r en-year-cal, results='asis', eval=!is.null(params$year_calendars_df)}
+tbl(params$year_calendars_df, caption = "Calendar by milestone year")
 ```
 
 ```{r en-pb2, results='asis'}

@@ -444,6 +444,17 @@ NULL
       paste0(if (nzchar(cal@name)) cal@name else "(unnamed)",
              " (", ns, " timeslices)"))))
   }
+  # Per-year calendars are reported as an extra row rather than by rewording
+  # the one above: a model where every year is solved on the model calendar
+  # prints exactly what it printed before.
+  ycal <- .year_calendars_df(cfg)
+  if (!is.null(ycal)) {
+    own <- ycal[ycal$source != "model", , drop = FALSE]
+    cfg_rows <- c(cfg_rows, list(pair("per-year calendars",
+      paste0(own$year, ": ", own$calendar, " (", own$timeslices,
+             " timeslices)", collapse = "; "))))
+  }
+
   # Both rates, each under its own name -- they do different jobs and a
   # model may well set them differently.
   dsc <- tryCatch(cfg@discount, error = function(e) NULL)
@@ -479,6 +490,32 @@ NULL
   data.frame(timeframe = names(cal@timeslices_in_frame),
              timeslices = as.integer(cal@timeslices_in_frame),
              stringsAsFactors = FALSE)
+}
+
+# One row per milestone year: the calendar it is solved on, how many
+# timeslices that calendar carries and whether it is the model's own or one
+# the year names for itself. NULL when no milestone names one, which is what
+# keeps a single-calendar report exactly what it was.
+#' @noRd
+.year_calendars_df <- function(x) {
+  yc <- tryCatch(getYearCalendars(x), error = function(e) NULL)
+  if (!length(yc)) return(NULL)
+  dflt <- tryCatch(.calendar_host(x)@calendar@name,
+                   error = function(e) NA_character_)
+  nm <- vapply(yc, function(cl) tryCatch(
+    if (nzchar(cl@name)) cl@name else "(unnamed)",
+    error = function(e) NA_character_), character(1))
+  data.frame(
+    year = as.integer(names(yc)),
+    calendar = unname(nm),
+    timeslices = unname(vapply(yc, function(cl) tryCatch(
+      nrow(cl@timeslice_share), error = function(e) NA_integer_),
+      integer(1))),
+    timeframes = unname(vapply(yc, function(cl) tryCatch(
+      paste(names(cl@timeslices_in_frame), collapse = ", "),
+      error = function(e) NA_character_), character(1))),
+    source = ifelse(unname(nm) == dflt, "model", "own"),
+    stringsAsFactors = FALSE)
 }
 
 .el_params_calendar <- function(object, want) {
@@ -526,6 +563,8 @@ NULL
        discount_df = if (want("discount_df")) .config_discount_df(object),
        frames_df = if (want("frames_df") && !is.null(cal))
          .calendar_frames_df(cal),
+       year_calendars_df = if (want("year_calendars_df"))
+         .year_calendars_df(object),
        calendar_plot = if (gg_ok && want("calendar_plot") && !is.null(cal))
          tryCatch(ggplot2::autoplot(cal), error = function(e) NULL),
        horizon_plot = if (gg_ok && want("horizon_plot") && !is.null(hor))

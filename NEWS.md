@@ -27,6 +27,15 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* **Reports name the calendar each milestone is solved on.** Where milestones
+  do not share one calendar, the model, scenario and config reports carry a
+  `Calendar by milestone year` table -- year, calendar, timeslices,
+  timeframes, and whether the year takes the model's calendar or one of its
+  own -- and the configuration gains a `per-year calendars` row. A model whose
+  years all share a calendar reports exactly what it reported before.
+* `autoplot()` on a `horizon` labels each interval with the calendar that
+  milestone is solved on, when `intervals$calendar` names one.
+
 * **`topia_simulate()` generates TOPIA's weather and demand profiles.** The
   shipped `"simulated"` dataset is one cached run of it; every other parameter
   set is an alternative, and the result feeds
@@ -724,6 +733,16 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* The `setCalendar()` example runs. Its horizon was built from
+  `newHorizon(c(2030, 2035, 2040), ...)`, where `period` is a span rather than
+  a list of milestones, so the years it then asked for were not milestones of
+  the horizon it built.
+* `autoplot()` on a single-interval `horizon` shows both of its boundaries.
+  The leading tick was the first interval's start unshifted, which collapses
+  onto the milestone whenever that interval is one year, leaving the shipped
+  one-year horizons as a slab with a single tick at the right edge.
+* The year legend of `autoplot(<horizon>)` breaks on whole years; on a short
+  horizon the continuous scale put breaks between them (`2032.5`).
 * `check_feasibility()` reports a third contradiction,
   `forced-supply-no-sink`: a commodity balanced as an equality that is forced
   to arise where nothing can consume it. The sinks come from the interpolated

@@ -435,3 +435,48 @@ test_that("the highlight follows hjust", {
   }
   expect_false(isTRUE(all.equal(seg(p0), seg(p1))))
 })
+
+# Per-year calendars in autoplot(horizon) -------------------------------------
+# `intervals$calendar` is a character column of NAMES, so the figure needs
+# nothing but the horizon: no config, no calendar objects.
+
+.hz_with_calendars <- function() {
+  newHorizon(intervals = data.frame(
+    start    = c(2030, 2031, 2035),
+    mid      = c(2030, 2032, 2037),
+    end      = c(2030, 2034, 2039),
+    calendar = c(NA, "d365_h24_1dpm", NA)))
+}
+
+test_that("a milestone's own calendar is labelled in its interval", {
+  skip_if_not_installed("ggplot2")
+  p <- ggplot2::autoplot(.hz_with_calendars())
+  expect_true("GeomLabel" %in% .ap_geoms(p))
+  i <- which(.ap_geoms(p) == "GeomLabel")[1]
+  # only the year that names one is labelled
+  expect_equal(p$layers[[i]]$data$lab, "d365_h24_1dpm")
+  expect_match(p$labels$caption, "calendar that milestone is solved on",
+               fixed = TRUE)
+})
+
+test_that("a horizon that names no calendar gets no label and no caption", {
+  skip_if_not_installed("ggplot2")
+  p <- ggplot2::autoplot(.hz_unmarked())
+  expect_false("GeomLabel" %in% .ap_geoms(p))
+  expect_null(p$labels$caption)
+})
+
+test_that("a single-interval horizon shows both of its boundaries", {
+  skip_if_not_installed("ggplot2")
+  # the leading tick is the panel edge: unshifted it collapsed onto `mid`,
+  # leaving one tick at the right edge and no way to see the width
+  p <- ggplot2::autoplot(horizons$Y2050)
+  expect_equal(sort(p$scales$get_scales("x")$breaks), c(2049, 2050))
+})
+
+test_that("the year legend breaks on whole years", {
+  expect_equal(.horizon_year_breaks(c(2025, 2035)) %% 1, rep(0, length(
+    .horizon_year_breaks(c(2025, 2035)))))
+  expect_true(all(.horizon_year_breaks(c(2030, 2032)) ==
+                    as.integer(.horizon_year_breaks(c(2030, 2032)))))
+})

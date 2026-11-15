@@ -27,4 +27,9 @@ milestones before the base year are history and enter no LP at all, so they
 are washed more heavily than the base year, which is solved on its own by
 \code{\link[=solve_base_year]{solve_base_year()}}. The caption says which is which. A horizon with no
 base year is drawn unchanged.
+
+A milestone that is solved on a calendar of its own -- \code{intervals$calendar},
+which \code{\link[=setCalendar]{setCalendar()}} writes with \verb{years = } -- is labelled with that
+calendar's name inside its interval. The column holds names, so the figure
+needs nothing but the horizon.
 }

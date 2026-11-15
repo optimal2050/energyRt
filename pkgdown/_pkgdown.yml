@@ -80,6 +80,8 @@ navbar:
         href: articles/workflow.html
       - text: Scenario management
         href: articles/scenario-management.html
+      - text: Validating & debugging
+        href: articles/debugging.html
       - text: Reports & levelized costs
         href: articles/reports.html
       - text: autoplot()
@@ -403,6 +405,7 @@ reference:
   - build_topia
   - topia_profile
   - topia_profiles
+  - topia_simulate
   - model_structure
   - prefix
   - solver_options

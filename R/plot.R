@@ -63,6 +63,44 @@
         collapse = " · ")
 }
 
+# Whether any milestone names a calendar of its own. `intervals$calendar` is a
+# character column of NAMES, NA where the year is solved on the model
+# calendar, so the figure needs nothing but the horizon: the calendar objects
+# live in `config@misc$calendars` and are never read here.
+#' @noRd
+.horizon_has_calendars <- function(y) {
+  cl <- y[["calendar"]]
+  !is.null(cl) && any(!is.na(cl))
+}
+
+# The per-year calendar, written into the bar it belongs to. A label box
+# rather than bare text: the bars run the whole viridis range and no single
+# text colour is legible at both ends of it.
+#' @noRd
+.horizon_calendar_layer <- function(y, hjust) {
+  if (!.horizon_has_calendars(y)) return(list())
+  d <- data.frame(
+    x = (y$start - hjust + y$end + (1 - hjust)) / 2,
+    lab = as.character(y[["calendar"]]), stringsAsFactors = FALSE)
+  d <- d[!is.na(d$lab), , drop = FALSE]
+  if (!nrow(d)) return(list())
+  list(ggplot2::geom_label(
+    data = d, ggplot2::aes(x = x, y = 0.5, label = lab),
+    inherit.aes = FALSE, size = 2.6, label.size = 0,
+    fill = "white", alpha = 0.85, colour = "black"))
+}
+
+# Breaks for the fill legend. `mid` is a continuous scale to ggplot2, so on a
+# short horizon the default breaks land between years ("2032.5"); only the
+# integral ones are kept.
+#' @noRd
+.horizon_year_breaks <- function(limits) {
+  b <- pretty(limits)
+  b <- b[abs(b - round(b)) < 1e-8]
+  if (!length(b)) return(unique(round(limits)))
+  unique(as.integer(b))
+}
+
 plot_horizon <- function(object, ..., palette = "D") {
 
   check_package("ggplot2")
@@ -78,11 +116,16 @@ plot_horizon <- function(object, ..., palette = "D") {
   y <- object@intervals |>
     dplyr::mutate(w = end - start + 1)
 
-  # Milestone ticks carry the display label; the leading tick is the first
-  # interval's start, a boundary rather than a milestone, so it stays numeric.
+  # Milestone ticks carry the display label; the leading tick is a boundary
+  # rather than a milestone, so it stays numeric.
   .lab <- y[["label"]]
   if (is.null(.lab)) .lab <- as.character(y$mid)
-  .brk <- unique(c(y$start[1], y$mid))
+  # The leading tick is the panel's left edge -- the first interval's start
+  # SHIFTED by `hjust`, which is where its bar actually begins. Unshifted, it
+  # collapses onto `mid` whenever that interval is one year, which left a
+  # single-interval horizon with one tick at its right edge and nothing to
+  # show its width.
+  .brk <- unique(c(y$start[1] - hjust, y$mid))
   .brk_lab <- as.character(.brk)
   .mi <- match(.brk, y$mid)
   .hit <- !is.na(.mi)
@@ -104,12 +147,14 @@ plot_horizon <- function(object, ..., palette = "D") {
     ggplot2::geom_vline(xintercept = y$mid, color = "white", alpha = 0.75) +
     ggplot2::geom_vline(xintercept = y$mid, linetype = "dashed") +
     ggplot2::scale_fill_viridis_c(option = palette, end = 0.9,
-                                  name = "year") +
+                                  name = "year",
+                                  breaks = .horizon_year_breaks) +
     ggplot2::labs(y = NULL, x = "milestone year") +
     ggplot2::scale_x_continuous(
       breaks = .brk, labels = .brk_lab, expand = c(0, 0),
       # minor_breaks = unique(c(y$start[1], y$mid, y$mid))) +
-      minor_breaks = seq(min(y$start), max(y$end), by = 1),
+      minor_breaks = seq(min(y$start) - hjust, max(y$end) + (1 - hjust),
+                         by = 1),
       guide = ggplot2::guide_axis(minor.ticks = TRUE)) +
     ggplot2::scale_y_continuous(expand = c(0, 0), breaks = NULL) +
     theme_energyRt() +
@@ -121,13 +166,20 @@ plot_horizon <- function(object, ..., palette = "D") {
       plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 12, face = "italic")
     )
 
+  p <- p + .horizon_calendar_layer(y, hjust)
   p <- p + .horizon_given_rule(y, .by, hjust)
 
   if (!is_empty(object@name)) {p <- p + ggplot2::labs(title = object@name)}
   if (!is_empty(object@desc)) {p <- p + ggplot2::labs(subtitle = object@desc)}
+  cap <- character()
   if (!is.null(.by) && length(.by) && .by %in% y$mid) {
-    p <- p + ggplot2::labs(caption = .horizon_given_caption(
-      .by, any(y$mid < .by)))
+    cap <- c(cap, .horizon_given_caption(.by, any(y$mid < .by)))
+  }
+  if (.horizon_has_calendars(y)) {
+    cap <- c(cap, "label: the calendar that milestone is solved on")
+  }
+  if (length(cap)) {
+    p <- p + ggplot2::labs(caption = paste(cap, collapse = " · "))
   }
   p
 }
@@ -152,6 +204,11 @@ plot_horizon <- function(object, ..., palette = "D") {
 #' are washed more heavily than the base year, which is solved on its own by
 #' [solve_base_year()]. The caption says which is which. A horizon with no
 #' base year is drawn unchanged.
+#'
+#' A milestone that is solved on a calendar of its own -- `intervals$calendar`,
+#' which [setCalendar()] writes with `years = ` -- is labelled with that
+#' calendar's name inside its interval. The column holds names, so the figure
+#' needs nothing but the horizon.
 #'
 #' @param object An object of class `horizon`.
 #' @rdname plot_horizon_method

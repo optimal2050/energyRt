@@ -503,7 +503,9 @@ embedded levelized cost is computed for that container / solution (the
 \strong{Without} \code{name}, the container methods report the whole object:
 \describe{
 \item{\code{model} / \code{repository}}{a full model report -- the
-configuration (regions, horizon, calendar, discount), an inventory of
+configuration (regions, horizon, calendar, discount; and the calendar
+per milestone year where the milestones do not share one), an
+inventory of
 commodities / supplies / demands / trade / constraints, the process
 availability windows chart, and every technology and storage described
 one-by-one (diagram + key parameters).}

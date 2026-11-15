@@ -71,9 +71,11 @@ NULL
 #' @name setCalendar
 #' @aliases setCalendar getCalendar
 #' @examples
+#' # milestones 2030, 2035 and 2040: `period` is a span, so it is given in
+#' # full and the interval widths carve it up
 #' mod <- newModel("demo", calendar = calendars$d365_h24,
-#'                 horizon = newHorizon(c(2030, 2035, 2040),
-#'                                      intervals = c(5, 5, 5)))
+#'                 horizon = newHorizon(2030:2040, intervals = c(1, 5, 5),
+#'                                      mid_is_end = TRUE))
 #' getCalendar(mod)@name
 #'
 #' # 2035 on one day per month, the other two years hourly

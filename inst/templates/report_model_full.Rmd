@@ -20,6 +20,7 @@ params:
   horizon_plot:  NULL
   calendar_plot: NULL
   calendar_df:   NULL
+  year_calendars_df: NULL
   geoscale_df:   NULL
   geo_map:       NULL
   geo_stack:     NULL
@@ -108,6 +109,10 @@ tbl(params$calendar_df, caption = "Calendar (timeslices per timeframe)")
 
 ```{r en-horizon-plot, results='asis', eval=!is.null(params$horizon_plot)}
 energyRt::report_fig(params$horizon_plot, 7, 2.6, caption = "Planning horizon: milestone years and intervals", output = fmt)
+```
+
+```{r en-year-cal, results='asis', eval=!is.null(params$year_calendars_df)}
+tbl(params$year_calendars_df, caption = "Calendar by milestone year")
 ```
 
 ```{r en-calendar-plot, results='asis', eval=!is.null(params$calendar_plot)}

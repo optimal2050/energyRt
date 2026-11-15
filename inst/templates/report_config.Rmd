@@ -21,6 +21,7 @@ params:
   intervals_df:  NULL
   calendar_plot: NULL
   frames_df:     NULL
+  year_calendars_df: NULL
   geo_map:       NULL
 header-includes:
   - \usepackage{booktabs}
@@ -75,6 +76,10 @@ if (!is.null(params$calendar_plot)) {
   energyRt::report_fig(params$calendar_plot, 7, 3.4, caption = "Calendar: timeslices per timeframe", output = fmt)
 }
 tbl(params$frames_df, caption = "Timeslices per timeframe")
+```
+
+```{r en-year-cal, results='asis', eval=!is.null(params$year_calendars_df)}
+tbl(params$year_calendars_df, caption = "Calendar by milestone year")
 ```
 
 ```{r en-geo, results='asis', eval=!is.null(params$geo_map)}

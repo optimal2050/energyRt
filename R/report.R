@@ -23,7 +23,9 @@
 #' \strong{Without} \code{name}, the container methods report the whole object:
 #' \describe{
 #'   \item{\code{model} / \code{repository}}{a full model report -- the
-#'     configuration (regions, horizon, calendar, discount), an inventory of
+#'     configuration (regions, horizon, calendar, discount; and the calendar
+#'     per milestone year where the milestones do not share one), an
+#'     inventory of
 #'     commodities / supplies / demands / trade / constraints, the process
 #'     availability windows chart, and every technology and storage described
 #'     one-by-one (diagram + key parameters).}
@@ -2020,7 +2022,7 @@ Levelized cost section will be omitted.")
   # -- configuration (model only) ------------------------------------------
   config_df <- NULL
   horizon <- cal <- NULL
-  discount_df <- calendar_df <- geoscale_df <- NULL
+  discount_df <- calendar_df <- geoscale_df <- year_calendars_df <- NULL
   horizon_plot <- calendar_plot <- NULL
   gg_ok <- requireNamespace("ggplot2", quietly = TRUE)
   geo_ok <- gg_ok && requireNamespace("geoscales", quietly = TRUE) &&
@@ -2032,6 +2034,10 @@ Levelized cost section will be omitted.")
     config_df <- .config_report_rows(cfg)
     discount_df <- .config_discount_df(cfg)
     calendar_df <- if (!is.null(cal)) .calendar_frames_df(cal) else NULL
+    if (want("year_calendars_df")) {
+      year_calendars_df <- tryCatch(.year_calendars_df(cfg),
+                                    error = function(e) NULL)
+    }
 
     if (gg_ok && !is.null(horizon) && want("horizon_plot")) {
       horizon_plot <- tryCatch(ggplot2::autoplot(horizon),
@@ -2282,7 +2288,8 @@ Levelized cost section will be omitted.")
     logos = logos_r, figure = figure_r,
     config_df  = config_df, discount_df = discount_df,
     horizon_plot = horizon_plot, calendar_plot = calendar_plot,
-    calendar_df = calendar_df, geoscale_df = geoscale_df,
+    calendar_df = calendar_df, year_calendars_df = year_calendars_df,
+    geoscale_df = geoscale_df,
     counts_df = counts_df,
     comm_df = comm_df, sup_df = sup_df, dem_df = dem_df,
     trd_df = trd_df, expimp_df = expimp_df, weather_df = weather_df,
@@ -2651,6 +2658,10 @@ Levelized cost section will be omitted.")
   horizon_df <- if (want("horizon_df")) tryCatch({
     as.data.frame(scen@settings@horizon@intervals)
   }, error = function(e) NULL) else NULL
+  # the solve-time settings answer this, so a scenario that re-sampled the
+  # calendar per year reports its own split rather than the model's
+  year_calendars_df <- if (want("year_calendars_df")) tryCatch(
+    .year_calendars_df(scen), error = function(e) NULL) else NULL
 
   # -- geography: geoscale map + layered stack -----------------------------
   geo_map <- geo_stack <- geo_note <- NULL
@@ -2757,6 +2768,7 @@ Levelized cost section will be omitted.")
     calendar_plot = calendar_plot,
     calendar_model_plot = calendar_model_plot,
     horizon_plot = horizon_plot, horizon_df = horizon_df,
+    year_calendars_df = year_calendars_df,
     geo_map = geo_map, geo_stack = geo_stack, geo_note = geo_note,
     newcap_map = newcap_map, ret_map = ret_map,
     gen_plot = gen_plot, gen_day_plot = gen_day_plot,

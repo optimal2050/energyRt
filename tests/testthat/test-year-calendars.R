@@ -464,3 +464,33 @@ test_that("interpolation refuses a per-year calendar it cannot resolve", {
                                                   overwrite = TRUE)),
                "does not carry")
 })
+
+
+# --------------------------------------------------------------------------- #
+# 7. what the reports say
+# --------------------------------------------------------------------------- #
+
+test_that("the report names the calendar each milestone is solved on", {
+  mod <- .yc_model()
+  yr <- .yc_mid(mod)[2]
+  mod <- setCalendar(mod, calendars$d365_h24_1dpm, years = yr)
+  df <- energyRt:::.year_calendars_df(mod)
+  expect_equal(nrow(df), length(.yc_mid(mod)))
+  expect_equal(df$calendar[df$year == yr], "d365_h24_1dpm")
+  expect_equal(df$timeslices[df$year == yr],
+               nrow(calendars$d365_h24_1dpm@timeslice_share))
+  # the years that name nothing are the model's own, and say so
+  expect_equal(df$source[df$year != yr],
+               rep("model", length(.yc_mid(mod)) - 1L))
+  rows <- energyRt:::.config_report_rows(mod@config)
+  expect_true("per-year calendars" %in% as.character(rows[, 1]))
+  expect_match(as.character(rows[rows[, 1] == "per-year calendars", 2]),
+               "d365_h24_1dpm", fixed = TRUE)
+})
+
+test_that("one calendar for every year reports exactly what it did before", {
+  mod <- .yc_model()
+  expect_null(energyRt:::.year_calendars_df(mod))
+  expect_false("per-year calendars" %in%
+                 as.character(energyRt:::.config_report_rows(mod@config)[, 1]))
+})

@@ -40,7 +40,7 @@ utils::globalVariables(
     "src", "dst", "region", "year", "timeslice",
     "cap2act", "duration", "cap2use",
     "io", "na.omit", "grp.share.lo", "grp.share.up", "grp.share.fx",
-    "val_lbl", "where", "ginp2use", "desc", "x", "y"
+    "val_lbl", "where", "ginp2use", "desc", "x", "y", "lab"
   )
 )
 
