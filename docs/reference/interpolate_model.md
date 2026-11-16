@@ -30,6 +30,9 @@ interpolate_model(
   code = NULL,
   kvl = FALSE,
   boundary_prices = NULL,
+  split_weight = NULL,
+  keep = NULL,
+  drop = NULL,
   .prefilter = FALSE,
   parent_levels = options::opt("parent_levels"),
   fx_equ = options::opt("fx_equ"),
@@ -180,6 +183,15 @@ interpolate(object, ...)
   [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
   for the columns. Ignored (with a warning) when no sampled geoscale is
   supplied.
+
+- split_weight, keep, drop:
+
+  passed to
+  [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
+  when a spatial sample divides a region group a value is declared at:
+  the weight the value is apportioned by, or the keys held whole / left
+  out. Without them such a sample is refused, as it is for the verb.
+  Recorded in `@misc$spatial`, so a rebuilt copy is cut the same way.
 
 - .prefilter:
 
@@ -396,7 +408,7 @@ model_size(interpolate_model(mod, name = "FOLDED", fold = TRUE))
 #> ℹ materializing weather transforms
 #> ✔ materializing weather transforms (0.2s)
 #> ℹ collecting sets: object names
-#> ✔ collecting sets: object names (0.0s)
+#> ✔ collecting sets: object names (0.2s)
 #> ℹ collecting sets: process classes
 #> ✔ collecting sets: process classes (0.0s)
 #> ℹ collecting sets: timeframes
@@ -424,9 +436,9 @@ model_size(interpolate_model(mod, name = "FOLDED", fold = TRUE))
 #> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
 #> ✔ building maps: calendar + lifespan (0.2s)
 #> ℹ ob2mi: interpolating 83 model objects
-#> ✔ ob2mi: interpolating 83 model objects (0.6s)
+#> ✔ ob2mi: interpolating 83 model objects (0.7s)
 #> ℹ interpolating parameters over milestone years
-#> ✔ interpolating parameters over milestone years (1.6s)
+#> ✔ interpolating parameters over milestone years (1.7s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices
 #> ✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)

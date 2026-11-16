@@ -1,1130 +1,220 @@
-# Workflow: working with results and scenarios
+# Solving models
 
-Once a model is **built** (see *Model bricks* and *TOPIA I*) and
-**solved** (see *Solver backends* and *TOPIA II*), a handful of utility
-functions do the rest of the day-to-day work: pull objects and results
-out, edit a piece and re-solve, organize scenarios on disk, and compare
-runs. This article tours that layer.
+**Key functions**
 
-``` r
+- One-call workflow:
+  [`solve_model()`](https://energyRt.org/reference/solve_model.md) and
+  `solver_options`.
+- Explicit stages:
+  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md),
+  [`write_script()`](https://energyRt.org/reference/write.md),
+  [`solve_scenario()`](https://energyRt.org/reference/solve_model.md),
+  [`read_solution()`](https://energyRt.org/reference/read.md).
+- Runs and diagnostics:
+  [`scenario_runs()`](https://energyRt.org/reference/scenario_runs.md),
+  [`with_solver_log()`](https://energyRt.org/reference/with_solver_log.md).
 
-library(energyRt)
-library(dplyr)
-library(ggplot2)
-```
+## The solve pipeline
 
-We use the packaged single-region TOPIA kit as a running example, and
-keep every store — scenarios, models, repositories and the registry —
-under a temporary folder. All four matter: the stores and the registry
-are written beside whatever path is redirected, so redirecting only the
-scenario path leaves `models/` and a registry beside the article.
+Solving is a short pipeline with inspectable boundaries:
 
-``` r
+1.  a `model` holds economic objects and configuration;
+2.  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+    expands their compact data into a `scenario` and validates the
+    solver input (`modInp`);
+3.  a backend writes and solves the mathematical program;
+4.  [`read_solution()`](https://energyRt.org/reference/read.md) decodes
+    solver output into `modOut`.
 
-wf <- file.path(tempdir(), "wf")
-set_scenarios_path(wf)                                  # where scenarios go
-set_models_path(file.path(wf, "models"))                # ... and models
-set_repositories_path(file.path(wf, "repositories"))    # ... and repositories
-set_registry_file(file.path(wf, "energyRt_registry.csv"))
-
-topia_elc <- topia$modules$electricity
-mod <- newModel("TOPIA", data = topia_elc$repo,
-                calendar = calendars[["d365_h24_1dps"]],
-                region   = topia_elc$regions,
-                horizon  = topia$modules$horizons$BY2025_50_by10,
-                discount = 0.05)
-mod <- setGeoscale(mod, topia_elc$geoscale)
-
-# One zone, one day per season: this article is about the workflow, not the
-# scale, and it solves four full projections below. `subset_model_regions()`
-# rather than a smaller `region =` argument, because the fuel supplies are
-# declared per ZONE and a bare subset would leave them naming regions the
-# model no longer has.
-mod <- subset_model_regions(mod, region = c("R04", "R05", "R06"))
-```
+For routine work,
+[`solve_model()`](https://energyRt.org/reference/solve_model.md)
+performs the whole pipeline:
 
 ``` r
 
-# interpolate + solve on the bundled GLPK; echo = FALSE keeps the log quiet
-scen <- interpolate_model(mod, name = "BASE") |>
-  solve_scenario(solver = solver_options$glpk, echo = FALSE)
-#> ℹ checking declarations
-#> ✔ checking declarations (0.1s)
-#> ℹ expanding vintage/cluster variants
-#> ✔ expanding vintage/cluster variants (0.1s)
-#> ℹ materializing commodity clusters
-#> ✔ materializing commodity clusters (0.1s)
-#> ℹ materializing weather clusters
-#> ✔ materializing weather clusters (0.0s)
-#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
-#> ℹ collecting sets: object names✔ collecting sets: object names (0.0s)
-#> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
-#> ℹ collecting sets: timeframes
-#> ✔ collecting sets: timeframes (0.0s)
-#> ℹ collecting sets: process inputs/outputs
-#> ✔ collecting sets: process inputs/outputs (0.0s)
-#> ℹ collecting sets: membership comm sets
-#> ✔ collecting sets: membership comm sets (0.0s)
-#> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
-#> ℹ building maps: membership + closure
-#> ✔ building maps: membership + closure (0.2s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
-#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
-#> ℹ building maps: calendar + lifespan
-#> ✔ building maps: calendar + lifespan (0.2s)
-#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.6s)
-#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
-#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
-#> ℹ building maps: value✔ building maps: value (0.1s)
-#> ℹ building maps: filter
-#> ✔ building maps: filter (0.4s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
-#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
-#> ℹ computing model-size summary✔ computing model-size summary (0.1s)
-#> model_size: BASE
-#>   parameters : 200 value, 359 maps, 15 sets
-#>   param rows : 26,382
-#>   estimate   : ~56,283 variables, ~59,392 constraints (from gating maps)
-#>   top parameters by rows:
-#>     pTechCinp2use      5,472
-#>     pStorageInpEff     3,456
-#>     pStorageOutEff     3,456
-#>     pTechUse2cact      2,880
-#>     pWeather           2,535
-#>     pTradeIrVarom      1,728
-#>     pTradeIrEff        1,728
-#>     pTimesliceAgg      891
-#>     pDemand            864
-#>     pExportRowPrice    864
-#>     pExportRow         864
-#>     pTimesliceWeight   303
-#>     pTechAf            288
-#>     pTechFixom         132
-#>     pTechInvcost       132
+scen <- solve_model(model, name = "BASE", solver = solver_options$glpk)
 ```
 
-## Selecting objects: `getObject()`
-
-[`getObject()`](https://energyRt.org/reference/getObject.md) returns the
-*building-block objects* held in a repository, model or scenario,
-filtered by **class**, **name**, **description**, **region** or any
-object slot. It is the object-level counterpart of
-[`getData()`](https://energyRt.org/reference/getData.md) (which returns
-their data). By default it returns a named list keyed by object name;
-`drop = TRUE` unwraps a single match into the object itself.
+During development, keep interpolation and solving separate. It makes
+data errors distinguishable from backend or solver errors:
 
 ``` r
 
-repo <- topia_elc$repo
-names(getObject(repo, class = "technology"))        # all technologies
-#> [1] "ECOA"  "EGAS"  "ENUC"  "ESOL"  "EWIN"  "EHYD"  "EBIO"  "H2ELC"
-names(getObject(repo, class = "supply", region = "R01"))
-#> [1] "SUP_BIO"   "RES_LANDS" "RES_LANDW"
-getObject(repo, name = "ECOA", drop = TRUE)@invcost # the ECOA object itself
-#>   vintage cluster region year invcost wacc payback eac retcost
-#> 1    <NA>    <NA>   <NA>   NA    2000   NA      NA  NA      25
+scen <- interpolate_model(model, name = "BASE")
+scen <- solve_scenario(scen, solver = solver_options$glpk, wait = TRUE)
 ```
 
-Region matching reads `@region` slots and the `region`/`src`/`dst`
-columns of any data.frame slot, so it works for every class;
-region-agnostic objects (e.g. commodities) match every region.
-[`getObject()`](https://energyRt.org/reference/getObject.md) accepts a
-`scenario` too, so the same query works before or after solving.
+Model configuration such as calendar, horizon, regions, geoscale, and
+discount rate belongs to the model or scenario. A solver preset controls
+only how the already-declared optimization problem is written,
+exchanged, and solved.
 
-## Extracting data: `getData()`
+## Choosing a backend
 
-[`getData()`](https://energyRt.org/reference/getData.md) pulls
-**parameter** and **variable** data out of a scenario as tidy
-data.frames. With `merge = TRUE` it returns one long frame (a named list
-otherwise); every frame carries a `scenario` and a `name` column.
+`solver_options` is a named catalog of working presets. Start with a
+preset and pass it explicitly while comparing runs:
 
 ``` r
 
-getData(scen, "vObjective", merge = TRUE)$value      # total system cost, MEUR
-#> [1] 50622.22
+names(solver_options)
+solver_options$glpk
 
-gen <- getData(scen, "vTechOut", comm = "ELC", merge = TRUE)
-head(gen[, c("scenario", "tech", "region", "year", "timeslice", "value")], 4)
-#> # A tibble: 4 × 6
-#>   scenario tech  region  year timeslice value
-#>   <chr>    <chr> <chr>  <int> <chr>     <dbl>
-#> 1 BASE     ECOA  R04     2030 d015_h00   0.86
-#> 2 BASE     ECOA  R04     2030 d015_h01   0.86
-#> 3 BASE     ECOA  R04     2030 d015_h02   0.86
-#> 4 BASE     ECOA  R04     2030 d015_h03   0.86
+solve_model(model, solver = solver_options$julia_highs)
+solve_model(model, solver = solver_options$gams_gdx_cplex)
 ```
 
-The `...` accept set filters, exact (`comm = "ELC"`) or regex
-(`comm_ = "^EL"`). `timeframe = c("lowest","highest","all")` controls
-how timeslice-indexed values are returned. Rename dimensions or recode
-values on the way out with `newNames =` / `newValues =` (or afterwards
-with [`renameSets()`](https://energyRt.org/reference/renameSets.md) /
-[`revalueSets()`](https://energyRt.org/reference/revalueSets.md)), and
-discover which parameters carry a given set with
-[`findData()`](https://energyRt.org/reference/findData.md):
-
-``` r
-
-names(findData(scen, setsNames_ = "tech"))           # parameters indexed by 'tech'
-#>  [1] "pTechWeatherAf"     "pTechWeatherAfs"    "pTechWeatherAfc"   
-#>  [4] "pTechCap2act"       "pTechEac"           "pTechWacc"         
-#>  [7] "pTechPayback"       "pTechEmisComm"      "pTechOlife"        
-#> [10] "pTechFixom"         "pTechInvcost"       "pTechStock"        
-#> [13] "pTechStockNew"      "pTechStockSurv"     "pTechVarom"        
-#> [16] "pTechAf"            "pTechRampUp"        "pTechRampDown"     
-#> [19] "pTechAfs"           "pTechGinp2use"      "pTechCinp2ginp"    
-#> [22] "pTechUse2cact"      "pTechAct2AInp"      "pTechCap2AInp"     
-#> [25] "pTechAct2AOut"      "pTechCap2AOut"      "pTechNCap2AInp"    
-#> [28] "pTechNCap2AOut"     "pTechPho2AInp"      "pTechPho2AOut"     
-#> [31] "pTechRet2AInp"      "pTechRet2AOut"      "pTechCinp2AInp"    
-#> [34] "pTechCout2AInp"     "pTechCinp2AOut"     "pTechCout2AOut"    
-#> [37] "pTechCact2cout"     "pTechCinp2use"      "pTechCvarom"       
-#> [40] "pTechAvarom"        "pTechShare"         "pTechAfc"          
-#> [43] "pTechCap"           "pTechNewCap"        "pTechRet"          
-#> [46] "pTechRetCost"       "vTechAInp"          "vTechAOut"         
-#> [49] "vTechAct"           "vTechCap"           "vTechEac"          
-#> [52] "vTechFixom"         "vTechInp"           "vTechInv"          
-#> [55] "vTechNewCap"        "vTechOut"           "vTechRetCost"      
-#> [58] "vTechRetiredNewCap" "vTechRetiredStock"  "vTechPhaseOut"     
-#> [61] "vTechStockCap"      "vTechStockPhaseOut" "vTechVarom"        
-#> [64] "vTechEmsFuel"
-```
-
-`find_in_model(mod, "ECOA")` text-searches every object slot for a value
-— handy for locating where a name is used.
-
-## Editing an object: `update()`
-
-[`update()`](https://energyRt.org/reference/update.md) edits the slots
-of a **single** model object (a technology, commodity, demand, …). It
-does **not** operate on a whole model or scenario — you update the
-object, put it back into the repository with
-`add(..., overwrite = TRUE)`, and re-interpolate/solve.
-
-``` r
-
-ECOA <- getObject(repo, name = "ECOA", drop = TRUE)
-ECOA <- update(ECOA, invcost = data.frame(invcost = 2500))  # pricier coal capex
-repo_hi <- add(repo, ECOA, overwrite = TRUE)                # swap it back in
-
-mod_hi  <- newModel("TOPIA_HI", data = repo_hi,
-                    calendar = calendars[["d365_h24_1dps"]],
-                    region = topia_elc$regions,
-                    horizon = topia$modules$horizons$BY2025_50_by10,
-                    discount = 0.05)
-mod_hi  <- setGeoscale(mod_hi, topia_elc$geoscale)
-mod_hi  <- subset_model_regions(mod_hi, region = c("R04", "R05", "R06"))
-```
-
-(For an already-interpolated scenario,
-`update_parameter(scen, param, data)` writes rows straight into its
-parameter store.)
-
-## Scenario folders and structure
-
-(The *Scenario management* article explains this layer in depth —
-stores, manifests, the registry, runs, and variants; this section is the
-quick tour.)
-
-The scenarios directory is an option — read it with
-[`get_scenarios_path()`](https://energyRt.org/reference/scenarios_path.md),
-set it with
-[`set_scenarios_path()`](https://energyRt.org/reference/scenarios_path.md)
-(default `"scenarios/"`). Each scenario gets its own folder, named
-automatically as `name-model-calendar-horizon` (parts joined by dashes,
-which valid names cannot contain; duplicate parts are dropped, so a
-scenario and model sharing a name appear once):
-
-``` r
-
-get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\Rtmp8G8dJ2/wf"
-basename(scen@path)
-#> [1] "BASE-TOPIA-d365_h24_1dps-BY2025_50_by10_main"
-```
-
-Saving a scenario writes an **Arrow-backed** folder that mirrors the
-scenario’s structure — a thin `scen.RData` shell, a `scenario.yml`
-manifest, each large data slot as a dataset, and one folder per solver
-run:
-
-    <scenarios-path>/<name-model-calendar-horizon>/
-    ├── scenario.yml        # manifest: model ref/hash, calendar, horizon,
-    │                       #   `default:` — the default run (user-changeable)
-    ├── scen.RData          # thinned S4 scenario shell
-    ├── class · format · layout   # "scenario" · "parquet" · "3"
-    ├── logfile.csv         # timestamped save log
-    ├── model/data/<repo>/<object>/<slot>/   # model data (embedded scenarios only)
-    ├── modInp/parameters/<param>/           # interpolated input parameters
-    └── runs/               # one folder per solve
-        ├── glpk/           #   base-problem run, named by its solve label
-        │   ├── run.yml     #     provenance: solver, cmdline, times, objective
-        │   ├── input/      #     the exchange tables handed to the solver
-        │   ├── output/     #     the solver's raw dump (read_solution() reads it)
-        │   └── modOut/variables/<var>/      # the solved variables
-        └── julia_highs/    #   another backend's run of the same problem
-
-Beyond the per-scenario traces above, an optional *operation log*
-records the sequence of a working session:
-`set_log_file("energyRt_log.csv")` makes
-[`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md),
-[`solve_scenario()`](https://energyRt.org/reference/solve_model.md) and
-[`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md)
-append one line each (operation, object, status, objective, duration),
-and [`read_log()`](https://energyRt.org/reference/log.md) returns the
-sequence as a tibble. It is off by default.
-
-Solving the same scenario with several backends (or option sets — pass
-`run = "<label>"` to
-[`solve_scenario()`](https://energyRt.org/reference/solve_model.md))
-keeps every run side by side; `scenario_runs(scen)` lists them with
-status and objective, and `read_solution(scen, run = "<label>")`
-switches the active solution. A saved scenario references its model in
-the model store when the model is a sealed version
-([`seal_model()`](https://energyRt.org/reference/seal.md)), and carries
-a copy of it otherwise (see
-[`?save_scenario`](https://energyRt.org/reference/save_scenario.md),
-`mode`, and the *Scenario management* article).
-
-A scenario knows whether its data is in RAM or on disk via
-[`isInMemory()`](https://energyRt.org/reference/isInMemory.md); when on
-disk, the slots are empty and read lazily from the folder on demand.
-Folders from older energyRt versions are still readable and migrate in
-place with `upgrade_scenario_layout(path)`.
-
-## Saving and loading
-
-[`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
-spills the scenario to its folder and returns the (now on-disk) object;
-`load_scenario(path, env = NULL)` reads the shell back. Its data stays
-on disk until requested —
-[`getData()`](https://energyRt.org/reference/getData.md) reads it
-lazily, or [`obj2mem()`](https://energyRt.org/reference/obj2mem.md)
-pulls the whole scenario back into memory.
-
-``` r
-
-saved <- save_scenario(scen, verbose = FALSE)
-ld    <- load_scenario(saved@path, env = NULL, verbose = FALSE)
-```
-
-A saved scenario is also reachable by its registered **name** —
-`load_scenario("BASE", env = NULL)` resolves it through the project
-registry, and the cached accessor `getScenario("BASE")` is the everyday
-short form (see the *Scenario management* article):
-
-``` r
-
-identical(getScenario("BASE")@name, ld@name)
-#> [1] TRUE
-```
-
-``` r
-
-basename(saved@path)                                 # the scenario folder
-#> [1] "BASE-TOPIA-d365_h24_1dps-BY2025_50_by10_main"
-isInMemory(saved)                                    # FALSE -- data is on disk
-#> [1] TRUE
-getData(ld, "vObjective", merge = TRUE)$value        # lazy read, no full load
-#> [1] 50622.22
-```
-
-``` r
-
-ld <- obj2mem(ld)                                    # rehydrate fully into RAM
-```
-
-``` r
-
-isInMemory(ld)
-#> [1] TRUE
-```
-
-Every
-[`save_scenario()`](https://energyRt.org/reference/save_scenario.md) /
-[`save_model()`](https://energyRt.org/reference/model_store.md) /
-[`save_repository()`](https://energyRt.org/reference/repo_store.md) also
-records its object in the project **registry** — a single CSV (default
-`energyRt_registry.csv` at the project root, see
-[`get_registry_file()`](https://energyRt.org/reference/registry_file.md))
-indexing saved models, repositories, scenarios, and runs. Repositories
-shared by several models can be stored once with
-[`save_repository()`](https://energyRt.org/reference/repo_store.md) and
-referenced by each model (`save_model(embed_repos = )`), just as
-scenarios can reference a stored model.
-[`load_registry()`](https://energyRt.org/reference/registry.md) reads
-it, [`find_in_registry()`](https://energyRt.org/reference/registry.md)
-filters it (by type, name, or model hash), and
-[`refresh_registry()`](https://energyRt.org/reference/registry.md)
-rebuilds it by rescanning the `scenarios/` and `models/` stores — the
-on-disk manifests are the source of truth, so the registry can always be
-reconstructed.
-
-## Comparing scenarios
-
-Layer a policy lever onto the base model to get a second scenario, then
-pass a **named list of scenarios** to
-[`getData()`](https://energyRt.org/reference/getData.md) — the
-`scenario` column makes the comparison a one-liner. (Scenarios already
-*saved* compare by name alone: `getData(c("BASE", "CO2CAP"), ...)` loads
-them from the registry on the fly.)
-
-``` r
-
-# add the CO2 cap lever
-scen_cap <- interpolate_model(mod, "CO2CAP", topia_elc$CO2_CAP) |>
-  solve_scenario(solver = solver_options$glpk, echo = FALSE)
-#> ℹ checking declarations
-#> ✔ checking declarations (0.1s)
-#> ℹ expanding vintage/cluster variants
-#> ✔ expanding vintage/cluster variants (0.2s)
-#> ℹ materializing commodity clusters
-#> ✔ materializing commodity clusters (0.0s)
-#> ℹ materializing weather clusters
-#> ✔ materializing weather clusters (0.0s)
-#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
-#> ℹ collecting sets: object names✔ collecting sets: object names (0.0s)
-#> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
-#> ℹ collecting sets: timeframes
-#> ✔ collecting sets: timeframes (0.0s)
-#> ℹ collecting sets: process inputs/outputs
-#> ✔ collecting sets: process inputs/outputs (0.0s)
-#> ℹ collecting sets: membership comm sets
-#> ✔ collecting sets: membership comm sets (0.0s)
-#> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
-#> ℹ building maps: membership + closure
-#> ✔ building maps: membership + closure (0.1s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
-#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
-#> ℹ building maps: calendar + lifespan
-#> ✔ building maps: calendar + lifespan (0.2s)
-#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.6s)
-#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
-#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.1s)
-#> ℹ building maps: value✔ building maps: value (0.1s)
-#> ℹ building maps: filter
-#> ✔ building maps: filter (0.4s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
-#> ℹ compiling 1 user constraint(s) / cost term(s)✔ compiling 1 user constraint(s) / cost term(s) (0.0s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
-#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
-#> ℹ computing model-size summary✔ computing model-size summary (0.1s)
-#> model_size: CO2CAP
-#>   parameters : 201 value, 361 maps, 15 sets
-#>   param rows : 26,385
-#>   estimate   : ~56,283 variables, ~59,392 constraints (from gating maps)
-#>   top parameters by rows:
-#>     pTechCinp2use      5,472
-#>     pStorageInpEff     3,456
-#>     pStorageOutEff     3,456
-#>     pTechUse2cact      2,880
-#>     pWeather           2,535
-#>     pTradeIrVarom      1,728
-#>     pTradeIrEff        1,728
-#>     pTimesliceAgg      891
-#>     pDemand            864
-#>     pExportRowPrice    864
-#>     pExportRow         864
-#>     pTimesliceWeight   303
-#>     pTechAf            288
-#>     pTechFixom         132
-#>     pTechInvcost       132
-```
-
-``` r
-
-emis <- getData(list(BASE = scen, CO2CAP = scen_cap), "vEmsFuelTot",
-                comm = "CO2", merge = TRUE)
-
-emis |>
-  group_by(scenario, year) |> summarise(ktCO2 = sum(value), .groups = "drop") |>
-  ggplot(aes(factor(year), ktCO2, fill = scenario)) +
-  geom_col(position = "dodge") +
-  labs(x = "year", title = "CO2 emissions by scenario") + theme_bw()
-```
-
-![](workflow_files/figure-html/compare-emis-1.png)
-
-``` r
-
-sapply(list(BASE = scen, CO2CAP = scen_cap),
-       function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
-#>   BASE CO2CAP 
-#>  50622  50636
-```
-
-A scenario that adds a lever to an interpolated one can be **built on
-it**: `base = scen` reuses BASE’s interpolated tables and computes only
-what the cap adds, and the result equals interpolating from scratch:
-
-``` r
-
-scen_cap2 <- interpolate_model(mod, "CO2CAP", topia_elc$CO2_CAP, base = scen)
-#> ℹ base 'BASE': adding 0 levies, 1 constraint(s) / cost term(s)
-sum(compare_inputs(scen_cap2, scen_cap)$summary$status != "identical")
-#> [1] 0
-```
-
-The same holds for new technologies or commodities and for a sample of
-the base’s calendar or regions; anything else is interpolated in full,
-with a message saying why. Saved on a sealed base, such a scenario
-references the base’s tables instead of copying them (see *Scenario
-management*, “Scenarios built on a base”).
-
-To reason about **model size** rather than results,
-[`model_size()`](https://energyRt.org/reference/model_size.md) estimates
-the parameter/variable/constraint counts of an interpolated scenario,
-and [`size()`](https://energyRt.org/reference/size.md) reports its
-in-memory footprint:
-
-``` r
-
-model_size(scen)
-#> model_size: BASE
-#>   parameters : 200 value, 359 maps, 15 sets
-#>   param rows : 26,382
-#>   estimate   : ~56,283 variables, ~59,392 constraints (from gating maps)
-#>   top parameters by rows:
-#>     pTechCinp2use      5,472
-#>     pStorageInpEff     3,456
-#>     pStorageOutEff     3,456
-#>     pTechUse2cact      2,880
-#>     pWeather           2,535
-#>     pTradeIrVarom      1,728
-#>     pTradeIrEff        1,728
-#>     pTimesliceAgg      891
-#>     pDemand            864
-#>     pExportRowPrice    864
-#>     pExportRow         864
-#>     pTimesliceWeight   303
-#>     pTechAf            288
-#>     pTechFixom         132
-#>     pTechInvcost       132
-size(scen)
-#> [1] "22.5 Mb"
-```
-
-For a systematic check that a build is correct *and* efficient,
-`compare_interp_settings(mod)` and
-`compare_solve_settings(mod, solvers = ...)` interpolate (and solve) the
-model under different storage settings and tabulate build size, time and
-— crucially — confirm the objective is invariant across
-`fold`/`sparse`/`prune`. These run several builds, so they are best run
-interactively:
-
-``` r
-
-compare_interp_settings(mod)                          # size/time by setting
-compare_solve_settings(mod, solvers = list(solver_options$glpk))
-```
-
-## The base year: given, not decided
-
-A milestone year whose values are known — an observed or calibrated base
-year — does not belong in the optimisation. Marking it on the horizon
-says so once, and three groups of years follow from the mark:
-
-``` r
-
-h <- newHorizon(2020:2050, intervals = 5, base_year = 2025, name = "h25")
-#            2020   historical -- optimised nowhere
-#            2025   the base year, solved on its own
-# 2030 ... 2050     the projection, what the solver optimises
-```
-
-Milestones **before** the base year are historical: they enter no LP at
-all, and a message names them when the split happens. Nothing is lost by
-their leaving — interpolation reads the anchor years present in the
-data, not the milestone list, so a parameter declared at 2020 still
-drives the projection exactly as it did before the mark. The horizon’s
-`period` is kept whole on both halves for the same reason.
-
-Solve the base year on its own, then carry what it decided:
-
-``` r
-
-by  <- solve_base_year(mod, solver = solver_options$glpk)
-prj <- interpolate_model(mod, name = "PRJ", base_year_scenario = by)
-#> base year 2025: not optimised; 12 capacity vintage(s) carried forward as stock
-```
-
-What crosses is only what the base-year solve **decided** — its new
-capacity, written as sunk `stock` at its true vintage, paying no
-annualised investment cost in the projection. The model’s own `@stock`,
-where observed history lives with its own vintages, is left untouched.
-
-`base_year_scenario` defaults to `base`, so a projection built on a base
-takes that base’s base-year solution for free. It also accepts a solved
-scenario, a scenario name, or `"<scenario>/<run>"`. With no source at
-all the projection still excludes the base year and starts from the
-model’s declared `@stock`, saying so in one message — which is the
-normal shape when a calibrated fleet is written into the model at build
-time and there is no ledger to carry.
-
-The link is recorded in `scenario.yml`, so the base year can be read
-back alongside the projection:
-
-``` r
-
-getData(prj, "vTechCap", merge = TRUE, base_year = TRUE)
-```
-
-Every row gains a `source` column, `"solved"` or `"base"`. `vObjective`
-is not unioned: the two are separate optimisations.
-
-## Sampling: solving a subset of the model
-
-Interpolation can solve a *sample* of a model without editing the model
-itself — in time (a sampled calendar) and in space (a sampled geoscale).
-Both work the same way: build the sample object, pass it to
-[`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md),
-and the scenario is declared, validated and solved on the sample.
-
-### Sampled calendars
-
-A sampled calendar is a **row subset of the full calendar’s timetable**
-plus an explicit `year_fraction` — the fraction of the year the sample
-covers. Timeslice weights annualise the sample inside the solver: the
-sampled slices carry weight `1/year_fraction`, while the top slice stays
-full-year magnitude with share and weight 1. The objective is therefore
-an *estimate* of the full model’s, and equals it exactly when the
-sampled slices are representative.
-
-The subset inherits the full year’s `weight` column, which no longer
-annualises the shorter sample. Interpolation normalises the weights on
-construction and reports the factor it applied:
-
-``` r
-
-timetable <- calendars[["d365_h24_1dps"]]@timetable
-# half of the sampled days -- this calendar is indexed by day and hour, so a
-# day is the unit to cut; filtering on a dimension it does not carry would
-# quietly keep everything
-keep_days <- sort(unique(as.character(timetable$YDAY)))[c(1, 3)]
-timetable_2s <- timetable[as.character(timetable$YDAY) %in% keep_days, ]
-calendar_s2h24 <- newCalendar(timetable = timetable_2s, name = "d6h24",
-                              year_fraction = sum(timetable_2s$share))
-
-scen_t <- interpolate_model(mod, "S2", calendar_s2h24) |>
-  solve_scenario(solver = solver_options$glpk, echo = FALSE)
-#> ℹ checking declarations
-#> ✔ checking declarations (0.1s)
-#> ℹ expanding vintage/cluster variants
-#> ✔ expanding vintage/cluster variants (0.1s)
-#> ℹ materializing commodity clusters
-#> ✔ materializing commodity clusters (0.0s)
-#> ℹ materializing weather clusters
-#> ✔ materializing weather clusters (0.0s)
-#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
-#> ℹ collecting sets: object names✔ collecting sets: object names (0.0s)
-#> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
-#> ℹ collecting sets: timeframes
-#> ✔ collecting sets: timeframes (0.0s)
-#> ℹ collecting sets: process inputs/outputs
-#> ✔ collecting sets: process inputs/outputs (0.0s)
-#> ℹ collecting sets: membership comm sets
-#> ✔ collecting sets: membership comm sets (0.0s)
-#> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
-#> ℹ building maps: membership + closure
-#> ✔ building maps: membership + closure (0.2s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
-#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
-#> ℹ building maps: calendar + lifespan
-#> ✔ building maps: calendar + lifespan (0.2s)
-#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.7s)
-#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
-#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.1s)
-#> ℹ building maps: value✔ building maps: value (0.1s)
-#> ℹ building maps: filter
-#> ✔ building maps: filter (0.3s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
-#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
-#> ℹ computing model-size summary✔ computing model-size summary (0.1s)
-#> model_size: S2
-#>   parameters : 200 value, 359 maps, 15 sets
-#>   param rows : 13,663
-#>   estimate   : ~28,911 variables, ~30,292 constraints (from gating maps)
-#>   top parameters by rows:
-#>     pTechCinp2use      2,736
-#>     pStorageInpEff     1,728
-#>     pStorageOutEff     1,728
-#>     pTechUse2cact      1,440
-#>     pWeather           1,260
-#>     pTradeIrVarom      864
-#>     pTradeIrEff        864
-#>     pTimesliceAgg      447
-#>     pDemand            432
-#>     pExportRowPrice    432
-#>     pExportRow         432
-#>     pTimesliceWeight   153
-#>     pTechAf            144
-#>     pTechFixom         132
-#>     pTechInvcost       132
-sapply(list(full = scen, sampled = scen_t),
-       function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
-#>    full sampled 
-#>   50622   60891
-```
-
-Two traps: pass `year_fraction` **explicitly** (it is not recomputed
-from the subset), and **subset the existing timetable** rather than
-rebuilding one with
-[`make_timetable()`](https://energyRt.org/reference/calendar.md) (which
-would renormalise the shares to a full year). Declarations are validated
-against the *model’s* calendar, so objects naming out-of-sample
-timeslices interpolate cleanly — their out-of-sample rows are simply
-filtered.
-
-A sample of an already interpolated full-calendar scenario can be built
-on it, `interpolate_model(mod, "S2", calendar_s2h24, base = scen)`: the
-full scenario’s tables are taken filtered to the sampled timeslices
-instead of being recomputed.
-
-### Spatial sampling
-
-The spatial mirror: pass a **filtered geoscale** — a
-[`geoscales::filter_geoscale()`](https://optimal2050.github.io/geoscales/r/reference/filter_geoscale.html)
-subset of the model’s regions — and the scenario becomes a
-*sub-territory* model: only the sampled regions are declared,
-out-of-sample parameter rows are filtered, and trade routes crossing the
-sample boundary are dropped (with a message). Unlike calendar sampling
-there is **no reweighting**: regional quantities are extensive, so the
-objective is the sub-territory’s own, and disjoint samples *add up* to
-the full model (absent cross-boundary trade).
-
-TOPIA is single-region, so a compact three-region demo:
-
-``` r
-
-library(geoscales)
-
-r3 <- c("R1", "R2", "R3")
-gs <- geoscale_from_leaftable(
-  data.frame(zone = c("Z12", "Z12", "Z3"), region = r3, km2 = 1),
-  geoframes = c("zone", "region"), name = "demo")
-
-m3 <- newModel(
-  "M3", region = r3, horizon = newHorizon(2020), discount = 0.05,
-  repo = newRepository(
-    "r",
-    newCommodity("COA", timeframe = "ANNUAL"),
-    newCommodity("ELC", timeframe = "ANNUAL"),
-    newSupply("SUP_COA", commodity = "COA",
-              supply = data.frame(region = r3, cost = 5)),
-    newTechnology("ECOA", input = list(comm = "COA"),
-                  output = list(comm = "ELC"),
-                  af = data.frame(af.up = 0.9),
-                  invcost = data.frame(invcost = 1000),
-                  olife = list(olife = 30), cap2act = 1),
-    newDemand("DEM_ELC", commodity = "ELC",
-              demand = data.frame(region = r3, demand = c(10, 20, 30))),
-    newTrade("TR23", commodity = "ELC", cap2act = 1,
-             routes = data.frame(src = "R2", dst = "R3"),
-             trade  = data.frame(src = "R2", dst = "R3", ava.up = 4),
-             invcost = data.frame(invcost = 10))))
-```
-
-Filtering the geoscale to `R1 + R2` and interpolating drops the
-`R2 -> R3` route on the way:
-
-``` r
-
-gs12 <- filter_geoscale(gs, "region", c("R1", "R2"),
-                        drop_empty_geoframes = TRUE)
-scen12 <- interpolate_model(m3, "S12", gs12)
-#> 
-#> ── interpolate_model: S12 ──────────────────────────────────────────────────────
-#> storage: in-memory
-#> sparse: TRUE
-#> prune: TRUE
-#> fold: none
-#> validate: TRUE
-#> spatial sample: sub-territory solve on 2 of 3 regions (km2 66.7% of the parent)
-#> spatial sample: dropping trade route TR23: R2 -> R3 (no boundary price; no stub)
-#> spatial sample: kept 2 region(s); dropped 1 object(s) and 1 trade route(s) outside the sample
-#> ℹ checking declarations✔ checking declarations (0.0s)
-#> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.0s)
-#> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
-#> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
-#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
-#> ℹ collecting sets: object names✔ collecting sets: object names (0.0s)
-#> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
-#> ℹ collecting sets: timeframes✔ collecting sets: timeframes (0.0s)
-#> ℹ collecting sets: process inputs/outputs✔ collecting sets: process inputs/outputs (0.0s)
-#> ℹ collecting sets: membership comm sets✔ collecting sets: membership comm sets (0.0s)
-#> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
-#> ℹ building maps: membership + closure✔ building maps: membership + closure (0.1s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
-#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
-#> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.1s)
-#> ℹ ob2mi: interpolating 5 model objects
-#> ✔ ob2mi: interpolating 5 model objects (0.0s)
-#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
-#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
-#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
-#> ℹ building maps: value✔ building maps: value (0.0s)
-#> ℹ building maps: filter✔ building maps: filter (0.1s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
-#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
-#> ℹ validating parameters
-#> ✔ validating parameters (0.1s)
-#> ℹ computing model-size summary✔ computing model-size summary (0.0s)
-#> ────────────────────────────────────────────────────────────────────────────────
-#> dimensions: 3 regions, 2 commodities, 3 processes, 1 years, 1 timeslices
-#> model_size: S12
-#>   parameters : 200 value, 359 maps, 15 sets
-#>   param rows : 26
-#>   estimate   : ~47 variables, ~42 constraints (from gating maps)
-#>   top parameters by rows:
-#>     pWacc              3
-#>     pSdr               3
-#>     pSupCost           2
-#>     pDemand            2
-#>     pTechEac           2
-#>     pTechOlife         2
-#>     pTechInvcost       2
-#>     pTechAf            2
-#>     pPeriodLen         1
-#>     ordYear            1
-#>     cardYear           1
-#>     pTimesliceShare    1
-#>     pTimesliceWeight   1
-#>     pTimesliceAgg      1
-#>     pYearFraction      1
-#> Map rules: mTechTimeslice, mSupTimeslice, mCommTimeslice, mvTechAct, mvTechOut, meqTechAfUp, meqTechActSng kept as rules, tables dropped
-as.character(scen12@settings@region)
-#> [1] "R1" "R2"
-```
-
-A dropped route can optionally leave a **priced boundary stub** at the
-kept endpoint — an export (kept source) or import (kept destination)
-object bounded by `cap.up` (or, failing that, the route’s `ava.up`) —
-via `boundary_prices`; routes without a price row are just dropped:
-
-``` r
-
-bp <- data.frame(src = "R2", dst = "R3", price = 50, cap.up = 4)
-scen12p <- interpolate_model(m3, "S12P", gs12, boundary_prices = bp)
-#> 
-#> ── interpolate_model: S12P ─────────────────────────────────────────────────────
-#> storage: in-memory
-#> sparse: TRUE
-#> prune: TRUE
-#> fold: none
-#> validate: TRUE
-#> spatial sample: sub-territory solve on 2 of 3 regions (km2 66.7% of the parent)
-#> spatial sample: dropping trade route TR23: R2 -> R3 (EXP_TR23_R22R3 stub added)
-#> spatial sample: kept 2 region(s); dropped 1 object(s) and 1 trade route(s) outside the sample
-#> ℹ checking declarations✔ checking declarations (0.0s)
-#> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.0s)
-#> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
-#> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
-#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
-#> ℹ collecting sets: object names✔ collecting sets: object names (0.0s)
-#> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
-#> ℹ collecting sets: timeframes✔ collecting sets: timeframes (0.0s)
-#> ℹ collecting sets: process inputs/outputs✔ collecting sets: process inputs/outputs (0.0s)
-#> ℹ collecting sets: membership comm sets✔ collecting sets: membership comm sets (0.0s)
-#> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
-#> ℹ building maps: membership + closure✔ building maps: membership + closure (0.1s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
-#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
-#> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.1s)
-#> ℹ ob2mi: interpolating 6 model objects
-#> ✔ ob2mi: interpolating 6 model objects (0.0s)
-#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
-#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
-#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.2s)
-#> ℹ building maps: value✔ building maps: value (0.0s)
-#> ℹ building maps: filter✔ building maps: filter (0.1s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
-#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
-#> ℹ validating parameters
-#> ✔ validating parameters (0.1s)
-#> ℹ computing model-size summary✔ computing model-size summary (0.0s)
-#> ────────────────────────────────────────────────────────────────────────────────
-#> dimensions: 3 regions, 2 commodities, 4 processes, 1 years, 1 timeslices
-#> model_size: S12P
-#>   parameters : 200 value, 359 maps, 15 sets
-#>   param rows : 28
-#>   estimate   : ~54 variables, ~48 constraints (from gating maps)
-#>   top parameters by rows:
-#>     pWacc              3
-#>     pSdr               3
-#>     pSupCost           2
-#>     pDemand            2
-#>     pTechEac           2
-#>     pTechOlife         2
-#>     pTechInvcost       2
-#>     pTechAf            2
-#>     pPeriodLen         1
-#>     ordYear            1
-#>     cardYear           1
-#>     pTimesliceShare    1
-#>     pTimesliceWeight   1
-#>     pTimesliceAgg      1
-#>     pYearFraction      1
-#> Map rules: mExpTimeslice, mTechTimeslice, mSupTimeslice, mCommTimeslice, mvTechAct, mvTechOut, meqTechAfUp, meqTechActSng kept as rules, tables dropped
-grep("^EXP", as.character(scen12p@modInp@sets$expp), value = TRUE)
-#> [1] "EXP_TR23_R22R3"
-```
-
-The same surgery is available up front, as a model-to-model verb:
-
-``` r
-
-m12 <- subset_model_regions(m3, c("R1", "R2"), boundary_prices = bp)
-as.character(m12@config@region)
-#> [1] "R1" "R2"
-```
-
-The filtered geoscale records its **coverage** (fraction of each
-weight’s parent total — see
-[`geoscales::geoscale_coverage()`](https://optimal2050.github.io/geoscales/r/reference/geoscale_coverage.html)),
-and its name is mangled (`"demo[region:R1+R2]"`) so different samples of
-one parent never collide in caches or joins. A **pruned** geoscale (a
-coarser level of the model’s own hierarchy) requests a full-territory
-solve at the parent level instead. That is a different operation – it
-aggregates the model’s data rather than subsetting it – so
-[`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
-refuses a pruned geoscale and points at
-[`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md),
-which builds the coarser model directly.
-
-### A trade window instead of a flat price
-
-A stub priced with a single number is a perfectly elastic counterparty:
-the region can buy or sell any amount the bound allows without moving
-the price. For supply-curve work that is usually too generous.
-[`boundary_window()`](https://energyRt.org/reference/boundary_window.md)
-builds a **stepped curve** instead — a rising cost of imports, a falling
-revenue on exports — and sizes its quantity from the region’s own
-demand:
-
-``` r
-
-bw <- boundary_window(m3, regions = c("R1", "R2"),
-                      share = 0.1, nsteps = 3, price = 40)
-head(bw, 2)
-#>   src dst year timeslice price cap.up nsteps price_lo price_hi
-#> 1  R2  R3   NA      <NA>    40      2      3       20       40
-```
-
-`share = 0.1` caps the boundary at 10% of the region’s demand **in each
-timeslice**, which is where the import/export bound lives; summed over
-the year that is 10% of annual demand. The window deliberately refuses
-to guess a price — it can size the quantity from the model, but what the
-neighbours would charge is a judgement, so `price` is required.
-
-The result is an ordinary `boundary_prices` table with three extra
-columns (`nsteps`, `price_lo`, `price_hi`), so it goes where a flat one
-goes; omit them and you get exactly the flat stub as before.
-
-``` r
-
-m12w <- subset_model_regions(m3, c("R1", "R2"), boundary_prices = bw)
-stub <- m12w@data[["boundary_stubs"]]@data[[1]]
-# `@cluster` declares WHAT the steps are; the split itself is enforced in the
-# quantity bound, so read it there rather than from a descriptive copy
-as.data.frame(stub@cluster)[, c("cluster", "desc", "order")]
-#>   cluster                                         desc order
-#> 1      S1 step 1 of 3: 0-0.3333 of quantity at 36.6667     1
-#> 2      S2 step 2 of 3: 0.3333-0.6667 of quantity at 30     2
-#> 3      S3 step 3 of 3: 0.6667-1 of quantity at 23.3333     3
-```
-
-### Region by region
-
-[`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md)
-runs the whole sweep — one region at a time by default, or one group at
-a time — storing each as a variant of a single scenario:
-
-``` r
-
-br <- solve_by_region(m3, name = "sweep")           # autarky
-br <- solve_by_region(m3, name = "sweep_w",         # with a trade window
-                      trade = "auto", price = 40, share = 0.1)
-br$runs
-getData(br, "vTechCap", merge = TRUE)               # stacked, region column
-```
-
-With `trade = "none"` the regions are disjoint and nothing crosses, so
-the per-region objectives **add up** to the full model’s — the same
-property the sample objectives have above. Any trade window breaks it:
-each region then faces an exterior the others cannot see. `br$additive`
-records which case you are in, and
-[`print()`](https://energyRt.org/reference/print.md) says so rather than
-leaving it to be discovered.
-
-`on_error = "continue"` keeps the sweep going past a region that fails
-to solve, which matters at 30-odd regions: a single infeasible one
-should not cost you the rest.
-
-### Sampling the calendar repeatedly
-
-A single sampled calendar gives one cheap estimate.
-[`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md)
-runs a whole ensemble of them — consecutive blocks tiling the year,
-disjoint random draws, or bootstrap draws — and keeps every run:
-
-``` r
-
-ens <- solve_by_sample(m3, name = "ens", sample_size = 2,
-                       method = "sequential")     # two-season blocks
-ens$runs
-sample_summary(ens, "vTechCap", probs = c(0.05, 0.5, 0.95))
-```
-
-Samples are drawn as whole members of a calendar level — seasons, weeks,
-days. A hand-edited sample need not be a complete cross: its calendar is
-irregular and keeps the full calendar’s timeslice names.
-[`calendar_samples()`](https://energyRt.org/reference/calendar_samples.md)
-builds the specification on its own, so it can be inspected or edited
-first.
-
-Two rules follow from how a sampled calendar works, and both are
-enforced rather than left to be discovered. A sample must keep **at
-least two members** at every level: a single season (or week, or day)
-collapses its level, and the only way to build such a calendar renames
-the leaf timeslices so the model’s own data would stop matching them.
-And every sample is **annualised** —
-`pTimesliceWeight = 1/year_fraction` — so each one estimates the *whole
-year*. The ensemble is therefore a set of replicates whose spread is the
-sampling uncertainty; summing them is meaningless, unlike the region
-sweep above, whose disjoint pieces do add up.
-
-### Combining a sequence’s results
-
-Each driver stores one variant per unit of work and nothing merged is
-written to disk. Combination happens in memory, on read, and the rule
-differs by driver because the units mean different things.
-
-[`getData()`](https://energyRt.org/reference/getData.md) on a sequence
-**stacks and does not aggregate**. It binds every unit’s rows and adds a
-provenance column — `region` for
-[`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md),
-`sample` for
-[`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md)
-— so the caller decides what to do with them. Two methods are
-exceptions: [`getData()`](https://energyRt.org/reference/getData.md) on
-a recursive sequence stitches, taking each year from the step that
-decided it, and on a guided sequence it delegates to the final
-full-horizon solve.
-
-``` r
-
-rc <- solve_recursive(m3, name = "rec")  # milestone by milestone
-
-getData(br, "vTechCap", merge = TRUE)    # stacked, with a `region` column
-getData(ens, "vTechCap", merge = TRUE)   # stacked, with a `sample` column
-sample_summary(ens, "vTechCap", by = "tech")
-recursive_objective(rc)
-```
-
-| driver | what a unit is | how results combine |
+| family | modelling layer | typical use |
 |----|----|----|
-| [`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md) | a disjoint piece of the territory | quantities add; objectives sum **only** under `trade = "none"`, which the result reports as `additive` |
-| [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md) | a replicate estimate of the whole year | a distribution — mean and quantiles via [`sample_summary()`](https://energyRt.org/reference/sample_summary.md). **Summing is wrong**, because every sample is already annualised |
-| [`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md) | a milestone window | stitched, each year contributed once. Per-step objectives are not comparable, so [`recursive_objective()`](https://energyRt.org/reference/recursive_objective.md) recomputes a discounted total |
-| [`solve_guided()`](https://energyRt.org/reference/solve_guided.md) | a stage of a ladder | the answer is `$final`; [`guided_gap()`](https://energyRt.org/reference/guided_gap.md) prices the guidance against perfect foresight |
+| GLPK / MathProg | native energyRt formulation | portable baseline and small models |
+| Python / Pyomo | Pyomo | access to CBC, CPLEX, and other Python solvers |
+| Julia / JuMP | JuMP | HiGHS, CPLEX, and GPU-capable solvers |
+| GAMS | GAMS | established commercial-solver installations |
+| matrix route | direct sparse matrix | large LPs and local or cloud GPU solving |
+| NEOS | remote service | occasional remote solving; never send confidential data |
 
-Two things the combination does not do. Regional objectives sum to the
-whole system only in autarky: with transmission the per-region sum
-**exceeds** the full model, and the difference is the network’s value,
-so `additive = TRUE` means “may be summed”, not “equals the full model”.
-And under `trade = "auto"` each region faces an exterior the others
-cannot see — one region’s export and another’s import are independent
-decisions at independently set prices, and nothing reconciles them.
+Not every preset works on every machine. It may require its language
+runtime, solver license, or an exchange library. The [installation
+article](https://energyRt.org/articles/install.md) lists those
+prerequisites. GLPK is the useful reference backend: solve a small case
+there before investigating a more complex stack.
 
-### Seeing what a sequence covered
-
-A sequence records its design per unit, and in a different shape for
-each driver.
-[`sequence_coverage()`](https://energyRt.org/reference/sequence_coverage.md)
-puts all four on one frame — one row per unit and element covered, with
-`dim` naming the scale the units were drawn on — and
-[`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
-draws that frame on the scale itself.
+To make one preset the session default:
 
 ``` r
 
-sequence_coverage(ens)             # unit, dim, key, role, count
-autoplot(ens)                      # the calendar, tiled by sample
-autoplot(ens, "wall", year = 2020) # the same, as a wall calendar
-autoplot(br)                      # the geoscale, filled by unit
-autoplot(rc)                      # the horizon, decided against look-ahead
+set_default_solver(solver_options$julia_highs)
+scen <- solve_model(model)
 ```
 
-Three properties show in the drawing that a table of runs leaves
-implicit. Elements no unit covered keep a grey fill, so a gap in an
-ensemble is a hole in the picture rather than an absent row. An element
-two units claimed is filled as `(shared)` instead of being given to the
-first of them, and the subtitle counts both that and the within-unit
-multiplicity a bootstrap draw carries. And a recursive step’s look-ahead
-milestones are filled apart from the years it decided, which is the
-overlap between steps seen for what it is.
+Keep project scripts explicit when reproducibility matters; a session
+default is convenient interactively but invisible in a saved analysis.
 
-The wall calendar needs a day-resolution timeframe (`YDAY` or `MDAY`)
-and rolls each unit up to whole days; the tile grid, over the calendar’s
-two finest timeframes, works for any calendar. A region sample is mapped
-on the finest geoframe that contains every solved region — a model’s
-regions need not sit at the finest frame of its geoscale — and falls
-back to a plain list of regions where the geoscale carries no geometry.
+### Solver settings
 
-The spread of a *result* across an ensemble is a histogram rather than a
-map:
+A preset is an R list containing the backend, exchange format,
+executable or runtime, and solver-specific options. Copy a preset before
+changing it:
 
 ``` r
 
-autoplot(ens, "histogram")                                  # the objective
-autoplot(ens, "histogram", var = "vTechCap", by = "tech")
+my_solver <- solver_options$julia_highs
+# Modify the documented backend/solver option in my_solver.
+scen <- solve_model(model, solver = my_solver)
 ```
 
-Bars are weighted by each sample’s `year_fraction`, since `sequential`
-sampling can leave one block covering more of the year than its
-siblings, and the dashed rule is the weighted mean
-[`sample_summary()`](https://energyRt.org/reference/sample_summary.md)
-reports — one weighting rule, so the plot and the table agree about the
-same ensemble. Where `ncap_floor > 0` the free pass is overlaid on the
-floored one. A variable must reduce to one value per sample within each
-group; a dimension left inside a bar is named rather than summed away,
-since totalling capacity over years would answer a different question.
-There is no histogram for
-[`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md),
-whose units are shards of one system: their values are addends, and
-their spread would report only that regions differ in size.
+Prefer solver-native tolerances, time limits, algorithms, and thread
+settings inside that copy. Save the chosen preset with the analysis or
+record it in the scenario metadata; otherwise two runs named alike may
+not be comparable.
 
-### Watching a sequence run
+## Runs and project storage
 
-A sequence solve is the longest-running operation in the package and
-reports as one.
-[`set_progress_bar()`](https://energyRt.org/reference/progress.md)
-registers a **progressr** handler, after which each driver advances a
-bar one unit at a time; `verbose = TRUE` prints a line per unit, as an
-alternative or in addition. Only the outermost sequence claims the bar,
-so the interpolation inside a driver’s loop does not open a second one
-over the first.
+With a project directory configured, interpolation creates the stable
+scenario area and each solve creates a run below it. A named run
+preserves alternatives side by side:
 
 ``` r
 
-set_progress_bar()
-ens2 <- solve_by_sample(m3, name = "ens_bar", sample_size = 2,
-                        verbose = FALSE)
+scen <- solve_scenario(
+  scen,
+  solver = solver_options$glpk,
+  run = "glpk-baseline",
+  wait = TRUE
+)
+
+scenario_runs(scen)
+scen <- read_solution(scen, run = "glpk-baseline")
 ```
 
-## See also
+Use meaningful labels such as solver, algorithm, or experiment ID.
+Reusing an unlabelled default run is appropriate for disposable
+iteration, not for a comparison that must be audited. See [Models,
+scenarios, and
+projects](https://energyRt.org/articles/scenario-management.md) for the
+directory layout and in-memory versus on-disk objects.
 
-- **Model bricks** and **TOPIA I** — building the objects and the model.
-- **Solver backends** and **TOPIA II** — interpolating and solving.
-- [`?getData`](https://energyRt.org/reference/getData.md),
-  [`?getObject`](https://energyRt.org/reference/getObject.md),
-  [`?update`](https://energyRt.org/reference/update.md),
-  [`?save_scenario`](https://energyRt.org/reference/save_scenario.md),
-  [`?load_scenario`](https://energyRt.org/reference/load_scenario.md),
-  [`?model_size`](https://energyRt.org/reference/model_size.md),
-  [`?compare_solve_settings`](https://energyRt.org/reference/compare_solve_settings.md),
-  [`?subset_model_regions`](https://energyRt.org/reference/subset_model_regions.md).
+`wait = TRUE` returns after the solution is available. A backend that
+supports asynchronous execution can return earlier with `wait = FALSE`;
+inspect
+[`scenario_runs()`](https://energyRt.org/reference/scenario_runs.md)
+before trying to read the result.
+
+## Inspecting the stages
+
+When something fails, identify the boundary first.
+
+### Interpolation and declaration
+
+[`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+validates names, dimensions, bounds, and relationships while it
+constructs `modInp`. Inspect it before blaming the solver:
+
+``` r
+
+scen <- interpolate_model(model, name = "CHECK")
+names(scen@modInp)
+getData(scen, "pTechCapUp")
+```
+
+An error here is usually a model-data or configuration problem. The
+[validation article](https://energyRt.org/articles/debugging.md) gives a
+systematic checklist.
+
+### Written program and raw output
+
+For backend-level diagnosis, keep the generated files and use the
+explicit write/run/read stages supported by that backend:
+
+``` r
+
+scen <- write_script(scen, solver = solver_options$glpk)
+scen <- solve_scenario(scen, solver = solver_options$glpk, wait = TRUE)
+scen <- read_solution(scen)
+```
+
+The run directory contains the generated program or matrix, exchange
+files, solver log, and raw output. These are implementation artifacts;
+query the decoded scenario rather than parsing them in reports.
+
+### Logs and status
+
+Ask a supported solver preset to write a progress log while diagnosing
+numerical or installation problems:
+
+``` r
+
+logged_solver <- with_solver_log(solver_options$julia_highs, "highs.log")
+scen <- write_script(scen, solver = logged_solver)
+scen <- solve_scenario(scen, solver = logged_solver, wait = TRUE)
+```
+
+Check three things in order: process exit status, solver termination
+status, and whether a primal solution was decoded. “Executable not
+found”, “infeasible”, and “optimal but unreadable output” are different
+failures and need different fixes.
+
+## Cross-checking a solution
+
+For a new backend or a material model change:
+
+1.  solve a small deterministic case with GLPK and the target backend;
+2.  compare termination status and objective within an explicit
+    tolerance;
+3.  compare a few structural quantities (capacity, activity, imports,
+    storage);
+4.  retain both run labels and solver logs.
+
+Barrier or first-order methods can legitimately return objectives that
+differ in the last digits, and alternative optima can have the same
+objective with different activities. Treat the objective as a first
+check, not proof that the solutions are identical.
+
+## Beyond one perfect-foresight solve
+
+Base-year calibration, recursive/myopic solving, repeated calendar
+samples, and region-by-region sequences change the solution method
+rather than the backend. They are covered with subsetting and
+aggregation in [Scaling models and alternative
+solves](https://energyRt.org/articles/model-size.md). Results, plots,
+run selection, and reports are covered in [Results and
+reporting](https://energyRt.org/articles/reports.md).

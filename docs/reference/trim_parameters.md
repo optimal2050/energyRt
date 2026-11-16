@@ -104,7 +104,7 @@ scen <- interpolate_model(mod, name = "EX")
 #> ℹ ob2mi: interpolating 83 model objects
 #> ✔ ob2mi: interpolating 83 model objects (0.6s)
 #> ℹ interpolating parameters over milestone years
-#> ✔ interpolating parameters over milestone years (1.6s)
+#> ✔ interpolating parameters over milestone years (1.7s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices
 #> ✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)

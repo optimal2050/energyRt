@@ -1,9 +1,20 @@
-# Units
+# Units, conversions, and currencies
 
-``` r
+**Key functions**
 
-library(energyRt)
-```
+- Declare and inspect units with constructor arguments such as `unit =`
+  and `units =`, then use
+  [`getUnit()`](https://energyRt.org/reference/getUnit.md) and
+  [`getUnits()`](https://energyRt.org/reference/getUnits.md).
+- Convert compatible measures with
+  [`convert()`](https://energyRt.org/reference/convert.md); use
+  [`commodity_property()`](https://energyRt.org/reference/commodity_property.md)
+  and
+  [`commodity_properties()`](https://energyRt.org/reference/commodity_properties.md)
+  when a physical property must bridge dimensions.
+- Normalize currencies and currency-years with
+  [`normalize_model_currency()`](https://energyRt.org/reference/normalize_model_currency.md)
+  when that feature is available in the installed build.
 
 A model is arithmetic on numbers whose meaning lives outside the
 numbers. A coal plant costing `2000` is meaningless until you know

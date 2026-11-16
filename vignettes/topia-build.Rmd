@@ -33,6 +33,15 @@ knitr::opts_chunk$set(
 
 # Overview
 
+::: {.callout-note}
+**Key functions**
+
+- Declare the system: `newCommodity()`, `newSupply()`, `newDemand()`,
+  `newTechnology()`, `newStorage()`, `newTrade()`.
+- Assemble it: `newRepository()`, `newModel()`, `setGeoscale()`.
+- Inspect it: `draw()`, `autoplot()`, `plot_trade_map()`.
+:::
+
 TOPIA is a teaching model for energy-system optimization. Its **Reference Energy System (RES)** links primary resources, conversion technologies, storage, trade, and electricity demand across up to twelve regions.
 
 The complete model is packaged as `topia$modules$electricity`. Smaller cases are cut from it with `subset_model_regions()` rather than kept as separate saved layouts.

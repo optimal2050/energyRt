@@ -1,12 +1,23 @@
-# Time resolution: calendars and timeslices
+# Model dimensions: time and space
 
-``` r
+![Side-by-side overview of TOPIA's stacked nation, zone, and province
+maps; a calendar nested from annual to season to hour; and
+milestone-year intervals on the planning
+horizon.](time-resolution_files/figure-html/dimensions-overview-1.png)
 
-library(energyRt)
-library(ggplot2)
-```
+The model’s independent spatial and temporal dimensions: nested
+geographies, a nested calendar, and the planning horizon.
 
-## Why sub-annual time matters
+## Time: calendars and horizons
+
+Time and space are the two dimensions on which energyRt balances
+commodities. Their design is deliberately parallel: a commodity’s
+`timeframe` chooses a calendar level, while its `geoframe` chooses a
+geographic level. Start with the finest resolution needed for the
+question; coarser balances are modelling assumptions, not merely
+performance settings.
+
+### Why sub-annual time matters
 
 Annual averages hide what makes energy systems hard: the sun sets, wind
 stalls, demand peaks in the evening. A model that balances electricity
@@ -28,7 +39,7 @@ Model variables scale roughly linearly with timeslices — the
 96-timeslice TOPIA base case solves in seconds on GLPK, the
 288-timeslice variant is noticeably heavier.
 
-## The `make_timetable()` grammar
+### The `make_timetable()` grammar
 
 A calendar’s structure is a **nested named list**: each element is a
 *level* (e.g. `SEASON`, `HOUR`), holding its *timeslices*. Timeslice
@@ -78,7 +89,7 @@ head(tt12)
 #> 6: ANNUAL    SPR     PK    SPR_PK 0.02083333      1
 ```
 
-## From timetable to calendar
+### From timetable to calendar
 
 [`newCalendar()`](https://energyRt.org/reference/newCalendar.md) turns a
 timetable into a `calendar` object. Note that `name` is the *first*
@@ -121,7 +132,7 @@ autoplot(cal)
 
 ![](time-resolution_files/figure-html/cal-plot-1.png)
 
-## Ready-made calendars
+### Ready-made calendars
 
 The package ships a `calendars` list, built by `data-raw/calendars.R`. A
 few small designs use exactly the grammar above; the mainstream family
@@ -171,7 +182,7 @@ or a sampled subset of it such as `d365_h24_1dpm`. A design whose labels
 the data never mentions is refused at interpolation, not quietly
 ignored.
 
-## Fiscal and non-calendar years
+### Fiscal and non-calendar years
 
 A milestone in energyRt is an **integer** year — `horizon@intervals$mid`
 — and that stays true whatever the reporting convention. What changes
@@ -247,7 +258,7 @@ The anchor is currently carried and reported, not acted on — it sets the
 default labels and travels with the calendar, but timeslice-to-timestamp
 alignment and `year_fraction` still work on the calendar year.
 
-## Reading time off a timeslice
+### Reading time off a timeslice
 
 A timeslice name is a label, not a data structure: what `"d100_h20"`
 means is decided by the calendar it belongs to, so every conversion
@@ -299,7 +310,7 @@ dtm2tsl(as.POSIXct("2021-04-10 20:00", tz = "UTC"), "d365_h24")
 #> [1] "d100_h20"
 ```
 
-## Timeframes: commodities and processes
+### Timeframes: commodities and processes
 
 Every commodity carries a `timeframe` — the calendar level it is
 **balanced** on. Fuels are typically `ANNUAL`; electricity `HOUR`:
@@ -317,6 +328,86 @@ article](https://energyRt.org/articles/model-bricks.md) for details. The
 practical consequence: raising the calendar’s resolution refines *only*
 the commodities and processes whose timeframes follow it — annual
 bookkeeping stays cheap.
+
+## Space: regions and geoscales
+
+A model’s `region` vector is its finest spatial resolution. A `Geoscale`
+adds the hierarchy above those regions: for example, region inside zone
+inside nation. It is built from a leaf table with one row per finest
+region and one column per level:
+
+``` r
+
+gs <- geoscale_from_leaftable(
+  data.frame(
+    nation = c("NA1", "NA1", "NA2", "NA2"),
+    region = c("R1",  "R2",  "R3",  "R4"),
+    km2    = rep(1, 4)  # equal illustrative weights for the icicle widths
+  ),
+  geoframes = c("nation", "region"),
+  key = "region",
+  weights = "km2",
+  default_weight = "km2",
+  name = "demo"
+)
+
+gg_geoscale(gs, type = "icicle", weight = "km2")
+```
+
+![](time-resolution_files/figure-html/geoscale-1.png)
+
+Attach the hierarchy when the model is created, or later with
+[`setGeoscale()`](https://energyRt.org/reference/setGeoscale.md):
+
+``` r
+
+mod <- newModel("demo", region = c("R1", "R2", "R3", "R4"), geoscale = gs)
+mod <- setGeoscale(mod, gs)
+```
+
+Attaching a geoscale does not coarsen the model. It makes coarser cells
+available. A commodity opts into one with `geoframe`:
+
+``` r
+
+ELC <- newCommodity("ELC", timeframe = "HOUR")
+STL <- newCommodity("STL", timeframe = "ANNUAL", geoframe = "nation")
+```
+
+`ELC` is balanced separately in R1–R4. `STL` is balanced in NA1 and NA2.
+Within each nation, that coarse steel balance is exactly equivalent to
+free, unlimited, lossless transport. Use it only when that is an
+acceptable physical and economic assumption. Congestion, transport
+costs, or losses require an explicit `trade` object at the relevant
+level.
+
+Processes may be finer than the commodities they use: a regional mill
+can contribute to a national steel balance. A process cannot produce
+into a finer balance than its own location, because the destination
+would be ambiguous. Supply, demand, storage, import, export, weather,
+and trade declarations must likewise resolve to a level compatible with
+their commodity.
+
+### Changing spatial resolution
+
+There are three distinct operations; choose by intent:
+
+| intent | operation | what changes |
+|----|----|----|
+| study a sub-territory in full detail | [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md) | drops regions and routes outside the sample |
+| solve the whole territory at a coarser level | [`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md) | replaces fine regions with coarse cells |
+| retain several process archetypes per coarse cell | `aggregate_model_regions(..., clusters = ...)` | preserves selected within-cell variation |
+
+Aggregation is lossy. Inspect candidate process families with
+[`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md)
+and
+[`process_cluster_sweep()`](https://energyRt.org/reference/process_cluster_sweep.md),
+then compare the reduced model with a fine benchmark. A coarse balance
+may introduce a copperplate that did not exist, and a cost declared once
+on a coarse cell does not shrink when only some child regions are
+sampled. The [scaling
+article](https://energyRt.org/articles/model-size.md) develops this
+workflow and its diagnostics.
 
 ## Choosing a resolution
 

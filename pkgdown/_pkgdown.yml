@@ -40,59 +40,53 @@ development:
 navbar:
   # bg: light
   structure:
-    left:  [intro, reference, roadmap, articles, news]
+    left:  [intro, install, articles, reference, news]
     right: [search, github, lightswitch]
   components:
-    roadmap:
-      text: Roadmap
-      href: articles/roadmap.html
+    install:
+      text: Installation
+      href: articles/install.html
     news:
       text: News
-      href: news/index.html
-    articles:
-      text: Tutorials
       menu:
-      - text: Installation
-        href: articles/install.html
-      - text: Features
-        href: articles/features.html
-      - text: Solver backends
-        href: articles/backends.html
-      # - text: Framework
-        # href: articles/help.html
+      - text: Release notes
+        href: news/index.html
+      - text: Roadmap
+        href: articles/roadmap.html
+    articles:
+      text: Articles
+      menu:
+      - text: Model foundations
+      - text: Time & space resolution
+        href: articles/resolution.html
       - text: Model bricks
         href: articles/model-bricks.html
-      - text: Units
-        href: articles/units.html
-      - text: Changing resolution
-        href: articles/resolution.html
-      - text: Time resolution
-        href: articles/time-resolution.html
-      - text: Space resolution
-        href: articles/space-resolution.html
-      - text: Reducing model size
-        href: articles/model-size.html
       - text: Storage
         href: articles/storage.html
       - text: Vintages & clusters
         href: articles/variants.html
-      - text: Workflow
-        href: articles/workflow.html
-      - text: Scenario management
+      - text: Units & conversions
+        href: articles/units.html
+      - text: "---"
+      - text: Project workflow
+      - text: Models, scenarios & projects
         href: articles/scenario-management.html
+      - text: Solving models
+        href: articles/workflow.html
+      - text: Results & reporting
+        href: articles/reports.html
+      - text: "---"
+      - text: Model development
       - text: Validating & debugging
         href: articles/debugging.html
-      - text: Reports & levelized costs
-        href: articles/reports.html
-      - text: autoplot()
-        href: articles/autoplot.html
-      - text: -------
+      - text: Scaling & alternative solves
+        href: articles/model-size.html
+      - text: "---"
+      - text: TOPIA teaching model
       - text: "TOPIA I: building the model"
         href: articles/topia-build.html
       - text: "TOPIA II: running scenarios"
         href: articles/topia-use.html
-      - text: "TOPIA III: multi-level region"
-        href: articles/region-aggregation.html
       # menu:
       # - text: near term
       #   href: articles/model.html
@@ -111,6 +105,13 @@ redirects:
   - ["reference/utopia.html", "reference/topia.html"]
   - ["reference/utopia_geoscale.html", "reference/topia.html"]
   - ["reference/utopia_profiles.html", "reference/topia_profiles.html"]
+  # Former standalone chapters, consolidated in the focused article set.
+  - ["articles/features.html", "index.html"]
+  - ["articles/time-resolution.html", "articles/resolution.html"]
+  - ["articles/space-resolution.html", "articles/resolution.html"]
+  - ["articles/region-aggregation.html", "articles/resolution.html"]
+  - ["articles/backends.html", "articles/workflow.html"]
+  - ["articles/autoplot.html", "articles/reports.html"]
 
 reference:
 
@@ -187,6 +188,7 @@ reference:
   - plot_geoscale
   - get_region
   - subset_model_regions
+  - is_separable
   - aggregate_model_regions
 
 - title: Process specifications

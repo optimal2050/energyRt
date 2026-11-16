@@ -1,5 +1,5 @@
 ---
-title: "Reports and levelized costs"
+title: "Results and reporting"
 editor_options:
   chunk_output_type: console
 ---
@@ -13,6 +13,14 @@ knitr::opts_chunk$set(
 )
 ```
 
+::: {.callout-note}
+**Key functions**
+
+- Query and plot: `getData()`, `autoplot()`, `gg_heatmap()`.
+- Compare: `compare_scenarios()`, `compare_models()`, `compare_inputs()`.
+- Publish: `levcost()`, `report()`, `report_templates()`.
+:::
+
 energyRt renders **reports** — self-contained HTML/PDF/Word datasheets — for
 technologies and storages, whole models and repositories, solved scenarios,
 and scenario comparisons. Reports and the **levelized costs** (`levcost()`)
@@ -22,6 +30,67 @@ what renders where, how the caching works, and how to compare scenarios.
 
 ```{r setup, message = FALSE}
 library(energyRt)
+library(ggplot2)
+```
+
+# Read the solution, then ask a question
+
+A solved `scenario` stores decoded variables in `modOut`. If several solver
+runs exist, make the run choice explicit before querying:
+
+```{r select-run, eval = FALSE}
+scenario_runs(scen)
+scen <- read_solution(scen, run = "julia-highs")
+```
+
+`getData()` is the common query interface for model declarations, interpolated
+parameters, and solution variables. Name the variable first, then filter on its
+dimensions:
+
+```{r query-results, eval = FALSE}
+cap <- getData(scen, "vTechCap", year = 2030, merge = TRUE)
+gen <- getData(scen, "vTechAct", comm = "ELC", merge = TRUE)
+ems <- getData(scen, "vEmsFuelTot", comm = "CO2", merge = TRUE)
+```
+
+`merge = TRUE` joins useful labels and mappings into the returned table. Leave
+it off when you need only the native variable keys. Keep the query in code and
+save a derived table only when it is a deliverable; `modOut` remains the source
+of truth.
+
+# Plot while you explore
+
+`autoplot()` methods cover model objects, dimensions, comparisons, and several
+result objects. They return `ggplot` objects, so normal layers and themes work:
+
+```{r calendar-plot, fig.height = 3.4}
+autoplot(calendars$s4_hp3, fill = "share", border = "grey50") +
+  labs(title = "Four seasons with day, night, and peak slices") +
+  theme_minimal()
+```
+
+Choose the view that matches the data rather than forcing everything into one
+chart. `gg_heatmap()` suits values indexed by two calendar dimensions;
+`autoplot(weather, calendar = ...)` offers heatmap, line, and area styles;
+`autoplot(supply)` and related methods show declared points and interpolated
+paths. For solved scenarios, query a focused table with `getData()` and build a
+custom `ggplot` when the reporting question is specific.
+
+```{r plot-result, eval = FALSE}
+ggplot(gen, aes(year, value, fill = tech)) +
+  geom_col() +
+  facet_wrap(vars(region)) +
+  labs(x = NULL, y = "Electricity generation")
+```
+
+# Compare while exploring
+
+For an ad-hoc variable comparison, pass several scenario names or objects to
+`getData()`. This is the fastest way to check one hypothesis before building a
+structured comparison or report.
+
+```{r compare-early, eval = FALSE}
+getData(c("BASE", "CO2CAP"), "vEmsFuelTot", comm = "CO2", merge = TRUE)
 ```
 
 Everything lands under a throwaway project here; `open_project()` anchors
@@ -192,8 +261,8 @@ report(cmp, open = FALSE)          # the comparative report (report_scenarios)
 hash, config, then per-slot drill-down), and `compare_inputs()` diffs two
 interpolated scenarios' parameter stores — the tool for "same model,
 different numbers?" questions. For quick ad-hoc comparisons, plain
-`getData()` across scenarios remains the one-liner (see the *Workflow*
-article):
+`getData()` across scenarios remains the one-liner (see
+[Solving models](workflow.html)):
 
 ```{r getdata-compare, eval = FALSE}
 getData(c("BASE", "CO2CAP"), name = "vEmsFuelTot", comm = "CO2",

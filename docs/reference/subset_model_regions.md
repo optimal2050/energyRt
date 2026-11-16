@@ -15,6 +15,10 @@ subset_model_regions(
   object,
   region,
   boundary_prices = NULL,
+  split_weight = NULL,
+  keep = NULL,
+  drop = NULL,
+  dryrun = FALSE,
   verbose = isVerbose()
 )
 ```
@@ -38,13 +42,41 @@ subset_model_regions(
   (explicit stub bound overriding the derivation from the route's
   `ava.*` rows). Routes without a price row are dropped without a stub.
 
+- split_weight:
+
+  the weight a value declared at a split region group is divided by,
+  keyed on an object name or a class and optionally on a column:
+  `list(SUP_COA = c(ava.up = "area"), demand = "population")`, or the
+  flat form `c("SUP_COA:ava.up" = "area")`. One weight for everything
+  that asks is `split_weight = "area"`, or `list(all = "area")`, and a
+  key for one object or class still wins over it. A weight is a column
+  the geoscale declares (see
+  [`geoscales::geoscale_weights()`](https://optimal2050.github.io/geoscales/r/reference/geoscale_weights.html))
+  or a named numeric of shares over the kept regions. There is no
+  default: dividing a demand or a fleet by area shares a city with a
+  desert.
+
+- keep, drop:
+
+  keys, in the same grammar, whose values are settled without a weight –
+  held whole in every part, or left out of the cut.
+
+- dryrun:
+
+  return the pre-flight report instead of cutting: what the cut splits,
+  which values still need a decision, which are carried, the caveats and
+  the ways on.
+  [`is_separable()`](https://energyRt.org/reference/is_separable.md) is
+  its verdict alone.
+
 - verbose:
 
   print per-object messages.
 
 ## Value
 
-the restricted [model](https://energyRt.org/reference/class-model.md).
+the restricted [model](https://energyRt.org/reference/class-model.md),
+or the pre-flight report when `dryrun = TRUE`.
 
 ## Details
 

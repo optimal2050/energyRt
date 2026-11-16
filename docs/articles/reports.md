@@ -1,4 +1,18 @@
-# Reports and levelized costs
+# Results and reporting
+
+**Key functions**
+
+- Query and plot:
+  [`getData()`](https://energyRt.org/reference/getData.md),
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html),
+  [`gg_heatmap()`](https://energyRt.org/reference/gg_heatmap.md).
+- Compare:
+  [`compare_scenarios()`](https://energyRt.org/reference/compare_scenarios.md),
+  [`compare_models()`](https://energyRt.org/reference/compare_models.md),
+  [`compare_inputs()`](https://energyRt.org/reference/compare_inputs.md).
+- Publish: [`levcost()`](https://energyRt.org/reference/levcost.md),
+  [`report()`](https://energyRt.org/reference/report.md),
+  [`report_templates()`](https://energyRt.org/reference/report_templates.md).
 
 energyRt renders **reports** — self-contained HTML/PDF/Word datasheets —
 for technologies and storages, whole models and repositories, solved
@@ -11,6 +25,80 @@ renders where, how the caching works, and how to compare scenarios.
 ``` r
 
 library(energyRt)
+library(ggplot2)
+```
+
+## Read the solution, then ask a question
+
+A solved `scenario` stores decoded variables in `modOut`. If several
+solver runs exist, make the run choice explicit before querying:
+
+``` r
+
+scenario_runs(scen)
+scen <- read_solution(scen, run = "julia-highs")
+```
+
+[`getData()`](https://energyRt.org/reference/getData.md) is the common
+query interface for model declarations, interpolated parameters, and
+solution variables. Name the variable first, then filter on its
+dimensions:
+
+``` r
+
+cap <- getData(scen, "vTechCap", year = 2030, merge = TRUE)
+gen <- getData(scen, "vTechAct", comm = "ELC", merge = TRUE)
+ems <- getData(scen, "vEmsFuelTot", comm = "CO2", merge = TRUE)
+```
+
+`merge = TRUE` joins useful labels and mappings into the returned table.
+Leave it off when you need only the native variable keys. Keep the query
+in code and save a derived table only when it is a deliverable; `modOut`
+remains the source of truth.
+
+## Plot while you explore
+
+[`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+methods cover model objects, dimensions, comparisons, and several result
+objects. They return `ggplot` objects, so normal layers and themes work:
+
+``` r
+
+autoplot(calendars$s4_hp3, fill = "share", border = "grey50") +
+  labs(title = "Four seasons with day, night, and peak slices") +
+  theme_minimal()
+```
+
+![](reports_files/figure-html/calendar-plot-1.png)
+
+Choose the view that matches the data rather than forcing everything
+into one chart.
+[`gg_heatmap()`](https://energyRt.org/reference/gg_heatmap.md) suits
+values indexed by two calendar dimensions;
+`autoplot(weather, calendar = ...)` offers heatmap, line, and area
+styles; `autoplot(supply)` and related methods show declared points and
+interpolated paths. For solved scenarios, query a focused table with
+[`getData()`](https://energyRt.org/reference/getData.md) and build a
+custom `ggplot` when the reporting question is specific.
+
+``` r
+
+ggplot(gen, aes(year, value, fill = tech)) +
+  geom_col() +
+  facet_wrap(vars(region)) +
+  labs(x = NULL, y = "Electricity generation")
+```
+
+## Compare while exploring
+
+For an ad-hoc variable comparison, pass several scenario names or
+objects to [`getData()`](https://energyRt.org/reference/getData.md).
+This is the fastest way to check one hypothesis before building a
+structured comparison or report.
+
+``` r
+
+getData(c("BASE", "CO2CAP"), "vEmsFuelTot", comm = "CO2", merge = TRUE)
 ```
 
 Everything lands under a throwaway project here;
@@ -23,7 +111,7 @@ the registry, the object stores, and the two derived-artifact folders
 proj <- file.path(tempdir(), "rep-demo")
 dir.create(proj, showWarnings = FALSE)
 open_project(proj)
-#> energyRt project: C:/Users/admin/AppData/Local/Temp/RtmpMfxE8O/rep-demo (0 registered scenarios)
+#> energyRt project: C:/Users/admin/AppData/Local/Temp/Rtmpc9HiRe/rep-demo (0 registered scenarios)
 ```
 
 A technology to price and report on:
@@ -64,7 +152,7 @@ identical question returns instantly from disk:
 
 lc2 <- levcost(PP, fuel_costs = c(GAS = 25), discount = 0.06,
                base_year = 2025)
-#> levcost: cached result is current: C:/Users/admin/AppData/Local/Temp/RtmpMfxE8O/rep-demo/levcosts/PP@8099a340.rds (force = TRUE to recompute)
+#> levcost: cached result is current: C:/Users/admin/AppData/Local/Temp/Rtmpc9HiRe/rep-demo/levcosts/PP@8099a340.rds (force = TRUE to recompute)
 list.files(get_levcost_cache_path())
 #> [1] "PP@8099a340.rds" "PP@8099a340.yml"
 ```
@@ -89,7 +177,7 @@ in-memory objects into the project-level `reports/` tier:
 ``` r
 
 f <- report(PP, levcost = lc, format = "html", open = FALSE)
-#> Report written to C:\Users\admin\AppData\Local\Temp\RtmpMfxE8O\rep-demo\reports\report_PP.html
+#> Report written to C:\Users\admin\AppData\Local\Temp\Rtmpc9HiRe\rep-demo\reports\report_PP.html
 basename(f)
 #> [1] "report_PP.html"
 ```
@@ -102,7 +190,7 @@ nothing:
 ``` r
 
 f <- report(PP, levcost = lc, format = "html", open = FALSE)
-#> Report up to date: C:\Users\admin\AppData\Local\Temp\RtmpMfxE8O\rep-demo\reports\report_PP.html (force = TRUE to re-render)
+#> Report up to date: C:\Users\admin\AppData\Local\Temp\Rtmpc9HiRe\rep-demo\reports\report_PP.html (force = TRUE to re-render)
 ```
 
 Editing the technology, the template, or any argument invalidates the
@@ -213,7 +301,8 @@ per-slot drill-down), and
 diffs two interpolated scenarios’ parameter stores — the tool for “same
 model, different numbers?” questions. For quick ad-hoc comparisons,
 plain [`getData()`](https://energyRt.org/reference/getData.md) across
-scenarios remains the one-liner (see the *Workflow* article):
+scenarios remains the one-liner (see [Solving
+models](https://energyRt.org/articles/workflow.md)):
 
 ``` r
 

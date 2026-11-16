@@ -65,18 +65,18 @@ scen <- interpolate_model(mod, name = "EX")
 #>   TBD_COA_Z4_Z5@invcost: Z4, Z5
 #>   TBD_GAS_Z2_Z3@invcost: Z2, Z3
 #> The cost is charged ONCE at that cell rather than at each child region, and is discounted at the children's rate. That is usually what a national cost datum means -- said here because it is a different number from naming the children individually.
-#> ✔ checking declarations (0.1s)
+#> ✔ checking declarations (0.2s)
 #> ℹ expanding vintage/cluster variants
 #> Expanded 8 process objects into 33 variants (vintage/cluster).
-#> ✔ expanding vintage/cluster variants (0.1s)
+#> ✔ expanding vintage/cluster variants (0.2s)
 #> ℹ materializing commodity clusters
 #> Materialized 3 commodity cluster(s): LANDW_CLHI, LANDW_CLLO, LANDW_CLMD
 #> ✔ materializing commodity clusters (0.0s)
 #> ℹ materializing weather clusters
 #> Materialized 5 weather cluster(s): WSOL_CLFL, WSOL_CLTH, WWIN_CLHI, WWIN_CLMD, WWIN_CLLO
-#> ✔ materializing weather clusters (0.0s)
+#> ✔ materializing weather clusters (0.1s)
 #> ℹ materializing weather transforms
-#> ✔ materializing weather transforms (0.2s)
+#> ✔ materializing weather transforms (0.4s)
 #> ℹ collecting sets: object names
 #> ✔ collecting sets: object names (0.0s)
 #> ℹ collecting sets: process classes
@@ -108,7 +108,7 @@ scen <- interpolate_model(mod, name = "EX")
 #> ℹ ob2mi: interpolating 83 model objects
 #> ✔ ob2mi: interpolating 83 model objects (0.6s)
 #> ℹ interpolating parameters over milestone years
-#> ✔ interpolating parameters over milestone years (1.6s)
+#> ✔ interpolating parameters over milestone years (1.7s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices
 #> ✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)

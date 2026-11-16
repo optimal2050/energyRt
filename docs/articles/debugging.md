@@ -1,5 +1,18 @@
 # Validating and debugging a model
 
+**Key functions**
+
+- Before solving:
+  [`check_feasibility()`](https://energyRt.org/reference/check_feasibility.md),
+  [`validate_scenario_parameters()`](https://energyRt.org/reference/validate_scenario_parameters.md),
+  [`process_operability()`](https://energyRt.org/reference/process_operability.md),
+  [`audit_coefficients()`](https://energyRt.org/reference/audit_coefficients.md).
+- Diagnose infeasibility:
+  [`multimod::lp_bounds()`](https://optimal2050.github.io/multimod/r/reference/lp_bounds.html).
+- Verify results:
+  [`verify_solution()`](https://energyRt.org/reference/verify_solution.md),
+  [`compare_solve_settings()`](https://energyRt.org/reference/compare_solve_settings.md).
+
 A model can fail in two ways. It can fail loudly: the solver returns
 INFEASIBLE, and nothing in the solver log names the row that cannot be
 met. Or it can fail quietly: the solve returns OPTIMAL, but a missing
@@ -288,8 +301,8 @@ of the widest row.
 ``` r
 
 audit_coefficients(x = BASE)
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpgJ2f2G/audit_37d036e84ff3 
-#> Writing files: 0.29s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpOYO1NO/audit_572c3dde5ccd 
+#> Writing files: 0.16s
 #> coefficient audit: 32 rows, 30 columns, 64 non-zeros
 #>   |a_ij| in [1, 100] (global ratio 1e+02); 0 row(s) wider than 1e+06
 #>   per decade: 1e0:62  1e1:1  1e2:1 
@@ -324,7 +337,7 @@ BASE <- solve_scenario(
 )
 #> Warning: Scenario 'BASE': the model is INFEASIBLE (glpsol: PROBLEM HAS NO
 #> PRIMAL FEASIBLE SOLUTION). No solution was written to
-#> C:/Users/admin/AppData/Local/Temp/RtmpgJ2f2G/debugging/BASE-toy-annual/runs/glpk
+#> C:/Users/admin/AppData/Local/Temp/RtmpOYO1NO/debugging/BASE-toy-annual/runs/glpk
 
 BASE@status$optimal
 #> [1] FALSE
@@ -415,7 +428,7 @@ summary(object = SLACK)
 #> desc:  
 #> Model: toy_slack 
 #> Interpolated: TRUE 
-#> path: C:/Users/admin/AppData/Local/Temp/RtmpgJ2f2G/debugging/SLACK-toy_slack-annual 
+#> path: C:/Users/admin/AppData/Local/Temp/RtmpOYO1NO/debugging/SLACK-toy_slack-annual 
 #> Solution status: optimal
 #> vObjective:  5002.5 
 #> Dummy import/export costs:  5000 
@@ -517,15 +530,15 @@ slack_compared <- compare_solve_settings(
   settings = list(default = list()),
   solvers = list(glpk = solver_options$glpk)
 )
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpgJ2f2G/debugging/cmp_default-toy_slack-annual/runs/glpk 
-#> Writing files: 0.3s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpOYO1NO/debugging/cmp_default-toy_slack-annual/runs/glpk 
+#> Writing files: 0.17s
 #> Starting  GLPK 
-#> 0.04s
-#> Reading solution: 0.21s
+#> 0.03s
+#> Reading solution: 0.11s
 
 slack_compared$summary
 #>   setting solver   ok seconds objective error
-#> 1 default   glpk TRUE    0.64    5002.5  <NA>
+#> 1 default   glpk TRUE    0.36    5002.5  <NA>
 ```
 
 Further solvers are added to the `solvers` list, for example

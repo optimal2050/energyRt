@@ -217,6 +217,9 @@ coarse balances roll up without a `trade` route for every pair.
 - [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
   : Restrict a model to a region subset
 
+- [`is_separable()`](https://energyRt.org/reference/is_separable.md) :
+  Can these regions be separated from the model?
+
 - [`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md)
   : Aggregate a model to a coarser set of regions
 

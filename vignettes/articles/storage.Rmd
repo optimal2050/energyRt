@@ -13,10 +13,18 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
+```{r setup, include = FALSE}
 library(energyRt)
 library(ggplot2)
 ```
+
+::: {.callout-note}
+**Key functions**
+
+- Declare and inspect: `newStorage()`, `storage_duration()`, `draw()`.
+- Put storage in context: `newCommodity()`, `newModel()`, `interpolate_model()`.
+- Solve and analyse: `solve_model()`, `getData()`, `autoplot()`.
+:::
 
 # What a storage is
 
@@ -40,7 +48,7 @@ interesting modelling questions are about the *ratios* between them.
 
 Declare the commodity first, with its unit, then the process:
 
-```{r}
+```{r battery-diagram, fig.alt = "Flow diagram of a six-hour lithium-ion battery with electricity entering the charger, passing through the reservoir, and leaving through the discharger."}
 ELC <- newCommodity(
   name      = "ELC",
   desc      = "Electricity",
@@ -81,7 +89,7 @@ This is the part that changes what you can model. `@storage$comm` is what the
 store *holds*; `@input$comm` and `@output$comm` are what it *exchanges*. When
 all three coincide you have a battery. When they do not:
 
-```{r}
+```{r hydrogen-storage-diagram, fig.alt = "Flow diagram of a hydrogen storage system with electricity entering an electrolyser, hydrogen held in a salt cavern, and electricity leaving a fuel cell."}
 H2 <- newCommodity(
   name      = "H2",
   desc      = "Hydrogen",
@@ -858,7 +866,7 @@ sol_mod <- newModel(
 scen <- solve_model(sol_mod, name = "solar_battery")
 ```
 
-```{r, fig.height = 5}
+```{r representative-day-storage-duration, fig.height = 5, fig.alt = "Faceted area charts for twelve representative days showing storage levels split into twelve-hour, one-day, one-week, and thirty-day duration bands."}
 d <- storage_duration(scen)                 # 12h / 1d / 1w / 30d by default
 
 # One panel per representative day: this calendar's days are a month apart, so
@@ -961,7 +969,7 @@ Solve that one on **julia/HiGHS**, not GLPK — at 8760 timeslices the differenc
 is minutes, which is why the result is precomputed and shipped as
 `vre_storage_duration` rather than solved while this page builds.
 
-```{r, fig.height = 4.4}
+```{r full-year-storage-duration, fig.height = 4.4, fig.alt = "Full-year stacked area chart showing storage energy split by cycling duration, including a large band held for more than thirty days."}
 ggplot(vre_storage_duration, aes(datetime, value, fill = duration)) +
   geom_area() +
   scale_fill_viridis_d(direction = -1, name = "Duration") +
@@ -996,7 +1004,7 @@ level.
 
 # See also
 
-- [Time resolution](time-resolution.html) — calendars, timeslices, and what
+- [Model dimensions](resolution.html) — calendars, timeslices, and what
   `@fullYear` is relative to.
 - [Model bricks](model-bricks.html) — how `storage` sits beside `technology`,
   `supply` and `demand`.

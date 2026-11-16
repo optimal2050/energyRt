@@ -1,4 +1,20 @@
-# Reducing a model's size
+# Scaling models and alternative solve strategies
+
+**Key functions**
+
+- Measure and reduce dimensions:
+  [`model_size()`](https://energyRt.org/reference/model_size.md),
+  [`recast_model_calendar()`](https://energyRt.org/reference/recast_model_calendar.md),
+  [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md),
+  [`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md).
+- Run samples and sequences:
+  [`calendar_samples()`](https://energyRt.org/reference/calendar_samples.md),
+  [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md),
+  [`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md),
+  [`solve_recursive()`](https://energyRt.org/reference/solve_recursive.md).
+- Guide a hard solve:
+  [`solve_guided()`](https://energyRt.org/reference/solve_guided.md),
+  [`guided_gap()`](https://energyRt.org/reference/guided_gap.md).
 
 Most models worth building are larger than the solver available to them.
 The usual response is to make the model smaller, and energyRt offers
@@ -16,10 +32,11 @@ answer is still the full model’s* — two of the nine reductions are
 exact, six approximate, and three of the approximations report their own
 error.
 
-This article treats each reduction in the same six terms. A companion
-article, `vignette("resolution")`, maps the same ground by axis rather
-than by cost, and `vignette("time-resolution")` and
-`vignette("space-resolution")` cover one axis each in depth.
+This article treats each reduction in the same six terms. The
+[model-dimensions article](https://energyRt.org/articles/resolution.md)
+explains what time and space mean in the model; here the concern is
+deliberately operational: what a reduction saves and which
+interpretation it changes.
 
 ``` r
 
@@ -407,10 +424,12 @@ get_process_groups(mod)        # what could be merged, and over which regions
 #                                         EWIN = 8))
 ```
 
-A full worked example, with objectives at every `k` from plain
-aggregation to the fine model, is in `vignette("region-aggregation")`.
+A useful aggregation study solves several `k` values, compares their
+objectives and structural quantities with the fine model, and visualizes
+the resulting clusters with `gg_geoscale()`. Do not choose one
+model-wide `k`: process families lose information at different rates.
 
-## Fixing decisions rather than removing cells
+## Alternative solve strategies: fixing decisions rather than cells
 
 The reductions above make a model smaller. The two below leave its
 dimensions untouched and remove freedom instead, and they are what turn
@@ -572,8 +591,6 @@ building a finer model and solving it.
 
 - `vignette("resolution")` — the same ground mapped by axis, with the
   four operations named and distinguished.
-- `vignette("time-resolution")`, `vignette("space-resolution")` — one
-  axis each, in depth.
 - `vignette("region-aggregation")` — a full spatial example, aggregated
   and clustered, with objectives at every step.
 - `vignette("scenario-management")` — where the variants these drivers

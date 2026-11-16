@@ -31,8 +31,7 @@ planned.
   spec-driven recipe engine)\
 - \[✓\] Scenario storage (Arrow) and analysis
   ([`levcost()`](https://energyRt.org/reference/levcost.md),
-  [`report()`](https://energyRt.org/reference/report.md),
-  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)),
+  [`report()`](https://energyRt.org/reference/report.md), `autoplot()`),
   including recorded runs, variants and myopic sequences\
 - \[✓\] **Nested time.** Calendars from a single annual slice to 8760
   hours, from the shipped `calendars` catalog (generated with
@@ -41,13 +40,13 @@ planned.
   Commodities and processes declare the timeframe they balance on, so
   annual fuel accounting and hourly dispatch coexist in one model;
   sampled calendars solve a representative subset and annualise it. (see
-  [Time resolution](https://energyRt.org/articles/time-resolution.md))\
+  [Model dimensions](https://energyRt.org/articles/resolution.md))\
 - \[✓\] **Nested regions.** Hierarchical regions via
   **[geoscales](https://github.com/optimal2050/geoscales)**: a commodity
   balanced at a coarser level with `newCommodity(geoframe = )` rolls up
   automatically, so point-to-point `trade` is no longer the only way to
-  move a commodity between regions. (see [Space
-  resolution](https://energyRt.org/articles/space-resolution.md))\
+  move a commodity between regions. (see [Model
+  dimensions](https://energyRt.org/articles/resolution.md))\
 - \[✓\] Dependency setup & checks
   ([`en_setup()`](https://energyRt.org/reference/en_setup.md),
   [`en_check_dependencies()`](https://energyRt.org/reference/en_check.md),

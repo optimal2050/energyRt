@@ -2,62 +2,28 @@
 
 ### All vignettes
 
-- [Plotting energyRt
-  objects](https://energyRt.org/articles/autoplot.md):
-
-- [Solver backends and
-  solver_options](https://energyRt.org/articles/backends.md):
-
 - [Validating and debugging a
   model](https://energyRt.org/articles/debugging.md):
-
 - [Get started with
   energyRt](https://energyRt.org/articles/energyRt.md):
-
-- [Features](https://energyRt.org/articles/features.md):
-
-  The full inventory of energyRt’s capabilities, organised by axis and
-  workflow stage.
-
 - [Installation and Settings](https://energyRt.org/articles/install.md):
-
-- [Model bricks](https://energyRt.org/articles/model-bricks.md):
-
-- [Reducing a model's
-  size](https://energyRt.org/articles/model-size.md):
-
-- [Aggregating regions without averaging them
-  away](https://energyRt.org/articles/region-aggregation.md):
-
-- [Reports and levelized
-  costs](https://energyRt.org/articles/reports.md):
-
-- [Changing a model's
-  resolution](https://energyRt.org/articles/resolution.md):
-
+- [Model bricks: commodities, processes, and
+  policies](https://energyRt.org/articles/model-bricks.md):
+- [Scaling models and alternative solve
+  strategies](https://energyRt.org/articles/model-size.md):
+- [Results and reporting](https://energyRt.org/articles/reports.md):
+- [Model dimensions: time and
+  space](https://energyRt.org/articles/resolution.md):
 - [Development Status and
   Roadmap](https://energyRt.org/articles/roadmap.md):
-
-- [Scenario management: how models, scenarios, and solutions are
-  organized](https://energyRt.org/articles/scenario-management.md):
-
-- [Space resolution: geoscales and
-  geoframes](https://energyRt.org/articles/space-resolution.md):
-
+- [Models, scenarios, and
+  projects](https://energyRt.org/articles/scenario-management.md):
 - [Storage](https://energyRt.org/articles/storage.md):
-
-- [Time resolution: calendars and
-  timeslices](https://energyRt.org/articles/time-resolution.md):
-
 - [TOPIA I: building the
   model](https://energyRt.org/articles/topia-build.md):
-
 - [TOPIA II: running
   scenarios](https://energyRt.org/articles/topia-use.md):
-
-- [Units](https://energyRt.org/articles/units.md):
-
+- [Units, conversions, and
+  currencies](https://energyRt.org/articles/units.md):
 - [Vintages and clusters](https://energyRt.org/articles/variants.md):
-
-- [Workflow: working with results and
-  scenarios](https://energyRt.org/articles/workflow.md):
+- [Solving models](https://energyRt.org/articles/workflow.md):

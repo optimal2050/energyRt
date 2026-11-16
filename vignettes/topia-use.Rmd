@@ -27,6 +27,15 @@ have_pal <- FALSE
 
 # Overview
 
+::: {.callout-note}
+**Key functions**
+
+- Prepare and solve: `newModel()`, `setGeoscale()`, `solve_base_year()`,
+  `interpolate_model()`, `solve_scenario()`.
+- Analyse: `getData()`, `autoplot()`, `levcost()`.
+- Publish: `report()`.
+:::
+
 This vignette takes the packaged [`topia`]`$modules` model -- the one built
 object by object in *TOPIA I: building the model* -- assembles it and runs
 scenarios on it.

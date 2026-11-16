@@ -1,5 +1,5 @@
 ---
-title: "Scenario management: how models, scenarios, and solutions are organized"
+title: "Models, scenarios, and projects"
 editor_options:
   chunk_output_type: console
 ---
@@ -10,6 +10,15 @@ knitr::opts_chunk$set(
   message = FALSE, warning = FALSE
 )
 ```
+
+::: {.callout-note}
+**Key functions**
+
+- Assemble: `newRepository()`, `newModel()`, `interpolate_model()`.
+- Store and reopen: `open_project()`, `save_model()`, `save_scenario()`,
+  `load_model()`, `load_scenario()`.
+- Version and select runs: `seal_model()`, `scenario_runs()`, `read_solution()`.
+:::
 
 An energy-modeling project quickly accumulates artifacts: models built from
 shared repositories, scenarios interpolated from them at different scopes,
@@ -34,8 +43,8 @@ in one project folder with three principles:
    actually loaded from, so moving or renaming folders — or opening a
    project from a different working directory — just works.
 
-This article walks the whole layout bottom-up. The *Workflow* article shows
-the same machinery in day-to-day use; this one explains how the pieces fit.
+This article follows the assembly path from reusable objects to a stored
+scenario. [Solving models](workflow.html) starts where this chapter stops.
 
 ```{r setup}
 library(energyRt)
@@ -77,6 +86,74 @@ make_mod <- function(stock) {
 }
 mod <- make_mod(stock = c(100, 100, 100))
 ```
+
+# The assembly path
+
+The container classes have different responsibilities:
+
+| class | role | mutable content |
+|---|---|---|
+| `repository` | reusable catalog of commodities and processes | object declarations |
+| `model` | a study design | repository/data plus regions, calendar, horizon, discount, and other config |
+| `scenario` | one concrete optimization problem | interpolated `modInp`, run metadata, and decoded `modOut` |
+| project directory | durable workspace | repositories, models, scenarios, runs, reports, and a rebuildable registry |
+
+Keeping these roles separate matters. A solver option does not belong in model
+configuration, and a result variable does not belong in a repository.
+
+## Repository and model
+
+Build a repository when the same parts will support several models. A model can
+also be constructed directly from objects for a small analysis:
+
+```{r assembly, eval = FALSE}
+repo <- newRepository("parts", ELC, GAS, GAS_SUPPLY, POWER_PLANT, LOAD)
+
+mod <- newModel(
+  "study",
+  repo = repo,
+  region = regions,
+  calendar = calendars$s4_hp3,
+  horizon = newHorizon(2025:2050, c(1, 5, 5, 5, 5, 5)),
+  discount = 0.06
+)
+```
+
+Treat `data` as the economic declarations and `config` as the scope in which
+they are interpreted. Calendar, horizon, regions/geoscale, and discount belong
+to that scope. They may vary between models without duplicating the repository.
+
+## Model to scenario: interpolation
+
+`interpolate_model()` expands sparse declarations onto the configured
+dimensions, applies defaults, resolves process variants, and validates the
+result. The resulting parameter store is `modInp`:
+
+```{r interpolate, eval = FALSE}
+scen <- interpolate_model(mod, name = "BASE")
+names(scen@modInp)
+getData(scen, "pTechCapUp")
+```
+
+A scenario may add policy objects or override configuration at interpolation,
+but it should remain traceable to its model. Use `base =` when one scenario is a
+deliberate derivative of another rather than copying folders by hand.
+
+## Runs and results
+
+A run is one backend/solver execution of a scenario. The decoded solution is
+`modOut`; it contains variables, not model parameters. Multiple named runs can
+coexist, while one may be selected or promoted as the scenario's active
+solution:
+
+```{r result-store, eval = FALSE}
+scenario_runs(scen)
+scen <- read_solution(scen, run = "glpk")
+getData(scen, "vObjective", merge = TRUE)
+```
+
+This vocabulary is shared by the in-memory API and the on-disk project layout
+below.
 
 # The scenario folder
 

@@ -1,4 +1,12 @@
-# Model bricks
+# Model bricks: commodities, processes, and policies
+
+![Four energyRt flow diagrams: gas supply, a gas-to-electricity
+technology, an electricity battery with charger reservoir and
+discharger, and an electricity trade node connecting western and eastern
+regions.](model-bricks_files/figure-html/bricks-overview-1.png)
+
+Four representative process objects drawn by energyRt: a source, a
+converter, temporal storage, and spatial trade.
 
 An energyRt model is assembled from a small set of building blocks —
 *bricks*:
@@ -13,13 +21,6 @@ An energyRt model is assembled from a small set of building blocks —
   **repository**, a **model**, and a **scenario**.
 
 This article walks through each brick and how it is drawn.
-
-``` r
-
-library(energyRt)
-library(ggplot2)   # for the emission-intensity plots
-data("calendars", package = "energyRt")
-```
 
 ## Commodities
 
@@ -47,9 +48,8 @@ names(getData(COA))
 ```
 
 Because a commodity’s emission factors are just data, they can be
-compared with
-[`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
-(see the *autoplot* article for the full set of arguments):
+compared with `autoplot()` (see the *autoplot* article for the full set
+of arguments):
 
 ``` r
 
@@ -253,8 +253,11 @@ place for it. Here the fuels are PJ and electricity is GWh:
 `ginp2use = 277.78` converts the fuel group to GWh (so the technology
 *operates* in GWh), and `cap2act = 8760` matches (1 GW × 8760 h). You do
 not have to work the factor out by hand: `convert("PJ", "GWh", 1)` gives
-it. See the *Units* article for where each unit is declared and how
-[`convert()`](https://energyRt.org/reference/convert.md) finds a factor.
+it. The dedicated [units
+article](https://energyRt.org/articles/units.md) explains where each
+unit is declared, how
+[`convert()`](https://energyRt.org/reference/convert.md) finds a factor,
+and how currencies and currency-years are handled.
 
 #### Activity, capacity and units
 
@@ -479,7 +482,29 @@ newTechnology(
   timeframe = "HOUR")            # dispatch hourly (else inferred from commodities)
 ```
 
-## User constraints
+## Units
+
+Every commodity and process should declare enough unit information to
+make its arithmetic auditable. The focused [Units, conversions, and
+currencies](https://energyRt.org/articles/units.md) article covers
+declarations, inspection, compatible and property-assisted conversions,
+currency-years, and model-level normalization.
+
+## Policies and custom constraints
+
+Taxes, subsidies, and user costs change the objective without changing
+the physical process. Use
+[`newTax()`](https://energyRt.org/reference/newTax.md),
+[`newSubsidy()`](https://energyRt.org/reference/newSubsidy.md), and
+[`newCosts()`](https://energyRt.org/reference/newCosts.md) for those
+reusable policy bricks; their process, class, vintage, and cluster
+selectors let one declaration target a family of realized processes.
+
+Use [`newConstraint()`](https://energyRt.org/reference/newConstraint.md)
+when the policy is a linear relationship among model variables: an
+emissions budget, a renewable share, or a joint capacity limit. Keep
+physical limits on the owning process when possible; custom constraints
+are best reserved for rules that genuinely span several objects.
 
 Beyond the physics baked into each process, you can add your own
 **linear constraints** on the model variables.
@@ -564,10 +589,9 @@ Members are reachable by name (`repo$BOILER`, `repo[["COA"]]`), and
 
 A **model** binds a repository to the dimensions it is solved over: a
 `region` set, a `calendar` (the sub-annual structure — see the
-[time-resolution
-article](https://energyRt.org/articles/time-resolution.md)) and a
-`horizon` (the milestone years). See the *autoplot* article for plots of
-the calendar and horizon bricks.
+[model-dimensions article](https://energyRt.org/articles/resolution.md))
+and a `horizon` (the milestone years). See the *autoplot* article for
+plots of the calendar and horizon bricks.
 
 ``` r
 
@@ -627,12 +651,12 @@ the container it returns `NULL` with a message unless
 
 ## See also
 
-- **Units** — where each unit is declared, how
-  [`convert()`](https://energyRt.org/reference/convert.md) moves between
-  them, and what the model checks.
-- **Autoplot** — plots of calendars, horizons, commodity emissions and
-  the by-year `supply`/`demand`/`import`/`export` parameters.
-- **Solver backends** — turning a scenario into a solved model.
+- **Model dimensions** — calendars, horizons, regions, and geoscales.
+- **Units, conversions, and currencies** — declarations, conversion,
+  physical properties, and model-level normalization.
+- **Results and reporting** — plots, result queries, comparisons, and
+  reports.
+- **Solving models** — turning a scenario into a solved model.
 - [`?draw`](https://energyRt.org/reference/draw.md),
   [`?newCommodity`](https://energyRt.org/reference/newCommodity.md),
   [`?newTechnology`](https://energyRt.org/reference/technology.md),

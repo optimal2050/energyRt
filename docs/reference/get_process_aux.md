@@ -63,7 +63,7 @@ scen <- interpolate_model(mod, name = "EX")
 #> ✔ materializing commodity clusters (0.0s)
 #> ℹ materializing weather clusters
 #> Materialized 5 weather cluster(s): WSOL_CLFL, WSOL_CLTH, WWIN_CLHI, WWIN_CLMD, WWIN_CLLO
-#> ✔ materializing weather clusters (0.1s)
+#> ✔ materializing weather clusters (0.0s)
 #> ℹ materializing weather transforms
 #> ✔ materializing weather transforms (0.2s)
 #> ℹ collecting sets: object names
@@ -97,7 +97,7 @@ scen <- interpolate_model(mod, name = "EX")
 #> ℹ ob2mi: interpolating 83 model objects
 #> ✔ ob2mi: interpolating 83 model objects (0.6s)
 #> ℹ interpolating parameters over milestone years
-#> ✔ interpolating parameters over milestone years (1.6s)
+#> ✔ interpolating parameters over milestone years (1.7s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices
 #> ✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)

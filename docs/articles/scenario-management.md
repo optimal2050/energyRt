@@ -1,4 +1,21 @@
-# Scenario management: how models, scenarios, and solutions are organized
+# Models, scenarios, and projects
+
+**Key functions**
+
+- Assemble:
+  [`newRepository()`](https://energyRt.org/reference/newRepository.md),
+  [`newModel()`](https://energyRt.org/reference/newModel.md),
+  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md).
+- Store and reopen:
+  [`open_project()`](https://energyRt.org/reference/accessors.md),
+  [`save_model()`](https://energyRt.org/reference/model_store.md),
+  [`save_scenario()`](https://energyRt.org/reference/save_scenario.md),
+  [`load_model()`](https://energyRt.org/reference/model_store.md),
+  [`load_scenario()`](https://energyRt.org/reference/load_scenario.md).
+- Version and select runs:
+  [`seal_model()`](https://energyRt.org/reference/seal.md),
+  [`scenario_runs()`](https://energyRt.org/reference/scenario_runs.md),
+  [`read_solution()`](https://energyRt.org/reference/read.md).
 
 An energy-modeling project quickly accumulates artifacts: models built
 from shared repositories, scenarios interpolated from them at different
@@ -24,9 +41,9 @@ all of it in one project folder with three principles:
     or opening a project from a different working directory — just
     works.
 
-This article walks the whole layout bottom-up. The *Workflow* article
-shows the same machinery in day-to-day use; this one explains how the
-pieces fit.
+This article follows the assembly path from reusable objects to a stored
+scenario. [Solving models](https://energyRt.org/articles/workflow.md)
+starts where this chapter stops.
 
 ``` r
 
@@ -71,6 +88,82 @@ make_mod <- function(stock) {
 }
 mod <- make_mod(stock = c(100, 100, 100))
 ```
+
+## The assembly path
+
+The container classes have different responsibilities:
+
+| class | role | mutable content |
+|----|----|----|
+| `repository` | reusable catalog of commodities and processes | object declarations |
+| `model` | a study design | repository/data plus regions, calendar, horizon, discount, and other config |
+| `scenario` | one concrete optimization problem | interpolated `modInp`, run metadata, and decoded `modOut` |
+| project directory | durable workspace | repositories, models, scenarios, runs, reports, and a rebuildable registry |
+
+Keeping these roles separate matters. A solver option does not belong in
+model configuration, and a result variable does not belong in a
+repository.
+
+### Repository and model
+
+Build a repository when the same parts will support several models. A
+model can also be constructed directly from objects for a small
+analysis:
+
+``` r
+
+repo <- newRepository("parts", ELC, GAS, GAS_SUPPLY, POWER_PLANT, LOAD)
+
+mod <- newModel(
+  "study",
+  repo = repo,
+  region = regions,
+  calendar = calendars$s4_hp3,
+  horizon = newHorizon(2025:2050, c(1, 5, 5, 5, 5, 5)),
+  discount = 0.06
+)
+```
+
+Treat `data` as the economic declarations and `config` as the scope in
+which they are interpreted. Calendar, horizon, regions/geoscale, and
+discount belong to that scope. They may vary between models without
+duplicating the repository.
+
+### Model to scenario: interpolation
+
+[`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+expands sparse declarations onto the configured dimensions, applies
+defaults, resolves process variants, and validates the result. The
+resulting parameter store is `modInp`:
+
+``` r
+
+scen <- interpolate_model(mod, name = "BASE")
+names(scen@modInp)
+getData(scen, "pTechCapUp")
+```
+
+A scenario may add policy objects or override configuration at
+interpolation, but it should remain traceable to its model. Use `base =`
+when one scenario is a deliberate derivative of another rather than
+copying folders by hand.
+
+### Runs and results
+
+A run is one backend/solver execution of a scenario. The decoded
+solution is `modOut`; it contains variables, not model parameters.
+Multiple named runs can coexist, while one may be selected or promoted
+as the scenario’s active solution:
+
+``` r
+
+scenario_runs(scen)
+scen <- read_solution(scen, run = "glpk")
+getData(scen, "vObjective", merge = TRUE)
+```
+
+This vocabulary is shared by the in-memory API and the on-disk project
+layout below.
 
 ## The scenario folder
 
@@ -260,7 +353,7 @@ list_versions("SM", type = "model")
 #> # A tibble: 1 × 7
 #>   status  name  type  version  sealed_at            refs size_mb
 #>   <chr>   <chr> <chr> <chr>    <dttm>              <int>   <dbl>
-#> 1 current SM    model ea94b58e 2026-11-10 02:26:58     0       0
+#> 1 current SM    model ea94b58e 2026-11-16 03:17:11     0       0
 ```
 
 **Only sealed versions are referenced.** A scenario records the model it
@@ -366,7 +459,7 @@ full <- interpolate_model(mod, fee, name = "FEE_FULL")
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
 #> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
 #> ℹ collecting sets: object names
-#> ✔ collecting sets: object names (0.0s)
+#> ✔ collecting sets: object names (0.1s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
 #> ℹ collecting sets: timeframes
 #> ✔ collecting sets: timeframes (0.0s)
@@ -376,8 +469,8 @@ full <- interpolate_model(mod, fee, name = "FEE_FULL")
 #> ✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
 #> ℹ building maps: membership + closure
-#> ✔ building maps: membership + closure (0.1s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
+#> ✔ building maps: membership + closure (0.0s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
 #> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan
 #> ✔ building maps: calendar + lifespan (0.1s)
@@ -508,7 +601,7 @@ scen_low <- interpolate_model(make_mod(c(50, 50, 50)), name = "BASE",
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
 #> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
 #> ℹ collecting sets: object names
-#> ✔ collecting sets: object names (0.1s)
+#> ✔ collecting sets: object names (0.0s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
 #> ℹ collecting sets: timeframes
 #> ✔ collecting sets: timeframes (0.0s)
@@ -518,8 +611,8 @@ scen_low <- interpolate_model(make_mod(c(50, 50, 50)), name = "BASE",
 #> ✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
 #> ℹ building maps: membership + closure
-#> ✔ building maps: membership + closure (0.0s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
+#> ✔ building maps: membership + closure (0.1s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
 #> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan
 #> ✔ building maps: calendar + lifespan (0.1s)
@@ -528,7 +621,7 @@ scen_low <- interpolate_model(make_mod(c(50, 50, 50)), name = "BASE",
 #> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
 #> ℹ building maps: value✔ building maps: value (0.0s)
 #> ℹ building maps: filter
-#> ✔ building maps: filter (0.2s)
+#> ✔ building maps: filter (0.1s)
 #> ℹ building maps: constraint✔ building maps: constraint (0.0s)
 #> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)

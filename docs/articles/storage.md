@@ -1,10 +1,19 @@
 # Storage
 
-``` r
+**Key functions**
 
-library(energyRt)
-library(ggplot2)
-```
+- Declare and inspect:
+  [`newStorage()`](https://energyRt.org/reference/storage.md),
+  [`storage_duration()`](https://energyRt.org/reference/storage_duration.md),
+  [`draw()`](https://energyRt.org/reference/draw.md).
+- Put storage in context:
+  [`newCommodity()`](https://energyRt.org/reference/newCommodity.md),
+  [`newModel()`](https://energyRt.org/reference/newModel.md),
+  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md).
+- Solve and analyse:
+  [`solve_model()`](https://energyRt.org/reference/solve_model.md),
+  [`getData()`](https://energyRt.org/reference/getData.md),
+  `autoplot()`.
 
 ## What a storage is
 
@@ -54,7 +63,9 @@ STG_BTR <- newStorage(
 draw(STG_BTR)
 ```
 
-![](storage_files/figure-html/unnamed-chunk-2-1.png)
+![Flow diagram of a six-hour lithium-ion battery with electricity
+entering the charger, passing through the reservoir, and leaving through
+the discharger.](storage_files/figure-html/battery-diagram-1.png)
 
 `commodity = "ELC"` is shorthand: it fills all three roles at once.
 There is no `@commodity` slot — the argument is folded into `@input`,
@@ -105,7 +116,9 @@ STG_H2 <- newStorage(
 draw(STG_H2)
 ```
 
-![](storage_files/figure-html/unnamed-chunk-3-1.png)
+![Flow diagram of a hydrogen storage system with electricity entering an
+electrolyser, hydrogen held in a salt cavern, and electricity leaving a
+fuel cell.](storage_files/figure-html/hydrogen-storage-diagram-1.png)
 
 `@seff$inpeff` and `$outeff` are **cross-commodity conversion factors**
 here — input→stored and stored→output — the same role `cinp2use` plays
@@ -285,17 +298,17 @@ scen_year <- solve_model(mod_year, name = "fy_year")
 #> ℹ collecting sets: membership comm sets✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
 #> ℹ building maps: membership + closure✔ building maps: membership + closure (0.1s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
 #> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.1s)
 #> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
-#> ℹ building maps: value✔ building maps: value (0.1s)
+#> ℹ building maps: value✔ building maps: value (0.0s)
 #> ℹ building maps: filter✔ building maps: filter (0.2s)
 #> ℹ building maps: constraint✔ building maps: constraint (0.1s)
 #> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
-#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
+#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.1s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: fy_year
 #>   parameters : 200 value, 359 maps, 15 sets
@@ -317,13 +330,13 @@ scen_year <- solve_model(mod_year, name = "fy_year")
 #>     cardYear           1
 #>     pYearFraction      1
 #>     pWacc              1
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpegSVMD/energyRt/scenarios/fy_year-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.31s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpiuTCBx/energyRt/scenarios/fy_year-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.28s
 #> Starting  GLPK 
-#> 0.2s
-#> Reading solution: 0.11s
+#> 0.21s
+#> Reading solution: 0.12s
 scen_day <- solve_model(mod_day, name = "fy_day")
-#> ℹ checking declarations✔ checking declarations (0.1s)
+#> ℹ checking declarations✔ checking declarations (0.0s)
 #> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.0s)
 #> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
@@ -335,16 +348,16 @@ scen_day <- solve_model(mod_day, name = "fy_day")
 #> ℹ collecting sets: membership comm sets✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
 #> ℹ building maps: membership + closure✔ building maps: membership + closure (0.1s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
 #> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.1s)
 #> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
-#> ℹ building maps: value✔ building maps: value (0.1s)
-#> ℹ building maps: filter✔ building maps: filter (0.2s)
+#> ℹ building maps: value✔ building maps: value (0.0s)
+#> ℹ building maps: filter✔ building maps: filter (0.1s)
 #> ℹ building maps: constraint✔ building maps: constraint (0.1s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: fy_day
@@ -367,11 +380,11 @@ scen_day <- solve_model(mod_day, name = "fy_day")
 #>     cardYear           1
 #>     pYearFraction      1
 #>     pWacc              1
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpegSVMD/energyRt/scenarios/fy_day-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.28s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpiuTCBx/energyRt/scenarios/fy_day-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.29s
 #> Starting  GLPK 
-#> 0.17s
-#> Reading solution: 0.12s
+#> 0.15s
+#> Reading solution: 0.11s
 
 getData(scen_year, "vObjective", merge = TRUE)$value
 #> [1] 9962.545
@@ -1018,7 +1031,7 @@ scen <- solve_model(sol_mod, name = "solar_battery")
 #> ℹ collecting sets: membership comm sets✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
 #> ℹ building maps: membership + closure✔ building maps: membership + closure (0.1s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
 #> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.1s)
 #> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
@@ -1050,11 +1063,11 @@ scen <- solve_model(sol_mod, name = "solar_battery")
 #>     cardYear           1
 #>     pYearFraction      1
 #>     pWacc              1
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpegSVMD/energyRt/scenarios/solar_battery-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.33s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpiuTCBx/energyRt/scenarios/solar_battery-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.31s
 #> Starting  GLPK 
-#> 0.3s
-#> Reading solution: 0.11s
+#> 0.26s
+#> Reading solution: 0.13s
 ```
 
 ``` r
@@ -1074,7 +1087,10 @@ ggplot(d, aes(hour, value, fill = duration)) +
   theme_bw()
 ```
 
-![](storage_files/figure-html/unnamed-chunk-17-1.png)
+![Faceted area charts for twelve representative days showing storage
+levels split into twelve-hour, one-day, one-week, and thirty-day
+duration
+bands.](storage_files/figure-html/representative-day-storage-duration-1.png)
 
 Every band here is short: a day-per-month calendar has no way to
 represent energy held from spring to autumn, so the long bands can only
@@ -1184,7 +1200,9 @@ ggplot(vre_storage_duration, aes(datetime, value, fill = duration)) +
   theme_bw()
 ```
 
-![](storage_files/figure-html/unnamed-chunk-20-1.png)
+![Full-year stacked area chart showing storage energy split by cycling
+duration, including a large band held for more than thirty
+days.](storage_files/figure-html/full-year-storage-duration-1.png)
 
 Now the split is worth reading. The store is not one thing doing one
 job: a thin band cycles within the day, while most of the energy is
@@ -1215,7 +1233,7 @@ sum back to the level.
 
 ## See also
 
-- [Time resolution](https://energyRt.org/articles/time-resolution.md) —
+- [Model dimensions](https://energyRt.org/articles/resolution.md) —
   calendars, timeslices, and what `@fullYear` is relative to.
 - [Model bricks](https://energyRt.org/articles/model-bricks.md) — how
   `storage` sits beside `technology`, `supply` and `demand`.

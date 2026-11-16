@@ -67,3 +67,22 @@ img.logo {
     width: 80px !important;
   }
 }
+
+// Make the semantic section labels in the Articles dropdown scan as groups.
+// pkgdown renders these as <h6 class="dropdown-header">; styling that element
+// keeps the navigation meaningful for assistive technology and avoids putting
+// decorative separator characters into the label text.
+.navbar .dropdown-menu .dropdown-header {
+  margin: 0.45rem 0.5rem 0.2rem;
+  padding: 0.35rem 0.5rem 0.3rem;
+  border-bottom: 2px solid var(--bs-primary);
+  color: var(--bs-emphasis-color);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.navbar .dropdown-menu li:first-child .dropdown-header {
+  margin-top: 0.1rem;
+}

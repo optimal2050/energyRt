@@ -1,5 +1,5 @@
 ---
-title: "Model bricks"
+title: "Model bricks: commodities, processes, and policies"
 editor_options:
   chunk_output_type: console
 ---
@@ -20,6 +20,75 @@ knitr::opts_chunk$set(
 )
 ```
 
+```{r setup, include = FALSE}
+library(energyRt)
+library(ggplot2)
+data("calendars", package = "energyRt")
+```
+
+```{r bricks-overview, echo = FALSE, fig.width = 11, fig.height = 6.4, fig.cap = "Four representative process objects drawn by energyRt: a source, a converter, temporal storage, and spatial trade.", fig.alt = "Four energyRt flow diagrams: gas supply, a gas-to-electricity technology, an electricity battery with charger reservoir and discharger, and an electricity trade node connecting western and eastern regions."}
+gallery_supply <- newSupply(
+  "GAS_SOURCE",
+  desc = "Domestic gas supply",
+  commodity = "GAS",
+  unit = "PJ",
+  supply = data.frame(cost = 8)
+)
+
+gallery_technology <- newTechnology(
+  "GAS_POWER",
+  desc = "Gas-fired power plant",
+  input = data.frame(comm = "GAS", unit = "PJ"),
+  output = data.frame(comm = "ELC", unit = "GWh"),
+  ceff = data.frame(
+    comm = c("GAS", "ELC"),
+    cinp2use = c(277.78, NA),
+    cact2cout = c(NA, 1)
+  ),
+  cap2act = 8760
+)
+
+gallery_storage <- newStorage(
+  "BATTERY",
+  desc = "Four-hour battery",
+  commodity = "ELC",
+  seff = data.frame(inpeff = 0.95, outeff = 0.95, stgeff = 0.999),
+  duration = 4
+)
+
+gallery_trade <- newTrade(
+  "GRID",
+  desc = "Interregional electricity trade",
+  commodity = "ELC",
+  routes = data.frame(
+    src = c("WEST", "CENTRAL"),
+    dst = c("CENTRAL", "EAST")
+  ),
+  trade = data.frame(
+    src = c("WEST", "CENTRAL"),
+    dst = c("CENTRAL", "EAST"),
+    teff = c(0.97, 0.98)
+  )
+)
+
+brick_panel <- function(object, ...) {
+  grob <- grid::grid.grabExpr(draw(object, ...), wrap = TRUE)
+  patchwork::wrap_elements(full = grob)
+}
+
+patchwork::wrap_plots(
+  brick_panel(gallery_supply),
+  brick_panel(gallery_technology),
+  brick_panel(gallery_storage),
+  brick_panel(gallery_trade, node = "CENTRAL"),
+  ncol = 2
+) +
+  patchwork::plot_annotation(
+    title = "Model bricks share one visual grammar",
+    subtitle = "source · conversion · storage · trade"
+  )
+```
+
 An energyRt model is assembled from a small set of building blocks — *bricks*:
 
 * **commodities** — the things that flow (fuels, electricity, heat, emissions, materials);
@@ -28,12 +97,6 @@ An energyRt model is assembled from a small set of building blocks — *bricks*:
 * **structures** — the containers that hold everything: a **repository**, a **model**, and a **scenario**.
 
 This article walks through each brick and how it is drawn.
-
-```{r setup}
-library(energyRt)
-library(ggplot2)   # for the emission-intensity plots
-data("calendars", package = "energyRt")
-```
 
 # Commodities
 
@@ -220,8 +283,9 @@ units the conversion has to appear somewhere, so that *use*, *activity* and
 fuels are PJ and electricity is GWh: `ginp2use = 277.78` converts the fuel group
 to GWh (so the technology *operates* in GWh), and `cap2act = 8760` matches
 (1 GW × 8760 h). You do not have to work the factor out by hand:
-`convert("PJ", "GWh", 1)` gives it. See the *Units* article for where each unit
-is declared and how `convert()` finds a factor.
+`convert("PJ", "GWh", 1)` gives it. The dedicated
+[units article](units.html) explains where each unit is declared, how
+`convert()` finds a factor, and how currencies and currency-years are handled.
 :::
 
 ### Activity, capacity and units
@@ -405,7 +469,24 @@ newTechnology(
   timeframe = "HOUR")            # dispatch hourly (else inferred from commodities)
 ```
 
-# User constraints
+# Units
+
+Every commodity and process should declare enough unit information to make its
+arithmetic auditable. The focused [Units, conversions, and
+currencies](units.html) article covers declarations, inspection, compatible and
+property-assisted conversions, currency-years, and model-level normalization.
+
+# Policies and custom constraints
+
+Taxes, subsidies, and user costs change the objective without changing the
+physical process. Use `newTax()`, `newSubsidy()`, and `newCosts()` for those
+reusable policy bricks; their process, class, vintage, and cluster selectors
+let one declaration target a family of realized processes.
+
+Use `newConstraint()` when the policy is a linear relationship among model
+variables: an emissions budget, a renewable share, or a joint capacity limit.
+Keep physical limits on the owning process when possible; custom constraints
+are best reserved for rules that genuinely span several objects.
 
 Beyond the physics baked into each process, you can add your own **linear
 constraints** on the model variables. `newConstraint()` is the low-level form:
@@ -473,7 +554,7 @@ Members are reachable by name (`repo$BOILER`, `repo[["COA"]]`), and `length()` /
 
 A **model** binds a repository to the dimensions it is solved over: a `region`
 set, a `calendar` (the sub-annual structure — see the
-[time-resolution article](time-resolution.html)) and a `horizon` (the milestone
+[model-dimensions article](resolution.html)) and a `horizon` (the milestone
 years). See the *autoplot* article for plots of the calendar and horizon bricks.
 
 ```{r model, results = "markup"}
@@ -524,10 +605,10 @@ technologies) and *TOPIA II* (ex-post cost with `autoplot`) for worked numbers.
 
 # See also
 
-* **Units** — where each unit is declared, how `convert()` moves between them,
-  and what the model checks.
-* **Autoplot** — plots of calendars, horizons, commodity emissions and the
-  by-year `supply`/`demand`/`import`/`export` parameters.
-* **Solver backends** — turning a scenario into a solved model.
+* **Model dimensions** — calendars, horizons, regions, and geoscales.
+* **Units, conversions, and currencies** — declarations, conversion, physical
+  properties, and model-level normalization.
+* **Results and reporting** — plots, result queries, comparisons, and reports.
+* **Solving models** — turning a scenario into a solved model.
 * `?draw`, `?newCommodity`, `?newTechnology`, `?newConstraint`,
   `?newRepository`, `?newModel`, `?levcost`, `?convert`, `?getUnits`.

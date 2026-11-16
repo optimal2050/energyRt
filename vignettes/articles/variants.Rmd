@@ -13,11 +13,20 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
+```{r setup, include = FALSE}
 library(energyRt)
 library(geoscales)
 library(ggplot2)
 ```
+
+::: {.callout-note}
+**Key functions**
+
+- Declare families: `newTechnology(vintage =, cluster =)` and the equivalent
+  arguments on storage and trade constructors.
+- Inspect them: `getVariants()`, `variantSummary()`, `draw()`, `autoplot()`.
+- Use their results: `interpolate_model()`, `getData()`, `levcost()`.
+:::
 
 # One object, many processes
 

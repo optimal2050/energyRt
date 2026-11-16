@@ -2,6 +2,19 @@
 
 ## Overview
 
+**Key functions**
+
+- Prepare and solve:
+  [`newModel()`](https://energyRt.org/reference/newModel.md),
+  [`setGeoscale()`](https://energyRt.org/reference/setGeoscale.md),
+  [`solve_base_year()`](https://energyRt.org/reference/solve_base_year.md),
+  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md),
+  [`solve_scenario()`](https://energyRt.org/reference/solve_model.md).
+- Analyse: [`getData()`](https://energyRt.org/reference/getData.md),
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html),
+  [`levcost()`](https://energyRt.org/reference/levcost.md).
+- Publish: [`report()`](https://energyRt.org/reference/report.md).
+
 This vignette takes the packaged \[`topia`\]`$modules` model – the one
 built object by object in *TOPIA I: building the model* – assembles it
 and runs scenarios on it.

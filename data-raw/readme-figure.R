@@ -93,13 +93,12 @@ if (is.null(TOPIA_README)) {
 }
 
 # Space axis: one map plane per geoframe, nation on top, every unit named.
-map_geoframes <- c("nation", "zone", "region")
+map_geoframes <- geoscales::geoscale_geoframes(topia$geoscales$island)
 p_map <- autoplot(
   x = topia$geoscales$island,
   type = "stack",
   view = "oblique",
   depth = 1,
-  fill = "region",
   labels = map_geoframes,
   frame = TRUE
 ) +

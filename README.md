@@ -141,10 +141,10 @@ explains the model and workflow step by step.
   [Model bricks](https://energyrt.org/articles/model-bricks.html)
 - **Nested time** — user-defined calendars, mixed balancing timeframes, sampled
   calendars for iteration.
-  [Time resolution](https://energyrt.org/articles/time-resolution.html)
+  [Time resolution](https://energyrt.org/articles/resolution.html)
 - **Nested space** — multi-level balances, coarse processes over fine
   commodities, region aggregation and sub-territory solves.
-  [Space resolution](https://energyrt.org/articles/space-resolution.html)
+  [Space resolution](https://energyrt.org/articles/resolution.html)
 - **Vintages, clusters and graded resources** — one object expands into a
   family of processes; tiered commodities and weather so the best sites run out
   before the next grade starts.
@@ -216,9 +216,8 @@ platform-specific steps.
   and first model.
 - [Model bricks](https://energyrt.org/articles/model-bricks.html) — the objects
   used to describe a system.
-- [Time resolution](https://energyrt.org/articles/time-resolution.html),
-  [timescales](https://github.com/optimal2050/timescales), and
-  [space resolution](https://energyrt.org/articles/space-resolution.html) —
+- [Model dimensions](https://energyrt.org/articles/resolution.html) and
+  [timescales](https://github.com/optimal2050/timescales) —
   user-defined nested calendars and regional hierarchies.
 - [Storage](https://energyrt.org/articles/storage.html) and
   [Vintages & clusters](https://energyrt.org/articles/variants.html) — the two

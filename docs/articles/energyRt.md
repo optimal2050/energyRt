@@ -219,8 +219,7 @@ contains every underlying flow, cost, and balance.
 
 ## Plot solved results
 
-[`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
-uses the same result tables returned by
+`autoplot()` uses the same result tables returned by
 [`getData()`](https://energyRt.org/reference/getData.md). On a solved
 scenario it can show annual generation, capacity, new capacity, fuel
 use, or storage operation. The annual electricity balance from `BASE`
@@ -373,9 +372,8 @@ sample_summary(
 )
 ```
 
-See [Time
-resolution](https://energyrt.org/articles/time-resolution.html) and
-[Workflow](https://energyrt.org/articles/workflow.html) for manual
+See [Model dimensions](https://energyrt.org/articles/resolution.html)
+and [Workflow](https://energyrt.org/articles/workflow.html) for manual
 calendar subsets, weighting, repeated samples, and comparisons with a
 full solve.
 
@@ -437,8 +435,8 @@ if (pyomo_ready) {
 ```
 
 [NEOS](https://neos-server.org/) provides another remote route for
-supported solvers without a local license. The [solver backends
-article](https://energyrt.org/articles/backends.html) covers
+supported solvers without a local license. The [solving
+article](https://energyrt.org/articles/workflow.html) covers
 installation, presets, dependency checks, and operational limits.
 
 ## Generate reports
@@ -489,8 +487,7 @@ The first solve uses only a fraction of the framework:
 - **Manage many runs.** Named projects and Arrow-backed scenario folders
   keep results addressable and allow larger-than-memory analysis.
 - **Inspect and validate.**
-  [`draw()`](https://energyRt.org/reference/draw.md),
-  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html),
+  [`draw()`](https://energyRt.org/reference/draw.md), `autoplot()`,
   [`report()`](https://energyRt.org/reference/report.md), and
   [`verify_solution()`](https://energyRt.org/reference/verify_solution.md)
   expose both declared objects and solved behavior.
@@ -509,18 +506,14 @@ storage, trade, capacity expansion, dispatch, and policy scenarios.
     complete multi-region electricity model brick by brick.
 3.  [TOPIA II](https://energyrt.org/articles/topia-use.html) solves it
     and adds policy scenarios.
-4.  [Time
-    resolution](https://energyrt.org/articles/time-resolution.html) and
-    [Space
-    resolution](https://energyrt.org/articles/space-resolution.html)
-    develop the two structural axes.
-5.  [Solver backends](https://energyrt.org/articles/backends.html)
-    covers local, direct-matrix, GPU, and cloud routes.
-6.  [Workflow](https://energyrt.org/articles/workflow.html) moves from
-    one solve to reproducible scenario studies.
-7.  [Scenario
-    management](https://energyrt.org/articles/scenario-management.html)
-    and [Reports](https://energyrt.org/articles/reports.html) cover
-    persistent projects and automated outputs.
-8.  [Features](https://energyrt.org/articles/features.html) is the full
-    capability inventory.
+4.  [Model dimensions](https://energyrt.org/articles/resolution.html)
+    develops the time and space axes together.
+5.  [Solving models](https://energyrt.org/articles/workflow.html) covers
+    local, direct-matrix, GPU, and cloud routes.
+6.  [Models, scenarios, and
+    projects](https://energyrt.org/articles/scenario-management.html)
+    covers persistent studies and run storage.
+7.  [Results and reporting](https://energyrt.org/articles/reports.html)
+    covers result queries, plots, comparisons, and automated outputs.
+8.  [Scaling models](https://energyrt.org/articles/model-size.html)
+    covers subsetting, aggregation, recursive solves, and guided solves.

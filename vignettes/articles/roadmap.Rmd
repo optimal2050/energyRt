@@ -42,12 +42,12 @@ Status legend: **[✓]** done · **[~]** in progress · **[ ]** planned.
   Commodities and processes declare the timeframe they balance on, so annual fuel
   accounting and hourly dispatch coexist in one model; sampled calendars solve a
   representative subset and annualise it.
-  (see [Time resolution](time-resolution.html)) \
+  (see [Model dimensions](resolution.html)) \
 - [✓] **Nested regions.** Hierarchical regions via
   **[geoscales](https://github.com/optimal2050/geoscales)**: a commodity balanced
   at a coarser level with `newCommodity(geoframe = )` rolls up automatically, so
   point-to-point `trade` is no longer the only way to move a commodity between
-  regions. (see [Space resolution](space-resolution.html)) \
+  regions. (see [Model dimensions](resolution.html)) \
 - [✓] Dependency setup & checks (`en_setup()`, `en_check_dependencies()`,
   `en_check_packages()`) \
 - [✓] **Testing system** — ~150 test files on tiers (`ENERGYRT_TEST_TIER`),

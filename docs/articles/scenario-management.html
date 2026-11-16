@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Scenario management: how models, scenarios, and solutions are organized • energyRt</title>
+<title>Models, scenarios, and projects • energyRt</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
@@ -15,7 +15,7 @@
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Scenario management: how models, scenarios, and solutions are organized">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Models, scenarios, and projects">
 <script data-goatcounter="https://energyrt.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,33 +36,35 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/install.html">Installation</a></li>
 <li class="active nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials">
-<li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
-    <li><a class="dropdown-item" href="../articles/features.html">Features</a></li>
-    <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><h6 class="dropdown-header" data-toc-skip>Model foundations</h6></li>
+    <li><a class="dropdown-item" href="../articles/time-resolution.html">Model dimensions — time &amp; space</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
-    <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
-    <li><a class="dropdown-item" href="../articles/resolution.html">Changing resolution</a></li>
-    <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
-    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
-    <li><a class="dropdown-item" href="../articles/model-size.html">Reducing model size</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
-    <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
-    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
-    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
-    <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
-    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Project workflow</h6></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Models, scenarios &amp; projects</a></li>
+    <li><a class="dropdown-item" href="../articles/workflow.html">Solving models</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Results &amp; reporting</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Model development</h6></li>
+    <li><a class="dropdown-item" href="../articles/debugging.html">Validating &amp; debugging</a></li>
+    <li><a class="dropdown-item" href="../articles/model-size.html">Scaling &amp; alternative solves</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>TOPIA teaching model</h6></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
-    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
+<li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-news" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">News</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-news">
+<li><a class="dropdown-item" href="../news/index.html">Release notes</a></li>
+    <li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+  </ul>
+</li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -89,7 +91,7 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>Scenario management: how models, scenarios, and solutions are organized</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Models, scenarios, and projects</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/vignettes/articles/scenario-management.Rmd" class="external-link"><code>vignettes/articles/scenario-management.Rmd</code></a></small>
@@ -98,6 +100,18 @@
 
     
     
+<div class="callout-note">
+<p><strong>Key functions</strong></p>
+<ul>
+<li>Assemble: <code><a href="../reference/newRepository.html">newRepository()</a></code>, <code><a href="../reference/newModel.html">newModel()</a></code>,
+<code><a href="../reference/interpolate_model.html">interpolate_model()</a></code>.</li>
+<li>Store and reopen: <code><a href="../reference/accessors.html">open_project()</a></code>,
+<code><a href="../reference/model_store.html">save_model()</a></code>, <code><a href="../reference/save_scenario.html">save_scenario()</a></code>,
+<code><a href="../reference/model_store.html">load_model()</a></code>, <code><a href="../reference/load_scenario.html">load_scenario()</a></code>.</li>
+<li>Version and select runs: <code><a href="../reference/seal.html">seal_model()</a></code>,
+<code><a href="../reference/scenario_runs.html">scenario_runs()</a></code>, <code><a href="../reference/read.html">read_solution()</a></code>.</li>
+</ul>
+</div>
 <p>An energy-modeling project quickly accumulates artifacts: models
 built from shared repositories, scenarios interpolated from them at
 different scopes, and solutions produced by different solvers. energyRt
@@ -125,9 +139,9 @@ run’s identity. Loading a scenario re-bases every stored path onto the
 folder it is actually loaded from, so moving or renaming folders — or
 opening a project from a different working directory — just works.</li>
 </ol>
-<p>This article walks the whole layout bottom-up. The <em>Workflow</em>
-article shows the same machinery in day-to-day use; this one explains
-how the pieces fit.</p>
+<p>This article follows the assembly path from reusable objects to a
+stored scenario. <a href="workflow.html">Solving models</a> starts where
+this chapter stops.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://energyRt.org">energyRt</a></span><span class="op">)</span></span></code></pre></div>
 <p>Everything lands under a throwaway project folder here; in a real
@@ -163,6 +177,104 @@ years:</p>
 <span>      <span class="fu"><a href="../reference/newDemand.html">newDemand</a></span><span class="op">(</span><span class="st">"DEM"</span>, commodity <span class="op">=</span> <span class="st">"ELC"</span>, demand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>demand <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu">make_mod</span><span class="op">(</span>stock <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">100</span>, <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="section level2">
+<h2 id="the-assembly-path">The assembly path<a class="anchor" aria-label="anchor" href="#the-assembly-path"></a>
+</h2>
+<p>The container classes have different responsibilities:</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th>class</th>
+<th>role</th>
+<th>mutable content</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>repository</code></td>
+<td>reusable catalog of commodities and processes</td>
+<td>object declarations</td>
+</tr>
+<tr class="even">
+<td><code>model</code></td>
+<td>a study design</td>
+<td>repository/data plus regions, calendar, horizon, discount, and other
+config</td>
+</tr>
+<tr class="odd">
+<td><code>scenario</code></td>
+<td>one concrete optimization problem</td>
+<td>interpolated <code>modInp</code>, run metadata, and decoded
+<code>modOut</code>
+</td>
+</tr>
+<tr class="even">
+<td>project directory</td>
+<td>durable workspace</td>
+<td>repositories, models, scenarios, runs, reports, and a rebuildable
+registry</td>
+</tr>
+</tbody>
+</table>
+<p>Keeping these roles separate matters. A solver option does not belong
+in model configuration, and a result variable does not belong in a
+repository.</p>
+<div class="section level3">
+<h3 id="repository-and-model">Repository and model<a class="anchor" aria-label="anchor" href="#repository-and-model"></a>
+</h3>
+<p>Build a repository when the same parts will support several models. A
+model can also be constructed directly from objects for a small
+analysis:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">repo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newRepository.html">newRepository</a></span><span class="op">(</span><span class="st">"parts"</span>, <span class="va">ELC</span>, <span class="va">GAS</span>, <span class="va">GAS_SUPPLY</span>, <span class="va">POWER_PLANT</span>, <span class="va">LOAD</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span></span>
+<span>  <span class="st">"study"</span>,</span>
+<span>  repo <span class="op">=</span> <span class="va">repo</span>,</span>
+<span>  region <span class="op">=</span> <span class="va">regions</span>,</span>
+<span>  calendar <span class="op">=</span> <span class="va">calendars</span><span class="op">$</span><span class="va">s4_hp3</span>,</span>
+<span>  horizon <span class="op">=</span> <span class="fu"><a href="../reference/newHorizon.html">newHorizon</a></span><span class="op">(</span><span class="fl">2025</span><span class="op">:</span><span class="fl">2050</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">5</span>, <span class="fl">5</span>, <span class="fl">5</span>, <span class="fl">5</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  discount <span class="op">=</span> <span class="fl">0.06</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Treat <code>data</code> as the economic declarations and
+<code>config</code> as the scope in which they are interpreted.
+Calendar, horizon, regions/geoscale, and discount belong to that scope.
+They may vary between models without duplicating the repository.</p>
+</div>
+<div class="section level3">
+<h3 id="model-to-scenario-interpolation">Model to scenario: interpolation<a class="anchor" aria-label="anchor" href="#model-to-scenario-interpolation"></a>
+</h3>
+<p><code><a href="../reference/interpolate_model.html">interpolate_model()</a></code> expands sparse declarations onto the
+configured dimensions, applies defaults, resolves process variants, and
+validates the result. The resulting parameter store is
+<code>modInp</code>:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">scen</span><span class="op">@</span><span class="va">modInp</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"pTechCapUp"</span><span class="op">)</span></span></code></pre></div>
+<p>A scenario may add policy objects or override configuration at
+interpolation, but it should remain traceable to its model. Use
+<code>base =</code> when one scenario is a deliberate derivative of
+another rather than copying folders by hand.</p>
+</div>
+<div class="section level3">
+<h3 id="runs-and-results">Runs and results<a class="anchor" aria-label="anchor" href="#runs-and-results"></a>
+</h3>
+<p>A run is one backend/solver execution of a scenario. The decoded
+solution is <code>modOut</code>; it contains variables, not model
+parameters. Multiple named runs can coexist, while one may be selected
+or promoted as the scenario’s active solution:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/scenario_runs.html">scenario_runs</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
+<span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read.html">read_solution</a></span><span class="op">(</span><span class="va">scen</span>, run <span class="op">=</span> <span class="st">"glpk"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p>This vocabulary is shared by the in-memory API and the on-disk
+project layout below.</p>
+</div>
+</div>
 <div class="section level2">
 <h2 id="the-scenario-folder">The scenario folder<a class="anchor" aria-label="anchor" href="#the-scenario-folder"></a>
 </h2>
@@ -224,7 +336,7 @@ point elsewhere.</li>
 <p>Let’s produce that tree. <code>run = "&lt;label&gt;"</code> names a
 run explicitly; without it, the label defaults to the solver directory
 name (e.g. <code>"glpk"</code>):</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span>, echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> checking declarations<span style="color: #00BB00;">✔</span> checking declarations <span style="color: #555555;">(0.0s)</span></span></span>
@@ -294,7 +406,7 @@ active one only with <code>force = TRUE</code>). An <em>external</em>
 working directory — outside the scenario, no run record — is available
 via <code>solve_scenario(solver.dir = "...")</code>, and
 <code>transient = TRUE</code> solves in a throwaway folder.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/save_scenario.html">save_scenario</a></span><span class="op">(</span><span class="va">scen</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">scen</span><span class="op">@</span><span class="va">path</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "class"        "format"       "layout"       "logfile.csv"  "runs"        </span></span>
@@ -315,7 +427,7 @@ overridable.</p>
 <p>The model is part of the scenario, but fifty scenarios built on one
 model do not need fifty copies of it. A model is saved once in the
 <strong>model store</strong>, under its name:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_store.html">save_model</a></span><span class="op">(</span><span class="va">mod</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/list_versions.html">list_versions</a></span><span class="op">(</span><span class="st">"SM"</span>, type <span class="op">=</span> <span class="st">"model"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 7</span></span></span>
@@ -335,19 +447,19 @@ moves the payload into a version folder,
 Changed content under a sealed name requires <code><a href="../reference/seal.html">unseal_model()</a></code>
 first; the sealed version stays, and whatever references it keeps
 loading it.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/seal.html">seal_model</a></span><span class="op">(</span><span class="va">mod</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/list_versions.html">list_versions</a></span><span class="op">(</span><span class="st">"SM"</span>, type <span class="op">=</span> <span class="st">"model"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 7</span></span></span>
 <span><span class="co">#&gt;   status  name  type  version  sealed_at            refs size_mb</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dttm&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> current SM    model ea94b58e 2026-11-10 <span style="color: #949494;">02:26:58</span>     0       0</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> current SM    model ea94b58e 2026-11-16 <span style="color: #949494;">03:17:11</span>     0       0</span></span></code></pre></div>
 <p><strong>Only sealed versions are referenced.</strong> A scenario
 records the model it was interpolated from. When that model is a sealed
 version, <code><a href="../reference/save_scenario.html">save_scenario()</a></code> stores the reference
 <code>{name, hash}</code> instead of a copy, and the sealed version
 lists the scenario among its dependents:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/save_scenario.html">save_scenario</a></span><span class="op">(</span><span class="va">scen</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu">yaml</span><span class="fu">::</span><span class="fu"><a href="https://yaml.r-lib.org/reference/read_yaml.html" class="external-link">read_yaml</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">scen</span><span class="op">@</span><span class="va">path</span>, <span class="st">"scenario.yml"</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">model</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"source"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; $name</span></span>
@@ -385,7 +497,7 @@ record its <em>generating call</em>
 (<code>save_dataset(name = , fun = "pkg::fun", args = )</code>), and a
 version that another entry references is never rewritten in place.</p>
 <p>The versioning logic in a few lines:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_hash.html">model_hash</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span>                       <span class="co"># content identity (misc and paths stripped);</span></span>
 <span>                                      <span class="co">#   repository_hash(), dataset_hash(),</span></span>
 <span>                                      <span class="co">#   object_hash() for anything else</span></span>
@@ -403,7 +515,7 @@ version that another entry references is never rewritten in place.</p>
 objects: a cap, a tax, a technology, or a coarser sample of the same
 problem. <code>interpolate_model(..., base = REF)</code> builds it on
 the interpolated REF instead of from scratch:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fee</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCosts.html">newCosts</a></span><span class="op">(</span><span class="st">"FEE"</span>, variable <span class="op">=</span> <span class="st">"vTechAct"</span>, mult <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>                subset <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>tech <span class="op">=</span> <span class="st">"TECH"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">scen_fee</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">fee</span>, name <span class="op">=</span> <span class="st">"FEE"</span>, base <span class="op">=</span> <span class="va">scen</span><span class="op">)</span></span>
@@ -444,7 +556,7 @@ setting)</td>
 <p>In every case the result equals a full interpolation of the model
 with REF’s additions and the new ones, which
 <code><a href="../reference/compare_inputs.html">compare_inputs()</a></code> confirms:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">full</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">fee</span>, name <span class="op">=</span> <span class="st">"FEE_FULL"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> checking declarations<span style="color: #00BB00;">✔</span> checking declarations <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> expanding vintage/cluster variants<span style="color: #00BB00;">✔</span> expanding vintage/cluster variants <span style="color: #555555;">(0.0s)</span></span></span>
@@ -452,7 +564,7 @@ with REF’s additions and the new ones, which
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather clusters<span style="color: #00BB00;">✔</span> materializing weather clusters <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather transforms<span style="color: #00BB00;">✔</span> materializing weather transforms <span style="color: #555555;">(0.2s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: object names</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process classes<span style="color: #00BB00;">✔</span> collecting sets: process classes <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: timeframes</span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: timeframes <span style="color: #555555;">(0.0s)</span></span></span>
@@ -462,8 +574,8 @@ with REF’s additions and the new ones, which
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: membership comm sets <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process regions<span style="color: #00BB00;">✔</span> collecting sets: process regions <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: membership + closure</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.1s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> settings parameters (discount, period length, timeslice share)<span style="color: #00BB00;">✔</span> settings parameters (discount, period length, timeslice share) <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: calendar + lifespan</span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.1s)</span></span></span>
@@ -507,7 +619,7 @@ stores a reference to each of REF’s tables that the new scenario shares
 differ. <code>list_dependents(REF)</code> then lists the scenarios built
 on it, and <code>unseal_scenario(REF)</code> refuses while they
 exist:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/seal.html">seal_scenario</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span>                    <span class="co"># REF, saved, becomes a base</span></span>
 <span><span class="va">scen_fee</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/save_scenario.html">save_scenario</a></span><span class="op">(</span><span class="va">scen_fee</span><span class="op">)</span>    <span class="co"># shared tables referenced, the rest kept</span></span>
 <span><span class="fu"><a href="../reference/list_dependents.html">list_dependents</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span>                  <span class="co"># FEE</span></span>
@@ -521,7 +633,7 @@ and a message says so.</p>
 <p>Every save also records its object in the project
 <strong>registry</strong> — one CSV at the project root indexing models,
 repositories, scenarios, and runs:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">load_registry</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">reg</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"type"</span>, <span class="st">"name"</span>, <span class="st">"parent"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 3</span></span></span>
@@ -546,7 +658,7 @@ on-disk shell, and caches it in the session bank <code>.scen</code> —
 re-saved scenarios reload automatically, repeat access is free.
 <code><a href="../reference/getData.html">getData()</a></code> accepts names directly, so comparing registered
 scenarios needs no explicit loading at all:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="st">"BASE"</span>, name <span class="op">=</span> <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"scenario"</span>, <span class="st">"value"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 2</span></span></span>
 <span><span class="co">#&gt;   scenario value</span></span>
@@ -567,7 +679,7 @@ question</em> — a sampled calendar, a restricted horizon, a recursive
 step with carried-over capacity. These are <strong>own-problem
 variants</strong>: named folders under <code>runs/</code> that carry
 their <em>own</em> interpolated problem, with their solves inside.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scen_low</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="fu">make_mod</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">50</span>, <span class="fl">50</span><span class="op">)</span><span class="op">)</span>, name <span class="op">=</span> <span class="st">"BASE"</span>,</span>
 <span>                              overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span>, echo <span class="op">=</span> <span class="cn">FALSE</span>, variant <span class="op">=</span> <span class="st">"low"</span><span class="op">)</span></span>
@@ -577,7 +689,7 @@ their <em>own</em> interpolated problem, with their solves inside.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather clusters<span style="color: #00BB00;">✔</span> materializing weather clusters <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather transforms<span style="color: #00BB00;">✔</span> materializing weather transforms <span style="color: #555555;">(0.2s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: object names</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process classes<span style="color: #00BB00;">✔</span> collecting sets: process classes <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: timeframes</span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: timeframes <span style="color: #555555;">(0.0s)</span></span></span>
@@ -587,8 +699,8 @@ their <em>own</em> interpolated problem, with their solves inside.</p>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: membership comm sets <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process regions<span style="color: #00BB00;">✔</span> collecting sets: process regions <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: membership + closure</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> settings parameters (discount, period length, timeslice share)<span style="color: #00BB00;">✔</span> settings parameters (discount, period length, timeslice share) <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: calendar + lifespan</span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.1s)</span></span></span>
@@ -597,7 +709,7 @@ their <em>own</em> interpolated problem, with their solves inside.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: cost aggregation<span style="color: #00BB00;">✔</span> building maps: cost aggregation <span style="color: #555555;">(0.0s)</span></span></span>
@@ -657,7 +769,7 @@ gone.</p>
 <p><code><a href="../reference/promote_solution.html">promote_solution()</a></code> copies the chosen run’s solution to
 <code>&lt;scenario&gt;/modOut/</code>, beside <code>modInp/</code>, and
 clears the active run so the scenario reads from there:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/scenario_solutions.html">scenario_solutions</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span>                  <span class="co"># which attempt to keep?</span></span>
 <span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/promote_solution.html">promote_solution</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"glpk"</span><span class="op">)</span>    <span class="co"># or import_solution(..., promote = TRUE)</span></span>
 <span><span class="fu"><a href="../reference/scenario_runs.html">drop_scenario_run</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"glpk"</span>, force <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># the run is now scratch</span></span></code></pre></div>
@@ -679,7 +791,7 @@ pair variant results with the base problem’s parameters.</p>
 </h4>
 <p><code>getData(run = )</code> reads a run directly, tagging the rows
 with a <code>run</code> column:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechOut"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span>, run <span class="op">=</span> <span class="st">"low/glpk"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechOut"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span>, run <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"glpk"</span>, <span class="st">"low/glpk"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechOut"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span>, run <span class="op">=</span> <span class="st">"all"</span><span class="op">)</span></span></code></pre></div>
@@ -925,7 +1037,7 @@ carrying the solve label in <code>name</code> and the problem in
 </tbody>
 </table>
 <p>Typical queries against it:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/registry.html">load_registry</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/registry.html">find_in_registry</a></span><span class="op">(</span><span class="va">reg</span>, type <span class="op">=</span> <span class="st">"run"</span>, parent <span class="op">=</span> <span class="st">"BASE"</span>, variant <span class="op">=</span> <span class="st">"s4_h24"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/registry.html">find_in_registry</a></span><span class="op">(</span><span class="va">reg</span>, type <span class="op">=</span> <span class="st">"run"</span>, variant <span class="op">=</span> <span class="st">""</span><span class="op">)</span>     <span class="co"># all base-problem runs</span></span>
@@ -946,7 +1058,7 @@ fix</em>, never silently empty results.</p>
 pre-<code>runs/</code> layout with <code>script/&lt;solver&gt;/</code>
 directories) still load, and migrate in place with one idempotent
 call:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/upgrade_scenario_layout.html">upgrade_scenario_layout</a></span><span class="op">(</span><span class="st">"scenarios/OLD"</span><span class="op">)</span></span></code></pre></div>
 <p>which moves each solver directory into <code>runs/</code>, backfills
 the provenance records from what is on disk, and writes the current
@@ -997,7 +1109,7 @@ place by <code>save_dataset(rehash = FALSE)</code> or
 </h2>
 <p>The storage API by task — every verb resolves registered NAMES, never
 paths:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">## anchor a session on a project (registry + all store roots + tiers)</span></span>
 <span><span class="fu"><a href="../reference/accessors.html">open_project</a></span><span class="op">(</span><span class="st">"path/to/project"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/scenarios_path.html">get_scenarios_path</a></span><span class="op">(</span><span class="op">)</span>; <span class="fu"><a href="../reference/registry_file.html">get_models_path</a></span><span class="op">(</span><span class="op">)</span>; <span class="fu"><a href="../reference/registry_file.html">get_repositories_path</a></span><span class="op">(</span><span class="op">)</span></span>

@@ -13,6 +13,15 @@ knitr::opts_chunk$set(
 options(warn = 1)
 ```
 
+::: {.callout-note}
+**Key functions**
+
+- Before solving: `check_feasibility()`, `validate_scenario_parameters()`,
+  `process_operability()`, `audit_coefficients()`.
+- Diagnose infeasibility: `multimod::lp_bounds()`.
+- Verify results: `verify_solution()`, `compare_solve_settings()`.
+:::
+
 A model can fail in two ways. It can fail loudly: the solver returns
 INFEASIBLE, and nothing in the solver log names the row that cannot be met. Or
 it can fail quietly: the solve returns OPTIMAL, but a missing value was

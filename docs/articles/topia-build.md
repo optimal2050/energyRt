@@ -2,6 +2,23 @@
 
 ## Overview
 
+**Key functions**
+
+- Declare the system:
+  [`newCommodity()`](https://energyRt.org/reference/newCommodity.md),
+  [`newSupply()`](https://energyRt.org/reference/newSupply.md),
+  [`newDemand()`](https://energyRt.org/reference/newDemand.md),
+  [`newTechnology()`](https://energyRt.org/reference/technology.md),
+  [`newStorage()`](https://energyRt.org/reference/storage.md),
+  [`newTrade()`](https://energyRt.org/reference/newTrade.md).
+- Assemble it:
+  [`newRepository()`](https://energyRt.org/reference/newRepository.md),
+  [`newModel()`](https://energyRt.org/reference/newModel.md),
+  [`setGeoscale()`](https://energyRt.org/reference/setGeoscale.md).
+- Inspect it: [`draw()`](https://energyRt.org/reference/draw.md),
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html),
+  [`plot_trade_map()`](https://energyRt.org/reference/energyRt-deprecated.md).
+
 TOPIA is a teaching model for energy-system optimization. Its
 **Reference Energy System (RES)** links primary resources, conversion
 technologies, storage, trade, and electricity demand across up to twelve
