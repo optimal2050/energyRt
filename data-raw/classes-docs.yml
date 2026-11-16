@@ -1879,7 +1879,7 @@ class:
       type: data.frame
       description: >
         Soft floors on the stored level, priced. Each row is one tier: the
-        level may fall below `target` at `cost` per unit short. Tiers stack --
+        level may fall below `af.target` at `cost` per unit short. Tiers stack --
         below several targets the prices add up -- so a deeper tier with its
         own price makes draining dearer the further it goes.
       columns:
@@ -1901,12 +1901,12 @@ class:
         tier:
           type: character
           description: Tier label; a missing or NA tier is the tier "1". Never a wildcard.
-        target:
+        af.target:
           type: numeric
-          description: Soft floor on the stored level as a fraction of storing capacity (the base of `af.lo`).
+          description: Soft floor on the stored level as a fraction of storing capacity (the base of `af.lo`), not an absolute level.
         cost:
           type: numeric
-          description: Cost per unit the level falls short of `target`, on the same annual basis as `varom$stgcost`. Without it the target has no effect.
+          description: Cost per unit the level falls short of `af.target`, on the same annual basis as `varom$stgcost`. Without it the target has no effect.
     invcost:
       type: data.frame
       description: Investment cost.
@@ -4613,4 +4613,3 @@ class:
       description: >
         Any additional data or information to store in the object,
         added by the user or the functions.
-

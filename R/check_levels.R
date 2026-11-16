@@ -105,6 +105,29 @@ NULL
 #' @return Invisibly `NULL`; called for the error.
 #' @noRd
 .check_process_levels <- function(scen) {
+  tab <- .level_violations(scen)
+  if (is.null(tab)) return(invisible(NULL))
+  stop("Declared resolution does not match the commodity's own level.
+",
+       "These flows have no aggregation path, so the mismatched cells would ",
+       "be
+written but never read, and the term would silently evaluate to ",
+       "zero:
+
+   ",
+       paste(utils::capture.output(print(tab, row.names = FALSE)),
+             collapse = "
+   "),
+       "
+
+Declare them at the commodity's level, or change the commodity's ",
+       "`@timeframe`/`@geoframe`.", call. = FALSE)
+}
+
+# The violations themselves, so the same rules can be REPORTED and not only
+# raised: `check_model_levels()` collects every one of them.
+#' @noRd
+.level_violations <- function(scen) {
   lv <- .comm_level_members(scen)
   if (length(lv) == 0) return(invisible(NULL))
   pcomm <- get_process_comm(scen)
@@ -197,18 +220,8 @@ NULL
     }
   }
 
-  if (length(bad) == 0) return(invisible(NULL))
-  tab <- do.call(rbind, bad)
-  stop(
-    "Declared resolution does not match the commodity's own level.\n",
-    "These flows have no aggregation path, so the mismatched cells would be\n",
-    "written but never read, and the term would silently evaluate to zero:\n\n   ",
-    paste(utils::capture.output(print(tab, row.names = FALSE)),
-          collapse = "\n   "),
-    "\n\nDeclare them at the commodity's level, or change the commodity's ",
-    "`@timeframe`/`@geoframe`.",
-    call. = FALSE
-  )
+  if (length(bad) == 0) return(NULL)
+  do.call(rbind, bad)
 }
 
 # --- resolving a summand's level to actual variable indices ----------------- #
@@ -432,4 +445,229 @@ NULL
     }
   }
   out
+}
+
+# ---------------------------------------------------------------------------
+# check_model_levels(): the same rules, reported rather than raised
+# ---------------------------------------------------------------------------
+
+#' @noRd
+.level_empty <- function() {
+  data.frame(process = character(), class = character(), comm = character(),
+             dim = character(), declared = character(), expected = character(),
+             stringsAsFactors = FALSE)
+}
+
+# Every object of a model, flat and named -- the model-side twin of
+# `.level_check_objects()`, which needs a scenario to build one first.
+#' @noRd
+.level_model_objects <- function(mod) {
+  out <- list()
+  for (rp in mod@data) {
+    objs <- if (methods::is(rp, "repository")) rp@data else list(rp)
+    for (o in objs) {
+      if (!isS4(o) || !methods::.hasSlot(o, "name")) next
+      nm <- as.character(o@name)[1]
+      if (is.na(nm) || !nzchar(nm)) next
+      out[[nm]] <- o
+    }
+  }
+  out
+}
+
+# Regions a declaration names: the `@region` slot plus every region-keyed
+# column, endpoints included -- a corridor's level is its endpoints'.
+#' @noRd
+.level_declared_regions <- function(obj) {
+  out <- tryCatch(as.character(methods::slot(obj, "region")),
+                  error = function(e) character())
+  for (sn in .instance_slots(obj)) {
+    if (identical(sn, "misc")) next
+    v <- tryCatch(methods::slot(obj, sn), error = function(e) NULL)
+    if (!is.data.frame(v) || !nrow(v)) next
+    for (cn in intersect(c("region", "src", "dst"), colnames(v))) {
+      out <- c(out, as.character(v[[cn]]))
+    }
+  }
+  unique(out[!is.na(out) & nzchar(out)])
+}
+
+# Commodities by role, read off the slots rather than from interpolation maps.
+#' @noRd
+.level_roles <- function(obj) {
+  col <- function(sl, cn) {
+    v <- tryCatch(methods::slot(obj, sl), error = function(e) NULL)
+    if (!is.data.frame(v) || !nrow(v) || !cn %in% names(v)) return(character())
+    unique(as.character(v[[cn]][!is.na(v[[cn]])]))
+  }
+  list(inp = col("input", "comm"),
+       outstg = unique(c(col("output", "comm"), col("storage", "comm"))),
+       aux = unique(c(col("aux", "acomm"), col("aeff", "acomm"))))
+}
+
+#' @noRd
+.level_violations_model <- function(mod) {
+  objs <- .level_model_objects(mod)
+  comms <- objs[vapply(objs, function(o) methods::is(o, "commodity"),
+                       logical(1))]
+  if (!length(comms)) return(NULL)
+  cal <- tryCatch(mod@config@calendar, error = function(e) NULL)
+  gs <- tryCatch(mod@config@geoscale, error = function(e) NULL)
+  has_gs <- !is.null(gs) && is_geoscale(gs)
+  frames <- if (has_gs) geoscales::geoscale_geoframes(gs) else character()
+  mregs <- as.character(mod@config@region)
+  tf_all <- if (is.null(cal)) list() else cal@timeframes
+  known_s <- unique(unlist(tf_all, use.names = FALSE))
+  known_r <- mregs
+  ltg <- NULL
+  if (has_gs) {
+    ltg <- as.data.frame(geoscales::geoscale_leaftable(gs))
+    known_r <- unique(c(as.character(ltg$region),
+                        unlist(lapply(frames, function(f)
+                          as.character(ltg[[f]])), use.names = FALSE)))
+    known_r <- known_r[!is.na(known_r) & nzchar(known_r)]
+  }
+  bad <- list()
+  add <- function(...) bad[[length(bad) + 1L]] <<- data.frame(
+    ..., stringsAsFactors = FALSE)
+  fmt <- function(x) paste(utils::head(sort(unique(x)), 4), collapse = ", ")
+  # Level members per commodity, plus the pre-flight neither axis had: a frame
+  # a commodity names that the model's geoscale or calendar does not have.
+  lv <- list()
+  for (cm in names(comms)) {
+    o <- comms[[cm]]
+    gf <- as.character(methods::slot(o, "geoframe"))
+    gf <- gf[!is.na(gf) & nzchar(gf)]
+    tf <- as.character(methods::slot(o, "timeframe"))
+    tf <- tf[!is.na(tf) & nzchar(tf)]
+    regs <- mregs
+    if (length(gf)) {
+      if (!gf[1] %in% frames) {
+        add(process = cm, class = "commodity", comm = cm, dim = "geoframe",
+            declared = gf[1],
+            expected = if (length(frames)) fmt(frames) else "<no geoscale>")
+        regs <- NULL
+      } else {
+        regs <- unique(as.character(ltg[[gf[1]]]))
+        regs <- regs[!is.na(regs) & nzchar(regs)]
+      }
+    }
+    slices <- NULL
+    if (length(tf)) {
+      if (!tf[1] %in% names(tf_all)) {
+        add(process = cm, class = "commodity", comm = cm, dim = "timeframe",
+            declared = tf[1],
+            expected = if (length(tf_all)) fmt(names(tf_all)) else
+              "<no calendar>")
+      } else {
+        slices <- as.character(tf_all[[tf[1]]])
+      }
+    }
+    lv[[cm]] <- list(regions = regs, timeslices = slices)
+  }
+  for (nm in names(objs)) {
+    o <- objs[[nm]]
+    cls <- class(o)[1]
+    if (!cls %in% .STRICT_LEVEL_CLASSES) next
+    cms <- intersect(.lvl_object_comms(o, names(comms)), names(lv))
+    if (!length(cms)) next
+    regions <- .level_declared_regions(o)
+    slices <- .declared_timeslices(o)
+    roles <- .level_roles(o)
+    for (cm in cms) {
+      allowed_s <- lv[[cm]]$timeslices
+      if (!is.null(allowed_s) && length(slices)) {
+        off <- setdiff(intersect(slices, known_s), allowed_s)
+        if (length(off)) {
+          add(process = nm, class = cls, comm = cm, dim = "timeslice",
+              declared = fmt(off), expected = fmt(allowed_s))
+        }
+      }
+      allowed_r <- lv[[cm]]$regions
+      if (!is.null(allowed_r) && length(regions)) {
+        off <- setdiff(intersect(regions, known_r), allowed_r)
+        # The coarse direction is exempt for a commodity this object only
+        # CONSUMES, or carries as `@aux`, and only where the class has an
+        # aggregation path at all -- the same test the assertion makes.
+        is_aux <- cm %in% roles$aux && !(cm %in% roles$inp) &&
+          !(cm %in% roles$outstg)
+        exempt <- cls %in% .coarse_classes_supported &&
+          (is_aux || (cm %in% roles$inp && !(cm %in% roles$outstg)))
+        if (length(off) && exempt && has_gs) {
+          rk_ok <- suppressWarnings(min(geoscales::geoscale_rank(
+            gs, stats::na.omit(.agg_frames_of(allowed_r, gs))), na.rm = TRUE))
+          rk_off <- geoscales::geoscale_rank(gs, .agg_frames_of(off, gs))
+          if (is.finite(rk_ok)) off <- off[!(!is.na(rk_off) & rk_off < rk_ok)]
+        }
+        if (length(off)) {
+          add(process = nm, class = cls, comm = cm, dim = "region",
+              declared = fmt(off), expected = fmt(allowed_r))
+        }
+      }
+    }
+  }
+  if (!length(bad)) return(NULL)
+  do.call(rbind, bad)
+}
+
+#' Check declared resolutions against the commodities they serve
+#'
+#' The rule `interpolate_model()` enforces, reported instead of raised. Six
+#' classes -- `demand`, `supply`, `import`, `export`, `trade`, `storage` --
+#' have no aggregation path between a flow and its commodity, so a region or a
+#' timeslice declared at a different level than the one the commodity balances
+#' at is a cell that is written and never read: the term silently evaluates to
+#' zero. Interpolation stops at the first call that finds any; this collects
+#' every one, on a model that has not been interpolated yet.
+#'
+#' Also reported, which the assertion cannot see from inside interpolation: a
+#' commodity naming a `@geoframe` the model's geoscale does not have, or a
+#' `@timeframe` its calendar does not have.
+#'
+#' The coarse direction stays exempt exactly as at interpolation -- for a
+#' commodity the object only consumes or carries as `@aux`, and only where the
+#' class has an aggregation path.
+#'
+#' @param object a [model] or a `scenario`.
+#'
+#' @return A `data.frame` with one row per object, commodity and axis, holding
+#'   the declared and the expected members; no rows when every declaration
+#'   matches. Printed as a short verdict.
+#' @family validation
+#' @seealso [check_geoscale_regions()], [check_feasibility()],
+#'   [aggregate_model_regions()]
+#' @export
+#' @examples
+#' repo <- newRepository(
+#'   "mini",
+#'   newCommodity("ELC", unit = "MWh"),
+#'   newDemand("DEM", commodity = "ELC",
+#'             demand = data.frame(region = "R1", year = 2020, demand = 10))
+#' )
+#' mod <- newModel("MINI", data = repo, calendar = calendars$annual,
+#'                 region = "R1", horizon = horizons$Y2020_2060_by_5)
+#' check_model_levels(mod)
+check_model_levels <- function(object) {
+  tab <- if (methods::is(object, "scenario")) .level_violations(object) else
+    if (methods::is(object, "model")) .level_violations_model(object) else
+      stop("`object` must be a model or a scenario.", call. = FALSE)
+  if (is.null(tab)) tab <- .level_empty()
+  rownames(tab) <- NULL
+  class(tab) <- c("model_levels_check", class(tab))
+  tab
+}
+
+#' @method print model_levels_check
+#' @export
+print.model_levels_check <- function(x, ...) {
+  n <- nrow(x)
+  if (n == 0L) {
+    cat("Levels: every declaration matches its commodity.\n")
+    return(invisible(x))
+  }
+  cat("Levels: ", n, " mismatch(es).\n", sep = "")
+  print(as.data.frame(unclass(x)), row.names = FALSE)
+  cat("\nDeclare them at the commodity's level, or change the commodity's",
+      "`@geoframe` / `@timeframe`.\n")
+  invisible(x)
 }

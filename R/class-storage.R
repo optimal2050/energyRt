@@ -305,7 +305,7 @@ setClass("storage",
       stringsAsFactors = FALSE
     ),
     # Soft floors on the LEVEL, priced. Each row is one tier: the level may fall
-    # below `target` (a share of storing capacity, the base of `af.lo`) at `cost`
+    # below `af.target` (a share of storing capacity, the base of `af.lo`) at `cost`
     # per unit short. Tiers stack -- the prices of every tier a level is below
     # add up -- so a deeper tier with its own price makes draining dearer the
     # further it goes. A missing or NA `tier` is the tier "1".
@@ -316,7 +316,7 @@ setClass("storage",
       year = integer(),
       timeslice = character(),
       tier = character(),
-      target = numeric(),
+      af.target = numeric(),
       cost = numeric(),
       stringsAsFactors = FALSE
     ),

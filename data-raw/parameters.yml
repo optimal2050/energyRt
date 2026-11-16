@@ -1478,7 +1478,7 @@ pStorageTarget:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: target
+  colName: af.target
   recast: {space: weighted_mean, time: weighted_mean}
   unit: "fraction"
   class: storage

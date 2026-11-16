@@ -179,6 +179,7 @@ Collate:
     'update-model.R'
     'variants.R'
     'verbosity.R'
+    'verify-aggregation.R'
     'verify_solution.R'
     'vintage.R'
     'vre-data.R'

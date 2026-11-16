@@ -4,7 +4,7 @@
 #   eqStorageTarget[tier]: vStorageLevel + vStorageShort[tier] >= target[tier] * capacity
 #   eqStorageShortCost:    vStorageShortCost = sum(cost[tier] * weight * vStorageShort[tier])
 #
-# `storage@target` rows are tiers: `target` is a share of storing capacity (the
+# `storage@target` rows are tiers: `af.target` is a share of storing capacity (the
 # base `af.lo` uses) and `cost` prices each unit short, on the annual basis of
 # `stgcost`. Below several targets the prices add up, so a deeper tier makes
 # draining dearer the further it goes. A missing or NA `tier` is the tier "1".
@@ -67,10 +67,10 @@ st_vs_target <- function(scen) {
   verify_solution(scen, checks = "storage_target")$checks$storage_target$status
 }
 
-st_one <- function(cost) data.frame(target = 0.5, cost = cost)
+st_one <- function(cost) data.frame(af.target = 0.5, cost = cost)
 # a unit drained saves 99 (100 bought vs 1 stored), so below 0.3 the stacked
 # price (1 + 200 per slice) is never worth paying, while above it (1) always is
-st_two <- data.frame(tier = c("t1", "t2"), target = c(0.6, 0.3), cost = c(1, 200))
+st_two <- data.frame(tier = c("t1", "t2"), af.target = c(0.6, 0.3), cost = c(1, 200))
 
 # @covers pStorageTarget pStorageTargetCost meqStorageTarget mStorageShortCost depth=I backends=glpk
 test_that("family storage-target: no target, no rows", {
@@ -94,7 +94,7 @@ test_that("family storage-target: a target builds one row per tier and level cel
   expect_setequal(scen@modInp@sets$tier, c("t1", "t2"))
   # an end-of-season target names its slice
   scen <- st_interp("st_rows_s8",
-                    target = data.frame(timeslice = "s8", target = 0.5, cost = 50))
+                    target = data.frame(timeslice = "s8", af.target = 0.5, cost = 50))
   expect_equal(as.character(ff_param(scen, "meqStorageTarget")$timeslice), "s8")
 })
 
@@ -102,7 +102,7 @@ test_that("family storage-target: a target builds one row per tier and level cel
 test_that("family storage-target: a tier without a price warns", {
   expect_warning(
     suppressMessages(interpolate_model(
-      st_build(target = data.frame(tier = c("t1", "t2"), target = c(0.6, 0.3),
+      st_build(target = data.frame(tier = c("t1", "t2"), af.target = c(0.6, 0.3),
                                    cost = c(10, NA))),
       name = "st_noprice", overwrite = TRUE)),
     "t2")
@@ -169,7 +169,7 @@ test_that("family storage-target: tier prices stack, so a deeper drain costs mor
 test_that("family storage-target: an unattainable target is a cost, not an infeasibility", {
   skip_if_no_solver()
   scen <- .fork_solve(st_interp("st_over",
-                                target = data.frame(target = 1.2, cost = 1000)),
+                                target = data.frame(af.target = 1.2, cost = 1000)),
                       solver_options$glpk)
   # the level cannot pass capacity (10), so each slice is at least 2 short
   sh <- st_var(scen, "vStorageShort")

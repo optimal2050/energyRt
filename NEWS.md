@@ -27,7 +27,17 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
-* Storage level targets: `storage@target` sets soft floors on the level, as shares of storing capacity, each with a price per unit short. Tiers stack, so a deeper tier with its own price makes draining dearer the further it goes. Reported as `vStorageShort` / `vStorageShortCost`. `varom$stgcost` may now be negative, a reward for holding a charged store.
+* Storage level targets: `storage@target` sets soft floors on the level (`af.target`, a share of storing capacity), each with a price per unit short (`cost`). Tiers stack, so a deeper tier with its own price makes draining dearer the further it goes. Reported as `vStorageShort` / `vStorageShortCost`. `varom$stgcost` may now be negative, a reward for holding a charged store.
+
+* `check_model_levels()` reports the level rule `interpolate_model()` raises:
+  every strict-class declaration that sits at a different level than its
+  commodity, plus a `@geoframe` or `@timeframe` the model's geoscale or
+  calendar does not have. Works on a model, before interpolation.
+
+* `verify_aggregation(fine, coarse)` says what a coarsening conserved: an
+  extensive total must be unchanged, a rate must stay inside the range it came
+  from, and a class that lost objects -- corridors internal to a coarse region
+  -- is reported as such instead of as loss.
 
 * `aggregate_model_regions(max_clusters = )` caps clusters **per coarse
   region** -- `max_clusters = 3`, or per family with `list(all = 3)` -- instead
