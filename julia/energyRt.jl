@@ -95,6 +95,10 @@ mStorageOutComm_ix = _group(mStorageOutComm, comm, 2, (1,));
 mStorageRetCost_ix = _group(mStorageRetCost, stg, 1, (2, 3,));
 mStorageStgComm_ix = _group(mStorageStgComm, comm, 2, (1,));
 mStorageVarom_ix = _group(mStorageVarom, stg, 1, (2, 3,));
+mStorageShortCost_ix = _group(mStorageShortCost, stg, 1, (2, 3,));
+# tiers per (stg, comm, region, year): `_group` lists a tier once per timeslice
+meqStorageTarget_ix = Dict(k => unique(v) for (k, v) in _group(meqStorageTarget, tier, 2, (1, 3, 4, 5,)));
+meqStorageTargetS_ix = _group(meqStorageTarget, timeslice, 6, (1, 2, 3, 4, 5,));
 mSubCost_ix = _group(mSubCost, levy, 1, (2, 3,));
 mTaxCost_ix = _group(mTaxCost, levy, 1, (2, 3,));
 mTechEac_ix = _group(mTechEac, tech, 1, (2, 3,));
@@ -195,6 +199,7 @@ model = Model();
 @variable(model, vDummyExportCost[mDummyExportCost]);
 @variable(model, vStorageFixom[mStorageFixom]);
 @variable(model, vStorageVarom[mStorageVarom]);
+@variable(model, vStorageShortCost[mStorageShortCost]);
 @variable(model, vTradeEac[mTradeEac]);
 @variable(model, vTradeFixom[mTradeFixom]);
 @variable(model, vImportIrCost[mImportIrCost]);
@@ -249,6 +254,7 @@ model = Model();
 @variable(model, vStorageInp[mvStorageInp] >= 0);
 @variable(model, vStorageOut[mvStorageOut] >= 0);
 @variable(model, vStorageLevel[mvStorageLevel] >= 0);
+@variable(model, vStorageShort[meqStorageTarget] >= 0);
 @variable(model, vStorageInv[mStorageNew] >= 0);
 @variable(model, vStorageEac[mStorageEac] >= 0);
 @variable(model, vStorageOutCap[mStorageOutCap] >= 0);
@@ -3672,6 +3678,42 @@ print(
     "
 ",
 )
+# eqStorageTarget(stg, tier, comm, region, year, timeslice)$meqStorageTarget(stg, tier, comm, region, year, timeslice)
+# Soft floor, one row per tier; each tier's shortfall is priced in
+# eqStorageShortCost, so the prices stack. Same capacity term as eqStorageAfLo,
+# no weather factor.
+print("eqStorageTarget(stg, tier, comm, region, year, timeslice)...")
+@constraint(
+    model,
+    [(st1, tr, c, r, y, s) in meqStorageTarget],
+    vStorageLevel[(st1, c, r, y, s)] + vStorageShort[(st1, tr, c, r, y, s)] >=
+    (
+        if haskey(pStorageTarget, (st1, tr, r, y, s))
+            pStorageTarget[(st1, tr, r, y, s)]
+        else
+            pStorageTargetDef
+        end
+    ) *
+    (
+        if (st1, r, y) in mStorageStgCap
+            vStorageStgCap[(st1, r, y)]
+        else
+            (
+                if haskey(pStorageDurationLo, (st1, r, y))
+                    pStorageDurationLo[(st1, r, y)]
+                else
+                    pStorageDurationLoDef
+                end
+            ) * vStorageOutCap[(st1, r, y)]
+        end
+    )
+);
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 # eqStorageOutLevel(stg, comm, region, year, timeslice)$mvStorageLevel(stg, comm, region, year, timeslice)
 print("eqStorageOutLevel(stg, comm, region, year, timeslice)...")
 @constraint(
@@ -4904,6 +4946,40 @@ print("eqStorageVarom(stg, region, year)...")
                 end
             ) *
             vStorageLevel[(st1, c, r, y, s)] for s in get(mCommTimeslice_ix, c, ());
+            init = 0
+        ) for c in get(mStorageStgComm_ix, st1, ());
+        init = 0
+    )
+);
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
+# eqStorageShortCost(stg, region, year)$mStorageShortCost(stg, region, year)
+print("eqStorageShortCost(stg, region, year)...")
+@constraint(
+    model,
+    [(st1, r, y) in mStorageShortCost],
+    vStorageShortCost[(st1, r, y)] ==
+    sum(
+        sum(
+            (
+                if haskey(pStorageTargetCost, (st1, tr, r, y, s))
+                    pStorageTargetCost[(st1, tr, r, y, s)]
+                else
+                    pStorageTargetCostDef
+                end
+            ) *
+            (
+                if haskey(pTimesliceWeight, (y, s))
+                    pTimesliceWeight[(y, s)]
+                else
+                    pTimesliceWeightDef
+                end
+            ) *
+            vStorageShort[(st1, tr, c, r, y, s)] for tr in get(meqStorageTarget_ix, (st1, c, r, y), ()) for s in get(meqStorageTargetS_ix, (st1, tr, c, r, y), ());
             init = 0
         ) for c in get(mStorageStgComm_ix, st1, ());
         init = 0
@@ -7048,6 +7124,7 @@ print("eqCost(region, year)...")
         end) for st1 in get(mStorageFixom_ix, (r, y), ())
     )
     + sum((if (st1,r,y) in mStorageVarom; vStorageVarom[(st1,r,y)]; else 0; end;) for st1 in get(mStorageVarom_ix, (r, y), ()))
+    + sum((if (st1,r,y) in mStorageShortCost; vStorageShortCost[(st1,r,y)]; else 0; end;) for st1 in get(mStorageShortCost_ix, (r, y), ()))
     + sum((if (i,r,y) in mImportRowCost; vImportRowCost[(i,r,y)]; else 0; end;) for i in get(mImportRowCost_ix, (r, y), ()))
     + sum((if (e,r,y) in mExportRowCost; vExportRowCost[(e,r,y)]; else 0; end;) for e in get(mExportRowCost_ix, (r, y), ()))
     + sum((if (t1,r,y) in mTradeEac; vTradeEac[(t1,r,y)]; else 0; end;) for t1 in get(mTradeEac_ix, (r, y), ()))

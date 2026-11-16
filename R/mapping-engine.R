@@ -1028,6 +1028,10 @@ recipe_value <- function(scen, names, fmp) {
                          types = "lo", drop = "lo"),
   meqStorageAfUp  = list(domain = "mvStorageLevel", source = "pStorageAf",
                          types = "up", drop = "up", structural = TRUE),
+  # Soft floor: conditional on a non-zero `target$target` (numpar, no `type`);
+  # the source carries `tier`, the level domain does not.
+  meqStorageTarget = list(domain = "mvStorageLevel", source = "pStorageTarget",
+                          drop = "lo"),
   # Flow bounds live on the FLOW's own domain, not the level's: the charging side
   # may consume a different commodity from the one stored.
   meqStorageInpLo = list(domain = "mvStorageInp", source = "pStorageInpAf",

@@ -1465,6 +1465,45 @@ pStorageCostOut:
   class: storage
   slot: varom
   dropIfEmpty: true
+# Soft floor on the level, one per tier, as a share of storing capacity (the
+# base of `af.lo`). A non-zero value creates eqStorageTarget for that tier.
+pStorageTarget:
+  name: pStorageTarget
+  dimSets:
+  - stg
+  - tier
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: target
+  recast: {space: weighted_mean, time: weighted_mean}
+  unit: "fraction"
+  class: storage
+  slot: target
+  dropIfEmpty: true
+# Price of each unit the level falls short of its tier's target, on the same
+# annual basis as `stgcost` (weighted by pTimesliceWeight in
+# eqStorageShortCost). The prices of every tier the level is below add up.
+pStorageTargetCost:
+  name: pStorageTargetCost
+  dimSets:
+  - stg
+  - tier
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: cost
+  recast: {space: weighted_mean, time: weighted_mean}
+  unit: "{currency}/{comm}"
+  class: storage
+  slot: target
+  dropIfEmpty: true
 pStorageAf:
   name: pStorageAf
   dimSets:

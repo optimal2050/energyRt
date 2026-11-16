@@ -130,6 +130,8 @@ NULL
   "storage",    "seff",       "outeff",        "weighted_mean", "weighted_mean",
   "storage",    "seff",       "stgeff",        "copy",          "copy",
   "storage",    "startLevel", "startLevel",    "sum",           NA,
+  "storage",    "target",     "cost",          "weighted_mean", "weighted_mean",
+  "storage",    "target",     "target",        "weighted_mean", "weighted_mean",
   "storage",    "varom",      "inpcost",       "weighted_mean", "weighted_mean",
   "storage",    "varom",      "outcost",       "weighted_mean", "weighted_mean",
   "storage",    "varom",      "stgcost",       "weighted_mean", "weighted_mean",

@@ -926,6 +926,7 @@ setMethod(
       slot_info <- get_slot_meta(class(obj), s)
       if (is_empty(slot_info)) {next}
       slot_data <- get_lazy_data(obj, s)
+      if (identical(s, "target")) slot_data <- .storage_tier_labels(slot_data)
       for (p in slot_info) {
         #
         # Per-parameter COPY. Assigning back into `slot_data` made the first

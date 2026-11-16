@@ -231,6 +231,13 @@ mStorageOutComm_ix = _group(mStorageOutComm, comm, 1, (0,))
 mStorageRetCost_ix = _group(mStorageRetCost, stg, 0, (1, 2,))
 mStorageStgComm_ix = _group(mStorageStgComm, comm, 1, (0,))
 mStorageVarom_ix = _group(mStorageVarom, stg, 0, (1, 2,))
+mStorageShortCost_ix = _group(mStorageShortCost, stg, 0, (1, 2,))
+# tiers per (stg, comm, region, year): `_group` lists a tier once per timeslice
+meqStorageTarget_ix = {
+    k: list(dict.fromkeys(v))
+    for k, v in _group(meqStorageTarget, tier, 1, (0, 2, 3, 4,)).items()
+}
+meqStorageTargetS_ix = _group(meqStorageTarget, timeslice, 5, (0, 1, 2, 3, 4,))
 mSubCost_ix = _group(mSubCost, levy, 0, (1, 2,))
 mSupAva_ix = _group(mSupAva, timeslice, 4, (0, 1, 2, 3,))
 mTaxCost_ix = _group(mTaxCost, levy, 0, (1, 2,))
@@ -317,6 +324,9 @@ model.vDummyImportCost = Var(mDummyImportCost, doc="Dummy import costs (weighted
 model.vDummyExportCost = Var(mDummyExportCost, doc="Dummy export costs (weighted)")
 model.vStorageFixom = Var(mStorageFixom, doc="Storage fixed O&M costs")
 model.vStorageVarom = Var(mStorageVarom, doc="Storage variable O&M costs")
+model.vStorageShortCost = Var(
+    mStorageShortCost, doc="Storage level shortfall costs (weighted)"
+)
 model.vTradeEac = Var(
     mTradeEac, doc="Annualized investments in Interregional trade capacity"
 )
@@ -479,6 +489,10 @@ model.vStorageOut = Var(
 )
 model.vStorageLevel = Var(
     mvStorageLevel, domain=pyo.NonNegativeReals, doc="Storage level"
+)
+model.vStorageShort = Var(
+    meqStorageTarget, domain=pyo.NonNegativeReals,
+    doc="Storage level shortfall below the target"
 )
 model.vStorageInv = Var(
     mStorageNew, domain=pyo.NonNegativeReals, doc="Storage investments"
@@ -2565,6 +2579,32 @@ if verbose:
         " s)",
         sep="",
     )
+# eqStorageTarget(stg, tier, comm, region, year, timeslice)$meqStorageTarget(stg, tier, comm, region, year, timeslice)
+# Soft floor, one row per tier; each tier's shortfall is priced in
+# eqStorageShortCost, so the prices stack. Same capacity term as eqStorageAfLo,
+# no weather factor.
+if verbose:
+    print("eqStorageTarget ", end="")
+sys.stdout.flush()
+model.eqStorageTarget = Constraint(
+    meqStorageTarget,
+    rule=lambda model, st1, tr, c, r, y, s: model.vStorageLevel[st1, c, r, y, s]
+    + model.vStorageShort[st1, tr, c, r, y, s]
+    >= pStorageTarget.get((st1, tr, r, y, s))
+    * (
+        model.vStorageStgCap[st1, r, y]
+        if (st1, r, y) in mStorageStgCap
+        else pStorageDurationLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
+    ),
+)
+if verbose:
+    print(
+        datetime.datetime.now().strftime("%H:%M:%S"),
+        " (",
+        round(time.time() - seconds, 2),
+        " s)",
+        sep="",
+    )
 # eqStorageOutLevel(stg, comm, region, year, timeslice)$mvStorageLevel(stg, comm, region, year, timeslice)
 if verbose:
     print("eqStorageOutLevel ", end="")
@@ -3173,6 +3213,32 @@ model.eqStorageVarom = Constraint(
             * pTimesliceWeight.get((y, s))
             * model.vStorageLevel[st1, c, r, y, s]
             for s in mCommTimeslice_ix.get(c, ())
+        )
+        for c in mStorageStgComm_ix.get(st1, ())
+    ),
+)
+if verbose:
+    print(
+        datetime.datetime.now().strftime("%H:%M:%S"),
+        " (",
+        round(time.time() - seconds, 2),
+        " s)",
+        sep="",
+    )
+# eqStorageShortCost(stg, region, year)$mStorageShortCost(stg, region, year)
+if verbose:
+    print("eqStorageShortCost ", end="")
+sys.stdout.flush()
+model.eqStorageShortCost = Constraint(
+    mStorageShortCost,
+    rule=lambda model, st1, r, y: model.vStorageShortCost[st1, r, y]
+    == sum(
+        sum(
+            pStorageTargetCost.get((st1, tr, r, y, s))
+            * pTimesliceWeight.get((y, s))
+            * model.vStorageShort[st1, tr, c, r, y, s]
+            for tr in meqStorageTarget_ix.get((st1, c, r, y), ())
+            for s in meqStorageTargetS_ix.get((st1, tr, c, r, y), ())
         )
         for c in mStorageStgComm_ix.get(st1, ())
     ),
@@ -4717,6 +4783,10 @@ model.eqCost = Constraint(
     + sum(
         (model.vStorageVarom[st1, r, y] if (st1, r, y) in mStorageVarom else 0)
         for st1 in mStorageVarom_ix.get((r, y), ())
+    )
+    + sum(
+        (model.vStorageShortCost[st1, r, y] if (st1, r, y) in mStorageShortCost else 0)
+        for st1 in mStorageShortCost_ix.get((r, y), ())
     )
     + sum(
         (model.vImportRowCost[i, r, y] if (i, r, y) in mImportRowCost else 0)

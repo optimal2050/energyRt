@@ -31,7 +31,9 @@
 .fold_protected_dims <- c(
   "commp", "process", "sup", "imp", "expp", "dem", "weather", "yearp", "type",
   # the instrument's identity: folding it would merge two levies into one
-  "levy"
+  "levy",
+  # a storage level-target tier: its price stacks per tier, never shared
+  "tier"
 )
 
 # Unfold order: entity dims first (their membership is the full set), then

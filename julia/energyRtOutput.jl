@@ -266,6 +266,24 @@ end;
 
 close(fvStorageVarom);
 
+fvStorageShortCost = open("output/vStorageShortCost.csv", "w");
+println(fvStorageShortCost, "stg,region,year,value");
+for (st1, r, y) in mStorageShortCost
+    if JuMP.value(vStorageShortCost[(st1, r, y)]) != 0
+        println(
+            fvStorageShortCost,
+            st1,
+            ",",
+            r,
+            ",",
+            y,
+            ",",
+            JuMP.value(vStorageShortCost[(st1, r, y)]),
+        )
+    end
+end;
+close(fvStorageShortCost);
+
 fvTradeEac = open("output/vTradeEac.csv", "w");
 
 println(fvTradeEac, "trade,region,year,value");
@@ -868,6 +886,30 @@ for (st1, c, r, y, s) in mvStorageLevel
 end;
 close(fvStorageLevel);
 
+fvStorageShort = open("output/vStorageShort.csv", "w");
+println(fvStorageShort, "stg,tier,comm,region,year,timeslice,value");
+for (st1, tr, c, r, y, s) in meqStorageTarget
+    if JuMP.value(vStorageShort[(st1, tr, c, r, y, s)]) != 0
+        println(
+            fvStorageShort,
+            st1,
+            ",",
+            tr,
+            ",",
+            c,
+            ",",
+            r,
+            ",",
+            y,
+            ",",
+            s,
+            ",",
+            JuMP.value(vStorageShort[(st1, tr, c, r, y, s)]),
+        )
+    end
+end;
+close(fvStorageShort);
+
 fvStorageInv = open("output/vStorageInv.csv", "w");
 println(fvStorageInv, "stg,region,year,value");
 for (st1, r, y) in mStorageNew
@@ -1451,6 +1493,7 @@ println(vrb_list, "vDummyImportCost");
 println(vrb_list, "vDummyExportCost");
 println(vrb_list, "vStorageFixom");
 println(vrb_list, "vStorageVarom");
+println(vrb_list, "vStorageShortCost");
 println(vrb_list, "vTradeEac");
 println(vrb_list, "vTradeFixom");
 println(vrb_list, "vImportIrCost");
@@ -1485,6 +1528,7 @@ println(vrb_list, "vDummyExport");
 println(vrb_list, "vStorageInp");
 println(vrb_list, "vStorageOut");
 println(vrb_list, "vStorageLevel");
+println(vrb_list, "vStorageShort");
 println(vrb_list, "vStorageInv");
 println(vrb_list, "vStorageEac");
 println(vrb_list, "vStorageOutCap");
@@ -1553,6 +1597,9 @@ for rr in weather
 end
 for rr in levy
     println(raw_data, "levy,", rr)
+end
+for rr in tier
+    println(raw_data, "tier,", rr)
 end
 
 close(raw_data);

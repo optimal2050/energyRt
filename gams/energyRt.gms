@@ -34,6 +34,7 @@ imp(process)    import from the ROW
 group  group of input or output commodities in technology
 weather weather
 levy   tax or subsidy instrument
+tier   storage level-target tier
 ;
 
 alias (tech, techp), (region, regionp), (year, yearp), (year, yeare), (year, yearn);
@@ -106,6 +107,7 @@ mStorageSpan(stg, region, year)    Storage set showing if the storage may exist 
 *mStorageOMCost(stg, region, year)  drop
 mStorageFixom(stg, region, year)   add
 mStorageVarom(stg, region, year)   add
+mStorageShortCost(stg, region, year)   Storage with a level target (shortfall cost)
 mStorageEac(stg, region, year)
 mTimesliceNext(timeslice, timeslice)           Next timeslice
 mTimesliceFYearNext(timeslice, timeslice)      Next timeslice joint
@@ -307,6 +309,7 @@ pStorageOlife(stg, region)                          Storage operational life
 pStorageCostStore(stg, region, year, timeslice)         Storing costs per stored amount (annual)
 pStorageCostInp(stg, region, year, timeslice)           Storage input costs
 pStorageCostOut(stg, region, year, timeslice)           Storage output costs
+pStorageTargetCost(stg, tier, region, year, timeslice)  Storage level-target shortfall cost per unit short (annual)
 pStorageOutFixom(stg, region, year)                    Storage fixed O&M costs
 pStorageOutInvcost(stg, region, year)                  Storage investment costs
 pStorageOutEac(stg, region, year)                      Storage equivalent annual costs
@@ -328,6 +331,7 @@ pStorageDurationLo(stg, region, year)               Storage energy-to-power rati
 pStorageDurationUp(stg, region, year)               Storage energy-to-power ratio, hours, upper bound
 pStorageAfLo(stg, region, year, timeslice)              Storage availability factor lower bound (minimum charging level)
 pStorageAfUp(stg, region, year, timeslice)              Storage availability factor upper bound (maximum charging level)
+pStorageTarget(stg, tier, region, year, timeslice)      Storage level target (soft floor) per tier, share of capacity
 *pStorageAfsLo(tech, region, year, timeslice)           add parameter and eq?
 *pStorageAfsUp(tech, region, year, timeslice)           add parameter and eq?
 pStorageInpAfUp(stg, comm, region, year, timeslice)      Storage input upper bound
@@ -747,6 +751,8 @@ vStorageInp(stg, comm, region, year, timeslice)          Storage input
 vStorageOut(stg, comm, region, year, timeslice)          Storage output
 *@ mvStorageLevel(stg, comm, region, year, timeslice)
 vStorageLevel(stg, comm, region, year, timeslice)        Storage level
+*@ meqStorageTarget(stg, tier, comm, region, year, timeslice)
+vStorageShort(stg, tier, comm, region, year, timeslice)        Storage level shortfall below the target
 *@ mStorageNew(stg, region, year)
 vStorageInv(stg, region, year)                       Storage investments
 *@ mStorageEac(stg, region, year)
@@ -767,6 +773,8 @@ variable
 vStorageFixom(stg, region, year)                     Storage fixed O&M costs
 *@ mStorageVarom(stg, region, year)
 vStorageVarom(stg, region, year)                     Storage variable O&M costs
+*@ mStorageShortCost(stg, region, year)
+vStorageShortCost(stg, region, year)                 Storage level shortfall costs (weighted)
 ;
 
 * Trade and Row variables
@@ -940,6 +948,7 @@ meqSupReserveFx(sup, comm, region)
 meqStorageAfLo(stg, comm, region, year, timeslice)
 meqStorageAfFx(stg, comm, region, year, timeslice)
 meqStorageAfUp(stg, comm, region, year, timeslice)
+meqStorageTarget(stg, tier, comm, region, year, timeslice)
 meqStorageInpUp(stg, comm, region, year, timeslice)
 meqStorageInpLo(stg, comm, region, year, timeslice)
 meqStorageInpFx(stg, comm, region, year, timeslice)
@@ -2126,6 +2135,7 @@ eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)  Storage level
 eqStorageAfLo(stg, comm, region, year, timeslice)   Storage availability factor lower
 eqStorageAfFx(stg, comm, region, year, timeslice)   Storage availability factor lower fixed
 eqStorageAfUp(stg, comm, region, year, timeslice)   Storage availability factor upper
+eqStorageTarget(stg, tier, comm, region, year, timeslice) Storage level target (soft floor)
 * [rename] eqStorageClear -> eqStorageOutLevel 2026-08-19. "Clear" said nothing;
 * the equation bounds vStorageOut by the level available. It takes no Lo/Up
 * suffix because that marks a PAIRED bound (a .lo and .up from one parameter) --
@@ -2337,6 +2347,19 @@ eqStorageAfUp(stg, comm, region, year, timeslice)$meqStorageAfUp(stg, comm, regi
              * sum(regionp$mWeatherRegionAt(weather, region, regionp),
                   pWeather(weather, regionp, year, timeslice)));
 
+* Soft floor, one row per tier: the level may fall below each tier's target and
+* each shortfall is priced in eqStorageShortCost, so the tier prices stack. Same
+* capacity term as eqStorageAfLo, no weather factor.
+eqStorageTarget(stg, tier, comm, region, year, timeslice)$meqStorageTarget(stg, tier, comm, region, year, timeslice)..
+    vStorageLevel(stg, comm, region, year, timeslice)
+    + vStorageShort(stg, tier, comm, region, year, timeslice)
+    =g=
+    pStorageTarget(stg, tier, region, year, timeslice) *
+      (vStorageStgCap(stg, region, year)$mStorageStgCap(stg, region, year)
+       + (pStorageDurationLo(stg, region, year)
+          * vStorageOutCap(stg, region, year)
+         )$mStorageNoStgCap(stg, region, year));
+
 * Draw only from what was ALREADY stored. This is stricter than the level's own
 * non-negativity, which would also permit discharging energy charged in the SAME
 * timeslice (pass-through) and would carry the decay factor; this does neither.
@@ -2475,6 +2498,7 @@ eqStorageEac(stg, region, year)       Storage equivalent annual cost
 * eqStorageCost(stg, region, year)      Storage total costs
 eqStorageFixom(stg, region, year)     Storage fixed costs
 eqStorageVarom(stg, region, year)    Storage variable costs
+eqStorageShortCost(stg, region, year)    Storage level shortfall costs
 * Constrain capacity
 ;
 
@@ -2721,6 +2745,18 @@ eqStorageVarom(stg, region, year)$mStorageVarom(stg, region, year)..
                  pStorageCostStore(stg, region, year, timeslice)
                     * pTimesliceWeight(year, timeslice)
                     * vStorageLevel(stg, comm, region, year, timeslice)
+             )
+         );
+
+* Storage level shortfall costs (the price of the soft floor in eqStorageTarget)
+eqStorageShortCost(stg, region, year)$mStorageShortCost(stg, region, year)..
+          vStorageShortCost(stg, region, year)
+          =e=
+          sum(comm$mStorageStgComm(stg, comm),
+             sum((tier, timeslice)$meqStorageTarget(stg, tier, comm, region, year, timeslice),
+                 pStorageTargetCost(stg, tier, region, year, timeslice)
+                    * pTimesliceWeight(year, timeslice)
+                    * vStorageShort(stg, tier, comm, region, year, timeslice)
              )
          );
 
@@ -3568,6 +3604,8 @@ eqCost(region, year)$mvTotalCost(region, year)..
         + sum(stg$mStorageFixom(stg, region, year), vStorageFixom(stg, region, year)$mStorageFixom(stg, region, year))
 * storage variable O&M costs
         + sum(stg$mStorageVarom(stg, region, year), vStorageVarom(stg, region, year)$mStorageVarom(stg, region, year))
+* storage level shortfall costs
+        + sum(stg$mStorageShortCost(stg, region, year), vStorageShortCost(stg, region, year)$mStorageShortCost(stg, region, year))
 * RoW import costs/credits
         + sum(imp$mImportRowCost(imp, region, year), vImportRowCost(imp, region, year)$mImportRowCost(imp, region, year))
 * RoW export credit/costs

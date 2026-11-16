@@ -23,6 +23,7 @@
 #' @slot aeff `r get_slot_doc("storage", "aeff")`
 #' @slot fixom `r get_slot_doc("storage", "fixom")`
 #' @slot varom `r get_slot_doc("storage", "varom")`
+#' @slot target `r get_slot_doc("storage", "target")`
 #' @slot invcost `r get_slot_doc("storage", "invcost")`
 #' @slot fullYear `r get_slot_doc("storage", "fullYear")`
 #' @slot duration `r get_slot_doc("storage", "duration")`
@@ -61,6 +62,7 @@ setClass("storage",
     aeff = "data.frame", #  Commodity efficiency
     fixom = "data.frame", #
     varom = "data.frame", #
+    target = "data.frame", # soft floors on the level, one row per tier
     invcost = "data.frame",
     fullYear = "logical",
     duration = "data.frame", # energy-to-power ratio; varies by cluster (duration)
@@ -300,6 +302,22 @@ setClass("storage",
       inpcost = numeric(),
       outcost = numeric(),
       stgcost = numeric(),
+      stringsAsFactors = FALSE
+    ),
+    # Soft floors on the LEVEL, priced. Each row is one tier: the level may fall
+    # below `target` (a share of storing capacity, the base of `af.lo`) at `cost`
+    # per unit short. Tiers stack -- the prices of every tier a level is below
+    # add up -- so a deeper tier with its own price makes draining dearer the
+    # further it goes. A missing or NA `tier` is the tier "1".
+    target = data.frame(
+      vintage = character(),
+      cluster = character(),
+      region = character(),
+      year = integer(),
+      timeslice = character(),
+      tier = character(),
+      target = numeric(),
+      cost = numeric(),
       stringsAsFactors = FALSE
     ),
     # `wacc` overrides the model-wide rate when annuitising this storage;
@@ -758,14 +776,17 @@ setMethod("initialize", "storage", function(.Object, ...) {
   .check_storage_ratios(args, name)
 }
 
-# Bring a `storage` serialized before the `inp2stg` slot existed up to the
-# current class definition. Old objects lack the slot, so accessing `@inp2stg`
-# errors ("no slot of name ..."); add it (S4 slots are attributes) with the
-# prototype empty frame. Same device as `.upgrade_summand()`.
+# Slots added to `storage` after objects of it were first serialized.
+.storage_late_slots <- c("inp2stg", "target")
+
+# Bring a `storage` serialized before a late slot existed up to the current
+# class definition. Old objects lack the slot, so accessing it errors ("no
+# slot of name ..."); add it (S4 slots are attributes) with the prototype
+# empty frame. Same device as `.upgrade_summand()`.
 .upgrade_storage_inp2stg <- function(s) {
   if (!methods::is(s, "storage")) return(s)
-  if (!("inp2stg" %in% names(attributes(s)))) {
-    attr(s, "inp2stg") <- methods::new("storage")@inp2stg
+  for (sl in setdiff(.storage_late_slots, names(attributes(s)))) {
+    attr(s, sl) <- methods::slot(methods::new("storage"), sl)
   }
   s
 }
@@ -782,7 +803,7 @@ setMethod("initialize", "storage", function(.Object, ...) {
     for (j in seq_along(objs)) {
       o <- objs[[j]]
       if (methods::is(o, "storage") &&
-          !("inp2stg" %in% names(attributes(o)))) {
+          !all(.storage_late_slots %in% names(attributes(o)))) {
         objs[[j]] <- .upgrade_storage_inp2stg(o)
         hit <- TRUE
       }
@@ -790,6 +811,36 @@ setMethod("initialize", "storage", function(.Object, ...) {
     if (hit) mod@data[[i]]@data <- objs
   }
   mod
+}
+
+# `@target` tier labels: a missing or NA `tier` is the tier "1". Never a
+# wildcard -- one untiered row standing for every tier would stack its price
+# once per tier.
+.storage_tier_labels <- function(d) {
+  d <- as.data.frame(d)
+  if (!nrow(d)) {
+    if (!"tier" %in% names(d)) d$tier <- character()
+    return(d)
+  }
+  tr <- if ("tier" %in% names(d)) as.character(d$tier) else rep(NA_character_, nrow(d))
+  tr[is.na(tr) | !nzchar(tr)] <- "1"
+  d$tier <- tr
+  d
+}
+
+# The `tier` set: every tier label used by a storage of the model.
+.storage_tiers <- function(mod) {
+  out <- character()
+  for (rp in mod@data) {
+    if (!methods::is(rp, "repository")) next
+    for (o in rp@data) {
+      if (!methods::is(o, "storage") || !methods::.hasSlot(o, "target")) next
+      d <- o@target
+      if (!is.data.frame(d) || !nrow(d)) next
+      out <- c(out, .storage_tier_labels(d)$tier)
+    }
+  }
+  sort(unique(out))
 }
 
 # Cross-check the three capacity ratios: `inp2out` = inp/out, `inp2stg` =
@@ -908,6 +959,7 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #' @param inp2stg `r get_slot_doc("storage", "inp2stg")`
 #' @param fixom `r get_slot_doc("storage", "fixom")`
 #' @param varom `r get_slot_doc("storage", "varom")`
+#' @param target `r get_slot_doc("storage", "target")`
 #' @param invcost `r get_slot_doc("storage", "invcost")`
 #' @param capacity `r get_slot_doc("storage", "capacity")`
 #' @param duration `r get_slot_doc("storage", "duration")`
@@ -1014,6 +1066,7 @@ newStorage <- function(
     af = data.frame(),
     fixom = data.frame(),
     varom = data.frame(),
+    target = data.frame(),
     invcost = data.frame(),
     capacity = data.frame(),
     cluster = data.frame(),
@@ -1049,6 +1102,7 @@ newStorage <- function(
     af = af,
     fixom = fixom,
     varom = varom,
+    target = target,
     invcost = invcost,
     capacity = capacity,
     duration = duration,

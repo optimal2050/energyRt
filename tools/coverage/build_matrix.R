@@ -60,6 +60,7 @@ param_family <- function(name) {
     c("^pTech(Stock|Olife|Ret$|RetLo|RetUp|RetCost)", "tech-stock-retirement"),
     c("^pTechShare", "tech-share-bounds"),
     c("^pTechEmisComm", "tech-emis"),
+    c("^pStorageTarget(Cost)?$", "storage-target"),
     c("^pStorage(InpEff|OutEff|StgEff)", "storage-efficiency"),
     c("^pStorageInp2out", "storage-inp2out"),
     c("^pStorageInp2stg", "storage-inp2stg"),

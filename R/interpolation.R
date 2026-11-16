@@ -923,6 +923,11 @@ Use fold = FALSE, or fold = c(\"region\", ",
   scen@modInp@parameters$levy <-
     d2p(scen@modInp@parameters$levy, scen@modInp@sets$levy, fmp("levy"))
 
+  ## tier - storage level-target tiers ####
+  scen@modInp@sets$tier <- .storage_tiers(object)
+  scen@modInp@parameters$tier <-
+    d2p(scen@modInp@parameters$tier, scen@modInp@sets$tier, fmp("tier"))
+
   # Other sets (not from model objects) ####
   ## group - groups of commodities
   scen@modInp@sets$group <- collect_set_elements(object, "group")
@@ -1260,6 +1265,7 @@ Use fold = FALSE, or fold = c(\"region\", ",
   }
   scen@misc$cells_maps <- NULL
   .check_storage_parts(scen)
+  .check_storage_target(scen)
   # the hourly technology domains are read as tables by the map builders only:
   # from here on their rules answer
   scen <- .strip_rule_tables(scen, maps = .rule_maps_early)

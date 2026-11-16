@@ -88,6 +88,8 @@ vStorageOutTot:      {role: source,   unit: commodity}
 # meaningless, which is what `role: stock` encodes (it replaces the hard-coded
 # `.timeframe_state_vars` in get_data.R).
 vStorageLevel:       {role: stock,    unit: commodity}
+vStorageShort:       {role: stock,    unit: commodity}
+vStorageShortCost:   {role: cost,     unit: currency}
 vStorageVarom:       {role: cost,     unit: currency}
 vSubsCost:           {role: cost,     unit: currency}
 vSupCost:            {role: cost,     unit: currency}

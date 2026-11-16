@@ -2012,7 +2012,7 @@ getObject.en_registry <- function(x, type = NULL, name = NULL, hash = NULL,
 .known_set_dims <- c(
   "region", "regionp", "year", "yearp", "timeslice", "timeslicep", "comm", "commp",
   "acomm", "group", "tech", "techp", "stg", "sup", "dem", "trade", "expp",
-  "imp", "impp", "weather", "src", "dst", "process", "levy"
+  "imp", "impp", "weather", "src", "dst", "process", "levy", "tier"
 )
 
 # Reverse map (memoised): "class\rslot\rcolName" -> list(rule, defVal,

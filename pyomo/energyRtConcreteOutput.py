@@ -260,6 +260,22 @@ for st1, r, y in mStorageVarom:
             + "\n"
         )
 f.close()
+flist.write("vStorageShortCost\n")
+f = open("output/vStorageShortCost.csv", "w")
+f.write("stg,region,year,value\n")
+for st1, r, y in mStorageShortCost:
+    if model.vStorageShortCost[(st1, r, y)].value != 0:
+        f.write(
+            str(st1)
+            + ","
+            + str(r)
+            + ","
+            + str(y)
+            + ","
+            + str(model.vStorageShortCost[(st1, r, y)].value)
+            + "\n"
+        )
+f.close()
 flist.write("vTradeEac\n")
 f = open("output/vTradeEac.csv", "w")
 f.write("trade,region,year,value\n")
@@ -1108,6 +1124,28 @@ for st1, c, r, y, s in mvStorageLevel:
             + "\n"
         )
 f.close()
+flist.write("vStorageShort\n")
+f = open("output/vStorageShort.csv", "w")
+f.write("stg,tier,comm,region,year,timeslice,value\n")
+for st1, tr, c, r, y, s in meqStorageTarget:
+    if model.vStorageShort[(st1, tr, c, r, y, s)].value != 0:
+        f.write(
+            str(st1)
+            + ","
+            + str(tr)
+            + ","
+            + str(c)
+            + ","
+            + str(r)
+            + ","
+            + str(y)
+            + ","
+            + str(s)
+            + ","
+            + str(model.vStorageShort[(st1, tr, c, r, y, s)].value)
+            + "\n"
+        )
+f.close()
 flist.write("vStorageInv\n")
 f = open("output/vStorageInv.csv", "w")
 f.write("stg,region,year,value\n")
@@ -1506,5 +1544,7 @@ for i in weather:
     f.write("weather," + str(i) + "\n")
 for i in levy:
     f.write("levy," + str(i) + "\n")
+for i in tier:
+    f.write("tier," + str(i) + "\n")
 f.close()
 flist.close()

@@ -65,3 +65,7 @@ levy:
   name: levy
   type: set
   dimSets: levy
+tier:
+  name: tier
+  type: set
+  dimSets: tier

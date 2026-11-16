@@ -1038,6 +1038,7 @@ map_meqStorageAfLo  <- function(scen, fmp) {
   .cjoin(scen, "meqStorageAfLo", fmp)
 }
 map_meqStorageAfUp  <- function(scen, fmp) .cjoin(scen, "meqStorageAfUp", fmp)
+map_meqStorageTarget <- function(scen, fmp) .cjoin(scen, "meqStorageTarget", fmp)
 map_meqStorageInpLo <- function(scen, fmp) {
   scen <- .weather_lo_default(scen, "mStorageWeatherInpAfLo", "pStorageInpAf", "mvStorageInp", "stg")
   .cjoin(scen, "meqStorageInpLo", fmp)
@@ -1173,6 +1174,7 @@ map_mTechAfcUp     <- function(scen, fmp) scen
   mTechNewCapLo = map_mTechNewCapLo, mTechNewCapUp = map_mTechNewCapUp,
   mTechRetLo = map_mTechRetLo, mTechRetUp = map_mTechRetUp,
   meqStorageAfLo = map_meqStorageAfLo, meqStorageAfUp = map_meqStorageAfUp,
+  meqStorageTarget = map_meqStorageTarget,
   meqStorageInpLo = map_meqStorageInpLo, meqStorageInpUp = map_meqStorageInpUp,
   meqStorageOutLo = map_meqStorageOutLo, meqStorageOutUp = map_meqStorageOutUp,
   mStorageOutCapLo = map_mStorageCapLo, mStorageOutCapUp = map_mStorageCapUp,
@@ -1384,7 +1386,8 @@ names(.fx_builders) <- vapply(.fx_families, `[[`, character(1), "fx")
 .COST_DOMAIN_MAPS <- c(
   "mDummyExportCost", "mDummyImportCost", "mExportIrCost", "mExportRowCost",
   "mImportIrCost", "mImportRowCost", "mStorageEac", "mStorageFixom",
-  "mStorageRetCost", "mStorageVarom", "mSubCost", "mTaxCost", "mTechEac",
+  "mStorageRetCost", "mStorageShortCost", "mStorageVarom", "mSubCost",
+  "mTaxCost", "mTechEac",
   "mTechFixom", "mTechRetCost", "mTechVarom", "mTradeEac", "mTradeFixom",
   "mTradeRetCost", "mvSupCost"
 )
@@ -1477,8 +1480,20 @@ map_mvTotalUserCosts <- function(scen, fmp) {
   scen
 }
 
+# mStorageShortCost: the (stg, region, year) cells that carry a level target,
+# i.e. the projection of `meqStorageTarget`. Built here, after the constraint
+# family, because that map does not exist earlier.
+map_mStorageShortCost <- function(scen, fmp) {
+  d <- .gds(scen, "meqStorageTarget")
+  if (is.null(d)) return(scen)
+  d <- dplyr::distinct(d[, c("stg", "region", "year"), drop = FALSE])
+  .set_map(scen, "mStorageShortCost", d, fmp)
+}
+
 # -- registry for the cost_agg family -------------------------------------- #
+# `mStorageShortCost` first: `mvTotalCost` reads every cost domain.
 .cost_agg_builders <- list(
+  mStorageShortCost = map_mStorageShortCost,
   mvTotalCost      = map_mvTotalCost,
   mvTotalUserCosts = map_mvTotalUserCosts
 )
@@ -2845,6 +2860,30 @@ map_mStorageVarom <- function(scen, fmp) .value_std(scen, "mStorageVarom", fmp)
     }
   }
   if (length(msg)) stop(paste0("Storage: ", msg, collapse = "\n"), call. = FALSE)
+  invisible()
+}
+
+# A level-target tier with no positive shortfall price is free to miss: the
+# slack absorbs it at zero cost and the equation binds nothing.
+.check_storage_target <- function(scen) {
+  tgt <- .gds(scen, "meqStorageTarget")
+  if (is.null(tgt)) return(invisible())
+  tgt <- unique(paste(tgt$stg, tgt$tier, sep = "/"))
+  d <- .gds(scen, "pStorageTargetCost")
+  priced <- character(0)
+  if (!is.null(d) && any(d$value > 0)) {
+    d <- d[d$value > 0, , drop = FALSE]
+    priced <- if (!all(c("stg", "tier") %in% colnames(d)) ||
+                  anyNA(d$stg) || anyNA(d$tier)) tgt else
+      unique(paste(d$stg, d$tier, sep = "/"))
+  }
+  free <- setdiff(tgt, priced)
+  if (length(free)) {
+    warning("Storage: a `target` tier is set without a positive `cost` (",
+            paste(utils::head(free, 5), collapse = ", "),
+            "), so missing it costs nothing; use `af.lo` for a hard floor",
+            call. = FALSE)
+  }
   invisible()
 }
 map_mTradeInv     <- function(scen, fmp) .value_std(scen, "mTradeInv", fmp)

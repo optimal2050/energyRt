@@ -633,7 +633,9 @@
     "pStorageWeatherAf", "pStorageWeatherInpAf", "pStorageWeatherInpAf",
     "pStorageWeatherOutAf", "pStorageWeatherOutAf", "pStorageInpEff",
     "pStorageOutEff", "pStorageStgEff", "pStorageOutStock", "pStorageOlife",
-    "pStorageCostStore", "pStorageCostInp",
+    # `pStorageCostStore` is absent on purpose: a negative value rewards
+    # holding a charged store.
+    "pStorageCostInp",
     "pStorageCostOut", "pStorageOutFixom", "pStorageOutInvcost", "pStorageDuration",
     "pStorageInp2stg",
     "pStorageAf", "pStorageAf", "pStorageInpAf", "pStorageInpAf", "pStorageOutAf",

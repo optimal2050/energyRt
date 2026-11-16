@@ -245,7 +245,20 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 \item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
 \item{inpcost}{numeric. Costs associated with the input commodity.}
 \item{outcost}{numeric. Costs associated with the output commodity.}
-\item{stgcost}{numeric. Costs associated with the storage level.}
+\item{stgcost}{numeric. Costs associated with the storage level. A negative value rewards holding a charged store.}
+}}
+
+\item{\code{target}}{data.frame. Soft floors on the stored level, priced. Each row is one tier: the level may fall below \code{target} at \code{cost} per unit short. Tiers stack -- below several targets the prices add up -- so a deeper tier with its own price makes draining dearer the further it goes.
+
+\describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
+\item{region}{character. Region name to apply the parameter, NA for every region.}
+\item{year}{integer. Year to apply the parameter, NA for every year.}
+\item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice. An end-of-season target names its slice.}
+\item{tier}{character. Tier label; a missing or NA tier is the tier "1". Never a wildcard.}
+\item{target}{numeric. Soft floor on the stored level as a fraction of storing capacity (the base of \code{af.lo}).}
+\item{cost}{numeric. Cost per unit the level falls short of \code{target}, on the same annual basis as \code{varom$stgcost}. Without it the target has no effect.}
 }}
 
 \item{\code{invcost}}{data.frame. Investment cost.

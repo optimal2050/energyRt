@@ -131,7 +131,8 @@
 
     # meq* (all except the lifespan-generated meqTechRetiredNewCap)
     "meqBalFx", "meqBalLo", "meqBalUp", "meqExportRowLo", "meqImportRowLo",
-    "meqLECActivity", "meqStorageAfLo", "meqStorageAfUp", "meqStorageInpLo",
+    "meqLECActivity", "meqStorageAfLo", "meqStorageAfUp", "meqStorageTarget",
+    "meqStorageInpLo",
     "meqStorageInpUp", "meqStorageOutLo", "meqStorageOutUp", "meqStorageLevel",
     "meqSupAvaLo", "meqSupReserveLo", "meqTechActGrp", "meqTechActSng",
     "meqTechAfcInpLo", "meqTechAfcInpUp", "meqTechAfcOutLo", "meqTechAfcOutUp",
@@ -155,6 +156,9 @@
     "mUpComm", "mLoComm", "mFxComm", "mLECRegion", "mTradeRoutes"
   ),
   cost_agg = c(
+    # projection of meqStorageTarget (a constraint map), so it cannot be a
+    # value map; built before mvTotalCost, which reads every cost domain
+    "mStorageShortCost",
     "mvTotalCost", "mvTotalUserCosts", "mvTradeCost", "mvTradeRowCost"
   )
 )

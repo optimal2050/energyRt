@@ -209,7 +209,11 @@ verify_solution <- function(object,
     flow_chain = list(
       run = .vs_check_flow_chain, group = "equations", path = "modInp",
       tier = "optin", needs_solution = TRUE,
-      desc = "input -> use -> activity -> output, incl. grouped inputs")
+      desc = "input -> use -> activity -> output, incl. grouped inputs"),
+    storage_target = list(
+      run = .vs_check_storage_target, group = "equations", path = "modInp",
+      tier = "optin", needs_solution = TRUE,
+      desc = "eqStorageTarget: level + shortfall >= target x capacity, per tier")
   )
 }
 
@@ -1523,4 +1527,43 @@ print.solution_verification <- function(x, detail = c("full", "issues"), ...) {
   } else {
     list(status = "ok", n = n_tot, violations = NULL, stats = st)
   }
+}
+
+# eqStorageTarget, per tier: level + shortfall >= target * capacity, where capacity is
+# vStorageStgCap where the storing part exists and duration.lo * vStorageOutCap
+# elsewhere (the base `af.lo` uses). An inequality: only a shortfall of the
+# left side counts, so the left side is capped at the right before comparing.
+.vs_check_storage_target <- function(ctx) {
+  scen <- ctx$scen
+  keys <- .vs_par(scen, "meqStorageTarget")
+  if (is.null(keys) || nrow(keys) == 0) {
+    return(.vs_skip("no meqStorageTarget map (no level target)"))
+  }
+  keys <- keys[, c("stg", "tier", "comm", "region", "year", "timeslice"), with = FALSE]
+  lvl_keys <- keys[, c("stg", "comm", "region", "year", "timeslice"), with = FALSE]
+  lhs <- .vs_value_at(scen, "vStorageLevel", lvl_keys) +
+    .vs_value_at(scen, "vStorageShort", keys)
+  ry <- keys[, c("stg", "region", "year"), with = FALSE]
+  stg_map <- .vs_par(scen, "mStorageStgCap")
+  has_stg <- if (is.null(stg_map) || nrow(stg_map) == 0) rep(FALSE, nrow(ry)) else {
+    stg_map <- unique(stg_map[, c("stg", "region", "year"), with = FALSE])
+    stg_map[, .hit := TRUE]
+    .a <- .vs_align_keys(stg_map, data.table::copy(ry), c("stg", "region", "year"))
+    !is.na(.a$d[.a$kk, on = c("stg", "region", "year")]$.hit)
+  }
+  dur <- .vs_par(scen, "pStorageDuration")
+  dur_lo <- rep(.vs_defval(scen, "pStorageDuration"), nrow(ry))
+  if (!is.null(dur) && nrow(dur) > 0 && "type" %in% colnames(dur)) {
+    dl <- dur[as.character(dur$type) == "lo", c("stg", "region", "year", "value"),
+              with = FALSE]
+    if (nrow(dl)) {
+      .a <- .vs_align_keys(dl, data.table::copy(ry), c("stg", "region", "year"))
+      v <- .a$d[.a$kk, on = c("stg", "region", "year")]$value
+      dur_lo[!is.na(v)] <- v[!is.na(v)]
+    }
+  }
+  cap <- ifelse(has_stg, .vs_value_at(scen, "vStorageStgCap", ry),
+                dur_lo * .vs_value_at(scen, "vStorageOutCap", ry))
+  rhs <- .vs_par_at(scen, "pStorageTarget", keys) * cap
+  .vs_result(keys, pmin(lhs, rhs), rhs, ctx, "storage_target", scale = cap)
 }

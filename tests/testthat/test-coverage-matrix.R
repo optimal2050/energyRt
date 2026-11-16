@@ -70,11 +70,14 @@ test_that("matrix rows assemble from package metadata with expected arithmetic",
   # flow over a parent timeslice, 2026-10-26)
   # (359 maps, 41 bounds = + mTradeWeatherAf*/Afs* Lo/Up and pTradeWeatherAf/Afs,
   # weather factors of the route ratings, 2026-10-26)
-  expect_equal(unname(counts[["set"]]), 15)
-  expect_equal(unname(counts[["map"]]), 359)
-  expect_equal(unname(counts[["numpar"]]), 159)
+  # (16 sets, 361 maps, 161 numpars, 184 equations = + `tier`, meqStorageTarget /
+  # mStorageShortCost, pStorageTarget / pStorageTargetCost and eqStorageTarget /
+  # eqStorageShortCost, priced soft floors on the storage level, 2026-11-16)
+  expect_equal(unname(counts[["set"]]), 16)
+  expect_equal(unname(counts[["map"]]), 361)
+  expect_equal(unname(counts[["numpar"]]), 161)
   expect_equal(unname(counts[["bounds"]]), 41)
-  expect_equal(unname(counts[["equation"]]), 182)
+  expect_equal(unname(counts[["equation"]]), 184)
   expect_gte(unname(counts[["variable"]]), 93)
   expect_false(any(duplicated(rows$name[rows$kind != "variable"])))
   # every bounds row expands to a Lo/Up pXxx pair

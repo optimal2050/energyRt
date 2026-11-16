@@ -978,6 +978,13 @@ mStorageVarom:
   - stg
   - region
   - year
+mStorageShortCost:
+  name: mStorageShortCost
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
 mStorageAInp:
   name: mStorageAInp
   type: map
@@ -2261,6 +2268,16 @@ meqStorageAfUp:
   type: map
   dimSets:
   - stg
+  - comm
+  - region
+  - year
+  - timeslice
+meqStorageTarget:
+  name: meqStorageTarget
+  type: map
+  dimSets:
+  - stg
+  - tier
   - comm
   - region
   - year

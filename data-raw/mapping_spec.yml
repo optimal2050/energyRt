@@ -347,6 +347,23 @@ meqStorageAfUp:
   join_keys: []
   filter_by: []
   depends_on: []
+meqStorageTarget:
+  name: meqStorageTarget
+  dims:
+  - stg
+  - tier
+  - comm
+  - region
+  - year
+  - timeslice
+  gates_var: vStorageShort
+  gates_eq: eqStorageTarget
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 meqStorageInpLo:
   name: meqStorageInpLo
   dims:
@@ -5285,6 +5302,21 @@ mvTechRetiredStock:
   join_keys: []
   filter_by: []
   depends_on: []
+mStorageShortCost:
+  name: mStorageShortCost
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: vStorageShortCost
+  gates_eq: eqStorageShortCost
+  recipe: cost_agg
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on:
+  - meqStorageTarget
 mvTotalCost:
   name: mvTotalCost
   dims:
@@ -5482,4 +5514,3 @@ mWeatherTimeslice:
   join_keys: []
   filter_by: []
   depends_on: []
-
