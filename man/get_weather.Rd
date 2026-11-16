@@ -29,6 +29,7 @@ get_weather(getObject(topia_elc$repo, name = "ECOA", drop = TRUE))
 \seealso{
 Other model:
 \code{\link[=find_in_model]{find_in_model()}},
-\code{\link[=get_region]{get_region()}}
+\code{\link[=get_region]{get_region()}},
+\code{\link{update,model-method}}
 }
 \concept{model}

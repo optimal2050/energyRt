@@ -27,6 +27,11 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* `update()` on a model moves the frame an element is declared at:
+  `update(mod, geoframe = list(ELC = "zone"))`, with the classes pinned to the
+  commodity moving with it. Data not already at the frame is refused;
+  `dryrun = TRUE` reports, `force = TRUE` writes the frame anyway.
+
 * `subset_model_regions(region = )` takes a code at any geoframe:
   `region = "Z3"` keeps that zone's provinces.
 

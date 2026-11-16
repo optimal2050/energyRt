@@ -176,6 +176,7 @@ Collate:
     'topia-simulate.R'
     'topia.R'
     'trade_kvl.R'
+    'update-model.R'
     'variants.R'
     'verbosity.R'
     'verify_solution.R'

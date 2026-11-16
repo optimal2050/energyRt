@@ -40,6 +40,7 @@ get_region(mod)
 \seealso{
 Other model:
 \code{\link[=find_in_model]{find_in_model()}},
-\code{\link[=get_weather]{get_weather()}}
+\code{\link[=get_weather]{get_weather()}},
+\code{\link{update,model-method}}
 }
 \concept{model}
