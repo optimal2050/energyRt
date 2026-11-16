@@ -256,7 +256,7 @@ scen <- interpolate_model(mod, name = "BASE") |>
 #> ℹ building maps: value✔ building maps: value (0.0s)
 #> ℹ building maps: filter
 #> ✔ building maps: filter (0.1s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.0s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
 #> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
@@ -353,7 +353,7 @@ list_versions("SM", type = "model")
 #> # A tibble: 1 × 7
 #>   status  name  type  version  sealed_at            refs size_mb
 #>   <chr>   <chr> <chr> <chr>    <dttm>              <int>   <dbl>
-#> 1 current SM    model ea94b58e 2026-11-16 03:17:11     0       0
+#> 1 current SM    model ea94b58e 2026-11-16 10:47:47     0       0
 ```
 
 **Only sealed versions are referenced.** A scenario records the model it
@@ -611,7 +611,7 @@ scen_low <- interpolate_model(make_mod(c(50, 50, 50)), name = "BASE",
 #> ✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
 #> ℹ building maps: membership + closure
-#> ✔ building maps: membership + closure (0.1s)
+#> ✔ building maps: membership + closure (0.0s)
 #> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
 #> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan

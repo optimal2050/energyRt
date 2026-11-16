@@ -31,7 +31,8 @@ planned.
   spec-driven recipe engine)\
 - \[✓\] Scenario storage (Arrow) and analysis
   ([`levcost()`](https://energyRt.org/reference/levcost.md),
-  [`report()`](https://energyRt.org/reference/report.md), `autoplot()`),
+  [`report()`](https://energyRt.org/reference/report.md),
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)),
   including recorded runs, variants and myopic sequences\
 - \[✓\] **Nested time.** Calendars from a single annual slice to 8760
   hours, from the shipped `calendars` catalog (generated with

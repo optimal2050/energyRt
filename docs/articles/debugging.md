@@ -301,8 +301,8 @@ of the widest row.
 ``` r
 
 audit_coefficients(x = BASE)
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpOYO1NO/audit_572c3dde5ccd 
-#> Writing files: 0.16s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpysuktH/audit_1584204e2ad1 
+#> Writing files: 0.31s
 #> coefficient audit: 32 rows, 30 columns, 64 non-zeros
 #>   |a_ij| in [1, 100] (global ratio 1e+02); 0 row(s) wider than 1e+06
 #>   per decade: 1e0:62  1e1:1  1e2:1 
@@ -337,7 +337,7 @@ BASE <- solve_scenario(
 )
 #> Warning: Scenario 'BASE': the model is INFEASIBLE (glpsol: PROBLEM HAS NO
 #> PRIMAL FEASIBLE SOLUTION). No solution was written to
-#> C:/Users/admin/AppData/Local/Temp/RtmpOYO1NO/debugging/BASE-toy-annual/runs/glpk
+#> C:/Users/admin/AppData/Local/Temp/RtmpysuktH/debugging/BASE-toy-annual/runs/glpk
 
 BASE@status$optimal
 #> [1] FALSE
@@ -428,7 +428,7 @@ summary(object = SLACK)
 #> desc:  
 #> Model: toy_slack 
 #> Interpolated: TRUE 
-#> path: C:/Users/admin/AppData/Local/Temp/RtmpOYO1NO/debugging/SLACK-toy_slack-annual 
+#> path: C:/Users/admin/AppData/Local/Temp/RtmpysuktH/debugging/SLACK-toy_slack-annual 
 #> Solution status: optimal
 #> vObjective:  5002.5 
 #> Dummy import/export costs:  5000 
@@ -530,15 +530,15 @@ slack_compared <- compare_solve_settings(
   settings = list(default = list()),
   solvers = list(glpk = solver_options$glpk)
 )
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpOYO1NO/debugging/cmp_default-toy_slack-annual/runs/glpk 
-#> Writing files: 0.17s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpysuktH/debugging/cmp_default-toy_slack-annual/runs/glpk 
+#> Writing files: 0.19s
 #> Starting  GLPK 
 #> 0.03s
 #> Reading solution: 0.11s
 
 slack_compared$summary
 #>   setting solver   ok seconds objective error
-#> 1 default   glpk TRUE    0.36    5002.5  <NA>
+#> 1 default   glpk TRUE    0.35    5002.5  <NA>
 ```
 
 Further solvers are added to the `solvers` list, for example

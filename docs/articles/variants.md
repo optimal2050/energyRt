@@ -489,7 +489,7 @@ scen_rr <- interpolate_model(mod_rr, name = "art_region", ondisk = FALSE)
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
 #> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
 #> ℹ collecting sets: object names
-#> ✔ collecting sets: object names (0.1s)
+#> ✔ collecting sets: object names (0.2s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
 #> ℹ collecting sets: timeframes
 #> ✔ collecting sets: timeframes (0.0s)
@@ -808,7 +808,7 @@ scen_w <- interpolate_model(mod_w, name = "art_weather", ondisk = FALSE)
 #> ℹ building maps: filter
 #> ✔ building maps: filter (0.1s)
 #> ℹ building maps: constraint✔ building maps: constraint (0.1s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: art_weather
@@ -978,7 +978,7 @@ scen_land <- solve_model(
 #> ℹ building maps: value✔ building maps: value (0.0s)
 #> ℹ building maps: filter✔ building maps: filter (0.1s)
 #> ℹ building maps: constraint✔ building maps: constraint (0.1s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: art_land

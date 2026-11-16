@@ -91,5 +91,5 @@ f <- tempfile(fileext = ".xlsx")
 # one sheet per slot that carries data, plus an `info` sheet
 write_technology_xlsx(tech, f)
 basename(f)
-#> [1] "fileb1687fef6cec.xlsx"
+#> [1] "file9d4061d636aa.xlsx"
 ```

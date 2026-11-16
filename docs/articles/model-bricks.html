@@ -41,7 +41,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><h6 class="dropdown-header" data-toc-skip>Model foundations</h6></li>
-    <li><a class="dropdown-item" href="../articles/resolution.html">Model dimensions — time &amp; space</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Time &amp; space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
@@ -152,10 +152,10 @@ at which the commodity is tracked.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">COA</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "emis"</span></span></code></pre></div>
 <p>Because a commodity’s emission factors are just data, they can be
-compared with <code>autoplot()</code> (see the <em>autoplot</em> article
+compared with <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> (see the <em>autoplot</em> article
 for the full set of arguments):</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">autoplot</span><span class="op">(</span><span class="va">COA</span>, <span class="va">GAS</span><span class="op">)</span>   <span class="co"># emission intensity of the two fuels</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">COA</span>, <span class="va">GAS</span><span class="op">)</span>   <span class="co"># emission intensity of the two fuels</span></span></code></pre></div>
 <p><img src="model-bricks_files/figure-html/comm-plot-1.png" class="r-plt" alt="" width="770"></p>
 </div>
 <div class="section level2">

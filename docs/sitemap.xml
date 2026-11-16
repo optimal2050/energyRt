@@ -1,12 +1,6 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://energyRt.org/404.html</loc></url>
 <url><loc>https://energyRt.org/AGENTS.html</loc></url>
-<url><loc>https://energyRt.org/articles/articles/autoplot.html</loc></url>
-<url><loc>https://energyRt.org/articles/articles/backends.html</loc></url>
-<url><loc>https://energyRt.org/articles/articles/features.html</loc></url>
-<url><loc>https://energyRt.org/articles/articles/region-aggregation.html</loc></url>
-<url><loc>https://energyRt.org/articles/articles/space-resolution.html</loc></url>
-<url><loc>https://energyRt.org/articles/articles/time-resolution.html</loc></url>
 <url><loc>https://energyRt.org/articles/debugging.html</loc></url>
 <url><loc>https://energyRt.org/articles/energyRt.html</loc></url>
 <url><loc>https://energyRt.org/articles/index.html</loc></url>
@@ -172,7 +166,6 @@
 <url><loc>https://energyRt.org/reference/horizon_windows.html</loc></url>
 <url><loc>https://energyRt.org/reference/import_solution.html</loc></url>
 <url><loc>https://energyRt.org/reference/index.html</loc></url>
-<url><loc>https://energyRt.org/reference/interpolate_bounds.html</loc></url>
 <url><loc>https://energyRt.org/reference/interpolate_model.html</loc></url>
 <url><loc>https://energyRt.org/reference/interpolate_numpar.html</loc></url>
 <url><loc>https://energyRt.org/reference/interpolate_parameters.html</loc></url>
@@ -204,7 +197,6 @@
 <url><loc>https://energyRt.org/reference/multimod_import_data.html</loc></url>
 <url><loc>https://energyRt.org/reference/multimod_import_log.html</loc></url>
 <url><loc>https://energyRt.org/reference/multimod_unmatched.html</loc></url>
-<url><loc>https://energyRt.org/reference/myopic_objective.html</loc></url>
 <url><loc>https://energyRt.org/reference/named_list_to_df.html</loc></url>
 <url><loc>https://energyRt.org/reference/neos.html</loc></url>
 <url><loc>https://energyRt.org/reference/neos_build_gams_text_job.html</loc></url>
@@ -289,7 +281,6 @@
 <url><loc>https://energyRt.org/reference/seal.html</loc></url>
 <url><loc>https://energyRt.org/reference/sequence_coverage.html</loc></url>
 <url><loc>https://energyRt.org/reference/setCalendar.html</loc></url>
-<url><loc>https://energyRt.org/reference/setGeoscale,config-method.html</loc></url>
 <url><loc>https://energyRt.org/reference/setGeoscale.html</loc></url>
 <url><loc>https://energyRt.org/reference/size.html</loc></url>
 <url><loc>https://energyRt.org/reference/solution_ledger.html</loc></url>
@@ -302,7 +293,6 @@
 <url><loc>https://energyRt.org/reference/solve_by_sample.html</loc></url>
 <url><loc>https://energyRt.org/reference/solve_guided.html</loc></url>
 <url><loc>https://energyRt.org/reference/solve_model.html</loc></url>
-<url><loc>https://energyRt.org/reference/solve_myopic.html</loc></url>
 <url><loc>https://energyRt.org/reference/solve_recursive.html</loc></url>
 <url><loc>https://energyRt.org/reference/split_bounds_parameter_data.html</loc></url>
 <url><loc>https://energyRt.org/reference/storage.html</loc></url>

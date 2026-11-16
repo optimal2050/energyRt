@@ -193,7 +193,7 @@ Chain them and a volume of coal becomes an energy. Given the properties,
 chain itself:
 
 > **Not in this build.** Commodity-aware conversion is not available in
-> energyRt 0.91.4.9000. The calls below are shown for reference; their
+> energyRt 0.91.5.9000. The calls below are shown for reference; their
 > output will appear here once the feature lands.
 
 ``` r

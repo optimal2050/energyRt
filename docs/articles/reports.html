@@ -41,17 +41,21 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><h6 class="dropdown-header" data-toc-skip>Model foundations</h6></li>
-    <li><a class="dropdown-item" href="../articles/time-resolution.html">Model dimensions — time &amp; space</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Time &amp; space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
+    <li><a class="dropdown-item" href="../articles/units.html">Units &amp; conversions</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Project workflow</h6></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Models, scenarios &amp; projects</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Solving models</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Results &amp; reporting</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Model development</h6></li>
     <li><a class="dropdown-item" href="../articles/debugging.html">Validating &amp; debugging</a></li>
     <li><a class="dropdown-item" href="../articles/model-size.html">Scaling &amp; alternative solves</a></li>
+    <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>TOPIA teaching model</h6></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
@@ -183,7 +187,7 @@ the two derived-artifact folders (<code>reports/</code>,
 <code class="sourceCode R"><span><span class="va">proj</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"rep-demo"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">proj</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/accessors.html">open_project</a></span><span class="op">(</span><span class="va">proj</span><span class="op">)</span></span>
-<span><span class="co">#&gt; energyRt project: C:/Users/admin/AppData/Local/Temp/Rtmpc9HiRe/rep-demo (0 registered scenarios)</span></span></code></pre></div>
+<span><span class="co">#&gt; energyRt project: C:/Users/admin/AppData/Local/Temp/Rtmps59RRh/rep-demo (0 registered scenarios)</span></span></code></pre></div>
 <p>A technology to price and report on:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">PP</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/technology.html">newTechnology</a></span><span class="op">(</span></span>
@@ -214,7 +218,7 @@ identical question returns instantly from disk:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">lc2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/levcost.html">levcost</a></span><span class="op">(</span><span class="va">PP</span>, fuel_costs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>GAS <span class="op">=</span> <span class="fl">25</span><span class="op">)</span>, discount <span class="op">=</span> <span class="fl">0.06</span>,</span>
 <span>               base_year <span class="op">=</span> <span class="fl">2025</span><span class="op">)</span></span>
-<span><span class="co">#&gt; levcost: cached result is current: C:/Users/admin/AppData/Local/Temp/Rtmpc9HiRe/rep-demo/levcosts/PP@8099a340.rds (force = TRUE to recompute)</span></span>
+<span><span class="co">#&gt; levcost: cached result is current: C:/Users/admin/AppData/Local/Temp/Rtmps59RRh/rep-demo/levcosts/PP@8099a340.rds (force = TRUE to recompute)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="fu"><a href="../reference/reports_path.html">get_levcost_cache_path</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "PP@8099a340.rds" "PP@8099a340.yml"</span></span></code></pre></div>
 <p>Anything that changes the answer — the technology’s data,
@@ -236,7 +240,7 @@ render inside their own folder’s <code>reports/</code>, in-memory
 objects into the project-level <code>reports/</code> tier:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/report.html">report</a></span><span class="op">(</span><span class="va">PP</span>, levcost <span class="op">=</span> <span class="va">lc</span>, format <span class="op">=</span> <span class="st">"html"</span>, open <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Report written to C:\Users\admin\AppData\Local\Temp\Rtmpc9HiRe\rep-demo\reports\report_PP.html</span></span>
+<span><span class="co">#&gt; Report written to C:\Users\admin\AppData\Local\Temp\Rtmps59RRh\rep-demo\reports\report_PP.html</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "report_PP.html"</span></span></code></pre></div>
 <p>A report is <strong>skip-if-current</strong>: the rendered file
@@ -245,7 +249,7 @@ the template content, the arguments, and the levcost identity. Repeating
 the call re-renders nothing:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/report.html">report</a></span><span class="op">(</span><span class="va">PP</span>, levcost <span class="op">=</span> <span class="va">lc</span>, format <span class="op">=</span> <span class="st">"html"</span>, open <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Report up to date: C:\Users\admin\AppData\Local\Temp\Rtmpc9HiRe\rep-demo\reports\report_PP.html (force = TRUE to re-render)</span></span></code></pre></div>
+<span><span class="co">#&gt; Report up to date: C:\Users\admin\AppData\Local\Temp\Rtmps59RRh\rep-demo\reports\report_PP.html (force = TRUE to re-render)</span></span></code></pre></div>
 <p>Editing the technology, the template, or any argument invalidates the
 key; <code>force = TRUE</code> re-renders unconditionally. Formats:
 <code>format =</code> takes any of <code>"html"</code>,

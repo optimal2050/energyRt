@@ -41,7 +41,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><h6 class="dropdown-header" data-toc-skip>Model foundations</h6></li>
-    <li><a class="dropdown-item" href="../articles/resolution.html">Model dimensions — time &amp; space</a></li>
+    <li><a class="dropdown-item" href="../articles/resolution.html">Time &amp; space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/variants.html">Vintages &amp; clusters</a></li>
@@ -112,7 +112,7 @@
 <li>Put storage in context: <code><a href="../reference/newCommodity.html">newCommodity()</a></code>,
 <code><a href="../reference/newModel.html">newModel()</a></code>, <code><a href="../reference/interpolate_model.html">interpolate_model()</a></code>.</li>
 <li>Solve and analyse: <code><a href="../reference/solve_model.html">solve_model()</a></code>,
-<code><a href="../reference/getData.html">getData()</a></code>, <code>autoplot()</code>.</li>
+<code><a href="../reference/getData.html">getData()</a></code>, <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code>.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -495,13 +495,13 @@ each gets its own repository and model:</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: membership comm sets<span style="color: #00BB00;">✔</span> collecting sets: membership comm sets <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process regions<span style="color: #00BB00;">✔</span> collecting sets: process regions <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: membership + closure<span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.1s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> settings parameters (discount, period length, timeslice share)<span style="color: #00BB00;">✔</span> settings parameters (discount, period length, timeslice share) <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: calendar + lifespan<span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> interpolating parameters over milestone years<span style="color: #00BB00;">✔</span> interpolating parameters over milestone years <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> calendar-filter: restricting parameters to declared timeslices<span style="color: #00BB00;">✔</span> calendar-filter: restricting parameters to declared timeslices <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter<span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.2s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.0s)</span></span></span>
@@ -527,10 +527,10 @@ each gets its own repository and model:</p>
 <span><span class="co">#&gt;     cardYear           1</span></span>
 <span><span class="co">#&gt;     pYearFraction      1</span></span>
 <span><span class="co">#&gt;     pWacc              1</span></span>
-<span><span class="co">#&gt; Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpiuTCBx/energyRt/scenarios/fy_year-d365_h24_1dpm/runs/glpk </span></span>
-<span><span class="co">#&gt; Writing files: 0.28s</span></span>
+<span><span class="co">#&gt; Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpqM4qbY/energyRt/scenarios/fy_year-d365_h24_1dpm/runs/glpk </span></span>
+<span><span class="co">#&gt; Writing files: 0.3s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.21s</span></span>
+<span><span class="co">#&gt; 0.2s</span></span>
 <span><span class="co">#&gt; Reading solution: 0.12s</span></span>
 <span><span class="va">scen_day</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod_day</span>, name <span class="op">=</span> <span class="st">"fy_day"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> checking declarations<span style="color: #00BB00;">✔</span> checking declarations <span style="color: #555555;">(0.0s)</span></span></span>
@@ -552,7 +552,7 @@ each gets its own repository and model:</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> calendar-filter: restricting parameters to declared timeslices<span style="color: #00BB00;">✔</span> calendar-filter: restricting parameters to declared timeslices <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter<span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter<span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.2s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: cost aggregation<span style="color: #00BB00;">✔</span> building maps: cost aggregation <span style="color: #555555;">(0.0s)</span></span></span>
@@ -577,10 +577,10 @@ each gets its own repository and model:</p>
 <span><span class="co">#&gt;     cardYear           1</span></span>
 <span><span class="co">#&gt;     pYearFraction      1</span></span>
 <span><span class="co">#&gt;     pWacc              1</span></span>
-<span><span class="co">#&gt; Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpiuTCBx/energyRt/scenarios/fy_day-d365_h24_1dpm/runs/glpk </span></span>
-<span><span class="co">#&gt; Writing files: 0.29s</span></span>
+<span><span class="co">#&gt; Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpqM4qbY/energyRt/scenarios/fy_day-d365_h24_1dpm/runs/glpk </span></span>
+<span><span class="co">#&gt; Writing files: 0.27s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.15s</span></span>
+<span><span class="co">#&gt; 0.17s</span></span>
 <span><span class="co">#&gt; Reading solution: 0.11s</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_year</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span></span>
@@ -1449,11 +1449,11 @@ in the evening.</p>
 <span><span class="co">#&gt;     cardYear           1</span></span>
 <span><span class="co">#&gt;     pYearFraction      1</span></span>
 <span><span class="co">#&gt;     pWacc              1</span></span>
-<span><span class="co">#&gt; Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpiuTCBx/energyRt/scenarios/solar_battery-d365_h24_1dpm/runs/glpk </span></span>
-<span><span class="co">#&gt; Writing files: 0.31s</span></span>
+<span><span class="co">#&gt; Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpqM4qbY/energyRt/scenarios/solar_battery-d365_h24_1dpm/runs/glpk </span></span>
+<span><span class="co">#&gt; Writing files: 0.32s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
 <span><span class="co">#&gt; 0.26s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.13s</span></span></code></pre></div>
+<span><span class="co">#&gt; Reading solution: 0.11s</span></span></code></pre></div>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage_duration.html">storage_duration</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span>                 <span class="co"># 12h / 1d / 1w / 30d by default</span></span>
 <span></span>
@@ -1462,12 +1462,12 @@ in the evening.</p>
 <span><span class="co"># in the model.</span></span>
 <span><span class="va">d</span><span class="op">$</span><span class="va">day</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">datetime</span>, <span class="st">"%b"</span><span class="op">)</span></span>
 <span><span class="va">d</span><span class="op">$</span><span class="va">hour</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/format.html" class="external-link">format</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">datetime</span>, <span class="st">"%H"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu">ggplot</span><span class="op">(</span><span class="va">d</span>, <span class="fu">aes</span><span class="op">(</span><span class="va">hour</span>, <span class="va">value</span>, fill <span class="op">=</span> <span class="va">duration</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu">geom_area</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu">facet_wrap</span><span class="op">(</span><span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">day</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">day</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu">scale_fill_viridis_d</span><span class="op">(</span>direction <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>, name <span class="op">=</span> <span class="st">"Duration"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu">labs</span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Hour of the representative day"</span>, y <span class="op">=</span> <span class="st">"Storage level"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu">theme_bw</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">d</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">hour</span>, <span class="va">value</span>, fill <span class="op">=</span> <span class="va">duration</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_ribbon.html" class="external-link">geom_area</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">day</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">day</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_fill_viridis_d</a></span><span class="op">(</span>direction <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>, name <span class="op">=</span> <span class="st">"Duration"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Hour of the representative day"</span>, y <span class="op">=</span> <span class="st">"Storage level"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="storage_files/figure-html/representative-day-storage-duration-1.png" class="r-plt" alt="Faceted area charts for twelve representative days showing storage levels split into twelve-hour, one-day, one-week, and thirty-day duration bands."></p>
 <p>Every band here is short: a day-per-month calendar has no way to
 represent energy held from spring to autumn, so the long bands can only
@@ -1559,11 +1559,11 @@ timeslices the difference is minutes, which is why the result is
 precomputed and shipped as <code>vre_storage_duration</code> rather than
 solved while this page builds.</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">ggplot</span><span class="op">(</span><span class="va">vre_storage_duration</span>, <span class="fu">aes</span><span class="op">(</span><span class="va">datetime</span>, <span class="va">value</span>, fill <span class="op">=</span> <span class="va">duration</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu">geom_area</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu">scale_fill_viridis_d</span><span class="op">(</span>direction <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>, name <span class="op">=</span> <span class="st">"Duration"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu">labs</span><span class="op">(</span>x <span class="op">=</span> <span class="cn">NULL</span>, y <span class="op">=</span> <span class="st">"Storage level"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu">theme_bw</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">vre_storage_duration</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">datetime</span>, <span class="va">value</span>, fill <span class="op">=</span> <span class="va">duration</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_ribbon.html" class="external-link">geom_area</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_fill_viridis_d</a></span><span class="op">(</span>direction <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>, name <span class="op">=</span> <span class="st">"Duration"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="cn">NULL</span>, y <span class="op">=</span> <span class="st">"Storage level"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="storage_files/figure-html/full-year-storage-duration-1.png" class="r-plt" alt="Full-year stacked area chart showing storage energy split by cycling duration, including a large band held for more than thirty days."></p>
 <p>Now the split is worth reading. The store is not one thing doing one
 job: a thin band cycles within the day, while most of the energy is

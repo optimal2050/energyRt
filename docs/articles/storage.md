@@ -13,7 +13,7 @@
 - Solve and analyse:
   [`solve_model()`](https://energyRt.org/reference/solve_model.md),
   [`getData()`](https://energyRt.org/reference/getData.md),
-  `autoplot()`.
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html).
 
 ## What a storage is
 
@@ -298,13 +298,13 @@ scen_year <- solve_model(mod_year, name = "fy_year")
 #> ℹ collecting sets: membership comm sets✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
 #> ℹ building maps: membership + closure✔ building maps: membership + closure (0.1s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
 #> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.1s)
 #> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
-#> ℹ building maps: value✔ building maps: value (0.0s)
+#> ℹ building maps: value✔ building maps: value (0.1s)
 #> ℹ building maps: filter✔ building maps: filter (0.2s)
 #> ℹ building maps: constraint✔ building maps: constraint (0.1s)
 #> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
@@ -330,10 +330,10 @@ scen_year <- solve_model(mod_year, name = "fy_year")
 #>     cardYear           1
 #>     pYearFraction      1
 #>     pWacc              1
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpiuTCBx/energyRt/scenarios/fy_year-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.28s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpqM4qbY/energyRt/scenarios/fy_year-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.3s
 #> Starting  GLPK 
-#> 0.21s
+#> 0.2s
 #> Reading solution: 0.12s
 scen_day <- solve_model(mod_day, name = "fy_day")
 #> ℹ checking declarations✔ checking declarations (0.0s)
@@ -355,7 +355,7 @@ scen_day <- solve_model(mod_day, name = "fy_day")
 #> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
 #> ℹ building maps: value✔ building maps: value (0.0s)
-#> ℹ building maps: filter✔ building maps: filter (0.1s)
+#> ℹ building maps: filter✔ building maps: filter (0.2s)
 #> ℹ building maps: constraint✔ building maps: constraint (0.1s)
 #> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
@@ -380,10 +380,10 @@ scen_day <- solve_model(mod_day, name = "fy_day")
 #>     cardYear           1
 #>     pYearFraction      1
 #>     pWacc              1
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpiuTCBx/energyRt/scenarios/fy_day-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.29s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpqM4qbY/energyRt/scenarios/fy_day-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.27s
 #> Starting  GLPK 
-#> 0.15s
+#> 0.17s
 #> Reading solution: 0.11s
 
 getData(scen_year, "vObjective", merge = TRUE)$value
@@ -1063,11 +1063,11 @@ scen <- solve_model(sol_mod, name = "solar_battery")
 #>     cardYear           1
 #>     pYearFraction      1
 #>     pWacc              1
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpiuTCBx/energyRt/scenarios/solar_battery-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.31s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpqM4qbY/energyRt/scenarios/solar_battery-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.32s
 #> Starting  GLPK 
 #> 0.26s
-#> Reading solution: 0.13s
+#> Reading solution: 0.11s
 ```
 
 ``` r

@@ -51,7 +51,7 @@ Other options:
 
 ``` r
 get_reports_path()
-#> [1] "C:/Users/admin/AppData/Local/Temp/RtmpoV0XFy/energyRt/reports"
+#> [1] "C:/Users/admin/AppData/Local/Temp/Rtmp61iG39/energyRt/reports"
 get_levcost_cache_path()
-#> [1] "C:/Users/admin/AppData/Local/Temp/RtmpoV0XFy/energyRt/levcosts"
+#> [1] "C:/Users/admin/AppData/Local/Temp/Rtmp61iG39/energyRt/levcosts"
 ```

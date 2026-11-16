@@ -56,11 +56,11 @@ scen <- interpolate_model(mod, name = "op_example")
 #> ℹ expanding vintage/cluster variants
 #> ✔ expanding vintage/cluster variants (0.0s)
 #> ℹ materializing commodity clusters
-#> ✔ materializing commodity clusters (0.0s)
+#> ✔ materializing commodity clusters (0.1s)
 #> ℹ materializing weather clusters
-#> ✔ materializing weather clusters (0.0s)
+#> ✔ materializing weather clusters (0.3s)
 #> ℹ materializing weather transforms
-#> ✔ materializing weather transforms (0.2s)
+#> ✔ materializing weather transforms (0.3s)
 #> ℹ collecting sets: object names
 #> ✔ collecting sets: object names (0.0s)
 #> ℹ collecting sets: process classes

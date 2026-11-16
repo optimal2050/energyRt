@@ -75,8 +75,9 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   `per-year calendars` row. A model whose years all share a calendar
   reports exactly what it reported before.
 
-- `autoplot()` on a `horizon` labels each interval with the calendar
-  that milestone is solved on, when `intervals$calendar` names one.
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  on a `horizon` labels each interval with the calendar that milestone
+  is solved on, when `intervals$calendar` names one.
 
 - **[`topia_simulate()`](https://energyRt.org/reference/topia_simulate.md)
   generates TOPIA’s weather and demand profiles.** The shipped
@@ -678,8 +679,8 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   per vintage and cluster, or one result per region.
 
 - [`draw()`](https://energyRt.org/reference/draw.md) process diagrams;
-  `autoplot()` for objects, calendars, horizons, scenarios and
-  comparisons;
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  for objects, calendars, horizons, scenarios and comparisons;
   [`plot_map()`](https://energyRt.org/reference/energyRt-deprecated.md),
   [`plot_trade_map()`](https://energyRt.org/reference/energyRt-deprecated.md),
   [`plot_trade_network()`](https://energyRt.org/reference/energyRt-deprecated.md).
@@ -692,18 +693,22 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   storage; trade maps take `comm` and any geoscale level, and separate
   stock from investable capacity.
 
-- Shared `autoplot()` settings: `@desc` as subtitle, the object’s unit
-  on the y axis, legends titled by the key they show.
+- Shared
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  settings: `@desc` as subtitle, the object’s unit on the y axis,
+  legends titled by the key they show.
 
 - `autoplot(<supply>)`: `param =` picks the quantity, `style =` the
   chart; `type =` is deprecated.
 
 - [`sequence_coverage()`](https://energyRt.org/reference/sequence_coverage.md)
   reports what a solve sequence covered, one row per unit and element,
-  and `autoplot()` draws it: a sampled calendar as a tile grid or a wall
-  calendar, a region sample on its geoscale, a recursive walk as a
-  horizon Gantt with the look-ahead years marked apart from the decided
-  ones. Elements no unit covered stay visible as gaps.
+  and
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  draws it: a sampled calendar as a tile grid or a wall calendar, a
+  region sample on its geoscale, a recursive walk as a horizon Gantt
+  with the look-ahead years marked apart from the decided ones. Elements
+  no unit covered stay visible as gaps.
 
 - `autoplot(<by_sample>, "histogram")` draws a result’s spread across
   the samples, weighted by each sample’s coverage, with the free pass
@@ -786,10 +791,12 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 - [`plot()`](https://energyRt.org/reference/draw.md) on every energyRt
   class now draws the figure and returns it invisibly, like base
-  [`plot()`](https://energyRt.org/reference/draw.md); `autoplot()`
+  [`plot()`](https://energyRt.org/reference/draw.md);
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
   returns the ggplot to modify.
 
-- `autoplot()` on a calendar is drawn by
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  on a calendar is drawn by
   [`timescales::gg_calendar()`](https://optimal2050.github.io/timescales/r/reference/gg_calendar.html).
   `labels` takes `"name"`, `"timeslice"` or `"none"` (`label_by` is
   gone), the text colour is automatic (`label_color` is gone) and
@@ -950,10 +957,10 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   and
   [`mmcloud::set_hf_token()`](https://rdrr.io/pkg/mmcloud/man/hf_token.html).
 
-- `autoplot()` on a `horizon` marks the milestones that are given rather
-  than optimised: the base year and any milestones before it are washed
-  out, with a rule at the last given year and a caption naming the
-  states.
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  on a `horizon` marks the milestones that are given rather than
+  optimised: the base year and any milestones before it are washed out,
+  with a rule at the last given year and a caption naming the states.
 
 ### Breaking changes
 
@@ -1001,11 +1008,12 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   rather than a list of milestones, so the years it then asked for were
   not milestones of the horizon it built.
 
-- `autoplot()` on a single-interval `horizon` shows both of its
-  boundaries. The leading tick was the first interval’s start unshifted,
-  which collapses onto the milestone whenever that interval is one year,
-  leaving the shipped one-year horizons as a slab with a single tick at
-  the right edge.
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  on a single-interval `horizon` shows both of its boundaries. The
+  leading tick was the first interval’s start unshifted, which collapses
+  onto the milestone whenever that interval is one year, leaving the
+  shipped one-year horizons as a slab with a single tick at the right
+  edge.
 
 - The year legend of `autoplot(<horizon>)` breaks on whole years; on a
   short horizon the continuous scale put breaks between them (`2032.5`).
@@ -1262,12 +1270,13 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   [`plot_trade_map()`](https://energyRt.org/reference/energyRt-deprecated.md)
   already drew every level – the two views now agree.
 
-- `autoplot()` refuses a bare `units` value instead of dropping it.
-  `units` names a base unit per commodity (`units = list(ELC = "GWh")`);
-  a parameter name passed there – `units = "cost"`, where
-  `param = "cost"` is meant – was accepted and ignored, and the chart
-  then drew something else in silence. A style that labels from the
-  object says that `units` has no effect on it.
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  refuses a bare `units` value instead of dropping it. `units` names a
+  base unit per commodity (`units = list(ELC = "GWh")`); a parameter
+  name passed there – `units = "cost"`, where `param = "cost"` is meant
+  – was accepted and ignored, and the chart then drew something else in
+  silence. A style that labels from the object says that `units` has no
+  effect on it.
 
 - A `demand` naming no year was dropped instead of read:
   [`aggregate()`](https://rdrr.io/r/stats/aggregate.html) drops NA
@@ -1470,8 +1479,8 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   longer repeats arrows.
 - [`newCosts()`](https://energyRt.org/reference/newCosts.md) is
   debugged, with an example in the Topia tutorial.
-- `tsl2hour()` identifies n-digit hours; it previously worked for two
-  only.
+- [`tsl2hour()`](https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html)
+  identifies n-digit hours; it previously worked for two only.
 
 ## energyRt 0.50.7-dev
 

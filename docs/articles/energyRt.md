@@ -219,7 +219,8 @@ contains every underlying flow, cost, and balance.
 
 ## Plot solved results
 
-`autoplot()` uses the same result tables returned by
+[`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+uses the same result tables returned by
 [`getData()`](https://energyRt.org/reference/getData.md). On a solved
 scenario it can show annual generation, capacity, new capacity, fuel
 use, or storage operation. The annual electricity balance from `BASE`
@@ -487,7 +488,8 @@ The first solve uses only a fraction of the framework:
 - **Manage many runs.** Named projects and Arrow-backed scenario folders
   keep results addressable and allow larger-than-memory analysis.
 - **Inspect and validate.**
-  [`draw()`](https://energyRt.org/reference/draw.md), `autoplot()`,
+  [`draw()`](https://energyRt.org/reference/draw.md),
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html),
   [`report()`](https://energyRt.org/reference/report.md), and
   [`verify_solution()`](https://energyRt.org/reference/verify_solution.md)
   expose both declared objects and solved behavior.

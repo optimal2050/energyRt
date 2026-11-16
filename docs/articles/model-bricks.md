@@ -48,8 +48,9 @@ names(getData(COA))
 ```
 
 Because a commodity’s emission factors are just data, they can be
-compared with `autoplot()` (see the *autoplot* article for the full set
-of arguments):
+compared with
+[`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+(see the *autoplot* article for the full set of arguments):
 
 ``` r
 

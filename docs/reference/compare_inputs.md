@@ -120,7 +120,7 @@ a <- interpolate_model(mod,  name = "BASE")
 #> Materialized 5 weather cluster(s): WSOL_CLFL, WSOL_CLTH, WWIN_CLHI, WWIN_CLMD, WWIN_CLLO
 #> ✔ materializing weather clusters (0.0s)
 #> ℹ materializing weather transforms
-#> ✔ materializing weather transforms (0.2s)
+#> ✔ materializing weather transforms (0.3s)
 #> ℹ collecting sets: object names
 #> ✔ collecting sets: object names (0.0s)
 #> ℹ collecting sets: process classes
@@ -152,7 +152,7 @@ a <- interpolate_model(mod,  name = "BASE")
 #> ℹ ob2mi: interpolating 83 model objects
 #> ✔ ob2mi: interpolating 83 model objects (0.7s)
 #> ℹ interpolating parameters over milestone years
-#> ✔ interpolating parameters over milestone years (2.2s)
+#> ✔ interpolating parameters over milestone years (2.1s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices
 #> ✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)
@@ -193,7 +193,7 @@ b <- interpolate_model(mod2, name = "DEAR_GAS")
 #> Materialized 5 weather cluster(s): WSOL_CLFL, WSOL_CLTH, WWIN_CLHI, WWIN_CLMD, WWIN_CLLO
 #> ✔ materializing weather clusters (0.0s)
 #> ℹ materializing weather transforms
-#> ✔ materializing weather transforms (0.2s)
+#> ✔ materializing weather transforms (0.3s)
 #> ℹ collecting sets: object names
 #> ✔ collecting sets: object names (0.0s)
 #> ℹ collecting sets: process classes
@@ -223,9 +223,9 @@ b <- interpolate_model(mod2, name = "DEAR_GAS")
 #> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
 #> ✔ building maps: calendar + lifespan (0.2s)
 #> ℹ ob2mi: interpolating 83 model objects
-#> ✔ ob2mi: interpolating 83 model objects (0.7s)
+#> ✔ ob2mi: interpolating 83 model objects (0.6s)
 #> ℹ interpolating parameters over milestone years
-#> ✔ interpolating parameters over milestone years (1.6s)
+#> ✔ interpolating parameters over milestone years (1.8s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices
 #> ✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)
