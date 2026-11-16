@@ -27,6 +27,11 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* `aggregate_model_regions()` now coarsens a model whose objects are not all
+  declared at its finest regions: each row is recast from the geoframe its own
+  code sits at, one already at the target is carried, one above it is kept, and
+  a stale `@geoframe` is cleared.
+
 * `update()` on a model moves the frame an element is declared at:
   `update(mod, geoframe = list(ELC = "zone"))`, with the classes pinned to the
   commodity moving with it. Data not already at the frame is refused;

@@ -1037,6 +1037,31 @@ NULL
   x
 }
 
+#' Aggregate rows declared above the atoms, through the atom layer
+#'
+#' The direct route (`geoscales::recast_geoscale(source = )`) answers `NA`
+#' whenever a target's sources are only partly present in the data -- the
+#' usual case here, since a supply declared in one zone says nothing about the
+#' others -- and its wrapper exposes no way to ask for the other reading. The
+#' atom routes do: a `sum` is split by the scale's weight and re-summed, which
+#' is exact, and an intensive value is copied down and averaged back up.
+#'
+#' The key is renamed on the way in: the atom key column is `region` too, and
+#' the join refuses two columns of one name.
+#' @noRd
+.agg_through_atoms <- function(df, gs, source, level, vals, rules) {
+  k <- ".agg_code"
+  d <- df
+  names(d)[names(d) == "region"] <- k
+  atoms <- as.data.frame(geoscales::recast_to_geoatoms(
+    d, gs, source = source, key = k, values = vals, rule = rules,
+    attach_weight = FALSE))
+  if (!nrow(atoms)) return(atoms)
+  geoscales::recast_from_geoatoms(
+    atoms, gs, target = level, key = "region", values = vals, rule = rules,
+    na_rm = TRUE, na_action = "drop")
+}
+
 #' Columns ruled `copy` whose values differ inside a target group
 #'
 #' The recast engine refuses a non-constant `copy` column in its own
@@ -1046,18 +1071,31 @@ NULL
 .agg_conflicts <- function(df, gs, level, cols) {
   if (!length(cols) || !"region" %in% names(df)) return(NULL)
   tgt <- .agg_map_codes(df$region, gs, level)
+  # The cell is the target region AND the row's other identifiers: a `copy`
+  # column may legitimately differ between clusters, vintages or years of one
+  # region, and comparing all of them against each other reports a conflict
+  # where there is none.
+  id <- setdiff(intersect(.AGG_ID_COLS, names(df)), c("region", "src", "dst"))
   out <- list()
   for (cn in cols) {
     v <- df[[cn]]
     ok <- !is.na(v) & !is.na(tgt)
     if (!any(ok)) next
+    cell <- tgt[ok]
+    if (length(id)) {
+      cell <- paste(cell, do.call(paste, c(lapply(id, function(k)
+        as.character(df[[k]][ok])), list(sep = "
+"))), sep = "
+")
+    }
     sp <- split(data.frame(region = as.character(df$region[ok]),
-                           value = v[ok], stringsAsFactors = FALSE), tgt[ok])
+                           target = tgt[ok],
+                           value = v[ok], stringsAsFactors = FALSE), cell)
     for (g in names(sp)) {
       u <- unique(sp[[g]]$value)
       if (length(u) > 1L)
         out[[length(out) + 1L]] <- data.frame(
-          column = cn, target = g,
+          column = cn, target = sp[[g]]$target[1L],
           regions = paste(unique(sp[[g]]$region), collapse = ", "),
           values = paste(format(u, trim = TRUE), collapse = ", "),
           stringsAsFactors = FALSE)
@@ -1197,12 +1235,63 @@ These values have no merged form. Declare one value for ",
     df$.agg_w[is.na(df$.agg_w)] <- 0
   }
 
-  out <- geoscales::recast_from_geoatoms(
-    df, gs, target = level, key = "region", values = vals, rule = rules,
-    weight = wcol, na_rm = TRUE, na_action = "drop")
-  out <- as.data.frame(out)
-  names(out)[names(out) == level] <- "region"
-  out <- out[, intersect(names(df), names(out)), drop = FALSE]
+  # Rows are grouped by the geoframe their code sits at: a declaration made
+  # above the model's regions is not an atom, so one atoms-only recast over
+  # the whole slot drops every coarse row. The atom group keeps that call, and
+  # with it `na_rm`, which the general route does not take; a coarser group
+  # recasts from its own geoframe.
+  fine <- geoscales::geoscale_geoframes(gs, finest = TRUE)
+  rk_t <- geoscales::geoscale_rank(gs, level)
+  fr <- .agg_frames_of(df$region, gs)
+  parts <- list()
+  for (f in unique(stats::na.omit(fr))) {
+    d <- df[!is.na(fr) & fr == f, , drop = FALSE]
+    rk <- geoscales::geoscale_rank(gs, f)
+    if (is.na(rk) || is.na(rk_t)) next
+    if (rk <= rk_t) {
+      # At the target there is nothing to merge; above it the geoframe
+      # survives `prune_geoscale()`, so the declaration stays a legal one in
+      # the aggregated model. Either way the rows are carried unchanged.
+      d$.agg_w <- NULL
+      parts[[length(parts) + 1L]] <- d
+      next
+    }
+    # Only the atoms route takes a weight column of `x`; the general one
+    # resolves `weight` against the SCALE's declared weights. So a coarse
+    # group is weighted by the geoscale -- as an object carrying no size of
+    # its own already is -- and the atom group keeps today's behaviour, which
+    # is what makes a single-geoframe model recast exactly as before.
+    wc <- if (identical(f, fine)) wcol else NULL
+    o <- if (identical(f, fine))
+      geoscales::recast_from_geoatoms(
+        d, gs, target = level, key = "region", values = vals, rule = rules,
+        weight = wc, na_rm = TRUE, na_action = "drop")
+    else
+      .agg_through_atoms(d, gs, source = f, level = level, vals = vals,
+                         rules = rules)
+    o <- as.data.frame(o)
+    names(o)[names(o) == level] <- "region"
+    parts[[length(parts) + 1L]] <- o[, intersect(names(df), names(o)),
+                                     drop = FALSE]
+  }
+  if (!length(parts)) {
+    out <- df[0, setdiff(names(df), ".agg_w"), drop = FALSE]
+  } else {
+    cols <- intersect(setdiff(names(df), ".agg_w"),
+                      Reduce(intersect, lapply(parts, names)))
+    out <- do.call(rbind, lapply(parts, function(d) d[, cols, drop = FALSE]))
+    rownames(out) <- NULL
+    # Two geoframes landing on the same cell would have to be combined across
+    # groups, which needs the weight mass of both. No model declares that yet,
+    # so it is named rather than guessed.
+    kcols <- setdiff(names(out), vals)
+    if (length(kcols) && any(dup <- duplicated(out[, kcols, drop = FALSE]))) {
+      stop(what, ": rows declared at more than one geoframe merge into the ",
+           "same cell at '", level, "' (",
+           paste(unique(as.character(out$region[dup])), collapse = ", "),
+           "). Declare the slot at one geoframe.", call. = FALSE)
+    }
+  }
 
   if (nrow(wild)) {
     wild$.agg_w <- NULL
@@ -1218,12 +1307,87 @@ These values have no merged form. Declare one value for ",
   out
 }
 
-#' Map fine region codes to their code at `level`
+#' Which geoframe each code of a GeoScale sits at
+#'
+#' A model may declare an object above its own regions, so a region-keyed
+#' column holds codes from more than one geoframe. The lookup is built once
+#' per call off the leaftable: `.frame_of_code()` scans every geoframe column
+#' per code, which is too slow for a slot of a hundred thousand rows.
+#'
+#' Coarsest first, so a finer geoframe overwrites: a code repeated at two
+#' adjacent geoframes is a singleton group, and both readings roll up to the
+#' same target.
+#' @noRd
+.agg_code_frames <- function(gs) {
+  lt <- tryCatch(as.data.frame(geoscales::geoscale_leaftable(gs)),
+                 error = function(e) NULL)
+  frames <- tryCatch(geoscales::geoscale_geoframes(gs),
+                     error = function(e) character())
+  map <- character()
+  if (is.null(lt)) return(map)
+  for (f in frames) {
+    if (!f %in% names(lt)) next
+    cd <- unique(as.character(lt[[f]]))
+    cd <- cd[!is.na(cd) & nzchar(cd)]
+    if (length(cd)) map[cd] <- f
+  }
+  map
+}
+
+#' The geoframe each code is declared at; `NA` for a code the scale lacks
+#' @noRd
+.agg_frames_of <- function(x, gs, map = NULL) {
+  if (is.null(map)) map <- .agg_code_frames(gs)
+  if (!length(map)) return(rep(NA_character_, length(x)))
+  unname(map[as.character(x)])
+}
+
+#' Crosswalk from one geoframe to a coarser one
+#'
+#' Geoframes are partitions of the atoms and need not nest: a code with two
+#' parents has no single target, so it is dropped rather than silently taking
+#' the first one.
+#' @noRd
+.agg_frame_xwalk <- function(gs, source, level) {
+  lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
+  if (!all(c(source, level) %in% names(lt))) return(character())
+  xw <- unique(data.frame(src = as.character(lt[[source]]),
+                          tgt = as.character(lt[[level]]),
+                          stringsAsFactors = FALSE))
+  xw <- xw[!is.na(xw$src), , drop = FALSE]
+  amb <- unique(xw$src[duplicated(xw$src)])
+  if (length(amb)) {
+    warning("geoframe '", source, "' does not nest inside '", level,
+            "': code(s) ", paste(amb, collapse = ", "),
+            " have more than one parent and are dropped", call. = FALSE)
+    xw <- xw[!xw$src %in% amb, , drop = FALSE]
+  }
+  stats::setNames(xw$tgt, xw$src)
+}
+
+#' Map region codes to their code at `level`, whatever geoframe they sit at
+#'
+#' A code already at `level` maps to itself; one coarser than `level` has no
+#' way down and maps to `NA`, which every caller treats as out of scope.
 #' @noRd
 .agg_map_codes <- function(x, gs, level) {
-  lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
-  fine <- geoscales::geoscale_geoframes(gs, finest = TRUE)
-  as.character(lt[[level]])[match(as.character(x), as.character(lt[[fine]]))]
+  x <- as.character(x)
+  out <- rep(NA_character_, length(x))
+  if (!length(x)) return(out)
+  fr <- .agg_frames_of(x, gs)
+  rk_t <- geoscales::geoscale_rank(gs, level)
+  for (f in unique(stats::na.omit(fr))) {
+    i <- which(!is.na(fr) & fr == f)
+    rk <- geoscales::geoscale_rank(gs, f)
+    if (is.na(rk) || is.na(rk_t) || rk < rk_t) next
+    if (rk == rk_t) {
+      out[i] <- x[i]
+      next
+    }
+    xw <- .agg_frame_xwalk(gs, f, level)
+    out[i] <- unname(xw[x[i]])
+  }
+  out
 }
 
 # -- trade ------------------------------------------------------------------- #
@@ -1323,11 +1487,47 @@ These values have no merged form. Declare one value for ",
   df$.agg_w <- if (is.null(w)) 1 else
     w$.agg_w[match(paste(df$src, df$dst), paste(w$src, w$dst))]
   df$.agg_w[is.na(df$.agg_w)] <- 0
-  out <- suppressWarnings(geoscales::recast_pairs(
-    df, gs, to = level, src = "src", dst = "dst", values = vals,
-    rule = .agg_rules(vals), weight = ".agg_w", na_rm = TRUE))
-  out <- as.data.frame(out)
-  out[, intersect(names(df), names(out)), drop = FALSE]
+  # Endpoints follow the same rule as a region-keyed slot: a corridor may be
+  # declared above the model's regions, and `recast_pairs()` takes ONE source
+  # geoframe per call, so the rows are grouped by their endpoints' geoframe.
+  map <- .agg_code_frames(gs)
+  fs <- .agg_frames_of(df$src, gs, map)
+  fd <- .agg_frames_of(df$dst, gs, map)
+  mixed <- !is.na(fs) & !is.na(fd) & fs != fd
+  if (any(mixed)) {
+    stop("trade endpoints at two geoframes (",
+         paste(unique(paste0(df$src[mixed], " [", fs[mixed], "] - ",
+                             df$dst[mixed], " [", fd[mixed], "]")),
+               collapse = "; "),
+         "): declare both endpoints of a corridor at one geoframe.",
+         call. = FALSE)
+  }
+  fine <- geoscales::geoscale_geoframes(gs, finest = TRUE)
+  rk_t <- geoscales::geoscale_rank(gs, level)
+  parts <- list()
+  for (f in unique(stats::na.omit(fs))) {
+    d <- df[!is.na(fs) & fs == f, , drop = FALSE]
+    rk <- geoscales::geoscale_rank(gs, f)
+    if (is.na(rk) || is.na(rk_t)) next
+    if (rk <= rk_t) {
+      d$.agg_w <- NULL
+      parts[[length(parts) + 1L]] <- d
+      next
+    }
+    o <- suppressWarnings(geoscales::recast_pairs(
+      d, gs, target = level, source = if (identical(f, fine)) NULL else f,
+      src = "src", dst = "dst", values = vals,
+      rule = .agg_rules(vals), weight = ".agg_w", na_rm = TRUE))
+    o <- as.data.frame(o)
+    parts[[length(parts) + 1L]] <- o[, intersect(names(df), names(o)),
+                                     drop = FALSE]
+  }
+  if (!length(parts)) return(df[0, setdiff(names(df), ".agg_w"), drop = FALSE])
+  cols <- intersect(setdiff(names(df), ".agg_w"),
+                    Reduce(intersect, lapply(parts, names)))
+  out <- do.call(rbind, lapply(parts, function(d) d[, cols, drop = FALSE]))
+  rownames(out) <- NULL
+  out
 }
 
 #' Combine one slot that is keyed by neither `region` nor `src`/`dst`
@@ -1819,10 +2019,31 @@ Aggregating between two non-atom levels needs a level-aware ",
   # not `list([[1]])`: the list is NAMED and expand_variants() reads
   # `names(object@data)[i]`.
   res@data <- object@data[1]
-  res@data[[1]]@data <- out
+  res@data[[1]]@data <- lapply(out, .agg_fix_geoframe, gs = gs, level = level)
   res@config@region <- coarse
   res@config@geoscale <- geoscales::prune_geoscale(gs, level)
   res
+}
+
+#' Re-read `@geoframe` against the aggregated model
+#'
+#' `@geoframe` names the geoframe an object's regions are expressed at. After
+#' aggregation those regions are the model's OWN, so a declaration at the
+#' target geoframe or finer no longer says anything and is cleared -- left in
+#' place it contradicts the regions beside it, and at the coarsest level it
+#' names a geoframe the pruned geoscale no longer has. A declaration COARSER
+#' than the target survives the pruning and is kept.
+#' @noRd
+.agg_fix_geoframe <- function(obj, gs, level) {
+  if (!isS4(obj) || !.hasSlot(obj, "geoframe")) return(obj)
+  f <- as.character(methods::slot(obj, "geoframe"))
+  f <- f[!is.na(f) & nzchar(f)]
+  if (!length(f)) return(obj)
+  rk <- geoscales::geoscale_rank(gs, f[1L])
+  rk_t <- geoscales::geoscale_rank(gs, level)
+  if (is.na(rk) || is.na(rk_t) || rk < rk_t) return(obj)
+  methods::slot(obj, "geoframe") <- character()
+  obj
 }
 
 
