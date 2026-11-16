@@ -140,9 +140,24 @@ NULL
 #'   and `cap.up` (explicit stub bound overriding the derivation from the
 #'   route's `ava.*` rows). Routes without a price row are dropped without a
 #'   stub.
+#' @param split_weight the weight a value declared at a split region group is
+#'   divided by, keyed on an object name or a class and optionally on a
+#'   column: `list(SUP_COA = c(ava.up = "area"), demand = "population")`, or
+#'   the flat form `c("SUP_COA:ava.up" = "area")`. One weight for everything
+#'   that asks is `split_weight = "area"`, or `list(all = "area")`, and a key
+#'   for one object or class still wins over it. A weight is a column the
+#'   geoscale declares (see `geoscales::geoscale_weights()`) or a named
+#'   numeric of shares over the kept regions. There is no default: dividing a
+#'   demand or a fleet by area shares a city with a desert.
+#' @param keep,drop keys, in the same grammar, whose values are settled
+#'   without a weight -- held whole in every part, or left out of the cut.
+#' @param dryrun return the pre-flight report instead of cutting: what the
+#'   cut splits, which values still need a decision, which are carried, the
+#'   caveats and the ways on. [`is_separable()`] is its verdict alone.
 #' @param verbose print per-object messages.
 #'
-#' @return the restricted [model].
+#' @return the restricted [model], or the pre-flight report when
+#'   `dryrun = TRUE`.
 #' @family interpolation
 #' @export
 #' @examples
@@ -164,8 +179,31 @@ NULL
 #' sub <- subset_model_regions(mod, "W1")
 #' get_region(sub)
 subset_model_regions <- function(object, region, boundary_prices = NULL,
+                                 split_weight = NULL, keep = NULL,
+                                 drop = NULL, dryrun = FALSE,
                                  verbose = isVerbose()) {
   stopifnot(inherits(object, "model"))
+  # The pre-flight is the same code that refuses, so a dry run and the cut
+  # cannot disagree about what a region set needs.
+  rep <- .region_subset_report(object, region, split_weight = split_weight,
+                               keep = keep, drop = drop)
+  if (isTRUE(dryrun)) return(rep)
+  # The pre-flight can already say what a weight WOULD settle; carrying that
+  # out -- apportioning the parent's value between the kept regions -- is the
+  # next step and is not built, so a decision that would change a value is
+  # refused rather than quietly ignored.
+  dec <- if (is.null(rep$rows)) character() else
+    stats::na.omit(rep$rows$decision)
+  if (length(dec)) {
+    i <- which(!is.na(rep$rows$decision))
+    stop("`split_weight` / `keep` / `drop` are read by the pre-flight but not ",
+         "yet applied by the cut: ",
+         paste(sprintf("%s$%s (%s)", rep$rows$name[i], rep$rows$column[i],
+                       rep$rows$decision[i]), collapse = ", "),
+         ".
+Run with `dryrun = TRUE` to see what the cut would need, or ",
+         "extend `region` to the whole group.", call. = FALSE)
+  }
   r_m <- as.character(object@config@region)
   # A code at ANY geoframe is accepted and expands to the regions beneath it,
   # so the whole-group cut -- the only shape a multi-level model permits
@@ -192,7 +230,10 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
   # honoured without a rule, and there is no safe default (see
   # `.refuse_split_groups()`).
   cl <- .region_group_closure(object, keep = region)
-  .refuse_split_groups(object, keep = region, split = cl$split)
+  if (!isTRUE(rep$ready)) {
+    .refuse_split_groups(object, keep = region, split = cl$split,
+                         report = rep)
+  }
 
   object <- .subset_model_regions(object, keep = region, keep_up = cl$covered,
                                boundary_prices = boundary_prices,
@@ -2386,7 +2427,14 @@ Declare commodities with `newCommodity()` and add them to the model; ",
 # understates one that is indivisible, and which applies is a modelling
 # judgement the subset cannot make.
 #' @noRd
-.refuse_split_groups <- function(mod, keep, split) {
+.refuse_split_groups <- function(mod, keep, split, report = NULL) {
+  # Single-sourced text: when the report is in hand, the refusal IS the report.
+  if (!is.null(report)) {
+    if (isTRUE(report$ready)) return(invisible(NULL))
+    stop(paste(utils::capture.output(print(report)), collapse = "
+"),
+         call. = FALSE)
+  }
   if (!length(split)) return(invisible(NULL))
   hits <- .split_group_refs(mod, split)
   if (!length(hits)) return(invisible(NULL))
@@ -2425,6 +2473,256 @@ Declare commodities with `newCommodity()` and add them to the model; ",
        "subset.", call. = FALSE)
 }
 
+# --------------------------------------------------------------------------- #
+# The subset pre-flight: what a prospective cut would have to act on, and what
+# it still needs from the caller. `subset_model_regions(dryrun = TRUE)` returns
+# it, `is_separable()` reads its verdict, and the refusal is written from it,
+# so the three cannot disagree.
+# --------------------------------------------------------------------------- #
+
+# code -> the geoframe it belongs to.
+#' @noRd
+.frame_of_code <- function(gs) {
+  lt <- tryCatch(as.data.frame(geoscales::geoscale_leaftable(gs)),
+                 error = function(e) NULL)
+  frames <- tryCatch(geoscales::geoscale_geoframes(gs),
+                     error = function(e) character())
+  function(code) {
+    if (is.null(lt)) return(NA_character_)
+    f <- frames[vapply(frames, function(n)
+      n %in% names(lt) && code %in% as.character(lt[[n]]), logical(1))]
+    if (!length(f)) NA_character_ else f[1]
+  }
+}
+
+# One row per value column standing at a group the cut would split.
+#' @noRd
+.region_split_rows <- function(mod, split, frame_of = function(x) NA_character_) {
+  if (!length(split)) return(NULL)
+  rows <- list()
+  scan <- function(el) {
+    if (methods::is(el, "repository")) {
+      for (nm in names(el@data)) scan(el@data[[nm]])
+      return(invisible(NULL))
+    }
+    if (!isS4(el)) return(invisible(NULL))
+    nm_el <- tryCatch(as.character(el@name)[1],
+                      error = function(e) NA_character_)
+    cls <- class(el)[1]
+    robj <- tryCatch(as.character(methods::slot(el, "region")),
+                     error = function(e) character())
+    obj_codes <- intersect(unique(robj), split)
+    for (sn in .instance_slots(el)) {
+      if (identical(sn, "misc")) next
+      v <- tryCatch(methods::slot(el, sn), error = function(e) NULL)
+      if (!is.data.frame(v) || !nrow(v)) next
+      codes <- character()
+      pair <- FALSE
+      for (cn in intersect(c("region", "src", "dst"), colnames(v))) {
+        hit <- intersect(unique(as.character(v[[cn]])), split)
+        if (length(hit)) {
+          codes <- c(codes, hit)
+          if (cn != "region") pair <- TRUE
+        }
+      }
+      if (!length(codes)) {
+        if (!length(obj_codes)) next
+        codes <- obj_codes
+      }
+      num <- names(v)[vapply(v, is.numeric, logical(1))]
+      num <- num[vapply(num, function(cn) any(!is.na(v[[cn]])), logical(1))]
+      d <- .div_rows(num, cls = cls, slot = sn, axis = "space")
+      if (is.null(d) || !nrow(d)) next
+      d <- tibble::add_column(d, name = nm_el, .before = 1L)
+      d$at <- paste(sort(unique(codes)), collapse = ", ")
+      d$geoframe <- paste(sort(unique(stats::na.omit(
+        vapply(unique(codes), frame_of, character(1))))), collapse = ", ")
+      if (pair && !sn %in% .coarse_cost_slots) {
+        # A corridor endpoint at a split group is not a value to apportion: it
+        # is a question about the network -- one corridor per kept child, or
+        # one shared -- which the cut cannot answer. Declare the corridor on
+        # the endpoint regions instead.
+        d$needs <- "endpoint"
+        d$ready <- FALSE
+        d$reason <- paste("a corridor endpoint at a split group: declare the",
+                          "corridor on the endpoint regions")
+      }
+      if (sn %in% .coarse_cost_slots) {
+        # A coarse cost is a comparability problem, not a feasibility one:
+        # the subset still solves, and `.warn_sampled_coarse_costs()` names
+        # the remedy. It is reported as a caveat, not as something to settle.
+        d$reason <- paste("a cost charged once at the group: the remainder",
+                          "bears all of it (see the caveats)")
+      }
+      rows[[length(rows) + 1L]] <<- d
+    }
+    invisible(NULL)
+  }
+  for (el in mod@data) scan(el)
+  if (!length(rows)) return(NULL)
+  do.call(rbind, rows)
+}
+
+# The report itself.
+#' @noRd
+.region_subset_report <- function(mod, region, split_weight = NULL,
+                                  keep = NULL, drop = NULL) {
+  r_m <- as.character(mod@config@region)
+  gs <- tryCatch(mod@config@geoscale, error = function(e) NULL)
+  has_gs <- !is.null(gs) && is_geoscale(gs)
+  if (has_gs && length(setdiff(region, r_m)) > 0L) {
+    region <- .tb_resolve_regions(region, r_m, gs,
+                                  arg = "subset_model_regions(region = )")
+  }
+  unknown <- setdiff(region, r_m)
+  if (length(unknown) > 0L) {
+    stop("region(s) not declared in the model: ",
+         paste(unknown, collapse = ", "), call. = FALSE)
+  }
+  cl <- .region_group_closure(mod, keep = region)
+  frame_of <- if (has_gs) .frame_of_code(gs) else function(x) NA_character_
+  rows <- .region_split_rows(mod, cl$split, frame_of)
+  wts <- if (has_gs) {
+    tryCatch(geoscales::geoscale_weights(gs), error = function(e) NULL)
+  } else {
+    NULL
+  }
+  rows <- .div_decide(rows, split_weight, keep, drop, weights = wts)
+  # What the caller would have to add to each split group to keep it whole.
+  # Only a group a declaration actually sits at is a problem; a hierarchy
+  # whose groups the cut happens to divide is normal -- TOPIA's nation carries
+  # nothing, so cutting the nation in half is not an issue.
+  declared <- if (is.null(rows)) character() else sort(unique(unlist(
+    strsplit(rows$at, ", ", fixed = TRUE))))
+  lt <- if (has_gs) {
+    tryCatch(as.data.frame(geoscales::geoscale_leaftable(gs)),
+             error = function(e) NULL)
+  } else {
+    NULL
+  }
+  fin <- if (has_gs) {
+    geoscales::geoscale_geoframes(gs, finest = TRUE)
+  } else {
+    NA_character_
+  }
+  missing_kids <- stats::setNames(vapply(cl$split, function(code) {
+    f <- frame_of(code)
+    if (is.null(lt) || is.na(f) || !f %in% names(lt)) return("")
+    kids <- unique(as.character(lt[[fin]])[as.character(lt[[f]]) == code])
+    paste(sort(setdiff(kids, region)), collapse = ", ")
+  }, character(1)), cl$split)
+  out <- list(
+    regions = region,
+    dropped = setdiff(r_m, region),
+    covered = cl$covered,
+    split = cl$split,
+    declared = intersect(cl$split, declared),
+    missing = missing_kids,
+    rows = rows,
+    caveats = .sampled_coarse_cost_hits(mod, keep = region),
+    ready = is.null(rows) || all(rows$ready))
+  class(out) <- "region_subset_report"
+  out
+}
+
+#' @method print region_subset_report
+#' @export
+print.region_subset_report <- function(x, ...) {
+  rg <- paste(x$regions, collapse = ", ")
+  if (isTRUE(x$ready)) {
+    cat("The subset", rg, "can be cut.\n")
+  } else {
+    cat("The subset", rg, "cannot be cut as it stands.\n")
+  }
+  grp <- x$declared
+  if (length(grp)) {
+    cat("It splits region group(s) the model declares values at: ",
+        paste(sprintf("%s (add %s to keep it whole)", grp,
+                      x$missing[grp]), collapse = "; "), "\n",
+        sep = "")
+  }
+  r <- x$rows
+  if (!is.null(r) && nrow(r)) {
+    ask <- r[!r$ready, , drop = FALSE]
+    if (nrow(ask)) {
+      cat("\n", nrow(ask), " value(s) need a decision:\n", sep = "")
+      print(as.data.frame(ask[, intersect(
+        c("name", "slot", "column", "geoframe", "at", "rule", "needs"),
+        names(ask))]), row.names = FALSE)
+    }
+    ok <- r[r$ready, , drop = FALSE]
+    if (nrow(ok)) {
+      cat("\n", nrow(ok), " value(s) are settled: ",
+          paste(unique(sprintf("%s$%s (%s)", ok$name, ok$column,
+                               ifelse(nzchar(ok$weight) & !is.na(ok$weight),
+                                      ok$weight, "carried"))),
+                collapse = ", "), "\n", sep = "")
+    }
+  }
+  if (length(x$caveats)) {
+    cat("\nCaveat(s):\n  ", paste(x$caveats, collapse = "\n  "), "\n", sep = "")
+    cat("  A coarse cost is charged ONCE at that cell, so the sub-model bears",
+        "the whole cost rather than its share.\n")
+  }
+  if (!isTRUE(x$ready)) {
+    cat("\nWays on:\n",
+        "  * name a weight: `split_weight = list(<object> = \"<weight>\")`,",
+        " or `keep` / `drop` the value;\n",
+        "  * extend `region` to the whole group, as named above;\n",
+        "  * aggregate to that level first (`aggregate_model_regions(level =",
+        " )`) and subset there;\n",
+        "  * declare those objects on the finer regions.\n", sep = "")
+  }
+  invisible(x)
+}
+
+#' Can these regions be separated from the model?
+#'
+#' A quick check, before any cutting, of whether
+#' [`subset_model_regions()`] can honour a region set as it stands. A cut that
+#' keeps a whole region group needs nothing; one that splits a group has to be
+#' told what to do with the values declared at that group, and
+#' `subset_model_regions(dryrun = TRUE)` is the same check in full -- what
+#' splits, which values ask, which are carried, and the ways on.
+#'
+#' @param object a `model`.
+#' @param region the regions to keep, at any geoframe (a coarse code expands
+#'   to its members).
+#' @param geoframe instead of `region`: sweep a geoframe, asking the question
+#'   once per code at that frame. Returns a named logical.
+#' @param split_weight,keep,drop as in [`subset_model_regions()`]: the weight
+#'   each quantity would be divided by, or the columns held whole / left out.
+#'
+#' @returns A logical. With `region`, one value, carrying the report in
+#'   `attr(x, "report")`. With `geoframe`, one value per code at that frame.
+#'
+#' @seealso [`subset_model_regions()`]
+#' @export
+is_separable <- function(object, region = NULL, geoframe = NULL,
+                         split_weight = NULL, keep = NULL, drop = NULL) {
+  stopifnot(inherits(object, "model"))
+  if (is.null(region) == is.null(geoframe)) {
+    stop("give either `region` -- the cut you have in mind -- or `geoframe`, ",
+         "to sweep every code at that frame.", call. = FALSE)
+  }
+  if (!is.null(geoframe)) {
+    gs <- tryCatch(object@config@geoscale, error = function(e) NULL)
+    if (is.null(gs) || !is_geoscale(gs)) {
+      stop("`geoframe` needs a geoscale on the model.", call. = FALSE)
+    }
+    check_package("geoscales")
+    codes <- as.character(geoscales::geoscale_regions(gs, geoframe))
+    return(vapply(stats::setNames(codes, codes), function(cd)
+      is_separable(object, region = cd, split_weight = split_weight,
+                   keep = keep, drop = drop)[[1]], logical(1)))
+  }
+  rep <- .region_subset_report(object, region, split_weight = split_weight,
+                               keep = keep, drop = drop)
+  out <- isTRUE(rep$ready)
+  attr(out, "report") <- rep
+  out
+}
+
 # A cost declared at a COARSE geoscale cell is charged once, in full, at that
 # cell -- it does not know how many of the cell's children are still in the
 # model. Subsetting the regions therefore changes the answer: the sub-model
@@ -2436,14 +2734,14 @@ Declare commodities with `newCommodity()` and add them to the model; ",
 # actually bites -- the cell must lose at least one child and keep at least one,
 # or nothing changes.
 #' @noRd
-.warn_sampled_coarse_costs <- function(mod, keep, slots = .coarse_cost_slots) {
+.sampled_coarse_cost_hits <- function(mod, keep, slots = .coarse_cost_slots) {
   gs <- tryCatch(mod@config@geoscale, error = function(e) NULL)
-  if (is.null(gs) || !is_geoscale(gs)) return(invisible(NULL))
-  if (!requireNamespace("geoscales", quietly = TRUE)) return(invisible(NULL))
+  if (is.null(gs) || !is_geoscale(gs)) return(character())
+  if (!requireNamespace("geoscales", quietly = TRUE)) return(character())
   keep <- as.character(keep)
   finest <- geoscales::geoscale_geoframes(gs, finest = TRUE)
   atoms <- as.character(geoscales::geoscale_regions(gs, finest))
-  if (!length(atoms) || all(atoms %in% keep)) return(invisible(NULL))
+  if (!length(atoms) || all(atoms %in% keep)) return(character())
   lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
   frames <- geoscales::geoscale_geoframes(gs)
 
@@ -2477,6 +2775,15 @@ Declare commodities with `newCommodity()` and add them to the model; ",
       }
     }
   }
+  sort(unique(hits))
+}
+
+# Warn with what the collector found. Split from the collection so the
+# subset report can show the same lines without raising a warning.
+#' @noRd
+.warn_sampled_coarse_costs <- function(mod, keep,
+                                      slots = .coarse_cost_slots) {
+  hits <- .sampled_coarse_cost_hits(mod, keep = keep, slots = slots)
   if (!length(hits)) return(invisible(NULL))
   warning(
     "Sampling regions changes a trade cost declared at a coarse level:\n  ",

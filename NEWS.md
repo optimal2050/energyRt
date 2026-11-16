@@ -33,9 +33,16 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 * A region subset drops objects it leaves with nothing to do, and records the
   cut in `@misc$subset`.
 
-* `is_divisible()` reports, per value column, whether a value declared above
-  the subset's regions is carried as it stands or still needs a weight to be
-  split by (`split_weight = list(SUP_COA = "area")`, or `keep` / `drop`).
+* A region subset no longer stops at a group it divides when everything
+  declared there is a rate: a price or a factor holds for each child
+  unchanged, so there is nothing to apportion. A quantity still stops the
+  call, and now names the weight it would need.
+
+* `subset_model_regions(dryrun = TRUE)` reports, before cutting, whether a
+  region set can be cut and what it still needs: which groups it splits, which
+  values ask for a weight (`split_weight = list(SUP_COA = "area")`, or
+  `keep` / `drop`), which are carried, and the ways on. `is_separable()` is
+  its verdict alone.
 
 * **Reports name the calendar each milestone is solved on.** Where milestones
   do not share one calendar, the model, scenario and config reports carry a

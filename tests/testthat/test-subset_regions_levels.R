@@ -109,14 +109,36 @@ test_that("the kept message counts regions, not the coarse codes", {
                  "kept 2 region\\(s\\) \\(whole: Z1\\)")
 })
 
-test_that("splitting a declared group stops and names the ways on", {
-  expect_error(subset_model_regions(mk_zoned(), "R1"), "cuts region group")
-  err <- tryCatch(subset_model_regions(mk_zoned(), "R1"),
+# A QUANTITY at the split group: nothing can apportion it without a weight.
+mk_zoned_q <- function() {
+  mod <- mk_zoned()
+  mod@data$zoned@data$SUP_COA <- update(
+    mod@data$zoned@data$SUP_COA,
+    supply = data.frame(region = c("Z1", "Z2"), cost = 5, ava.up = 100))
+  mod
+}
+
+test_that("a quantity at a split group stops and names the ways on", {
+  expect_error(subset_model_regions(mk_zoned_q(), "R1"),
+               "splits region group")
+  err <- tryCatch(subset_model_regions(mk_zoned_q(), "R1"),
                   error = conditionMessage)
   expect_match(err, "Z1 \\(add R2 to keep it whole\\)")
   expect_match(err, "SUP_COA")
   expect_match(err, "aggregate_model_regions")
-  expect_match(err, "disaggregate")
+  expect_match(err, "finer regions")
+  # naming the weight settles it
+  expect_true(is_separable(mk_zoned_q(), "R1",
+                           split_weight = list(SUP_COA = "km2")))
+})
+
+test_that("only RATES at a split group: the cut goes through", {
+  # CHANGED 2026-11-15: a declaration at a group the cut divides used to
+  # stop the call whatever it held. A rate holds for each child unchanged,
+  # so there is nothing to apportion and nothing to ask.
+  expect_true(is_separable(mk_zoned(), "R1"))
+  sub <- subset_model_regions(mk_zoned(), "R1")
+  expect_equal(get_region(sub), "R1")
 })
 
 test_that("a coarse COST on a split group warns rather than stopping", {

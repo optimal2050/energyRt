@@ -82,7 +82,9 @@ NULL
 }
 
 # --------------------------------------------------------------------------- #
-# is_divisible(): what a region subset still needs before it can cut.
+# The region-subset pre-flight's machinery: what a region subset still needs
+# before it can cut. Driven from `subset_model_regions(dryrun = )` (see
+# `.region_subset_report()` in R/region.R); nothing here is exported.
 #
 # The recast rule is declared per class, slot and column, and it is the
 # arithmetic, not the decision. `weighted_mean`, `mean` and `copy` say the
@@ -98,6 +100,10 @@ NULL
 # (a timeslice value is a rate), so no weight is ever wanted; what the time
 # axis lacks is a declared rule for the columns that have none.
 # --------------------------------------------------------------------------- #
+
+# The blanket key: one weight for every column that asks. `split_weight =
+# "area"` is the same thing written without a key.
+.DIV_ALL_KEY <- "all"
 
 # What a row still wants before a cut can act on it.
 .DIV_NEEDS <- c(none = "", weight = "weight", rule = "rule")
@@ -121,7 +127,8 @@ NULL
     return(tibble::tibble(
       class = character(), slot = character(), column = character(),
       rule = character(), source = character(), needs = character(),
-      weight = character(), ready = logical(), reason = character()))
+      weight = character(), decision = character(), ready = logical(),
+      reason = character()))
   }
   rule <- if (is.na(cls) || is.na(slot)) {
     stats::setNames(rep(NA_character_, length(cols)), cols)
@@ -151,7 +158,8 @@ NULL
   out <- tibble::tibble(
     class = as.character(cls), slot = as.character(slot), column = cols,
     rule = unname(rule), source = unname(src),
-    needs = .DIV_NEEDS[["rule"]], weight = NA_character_, ready = FALSE,
+    needs = .DIV_NEEDS[["rule"]], weight = NA_character_,
+    decision = NA_character_, ready = FALSE,
     reason = .DIV_REASON[["rule"]])
   known <- !is.na(out$rule)
   if (any(known)) {
@@ -214,7 +222,10 @@ NULL
     if (!is.na(name)) function() flat(paste0(name, ":", column)),
     if (!is.na(name)) function() get1(name, column),
     function() flat(paste0(cls, ":", column)),
-    function() get1(cls, column))
+    function() get1(cls, column),
+    # `all` is the blanket, asked last, so a key for one object or class still
+    # wins over it.
+    function() get1(.DIV_ALL_KEY, column))
   for (f in cand) {
     if (is.null(f)) next
     hit <- f()
@@ -230,6 +241,11 @@ NULL
   if (is.null(out) || !nrow(out)) return(out)
   as_spec <- function(x, what, bare_ok = FALSE) {
     if (is.null(x) || !length(x)) return(NULL)
+    # One weight for everything that asks, written without a key.
+    if (!bare_ok && is.null(names(x)) &&
+        (length(x) == 1L || is.numeric(x))) {
+      return(stats::setNames(list(x), .DIV_ALL_KEY))
+    }
     # `keep` and `drop` name the columns they settle, so a bare vector of keys
     # is their natural form; a weight has to say which key it is for.
     if (bare_ok && is.character(x) && is.null(names(x))) {
@@ -255,6 +271,7 @@ NULL
       out$needs[i] <- .DIV_NEEDS[["none"]]
       out$ready[i] <- TRUE
       out$reason[i] <- .DIV_REASON[["dropped"]]
+      out$decision[i] <- "drop"
       next
     }
     k <- .div_lookup(kp, nm[i], out$class[i], out$column[i])
@@ -263,6 +280,7 @@ NULL
       out$needs[i] <- .DIV_NEEDS[["none"]]
       out$ready[i] <- TRUE
       out$reason[i] <- .DIV_REASON[["kept"]]
+      out$decision[i] <- "keep"
       next
     }
     if (!identical(out$needs[i], .DIV_NEEDS[["weight"]])) next
@@ -283,6 +301,7 @@ NULL
     out$needs[i] <- .DIV_NEEDS[["none"]]
     out$ready[i] <- TRUE
     out$reason[i] <- .DIV_REASON[["ready"]]
+    out$decision[i] <- "weight"
   }
   given <- unique(c(names(sw), names(kp), names(dp)))
   unmatched <- setdiff(given, unique(c(used, sub(":.*$", "", used))))
@@ -304,8 +323,7 @@ NULL
     if (!is.data.frame(v) || !ncol(v)) return(NULL)
     num <- names(v)[vapply(v, is.numeric, logical(1))]
     # A declared-but-empty column is contract, not data: the object shapes
-    # report what the object CARRIES. `is_divisible()` with no object is where
-    # the whole contract lives.
+    # report what the object CARRIES, not the whole declared contract.
     num <- num[vapply(num, function(cn) any(!is.na(v[[cn]])), logical(1))]
     .div_rows(num, cls = cls, slot = s, axis = axis)
   })
@@ -354,127 +372,6 @@ NULL
   character()
 }
 
-#' What a region subset still needs before it can cut
-#'
-#' Reports, column by column, what a partial selection of a region group does
-#' to a value declared at the group. The recast rule declared for the column is
-#' the arithmetic: a rate, a price or a region-invariant scalar
-#' (`weighted_mean`, `mean`, `copy`) holds for each child unchanged, so the
-#' declaration is carried as it stands and the row is ready. A quantity (`sum`)
-#' is not settled by its rule -- the rule says the parent is the total of its
-#' children, not how a part of that total is apportioned -- so the row asks for
-#' a **weight**, and there is no default: dividing a demand or a fleet by area
-#' shares a city with a desert.
-#'
-#' Name the weight with `split_weight`, or settle a column without one through
-#' `keep` (hold the value whole in every part) or `drop`. All three are keyed
-#' on an object name or a class, optionally per column:
-#' `split_weight = list(SUP_COA = c(ava.up = "area"), demand = "population")`,
-#' or the flat shorthand `c("SUP_COA:ava.up" = "area")`, most specific first.
-#' A weight is a weight column declared on the geoscale (see
-#' [geoscales::geoscale_weights()]) or a named numeric of shares over the kept
-#' regions.
-#'
-#' `attr(x, "ready")` is `TRUE` when every row is settled, which is the test a
-#' region subset makes before it refuses; `attr(x, "unmatched")` names keys
-#' that matched nothing.
-#'
-#' On a `model` it reports only the columns that model declares **above** its
-#' own regions -- usually a handful -- rather than the whole contract.
-#'
-#' The time axis asks for nothing of the kind: no time rule is `sum`, since a
-#' timeslice value is a rate. What it reports instead is which columns declare
-#' no time rule at all, as `needs = "rule"`.
-#'
-#' @param object a `model`, a `repository`, any model object (a `technology`,
-#'   a `supply`, ...), or `NULL` for the whole declared contract.
-#' @param axis `"space"` (the default) or `"time"`. The space axis falls back
-#'   to the aggregator's own inference where nothing is declared; the time
-#'   axis does not.
-#' @param column optional character vector of column names to report on
-#'   directly, with no class or slot to declare them.
-#' @param split_weight the weight each quantity is divided by, keyed as
-#'   described above. A geoscale weight column name, or a named numeric of
-#'   shares over the kept regions.
-#' @param keep,drop keys whose columns are settled without a weight: held
-#'   whole in every part, or left out of the cut.
-#'
-#' @returns A tibble with one row per column: `class`, `slot`, `column`,
-#'   `rule` (the declared recast arithmetic), `source` (`"declared"`,
-#'   `"inferred"` or `"registry"`), `needs` (`""`, `"weight"` or `"rule"`),
-#'   `weight` (what was given, or `"shares"` for explicit ones), `ready` and
-#'   `reason`. Every shape built from objects adds the object `name` in front.
-#'   See `attr(x, "ready")` and `attr(x, "unmatched")`.
-#'
-#' @examples
-#' # the declared contract
-#' is_divisible()
-#'
-#' # single columns, with no class to declare them
-#' is_divisible(column = c("cap.up", "cost"))
-#'
-#' # a quantity asks for a weight; a rate does not
-#' is_divisible(column = c("ava.up", "cost"))
-#' @export
-is_divisible <- function(object = NULL, axis = c("space", "time"),
-                         column = NULL, split_weight = NULL, keep = NULL,
-                         drop = NULL) {
-  axis <- match.arg(axis)
-  wts <- NULL
-  if (!is.null(object)) {
-    gs0 <- tryCatch(object@config@geoscale, error = function(e) NULL)
-    if (!is.null(gs0) && is_geoscale(gs0)) {
-      wts <- tryCatch(geoscales::geoscale_weights(gs0), error = function(e) NULL)
-    }
-  }
-  fin <- function(d) {
-    if (is.null(d) || !nrow(d)) {
-      d <- .div_rows(character())
-      attr(d, "ready") <- TRUE
-      return(d)
-    }
-    d <- .div_decide(d, split_weight, keep, drop, weights = wts)
-    attr(d, "ready") <- all(d$ready)
-    d
-  }
-  if (!is.null(column)) return(fin(.div_rows(column, axis = axis)))
-  if (is.null(object)) {
-    rows <- lapply(seq_len(nrow(.defRecast)), function(i) {
-      .div_rows(.defRecast$column[i], cls = .defRecast$class[i],
-                slot = .defRecast$slot[i], axis = axis)
-    })
-    return(fin(do.call(rbind, rows)))
-  }
-  if (inherits(object, "model") || inherits(object, "repository")) {
-    atoms <- if (inherits(object, "model")) .div_model_atoms(object) else NULL
-    gs <- tryCatch(object@config@geoscale, error = function(e) NULL)
-    finest <- if (!is.null(gs) && is_geoscale(gs)) {
-      as.character(geoscales::geoscale_geoframes(gs, finest = TRUE))[1]
-    } else {
-      NA_character_
-    }
-    ob <- getObject(object)
-    rows <- lapply(names(ob), function(nm) {
-      o <- ob[[nm]]
-      sl <- if (is.null(atoms) || !length(atoms)) {
-        NULL
-      } else {
-        .div_coarse_slots(o, atoms, finest)
-      }
-      if (!is.null(sl) && !length(sl)) return(NULL)
-      d <- .div_object(o, axis = axis, slots = sl)
-      if (is.null(d) || !nrow(d)) return(NULL)
-      tibble::add_column(d, name = nm, .before = 1L)
-    })
-    return(fin(do.call(rbind, rows)))
-  }
-  d <- .div_object(object, axis = axis)
-  onm <- tryCatch(as.character(object@name)[1], error = function(e) NA_character_)
-  if (!is.null(d) && nrow(d) && !is.na(onm) && nzchar(onm)) {
-    d <- tibble::add_column(d, name = onm, .before = 1L)
-  }
-  fin(d)
-}
 
 #' Recast rules for the solution variables, by role
 #'

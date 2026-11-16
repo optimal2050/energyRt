@@ -47,7 +47,7 @@ test_that("a request that splits a zone is refused, and names the province", {
   # refusal comes from subset_model_regions() and names what to add -- which
   # is why asking by zone code is the shorter road.
   expect_error(build_topia(c("R04", "R05"), quiet = TRUE),
-               "cuts region group")
+               "splits region group")
   expect_error(build_topia(c("R04", "R05"), quiet = TRUE), "R06")
   expect_no_error(build_topia("Z3", quiet = TRUE))
 })

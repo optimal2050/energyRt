@@ -252,3 +252,118 @@ test_that("a code at no geoframe is refused, naming the frames", {
                "not a code at any geoframe")
   expect_error(subset_model_regions(m, region = "ZZ"), "zone Z12/Z3")
 })
+
+mk_topia_mod <- function() {
+  k <- topia$modules$electricity
+  mod <- newModel("T", data = k$repo, calendar = calendars[["d365_h24_1dps"]],
+                  region = k$regions,
+                  horizon = topia$modules$horizons$BY2025_50_by10,
+                  discount = 0.05)
+  setGeoscale(mod, k$geoscale)
+}
+
+# @covers subset_model_regions depth=U
+test_that("a dry run answers whether a cut can be made, without cutting", {
+  skip_if_not_installed("geoscales")
+  mod <- mk_topia_mod()
+  ok <- subset_model_regions(mod, "Z3", dryrun = TRUE)
+  expect_s3_class(ok, "region_subset_report")
+  expect_true(ok$ready)
+  expect_setequal(ok$regions, c("R04", "R05", "R06"))
+  expect_null(ok$rows)
+  # the model is untouched: a dry run builds nothing
+  expect_length(get_region(mod), 12L)
+})
+
+# @covers subset_model_regions depth=U
+test_that("a dry run names what a split cut still needs", {
+  skip_if_not_installed("geoscales")
+  mod <- mk_topia_mod()
+  r <- suppressWarnings(subset_model_regions(mod, "R03", dryrun = TRUE))
+  expect_false(r$ready)
+  # the nation is split too, but nothing is declared there, so it is not named
+  expect_equal(r$declared, "Z2")
+  expect_equal(unname(r$missing["Z2"]), "R02")
+  ask <- r$rows[!r$rows$ready, ]
+  expect_true("SUP_GAS" %in% ask$name)
+  expect_equal(ask$needs[ask$name == "SUP_GAS" & ask$column == "ava.up"],
+               "weight")
+  # a corridor endpoint at a split group is a network question, not a weight
+  expect_true(all(ask$needs[ask$name == "TBD_GAS_Z2_Z3"] == "endpoint"))
+  # a rate is carried, and the coarse corridor cost is a caveat, not a blocker
+  carried <- r$rows[r$rows$ready, ]
+  expect_true(all(c("cost", "price", "invcost") %in% carried$column))
+  expect_match(r$caveats, "TBD_GAS_Z2_Z3@invcost")
+  # the refusal is the same report
+  expect_error(suppressWarnings(subset_model_regions(mod, "R03")),
+               "cannot be cut as it stands")
+})
+
+# @covers subset_model_regions depth=U
+test_that("a named weight settles a quantity in the pre-flight", {
+  skip_if_not_installed("geoscales")
+  mod <- mk_topia_mod()
+  r <- suppressWarnings(subset_model_regions(
+    mod, "R03", dryrun = TRUE,
+    split_weight = list(SUP_GAS = c(ava.up = "area"))))
+  row <- r$rows[r$rows$name == "SUP_GAS" & r$rows$column == "ava.up", ]
+  expect_equal(row$weight, "area")
+  expect_true(row$ready)
+  # a weight the geoscale does not declare is refused, naming what it has
+  expect_error(suppressWarnings(subset_model_regions(
+    mod, "R03", dryrun = TRUE, split_weight = list(supply = "population"))),
+    "not a weight column")
+})
+
+# @covers is_separable depth=U
+test_that("is_separable answers the question in one logical", {
+  skip_if_not_installed("geoscales")
+  mod <- mk_topia_mod()
+  expect_false(suppressWarnings(is_separable(mod, "R03")))
+  expect_true(is_separable(mod, "Z3"))
+  expect_s3_class(attr(suppressWarnings(is_separable(mod, "R03")), "report"),
+                  "region_subset_report")
+  # a geoframe sweep asks the question once per code at that frame
+  z <- suppressWarnings(is_separable(mod, geoframe = "zone"))
+  expect_setequal(names(z), c("Z1", "Z2", "Z3", "Z4", "Z5"))
+  expect_true(all(z))
+  # one of the two arguments, not both and not neither
+  expect_error(is_separable(mod), "either `region`")
+  expect_error(is_separable(mod, "Z3", geoframe = "zone"), "either `region`")
+})
+
+# @covers subset_model_regions depth=U
+test_that("a decision the cut cannot yet carry out is refused, not ignored", {
+  skip_if_not_installed("geoscales")
+  mod <- mk_topia_mod()
+  expect_error(suppressWarnings(subset_model_regions(
+    mod, "R03", split_weight = list(SUP_GAS = c(ava.up = "area")))),
+    "not[ \n]+yet applied")
+})
+
+# @covers subset_model_regions depth=U
+test_that("one weight can be named for everything that asks", {
+  skip_if_not_installed("geoscales")
+  mod <- mk_topia_mod()
+  ask <- function(sw) {
+    r <- suppressWarnings(subset_model_regions(mod, "R03", dryrun = TRUE,
+                                               split_weight = sw))
+    r$rows[r$rows$column == "ava.up", ]
+  }
+  expect_equal(ask("area")$weight, "area")             # unnamed shorthand
+  expect_equal(ask(list(all = "area"))$weight, "area") # the reserved key
+  expect_true(ask("area")$ready)
+  # a key for one object beats the blanket
+  gs <- geoscales::geoscale_add_weight(
+    topia$modules$electricity$geoscale,
+    population = stats::setNames(seq_len(12) * 10, sprintf("R%02d", 1:12)))
+  m2 <- setGeoscale(mod, gs)
+  r <- suppressWarnings(subset_model_regions(
+    m2, "R03", dryrun = TRUE,
+    split_weight = list(all = "area", SUP_GAS = c(ava.up = "population"))))
+  expect_equal(r$rows$weight[r$rows$column == "ava.up"], "population")
+  # two weights and no keys is ambiguous, not a blanket
+  expect_error(suppressWarnings(subset_model_regions(
+    mod, "R03", dryrun = TRUE, split_weight = c("area", "km2"))),
+    "must be named")
+})
