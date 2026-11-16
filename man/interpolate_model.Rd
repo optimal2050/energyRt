@@ -22,6 +22,9 @@ interpolate_model(
   code = NULL,
   kvl = FALSE,
   boundary_prices = NULL,
+  split_weight = NULL,
+  keep = NULL,
+  drop = NULL,
   .prefilter = FALSE,
   parent_levels = options::opt("parent_levels"),
   fx_equ = options::opt("fx_equ"),
@@ -127,6 +130,12 @@ for trade routes dropped by a SPATIAL SAMPLE (a
 \code{geoscales::filter_geoscale()} subset passed via \code{...}); see
 \code{\link[=subset_model_regions]{subset_model_regions()}} for the columns. Ignored (with a warning)
 when no sampled geoscale is supplied.}
+
+\item{split_weight, keep, drop}{passed to \code{\link[=subset_model_regions]{subset_model_regions()}} when a
+spatial sample divides a region group a value is declared at: the weight
+the value is apportioned by, or the keys held whole / left out. Without
+them such a sample is refused, as it is for the verb. Recorded in
+\verb{@misc$spatial}, so a rebuilt copy is cut the same way.}
 
 \item{.prefilter}{EXPERIMENTAL, default \code{FALSE}. Restrict each model
 object's data to the timeslices and regions the SCENARIO declares before

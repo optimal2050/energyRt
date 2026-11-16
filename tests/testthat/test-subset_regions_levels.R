@@ -191,14 +191,16 @@ mk_zoned_w <- function() {
 sup_up <- function(m) m@data$zoned@data$SUP_COA@supply$ava.up
 
 # @covers subset_model_regions depth=U
-test_that("a named weight splits the parent's quantity onto the kept regions", {
+test_that("a named weight leaves the group the share its regions carry", {
   sub <- subset_model_regions(mk_zoned_w(), "R1", split_weight = "km2",
                               verbose = FALSE)
   # Z1's 100 divided 1:3 -- R1 keeps a quarter
   expect_equal(sup_up(sub), 25)
   expect_equal(sub@data$zoned@data$SUP_COA@supply$cost, 5)
-  # the declaration now sits on the kept region, not on the zone
-  expect_equal(sub@data$zoned@data$SUP_COA@region, "R1")
+  # the declaration STAYS at the zone -- that is where the commodity balances,
+  # so only the value changes
+  expect_equal(sub@data$zoned@data$SUP_COA@region, "Z1")
+  expect_equal(sub@data$zoned@data$SUP_COA@supply$region, "Z1")
 })
 
 # @covers subset_model_regions depth=U
@@ -242,4 +244,25 @@ test_that("a weight the geoscale does not declare is refused by the cut", {
                                     split_weight = "population",
                                     verbose = FALSE),
                "not a weight column")
+})
+
+# @covers interpolate_model depth=U
+test_that("a filtered geoscale is cut by the verb: same refusal, same weights", {
+  skip_if_not_installed("geoscales")
+  mod <- mk_zoned_w()
+  gs <- mod@config@geoscale
+  f1 <- geoscales::filter_geoscale(gs, "region", "R1")
+  # before: the interpolator cut silently and warned later; now it refuses on
+  # the same terms as the verb
+  expect_error(suppressMessages(interpolate_model(mod, f1, name = "sp1")),
+               "cannot be cut as it stands")
+  # and takes the same decisions
+  s <- suppressMessages(interpolate_model(mod, f1, name = "sp2",
+                                          split_weight = "km2"))
+  # `scen@model` is the model AS AUTHORED -- the cut is recorded in
+  # `@misc$spatial` and reapplied on rebuild -- so the weight shows in the
+  # interpolated parameter
+  av <- getData(s, "pSupAva")$pSupAva
+  expect_equal(av$value[av$region == "Z1" & av$type == "up"], 25)
+  expect_equal(s@misc$spatial$split_weight, "km2")
 })

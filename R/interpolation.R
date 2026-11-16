@@ -99,6 +99,11 @@
 #'   `geoscales::filter_geoscale()` subset passed via `...`); see
 #'   [subset_model_regions()] for the columns. Ignored (with a warning)
 #'   when no sampled geoscale is supplied.
+#' @param split_weight,keep,drop passed to [subset_model_regions()] when a
+#'   spatial sample divides a region group a value is declared at: the weight
+#'   the value is apportioned by, or the keys held whole / left out. Without
+#'   them such a sample is refused, as it is for the verb. Recorded in
+#'   `@misc$spatial`, so a rebuilt copy is cut the same way.
 #' @param .prefilter EXPERIMENTAL, default `FALSE`. Restrict each model
 #'   object's data to the timeslices and regions the SCENARIO declares before
 #'   interpolating it, rather than interpolating everything and discarding the
@@ -175,7 +180,8 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
                        desc = NULL, ondisk = FALSE, overwrite = FALSE,
                        fold = FALSE, sparse = TRUE, prune = TRUE,
                        validate = TRUE, code = NULL, kvl = FALSE,
-                       boundary_prices = NULL, .prefilter = FALSE,
+                       boundary_prices = NULL, split_weight = NULL,
+                       keep = NULL, drop = NULL, .prefilter = FALSE,
                        parent_levels = options::opt("parent_levels"),
                        fx_equ = options::opt("fx_equ"),
                        on_missing_input = options::opt("on_missing_input"),
@@ -461,14 +467,21 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
               } else {
                 ""
               })
-      object <- .subset_model_regions(object, keep = scen@settings@region,
-                                   boundary_prices = boundary_prices,
-                                   verbose = verbose)
+      # Through the VERB, not the internal: one implementation, so a filtered
+      # geoscale keeps the covered coarse declarations, refuses a split group
+      # on the same terms, and takes the same decisions.
+      object <- subset_model_regions(object, region = scen@settings@region,
+                                     boundary_prices = boundary_prices,
+                                     split_weight = split_weight,
+                                     keep = keep, drop = drop,
+                                     verbose = verbose)
       object@misc$hash <- NULL   # changed: no longer the stored version
       scen@model <- object
       # what .scen_build_model() needs to cut the model the same way again
       scen@misc$spatial <- list(regions = scen@settings@region,
-                                boundary_prices = boundary_prices)
+                                boundary_prices = boundary_prices,
+                                split_weight = split_weight,
+                                keep = keep, drop = drop)
     } else if (identical(.spatial_mode, "pruned")) {
       stop("A pruned geoscale (coarser atom layer) requests a full-",
            "territory solve at the parent level. Aggregate the model first ",
@@ -5603,9 +5616,11 @@ setMethod("interpolate", signature(object = "scenario"),
     added <- intersect(as.character(scen@misc$added), names(m@data))
     own <- m@data[added]
     m@data <- m@data[setdiff(names(m@data), added)]
-    m <- .subset_model_regions(m, keep = sp$regions,
-                               boundary_prices = sp$boundary_prices,
-                               verbose = FALSE)
+    m <- subset_model_regions(m, region = sp$regions,
+                              boundary_prices = sp$boundary_prices,
+                              split_weight = sp$split_weight,
+                              keep = sp$keep, drop = sp$drop,
+                              verbose = FALSE)
     for (r in own) m <- add(m, r)
   }
   # ... and the currency normalisation, for the same reason: `scen@model` is

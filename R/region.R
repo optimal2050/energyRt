@@ -191,8 +191,14 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
   # A decision the caller gave is carried out BEFORE the surgery: the value
   # declared at the group is rewritten onto that group's own regions, so from
   # here on there is nothing above the region level left to refuse.
+  settled <- character()
   if (isTRUE(rep$ready)) {
     object <- .apply_split_decisions(object, rep, split_weight = split_weight)
+    # a group whose value the caller settled is kept like a covered one: its
+    # declaration is still there, now carrying the share the subset keeps
+    settled <- if (is.null(rep$rows)) character() else
+      unique(unlist(strsplit(rep$rows$at[!is.na(rep$rows$decision)], ", ",
+                             fixed = TRUE)))
   }
   r_m <- as.character(object@config@region)
   # A code at ANY geoframe is accepted and expands to the regions beneath it,
@@ -225,7 +231,8 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
                          report = rep)
   }
 
-  object <- .subset_model_regions(object, keep = region, keep_up = cl$covered,
+  object <- .subset_model_regions(object, keep = region,
+                               keep_up = union(cl$covered, settled),
                                boundary_prices = boundary_prices,
                                verbose = verbose)
   object@config@region <- r_m[r_m %in% region]
@@ -2736,11 +2743,11 @@ is_separable <- function(object, region = NULL, geoframe = NULL,
   character()
 }
 
-# The shares a code's value is divided into, over ALL of its children -- not
-# only the kept ones, which is what keeps a subset and its complement summing
-# to the whole.
+# The share of a code's value that the kept regions carry: the weight of its
+# surviving children over the weight of ALL of them, which is what keeps a
+# subset and its complement summing to the whole.
 #' @noRd
-.split_shares <- function(code, weight, lt, frames, fin) {
+.kept_share <- function(code, weight, keep, lt, frames, fin) {
   kids <- .code_children(code, lt, frames, fin)
   if (!length(kids)) return(NULL)
   if (is.character(weight)) {
@@ -2762,47 +2769,43 @@ is_separable <- function(object, region = NULL, geoframe = NULL,
     stop("the weight for '", code, "' is missing or sums to zero",
          call. = FALSE)
   }
-  stats::setNames(v / sum(v), kids)
+  w <- stats::setNames(v, kids)
+  sum(w[intersect(kids, keep)]) / sum(w)
 }
 
-# Rewrite one slot's parent-coded rows onto the children. `dec` is one entry
-# per column: `list(decision = , weight = )`.
+# Rewrite one slot's parent-coded rows IN PLACE. The declaration stays at the
+# group -- moving it onto the children would contradict a commodity that
+# balances there -- and only the value changes: a quantity keeps the share its
+# surviving children carry, a kept value stays whole, a dropped one goes NA.
+# `dec` is one entry per column: `list(decision = , weight = )`.
 #' @noRd
-.apply_slot_decisions <- function(df, dec, codes, lt, frames, fin) {
+.apply_slot_decisions <- function(df, dec, codes, keep, lt, frames, fin) {
   if (!is.data.frame(df) || !nrow(df) || !"region" %in% names(df)) return(df)
   codes <- intersect(unique(as.character(df$region)), codes)
   if (!length(codes)) return(df)
-  out <- df[!as.character(df$region) %in% codes, , drop = FALSE]
   for (code in codes) {
-    part <- df[as.character(df$region) == code, , drop = FALSE]
-    kids <- .code_children(code, lt, frames, fin)
-    if (!length(kids)) {
-      out <- rbind(out, part)
-      next
-    }
-    ex <- part[rep(seq_len(nrow(part)), each = length(kids)), , drop = FALSE]
-    ex$region <- rep(kids, times = nrow(part))
+    rows <- which(as.character(df$region) == code)
+    if (!length(rows)) next
     for (cn in names(dec)) {
-      if (!cn %in% names(ex)) next
+      if (!cn %in% names(df)) next
       d <- dec[[cn]]
       if (identical(d$decision, "weight")) {
-        sh <- .split_shares(code, d$weight, lt, frames, fin)
-        ex[[cn]] <- ex[[cn]] * rep(sh[kids], times = nrow(part))
+        sh <- .kept_share(code, d$weight, keep, lt, frames, fin)
+        if (is.null(sh)) next
+        df[[cn]][rows] <- df[[cn]][rows] * sh
       } else if (identical(d$decision, "drop")) {
-        ex[[cn]] <- NA_real_
+        df[[cn]][rows] <- NA_real_
       }
-      # "keep" leaves the value as declared in every child
+      # "keep" leaves the value as declared
     }
-    rownames(ex) <- NULL
-    out <- rbind(out, ex)
   }
-  rownames(out) <- NULL
-  out
+  df
 }
 
 # Apply every decision the report carries, object by object.
 #' @noRd
 .apply_split_decisions <- function(mod, rep, split_weight = NULL) {
+  keep <- rep$regions
   rows <- rep$rows
   if (is.null(rows) || !nrow(rows)) return(mod)
   todo <- rows[!is.na(rows$decision), , drop = FALSE]
@@ -2840,21 +2843,11 @@ is_separable <- function(object, region = NULL, geoframe = NULL,
       }), t_sl$column)
       v <- tryCatch(methods::slot(el, sn), error = function(e) NULL)
       if (!is.data.frame(v)) next
-      methods::slot(el, sn) <- .apply_slot_decisions(v, dec, codes, lt,
+      methods::slot(el, sn) <- .apply_slot_decisions(v, dec, codes, keep, lt,
                                                      frames, fin)
     }
-    # the object's own scope follows its data: a declaration rewritten onto
-    # the children is no longer a declaration at the parent
-    r <- tryCatch(as.character(methods::slot(el, "region")),
-                  error = function(e) NULL)
-    if (!is.null(r) && length(r)) {
-      hit <- intersect(r, codes)
-      if (length(hit)) {
-        kids <- unlist(lapply(hit, .code_children, lt = lt, frames = frames,
-                              fin = fin))
-        methods::slot(el, "region") <- unique(c(setdiff(r, hit), kids))
-      }
-    }
+    # `@region` is left alone: the declaration still sits at the group, which
+    # is where the commodity balances.
     el
   }
   for (i in seq_along(mod@data)) mod@data[[i]] <- walk(mod@data[[i]])

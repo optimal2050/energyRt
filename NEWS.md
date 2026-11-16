@@ -43,6 +43,12 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   values ask for a weight, which are carried, and the ways on.
   `is_separable()` is its verdict alone.
 
+* A spatial sample at interpolation is the same operation as the verb:
+  `interpolate_model(geoscale = )` keeps the coarse declarations a whole group
+  covers, refuses a group it divides on the same terms, and takes
+  `split_weight` / `keep` / `drop`. A rebuilt scenario copy is cut the same
+  way.
+
 * `subset_model_regions(split_weight = , keep = , drop = )` cuts through a
   region group a subset divides: a quantity declared at the group is
   apportioned by the weight named (`split_weight = "area"` for all of them),
