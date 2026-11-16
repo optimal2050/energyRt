@@ -60,10 +60,12 @@ test_that("sum_external is declared for exactly the eight that need it", {
       "vTradeRetiredNewCap"))
 })
 
-test_that("last is declared for the one level that has a timeslice", {
+test_that("last is declared for the levels that have a timeslice", {
   v <- vr_spec()
   tm <- vapply(names(v), vr_rule, "", axis = "time")
-  expect_setequal(names(v)[!is.na(tm) & tm == "last"], "vStorageLevel")
+  # the level and its shortfall below a target are both snapshots
+  expect_setequal(names(v)[!is.na(tm) & tm == "last"],
+                  c("vStorageLevel", "vStorageShort"))
   # the other three stocks carry no timeslice, so the role default cannot apply
   for (nm in c("vExportRowCum", "vImportRowCum", "vSupReserve")) {
     expect_equal(v[[nm]]$role, "stock")

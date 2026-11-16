@@ -278,12 +278,13 @@ test_that("the sweep's cases are real catalogue entries, and the gap is stated",
                             paste(setdiff(driven, key), collapse = ", ")))
 
   wildcardable <- cat_tbl[cat_tbl$wildcardable, ]
-  # Stated, not asserted loosely: 195 of 244 catalogued columns carry both a
+  # Stated, not asserted loosely: 197 of 246 catalogued columns carry both a
   # `year` and a `region`/`timeslice` dimension, so they can all take a
   # wildcard row. The sweep drives the ones a small fixture can drive; the
   # count is pinned so that growth in the catalogue shows up here as a
   # deliberate edit rather than silent dilution.
-  expect_equal(nrow(wildcardable), 195L)
-  expect_equal(nrow(cat_tbl), 244L)
+  # (+2: `storage@target` target and cost, 2026-11-16)
+  expect_equal(nrow(wildcardable), 197L)
+  expect_equal(nrow(cat_tbl), 246L)
   expect_gte(length(driven), 6L)
 })

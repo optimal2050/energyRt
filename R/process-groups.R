@@ -111,6 +111,8 @@ NULL
   }
   r <- unique(c(as.character(methods::slot(o, "region")),
                 unlist(lapply(methods::slotNames(o), function(sl) {
+                  # an object saved before a slot was added does not carry it
+                  if (!methods::.hasSlot(o, sl)) return(NULL)
                   v <- methods::slot(o, sl)
                   if (is.data.frame(v) && nrow(v) && "region" %in% names(v))
                     as.character(v$region) else NULL
@@ -560,6 +562,8 @@ get_process_groups <- function(x, regions = NULL) {
   methods::slot(out, "region") <- character()
   for (sl in intersect(varying, methods::slotNames(base))) {
     dfs <- lapply(techs, function(o) {
+      # an object saved before a slot was added does not carry it
+      if (!methods::.hasSlot(o, sl)) return(NULL)
       v <- methods::slot(o, sl)
       if (!is.data.frame(v) || !nrow(v)) return(NULL)
       .cl_inject_region(v, .tech_region(o))

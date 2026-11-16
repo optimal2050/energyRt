@@ -71,7 +71,7 @@
     # per-cluster ratio took whichever row came first.
     slots = c("vintage", "capacity", "invcost", "fixom", "varom",
               "af", "seff", "startLevel", "aeff", "weather", "duration",
-              "inp2out", "inp2stg"),
+              "inp2out", "inp2stg", "target"),
     # A storage keeps one capacity per PART, so its `@capacity` columns read
     # `out.cap.up`, not `cap.up`, and each part has its own variable. Keyed on
     # the FULL stem: keying on `cap`/`ncap` behind a single `out.` prefix made

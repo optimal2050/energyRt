@@ -54,7 +54,7 @@ test_that("every column on an axis carries a declaration", {
   y <- yaml::read_yaml(hit[1])
   ID <- c("region", "src", "dst", "year", "vintage", "cluster", "timeslice",
           "comm", "acomm", "group", "desc", "property", "unit", "comment",
-          "weather", "transform", "process", "cell", "name")
+          "weather", "transform", "process", "cell", "name", "tier")
   missing <- NULL
   for (cn in names(y$class)) for (sn in names(y$class[[cn]])) {
     s <- y$class[[cn]][[sn]]
