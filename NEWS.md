@@ -34,8 +34,8 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   cut in `@misc$subset`.
 
 * `is_divisible()` reports, per value column, whether a value declared above
-  the subset's regions is carried as it stands or needs a ruling
-  (`rules = c(SUP_COA = "pooled")`).
+  the subset's regions is carried as it stands or still needs a weight to be
+  split by (`split_weight = list(SUP_COA = "area")`, or `keep` / `drop`).
 
 * **Reports name the calendar each milestone is solved on.** Where milestones
   do not share one calendar, the model, scenario and config reports carry a

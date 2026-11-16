@@ -2,13 +2,15 @@
 % Please edit documentation in R/recast.R
 \name{is_divisible}
 \alias{is_divisible}
-\title{What a region subset needs ruling on, column by column}
+\title{What a region subset still needs before it can cut}
 \usage{
 is_divisible(
   object = NULL,
   axis = c("space", "time"),
   column = NULL,
-  rules = NULL
+  split_weight = NULL,
+  keep = NULL,
+  drop = NULL
 )
 }
 \arguments{
@@ -17,50 +19,65 @@ a \code{supply}, ...), or \code{NULL} for the whole declared contract.}
 
 \item{axis}{\code{"space"} (the default) or \code{"time"}. The space axis falls back
 to the aggregator's own inference where nothing is declared; the time
-axis does not, and reports \code{"decide"} instead.}
+axis does not.}
 
 \item{column}{optional character vector of column names to report on
 directly, with no class or slot to declare them.}
 
-\item{rules}{named character vector or list of rulings for the columns
-reported \code{"decide"}, one of \code{"pooled"}, \code{"indivisible"} or \code{"drop"}.}
+\item{split_weight}{the weight each quantity is divided by, keyed as
+described above. A geoscale weight column name, or a named numeric of
+shares over the kept regions.}
+
+\item{keep, drop}{keys whose columns are settled without a weight: held
+whole in every part, or left out of the cut.}
 }
 \value{
 A tibble with one row per column: \code{class}, \code{slot}, \code{column},
-\code{rule} (the recast rule), \code{source} (\code{"declared"}, \code{"inferred"} or
-\code{"registry"}), \code{action} (\code{"replicate"}, \code{"none"}, \code{"decide"}, or
-\code{"split"} / \code{"keep"} / \code{"drop"} once a ruling settles it), \code{needs_rule},
-\code{rule_given} and \code{reason}. The \code{model} and \code{repository} shapes add the
-object \code{name} in front. \code{attr(x, "sufficient")} says whether every row is
-settled; \code{attr(x, "unmatched_rules")} names rulings that matched nothing.
+\code{rule} (the declared recast arithmetic), \code{source} (\code{"declared"},
+\code{"inferred"} or \code{"registry"}), \code{needs} (\code{""}, \code{"weight"} or \code{"rule"}),
+\code{weight} (what was given, or \code{"shares"} for explicit ones), \code{ready} and
+\code{reason}. Every shape built from objects adds the object \code{name} in front.
+See \code{attr(x, "ready")} and \code{attr(x, "unmatched")}.
 }
 \description{
 Reports, column by column, what a partial selection of a region group does
-to a value declared at the group. A rate, a price or a region-invariant
-scalar (\code{weighted_mean}, \code{mean}, \code{copy}) holds for each child unchanged, so
-it is carried as declared and nothing is asked. A quantity (\code{sum}) is not
-settled by its rule: dividing it by the weight invents a value nobody gave
-and keeping it whole in every part double-counts, so it is reported
-\code{"decide"} and the caller rules on it.
+to a value declared at the group. The recast rule declared for the column is
+the arithmetic: a rate, a price or a region-invariant scalar
+(\code{weighted_mean}, \code{mean}, \code{copy}) holds for each child unchanged, so the
+declaration is carried as it stands and the row is ready. A quantity (\code{sum})
+is not settled by its rule -- the rule says the parent is the total of its
+children, not how a part of that total is apportioned -- so the row asks for
+a \strong{weight}, and there is no default: dividing a demand or a fleet by area
+shares a city with a desert.
 }
 \details{
-The three rulings are \code{"pooled"} (divide between the kept regions by the
-weight), \code{"indivisible"} (keep whole in every part) and \code{"drop"}. Supply
-them through \verb{rules =}, keyed most-specific-first on \code{"OBJ@column"},
-\code{"OBJ"}, \code{"class@column"} or \code{"class"}. \code{attr(x, "sufficient")} is \code{TRUE}
-when no row is left at \code{"decide"}, which is the test a region subset makes
-before it refuses.
+Name the weight with \code{split_weight}, or settle a column without one through
+\code{keep} (hold the value whole in every part) or \code{drop}. All three are keyed
+on an object name or a class, optionally per column:
+\code{split_weight = list(SUP_COA = c(ava.up = "area"), demand = "population")},
+or the flat shorthand \code{c("SUP_COA:ava.up" = "area")}, most specific first.
+A weight is a weight column declared on the geoscale (see
+\code{\link[geoscales:geoscale_weights]{geoscales::geoscale_weights()}}) or a named numeric of shares over the kept
+regions.
+
+\code{attr(x, "ready")} is \code{TRUE} when every row is settled, which is the test a
+region subset makes before it refuses; \code{attr(x, "unmatched")} names keys
+that matched nothing.
 
 On a \code{model} it reports only the columns that model declares \strong{above} its
 own regions -- usually a handful -- rather than the whole contract.
+
+The time axis asks for nothing of the kind: no time rule is \code{sum}, since a
+timeslice value is a rate. What it reports instead is which columns declare
+no time rule at all, as \code{needs = "rule"}.
 }
 \examples{
 # the declared contract
 is_divisible()
 
 # single columns, with no class to declare them
-is_divisible(column = c("cap.up", "cap.fx", "eff"))
+is_divisible(column = c("cap.up", "cost"))
 
-# a quantity asks; a ruling settles it
-is_divisible(column = "ava.up")
+# a quantity asks for a weight; a rate does not
+is_divisible(column = c("ava.up", "cost"))
 }
