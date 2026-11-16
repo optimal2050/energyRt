@@ -43,6 +43,11 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   values ask for a weight, which are carried, and the ways on.
   `is_separable()` is its verdict alone.
 
+* A resource tier no object references is no longer materialized as a
+  commodity, so a region subset that narrows a graded technology (TOPIA's
+  `EWIN` to `HI`/`MD`) stops warning about the tier it left behind
+  (`LANDW_CLLO`).
+
 * A spatial sample at interpolation is the same operation as the verb:
   `interpolate_model(geoscale = )` keeps the coarse declarations a whole group
   covers, refuses a group it divides on the same terms, and takes

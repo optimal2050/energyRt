@@ -349,3 +349,35 @@ test_that("a region-scoped tier set resolves its commodity end to end", {
   expect_equal(pairs$comm[pairs$sup == "RES_LAND_CL01"][1], "LAND_CL01")
   expect_setequal(pairs$region[pairs$sup == "RES_LAND_CL01"], regs)
 })
+
+test_that("a tier no object references is not materialized", {
+  # The commodity declares three tiers; the processes use two. A tier with
+  # neither a producer nor a consumer would be an empty balance, which
+  # interpolation reports as a commodity "not associated with any process".
+  two <- c("T1", "T2")
+  scen <- cc_interp(cc_model(cc_land(),                 # T1, T2, T3
+                             cc_supply(ava = c(4, 4), tiers = two),
+                             cc_tech(tiers = two), name = "cc_narrow"))
+  expect_setequal(as.character(scen@modInp@sets$comm),
+                  c("ELC", "LAND_CLT1", "LAND_CLT2"))
+  expect_false("LAND_CLT3" %in% as.character(scen@modInp@sets$comm))
+  # and no warning about an unused commodity
+  w <- character()
+  withCallingHandlers(
+    suppressMessages(capture.output(interpolate_model(
+      cc_model(cc_land(), cc_supply(ava = c(4, 4), tiers = two),
+               cc_tech(tiers = two), name = "cc_narrow2"),
+      name = "cc_narrow2_i", ondisk = FALSE))),
+    warning = function(x) {
+      w <<- c(w, conditionMessage(x))
+      invokeRestart("muffleWarning")
+    })
+  expect_false(any(grepl("not associated with any process", w)))
+})
+
+test_that("every tier is materialized when every tier is referenced", {
+  scen <- cc_interp(cc_model(cc_land(), cc_supply(), cc_tech(),
+                             name = "cc_all3"))
+  expect_setequal(as.character(scen@modInp@sets$comm),
+                  c("ELC", "LAND_CLT1", "LAND_CLT2", "LAND_CLT3"))
+})

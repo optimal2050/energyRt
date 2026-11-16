@@ -723,12 +723,15 @@ materialize_commodity_clusters <- function(mod, verbose = isVerbose(2),
   }
 
   # --- repoint every reference ---------------------------------------------- #
+  used <- character()
   fix_one <- function(ref, cluster, owner, owner_class) {
     if (is.na(ref) || !nzchar(ref)) return(ref)
     roster <- rosters[[ref]]
     if (is.null(roster) || length(roster) == 0L) return(ref)
-    .resolve_cluster_ref(ref, cluster, roster, "commodity", owner,
-                         owner_class, prefix)
+    out <- .resolve_cluster_ref(ref, cluster, roster, "commodity", owner,
+                                owner_class, prefix)
+    used <<- c(used, out)
+    out
   }
 
   rewrite_el <- function(el) {
@@ -794,14 +797,32 @@ materialize_commodity_clusters <- function(mod, verbose = isVerbose(2),
     }
   }
 
+  # A tier no reference names is not materialized: it would be a balance with
+  # no producer and no consumer, which interpolation reports as a commodity
+  # "not associated with any process". That happens whenever a selection
+  # narrows the processes but not the commodity's own roster -- a region
+  # subset (`EWIN`'s grades are region-keyed, `LANDW`'s roster is not), a
+  # re-grading, or a technology dropped by hand. The rule is the one the
+  # repointing above uses, so a reference that scan does not see cannot be
+  # left dangling by this either.
+  unused <- setdiff(names(pending), unique(used))
+  pending <- pending[setdiff(names(pending), unused)]
   clones <- lapply(names(pending), function(nm) {
     p <- pending[[nm]]
     .commodity_cluster_clone(cobjs[[p$commodity]], p$cluster, nm)
   })
   if (verbose) {
     message("Materialized ", length(clones), " commodity cluster(s): ",
-            paste(names(pending), collapse = ", "))
+            paste(names(pending), collapse = ", "),
+            if (length(unused)) {
+              paste0("; skipped ", length(unused),
+                     " no object references: ",
+                     paste(unused, collapse = ", "))
+            } else {
+              ""
+            })
   }
+  if (!length(clones)) return(mod)
   do.call(add, c(list(mod), unname(clones)))
 }
 
