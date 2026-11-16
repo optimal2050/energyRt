@@ -9,6 +9,7 @@ aggregate_model_regions(
   geoscale = NULL,
   level,
   clusters = NULL,
+  max_clusters = NULL,
   as = c("clusters", "objects"),
   name = NULL,
   resolve_conflicts = FALSE,
@@ -29,6 +30,19 @@ Otherwise a list keyed by process group (see \code{\link[=get_process_groups]{ge
 keeps some of the spread instead -- see the section below. A group that is
 not named is aggregated plainly, so clustering is opted into one family at
 a time.}
+
+\item{max_clusters}{A ceiling on the number of clusters \strong{per coarse
+region}, the readable alternative to \code{clusters}: \code{max_clusters = 3} is
+"at most three clusters in every \code{level} region", for every family.
+\code{list(EWIN = 3, SUP_BIO = 2)} sets it per family, with \code{all = 3} as the
+blanket that a family key overrides. Inside each coarse region the number
+is chosen by the best average silhouette over \verb{2 .. min(max, regions)},
+and falls back to 1 -- that region plainly aggregated -- where there is
+nothing to separate: one region, or no candidate parameter that varies.
+A cap is satisfied by 1, so that is reported rather than refused. Not for
+a corridor family, whose parts are coarse pairs and not regions: a
+blanket skips those, and naming one is refused. A family may not appear
+in both \code{clusters} and \code{max_clusters}.}
 
 \item{as}{With \code{clusters}, the shape of the result: \code{"clusters"} (default)
 gives one object per family, region variants becoming
@@ -117,6 +131,12 @@ instead.
 averaged, which on a model whose fine regions already pool inside each
 coarse region reproduces the fine objective exactly). Clusters cannot
 straddle a coarse region.
+
+Because of that constraint the partition is already independent inside each
+coarse region, and \code{k} is only a decision about how one global budget is
+shared out. \code{max_clusters} states the same thing the other way round and is
+usually the easier dial: a ceiling per coarse region, with the number below
+it chosen per region.
 
 A family that ALREADY has clusters -- wind by site grade -- keeps them: the
 two groupings compose, \code{GOOD} in \code{W1} becoming \code{GOOD_W1}.

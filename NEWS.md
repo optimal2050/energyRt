@@ -27,6 +27,13 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* Storage level targets: `storage@target` sets soft floors on the level, as shares of storing capacity, each with a price per unit short. Tiers stack, so a deeper tier with its own price makes draining dearer the further it goes. Reported as `vStorageShort` / `vStorageShortCost`. `varom$stgcost` may now be negative, a reward for holding a charged store.
+
+* `aggregate_model_regions(max_clusters = )` caps clusters **per coarse
+  region** -- `max_clusters = 3`, or per family with `list(all = 3)` -- instead
+  of `clusters`' model-wide `k`. Each region takes the best number below the
+  cap, and one with nothing to separate is left plainly aggregated.
+
 * `aggregate_model_regions()` now coarsens a model whose objects are not all
   declared at its finest regions: each row is recast from the geoframe its own
   code sits at, one already at the target is carried, one above it is kept, and

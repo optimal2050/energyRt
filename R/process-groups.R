@@ -984,8 +984,120 @@ model_clusters <- function(object) {
 # single value. Everything that is not a grouped technology goes through the
 # ordinary aggregation, so the two paths agree on every other object.
 #' @noRd
-.cl_cluster_model <- function(mod, geoscale = NULL, level, clusters,
-                              as = "clusters", name = NULL,
+# `max_clusters` is a CEILING per coarse region, not a total: "at most 3 in
+# every zone". It is the dial a reader reaches for -- `k` is a model-wide count
+# whose floor is the number of coarse regions, which is hard to reason about --
+# and because a cluster may never straddle a coarse region, the partition is
+# already independent inside each one. So a cap simply removes the question of
+# how a global budget is shared out.
+#' @noRd
+.cl_cap_spec <- function(max_clusters, groups) {
+  if (is.null(max_clusters)) return(list())
+  mk <- function(v) {
+    v <- suppressWarnings(as.integer(v))
+    if (length(v) != 1L || is.na(v) || v < 1L) {
+      stop("`max_clusters` must be a single integer >= 1 per group.",
+           call. = FALSE)
+    }
+    v
+  }
+  if (!is.list(max_clusters)) {
+    return(stats::setNames(rep(list(mk(max_clusters)), length(groups)), groups))
+  }
+  nms <- names(max_clusters)
+  if (is.null(nms) || any(!nzchar(nms))) {
+    stop("every entry of `max_clusters` must be named: ",
+         "list(EWIN = 3), or list(all = 3) for every group.", call. = FALSE)
+  }
+  out <- list()
+  if ("all" %in% nms) {
+    out <- stats::setNames(rep(list(mk(max_clusters[["all"]])), length(groups)),
+                           groups)
+  }
+  for (g in setdiff(nms, "all")) {
+    if (!g %in% groups) {
+      stop("`max_clusters` names '", g, "', which is not a process group of ",
+           "this model. Groups: ", paste(groups, collapse = ", "),
+           call. = FALSE)
+    }
+    out[[g]] <- mk(max_clusters[[g]])
+  }
+  out
+}
+
+# One partition per coarse region, each with its own `k` <= the cap.
+#
+# The number is chosen by the best average silhouette over `2 .. min(cap, n)`,
+# and falls back to 1 -- that region plainly aggregated -- when there is
+# nothing to separate: one fine region, no feature that varies, or a feature
+# table the distance cannot use. A cap is satisfied by 1, so that is an
+# outcome rather than a refusal; the reason is carried back and reported.
+#' @noRd
+.cl_capped_crosswalk <- function(techs, regs, cap, gs, level,
+                                 features = NULL) {
+  check_package("sf")
+  fine <- geoscales::geoscale_geoframes(gs, finest = TRUE)
+  lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
+  tgt <- as.character(lt[[level]])[match(regs, as.character(lt$region))]
+  rows <- list()
+  per <- integer()
+  notes <- character()
+  for (z in unique(stats::na.omit(tgt))) {
+    rr <- regs[!is.na(tgt) & tgt == z]
+    kmax <- min(cap, length(rr))
+    xw <- NULL
+    k <- 1L
+    why <- if (length(rr) == 1L) "one region" else
+      if (kmax <= 1L) "cap of 1" else NA_character_
+    if (kmax > 1L) {
+      g2 <- geoscales::filter_geoscale(gs, geoframe = fine, region = rr)
+      feat <- .cl_feature_table(techs, rr, features, strict = FALSE)
+      if (is.null(feat)) {
+        why <- "no feature varies"
+      } else {
+        lt2 <- as.data.frame(geoscales::geoscale_leaftable(g2))
+        adj2 <- .cl_adjacency(g2, level)
+        sc2 <- .cl_scale(g2, level)
+        long <- .cl_features(feat)
+        r <- tryCatch({
+          ch <- .cl_choose_k(long, sc2, adj2, 2L, kmax)
+          list(k = as.integer(ch$k),
+               xw = .cl_crosswalk(long, sc2, adj2, as.integer(ch$k), lt2,
+                                  level))
+        }, error = function(e) conditionMessage(e))
+        if (is.character(r)) why <- r else {
+          k <- r$k
+          xw <- r$xw
+        }
+      }
+    }
+    if (is.null(xw)) {
+      if (!is.na(why) && !why %in% c("one region", "cap of 1")) {
+        notes[z] <- why
+      }
+      # the representative is the biggest member, so a link column (`weather`)
+      # carries a real series rather than an arbitrary one
+      w <- tryCatch(.cl_weights(techs, rr), error = function(e) NULL)
+      med <- if (is.null(w) || !length(w)) rr[1L] else
+        names(w)[which.max(unname(w))] %||% rr[1L]
+      xw <- data.frame(
+        region = rr,
+        cluster = .cl_label_by_members(rr, rep(z, length(rr))),
+        medoid = rr == med, target = z, stringsAsFactors = FALSE)
+    }
+    per[z] <- k
+    rows[[z]] <- xw
+  }
+  xw <- do.call(rbind, rows)
+  rownames(xw) <- NULL
+  list(crosswalk = xw, k = sum(per),
+       per_region = data.frame(region = names(per), k = unname(per),
+                               stringsAsFactors = FALSE),
+       notes = notes)
+}
+
+.cl_cluster_model <- function(mod, geoscale = NULL, level, clusters = NULL,
+                              max_clusters = NULL, as = "clusters", name = NULL,
                               verbose = isVerbose()) {
   stopifnot(inherits(mod, "model"))
   check_package("geoscales")
@@ -1011,11 +1123,108 @@ model_clusters <- function(object) {
          call. = FALSE)
   }
   spec <- .cl_spec(clusters, gdf$group)
-  # a group left out of `clusters` is not clustered -- it takes the plain
+  capspec <- .cl_cap_spec(max_clusters, gdf$group)
+  both <- intersect(names(spec), names(capspec))
+  if (length(both)) {
+    stop("`clusters` and `max_clusters` both name ",
+         paste0("'", both, "'", collapse = ", "),
+         ": one asks for an exact k, the other for a ceiling. Pick one per ",
+         "group.", call. = FALSE)
+  }
+  # A corridor family has no territory to cap -- its parts are coarse pairs,
+  # not regions -- so a blanket skips it and naming it is refused.
+  tfam <- gdf$group[gdf$class == "trade"]
+  hit <- intersect(names(capspec), tfam)
+  if (length(hit)) {
+    if (is.list(max_clusters) && any(hit %in% names(max_clusters))) {
+      stop("`max_clusters` names corridor family ",
+           paste0("'", intersect(hit, names(max_clusters)), "'",
+                  collapse = ", "),
+           ": a cap is per coarse region and a corridor has none. Use ",
+           "`clusters=` for a trade family.", call. = FALSE)
+    }
+    capspec[hit] <- NULL
+  }
+  # A family declared ABOVE the finest regions has no finer regions to group:
+  # its codes are already coarse. Clustering it would drop those rows, so it
+  # takes the ordinary plain aggregation, which carries them.
+  fine_gf <- geoscales::geoscale_geoframes(gs, finest = TRUE)
+  coarse_fam <- vapply(names(capspec), function(g) {
+    rg <- strsplit(gdf$regions[match(g, gdf$group)], ",")[[1]]
+    !all(.agg_frames_of(rg, gs) %in% fine_gf)
+  }, logical(1))
+  if (any(coarse_fam)) {
+    nm <- names(capspec)[coarse_fam]
+    if (is.list(max_clusters) && any(nm %in% names(max_clusters))) {
+      stop("`max_clusters` names ",
+           paste0("'", intersect(nm, names(max_clusters)), "'",
+                  collapse = ", "),
+           ", declared above the model's finest regions: there is nothing ",
+           "finer to group. Those are aggregated plainly.", call. = FALSE)
+    }
+    capspec[nm] <- NULL
+  }
+  # Caps are resolved HERE, before the model is split into clustered and
+  # plain parts: a family the cap leaves at one cluster in every coarse region
+  # is not clustered at all. Deciding that later would already have rewritten
+  # its cluster labels (`HI` -> `HI_R01`), which breaks the agreement between
+  # a commodity's tiers and the processes that consume them.
+  # A family whose commodity declares its OWN clusters cannot be re-clustered:
+  # the merge composes labels (`HI` -> `HI_R01`) and the commodity's roster
+  # does not follow, so interpolation refuses the pair. The consumer side owns
+  # that roster, so extending it is commodity-cluster work, not this verb's.
+  comms <- objs[vapply(objs, function(o) methods::is(o, "commodity"),
+                       logical(1))]
+  cl_comms <- names(comms)[vapply(comms, function(o) {
+    d <- tryCatch(methods::slot(o, "cluster"), error = function(e) NULL)
+    is.data.frame(d) && nrow(d) > 0L
+  }, logical(1))]
+  capres <- list()
+  for (g in names(capspec)) {
+    i <- match(g, gdf$group)
+    cm <- unique(unlist(lapply(objs[strsplit(gdf$members[i], ",")[[1]]],
+                               .lvl_object_comms, known = names(comms))))
+    bad <- intersect(cm, cl_comms)
+    if (length(bad)) {
+      if (is.list(max_clusters) && g %in% names(max_clusters)) {
+        stop("`max_clusters` names '", g, "', which carries commodity ",
+             paste0("'", bad, "'", collapse = ", "),
+             " declaring its own clusters: re-clustering it would mint ",
+             "cluster labels the commodity does not declare. Aggregate it ",
+             "plainly, or re-tier the commodity first.", call. = FALSE)
+      }
+      capspec[[g]] <- NULL
+      if (isTRUE(verbose)) {
+        .say2("  ", g, ": not clustered (commodity ",
+                paste(bad, collapse = ", "), " declares its own clusters)")
+      }
+      next
+    }
+    cr <- .cl_capped_crosswalk(
+      objs[strsplit(gdf$members[i], ",")[[1]]],
+      strsplit(gdf$regions[i], ",")[[1]], capspec[[g]], gs, level,
+      features = spec[[g]]$features)
+    if (all(cr$per_region$k <= 1L)) {
+      capspec[[g]] <- NULL
+      if (isTRUE(verbose)) {
+        .say2("  ", g, ": not clustered (nothing separates its regions)")
+      }
+      next
+    }
+    capres[[g]] <- cr
+  }
+  # a group left out of both is not clustered -- it takes the plain
   # weighted mean, so clustering is opted into one family at a time
-  gdf <- gdf[gdf$group %in% names(spec), , drop = FALSE]
+  gdf <- gdf[gdf$group %in% c(names(spec), names(capspec)), , drop = FALSE]
   if (!nrow(gdf)) {
-    stop("`clusters` names no process group of this model. Groups: ",
+    # A ceiling that no family can use is not an error -- "at most n" is
+    # satisfied by one cluster per coarse region, which IS plain aggregation.
+    if (!length(spec) && !is.null(max_clusters)) {
+      return(aggregate_model_regions(mod, gs, level = level, name = name,
+                                     verbose = verbose))
+    }
+    stop("`clusters`/`max_clusters` name no process group of this model. ",
+         "Groups: ",
          paste(get_process_groups(mod)$group, collapse = ", "), call. = FALSE)
   }
 
@@ -1081,27 +1290,44 @@ model_clusters <- function(object) {
     regs <- strsplit(gdf$regions[i], ",")[[1]]
     techs <- objs[members]
     s <- spec[[gname]]
-    feat <- .cl_feature_table(techs, regs, s$features)
-    long <- .cl_features(feat)
-    kk <- s$k
+    cap <- capspec[[gname]]
     sw <- NULL
-    if (identical(kk, "auto")) {
-      ch <- .cl_choose_k(long, sc, adj, kmin, length(regs))
-      kk <- ch$k
-      sw <- ch$sweep
+    per <- NULL
+    if (!is.null(cap)) {
+      cr <- capres[[gname]]
+      xw <- cr$crosswalk
+      kk <- cr$k
+      per <- cr$per_region
+      if (length(cr$notes)) {
+        warning(gname, ": left unclustered in ",
+                paste0(names(cr$notes), " (", cr$notes, ")", collapse = "; "),
+                call. = FALSE)
+      }
+    } else {
+      feat <- .cl_feature_table(techs, regs, s$features)
+      long <- .cl_features(feat)
+      kk <- s$k
+      if (identical(kk, "auto")) {
+        ch <- .cl_choose_k(long, sc, adj, kmin, length(regs))
+        kk <- ch$k
+        sw <- ch$sweep
+      }
+      kk <- as.integer(kk)
+      # Check `k` HERE rather than letting nestedscales refuse it: its message
+      # is in its own vocabulary ("units", "groups", "the constraint") and
+      # names neither the geoframe nor the way out.
+      if (is.na(kk) || kk < kmin || kk > length(regs)) {
+        stop("k = ", if (is.na(kk)) "NA" else kk,
+             " is out of range for group '", gname,
+             "': clusters cannot straddle a `", level, "` region, so k ",
+             "runs from ", kmin, " (one cluster per `", level,
+             "` region -- what aggregate_model_regions() produces) to ",
+             length(regs), " (one per region, nothing averaged). A ceiling ",
+             "per `", level, "` region is `max_clusters=` instead.",
+             call. = FALSE)
+      }
+      xw <- .cl_crosswalk(long, sc, adj, kk, lt, level)
     }
-    kk <- as.integer(kk)
-    # Check `k` HERE rather than letting nestedscales refuse it: its message
-    # is in its own vocabulary ("units", "groups", "the constraint") and names
-    # neither the geoframe nor the way out.
-    if (is.na(kk) || kk < kmin || kk > length(regs)) {
-      stop("k = ", if (is.na(kk)) "NA" else kk, " is out of range for group '",
-           gname, "': clusters cannot straddle a `", level, "` region, so k ",
-           "runs from ", kmin, " (one cluster per `", level,
-           "` region -- what aggregate_model_regions() produces) to ",
-           length(regs), " (one per region, nothing averaged).", call. = FALSE)
-    }
-    xw <- .cl_crosswalk(long, sc, adj, kk, lt, level)
     w <- .cl_weights(techs, regs)
     if (identical(as, "objects")) {
       for (lab in unique(xw$cluster)) {
@@ -1117,12 +1343,17 @@ model_clusters <- function(object) {
       out_objs[[gname]] <- .cl_merge_group(techs, xw, w, name = gname)
     }
     diag[[gname]] <- list(
-      k = kk, crosswalk = xw, sweep = sw,
+      k = kk, crosswalk = xw, sweep = sw, max_clusters = cap,
+      per_region = per,
       geoscale = tryCatch(.cl_cluster_geoscale(gs, level, xw, gname),
                           error = function(e) NULL))
     if (isTRUE(verbose)) {
       .say2("  ", gname, ": ", length(regs), " regions -> ", kk,
-              " cluster(s)")
+              " cluster(s)",
+              if (is.null(per)) "" else
+                paste0(" (cap ", cap, " per ", level, ": ",
+                       paste(per$region, per$k, sep = "=", collapse = " "),
+                       ")"))
     }
   }
 
@@ -1248,7 +1479,20 @@ model_clusters <- function(object) {
 # is called with the member technologies and their regions, which is how a
 # weather or af PROFILE gets in -- the scalars alone cannot see shape.
 #' @noRd
-.cl_feature_table <- function(techs, regs, features) {
+# A group with nothing to tell its regions apart is an error when an exact `k`
+# was asked for and an ordinary outcome when a CAP was: "at most 3" is
+# satisfied by 1.
+#' @noRd
+.cl_no_features <- function(strict) {
+  if (isTRUE(strict)) {
+    stop("no usable clustering features: every candidate parameter is ",
+         "constant or absent across the group's regions. Pass `features=`.",
+         call. = FALSE)
+  }
+  NULL
+}
+
+.cl_feature_table <- function(techs, regs, features, strict = TRUE) {
   if (is.function(features)) {
     ft <- features(techs, regs)
     if (!is.data.frame(ft) || !"region" %in% names(ft)) {
@@ -1314,6 +1558,11 @@ model_clusters <- function(object) {
     hit <- nms[n == nms | startsWith(n, paste0(nms, "_"))]
     if (length(hit)) hit[which.max(nchar(hit))] else n
   }, character(1))
+  if (!length(cols)) {
+    # Reached before the data.frame below, which would otherwise fail on a
+    # zero-column list with an arithmetic message about row counts.
+    return(.cl_no_features(strict))
+  }
   ft <- data.frame(region = regs, cols, stringsAsFactors = FALSE,
                    check.names = FALSE)
   usable <- names(which(vapply(ft[-1], function(v)
@@ -1323,10 +1572,6 @@ model_clusters <- function(object) {
     keep <- c("region", names(cols)[base %in% features | names(cols) %in%
                                       features])
   }
-  if (length(keep) < 2L) {
-    stop("no usable clustering features: every candidate parameter is ",
-         "constant or absent across the group's regions. Pass `features=`.",
-         call. = FALSE)
-  }
+  if (length(keep) < 2L) return(.cl_no_features(strict))
   ft[, keep, drop = FALSE]
 }
