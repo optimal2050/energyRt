@@ -188,21 +188,11 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
   rep <- .region_subset_report(object, region, split_weight = split_weight,
                                keep = keep, drop = drop)
   if (isTRUE(dryrun)) return(rep)
-  # The pre-flight can already say what a weight WOULD settle; carrying that
-  # out -- apportioning the parent's value between the kept regions -- is the
-  # next step and is not built, so a decision that would change a value is
-  # refused rather than quietly ignored.
-  dec <- if (is.null(rep$rows)) character() else
-    stats::na.omit(rep$rows$decision)
-  if (length(dec)) {
-    i <- which(!is.na(rep$rows$decision))
-    stop("`split_weight` / `keep` / `drop` are read by the pre-flight but not ",
-         "yet applied by the cut: ",
-         paste(sprintf("%s$%s (%s)", rep$rows$name[i], rep$rows$column[i],
-                       rep$rows$decision[i]), collapse = ", "),
-         ".
-Run with `dryrun = TRUE` to see what the cut would need, or ",
-         "extend `region` to the whole group.", call. = FALSE)
+  # A decision the caller gave is carried out BEFORE the surgery: the value
+  # declared at the group is rewritten onto that group's own regions, so from
+  # here on there is nothing above the region level left to refuse.
+  if (isTRUE(rep$ready)) {
+    object <- .apply_split_decisions(object, rep, split_weight = split_weight)
   }
   r_m <- as.character(object@config@region)
   # A code at ANY geoframe is accepted and expands to the regions beneath it,
@@ -2721,6 +2711,154 @@ is_separable <- function(object, region = NULL, geoframe = NULL,
   out <- isTRUE(rep$ready)
   attr(out, "report") <- rep
   out
+}
+
+# --------------------------------------------------------------------------- #
+# Carrying the pre-flight's decisions out: a value declared at a group the cut
+# divides is rewritten onto that group's OWN regions, so everything downstream
+# sees an ordinary region-level declaration and the split refusal finds nothing
+# left to refuse.
+#
+# Nothing here falls back to a weight of its own. The weight is the one named
+# in `split_weight`, resolved through the same keys the pre-flight used, and a
+# row without one never reaches this point.
+# --------------------------------------------------------------------------- #
+
+# The regions under a code, at the model's finest geoframe.
+#' @noRd
+.code_children <- function(code, lt, frames, fin) {
+  for (f in setdiff(frames, fin)) {
+    if (!f %in% names(lt)) next
+    k <- unique(as.character(lt[[fin]])[as.character(lt[[f]]) == code])
+    k <- k[!is.na(k)]
+    if (length(k)) return(k)
+  }
+  character()
+}
+
+# The shares a code's value is divided into, over ALL of its children -- not
+# only the kept ones, which is what keeps a subset and its complement summing
+# to the whole.
+#' @noRd
+.split_shares <- function(code, weight, lt, frames, fin) {
+  kids <- .code_children(code, lt, frames, fin)
+  if (!length(kids)) return(NULL)
+  if (is.character(weight)) {
+    if (!weight %in% names(lt)) {
+      stop("weight column '", weight, "' is not on the geoscale",
+           call. = FALSE)
+    }
+    v <- as.numeric(lt[[weight]][match(kids, as.character(lt[[fin]]))])
+  } else {
+    miss <- setdiff(kids, names(weight))
+    if (length(miss)) {
+      stop("the shares given for '", code, "' leave out ",
+           paste(sort(miss), collapse = ", "),
+           "; name every region under it", call. = FALSE)
+    }
+    v <- as.numeric(weight[kids])
+  }
+  if (anyNA(v) || !isTRUE(sum(v, na.rm = TRUE) > 0)) {
+    stop("the weight for '", code, "' is missing or sums to zero",
+         call. = FALSE)
+  }
+  stats::setNames(v / sum(v), kids)
+}
+
+# Rewrite one slot's parent-coded rows onto the children. `dec` is one entry
+# per column: `list(decision = , weight = )`.
+#' @noRd
+.apply_slot_decisions <- function(df, dec, codes, lt, frames, fin) {
+  if (!is.data.frame(df) || !nrow(df) || !"region" %in% names(df)) return(df)
+  codes <- intersect(unique(as.character(df$region)), codes)
+  if (!length(codes)) return(df)
+  out <- df[!as.character(df$region) %in% codes, , drop = FALSE]
+  for (code in codes) {
+    part <- df[as.character(df$region) == code, , drop = FALSE]
+    kids <- .code_children(code, lt, frames, fin)
+    if (!length(kids)) {
+      out <- rbind(out, part)
+      next
+    }
+    ex <- part[rep(seq_len(nrow(part)), each = length(kids)), , drop = FALSE]
+    ex$region <- rep(kids, times = nrow(part))
+    for (cn in names(dec)) {
+      if (!cn %in% names(ex)) next
+      d <- dec[[cn]]
+      if (identical(d$decision, "weight")) {
+        sh <- .split_shares(code, d$weight, lt, frames, fin)
+        ex[[cn]] <- ex[[cn]] * rep(sh[kids], times = nrow(part))
+      } else if (identical(d$decision, "drop")) {
+        ex[[cn]] <- NA_real_
+      }
+      # "keep" leaves the value as declared in every child
+    }
+    rownames(ex) <- NULL
+    out <- rbind(out, ex)
+  }
+  rownames(out) <- NULL
+  out
+}
+
+# Apply every decision the report carries, object by object.
+#' @noRd
+.apply_split_decisions <- function(mod, rep, split_weight = NULL) {
+  rows <- rep$rows
+  if (is.null(rows) || !nrow(rows)) return(mod)
+  todo <- rows[!is.na(rows$decision), , drop = FALSE]
+  if (!nrow(todo)) return(mod)
+  gs <- tryCatch(mod@config@geoscale, error = function(e) NULL)
+  if (is.null(gs) || !is_geoscale(gs)) return(mod)
+  check_package("geoscales")
+  lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
+  frames <- geoscales::geoscale_geoframes(gs)
+  fin <- frames[length(frames)]
+  spec <- .div_spec(split_weight, "split_weight")
+  walk <- function(el) {
+    if (methods::is(el, "repository")) {
+      for (nm in names(el@data)) el@data[[nm]] <- walk(el@data[[nm]])
+      return(el)
+    }
+    if (!isS4(el)) return(el)
+    nm_el <- tryCatch(as.character(el@name)[1], error = function(e) NA)
+    t_obj <- todo[!is.na(todo$name) & todo$name == nm_el, , drop = FALSE]
+    if (!nrow(t_obj)) return(el)
+    codes <- unique(unlist(strsplit(t_obj$at, ", ", fixed = TRUE)))
+    for (sn in unique(t_obj$slot)) {
+      t_sl <- t_obj[t_obj$slot == sn, , drop = FALSE]
+      dec <- stats::setNames(lapply(seq_len(nrow(t_sl)), function(i) {
+        w <- NULL
+        if (identical(t_sl$decision[i], "weight")) {
+          hit <- .div_lookup(spec, nm_el, t_sl$class[i], t_sl$column[i])
+          if (is.null(hit)) {
+            stop("no weight for ", nm_el, "$", t_sl$column[i],
+                 " -- the pre-flight and the cut disagree", call. = FALSE)
+          }
+          w <- hit$value
+        }
+        list(decision = t_sl$decision[i], weight = w)
+      }), t_sl$column)
+      v <- tryCatch(methods::slot(el, sn), error = function(e) NULL)
+      if (!is.data.frame(v)) next
+      methods::slot(el, sn) <- .apply_slot_decisions(v, dec, codes, lt,
+                                                     frames, fin)
+    }
+    # the object's own scope follows its data: a declaration rewritten onto
+    # the children is no longer a declaration at the parent
+    r <- tryCatch(as.character(methods::slot(el, "region")),
+                  error = function(e) NULL)
+    if (!is.null(r) && length(r)) {
+      hit <- intersect(r, codes)
+      if (length(hit)) {
+        kids <- unlist(lapply(hit, .code_children, lt = lt, frames = frames,
+                              fin = fin))
+        methods::slot(el, "region") <- unique(c(setdiff(r, hit), kids))
+      }
+    }
+    el
+  }
+  for (i in seq_along(mod@data)) mod@data[[i]] <- walk(mod@data[[i]])
+  mod
 }
 
 # A cost declared at a COARSE geoscale cell is charged once, in full, at that

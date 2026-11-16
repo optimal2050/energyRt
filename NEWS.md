@@ -40,9 +40,14 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 * `subset_model_regions(dryrun = TRUE)` reports, before cutting, whether a
   region set can be cut and what it still needs: which groups it splits, which
-  values ask for a weight (`split_weight = list(SUP_COA = "area")`, or
-  `keep` / `drop`), which are carried, and the ways on. `is_separable()` is
-  its verdict alone.
+  values ask for a weight, which are carried, and the ways on.
+  `is_separable()` is its verdict alone.
+
+* `subset_model_regions(split_weight = , keep = , drop = )` cuts through a
+  region group a subset divides: a quantity declared at the group is
+  apportioned by the weight named (`split_weight = "area"` for all of them),
+  held whole (`keep`) or left out (`drop`). A subset and its complement still
+  sum to the whole; a corridor endpoint at a split group is still refused.
 
 * **Reports name the calendar each milestone is solved on.** Where milestones
   do not share one calendar, the model, scenario and config reports carry a

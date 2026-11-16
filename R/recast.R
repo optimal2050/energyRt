@@ -234,33 +234,38 @@ NULL
   NULL
 }
 
+# Normalise what the caller gave into a keyed list. Shared by the
+# pre-flight and the pass that carries its decisions out, so the two
+# read a specification the same way.
+#' @noRd
+.div_spec <- function(x, what, bare_ok = FALSE) {
+  if (is.null(x) || !length(x)) return(NULL)
+  # One weight for everything that asks, written without a key.
+  if (!bare_ok && is.null(names(x)) &&
+      (length(x) == 1L || is.numeric(x))) {
+    return(stats::setNames(list(x), .DIV_ALL_KEY))
+  }
+  # `keep` and `drop` name the columns they settle, so a bare vector of keys
+  # is their natural form; a weight has to say which key it is for.
+  if (bare_ok && is.character(x) && is.null(names(x))) {
+    return(stats::setNames(as.list(rep(TRUE, length(x))), x))
+  }
+  if (is.null(names(x)) || any(!nzchar(names(x)))) {
+    stop("`", what, "` must be named: ", what,
+         if (bare_ok) " = c(\"SUP_COA\")" else " = list(SUP_COA = \"area\")",
+         call. = FALSE)
+  }
+  as.list(x)
+}
+
 # Resolve the rows that want something against what the caller gave.
 #' @noRd
 .div_decide <- function(out, split_weight = NULL, keep = NULL, drop = NULL,
                         weights = NULL) {
   if (is.null(out) || !nrow(out)) return(out)
-  as_spec <- function(x, what, bare_ok = FALSE) {
-    if (is.null(x) || !length(x)) return(NULL)
-    # One weight for everything that asks, written without a key.
-    if (!bare_ok && is.null(names(x)) &&
-        (length(x) == 1L || is.numeric(x))) {
-      return(stats::setNames(list(x), .DIV_ALL_KEY))
-    }
-    # `keep` and `drop` name the columns they settle, so a bare vector of keys
-    # is their natural form; a weight has to say which key it is for.
-    if (bare_ok && is.character(x) && is.null(names(x))) {
-      return(stats::setNames(as.list(rep(TRUE, length(x))), x))
-    }
-    if (is.null(names(x)) || any(!nzchar(names(x)))) {
-      stop("`", what, "` must be named: ", what,
-           if (bare_ok) " = c(\"SUP_COA\")" else " = list(SUP_COA = \"area\")",
-           call. = FALSE)
-    }
-    as.list(x)
-  }
-  sw <- as_spec(split_weight, "split_weight")
-  kp <- as_spec(keep, "keep", bare_ok = TRUE)
-  dp <- as_spec(drop, "drop", bare_ok = TRUE)
+  sw <- .div_spec(split_weight, "split_weight")
+  kp <- .div_spec(keep, "keep", bare_ok = TRUE)
+  dp <- .div_spec(drop, "drop", bare_ok = TRUE)
   nm <- if ("name" %in% names(out)) out$name else rep(NA_character_, nrow(out))
   used <- character()
   for (i in seq_len(nrow(out))) {

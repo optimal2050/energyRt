@@ -173,3 +173,73 @@ test_that("a split group no object is declared at stays silent", {
   sup <- getObject(sub, name = "SUP_COA", drop = TRUE)
   expect_identical(unique(as.character(sup@supply$region)), "R1")
 })
+
+# A model whose zone-level supply carries a QUANTITY, with an uneven weight so
+# a split is visible: Z1 = R1 (km2 1) + R2 (km2 3), Z2 = R3.
+mk_zoned_w <- function() {
+  gs <- geoscales::geoscale_from_leaftable(
+    data.frame(zone = c("Z1", "Z1", "Z2"), region = c("R1", "R2", "R3"),
+               km2 = c(1, 3, 5)),
+    geoframes = c("zone", "region"), name = "gsw")
+  mod <- mk_zoned()
+  mod@data$zoned@data$SUP_COA <- update(
+    mod@data$zoned@data$SUP_COA,
+    supply = data.frame(region = c("Z1", "Z2"), cost = 5,
+                        ava.up = c(100, 200)))
+  setGeoscale(mod, gs)
+}
+sup_up <- function(m) m@data$zoned@data$SUP_COA@supply$ava.up
+
+# @covers subset_model_regions depth=U
+test_that("a named weight splits the parent's quantity onto the kept regions", {
+  sub <- subset_model_regions(mk_zoned_w(), "R1", split_weight = "km2",
+                              verbose = FALSE)
+  # Z1's 100 divided 1:3 -- R1 keeps a quarter
+  expect_equal(sup_up(sub), 25)
+  expect_equal(sub@data$zoned@data$SUP_COA@supply$cost, 5)
+  # the declaration now sits on the kept region, not on the zone
+  expect_equal(sub@data$zoned@data$SUP_COA@region, "R1")
+})
+
+# @covers subset_model_regions depth=U
+test_that("a subset and its complement still sum to the whole", {
+  a <- subset_model_regions(mk_zoned_w(), "R1", split_weight = "km2",
+                            verbose = FALSE)
+  b <- subset_model_regions(mk_zoned_w(), c("R2", "R3"), split_weight = "km2",
+                            verbose = FALSE)
+  expect_equal(sum(sup_up(a)) + sum(sup_up(b)), 300)
+})
+
+# @covers subset_model_regions depth=U
+test_that("keep holds the value whole, drop removes it", {
+  k <- subset_model_regions(mk_zoned_w(), "R1", keep = "SUP_COA",
+                            verbose = FALSE)
+  expect_equal(sup_up(k), 100)
+  d <- subset_model_regions(mk_zoned_w(), "R1", drop = "SUP_COA:ava.up",
+                            verbose = FALSE)
+  expect_true(is.na(sup_up(d)))
+  # dropping one column leaves the others alone
+  expect_equal(d@data$zoned@data$SUP_COA@supply$cost, 5)
+})
+
+# @covers subset_model_regions depth=U
+test_that("explicit shares are used as given, over every child", {
+  s <- subset_model_regions(
+    mk_zoned_w(), "R1",
+    split_weight = list(SUP_COA = list(ava.up = c(R1 = 0.9, R2 = 0.1))),
+    verbose = FALSE)
+  expect_equal(sup_up(s), 90)
+  # shares that leave a child out are refused: they would not sum to the whole
+  expect_error(subset_model_regions(
+    mk_zoned_w(), "R1",
+    split_weight = list(SUP_COA = list(ava.up = c(R1 = 1))),
+    verbose = FALSE), "leave out")
+})
+
+# @covers subset_model_regions depth=U
+test_that("a weight the geoscale does not declare is refused by the cut", {
+  expect_error(subset_model_regions(mk_zoned_w(), "R1",
+                                    split_weight = "population",
+                                    verbose = FALSE),
+               "not a weight column")
+})

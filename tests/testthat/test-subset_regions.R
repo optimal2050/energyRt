@@ -333,12 +333,17 @@ test_that("is_separable answers the question in one logical", {
 })
 
 # @covers subset_model_regions depth=U
-test_that("a decision the cut cannot yet carry out is refused, not ignored", {
+test_that("a corridor endpoint at a split group is refused, weight or not", {
   skip_if_not_installed("geoscales")
   mod <- mk_topia_mod()
-  expect_error(suppressWarnings(subset_model_regions(
-    mod, "R03", split_weight = list(SUP_GAS = c(ava.up = "area")))),
-    "not[ \n]+yet applied")
+  # the zone resource is settled by the weight; the corridor endpoint is
+  # not a value to apportion, so the cut still stops and names it
+  err <- tryCatch(suppressWarnings(subset_model_regions(
+    mod, "R03", split_weight = "area")), error = conditionMessage)
+  expect_match(err, "cannot be cut as it stands")
+  expect_match(err, "TBD_GAS_Z2_Z3")
+  expect_match(err, "endpoint")
+  expect_false(grepl("SUP_GAS", sub("settled.*", "", err)))
 })
 
 # @covers subset_model_regions depth=U
