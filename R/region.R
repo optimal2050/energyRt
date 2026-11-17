@@ -115,21 +115,23 @@ NULL
 #'   it.
 #' * **Outside** -- none survives. It is dropped, like any other out-of-sample
 #'   object.
-#' * **Split** -- some survive. The call **stops**. Halving a coarse
-#'   declaration needs a rule, and no default is safe: leaving the parent's
-#'   resource unchanged overstates a pool the dropped regions shared, and
-#'   taking a proportional share understates one that is indivisible. The error
-#'   names the objects and the three ways on -- extend `region` to the whole
+#' * **Split** -- some survive. Each value declared there is resolved column
+#'   by column: a rate, a price or an invariant is carried unchanged, while a
+#'   quantity asks for the weight to divide it by (`split_weight`), to be held
+#'   whole (`keep`), or to be left out (`drop`). Until every quantity is
+#'   settled the call **stops** with the pre-flight report, which names the
+#'   objects, the columns and the ways on -- extend `region` to the whole
 #'   group, [aggregate_model_regions()] to that level and subset there, or
-#'   disaggregate those objects to region level in the model first.
+#'   declare those objects on the finer regions.
 #'
 #' A split group that no object is declared at is not a problem and passes
 #' silently: a geoscale whose groups the subset happens to cut is normal.
-#' `weather` is exempt -- a coarse weather object feeding its children carries
-#' an intensive series, so the parent's profile is inherited unchanged. A
-#' coarse `invcost` or `fixom` is exempt too: it is charged once at the cell,
-#' which costs the subset too much rather than making it infeasible, so it
-#' stays a warning naming the remedy -- declare the cost on the endpoints.
+#' No class is exempt from the classification. `weather` passes it because a
+#' coarse profile is an intensive series, which is carried unchanged; a coarse
+#' `invcost` or `fixom` passes it for the same reason but stays a **caveat**,
+#' since it is charged once at the cell -- the sub-model bears the whole cost
+#' rather than its share, and the remedy is to declare the cost on the
+#' endpoints.
 #'
 #' @param object a [model].
 #' @param region character vector of regions to keep (must be a subset of the
@@ -227,8 +229,7 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
   # `.refuse_split_groups()`).
   cl <- .region_group_closure(object, keep = region)
   if (!isTRUE(rep$ready)) {
-    .refuse_split_groups(object, keep = region, split = cl$split,
-                         report = rep)
+    .refuse_split_groups(rep)
   }
 
   object <- .subset_model_regions(object, keep = region,
@@ -2638,99 +2639,18 @@ Declare commodities with `newCommodity()` and add them to the model; ",
 # Shared so the two cannot drift apart.
 .coarse_cost_slots <- c("invcost", "fixom")
 
-# Where a split code is actually DECLARED. Only a declaration makes the split
-# a problem: a geoscale whose groups the subset happens to cut is normal, and
-# the flat case (every object at region level) must stay silent.
-#' @noRd
-.split_group_refs <- function(mod, split) {
-  hits <- list()
-  if (!length(split)) return(hits)
-  scan <- function(el) {
-    if (methods::is(el, "repository")) {
-      for (nm in names(el@data)) scan(el@data[[nm]])
-      return(invisible(NULL))
-    }
-    if (!isS4(el) || methods::is(el, "weather")) return(invisible(NULL))
-    nm_el <- tryCatch(el@name, error = function(e) "<unnamed>")
-    for (sn in .instance_slots(el)) {
-      if (identical(sn, "misc")) next
-      v <- methods::slot(el, sn)
-      if (is.character(v) && identical(sn, "region") && length(v)) {
-        if (any(v %in% split)) {
-          hits[[length(hits) + 1L]] <<- data.frame(
-            object = nm_el, slot = "@region",
-            code = paste(intersect(unique(v), split), collapse = ","),
-            stringsAsFactors = FALSE)
-        }
-        next
-      }
-      if (!is.data.frame(v) || !nrow(v)) next
-      if (sn %in% .coarse_cost_slots) next
-      for (cl in intersect(c("region", "src", "dst"), colnames(v))) {
-        cd <- unique(as.character(v[[cl]]))
-        if (any(cd %in% split)) {
-          hits[[length(hits) + 1L]] <<- data.frame(
-            object = nm_el, slot = paste0("@", sn, "$", cl),
-            code = paste(intersect(cd, split), collapse = ","),
-            stringsAsFactors = FALSE)
-        }
-      }
-    }
-    invisible(NULL)
-  }
-  for (el in mod@data) scan(el)
-  hits
-}
-
-# Stop, naming the ways on. No rule is defaulted: an unchanged parent resource
-# overstates a pool the dropped regions shared, a proportional share
+# Stop, naming the ways on -- which the report already does, so the refusal IS
+# the report: one text, and the pre-flight and the stop cannot describe the
+# same cut differently. No rule is defaulted anywhere: an unchanged parent
+# resource overstates a pool the dropped regions shared, a proportional share
 # understates one that is indivisible, and which applies is a modelling
 # judgement the subset cannot make.
 #' @noRd
-.refuse_split_groups <- function(mod, keep, split, report = NULL) {
-  # Single-sourced text: when the report is in hand, the refusal IS the report.
-  if (!is.null(report)) {
-    if (isTRUE(report$ready)) return(invisible(NULL))
-    stop(paste(utils::capture.output(print(report)), collapse = "
+.refuse_split_groups <- function(report) {
+  if (isTRUE(report$ready)) return(invisible(NULL))
+  stop(paste(utils::capture.output(print(report)), collapse = "
 "),
-         call. = FALSE)
-  }
-  if (!length(split)) return(invisible(NULL))
-  hits <- .split_group_refs(mod, split)
-  if (!length(hits)) return(invisible(NULL))
-  h <- do.call(rbind, hits)
-  used <- unique(unlist(strsplit(h$code, ",", fixed = TRUE)))
-  used <- intersect(split, used)
-  gs <- tryCatch(mod@config@geoscale, error = function(e) NULL)
-  frames <- tryCatch(geoscales::geoscale_geoframes(gs),
-                     error = function(e) NULL)
-  finest <- if (length(frames)) frames[length(frames)] else "region"
-  lt <- tryCatch(as.data.frame(geoscales::geoscale_leaftable(gs)),
-                 error = function(e) NULL)
-  missing_by_code <- vapply(used, function(code) {
-    if (is.null(lt)) return("")
-    f <- names(lt)[vapply(names(lt), function(n)
-      code %in% as.character(lt[[n]]), logical(1))]
-    if (!length(f)) return("")
-    kids <- unique(as.character(lt[[finest]])[as.character(lt[[f[1]]]) == code])
-    paste(setdiff(kids, keep), collapse = ", ")
-  }, character(1))
-  where <- paste0("  ", h$object, h$slot, " (", h$code, ")")
-  stop("the subset cuts region group(s) the model declares objects at: ",
-       paste(sprintf("%s (add %s to keep it whole)", used, missing_by_code),
-             collapse = "; "), ".\n",
-       paste(utils::head(where, 12), collapse = "\n"),
-       if (nrow(h) > 12L) paste0("\n  ... and ", nrow(h) - 12L, " more")
-       else "",
-       "\nA declaration above the region level cannot be cut in half without ",
-       "a rule, and there is no safe default: an unchanged parent resource ",
-       "overstates a pool the dropped regions shared, a proportional share ",
-       "understates an indivisible one. Three ways on:\n",
-       "  * extend `region` to the whole group, as named above;\n",
-       "  * aggregate the model to that level first ",
-       "(`aggregate_model_regions(level = )`) and subset there;\n",
-       "  * disaggregate those objects to region level in the model, then ",
-       "subset.", call. = FALSE)
+       call. = FALSE)
 }
 
 # --------------------------------------------------------------------------- #

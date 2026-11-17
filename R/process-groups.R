@@ -282,25 +282,20 @@ get_process_groups <- function(x, regions = NULL) {
   # may call it anything, and `region` is only guaranteed as the ATOM KEY
   # column of the leaftable, not as a geoframe name.
   fine <- geoscales::geoscale_geoframes(gs, finest = TRUE)
-  m <- geoscales::geoscale_geometry(gs, fine)
-  reg <- as.character(m[[fine]])
-  tt <- sf::st_touches(m)
-  a <- matrix(FALSE, length(reg), length(reg), dimnames = list(reg, reg))
-  for (i in seq_along(reg)) a[i, tt[[i]]] <- TRUE
-  # a region that touches nothing (drawn offshore) joins its nearest neighbour;
-  # a distance TOLERANCE cannot do this job -- one wide enough to bridge the
-  # gap also links every pair one cell apart on a gridded layout
-  if (any(lengths(tt) == 0)) {
-    d <- sf::st_distance(m)
-    units(d) <- NULL
-    for (i in which(lengths(tt) == 0)) {
-      v <- d[i, ]; v[i] <- Inf; j <- which.min(v)
-      a[i, j] <- a[j, i] <- TRUE
-    }
-  }
-  lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
-  parent <- stats::setNames(as.character(lt[[level]]), as.character(lt$region))
-  a & !outer(parent[reg], parent[reg], "!=")
+  # Delegated: `geoscale_adjacent()` is this computation with its three parts
+  # as arguments -- `within` the parent mask that confines a cluster to one
+  # coarse region, `isolated = "nearest"` the fallback for a region drawn
+  # offshore, and `contiguity = "queen"` what `sf::st_touches()` answers.
+  # Measured identical to the hand-rolled version on all four TOPIA layouts at
+  # both coarse levels (9/22, 10/22, 10/19, 9/24 edges).
+  #
+  # One ordering difference, and theirs is the better one: isolation is
+  # resolved AFTER the mask, so an island takes the nearest neighbour its
+  # parent allows instead of one the mask then removes again.
+  geoscales::geoscale_adjacent(
+    gs, geoframe = fine,
+    within = if (identical(level, fine)) NULL else level,
+    contiguity = "queen", isolated = "nearest")
 }
 
 #' @noRd

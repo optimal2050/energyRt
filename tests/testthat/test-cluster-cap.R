@@ -121,3 +121,22 @@ test_that("a capped model interpolates and keeps its demand", {
   expect_setequal(unique(as.character(d$region)), c("Z4", "Z5"))
   expect_equal(sum(d$value, na.rm = TRUE), 40)
 })
+
+test_that("the adjacency is the geoscale's, confined to the coarse region", {
+  skip_if_no_clustering()
+  gs <- topia$geoscales$honeycomb
+  a <- .cl_adjacency(gs, "zone")
+  expect_true(is.matrix(a))
+  expect_equal(dim(a), c(12L, 12L))
+  expect_true(all(a == t(a)))
+  expect_false(any(diag(a)))
+  # the numbers, so a change in either package shows up here rather than as a
+  # different clustering three calls away
+  expect_equal(sum(a) / 2, 10)
+  expect_equal(sum(.cl_adjacency(gs, "nation")) / 2, 22)
+  # no edge crosses a zone
+  lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
+  z <- stats::setNames(as.character(lt$zone), as.character(lt$region))
+  idx <- which(a, arr.ind = TRUE)
+  expect_true(all(z[rownames(a)[idx[, 1]]] == z[colnames(a)[idx[, 2]]]))
+})
