@@ -28,10 +28,19 @@ p_space <- gg_geoscale(
   view = "oblique",
   depth = 1,
   labels = geoscales::geoscale_geoframes(topia$geoscales$island),
-  frame = TRUE
+  frame = TRUE,
+  palette = NA
 ) +
+  scale_fill_viridis_d(option = "H") +
   labs(title = "Space: nested geographies") +
   theme(legend.position = "none")
+# every region in its own colour: the map layers fill by region code
+# instead of the stack's default ancestor key
+for (i in seq_along(p_space$layers)) {
+  if (!is.null(p_space$layers[[i]]$mapping$fill)) {
+    p_space$layers[[i]]$mapping <- aes(fill = code)
+  }
+}
 
 p_calendar <- autoplot(timescales::calendar(name = "s4_h24")) +
   labs(title = "Time: nested calendar", subtitle = NULL, x = NULL) +

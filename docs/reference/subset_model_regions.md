@@ -104,24 +104,25 @@ three states.
 - **Outside** – none survives. It is dropped, like any other
   out-of-sample object.
 
-- **Split** – some survive. The call **stops**. Halving a coarse
-  declaration needs a rule, and no default is safe: leaving the parent's
-  resource unchanged overstates a pool the dropped regions shared, and
-  taking a proportional share understates one that is indivisible. The
-  error names the objects and the three ways on – extend `region` to the
+- **Split** – some survive. Each value declared there is resolved column
+  by column: a rate, a price or an invariant is carried unchanged, while
+  a quantity asks for the weight to divide it by (`split_weight`), to be
+  held whole (`keep`), or to be left out (`drop`). Until every quantity
+  is settled the call **stops** with the pre-flight report, which names
+  the objects, the columns and the ways on – extend `region` to the
   whole group,
   [`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md)
-  to that level and subset there, or disaggregate those objects to
-  region level in the model first.
+  to that level and subset there, or declare those objects on the finer
+  regions.
 
 A split group that no object is declared at is not a problem and passes
 silently: a geoscale whose groups the subset happens to cut is normal.
-`weather` is exempt – a coarse weather object feeding its children
-carries an intensive series, so the parent's profile is inherited
-unchanged. A coarse `invcost` or `fixom` is exempt too: it is charged
-once at the cell, which costs the subset too much rather than making it
-infeasible, so it stays a warning naming the remedy – declare the cost
-on the endpoints.
+No class is exempt from the classification. `weather` passes it because
+a coarse profile is an intensive series, which is carried unchanged; a
+coarse `invcost` or `fixom` passes it for the same reason but stays a
+**caveat**, since it is charged once at the cell – the sub-model bears
+the whole cost rather than its share, and the remedy is to declare the
+cost on the endpoints.
 
 ## See also
 

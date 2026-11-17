@@ -17,7 +17,7 @@ endpoint. When the model carries a geoscale, it is filtered in step
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -174,20 +174,22 @@ is, since it describes the ground the subset holds, and the message names
 it.</p></li>
 <li><p><strong>Outside</strong> – none survives. It is dropped, like any other out-of-sample
 object.</p></li>
-<li><p><strong>Split</strong> – some survive. The call <strong>stops</strong>. Halving a coarse
-declaration needs a rule, and no default is safe: leaving the parent's
-resource unchanged overstates a pool the dropped regions shared, and
-taking a proportional share understates one that is indivisible. The error
-names the objects and the three ways on – extend <code>region</code> to the whole
+<li><p><strong>Split</strong> – some survive. Each value declared there is resolved column
+by column: a rate, a price or an invariant is carried unchanged, while a
+quantity asks for the weight to divide it by (<code>split_weight</code>), to be held
+whole (<code>keep</code>), or to be left out (<code>drop</code>). Until every quantity is
+settled the call <strong>stops</strong> with the pre-flight report, which names the
+objects, the columns and the ways on – extend <code>region</code> to the whole
 group, <code><a href="aggregate_model_regions.html">aggregate_model_regions()</a></code> to that level and subset there, or
-disaggregate those objects to region level in the model first.</p></li>
+declare those objects on the finer regions.</p></li>
 </ul><p>A split group that no object is declared at is not a problem and passes
 silently: a geoscale whose groups the subset happens to cut is normal.
-<code>weather</code> is exempt – a coarse weather object feeding its children carries
-an intensive series, so the parent's profile is inherited unchanged. A
-coarse <code>invcost</code> or <code>fixom</code> is exempt too: it is charged once at the cell,
-which costs the subset too much rather than making it infeasible, so it
-stays a warning naming the remedy – declare the cost on the endpoints.</p>
+No class is exempt from the classification. <code>weather</code> passes it because a
+coarse profile is an intensive series, which is carried unchanged; a coarse
+<code>invcost</code> or <code>fixom</code> passes it for the same reason but stays a <strong>caveat</strong>,
+since it is charged once at the cell – the sub-model bears the whole cost
+rather than its share, and the remedy is to declare the cost on the
+endpoints.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

@@ -36,7 +36,8 @@ region information is added to classes that do not yet carry an explicit
 
 Other model:
 [`find_in_model()`](https://energyRt.org/reference/find_in_model.md),
-[`get_weather()`](https://energyRt.org/reference/get_weather.md)
+[`get_weather()`](https://energyRt.org/reference/get_weather.md),
+[`update,model-method`](https://energyRt.org/reference/update-model-method.md)
 
 ## Examples
 

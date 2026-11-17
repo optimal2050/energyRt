@@ -11,7 +11,7 @@ own right: it can be interpolated, solved and reported like any other."><meta pr
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -83,9 +83,11 @@ own right: it can be interpolated, solved and reported like any other.</p>
 <span>  geoscale <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">level</span>,</span>
 <span>  clusters <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  max_clusters <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  as <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"clusters"</span>, <span class="st">"objects"</span><span class="op">)</span>,</span>
 <span>  name <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  resolve_conflicts <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  dryrun <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="fu"><a href="isVerbose.html">isVerbose</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  .trade_parts <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -116,6 +118,21 @@ not named is aggregated plainly, so clustering is opted into one family at
 a time.</p></dd>
 
 
+<dt id="arg-max-clusters">max_clusters<a class="anchor" aria-label="anchor" href="#arg-max-clusters"></a></dt>
+<dd><p>A ceiling on the number of clusters <strong>per coarse
+region</strong>, the readable alternative to <code>clusters</code>: <code>max_clusters = 3</code> is
+"at most three clusters in every <code>level</code> region", for every family.
+<code>list(EWIN = 3, SUP_BIO = 2)</code> sets it per family, with <code>all = 3</code> as the
+blanket that a family key overrides. Inside each coarse region the number
+is chosen by the best average silhouette over <code>2 .. min(max, regions)</code>,
+and falls back to 1 – that region plainly aggregated – where there is
+nothing to separate: one region, or no candidate parameter that varies.
+A cap is satisfied by 1, so that is reported rather than refused. Not for
+a corridor family, whose parts are coarse pairs and not regions: a
+blanket skips those, and naming one is refused. A family may not appear
+in both <code>clusters</code> and <code>max_clusters</code>.</p></dd>
+
+
 <dt id="arg-as">as<a class="anchor" aria-label="anchor" href="#arg-as"></a></dt>
 <dd><p>With <code>clusters</code>, the shape of the result: <code>"clusters"</code> (default)
 gives one object per family, region variants becoming
@@ -137,6 +154,17 @@ object, the column and the regions that disagree. <code>"force"</code> (or <code
 takes their mean; <code>"drop"</code> leaves the merged value unset, so the parameter
 falls back to its default rather than to a fabricated number. Both warn
 and record what was resolved in each object's <code>@misc$aggregation</code>.</p></dd>
+
+
+<dt id="arg-dryrun">dryrun<a class="anchor" aria-label="anchor" href="#arg-dryrun"></a></dt>
+<dd><p>Return a plan instead of aggregating: the geoframe each
+region-keyed slot sits at and what will happen to it (rolled up, carried,
+kept, or refused), the <code>copy</code> columns that disagree inside a target
+region, each corridor's fate, the clustering each family resolves to, the
+objects whose <code>@geoframe</code> will be cleared, and whether the call is ready.
+Computed by the same helpers the aggregation itself uses, so the plan and
+the call cannot disagree about the geography; it collects the refusals
+that would otherwise be raised one at a time.</p></dd>
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
@@ -205,6 +233,11 @@ instead.</p>
 averaged, which on a model whose fine regions already pool inside each
 coarse region reproduces the fine objective exactly). Clusters cannot
 straddle a coarse region.</p>
+<p>Because of that constraint the partition is already independent inside each
+coarse region, and <code>k</code> is only a decision about how one global budget is
+shared out. <code>max_clusters</code> states the same thing the other way round and is
+usually the easier dial: a ceiling per coarse region, with the number below
+it chosen per region.</p>
 <p>A family that ALREADY has clusters – wind by site grade – keeps them: the
 two groupings compose, <code>GOOD</code> in <code>W1</code> becoming <code>GOOD_W1</code>.</p>
     </div>

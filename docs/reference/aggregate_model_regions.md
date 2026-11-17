@@ -14,9 +14,11 @@ aggregate_model_regions(
   geoscale = NULL,
   level,
   clusters = NULL,
+  max_clusters = NULL,
   as = c("clusters", "objects"),
   name = NULL,
   resolve_conflicts = FALSE,
+  dryrun = FALSE,
   verbose = isVerbose(),
   .trade_parts = NULL
 )
@@ -48,6 +50,22 @@ aggregate_model_regions(
   that is not named is aggregated plainly, so clustering is opted into
   one family at a time.
 
+- max_clusters:
+
+  A ceiling on the number of clusters **per coarse region**, the
+  readable alternative to `clusters`: `max_clusters = 3` is "at most
+  three clusters in every `level` region", for every family.
+  `list(EWIN = 3, SUP_BIO = 2)` sets it per family, with `all = 3` as
+  the blanket that a family key overrides. Inside each coarse region the
+  number is chosen by the best average silhouette over
+  `2 .. min(max, regions)`, and falls back to 1 – that region plainly
+  aggregated – where there is nothing to separate: one region, or no
+  candidate parameter that varies. A cap is satisfied by 1, so that is
+  reported rather than refused. Not for a corridor family, whose parts
+  are coarse pairs and not regions: a blanket skips those, and naming
+  one is refused. A family may not appear in both `clusters` and
+  `max_clusters`.
+
 - as:
 
   With `clusters`, the shape of the result: `"clusters"` (default) gives
@@ -69,6 +87,17 @@ aggregate_model_regions(
   `"drop"` leaves the merged value unset, so the parameter falls back to
   its default rather than to a fabricated number. Both warn and record
   what was resolved in each object's `@misc$aggregation`.
+
+- dryrun:
+
+  Return a plan instead of aggregating: the geoframe each region-keyed
+  slot sits at and what will happen to it (rolled up, carried, kept, or
+  refused), the `copy` columns that disagree inside a target region,
+  each corridor's fate, the clustering each family resolves to, the
+  objects whose `@geoframe` will be cleared, and whether the call is
+  ready. Computed by the same helpers the aggregation itself uses, so
+  the plan and the call cannot disagree about the geography; it collects
+  the refusals that would otherwise be raised one at a time.
 
 - verbose:
 
@@ -141,6 +170,12 @@ what `clusters = NULL` gives) to the number of fine regions (1:1,
 nothing averaged, which on a model whose fine regions already pool
 inside each coarse region reproduces the fine objective exactly).
 Clusters cannot straddle a coarse region.
+
+Because of that constraint the partition is already independent inside
+each coarse region, and `k` is only a decision about how one global
+budget is shared out. `max_clusters` states the same thing the other way
+round and is usually the easier dial: a ceiling per coarse region, with
+the number below it chosen per region.
 
 A family that ALREADY has clusters – wind by site grade – keeps them:
 the two groupings compose, `GOOD` in `W1` becoming `GOOD_W1`.

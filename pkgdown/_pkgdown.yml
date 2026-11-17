@@ -151,6 +151,7 @@ reference:
   - newRegistry
   - add,repository-method
   - update
+  - update,model-method
   - update,export-method
   - update,supply-method
   - asSupplyCurve
@@ -190,6 +191,8 @@ reference:
   - subset_model_regions
   - is_separable
   - aggregate_model_regions
+  - check_model_levels
+  - verify_aggregation
 
 - title: Process specifications
   desc: >

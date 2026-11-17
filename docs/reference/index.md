@@ -125,6 +125,8 @@ the model that binds them to a calendar, regions and a horizon.
   [`update(`*`<trade>`*`)`](https://energyRt.org/reference/update.md)
   [`update(`*`<import>`*`)`](https://energyRt.org/reference/update.md) :
   Update supply object
+- [`update(`*`<model>`*`)`](https://energyRt.org/reference/update-model-method.md)
+  : Update a model's elements and the frames they are declared at
 - [`asSupplyCurve()`](https://energyRt.org/reference/supply-curve.md)
   [`asImportCurve()`](https://energyRt.org/reference/supply-curve.md)
   [`asExportCurve()`](https://energyRt.org/reference/supply-curve.md)
@@ -222,6 +224,12 @@ coarse balances roll up without a `trade` route for every pair.
 
 - [`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md)
   : Aggregate a model to a coarser set of regions
+
+- [`check_model_levels()`](https://energyRt.org/reference/check_model_levels.md)
+  : Check declared resolutions against the commodities they serve
+
+- [`verify_aggregation()`](https://energyRt.org/reference/verify_aggregation.md)
+  : Check what an aggregation conserved
 
 ## Process specifications
 

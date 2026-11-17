@@ -47,7 +47,7 @@ re-attached by name in `data-raw/DATASET.R`.
 table(model_structure$type)
 #> 
 #> parameter       set  variable 
-#>       269       314        93 
+#>       271       317        95 
 head(model_structure[model_structure$type == "variable", ])
 #>                      name                                     description
 #> vTechInv         vTechInv                      Overnight investment costs

@@ -867,7 +867,54 @@ cycle will be a calendar day).
 
   stgcost
 
-  : numeric. Costs associated with the storage level.
+  : numeric. Costs associated with the storage level. A negative value
+    rewards holding a charged store.
+
+- `target`:
+
+  data.frame. Soft floors on the stored level, priced. Each row is one
+  tier: the level may fall below `af.target` at `cost` per unit short.
+  Tiers stack – below several targets the prices add up – so a deeper
+  tier with its own price makes draining dearer the further it goes.
+
+  vintage
+
+  : character. Vintage label selecting the variant this row applies to,
+    NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  : character. Cluster label selecting the variant this row applies to,
+    NA for every cluster. See the `cluster` slot.
+
+  region
+
+  : character. Region name to apply the parameter, NA for every region.
+
+  year
+
+  : integer. Year to apply the parameter, NA for every year.
+
+  timeslice
+
+  : character. Time timeslice to apply the parameter, NA for every
+    timeslice. An end-of-season target names its slice.
+
+  tier
+
+  : character. Tier label; a missing or NA tier is the tier "1". Never a
+    wildcard.
+
+  af.target
+
+  : numeric. Soft floor on the stored level as a fraction of storing
+    capacity (the base of `af.lo`), not an absolute level.
+
+  cost
+
+  : numeric. Cost per unit the level falls short of `af.target`, on the
+    same annual basis as `varom$stgcost`. Without it the target has no
+    effect.
 
 - `invcost`:
 

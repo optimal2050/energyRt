@@ -29,5 +29,5 @@ head(checks, 4)
 table(checks$tier)
 #> 
 #> default   optin 
-#>      10       6 
+#>      10       7 
 ```

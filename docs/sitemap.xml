@@ -50,6 +50,7 @@
 <url><loc>https://energyRt.org/reference/calendar_samples.html</loc></url>
 <url><loc>https://energyRt.org/reference/check_feasibility.html</loc></url>
 <url><loc>https://energyRt.org/reference/check_geoscale_regions.html</loc></url>
+<url><loc>https://energyRt.org/reference/check_model_levels.html</loc></url>
 <url><loc>https://energyRt.org/reference/check_name.html</loc></url>
 <url><loc>https://energyRt.org/reference/class-calendar.html</loc></url>
 <url><loc>https://energyRt.org/reference/class-commodity.html</loc></url>
@@ -312,11 +313,13 @@
 <url><loc>https://energyRt.org/reference/topia_profiles.html</loc></url>
 <url><loc>https://energyRt.org/reference/topia_simulate.html</loc></url>
 <url><loc>https://energyRt.org/reference/trim_parameters.html</loc></url>
+<url><loc>https://energyRt.org/reference/update-model-method.html</loc></url>
 <url><loc>https://energyRt.org/reference/update.html</loc></url>
 <url><loc>https://energyRt.org/reference/update_parameter.html</loc></url>
 <url><loc>https://energyRt.org/reference/upgrade_scenario_layout.html</loc></url>
 <url><loc>https://energyRt.org/reference/validate_scenario_parameters.html</loc></url>
 <url><loc>https://energyRt.org/reference/variantSummary.html</loc></url>
+<url><loc>https://energyRt.org/reference/verify_aggregation.html</loc></url>
 <url><loc>https://energyRt.org/reference/verify_checks.html</loc></url>
 <url><loc>https://energyRt.org/reference/verify_solution.html</loc></url>
 <url><loc>https://energyRt.org/reference/vre_cf.html</loc></url>

@@ -32,6 +32,74 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 ### New features
 
+- Storage level targets: `storage@target` sets soft floors on the level
+  (`af.target`, a share of storing capacity), each with a price per unit
+  short (`cost`). Tiers stack, so a deeper tier with its own price makes
+  draining dearer the further it goes. Reported as `vStorageShort` /
+  `vStorageShortCost`. `varom$stgcost` may now be negative, a reward for
+  holding a charged store.
+
+- [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
+  prunes a cluster roster declared without a `region` column: a variant
+  whose rows the cut removed is no longer declared, where before the
+  model was refused for carrying no rows for it.
+
+- A base-year ledger carried into a SUBSET of the model it was solved on
+  is narrowed to the regions the model declares, naming what it left
+  out, instead of writing capacity for regions the cut removed.
+
+- [`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md)
+  no longer averages weather. A series is already a clustered object,
+  and the weight such a mean needs – the resource available for that
+  grade in that province – is not something a geoscale can carry, so
+  every fine series is preserved: the province becomes part of the
+  variant label (`HI` in `R07` becomes `HI_R07` under `Z4`) and no value
+  is touched. The objects that share those labels – the series, the
+  resource commodity and both sides of its market – are composed
+  together.
+
+- `aggregate_model_regions(dryrun = TRUE)` returns a plan instead of
+  aggregating: the geoframe each region-keyed slot sits at and what will
+  happen to it, the `copy` columns that disagree, each corridor’s fate,
+  the clustering each family resolves to, and whether the call is ready.
+
+- [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
+  reports what share of the system a cut keeps – demand, capacity,
+  supply and the geoscale’s own weights – in the `dryrun` report and in
+  `@misc$subset`.
+
+- [`check_model_levels()`](https://energyRt.org/reference/check_model_levels.md)
+  reports the level rule
+  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+  raises: every strict-class declaration that sits at a different level
+  than its commodity, plus a `@geoframe` or `@timeframe` the model’s
+  geoscale or calendar does not have. Works on a model, before
+  interpolation.
+
+- `verify_aggregation(fine, coarse)` says what a coarsening conserved:
+  an extensive total must be unchanged, a rate must stay inside the
+  range it came from, and a class that lost objects – corridors internal
+  to a coarse region – is reported as such instead of as loss.
+
+- `aggregate_model_regions(max_clusters = )` caps clusters **per coarse
+  region** – `max_clusters = 3`, or per family with `list(all = 3)` –
+  instead of `clusters`’ model-wide `k`. Each region takes the best
+  number below the cap, and one with nothing to separate is left plainly
+  aggregated.
+
+- [`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md)
+  now coarsens a model whose objects are not all declared at its finest
+  regions: each row is recast from the geoframe its own code sits at,
+  one already at the target is carried, one above it is kept, and a
+  stale `@geoframe` is cleared.
+
+- [`update()`](https://energyRt.org/reference/update.md) on a model
+  moves the frame an element is declared at:
+  `update(mod, geoframe = list(ELC = "zone"))`, with the classes pinned
+  to the commodity moving with it. Data not already at the frame is
+  refused; `dryrun = TRUE` reports, `force = TRUE` writes the frame
+  anyway.
+
 - `subset_model_regions(region = )` takes a code at any geoframe:
   `region = "Z3"` keeps that zone’s provinces.
 
@@ -75,9 +143,8 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   `per-year calendars` row. A model whose years all share a calendar
   reports exactly what it reported before.
 
-- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
-  on a `horizon` labels each interval with the calendar that milestone
-  is solved on, when `intervals$calendar` names one.
+- `autoplot()` on a `horizon` labels each interval with the calendar
+  that milestone is solved on, when `intervals$calendar` names one.
 
 - **[`topia_simulate()`](https://energyRt.org/reference/topia_simulate.md)
   generates TOPIA’s weather and demand profiles.** The shipped
@@ -679,8 +746,8 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   per vintage and cluster, or one result per region.
 
 - [`draw()`](https://energyRt.org/reference/draw.md) process diagrams;
-  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
-  for objects, calendars, horizons, scenarios and comparisons;
+  `autoplot()` for objects, calendars, horizons, scenarios and
+  comparisons;
   [`plot_map()`](https://energyRt.org/reference/energyRt-deprecated.md),
   [`plot_trade_map()`](https://energyRt.org/reference/energyRt-deprecated.md),
   [`plot_trade_network()`](https://energyRt.org/reference/energyRt-deprecated.md).
@@ -693,22 +760,18 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   storage; trade maps take `comm` and any geoscale level, and separate
   stock from investable capacity.
 
-- Shared
-  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
-  settings: `@desc` as subtitle, the object’s unit on the y axis,
-  legends titled by the key they show.
+- Shared `autoplot()` settings: `@desc` as subtitle, the object’s unit
+  on the y axis, legends titled by the key they show.
 
 - `autoplot(<supply>)`: `param =` picks the quantity, `style =` the
   chart; `type =` is deprecated.
 
 - [`sequence_coverage()`](https://energyRt.org/reference/sequence_coverage.md)
   reports what a solve sequence covered, one row per unit and element,
-  and
-  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
-  draws it: a sampled calendar as a tile grid or a wall calendar, a
-  region sample on its geoscale, a recursive walk as a horizon Gantt
-  with the look-ahead years marked apart from the decided ones. Elements
-  no unit covered stay visible as gaps.
+  and `autoplot()` draws it: a sampled calendar as a tile grid or a wall
+  calendar, a region sample on its geoscale, a recursive walk as a
+  horizon Gantt with the look-ahead years marked apart from the decided
+  ones. Elements no unit covered stay visible as gaps.
 
 - `autoplot(<by_sample>, "histogram")` draws a result’s spread across
   the samples, weighted by each sample’s coverage, with the free pass
@@ -791,12 +854,10 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 - [`plot()`](https://energyRt.org/reference/draw.md) on every energyRt
   class now draws the figure and returns it invisibly, like base
-  [`plot()`](https://energyRt.org/reference/draw.md);
-  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  [`plot()`](https://energyRt.org/reference/draw.md); `autoplot()`
   returns the ggplot to modify.
 
-- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
-  on a calendar is drawn by
+- `autoplot()` on a calendar is drawn by
   [`timescales::gg_calendar()`](https://optimal2050.github.io/timescales/r/reference/gg_calendar.html).
   `labels` takes `"name"`, `"timeslice"` or `"none"` (`label_by` is
   gone), the text colour is automatic (`label_color` is gone) and
@@ -957,10 +1018,10 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   and
   [`mmcloud::set_hf_token()`](https://rdrr.io/pkg/mmcloud/man/hf_token.html).
 
-- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
-  on a `horizon` marks the milestones that are given rather than
-  optimised: the base year and any milestones before it are washed out,
-  with a rule at the last given year and a caption naming the states.
+- `autoplot()` on a `horizon` marks the milestones that are given rather
+  than optimised: the base year and any milestones before it are washed
+  out, with a rule at the last given year and a caption naming the
+  states.
 
 ### Breaking changes
 
@@ -1008,12 +1069,11 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   rather than a list of milestones, so the years it then asked for were
   not milestones of the horizon it built.
 
-- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
-  on a single-interval `horizon` shows both of its boundaries. The
-  leading tick was the first interval’s start unshifted, which collapses
-  onto the milestone whenever that interval is one year, leaving the
-  shipped one-year horizons as a slab with a single tick at the right
-  edge.
+- `autoplot()` on a single-interval `horizon` shows both of its
+  boundaries. The leading tick was the first interval’s start unshifted,
+  which collapses onto the milestone whenever that interval is one year,
+  leaving the shipped one-year horizons as a slab with a single tick at
+  the right edge.
 
 - The year legend of `autoplot(<horizon>)` breaks on whole years; on a
   short horizon the continuous scale put breaks between them (`2032.5`).
@@ -1270,13 +1330,12 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   [`plot_trade_map()`](https://energyRt.org/reference/energyRt-deprecated.md)
   already drew every level – the two views now agree.
 
-- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
-  refuses a bare `units` value instead of dropping it. `units` names a
-  base unit per commodity (`units = list(ELC = "GWh")`); a parameter
-  name passed there – `units = "cost"`, where `param = "cost"` is meant
-  – was accepted and ignored, and the chart then drew something else in
-  silence. A style that labels from the object says that `units` has no
-  effect on it.
+- `autoplot()` refuses a bare `units` value instead of dropping it.
+  `units` names a base unit per commodity (`units = list(ELC = "GWh")`);
+  a parameter name passed there – `units = "cost"`, where
+  `param = "cost"` is meant – was accepted and ignored, and the chart
+  then drew something else in silence. A style that labels from the
+  object says that `units` has no effect on it.
 
 - A `demand` naming no year was dropped instead of read:
   [`aggregate()`](https://rdrr.io/r/stats/aggregate.html) drops NA

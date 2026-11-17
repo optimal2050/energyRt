@@ -246,7 +246,7 @@ scen <- interpolate_model(mod, name = "BASE") |>
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
 #> ℹ building maps: membership + closure
 #> ✔ building maps: membership + closure (0.1s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
 #> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan
 #> ✔ building maps: calendar + lifespan (0.1s)
@@ -256,12 +256,12 @@ scen <- interpolate_model(mod, name = "BASE") |>
 #> ℹ building maps: value✔ building maps: value (0.0s)
 #> ℹ building maps: filter
 #> ✔ building maps: filter (0.1s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.0s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: BASE
-#>   parameters : 200 value, 359 maps, 15 sets
+#>   parameters : 202 value, 361 maps, 16 sets
 #>   param rows : 95
 #>   estimate   : ~140 variables, ~128 constraints (from gating maps)
 #>   top parameters by rows:
@@ -353,7 +353,7 @@ list_versions("SM", type = "model")
 #> # A tibble: 1 × 7
 #>   status  name  type  version  sealed_at            refs size_mb
 #>   <chr>   <chr> <chr> <chr>    <dttm>              <int>   <dbl>
-#> 1 current SM    model ea94b58e 2026-11-16 10:47:47     0       0
+#> 1 current SM    model ea94b58e 2026-11-17 03:15:46     0       0
 ```
 
 **Only sealed versions are referenced.** A scenario records the model it
@@ -459,7 +459,7 @@ full <- interpolate_model(mod, fee, name = "FEE_FULL")
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
 #> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
 #> ℹ collecting sets: object names
-#> ✔ collecting sets: object names (0.1s)
+#> ✔ collecting sets: object names (0.0s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
 #> ℹ collecting sets: timeframes
 #> ✔ collecting sets: timeframes (0.0s)
@@ -486,7 +486,7 @@ full <- interpolate_model(mod, fee, name = "FEE_FULL")
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: FEE_FULL
-#>   parameters : 200 value, 360 maps, 15 sets
+#>   parameters : 202 value, 362 maps, 16 sets
 #>   param rows : 95
 #>   estimate   : ~143 variables, ~128 constraints (from gating maps)
 #>   top parameters by rows:
@@ -615,7 +615,7 @@ scen_low <- interpolate_model(make_mod(c(50, 50, 50)), name = "BASE",
 #> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
 #> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan
-#> ✔ building maps: calendar + lifespan (0.1s)
+#> ✔ building maps: calendar + lifespan (0.2s)
 #> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
@@ -627,7 +627,7 @@ scen_low <- interpolate_model(make_mod(c(50, 50, 50)), name = "BASE",
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: BASE
-#>   parameters : 200 value, 359 maps, 15 sets
+#>   parameters : 202 value, 361 maps, 16 sets
 #>   param rows : 95
 #>   estimate   : ~140 variables, ~128 constraints (from gating maps)
 #>   top parameters by rows:

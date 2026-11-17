@@ -148,18 +148,18 @@ knitr::kable(geo[, setdiff(names(geo), "region")],
 
 | nation | zone | province | name      |     area |
 |:-------|:-----|:---------|:----------|---------:|
-| TOPIA  | Z1   | R01      | Region 01 | 5.657862 |
-| TOPIA  | Z2   | R02      | Region 02 | 5.657862 |
-| TOPIA  | Z2   | R03      | Region 03 | 5.657862 |
-| TOPIA  | Z3   | R04      | Region 04 | 5.657862 |
-| TOPIA  | Z3   | R05      | Region 05 | 5.657862 |
-| TOPIA  | Z3   | R06      | Region 06 | 5.657862 |
-| TOPIA  | Z4   | R07      | Region 07 | 5.657862 |
-| TOPIA  | Z4   | R08      | Region 08 | 5.657862 |
-| TOPIA  | Z4   | R09      | Region 09 | 5.657862 |
-| TOPIA  | Z4   | R10      | Region 10 | 5.657862 |
-| TOPIA  | Z5   | R11      | Region 11 | 5.657862 |
-| TOPIA  | Z5   | R12      | Region 12 | 5.657862 |
+| TOPIA  | Z1   | R01      | Geysia    | 5.657862 |
+| TOPIA  | Z2   | R02      | Metropia  | 5.657862 |
+| TOPIA  | Z2   | R03      | Solaria   | 5.657862 |
+| TOPIA  | Z3   | R04      | Nuclia    | 5.657862 |
+| TOPIA  | Z3   | R05      | Alpinia   | 5.657862 |
+| TOPIA  | Z3   | R06      | Coalia    | 5.657862 |
+| TOPIA  | Z4   | R07      | Torrentia | 5.657862 |
+| TOPIA  | Z4   | R08      | Shalia    | 5.657862 |
+| TOPIA  | Z4   | R09      | Silvania  | 5.657862 |
+| TOPIA  | Z4   | R10      | Industria | 5.657862 |
+| TOPIA  | Z5   | R11      | Windia    | 5.657862 |
+| TOPIA  | Z5   | R12      | Maritia   | 5.657862 |
 
 The province hierarchy {.table}
 

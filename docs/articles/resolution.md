@@ -122,8 +122,7 @@ The derived slots do the bookkeeping the model needs:
 - **`@timeframe_rank`** — the level hierarchy; a commodity’s `timeframe`
   picks the level it is balanced on.
 
-[`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
-draws the nested structure:
+`autoplot()` draws the nested structure:
 
 ``` r
 

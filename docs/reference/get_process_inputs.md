@@ -57,7 +57,7 @@ scen <- interpolate_model(mod, name = "EX")
 #> ✔ checking declarations (0.1s)
 #> ℹ expanding vintage/cluster variants
 #> Expanded 8 process objects into 33 variants (vintage/cluster).
-#> ✔ expanding vintage/cluster variants (0.1s)
+#> ✔ expanding vintage/cluster variants (0.2s)
 #> ℹ materializing commodity clusters
 #> Materialized 3 commodity cluster(s): LANDW_CLHI, LANDW_CLLO, LANDW_CLMD
 #> ✔ materializing commodity clusters (0.0s)
@@ -97,9 +97,9 @@ scen <- interpolate_model(mod, name = "EX")
 #> ℹ ob2mi: interpolating 83 model objects
 #> ✔ ob2mi: interpolating 83 model objects (0.6s)
 #> ℹ interpolating parameters over milestone years
-#> ✔ interpolating parameters over milestone years (1.7s)
+#> ✔ interpolating parameters over milestone years (1.5s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices
-#> ✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
+#> ✔ calendar-filter: restricting parameters to declared timeslices (0.2s)
 #> ℹ computing equivalent annual costs (EAC)
 #> ✔ computing equivalent annual costs (EAC) (0.1s)
 #> ℹ building maps: value

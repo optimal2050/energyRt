@@ -49,7 +49,8 @@ elements/rows. Empty (0-row) data.frame when nothing matches.
 
 Other model:
 [`get_region()`](https://energyRt.org/reference/get_region.md),
-[`get_weather()`](https://energyRt.org/reference/get_weather.md)
+[`get_weather()`](https://energyRt.org/reference/get_weather.md),
+[`update,model-method`](https://energyRt.org/reference/update-model-method.md)
 
 ## Examples
 

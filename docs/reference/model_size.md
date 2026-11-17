@@ -53,7 +53,7 @@ scen <- interpolate_model(mod, name = "EX")
 #> ✔ checking declarations (0.2s)
 #> ℹ expanding vintage/cluster variants
 #> Expanded 8 process objects into 33 variants (vintage/cluster).
-#> ✔ expanding vintage/cluster variants (0.1s)
+#> ✔ expanding vintage/cluster variants (0.2s)
 #> ℹ materializing commodity clusters
 #> Materialized 3 commodity cluster(s): LANDW_CLHI, LANDW_CLLO, LANDW_CLMD
 #> ✔ materializing commodity clusters (0.0s)
@@ -61,7 +61,7 @@ scen <- interpolate_model(mod, name = "EX")
 #> Materialized 5 weather cluster(s): WSOL_CLFL, WSOL_CLTH, WWIN_CLHI, WWIN_CLMD, WWIN_CLLO
 #> ✔ materializing weather clusters (0.1s)
 #> ℹ materializing weather transforms
-#> ✔ materializing weather transforms (0.3s)
+#> ✔ materializing weather transforms (0.4s)
 #> ℹ collecting sets: object names
 #> ✔ collecting sets: object names (0.1s)
 #> ℹ collecting sets: process classes
@@ -81,21 +81,21 @@ scen <- interpolate_model(mod, name = "EX")
 #> ℹ building maps: membership + closure
 #> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
 #> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
-#> ✔ building maps: membership + closure (0.4s)
+#> ✔ building maps: membership + closure (0.3s)
 #> ℹ collecting sets: invest/stock windows
-#> ✔ collecting sets: invest/stock windows (0.2s)
+#> ✔ collecting sets: invest/stock windows (0.1s)
 #> ℹ settings parameters (discount, period length, timeslice share)
-#> ✔ settings parameters (discount, period length, timeslice share) (0.2s)
+#> ✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan
 #> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
 #> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
 #> ✔ building maps: calendar + lifespan (0.4s)
 #> ℹ ob2mi: interpolating 83 model objects
-#> ✔ ob2mi: interpolating 83 model objects (1.1s)
+#> ✔ ob2mi: interpolating 83 model objects (1.2s)
 #> ℹ interpolating parameters over milestone years
-#> ✔ interpolating parameters over milestone years (3.0s)
+#> ✔ interpolating parameters over milestone years (3.1s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices
-#> ✔ calendar-filter: restricting parameters to declared timeslices (0.1s)
+#> ✔ calendar-filter: restricting parameters to declared timeslices (0.4s)
 #> ℹ computing equivalent annual costs (EAC)
 #> ✔ computing equivalent annual costs (EAC) (0.1s)
 #> ℹ building maps: value

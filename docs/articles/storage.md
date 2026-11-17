@@ -304,14 +304,14 @@ scen_year <- solve_model(mod_year, name = "fy_year")
 #> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
-#> ℹ building maps: value✔ building maps: value (0.1s)
+#> ℹ building maps: value✔ building maps: value (0.0s)
 #> ℹ building maps: filter✔ building maps: filter (0.2s)
 #> ℹ building maps: constraint✔ building maps: constraint (0.1s)
 #> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
-#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.1s)
+#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: fy_year
-#>   parameters : 200 value, 359 maps, 15 sets
+#>   parameters : 202 value, 361 maps, 16 sets
 #>   param rows : 1,559
 #>   estimate   : ~4,661 variables, ~5,227 constraints (from gating maps)
 #>   top parameters by rows:
@@ -330,11 +330,11 @@ scen_year <- solve_model(mod_year, name = "fy_year")
 #>     cardYear           1
 #>     pYearFraction      1
 #>     pWacc              1
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpqM4qbY/energyRt/scenarios/fy_year-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.3s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpgFESxc/energyRt/scenarios/fy_year-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.29s
 #> Starting  GLPK 
 #> 0.2s
-#> Reading solution: 0.12s
+#> Reading solution: 0.11s
 scen_day <- solve_model(mod_day, name = "fy_day")
 #> ℹ checking declarations✔ checking declarations (0.0s)
 #> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.0s)
@@ -355,13 +355,13 @@ scen_day <- solve_model(mod_day, name = "fy_day")
 #> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
 #> ℹ building maps: value✔ building maps: value (0.0s)
-#> ℹ building maps: filter✔ building maps: filter (0.2s)
+#> ℹ building maps: filter✔ building maps: filter (0.1s)
 #> ℹ building maps: constraint✔ building maps: constraint (0.1s)
 #> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: fy_day
-#>   parameters : 200 value, 359 maps, 15 sets
+#>   parameters : 202 value, 361 maps, 16 sets
 #>   param rows : 1,559
 #>   estimate   : ~4,661 variables, ~5,227 constraints (from gating maps)
 #>   top parameters by rows:
@@ -380,10 +380,10 @@ scen_day <- solve_model(mod_day, name = "fy_day")
 #>     cardYear           1
 #>     pYearFraction      1
 #>     pWacc              1
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpqM4qbY/energyRt/scenarios/fy_day-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.27s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpgFESxc/energyRt/scenarios/fy_day-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.28s
 #> Starting  GLPK 
-#> 0.17s
+#> 0.15s
 #> Reading solution: 0.11s
 
 getData(scen_year, "vObjective", merge = TRUE)$value
@@ -1024,13 +1024,13 @@ scen <- solve_model(sol_mod, name = "solar_battery")
 #> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
 #> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
-#> ℹ collecting sets: object names✔ collecting sets: object names (0.0s)
+#> ℹ collecting sets: object names✔ collecting sets: object names (0.1s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
 #> ℹ collecting sets: timeframes✔ collecting sets: timeframes (0.0s)
 #> ℹ collecting sets: process inputs/outputs✔ collecting sets: process inputs/outputs (0.0s)
 #> ℹ collecting sets: membership comm sets✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
-#> ℹ building maps: membership + closure✔ building maps: membership + closure (0.1s)
+#> ℹ building maps: membership + closure✔ building maps: membership + closure (0.0s)
 #> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
 #> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.1s)
@@ -1044,7 +1044,7 @@ scen <- solve_model(sol_mod, name = "solar_battery")
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: solar_battery
-#>   parameters : 200 value, 359 maps, 15 sets
+#>   parameters : 202 value, 361 maps, 16 sets
 #>   param rows : 2,087
 #>   estimate   : ~6,415 variables, ~7,269 constraints (from gating maps)
 #>   top parameters by rows:
@@ -1063,11 +1063,11 @@ scen <- solve_model(sol_mod, name = "solar_battery")
 #>     cardYear           1
 #>     pYearFraction      1
 #>     pWacc              1
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpqM4qbY/energyRt/scenarios/solar_battery-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.32s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpgFESxc/energyRt/scenarios/solar_battery-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.3s
 #> Starting  GLPK 
 #> 0.26s
-#> Reading solution: 0.11s
+#> Reading solution: 0.13s
 ```
 
 ``` r

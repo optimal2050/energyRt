@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,6 +91,7 @@
 <span>  af <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  fixom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  varom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  target <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  capacity <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  cluster <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -441,7 +442,37 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 <dd><p>numeric. Costs associated with the output commodity.</p></dd>
 
 <dt>stgcost</dt>
-<dd><p>numeric. Costs associated with the storage level.</p></dd>
+<dd><p>numeric. Costs associated with the storage level. A negative value rewards holding a charged store.</p></dd>
+
+
+</dl></dd>
+
+
+<dt id="arg-target">target<a class="anchor" aria-label="anchor" href="#arg-target"></a></dt>
+<dd><p>data.frame. Soft floors on the stored level, priced. Each row is one tier: the level may fall below <code>af.target</code> at <code>cost</code> per unit short. Tiers stack – below several targets the prices add up – so a deeper tier with its own price makes draining dearer the further it goes.</p>
+<dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
+
+<dt>region</dt>
+<dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
+
+<dt>year</dt>
+<dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
+
+<dt>timeslice</dt>
+<dd><p>character. Time timeslice to apply the parameter, NA for every timeslice. An end-of-season target names its slice.</p></dd>
+
+<dt>tier</dt>
+<dd><p>character. Tier label; a missing or NA tier is the tier "1". Never a wildcard.</p></dd>
+
+<dt>af.target</dt>
+<dd><p>numeric. Soft floor on the stored level as a fraction of storing capacity (the base of <code>af.lo</code>), not an absolute level.</p></dd>
+
+<dt>cost</dt>
+<dd><p>numeric. Cost per unit the level falls short of <code>af.target</code>, on the same annual basis as <code>varom$stgcost</code>. Without it the target has no effect.</p></dd>
 
 
 </dl></dd>

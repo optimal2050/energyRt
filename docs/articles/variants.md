@@ -217,7 +217,7 @@ scen_vin <- solve_model(
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: art_vintage
-#>   parameters : 200 value, 359 maps, 15 sets
+#>   parameters : 202 value, 361 maps, 16 sets
 #>   param rows : 751
 #>   estimate   : ~1,194 variables, ~1,069 constraints (from gating maps)
 #>   top parameters by rows:
@@ -403,11 +403,11 @@ scen_clu <- solve_model(
 #> ℹ building maps: filter
 #> ✔ building maps: filter (0.1s)
 #> ℹ building maps: constraint✔ building maps: constraint (0.1s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: art_cluster
-#>   parameters : 200 value, 359 maps, 15 sets
+#>   parameters : 202 value, 361 maps, 16 sets
 #>   param rows : 683
 #>   estimate   : ~1,178 variables, ~989 constraints (from gating maps)
 #>   top parameters by rows:
@@ -489,7 +489,7 @@ scen_rr <- interpolate_model(mod_rr, name = "art_region", ondisk = FALSE)
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
 #> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
 #> ℹ collecting sets: object names
-#> ✔ collecting sets: object names (0.2s)
+#> ✔ collecting sets: object names (0.1s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
 #> ℹ collecting sets: timeframes
 #> ✔ collecting sets: timeframes (0.0s)
@@ -515,7 +515,7 @@ scen_rr <- interpolate_model(mod_rr, name = "art_region", ondisk = FALSE)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: art_region
-#>   parameters : 200 value, 359 maps, 15 sets
+#>   parameters : 202 value, 361 maps, 16 sets
 #>   param rows : 322
 #>   estimate   : ~646 variables, ~560 constraints (from gating maps)
 #>   top parameters by rows:
@@ -812,7 +812,7 @@ scen_w <- interpolate_model(mod_w, name = "art_weather", ondisk = FALSE)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: art_weather
-#>   parameters : 200 value, 359 maps, 15 sets
+#>   parameters : 202 value, 361 maps, 16 sets
 #>   param rows : 215
 #>   estimate   : ~356 variables, ~304 constraints (from gating maps)
 #>   top parameters by rows:
@@ -954,7 +954,7 @@ scen_land <- solve_model(
   overwrite = TRUE,
   echo = FALSE
 )
-#> ℹ checking declarations✔ checking declarations (0.2s)
+#> ℹ checking declarations✔ checking declarations (0.0s)
 #> ℹ expanding vintage/cluster variants
 #> ✔ expanding vintage/cluster variants (0.0s)
 #> ℹ materializing commodity clusters
@@ -977,12 +977,12 @@ scen_land <- solve_model(
 #> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
 #> ℹ building maps: value✔ building maps: value (0.0s)
 #> ℹ building maps: filter✔ building maps: filter (0.1s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.0s)
 #> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: art_land
-#>   parameters : 200 value, 359 maps, 15 sets
+#>   parameters : 202 value, 361 maps, 16 sets
 #>   param rows : 231
 #>   estimate   : ~464 variables, ~430 constraints (from gating maps)
 #>   top parameters by rows:
@@ -1143,12 +1143,12 @@ scen_coal <- interpolate_model(mod_coal, name = "art_coal", ondisk = FALSE)
 #> ℹ collecting sets: membership comm sets✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
 #> ℹ building maps: membership + closure✔ building maps: membership + closure (0.1s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
 #> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.1s)
 #> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
-#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.2s)
+#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
 #> ℹ building maps: value✔ building maps: value (0.0s)
 #> ℹ building maps: filter✔ building maps: filter (0.1s)
 #> ℹ building maps: constraint✔ building maps: constraint (0.1s)
@@ -1156,7 +1156,7 @@ scen_coal <- interpolate_model(mod_coal, name = "art_coal", ondisk = FALSE)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: art_coal
-#>   parameters : 200 value, 359 maps, 15 sets
+#>   parameters : 202 value, 361 maps, 16 sets
 #>   param rows : 203
 #>   estimate   : ~382 variables, ~371 constraints (from gating maps)
 #>   top parameters by rows:
@@ -1433,7 +1433,7 @@ scen_site <- solve_model(
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
 #> ℹ building maps: membership + closure
 #> ✔ building maps: membership + closure (0.1s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
 #> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan
 #> ✔ building maps: calendar + lifespan (0.1s)
@@ -1448,7 +1448,7 @@ scen_site <- solve_model(
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: art_sites
-#>   parameters : 200 value, 359 maps, 15 sets
+#>   parameters : 202 value, 361 maps, 16 sets
 #>   param rows : 69
 #>   estimate   : ~146 variables, ~139 constraints (from gating maps)
 #>   top parameters by rows:

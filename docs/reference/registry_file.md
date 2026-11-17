@@ -59,7 +59,7 @@ Other options:
 
 ``` r
 get_registry_file()
-#> [1] "C:/Users/admin/AppData/Local/Temp/Rtmp61iG39/energyRt/energyRt_registry.csv"
+#> [1] "C:/Users/admin/AppData/Local/Temp/RtmpgZ5JYn/energyRt/energyRt_registry.csv"
 get_models_path()
-#> [1] "C:/Users/admin/AppData/Local/Temp/Rtmp61iG39/energyRt/models"
+#> [1] "C:/Users/admin/AppData/Local/Temp/RtmpgZ5JYn/energyRt/models"
 ```

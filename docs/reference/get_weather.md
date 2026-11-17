@@ -25,7 +25,8 @@ a character vector of weather object names (possibly empty).
 
 Other model:
 [`find_in_model()`](https://energyRt.org/reference/find_in_model.md),
-[`get_region()`](https://energyRt.org/reference/get_region.md)
+[`get_region()`](https://energyRt.org/reference/get_region.md),
+[`update,model-method`](https://energyRt.org/reference/update-model-method.md)
 
 ## Examples
 

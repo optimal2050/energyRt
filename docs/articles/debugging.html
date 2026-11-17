@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -428,8 +428,8 @@ back and summarises the non-zero coefficients per equation family, with
 the variable families at each end of the widest row.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/audit_coefficients.html">audit_coefficients</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">BASE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpysuktH/audit_1584204e2ad1 </span></span>
-<span><span class="co">#&gt; Writing files: 0.31s</span></span>
+<span><span class="co">#&gt; Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpQzvw9m/audit_df2c5e037b55 </span></span>
+<span><span class="co">#&gt; Writing files: 0.35s</span></span>
 <span><span class="co">#&gt; coefficient audit: 32 rows, 30 columns, 64 non-zeros</span></span>
 <span><span class="co">#&gt;   |a_ij| in [1, 100] (global ratio 1e+02); 0 row(s) wider than 1e+06</span></span>
 <span><span class="co">#&gt;   per decade: 1e0:62  1e1:1  1e2:1 </span></span>
@@ -463,7 +463,7 @@ status records it.</p>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning: Scenario 'BASE': the model is INFEASIBLE (glpsol: PROBLEM HAS NO</span></span>
 <span><span class="co">#&gt; PRIMAL FEASIBLE SOLUTION). No solution was written to</span></span>
-<span><span class="co">#&gt; C:/Users/admin/AppData/Local/Temp/RtmpysuktH/debugging/BASE-toy-annual/runs/glpk</span></span>
+<span><span class="co">#&gt; C:/Users/admin/AppData/Local/Temp/RtmpQzvw9m/debugging/BASE-toy-annual/runs/glpk</span></span>
 <span></span>
 <span><span class="va">BASE</span><span class="op">@</span><span class="va">status</span><span class="op">$</span><span class="va">optimal</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
@@ -556,7 +556,7 @@ querying the variables:</p>
 <span><span class="co">#&gt; desc:  </span></span>
 <span><span class="co">#&gt; Model: toy_slack </span></span>
 <span><span class="co">#&gt; Interpolated: TRUE </span></span>
-<span><span class="co">#&gt; path: C:/Users/admin/AppData/Local/Temp/RtmpysuktH/debugging/SLACK-toy_slack-annual </span></span>
+<span><span class="co">#&gt; path: C:/Users/admin/AppData/Local/Temp/RtmpQzvw9m/debugging/SLACK-toy_slack-annual </span></span>
 <span><span class="co">#&gt; Solution status: optimal</span></span>
 <span><span class="co">#&gt; vObjective:  5002.5 </span></span>
 <span><span class="co">#&gt; Dummy import/export costs:  5000 </span></span>
@@ -642,15 +642,15 @@ and status for every combination and flags disagreement per solver.</p>
 <span>  settings <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>default <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  solvers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>glpk <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpysuktH/debugging/cmp_default-toy_slack-annual/runs/glpk </span></span>
-<span><span class="co">#&gt; Writing files: 0.19s</span></span>
+<span><span class="co">#&gt; Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpQzvw9m/debugging/cmp_default-toy_slack-annual/runs/glpk </span></span>
+<span><span class="co">#&gt; Writing files: 0.29s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
 <span><span class="co">#&gt; 0.03s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.11s</span></span>
+<span><span class="co">#&gt; Reading solution: 0.23s</span></span>
 <span></span>
 <span><span class="va">slack_compared</span><span class="op">$</span><span class="va">summary</span></span>
 <span><span class="co">#&gt;   setting solver   ok seconds objective error</span></span>
-<span><span class="co">#&gt; 1 default   glpk TRUE    0.35    5002.5  &lt;NA&gt;</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 default   glpk TRUE    0.64    5002.5  &lt;NA&gt;</span></span></code></pre></div>
 <p>Further solvers are added to the <code>solvers</code> list, for
 example <code>solver_options$mm_highs</code> or
 <code>solver_options$julia_highs</code> where installed.</p>
