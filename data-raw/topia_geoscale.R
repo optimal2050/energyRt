@@ -22,8 +22,9 @@
 # (`W1`-`W2`, `C1`-`C6`, `E1`-`E3`) and, before that, zones that were slices
 # of the number line and contiguous on no layout at all.
 #
-# NAMES ARE DEFERRED. The labels are placeholders: naming the regions is a
-# separate decision.
+# NAMES. The codes `R01`-`R12` are the identifiers; the long names are labels
+# only, each naming the endowment the region carries in `topia_modules.R` (or
+# is meant to carry, for geothermal, biomass and offshore wind).
 #
 # WHAT THIS FILE SHIPS. One `geoscales::GeoScale` per layout, in
 # `topia$geoscales`. Each carries the hierarchy AND that layout's polygons, so
@@ -57,9 +58,21 @@ library(sf)
                     R07 = "Z4", R08 = "Z4", R09 = "Z4", R10 = "Z4",
                     R11 = "Z5", R12 = "Z5")
 
-# Placeholder labels -- see "NAMES ARE DEFERRED" above.
-.topia_names <- stats::setNames(
-  paste("Region", substr(.topia_regions, 2, 3)), .topia_regions)
+# Long names -- see "NAMES" above.
+.topia_names <- c(
+  R01 = "Geysia",    # remote, no wire: firm geothermal, pumped storage
+  R02 = "Metropia",  # the hub: peaky load, lives on imports
+  R03 = "Solaria",   # best solar
+  R04 = "Nuclia",    # the nuclear fleet
+  R05 = "Alpinia",   # reservoir hydro and pumped storage
+  R06 = "Coalia",    # largest coal fleet on the cheapest (Z3) coal
+  R07 = "Torrentia", # run-of-river
+  R08 = "Shalia",    # the cheap Z4 gas
+  R09 = "Silvania",  # land-rich
+  R10 = "Industria", # flattest load, cheap gas, standing wind
+  R11 = "Windia",    # onshore wind with land
+  R12 = "Maritia"    # the coast's tip
+)[.topia_regions]
 
 geo <- data.frame(
   nation = "TOPIA",
