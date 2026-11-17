@@ -255,6 +255,8 @@ mTechRetCost_ix = _group(mTechRetCost, tech, 0, (1, 2,))
 mTechTimeslice_ix = _group(mTechTimeslice, timeslice, 1, (0,))
 mTechVarom_ix = _group(mTechVarom, tech, 0, (1, 2,))
 mTimesliceParentChildE_ix = _group(mTimesliceParentChildE, timeslice, 1, (0,))
+# the slice and its ancestors: a weather is read at the level it is given
+mTimesliceAncestorE_ix = _group(mTimesliceParentChildE, timeslice, 0, (1,))
 mTradeComm_ix = _group(mTradeComm, comm, 1, (0,))
 mTradeEac_ix = _group(mTradeEac, trade, 0, (1, 2,))
 mTradeFixom_ix = _group(mTradeFixom, trade, 0, (1, 2,))
@@ -987,7 +989,7 @@ model.eqTechAfLo = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfLo.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pTechWeatherAfLo.get((wth1, t)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfLo_ix.get(t, ())
     )
     <= model.vTechAct[t, r, y, s],
@@ -1012,7 +1014,7 @@ model.eqTechAfUp = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfUp.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pTechWeatherAfUp.get((wth1, t)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfUp_ix.get(t, ())
     ),
 )
@@ -1036,7 +1038,7 @@ model.eqTechAfFx = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfLo.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pTechWeatherAfLo.get((wth1, t)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfLo_ix.get(t, ())
     ),
 )
@@ -1059,7 +1061,7 @@ model.eqTechAfsLo = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfsLo.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pTechWeatherAfsLo.get((wth1, t)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfsLo_ix.get(t, ())
     )
     <= sum(
@@ -1075,7 +1077,7 @@ model.eqTechAfsFx = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfsLo.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pTechWeatherAfsLo.get((wth1, t)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfsLo_ix.get(t, ())
     )
     == sum(
@@ -1108,7 +1110,7 @@ model.eqTechAfsUp = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfsUp.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pTechWeatherAfsUp.get((wth1, t)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfsUp_ix.get(t, ())
     ),
 )
@@ -1221,7 +1223,7 @@ model.eqTechAfcOutLo = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfcLo.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pTechWeatherAfcLo.get((wth1, t, c)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfcLo_ix.get((t, c), ())
     )
     <= model.vTechOut[t, c, r, y, s],
@@ -1234,7 +1236,7 @@ model.eqTechAfcOutFx = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfcLo.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pTechWeatherAfcLo.get((wth1, t, c)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfcLo_ix.get((t, c), ())
     )
     == model.vTechOut[t, c, r, y, s],
@@ -1260,7 +1262,7 @@ model.eqTechAfcOutUp = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfcUp.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pTechWeatherAfcUp.get((wth1, t, c)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfcUp_ix.get((t, c), ())
     ),
 )
@@ -1283,7 +1285,7 @@ model.eqTechAfcInpLo = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfcLo.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pTechWeatherAfcLo.get((wth1, t, c)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfcLo_ix.get((t, c), ())
     )
     <= model.vTechInp[t, c, r, y, s],
@@ -1295,7 +1297,7 @@ model.eqTechAfcInpFx = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfcLo.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pTechWeatherAfcLo.get((wth1, t, c)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfcLo_ix.get((t, c), ())
     )
     == model.vTechInp[t, c, r, y, s],
@@ -1320,7 +1322,7 @@ model.eqTechAfcInpUp = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfcUp.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pTechWeatherAfcUp.get((wth1, t, c)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfcUp_ix.get((t, c), ())
     ),
 )
@@ -2170,7 +2172,7 @@ model.eqSupAvaUp = Constraint(
     rule=lambda model, s1, c, r, y, s: model.vSupOut[s1, c, r, y, s]
     <= pSupAvaUp.get((s1, c, r, y, s))
     * prod(
-        pSupWeatherUp.get((wth1, s1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pSupWeatherUp.get((wth1, s1)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mSupWeatherUp_ix.get(s1, ())
     ),
 )
@@ -2191,7 +2193,7 @@ model.eqSupAvaLo = Constraint(
     rule=lambda model, s1, c, r, y, s: model.vSupOut[s1, c, r, y, s]
     >= pSupAvaLo.get((s1, c, r, y, s))
     * prod(
-        pSupWeatherLo.get((wth1, s1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pSupWeatherLo.get((wth1, s1)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mSupWeatherLo_ix.get(s1, ())
     ),
 )
@@ -2200,7 +2202,7 @@ model.eqSupAvaFx = Constraint(
     rule=lambda model, s1, c, r, y, s: model.vSupOut[s1, c, r, y, s]
     == pSupAvaLo.get((s1, c, r, y, s))
     * prod(
-        pSupWeatherLo.get((wth1, s1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pSupWeatherLo.get((wth1, s1)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mSupWeatherLo_ix.get(s1, ())
     ),
 )
@@ -2523,7 +2525,7 @@ model.eqStorageAfLo = Constraint(
         else pStorageDurationLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
     )
     * prod(
-        pStorageWeatherAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pStorageWeatherAfLo.get((wth1, st1)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherAfLo_ix.get(st1, ())
     ),
 )
@@ -2539,7 +2541,7 @@ model.eqStorageAfFx = Constraint(
         else pStorageDurationLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
     )
     * prod(
-        pStorageWeatherAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pStorageWeatherAfLo.get((wth1, st1)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherAfLo_ix.get(st1, ())
     ),
 )
@@ -2567,7 +2569,7 @@ model.eqStorageAfUp = Constraint(
         else pStorageDurationUp.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
     )
     * prod(
-        pStorageWeatherAfUp.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pStorageWeatherAfUp.get((wth1, st1)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherAfUp_ix.get(st1, ())
     ),
 )
@@ -2645,7 +2647,7 @@ model.eqStorageInpUp = Constraint(
     * pTimesliceShare.get((s))
     * pStorageInpAfUp.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherInpAfUp.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pStorageWeatherInpAfUp.get((wth1, st1)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherInpAfUp_ix.get(st1, ())
     ),
 )
@@ -2676,7 +2678,7 @@ model.eqStorageInpLo = Constraint(
     * pTimesliceShare.get((s))
     * pStorageInpAfLo.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherInpAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pStorageWeatherInpAfLo.get((wth1, st1)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherInpAfLo_ix.get(st1, ())
     ),
 )
@@ -2695,7 +2697,7 @@ model.eqStorageInpFx = Constraint(
     * pTimesliceShare.get((s))
     * pStorageInpAfLo.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherInpAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pStorageWeatherInpAfLo.get((wth1, st1)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherInpAfLo_ix.get(st1, ())
     ),
 )
@@ -2719,7 +2721,7 @@ model.eqStorageOutUp = Constraint(
     * pTimesliceShare.get((s))
     * pStorageOutAfUp.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherOutAfUp.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pStorageWeatherOutAfUp.get((wth1, st1)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherOutAfUp_ix.get(st1, ())
     ),
 )
@@ -2743,7 +2745,7 @@ model.eqStorageOutLo = Constraint(
     * pTimesliceShare.get((s))
     * pStorageOutAfLo.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherOutAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pStorageWeatherOutAfLo.get((wth1, st1)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherOutAfLo_ix.get(st1, ())
     ),
 )
@@ -2755,7 +2757,7 @@ model.eqStorageOutFx = Constraint(
     * pTimesliceShare.get((s))
     * pStorageOutAfLo.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherOutAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
+        pStorageWeatherOutAfLo.get((wth1, st1)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherOutAfLo_ix.get(st1, ())
     ),
 )
@@ -3378,7 +3380,7 @@ model.eqTradeIrAfUp = Constraint(
     * model.vTradeCap[t1, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTradeWeatherAfUp.get((wth1, t1, src, dst)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
+        pTradeWeatherAfUp.get((wth1, t1, src, dst)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
         for wth1 in mTradeWeatherAfUp_ix.get((t1, src, dst), ())
     ),
 )
@@ -3405,7 +3407,7 @@ model.eqTradeIrAfLo = Constraint(
     * model.vTradeCap[t1, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTradeWeatherAfLo.get((wth1, t1, src, dst)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
+        pTradeWeatherAfLo.get((wth1, t1, src, dst)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
         for wth1 in mTradeWeatherAfLo_ix.get((t1, src, dst), ())
     ),
 )
@@ -3417,7 +3419,7 @@ model.eqTradeIrAfFx = Constraint(
     * model.vTradeCap[t1, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTradeWeatherAfLo.get((wth1, t1, src, dst)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
+        pTradeWeatherAfLo.get((wth1, t1, src, dst)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
         for wth1 in mTradeWeatherAfLo_ix.get((t1, src, dst), ())
     ),
 )
@@ -3434,7 +3436,7 @@ model.eqTradeIrAfsUp = Constraint(
     * model.vTradeCap[t1, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTradeWeatherAfsUp.get((wth1, t1, src, dst)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
+        pTradeWeatherAfsUp.get((wth1, t1, src, dst)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
         for wth1 in mTradeWeatherAfsUp_ix.get((t1, src, dst), ())
     ),
 )
@@ -3451,7 +3453,7 @@ model.eqTradeIrAfsLo = Constraint(
     * model.vTradeCap[t1, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTradeWeatherAfsLo.get((wth1, t1, src, dst)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
+        pTradeWeatherAfsLo.get((wth1, t1, src, dst)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
         for wth1 in mTradeWeatherAfsLo_ix.get((t1, src, dst), ())
     ),
 )
@@ -3468,7 +3470,7 @@ model.eqTradeIrAfsFx = Constraint(
     * model.vTradeCap[t1, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTradeWeatherAfsLo.get((wth1, t1, src, dst)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
+        pTradeWeatherAfsLo.get((wth1, t1, src, dst)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, src), ()))
         for wth1 in mTradeWeatherAfsLo_ix.get((t1, src, dst), ())
     ),
 )

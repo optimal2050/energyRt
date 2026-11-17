@@ -594,6 +594,26 @@ map_mCommReg <- function(scen, fmp) {
 .weather_lo_default <- function(scen, wmap, par, dom, key)
   .weather_bound_default(scen, wmap, par, dom, key, "lo")
 
+# The (weather, timeslice) pairs of `x` that no slice of the weather covers: the
+# bounds read a weather at their slice or the nearest ancestor that holds it
+# (mTimesliceParentChildE in the templates), so an ANNUAL factor covers every hour.
+# `have` lists the (weather, timeslice) pairs the series give.
+.weather_uncovered <- function(scen, x, have) {
+  pc <- .gds(scen, "mTimesliceParentChildE")
+  if (is.null(pc) || !nrow(pc)) {
+    return(dplyr::anti_join(x, have, by = c("weather", "timeslice")))
+  }
+  anc <- data.frame(timeslice = as.character(pc$timeslicep), parent = as.character(pc$timeslice),
+                    stringsAsFactors = FALSE)
+  have <- dplyr::distinct(data.frame(weather = as.character(have$weather),
+                                     parent = as.character(have$timeslice), stringsAsFactors = FALSE))
+  x$timeslice <- as.character(x$timeslice); x$weather <- as.character(x$weather)
+  ok <- dplyr::distinct(dplyr::semi_join(
+    dplyr::inner_join(x, anc, by = "timeslice", relationship = "many-to-many"),
+    have, by = c("weather", "parent"))[, names(x), drop = FALSE])
+  dplyr::anti_join(x, ok, by = names(x))
+}
+
 # A weather factor is read at the timeslices of the bound it multiplies: `wafs`
 # at those of `afs`, `wafc` at the commodity's. A weather series with no value
 # at one of them would read as 0 there and silently zero the bound, so it is an
@@ -607,21 +627,21 @@ map_mCommReg <- function(scen, fmp) {
   x <- dplyr::inner_join(dplyr::distinct(m[, c(key, "timeslice")]),
                          dplyr::distinct(w[, c("weather", key)]), by = key)
   if (!nrow(x) || all(is.na(wt$timeslice))) return(invisible())
-  miss <- dplyr::anti_join(x, dplyr::distinct(wt[, c("weather", "timeslice")]),
-                           by = c("weather", "timeslice"))
+  miss <- .weather_uncovered(scen, x, dplyr::distinct(wt[, c("weather", "timeslice")]))
   if (nrow(miss)) {
     miss <- dplyr::distinct(miss[, c(key, "weather")])
     stop(what, ": the weather series has no value at the timeslices of the bound ",
          "it multiplies (", paste(utils::head(do.call(paste, c(miss, sep = "/")), 5),
                                   collapse = ", "), "). ",
-         "Give the weather the bound's timeframe.", call. = FALSE)
+         "Give the weather the bound's timeframe or a coarser one.", call. = FALSE)
   }
   invisible()
 }
 
-# `waf` is read at the technology's own timeslices: a weather series with no
-# value at one of them (an ANNUAL series in an hourly bound) would read as 0
-# there and silently zero the technology, so it is an error. Checked per
+# `waf` is read at the technology's own timeslices or their nearest ancestor
+# that holds the series (an ANNUAL factor covers every hour): a weather with no
+# value at a slice or above it (a DAY series in an ANNUAL bound) would read as
+# 0 there and silently zero the technology, so it is an error. Checked per
 # weather and timeframe, from the technology's timeslice rule, so the bound
 # maps are not enumerated. A series' timeslices are those its object gives
 # (pWeather drops zero values, so its rows cannot tell a gap from a zero); a
@@ -650,12 +670,12 @@ map_mCommReg <- function(scen, fmp) {
   if (!nrow(wtf)) return(invisible())
   x <- dplyr::inner_join(dplyr::distinct(wtf[, c("weather", "timeframe")]), fs,
                          by = "timeframe", relationship = "many-to-many")
-  miss <- dplyr::distinct(dplyr::anti_join(x, wt, by = c("weather", "timeslice"))[, c("weather", "timeframe")])
+  miss <- dplyr::distinct(.weather_uncovered(scen, x, wt)[, c("weather", "timeframe")])
   if (nrow(miss)) {
     bad <- dplyr::distinct(dplyr::inner_join(wtf, miss, by = c("weather", "timeframe"))[, c("tech", "weather")])
     stop("waf: the weather series has no value at the timeslices of the bound ",
          "it multiplies (", paste(utils::head(do.call(paste, c(bad, sep = "/")), 5), collapse = ", "),
-         "). Give the weather the technology's timeframe.", call. = FALSE)
+         "). Give the weather the technology's timeframe or a coarser one.", call. = FALSE)
   }
   invisible()
 }

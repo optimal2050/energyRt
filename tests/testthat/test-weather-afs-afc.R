@@ -99,7 +99,6 @@ test_that("wafc.fx alone fixes the commodity flow to the weather", {
 })
 
 # @covers mTechWeatherAfcUp depth=I
-test_that("wafc whose weather is not at the commodity timeframe is an error", {
-  expect_error(ws_interp("ws_afctf", ws_tech("WD", wafc = list(wafc.fx = 1)), W_DAY),
-               "no value at the timeslices")
+test_that("wafc whose weather is coarser than the commodity timeframe is read at its level", {
+  expect_no_error(ws_interp("ws_afctf", ws_tech("WD", wafc = list(wafc.fx = 1)), W_DAY))
 })

@@ -71,14 +71,23 @@ test_that("a declared af.lo is kept and multiplies the weather bound", {
 })
 
 # @covers mTechWeatherAfLo pWeather depth=I
-test_that("a waf series coarser than the technology's timeslices is an error, not a zero", {
-  m <- wx_model("wx_tf")
-  # an ANNUAL series in the hourly bound: no value at the technology's hours
-  m@data[[1]]@data$WY <- newWeather("WY", timeframe = "ANNUAL", region = "R1",
-                                    weather = data.frame(region = "R1", timeslice = "ANNUAL", wval = 0.9))
-  m@data[[1]]@data$WIND@weather <- data.frame(weather = c("W1", "WY"), waf.fx = 1)
-  expect_error(suppressMessages(suppressWarnings(interpolate_model(m, name = "wx_tf", overwrite = TRUE))),
-               "no value at the timeslices")
+# @covers pWeather eqTechAfLo mTimesliceParentChildE depth=S backends=glpk
+test_that("a waf series coarser than the technology's timeslices is read at its own level", {
+  # an ANNUAL factor on an hourly bound: one row per year, read at the hours'
+  # ancestor; given with or without the ANNUAL timeslice
+  for (ts in list("ANNUAL", NULL)) {
+    m <- wx_model("wx_tf")
+    w <- data.frame(region = "R1", wval = 0.9)
+    if (!is.null(ts)) w$timeslice <- ts
+    m@data[[1]]@data$WY <- newWeather("WY", timeframe = "ANNUAL", region = "R1", weather = w)
+    m@data[[1]]@data$WIND@weather <- data.frame(weather = c("W1", "WY"), waf.fx = 1)
+    scen <- suppressMessages(suppressWarnings(interpolate_model(m, name = "wx_tf", overwrite = TRUE)))
+    p <- as.data.frame(.gds(scen, "pWeather"))
+    expect_equal(unique(as.character(p$timeslice[p$weather == "WY"])), "ANNUAL")
+    skip_if_no_solver()
+    scen <- .fork_solve(scen, solver_options$glpk)
+    expect_equal(wx_out(scen), WX_POT * 0.9, tolerance = 1e-6)
+  }
   # hours with a zero value (solar at night) are values, not gaps
   m <- wx_model("wx_tf0")
   m@data[[1]]@data$W1@weather$wval <- c(0, 0.9, 0.5, 0)

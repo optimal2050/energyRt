@@ -80,6 +80,29 @@
 # .timeslice_allowed: per-entity timeslice membership for the given identity key.
 # Returns a data.frame(<key>, timeslice) or NULL when unavailable.
 # -----------------------------------------------------------------------------#
+# .weather_timeslices: (weather, timeslice) over the slices of each weather's own
+# timeframe, so a series given without timeslices (an annual factor) is not
+# broadcast to every level. NULL when the calendar does not name a weather's
+# timeframe (the series then keeps every slice, as before).
+.weather_timeslices <- function(scen, values = NULL) {
+  tfs <- tryCatch(scen@settings@calendar@timeframes, error = function(e) NULL)
+  if (!length(tfs)) return(NULL)
+  w <- dplyr::bind_rows(apply_to_scenario_data(
+    scen = scen, classes = "weather", as_list = TRUE,
+    func = function(x) {
+      o <- list()
+      o[[x@name]] <- data.frame(weather = x@name, timeframe = as.character(x@timeframe[1]),
+                                stringsAsFactors = FALSE)
+      o
+    }))
+  if (is.null(w) || !nrow(w)) return(NULL)
+  if (!is.null(values)) w <- w[w$weather %in% values, , drop = FALSE]
+  if (!nrow(w) || !all(w$timeframe %in% names(tfs))) return(NULL)
+  dplyr::bind_rows(lapply(seq_len(nrow(w)), function(i)
+    data.frame(weather = w$weather[i], timeslice = as.character(tfs[[w$timeframe[i]]]),
+               stringsAsFactors = FALSE)))
+}
+
 # `values`: only these members of `key` (NULL = all).
 .timeslice_allowed <- function(scen, key, values = NULL) {
   pick <- function(df, cols) {
@@ -98,6 +121,9 @@
     imp   = pick(.read_map(scen, "mImpTimeslice"), c("imp", "timeslice")),
     expp  = pick(.read_map(scen, "mExpTimeslice"), c("expp", "timeslice")),
     comm  = pick(.read_map(scen, "mCommTimeslice"), c("comm", "timeslice")),
+    # a weather series lives at its own timeframe; the bounds read it at their
+    # slice or the nearest ancestor (mTimesliceParentChildE in the templates)
+    weather = .weather_timeslices(scen, values),
     acomm = {
       x <- pick(.read_map(scen, "mCommTimeslice"), c("comm", "timeslice"))
       if (!is.null(x)) names(x)[names(x) == "comm"] <- "acomm"
@@ -212,7 +238,7 @@
   cols <- names(data)
 
   if ("timeslice" %in% dims && "timeslice" %in% cols) {
-    keys <- c("tech", "sup", "stg", "trade", "imp", "expp", "comm")
+    keys <- c("tech", "sup", "stg", "trade", "imp", "expp", "comm", "weather")
     if (!is.null(pname) && pname %in% .aux_at_comm_params && "acomm" %in% cols) {
       keys <- c("acomm", keys)
     }
