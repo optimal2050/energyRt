@@ -161,3 +161,74 @@ test_that("a broken total is caught, and so is a rate out of range", {
   expect_equal(iv$verdict, "outside range")
   expect_output(print(v2), "outside range")
 })
+
+test_that("the dry run says what the aggregation will do", {
+  skip_if_no_geoscales()
+  p <- aggregate_model_regions(vq_model(), level = "grp", dryrun = TRUE)
+  expect_s3_class(p, "aggregation_plan")
+  expect_true(p$ready)
+  expect_setequal(p$regions, c("G1", "G2"))
+  # COA balances at the group, which IS the target: its declaration goes
+  expect_true("COA" %in% p$geoframe_cleared)
+  # SUP_COA is declared at G2, the target itself, so it is carried
+  sup <- p$slots[p$slots$object == "SUP_COA", ]
+  expect_true(any(grepl("carried", sup$action)))
+  # one corridor is internal to G1, one crosses
+  expect_setequal(p$trade$fate, c("internal (dropped)", "kept"))
+  expect_equal(p$trade$object[p$trade$fate == "internal (dropped)"],
+               "TRD_R1__R2")
+  expect_null(p$clusters)
+  expect_output(print(p), "Ready to aggregate")
+})
+
+test_that("the dry run collects a conflict the call would raise", {
+  skip_if_no_geoscales()
+  m <- vq_model()
+  # the same supply tier ordered differently in the two regions of one group:
+  # `order` is a `copy` column, and a copy has no merged form
+  for (i in seq_along(m@data)) {
+    d <- m@data[[i]]@data
+    if ("SUP_COA" %in% names(d)) {
+      o <- d[["SUP_COA"]]
+      o@region <- c("R1", "R2")
+      o@cluster <- data.frame(cluster = c("S1", "S1"),
+                              region = c("R1", "R2"), order = c(1L, 2L),
+                              stringsAsFactors = FALSE)
+      o@supply <- data.frame(region = c("R1", "R2"), cluster = "S1",
+                             ava.up = 150, cost = 1, stringsAsFactors = FALSE)
+      d[["SUP_COA"]] <- o
+      m@data[[i]]@data <- d
+    }
+  }
+  p <- aggregate_model_regions(m, level = "grp", dryrun = TRUE)
+  expect_false(p$ready)
+  expect_false(is.null(p$conflicts))
+  expect_true("order" %in% p$conflicts$column)
+  expect_output(print(p), "Not ready")
+  # and the call itself refuses on the same column
+  expect_error(aggregate_model_regions(m, level = "grp", verbose = FALSE),
+               "order")
+})
+
+test_that("a subset reports what share of the system it keeps", {
+  skip_if_no_geoscales()
+  m <- vq_model()
+  r <- subset_model_regions(m, c("R1", "R2"), dryrun = TRUE)
+  cv <- r$coverage
+  expect_s3_class(cv, "data.frame")
+  # half the atoms, half the demand, and the fleet share by its own weights
+  dem <- cv[cv$measure == "demand$demand", ]
+  expect_equal(dem$share, 0.5)
+  cap <- cv[cv$measure == "technology$stock", ]
+  expect_equal(cap$kept, 400)
+  expect_equal(cap$share, 0.5)
+  # the geoscale's own weight is reported beside the quantities
+  expect_true("<weight>$km2" %in% cv$measure)
+  expect_equal(cv$share[cv$measure == "<weight>$km2"], 0.5)
+  expect_output(print(r), "Keeps")
+  # and it is kept with the cut, like `@misc$aggregation`
+  s <- suppressWarnings(suppressMessages(
+    subset_model_regions(m, c("R1", "R2"))))
+  expect_equal(s@misc$subset$coverage$share[
+    s@misc$subset$coverage$measure == "demand$demand"], 0.5)
+})

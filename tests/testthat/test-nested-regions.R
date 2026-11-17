@@ -554,3 +554,33 @@ test_that("well-formed chains are silent", {
                                geoscales::geoscale_regions(
                                  topia$geoscales$honeycomb, "province")))
 })
+
+# --------------------------------------------------------------------------- #
+# The post-solve identities, on a NESTED model.
+#
+# `verify_solution()` has a `mRegionFamily` branch -- the roll-up of the atom
+# variables into a coarse cell -- that no test exercised, so the one shape the
+# identities are least obvious on was the one never checked. The objective is
+# pinned by hand beside it: 10 units of GAS at cost 2, no discounting, one
+# year.
+# @covers verify_solution mRegionFamily vOutTot vSupOut depth=S backends=glpk
+test_that("the solution identities hold on a nested model", {
+  skip_if_no_geoscales()
+  skip_if_no_solver()
+  s <- nrs_solve(nrs_model("nrsV", newSupply("SUP_GAS", commodity = "GAS",
+    region = "NAT", supply = data.frame(region = "NAT", cost = 2))), "nrsV")
+  v <- verify_solution(s)
+  expect_s3_class(v, "solution_verification")
+  bad <- names(v$checks)[vapply(v$checks, function(z)
+    identical(z$status, "violated"), logical(1))]
+  expect_equal(bad, character(0))
+  expect_true(v$ok)
+  # the golden: the hand-computed objective, and the coarse cell that carries
+  # the balance
+  obj <- getData(s, "vObjective", merge = TRUE)
+  expect_equal(sum(obj$value), 20, tolerance = 1e-9)
+  tot <- getData(s, "vOutTot", merge = TRUE)
+  expect_true("NAT" %in% as.character(tot$region))
+  expect_equal(sum(tot$value[as.character(tot$region) == "NAT"]), 10,
+               tolerance = 1e-9)
+})

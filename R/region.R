@@ -327,6 +327,8 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
   # describes exactly the ground the subset holds. Codes the subset cuts in
   # half never reach here -- `.refuse_split_groups()` stops the call.
   keep <- unique(c(keep, as.character(keep_up)))
+  # measured on the model as it stands: after the cut every share is 1
+  cov <- .region_coverage(mod, keep)
   stubs <- list()
   # Dropping model content must never be silent: count here, report once at the end.
   n_routes_dropped <- 0L
@@ -542,6 +544,7 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
   mod@misc$subset <- list(
     regions = setdiff(keep, keep_up),
     covered = as.character(keep_up),
+    coverage = cov,
     objects_dropped = n_objs_dropped,
     routes_dropped = n_routes_dropped,
     orphans = orphans,
@@ -1752,6 +1755,14 @@ These values have no merged form. Declare one value for ",
 #'   keeps some of the spread instead -- see the section below. A group that is
 #'   not named is aggregated plainly, so clustering is opted into one family at
 #'   a time.
+#' @param dryrun Return a plan instead of aggregating: the geoframe each
+#'   region-keyed slot sits at and what will happen to it (rolled up, carried,
+#'   kept, or refused), the `copy` columns that disagree inside a target
+#'   region, each corridor's fate, the clustering each family resolves to, the
+#'   objects whose `@geoframe` will be cleared, and whether the call is ready.
+#'   Computed by the same helpers the aggregation itself uses, so the plan and
+#'   the call cannot disagree about the geography; it collects the refusals
+#'   that would otherwise be raised one at a time.
 #' @param max_clusters A ceiling on the number of clusters **per coarse
 #'   region**, the readable alternative to `clusters`: `max_clusters = 3` is
 #'   "at most three clusters in every `level` region", for every family.
@@ -1858,12 +1869,24 @@ aggregate_model_regions <- function(object, geoscale = NULL, level,
                                     as = c("clusters", "objects"),
                                     name = NULL,
                                     resolve_conflicts = FALSE,
+                                    dryrun = FALSE,
                                     verbose = isVerbose(),
                                     .trade_parts = NULL) {
   stopifnot(inherits(object, "model"))
   # validated here so a bad value is refused even when nothing conflicts
   resolve_conflicts <- .agg_resolve_mode(resolve_conflicts)
   as <- match.arg(as)
+  if (isTRUE(dryrun)) {
+    check_package("geoscales")
+    gsd <- geoscale %||% tryCatch(object@config@geoscale,
+                                  error = function(e) NULL)
+    if (is.null(gsd) || !is_geoscale(gsd)) {
+      stop("no geoscale: pass `geoscale=`, or attach one with setGeoscale().",
+           call. = FALSE)
+    }
+    return(.agg_plan(object, gsd, level = level, clusters = clusters,
+                     max_clusters = max_clusters))
+  }
   if (!is.null(clusters) || !is.null(max_clusters)) {
     return(.cl_cluster_model(object, geoscale = geoscale, level = level,
                              clusters = clusters, max_clusters = max_clusters,
@@ -2856,6 +2879,7 @@ Declare commodities with `newCommodity()` and add them to the model; ",
     declared = intersect(cl$split, declared),
     missing = missing_kids,
     rows = rows,
+    coverage = .region_coverage(mod, region),
     caveats = .sampled_coarse_cost_hits(mod, keep = region),
     ready = is.null(rows) || all(rows$ready))
   class(out) <- "region_subset_report"
@@ -2894,6 +2918,18 @@ print.region_subset_report <- function(x, ...) {
                                ifelse(nzchar(ok$weight) & !is.na(ok$weight),
                                       ok$weight, "carried"))),
                 collapse = ", "), "\n", sep = "")
+    }
+  }
+  cv <- x$coverage
+  if (!is.null(cv) && nrow(cv)) {
+    # only what is NOT whole: a line of 100%s says nothing
+    part <- cv[!is.na(cv$share) & cv$share < 1 - 1e-9, , drop = FALSE]
+    if (nrow(part)) {
+      cat("
+Keeps ", paste(sprintf("%s %.0f%%",
+            sub("^<weight>[$]", "", part$measure), 100 * part$share),
+            collapse = ", "), "
+", sep = "")
     }
   }
   if (length(x$caveats)) {
@@ -3580,4 +3616,265 @@ model_region_gaps <- function(mod) {
   out <- out[order(out$class, out$process, out$region), , drop = FALSE]
   rownames(out) <- NULL
   out
+}
+
+# What share of the system a region subset keeps
+#
+# A sub-model looks like a whole one from the inside: an island model solves
+# and reports exactly like the full map, and nothing in it says it is 8% of the
+# demand. The shares answer the question the cut cannot ask for the reader --
+# how much of the system is still in the room.
+#
+# Extensive columns only, by their own aggregation rule: summing a rate says
+# nothing. Rows with no region are a wildcard applying everywhere, so they are
+# left out of both totals rather than counted on one side.
+#' @noRd
+.region_coverage <- function(mod, keep) {
+  objs <- .level_model_objects(mod)
+  rows <- list()
+  for (nm in names(objs)) {
+    o <- objs[[nm]]
+    cls <- class(o)[1]
+    for (sl in .instance_slots(o)) {
+      if (identical(sl, "misc")) next
+      v <- tryCatch(methods::slot(o, sl), error = function(e) NULL)
+      if (!is.data.frame(v) || !nrow(v) || !"region" %in% names(v)) next
+      vals <- .agg_values(v)
+      if (!length(vals)) next
+      rules <- .agg_rules(vals, cls, sl)
+      ext <- names(rules)[rules == "sum"]
+      if (!length(ext)) next
+      reg <- as.character(v$region)
+      for (cn in ext) {
+        x <- suppressWarnings(as.numeric(v[[cn]]))
+        ok <- is.finite(x) & !is.na(reg)
+        if (!any(ok)) next
+        rows[[length(rows) + 1L]] <- data.frame(
+          measure = paste0(cls, "$", cn),
+          full = sum(x[ok]),
+          kept = sum(x[ok & reg %in% keep]),
+          stringsAsFactors = FALSE)
+      }
+    }
+  }
+  out <- if (!length(rows)) data.frame(
+    measure = character(), full = numeric(), kept = numeric(),
+    share = numeric(), stringsAsFactors = FALSE) else {
+    d <- do.call(rbind, rows)
+    d <- stats::aggregate(cbind(full, kept) ~ measure, data = d, FUN = sum)
+    d
+  }
+  # the geoscale's own weights, which say how much GROUND is kept -- the
+  # denominator a coverage share is usually wanted against
+  gs <- tryCatch(mod@config@geoscale, error = function(e) NULL)
+  if (!is.null(gs) && is_geoscale(gs)) {
+    lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
+    for (w in geoscales::geoscale_weights(gs)) {
+      if (!w %in% names(lt)) next
+      x <- suppressWarnings(as.numeric(lt[[w]]))
+      ok <- is.finite(x)
+      if (!any(ok)) next
+      out <- rbind(out[, c("measure", "full", "kept")], data.frame(
+        measure = paste0("<weight>$", w), full = sum(x[ok]),
+        kept = sum(x[ok & as.character(lt$region) %in% keep]),
+        stringsAsFactors = FALSE))
+    }
+  }
+  if (!nrow(out)) return(out)
+  out$share <- ifelse(out$full > 0, out$kept / out$full, NA_real_)
+  out[order(out$measure), ]
+}
+
+# =============================================================================
+# aggregate_model_regions(dryrun = TRUE): what the coarsening will do
+# =============================================================================
+# The spatial mirror of `subset_model_regions(dryrun = TRUE)`. The refusals of
+# an aggregation are raised deep inside the slot recast -- one at a time, so a
+# model with three problems takes three runs to find them. This collects them
+# from the same helpers the apply uses: `.agg_frames_of()` for the geoframe a
+# code sits at, `.agg_conflicts()` for a `copy` column that disagrees, and
+# `.agg_trade_pair()` for a corridor's fate.
+
+#' @noRd
+.agg_plan_slots <- function(objs, gs, level) {
+  rk_t <- geoscales::geoscale_rank(gs, level)
+  rows <- list()
+  conf <- list()
+  for (nm in names(objs)) {
+    o <- objs[[nm]]
+    cls <- class(o)[1]
+    for (sl in .instance_slots(o)) {
+      if (identical(sl, "misc")) next
+      v <- tryCatch(methods::slot(o, sl), error = function(e) NULL)
+      if (!is.data.frame(v) || !nrow(v)) next
+      keys <- intersect(c("region", "src", "dst"), colnames(v))
+      if (!length(keys)) next
+      codes <- unique(unlist(lapply(keys, function(k) as.character(v[[k]]))))
+      codes <- codes[!is.na(codes) & nzchar(codes)]
+      if (!length(codes)) next
+      fr <- .agg_frames_of(codes, gs)
+      rk <- geoscales::geoscale_rank(gs, fr)
+      act <- character()
+      if (anyNA(fr)) act <- c(act, "unknown codes dropped")
+      if (any(!is.na(rk) & rk > rk_t)) act <- c(act, "rolled up")
+      if (any(!is.na(rk) & rk == rk_t)) act <- c(act, "carried (at target)")
+      if (any(!is.na(rk) & rk < rk_t)) act <- c(act, "kept (coarser)")
+      if (length(unique(stats::na.omit(fr))) > 1L) {
+        act <- c(act, "MIXED geoframes in one slot")
+      }
+      vals <- .agg_values(v)
+      rules <- if (length(vals)) .agg_rules(vals, cls, sl) else character()
+      if (length(rules)) {
+        cf <- .agg_conflicts(v, gs, level, names(rules)[rules == "copy"])
+        if (!is.null(cf) && nrow(cf)) {
+          cf <- tibble::add_column(cf, object = nm, slot = sl, .before = 1L)
+          conf[[length(conf) + 1L]] <- as.data.frame(cf)
+        }
+      }
+      rows[[length(rows) + 1L]] <- data.frame(
+        object = nm, class = cls, slot = sl,
+        geoframe = paste(sort(unique(stats::na.omit(fr))), collapse = ", "),
+        action = paste(act, collapse = " + "),
+        rules = paste(sort(unique(unname(rules))), collapse = ", "),
+        stringsAsFactors = FALSE)
+    }
+  }
+  list(slots = if (length(rows)) do.call(rbind, rows) else NULL,
+       conflicts = if (length(conf)) do.call(rbind, conf) else NULL)
+}
+
+#' @noRd
+.agg_plan_trade <- function(objs, gs, level) {
+  tr <- objs[vapply(objs, function(o) methods::is(o, "trade"), logical(1))]
+  if (!length(tr)) return(NULL)
+  pr <- lapply(tr, function(o)
+    tryCatch(.agg_trade_pair(o, gs = gs, level = level),
+             error = function(e) NULL))
+  pair <- vapply(pr, function(d) if (is.null(d)) NA_character_ else
+    paste(d$src, d$dst, sep = " - "), character(1))
+  out <- data.frame(object = names(tr),
+                    coarse_pair = unname(pair),
+                    fate = ifelse(is.na(pair), "internal (dropped)", "kept"),
+                    stringsAsFactors = FALSE)
+  # several corridors on one coarse pair merge into one object
+  dup <- stats::ave(seq_len(nrow(out)), out$coarse_pair, FUN = length)
+  out$fate[!is.na(out$coarse_pair) & dup > 1] <- "merged"
+  out[order(out$fate, out$object), ]
+}
+
+#' @noRd
+.agg_plan_clusters <- function(mod, objs, gs, level, clusters, max_clusters) {
+  if (is.null(clusters) && is.null(max_clusters)) return(NULL)
+  gdf <- tryCatch(get_process_groups(mod), error = function(e) NULL)
+  if (is.null(gdf) || !nrow(gdf)) return(NULL)
+  spec <- tryCatch(.cl_spec(clusters, gdf$group), error = function(e) list())
+  caps <- tryCatch(.cl_cap_spec(max_clusters, gdf$group),
+                   error = function(e) list())
+  nms <- union(names(spec), names(caps))
+  if (!length(nms)) return(NULL)
+  fine <- geoscales::geoscale_geoframes(gs, finest = TRUE)
+  rows <- list()
+  for (g in nms) {
+    i <- match(g, gdf$group)
+    regs <- strsplit(gdf$regions[i], ",")[[1]]
+    outcome <- NA_character_
+    k <- NA_integer_
+    if (!all(.agg_frames_of(regs, gs) %in% fine)) {
+      outcome <- "not clustered: declared above the finest regions"
+    } else if (identical(gdf$class[i], "trade") && g %in% names(caps)) {
+      outcome <- "not clustered: a cap is per region, a corridor has none"
+    } else if (g %in% names(caps)) {
+      cr <- tryCatch(.cl_capped_crosswalk(
+        objs[strsplit(gdf$members[i], ",")[[1]]], regs, caps[[g]], gs, level,
+        features = spec[[g]]$features), error = function(e) NULL)
+      if (is.null(cr)) outcome <- "not clustered: the partition failed" else {
+        k <- as.integer(cr$k)
+        outcome <- if (all(cr$per_region$k <= 1L))
+          "not clustered: nothing separates its regions" else
+            paste0("cap ", caps[[g]], " per ", level, ": ",
+                   paste(cr$per_region$region, cr$per_region$k, sep = "=",
+                         collapse = " "))
+      }
+    } else {
+      k <- suppressWarnings(as.integer(spec[[g]]$k))
+      outcome <- paste0("k = ", if (is.na(k)) "auto" else k)
+    }
+    rows[[length(rows) + 1L]] <- data.frame(
+      group = g, class = gdf$class[i], regions = length(regs),
+      k = k, outcome = outcome, stringsAsFactors = FALSE)
+  }
+  do.call(rbind, rows)
+}
+
+#' @noRd
+.agg_plan <- function(mod, gs, level, clusters = NULL, max_clusters = NULL) {
+  objs <- .level_model_objects(mod)
+  sl <- .agg_plan_slots(objs, gs, level)
+  rk_t <- geoscales::geoscale_rank(gs, level)
+  cleared <- names(objs)[vapply(objs, function(o) {
+    if (!methods::.hasSlot(o, "geoframe")) return(FALSE)
+    f <- as.character(methods::slot(o, "geoframe"))
+    f <- f[!is.na(f) & nzchar(f)]
+    if (!length(f)) return(FALSE)
+    rk <- geoscales::geoscale_rank(gs, f[1L])
+    !is.na(rk) && rk >= rk_t
+  }, logical(1))]
+  out <- list(
+    level = level,
+    regions = sort(unique(as.character(
+      as.data.frame(geoscales::geoscale_leaftable(gs))[[level]]))),
+    slots = sl$slots,
+    conflicts = sl$conflicts,
+    trade = .agg_plan_trade(objs, gs, level),
+    clusters = .agg_plan_clusters(mod, objs, gs, level, clusters,
+                                  max_clusters),
+    geoframe_cleared = cleared,
+    levels = check_model_levels(mod))
+  mixed <- !is.null(out$slots) &&
+    any(grepl("MIXED", out$slots$action, fixed = TRUE))
+  out$ready <- is.null(out$conflicts) && !mixed && nrow(out$levels) == 0L
+  class(out) <- "aggregation_plan"
+  out
+}
+
+#' @method print aggregation_plan
+#' @export
+print.aggregation_plan <- function(x, ...) {
+  cat("Aggregation to `", x$level, "`: ", length(x$regions),
+      " region(s) -- ", paste(utils::head(x$regions, 6), collapse = ", "),
+      if (length(x$regions) > 6) ", ..." else "", "\n", sep = "")
+  if (!is.null(x$slots)) {
+    tb <- table(x$slots$action)
+    cat(nrow(x$slots), " region-keyed slot(s): ",
+        paste(names(tb), unname(tb), sep = " x ", collapse = ", "), "\n",
+        sep = "")
+  }
+  if (length(x$geoframe_cleared)) {
+    cat("`@geoframe` cleared on ", length(x$geoframe_cleared), ": ",
+        paste(utils::head(x$geoframe_cleared, 6), collapse = ", "),
+        if (length(x$geoframe_cleared) > 6) ", ..." else "", "\n", sep = "")
+  }
+  if (!is.null(x$trade)) {
+    tb <- table(x$trade$fate)
+    cat("Corridors: ", paste(names(tb), unname(tb), sep = " x ",
+                             collapse = ", "), "\n", sep = "")
+  }
+  if (!is.null(x$clusters)) {
+    cat("\nClustering:\n")
+    print(as.data.frame(x$clusters), row.names = FALSE)
+  }
+  if (!is.null(x$conflicts)) {
+    cat("\n", nrow(x$conflicts),
+        " `copy` column(s) disagree inside a target region:\n", sep = "")
+    print(as.data.frame(x$conflicts), row.names = FALSE)
+    cat("Declare one value for the group, or pass `resolve_conflicts`.\n")
+  }
+  if (nrow(x$levels)) {
+    cat("\n", nrow(x$levels),
+        " declaration(s) do not match their commodity's level",
+        " (see check_model_levels()).\n", sep = "")
+  }
+  cat("\n", if (isTRUE(x$ready)) "Ready to aggregate." else
+    "Not ready: the call would stop.", "\n", sep = "")
+  invisible(x)
 }

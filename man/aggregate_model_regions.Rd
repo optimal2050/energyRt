@@ -13,6 +13,7 @@ aggregate_model_regions(
   as = c("clusters", "objects"),
   name = NULL,
   resolve_conflicts = FALSE,
+  dryrun = FALSE,
   verbose = isVerbose(),
   .trade_parts = NULL
 )
@@ -60,6 +61,15 @@ object, the column and the regions that disagree. \code{"force"} (or \code{TRUE}
 takes their mean; \code{"drop"} leaves the merged value unset, so the parameter
 falls back to its default rather than to a fabricated number. Both warn
 and record what was resolved in each object's \verb{@misc$aggregation}.}
+
+\item{dryrun}{Return a plan instead of aggregating: the geoframe each
+region-keyed slot sits at and what will happen to it (rolled up, carried,
+kept, or refused), the \code{copy} columns that disagree inside a target
+region, each corridor's fate, the clustering each family resolves to, the
+objects whose \verb{@geoframe} will be cleared, and whether the call is ready.
+Computed by the same helpers the aggregation itself uses, so the plan and
+the call cannot disagree about the geography; it collects the refusals
+that would otherwise be raised one at a time.}
 
 \item{verbose}{Report what was aggregated, merged and dropped.}
 

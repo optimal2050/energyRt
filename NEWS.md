@@ -29,6 +29,15 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 * Storage level targets: `storage@target` sets soft floors on the level (`af.target`, a share of storing capacity), each with a price per unit short (`cost`). Tiers stack, so a deeper tier with its own price makes draining dearer the further it goes. Reported as `vStorageShort` / `vStorageShortCost`. `varom$stgcost` may now be negative, a reward for holding a charged store.
 
+* `aggregate_model_regions(dryrun = TRUE)` returns a plan instead of
+  aggregating: the geoframe each region-keyed slot sits at and what will happen
+  to it, the `copy` columns that disagree, each corridor's fate, the clustering
+  each family resolves to, and whether the call is ready.
+
+* `subset_model_regions()` reports what share of the system a cut keeps --
+  demand, capacity, supply and the geoscale's own weights -- in the `dryrun`
+  report and in `@misc$subset`.
+
 * `check_model_levels()` reports the level rule `interpolate_model()` raises:
   every strict-class declaration that sits at a different level than its
   commodity, plus a `@geoframe` or `@timeframe` the model's geoscale or
