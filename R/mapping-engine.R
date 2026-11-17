@@ -1362,6 +1362,26 @@ recipe_value <- function(scen, names, fmp) {
   if (!is.null(.ys_fy)) snext_fy <- .ys_fy
   if (is.null(snext_pf) && is.null(snext_fy)) return(scen)
 
+  # [storage-gaps] A sampled calendar's successor relation chains blocks that
+  # are months apart as if they were adjacent, so a level carried across such
+  # a link moves a season's energy through one block's level capacity. Unless
+  # the caller asks for that bridge, each contiguous block is closed onto its
+  # own first timeslice instead -- see `.block_cyclic_next()`. A full calendar
+  # has no gaps and comes back untouched, so this is a no-op off a sample.
+  if (!isTRUE(options::opt("bridge_storage_gaps"))) {
+    ref_fy <- .gap_ref_pairs(scen, "next_in_year")
+    ref_pf <- .gap_ref_pairs(scen, "next_in_timeframe")
+    if (is.null(ref_fy) && is.null(ref_pf) && .any_sampled_calendar(scen)) {
+      warning("`bridge_storage_gaps = FALSE`, but this calendar carries no ",
+              "reference to the one it samples, so the gaps cannot be ",
+              "located: storage chains the sample's blocks as if they were ",
+              "adjacent in time. Sample with `sample_calendar()`, which ",
+              "records the reference.", call. = FALSE)
+    }
+    snext_fy <- .block_cyclic_next(snext_fy, ref_fy)
+    snext_pf <- .block_cyclic_next(snext_pf, ref_pf)
+  }
+
   # Per-storage fullYear flag.
   fy <- apply_to_scenario_data(
     scen = scen, classes = "storage", as_list = TRUE,
@@ -1375,6 +1395,15 @@ recipe_value <- function(scen, names, fmp) {
   )
   fy <- if (length(fy) == 0) NULL else dplyr::bind_rows(fy)
   fy_stg <- if (is.null(fy)) character(0) else fy$stg[fy$fullYear]
+
+  # `interpolate_model(storage_cycle = )` overrides every object's own
+  # `@fullYear` for this build. Read here rather than written onto the objects:
+  # the user's model is left as authored, and the override is recorded in
+  # `scen@misc$storage` so a rebuild cycles the same way. `NULL` (no option
+  # published) honours each object, which is the default.
+  .sc <- getOption("energyRt.storage_cycle", NULL)
+  if (identical(.sc, "year")) fy_stg <- unique(as.character(store$stg))
+  if (identical(.sc, "timeframe")) fy_stg <- character(0)
 
   # Fall back rather than drop. A storage missing from this map has NO balance equation,
   # which leaves its level unconstrained by history -- free energy, reported OPTIMAL. Losing

@@ -18,6 +18,8 @@ interpolate_model(
   fold = FALSE,
   sparse = TRUE,
   prune = TRUE,
+  storage_cycle = NULL,
+  bridge_storage_gaps = options::opt("bridge_storage_gaps"),
   validate = TRUE,
   code = NULL,
   kvl = FALSE,
@@ -111,6 +113,23 @@ parameter's flagged value are dropped (lossless: an absent tuple reads as
 the default, which equals the dropped value). One parameter is flagged
 today (\code{pWeather}). Superseded by \code{sparse}'s \verb{value =} form; retained for
 compatibility.}
+
+\item{storage_cycle}{\code{NULL}, \code{"year"} or \code{"timeframe"}; where every
+storage closes its cycle, overriding each object's own \code{storage@fullYear}
+for this build. \code{NULL} (default) honours the objects. \code{"year"} gives every
+storage the year-wide cycle, \code{"timeframe"} closes every cycle at its
+parent timeframe boundary. The objects themselves are not changed; the
+override is recorded in \code{scen@misc$storage}.}
+
+\item{bridge_storage_gaps}{logical; may a storage level be carried across a
+gap a SAMPLED calendar leaves in the year? A sample's successor relation
+chains its blocks in order, so without this the level moves a season's
+energy through one block's worth of level capacity. \code{FALSE} (default)
+closes each contiguous block of kept timeslices onto itself, so nothing
+crosses a gap; \code{TRUE} chains the blocks as if they were adjacent in time.
+A full calendar has no gaps and is unaffected either way, and ramping
+bridges gaps regardless -- a ramp limit across one is restrictive rather
+than permissive, and nearly non-binding.}
 
 \item{validate}{logical; run \code{\link[=validate_scenario_parameters]{validate_scenario_parameters()}} after
 interpolation (schema, duplicate keys, map/parameter coverage, missing

@@ -27,6 +27,8 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* `interpolate_model(storage_cycle = )` overrides every storage's own `@fullYear` for one build: `"year"` closes every cycle over the year, `"timeframe"` closes it at each parent timeframe boundary, `NULL` (default) honours the objects. The model is not changed; the override is recorded in `scen@misc$storage`.
+
 * Storage level targets: `storage@target` sets soft floors on the level (`stg.af.target`, a share of storing capacity), each with a price per unit short (`stg.af.cost`). Tiers stack, so a deeper tier with its own price makes draining dearer the further it goes. Reported as `vStorageShort` / `vStorageShortCost`. `varom$stg.varom` may now be negative, a reward for holding a charged store.
 
 * Storage columns of the storing part take the `stg.` prefix, and the per-part efficiencies and variable costs are dotted: `af.*` -> `stg.af.*`, `weather` `waf.*` -> `stg.waf.*`, `seff` `stgeff`/`inpeff`/`outeff` -> `stg.eff`/`inp.eff`/`out.eff`, `varom` `stgcost`/`inpcost`/`outcost` -> `stg.varom`/`inp.varom`/`out.varom`. The old names are accepted with a deprecation warning; saved storages and process specs are renamed on load.
@@ -654,6 +656,8 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
   the same region and timeslice (hourly matching, not unbundling).
 
 ## Breaking changes
+
+* **A storage level no longer crosses a gap left by a sampled calendar.** A sample keeps blocks of the year and drops the rest, so its successor relation chained blocks months apart as if they were adjacent, moving a season's energy through one block's worth of level capacity. Each contiguous block now closes onto its own first timeslice. A full calendar has no gaps and is unaffected; a sampled year's results can move, and only upward -- the feasible set shrinks. `interpolate_model(bridge_storage_gaps = TRUE)`, or `options(energyRt.bridge_storage_gaps = TRUE)`, restores the old chain. Ramping still bridges gaps: a ramp limit across one is restrictive rather than permissive. Gaps are located from the calendar a sample records as its source, so a calendar sampled by hand warns instead of guessing.
 
 * `setCalendar()`'s first argument after the object is now `calendar`, which
   takes a calendar object. Passing `newCalendar()`'s arguments by name

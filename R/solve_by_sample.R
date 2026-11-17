@@ -294,7 +294,20 @@ sample_calendar <- function(cal, slices, counts = NULL, name = "sample") {
   sub <- sub[, setdiff(names(sub), "weight"), with = FALSE]
   x <- newCalendar(name = name, timetable = sub,
                    year_fraction = sum(sub$share))
-  .complete_calendar(x, year_fraction = x@year_fraction, ref = cal@timetable)
+  out <- .complete_calendar(x, year_fraction = x@year_fraction,
+                            ref = cal@timetable)
+  # The SOURCE's own chronology, kept so a gap this sample leaves can be
+  # located later without reading a timeslice label: a link of the sample
+  # crosses a gap exactly when the source does not declare it. Read by
+  # `.gap_ref_pairs()` for `interpolate_model(bridge_storage_gaps = FALSE)`.
+  # A sample of a sample carries the DEEPEST reference, not its immediate
+  # parent: the parent already has gaps of its own, and judging against it
+  # would declare those links contiguous.
+  out@misc$sample_of <- cal@misc$sample_of %||% list(
+    name = as.character(cal@name),
+    next_in_year = as.data.frame(cal@next_in_year),
+    next_in_timeframe = as.data.frame(cal@next_in_timeframe))
+  out
 }
 
 # add/refresh driver metadata in a variant.yml written by save_scenario()

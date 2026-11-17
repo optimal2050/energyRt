@@ -56,6 +56,21 @@
 #'   the default, which equals the dropped value). One parameter is flagged
 #'   today (`pWeather`). Superseded by `sparse`'s `value =` form; retained for
 #'   compatibility.
+#' @param storage_cycle `NULL`, `"year"` or `"timeframe"`; where every
+#'   storage closes its cycle, overriding each object's own `storage@fullYear`
+#'   for this build. `NULL` (default) honours the objects. `"year"` gives every
+#'   storage the year-wide cycle, `"timeframe"` closes every cycle at its
+#'   parent timeframe boundary. The objects themselves are not changed; the
+#'   override is recorded in `scen@misc$storage`.
+#' @param bridge_storage_gaps logical; may a storage level be carried across a
+#'   gap a SAMPLED calendar leaves in the year? A sample's successor relation
+#'   chains its blocks in order, so without this the level moves a season's
+#'   energy through one block's worth of level capacity. `FALSE` (default)
+#'   closes each contiguous block of kept timeslices onto itself, so nothing
+#'   crosses a gap; `TRUE` chains the blocks as if they were adjacent in time.
+#'   A full calendar has no gaps and is unaffected either way, and ramping
+#'   bridges gaps regardless -- a ramp limit across one is restrictive rather
+#'   than permissive, and nearly non-binding.
 #' @param parent_levels logical or character; give a variable rows at every
 #'   timeslice / region level COARSER than the one it occupies, each defined by a
 #'   roll-up of its finer rows, so a constraint can be written at a level the
@@ -179,6 +194,9 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
                        base_year_scenario = base,
                        desc = NULL, ondisk = FALSE, overwrite = FALSE,
                        fold = FALSE, sparse = TRUE, prune = TRUE,
+                       storage_cycle = NULL,
+                       bridge_storage_gaps =
+                         options::opt("bridge_storage_gaps"),
                        validate = TRUE, code = NULL, kvl = FALSE,
                        boundary_prices = NULL, split_weight = NULL,
                        keep = NULL, drop = NULL, .prefilter = FALSE,
@@ -190,6 +208,8 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # which build arguments the caller set (read before any is reassigned)
   .given <- c(fold = !missing(fold), sparse = !missing(sparse),
               prune = !missing(prune), code = !missing(code), kvl = !missing(kvl),
+              storage_cycle = !missing(storage_cycle),
+              bridge_storage_gaps = !missing(bridge_storage_gaps),
               boundary_prices = !missing(boundary_prices),
               .prefilter = !missing(.prefilter),
               parent_levels = !missing(parent_levels), fx_equ = !missing(fx_equ),
@@ -215,6 +235,19 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   .mi_prev <- options::opt("on_missing_input")
   options(energyRt.on_missing_input = on_missing_input)
   on.exit(options(energyRt.on_missing_input = .mi_prev), add = TRUE)
+  # The storage cycle is decided inside `.build_meqStorageLevel()`, which the
+  # registry dispatches as `f(scen, fmp)` -- so, like `parent_levels` above,
+  # the resolved setting is published as the option that builder reads, for
+  # this call only.
+  if (!is.null(storage_cycle)) {
+    storage_cycle <- match.arg(storage_cycle, c("year", "timeframe"))
+  }
+  .sc_prev <- getOption("energyRt.storage_cycle")
+  options(energyRt.storage_cycle = storage_cycle)
+  on.exit(options(energyRt.storage_cycle = .sc_prev), add = TRUE)
+  .bg_prev <- options::opt("bridge_storage_gaps")
+  options(energyRt.bridge_storage_gaps = isTRUE(bridge_storage_gaps))
+  on.exit(options(energyRt.bridge_storage_gaps = .bg_prev), add = TRUE)
   # An interpolated scenario is its own base: its tables are reused and what
   # `...` adds is built on them.
   if (is.null(base) && inherits(object, "scenario") &&
@@ -766,6 +799,12 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # line has been renamed, so `for.sum` names a `trade` member that no longer
   # exists. And `.kvl_for_each()` needs the SCENARIO's calendar and horizon,
   # which a `...` argument may have replaced, not the model's own.
+  # What this build did to the storage cycle: kept for the record, and read
+  # back by a driver that re-interpolates the same scenario.
+  if (!is.null(storage_cycle) || isTRUE(.given[["bridge_storage_gaps"]])) {
+    scen@misc$storage <- list(cycle = storage_cycle,
+                              bridge_gaps = isTRUE(bridge_storage_gaps))
+  }
   if (isTRUE(kvl)) {
     scen@misc$kvl <- TRUE
     kvl_cns <- .kvl_build(object, prov = .tech_variants$provenance,
@@ -5171,7 +5210,8 @@ setMethod("interpolate", signature(object = "scenario"),
 
 # Arguments of interpolate_model() whose explicit use forces a full run.
 .base_full_args <- c("code", "kvl", "boundary_prices", ".prefilter",
-                     "parent_levels", "fx_equ", "on_missing_input")
+                     "parent_levels", "fx_equ", "on_missing_input",
+                     "storage_cycle", "bridge_storage_gaps")
 
 # Identity of the model a scenario was interpolated from. A model loaded thinned
 # from the store and not rehydrated is the stored version itself, so its

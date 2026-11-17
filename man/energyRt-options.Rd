@@ -176,6 +176,12 @@ Keep parameters at a parent geoframe or timeframe alongside the finest level, so
 \item{envvar: }{ENERGYRT_PARENT_LEVELS (evaluated if possible, raw string otherwise)}
 }}
 
+\item{bridge_storage_gaps}{\describe{
+May a storage level be carried across a gap a sampled calendar leaves in the year? \code{FALSE} (default) closes each contiguous block of kept timeslices onto itself, so nothing crosses a gap; \code{TRUE} chains the blocks as if they were adjacent. A full calendar has no gaps and is unaffected either way.\item{default: }{\preformatted{FALSE}}
+\item{option: }{energyRt.bridge_storage_gaps}
+\item{envvar: }{ENERGYRT_BRIDGE_STORAGE_GAPS (evaluated if possible, raw string otherwise)}
+}}
+
 \item{on_missing_input}{\describe{
 What interpolation does when a process names an input commodity the model does not declare: "stop", "warn" or "ignore".\item{default: }{\preformatted{"stop"}}
 \item{option: }{energyRt.on_missing_input}

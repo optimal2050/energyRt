@@ -293,6 +293,139 @@ getYearCalendars <- function(x) {
   out
 }
 
+# ---- storage cycles across a sampling gap -----------------------------------
+#
+# A sample of a calendar keeps blocks of the year and drops the rest, so two
+# kept timeslices either side of a dropped stretch are NOT adjacent in time.
+# The sample's own successor relation says they are: `@next_in_year` chains its
+# members in order and wraps the last onto the first, which is the chronology
+# for a full calendar and a false adjacency for a sample. A storage level
+# carried across such a link moves a season's energy through one block's worth
+# of level capacity -- understating the capacity a real system needs and
+# overstating what storage is worth.
+#
+# `bridge_storage_gaps = FALSE` (the default) closes each contiguous BLOCK onto
+# itself instead: the link out of a block's last timeslice points back at that
+# block's first, so every block is its own cycle and no level crosses a gap.
+# A single block -- a full calendar, or a sample that is one unbroken stretch
+# -- is left exactly as it was, since its wrap link already closes on itself.
+#
+# A gap is never found by reading a timeslice label. The REFERENCE calendar's
+# own successor relation IS the chronology: a link (a -> b) of the sample
+# crosses a gap exactly when the reference does not declare it.
+#
+# Only the storage balance is rewritten. Ramping keeps bridging gaps by
+# ruling: a ramp limit between two timeslices months apart is spuriously
+# restrictive rather than permissive, and nearly non-binding.
+
+# The pairs the reference calendar declares, as "<timeslice> <successor>",
+# for one of the two successor relations. NULL when nothing finer than the
+# model calendar is known, which is the case for a model whose own calendar is
+# a sample from a source that did not record itself.
+#' @noRd
+.gap_ref_pairs <- function(scen, slot_nm = c("next_in_year",
+                                             "next_in_timeframe")) {
+  slot_nm <- match.arg(slot_nm)
+  h <- .calendar_host(scen)
+  if (is.null(h)) return(NULL)
+  mc <- tryCatch(h@calendar, error = function(e) NULL)
+  if (is.null(mc) || !methods::is(mc, "calendar")) return(NULL)
+  pick <- function(d) {
+    d <- tryCatch(as.data.frame(d), error = function(e) NULL)
+    if (is.null(d) || !nrow(d) ||
+        !all(c("timeslice", "timeslicep") %in% colnames(d))) return(NULL)
+    paste(as.character(d$timeslice), as.character(d$timeslicep))
+  }
+  # The model calendar is itself a sample: its source is the finer reference,
+  # and the right one for a per-year sample taken from it too.
+  p <- pick(tryCatch(mc@misc$sample_of[[slot_nm]], error = function(e) NULL))
+  if (!is.null(p)) return(p)
+  # Otherwise the model calendar is the reference, which only says anything
+  # about years carrying a calendar of their own.
+  if (is.null(.year_calendar_names(scen))) return(NULL)
+  pick(methods::slot(mc, slot_nm))
+}
+
+# Whether any calendar in play covers less than a year, i.e. whether there are
+# gaps to locate at all.
+#' @noRd
+.any_sampled_calendar <- function(scen) {
+  frac <- function(cal) {
+    v <- suppressWarnings(as.numeric(tryCatch(cal@year_fraction,
+                                              error = function(e) NA)))
+    length(v) && is.finite(v[1]) && v[1] < 1 - 1e-9
+  }
+  yc <- getYearCalendars(scen)
+  if (!is.null(yc) && any(vapply(yc, frac, logical(1)))) return(TRUE)
+  h <- .calendar_host(scen)
+  if (is.null(h)) return(FALSE)
+  mc <- tryCatch(h@calendar, error = function(e) NULL)
+  !is.null(mc) && methods::is(mc, "calendar") && frac(mc)
+}
+
+# One successor relation with every gap-crossing link redirected to the start
+# of its own block. `nx` is `(timeslice, timeslicep)` where `timeslicep` is the
+# NEXT timeslice -- the polarity of `mTimesliceNext` / `mTimesliceFYearNext`,
+# NOT of `meqStorageLevel`. A `year` column, where present, is rewritten year
+# by year, since each year's calendar has its own blocks.
+#' @noRd
+.block_cyclic_next <- function(nx, ref) {
+  if (is.null(nx) || !nrow(nx) || is.null(ref) ||
+      !all(c("timeslice", "timeslicep") %in% colnames(nx))) return(nx)
+  if ("year" %in% colnames(nx)) {
+    for (ii in split(seq_len(nrow(nx)), as.character(nx$year))) {
+      nx$timeslicep[ii] <- .block_cyclic_one(as.character(nx$timeslice[ii]),
+                                             as.character(nx$timeslicep[ii]),
+                                             ref)
+    }
+    return(nx)
+  }
+  nx$timeslicep <- .block_cyclic_one(as.character(nx$timeslice),
+                                     as.character(nx$timeslicep), ref)
+  nx
+}
+
+# The relation is a set of disjoint cycles -- one per parent for
+# `next_in_timeframe`, one per level for `next_in_year` -- so each is walked
+# and judged on its own. A cycle carrying no gap comes back untouched.
+#' @noRd
+.block_cyclic_one <- function(from, to, ref) {
+  out <- to
+  if (!length(from) || anyDuplicated(from)) return(out)
+  gap <- !(paste(from, to) %in% ref)
+  if (!any(gap)) return(out)
+  nxt <- stats::setNames(to, from)
+  gp <- stats::setNames(gap, from)
+  seen <- stats::setNames(logical(length(from)), from)
+  pos <- stats::setNames(seq_along(from), from)
+  for (s0 in from) {
+    if (seen[[s0]]) next
+    cyc <- s0
+    seen[[s0]] <- TRUE
+    v <- nxt[[s0]]
+    while (!is.na(v) && !identical(v, s0) && !is.na(seen[v]) && !seen[[v]]) {
+      cyc <- c(cyc, v)
+      seen[[v]] <- TRUE
+      v <- nxt[[v]]
+    }
+    k <- length(cyc)
+    if (k < 2L) next
+    g <- gp[cyc]
+    if (!any(g)) next
+    # A block STARTS where the link into it is a gap. Rotate the walk onto the
+    # first such position, so a block spanning the year's turn (the sample
+    # keeps the last timeslices and the first) is one block and not two.
+    g_in <- g[c(k, seq_len(k - 1L))]
+    st <- which(g_in)
+    if (!length(st)) next
+    o <- ((seq_len(k) + st[1] - 2L) %% k) + 1L
+    bid <- cumsum(g_in[o])
+    first_of <- cyc[o][match(bid, bid)]
+    out[pos[cyc[o]]] <- ifelse(g[o], first_of, unname(nxt[cyc[o]]))
+  }
+  out
+}
+
 # Drop every `(year, timeslice)` cell a year's calendar does not have, from
 # maps as well as value parameters.
 #

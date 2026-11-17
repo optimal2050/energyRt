@@ -316,6 +316,18 @@ options::define_option(
 )
 
 options::define_option(
+  "bridge_storage_gaps",
+  desc = paste(
+    "May a storage level be carried across a gap a sampled calendar leaves in",
+    "the year? `FALSE` (default) closes each contiguous block of kept",
+    "timeslices onto itself, so nothing crosses a gap; `TRUE` chains the",
+    "blocks as if they were adjacent. A full calendar has no gaps and is",
+    "unaffected either way."
+  ),
+  default = FALSE
+)
+
+options::define_option(
   "on_missing_input",
   desc = paste(
     "What interpolation does when a process names an input commodity the",
