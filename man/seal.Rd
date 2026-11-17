@@ -55,7 +55,11 @@ delete_marked(
 )
 }
 \arguments{
-\item{x}{the object (model/repository/scenario), or its registered name.
+\item{x}{the object (model/repository/scenario), its registered name, or the
+path of its stored folder -- the three forms \code{\link[=load_scenario]{load_scenario()}} takes. A
+path reaches an entry outside this project's store, and one whose name the
+registry cannot resolve to a single folder; the entry's own name is then
+read from its manifest.
 For \code{mark_delete()}/\code{unmark_delete()} on a bare name, give \verb{type =}.}
 
 \item{verbose}{logical.}

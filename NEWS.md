@@ -33,6 +33,8 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 * `objective_weights(scen)` reports the solved objective beside the same sum recomputed WITHOUT the weights -- the net present value of the plan as costed -- plus the weight of every cell. No second solve: `vTotalCost` is exported per cell. `verify_solution()`'s objective identity now carries the weight.
 
+* **The store lifecycle verbs take a folder path.** `seal_*()`, `unseal_*()` and `list_dependents()` now accept a stored entry's directory as well as its registered name or the object itself: the three forms `load_scenario()` takes. That reaches an entry outside the project's store, and a scenario whose name two folders answer to, which no `refresh_registry()` can disambiguate. The entry's name is read from its manifest, so the registry row stays keyed on the name and never on the path. A layout-2 scenario folder, which keeps no `scenario.yml` to hold the flag, now says so instead of reporting the scenario missing from its store.
+
 * `interpolate_model(storage_cycle = )` overrides every storage's own `@fullYear` for one build: `"year"` closes every cycle over the year, `"timeframe"` closes it at each parent timeframe boundary, `NULL` (default) honours the objects. The model is not changed; the override is recorded in `scen@misc$storage`.
 
 * Storage level targets: `storage@target` sets soft floors on the level (`stg.af.target`, a share of storing capacity), each with a price per unit short (`stg.af.cost`). Tiers stack, so a deeper tier with its own price makes draining dearer the further it goes. Reported as `vStorageShort` / `vStorageShortCost`. `varom$stg.varom` may now be negative, a reward for holding a charged store.

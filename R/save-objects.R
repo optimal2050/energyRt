@@ -2284,16 +2284,57 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
                   unseal = "unseal_scenario")
 )
 
-# name or object -> the entry's folder; loud error when absent
+# A character PATH to an entry's own folder, resolved the way load_scenario()
+# resolves one: an existing directory carrying the kind's manifest IS the entry.
+# That reaches a folder outside the project's store, and one whose name the
+# registry cannot disambiguate -- the case `.scenario_resolve()` already points
+# at `load_scenario()` for. A directory without that manifest falls through to
+# name resolution, so a bare name that happens to match a folder in the working
+# directory still means the name.
+#
+# The name comes from the manifest and never from the path: `.entry_resolve()`'s
+# `name` is what `.registry_sync_entry()` writes into the registry row, so a
+# path used as a name would register an entry keyed on a folder path.
+.entry_path_resolve <- function(type, x) {
+  if (!is.character(x) || length(x) != 1L || is.na(x) || !nzchar(x)) return(NULL)
+  if (!dir.exists(x)) return(NULL)
+  kind <- .entry_kinds()[[type]]
+  if (!file.exists(fp(x, kind$manifest))) return(NULL)
+  path <- normalizePath(x, winslash = "/", mustWork = FALSE)
+  nm <- as.character(.entry_manifest(type, path)$name %||% "")[1]
+  if (is.na(nm) || !nzchar(nm)) nm <- basename(path)
+  list(name = nm, path = path)
+}
+
+# name, path or object -> the entry's folder; loud error when absent
 .entry_resolve <- function(type, x) {
   nm <- if (isS4(x) && .hasSlot(x, "name")) x@name else as.character(x)
   if (is(x, "scenario") && length(x@path) == 1L && nzchar(x@path) &&
       dir.exists(x@path)) {
     return(list(name = nm, path = gsub("[\\/]+", "/", x@path)))
   }
+  byp <- .entry_path_resolve(type, x)
+  if (!is.null(byp)) return(byp)
   kind <- .entry_kinds()[[type]]
   path <- tryCatch(kind$resolve(nm), error = function(e) NULL)
   if (is.null(path) || !file.exists(fp(path, kind$manifest))) {
+    given_dir <- length(nm) == 1L && !is.na(nm) && nzchar(nm) && dir.exists(nm)
+    # layout 2 keeps no manifest, so it has nowhere to hold seal or deletion
+    # state: say that rather than "not found".
+    lay2 <- identical(type, "scenario") &&
+      ((!is.null(path) && file.exists(fp(path, "class"))) ||
+         (given_dir && file.exists(fp(nm, "class"))))
+    if (lay2) {
+      p2 <- if (!is.null(path)) path else nm
+      stop("scenario at '", p2, "' uses on-disk layout 2 and has no ",
+           "`scenario.yml`, so it carries no seal or deletion state. ",
+           "Upgrade it with upgrade_scenario_layout() first.", call. = FALSE)
+    }
+    if (given_dir) {
+      stop("'", nm, "' is a directory with no '", kind$manifest, "' in it, so ",
+           "it is not a saved ", type, ". Save it there first, or name a ",
+           "registered ", type, ".", call. = FALSE)
+    }
     stop(type, " '", nm, "' was not found in its store ('", kind$root(),
          "'). Run refresh_registry() to rescan, or save it first.")
   }
@@ -2466,7 +2507,11 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
 #' All lifecycle state lives in the entry's manifest, so it survives moves
 #' and syncs, and `refresh_registry()` never disturbs it.
 #'
-#' @param x the object (model/repository/scenario), or its registered name.
+#' @param x the object (model/repository/scenario), its registered name, or the
+#'   path of its stored folder -- the three forms [load_scenario()] takes. A
+#'   path reaches an entry outside this project's store, and one whose name the
+#'   registry cannot resolve to a single folder; the entry's own name is then
+#'   read from its manifest.
 #'   For `mark_delete()`/`unmark_delete()` on a bare name, give `type =`.
 #' @param verbose logical.
 #' @param force logical; `unseal_model()` / `unseal_repository()` refuse while
