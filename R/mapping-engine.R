@@ -1015,12 +1015,14 @@ recipe_value <- function(scen, names, fmp) {
                        types = "lo"),
   mTechNewCapUp = list(domain = "mTechNew",  source = "pTechNewCap",
                        types = "up"),
-  # Legacy gates mTechRet* on the global config flag `optimizeRetirement`
-  # (storage / trade retirement maps are NOT gated this way).
+  # Retirement bounds: only where a retirement variable exists, i.e. retirement
+  # enabled model-wide (`gate`) and on the object itself (`retiring`, the class
+  # whose `@optimizeRetirement` objects keep their rows). Elsewhere the row
+  # would hold no variable and constrain nothing.
   mTechRetLo    = list(domain = "mTechSpan", source = "pTechRet", types = "lo",
-                       gate = "optimizeRetirement"),
+                       gate = "optimizeRetirement", retiring = "technology"),
   mTechRetUp    = list(domain = "mTechSpan", source = "pTechRet", types = "up",
-                       gate = "optimizeRetirement"),
+                       gate = "optimizeRetirement", retiring = "technology"),
 
   # C5 storage activity bounds (the storage balance map meqStorageLevel is
   # bespoke -- see `.build_meqStorageLevel`).
@@ -1103,19 +1105,25 @@ recipe_value <- function(scen, names, fmp) {
   mStorageDurationUp  = list(domain = "mStorageOutCap", source = "pStorageDuration",
                              types = "up", drop = "up"),
   mStorageOutRetLo    = list(domain = "mStorageSpan", source = "pStorageOutRet",
-                          types = "lo"),
+                          types = "lo", gate = "optimizeRetirement",
+                          retiring = "storage"),
   mStorageOutRetUp    = list(domain = "mStorageSpan", source = "pStorageOutRet",
-                          types = "up"),
+                          types = "up", gate = "optimizeRetirement",
+                          retiring = "storage"),
   # The charging and storing parts retire on their own bounds; the windows are
   # storage-wide (olife is), so all three share `mStorageSpan` as the domain.
   mStorageInpRetLo    = list(domain = "mStorageSpan", source = "pStorageInpRet",
-                          types = "lo"),
+                          types = "lo", gate = "optimizeRetirement",
+                          retiring = "storage"),
   mStorageInpRetUp    = list(domain = "mStorageSpan", source = "pStorageInpRet",
-                          types = "up"),
+                          types = "up", gate = "optimizeRetirement",
+                          retiring = "storage"),
   mStorageStgRetLo    = list(domain = "mStorageSpan", source = "pStorageStgRet",
-                          types = "lo"),
+                          types = "lo", gate = "optimizeRetirement",
+                          retiring = "storage"),
   mStorageStgRetUp    = list(domain = "mStorageSpan", source = "pStorageStgRet",
-                          types = "up"),
+                          types = "up", gate = "optimizeRetirement",
+                          retiring = "storage"),
 
   # C7 trade capacity / retirement bounds (trade flow & cap-flow maps are
   # bespoke / pending -- see recipe_constraint).
@@ -1128,9 +1136,11 @@ recipe_value <- function(scen, names, fmp) {
   mTradeNewCapUp = list(domain = "mTradeNew",  source = "pTradeNewCap",
                         types = "up"),
   mTradeRetLo    = list(domain = "mTradeSpan", source = "pTradeRet",
-                        types = "lo"),
+                        types = "lo", gate = "optimizeRetirement",
+                        retiring = "trade"),
   mTradeRetUp    = list(domain = "mTradeSpan", source = "pTradeRet",
-                        types = "up"),
+                        types = "up", gate = "optimizeRetirement",
+                        retiring = "trade"),
 
   # C7 trade inter-regional flow bounds: restrict the trade-flow domain to the
   # routes / timeslices that carry a lower / upper flow bound. The flow parameter
@@ -1239,6 +1249,20 @@ recipe_value <- function(scen, names, fmp) {
   p <- scen@modInp@parameters[[name]]
   if (is.null(p)) return(scen)
   if (!is.null(def$gate) && !isTRUE(slot(scen@settings, def$gate))) return(scen)
+  if (!is.null(def$retiring)) {
+    # rows of objects without retirement variables are dropped
+    key <- .lifespan_family_def[[def$retiring]]$key
+    keep <- .retirement_objects(scen, def$retiring)
+    set_map <- function(scen, name, df, fmp) {
+      if (!is.null(df) && key %in% colnames(df)) {
+        df <- df[df[[key]] %in% keep, , drop = FALSE]
+        if (nrow(df) == 0) df <- NULL
+      }
+      .set_map(scen, name, df, fmp)
+    }
+  } else {
+    set_map <- .set_map
+  }
 
   # Structural equation: instantiated over its WHOLE domain (its default bound
   # binds), so the source bound does not filter the domain -- emit the full
@@ -1293,13 +1317,13 @@ recipe_value <- function(scen, names, fmp) {
                                                         drop = FALSE]))
       }
     }
-    if (nrow(df) == 0) return(.set_map(scen, name, NULL, fmp))
-    return(.set_map(scen, name, df, fmp))
+    if (nrow(df) == 0) return(set_map(scen, name, NULL, fmp))
+    return(set_map(scen, name, df, fmp))
   }
 
   df <- .constraint_cond_rows(scen, p, def)
   if (is.null(df)) return(scen)
-  .set_map(scen, name, df, fmp)
+  set_map(scen, name, df, fmp)
 }
 
 # meqStorageLevel: storage-balance index. Each storing timeslice is paired with its
