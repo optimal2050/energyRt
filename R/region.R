@@ -542,6 +542,8 @@ subset_model_regions <- function(object, region, boundary_prices = NULL,
   # What the cut did, kept with the model the way `aggregate_model_regions()`
   # keeps `@misc$aggregation`: a cut read back months later should not have to
   # be re-derived from the regions that survived it.
+  # a variant whose rows the cut removed is no longer declared
+  mod <- .subset_prune_rosters(mod)
   mod@misc$subset <- list(
     regions = setdiff(keep, keep_up),
     covered = as.character(keep_up),
@@ -4054,4 +4056,49 @@ print.aggregation_plan <- function(x, ...) {
                                             error = function(e) NULL))
   }
   obj
+}
+
+# A roster declaration that outlived its data
+#
+# `@cluster` is the authoritative variant set, and the region surgery prunes
+# only what it can see: a roster keyed by region loses its rows with the
+# regions, but one declared WITHOUT a region column -- which is legal and
+# deliberate for a series that applies anywhere -- survives the cut while the
+# series behind it shrinks. Interpolation then refuses the object for
+# declaring a variant it carries no rows for, which is a true statement about
+# a model the cut made.
+#
+# So after the surgery a label no data row uses any more is dropped. An object
+# whose data is not keyed by cluster at all is left alone: there the roster is
+# the only declaration of its variants, and nothing about the cut contradicts
+# it.
+#' @noRd
+.subset_prune_rosters <- function(mod) {
+  edit <- function(o) {
+    if (!isS4(o) || !.hasSlot(o, "cluster")) return(o)
+    d <- tryCatch(methods::slot(o, "cluster"), error = function(e) NULL)
+    if (!is.data.frame(d) || !nrow(d) || !"cluster" %in% names(d)) return(o)
+    used <- character()
+    for (sl in .instance_slots(o)) {
+      if (identical(sl, "cluster") || identical(sl, "misc")) next
+      v <- tryCatch(methods::slot(o, sl), error = function(e) NULL)
+      if (!is.data.frame(v) || !nrow(v) || !"cluster" %in% names(v)) next
+      used <- c(used, as.character(v$cluster))
+    }
+    used <- unique(used[!is.na(used) & nzchar(used)])
+    if (!length(used)) return(o)
+    keep <- as.character(d$cluster) %in% used
+    if (all(keep)) return(o)
+    methods::slot(o, "cluster") <- d[keep, , drop = FALSE]
+    o
+  }
+  for (i in seq_along(mod@data)) {
+    rp <- mod@data[[i]]
+    if (methods::is(rp, "repository")) {
+      mod@data[[i]]@data <- lapply(rp@data, edit)
+    } else {
+      mod@data[[i]] <- edit(rp)
+    }
+  }
+  mod
 }

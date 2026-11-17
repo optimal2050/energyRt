@@ -372,3 +372,47 @@ test_that("one weight can be named for everything that asks", {
     mod, "R03", dryrun = TRUE, split_weight = c("area", "km2"))),
     "must be named")
 })
+
+# A roster declared WITHOUT a region column is legal and deliberate -- a
+# series that applies anywhere -- but the region surgery cannot prune what it
+# cannot see, so the declaration used to outlive its data and interpolation
+# refused the model for a variant with no rows.
+test_that("a region-agnostic roster is pruned with its series", {
+  testthat::skip_if_not_installed("geoscales")
+  gs <- geoscales::geoscale_from_leaftable(
+    data.frame(nation = "NAT", grp = "G1", region = c("R1", "R2"),
+               km2 = c(1, 1)),
+    geoframes = c("nation", "grp", "region"), key = "region", name = "pr")
+  cal <- newCalendar(timetable = make_timetable(
+    struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+    name = "pr_cal")
+  wth <- newWeather("WSOL", timeframe = "SEASON",
+    cluster = data.frame(cluster = c("A", "B"), stringsAsFactors = FALSE),
+    weather = data.frame(region = c("R1", "R1", "R2", "R2"),
+                         cluster = c("A", "A", "B", "B"),
+                         timeslice = c("WIN", "SUM"), wval = 0.5))
+  tec <- newTechnology("ESOL", output = list(comm = "ELC"),
+    cluster = data.frame(cluster = c("A", "B"), region = c("R1", "R2"),
+                         stringsAsFactors = FALSE),
+    capacity = data.frame(region = c("R1", "R2"), cluster = c("A", "B"),
+                          stock = 10),
+    weather = data.frame(cluster = c("A", "B"), weather = "WSOL",
+                         comm = "ELC", waf.up = 1),
+    invcost = data.frame(invcost = 900), olife = data.frame(olife = 25),
+    cap2act = 1)
+  mod <- setGeoscale(newModel("pr", calendar = cal, region = c("R1", "R2"),
+    horizon = newHorizon(2025), discount = 0,
+    repo = newRepository("pr_repo", newCommodity("ELC", timeframe = "SEASON"),
+      newDemand("DEM", commodity = "ELC",
+                demand = data.frame(region = c("R1", "R2"),
+                                    timeslice = "WIN", demand = 5)),
+      wth, tec)), gs)
+  s <- suppressWarnings(suppressMessages(subset_model_regions(mod, "R1")))
+  w <- getObject(s, class = "weather")[["WSOL"]]
+  expect_setequal(as.character(w@weather$cluster), "A")
+  # the declaration follows the data: "B" has no rows left
+  expect_setequal(as.character(w@cluster$cluster), "A")
+  sc <- suppressWarnings(suppressMessages(
+    interpolate_model(s, name = "PR_SUB")))
+  expect_s4_class(sc, "scenario")
+})

@@ -264,8 +264,53 @@ solve_base_year <- function(object, name = NULL, solver = NULL,
 # So only the keys the base year actually built are touched, and for those the
 # declared schedule is evaluated (not rolled) and the decided capacity added.
 # A key the base year did not build is left bit-identical.
+# The regions a model may legitimately declare: its own, plus every cell of
+# its geoscale, since a declaration above the model's regions is legal.
+#' @noRd
+.by_model_regions <- function(mod) {
+  r <- tryCatch(as.character(mod@config@region), error = function(e) character())
+  gs <- tryCatch(mod@config@geoscale, error = function(e) NULL)
+  if (!is.null(gs) && is_geoscale(gs)) {
+    lt <- tryCatch(as.data.frame(geoscales::geoscale_leaftable(gs)),
+                   error = function(e) NULL)
+    if (!is.null(lt)) {
+      fr <- intersect(geoscales::geoscale_geoframes(gs), names(lt))
+      r <- c(r, as.character(lt$region),
+             unlist(lapply(fr, function(f) as.character(lt[[f]])),
+                    use.names = FALSE))
+    }
+  }
+  unique(r[!is.na(r) & nzchar(r)])
+}
+
 .by_carry_newcap <- function(mod, ledger, horizon, tolerance = 1e-6,
                              verbose = TRUE) {
+  # A ledger is solved against the model it came from. Carried into a SUBSET
+  # of that model it still holds the regions the cut removed, and writing
+  # their capacity back puts rows in the model for regions it no longer
+  # declares -- which surfaces later as "references undeclared region(s)",
+  # the right error from the wrong place. The ledger is narrowed here instead,
+  # and what was left out is reported rather than dropped silently.
+  if (!is.null(ledger) && !is.null(ledger$newcap) && nrow(ledger$newcap)) {
+    keep_r <- .by_model_regions(mod)
+    if (length(keep_r)) {
+      for (tb in intersect(c("newcap", "retnew", "retstock", "sup_use"),
+                           names(ledger))) {
+        d <- ledger[[tb]]
+        if (!is.data.frame(d) || !nrow(d) || !"region" %in% names(d)) next
+        out <- !is.na(d$region) & !as.character(d$region) %in% keep_r
+        if (!any(out)) next
+        if (identical(tb, "newcap") && isTRUE(verbose)) {
+          .say("Base year: ", sum(out), " ledger row(s) for ",
+               length(unique(d$region[out])), " region(s) the model does not ",
+               "declare were left out (",
+               paste(utils::head(sort(unique(as.character(d$region[out]))), 4),
+                     collapse = ", "), ")")
+        }
+        ledger[[tb]] <- d[!out, , drop = FALSE]
+      }
+    }
+  }
   if (is.null(ledger) || is.null(ledger$newcap) || !nrow(ledger$newcap)) {
     if (isTRUE(verbose)) {
       .say("Base year: nothing was built, so the projection's stock is ",

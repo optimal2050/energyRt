@@ -29,6 +29,14 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 * Storage level targets: `storage@target` sets soft floors on the level (`af.target`, a share of storing capacity), each with a price per unit short (`cost`). Tiers stack, so a deeper tier with its own price makes draining dearer the further it goes. Reported as `vStorageShort` / `vStorageShortCost`. `varom$stgcost` may now be negative, a reward for holding a charged store.
 
+* `subset_model_regions()` prunes a cluster roster declared without a
+  `region` column: a variant whose rows the cut removed is no longer declared,
+  where before the model was refused for carrying no rows for it.
+
+* A base-year ledger carried into a SUBSET of the model it was solved on is
+  narrowed to the regions the model declares, naming what it left out, instead
+  of writing capacity for regions the cut removed.
+
 * `aggregate_model_regions()` no longer averages weather. A series is already
   a clustered object, and the weight such a mean needs -- the resource
   available for that grade in that province -- is not something a geoscale can

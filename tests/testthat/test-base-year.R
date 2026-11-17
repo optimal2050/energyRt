@@ -363,3 +363,46 @@ test_that("a horizon whose intervals cover the period is silent", {
     mid   = c(2025, 2030, 2040),
     end   = c(2025, 2035, 2045))))
 })
+
+# A ledger is solved against the model it came from. Carried into a SUBSET of
+# that model it still holds the regions the cut removed, and writing their
+# capacity back used to surface much later as "references undeclared
+# region(s)" -- the right error from the wrong place.
+test_that("a carried ledger is narrowed to the model's regions", {
+  testthat::skip_if_not_installed("geoscales")
+  gs <- geoscales::geoscale_from_leaftable(
+    data.frame(nation = "NAT", grp = "G1", region = c("R1", "R2"),
+               km2 = c(1, 1)),
+    geoframes = c("nation", "grp", "region"), key = "region", name = "bl")
+  cal <- newCalendar(timetable = make_timetable(
+    struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+    name = "bl_cal")
+  mod <- setGeoscale(newModel("bl", calendar = cal, region = "R1",
+    horizon = newHorizon(c(2025, 2030), intervals = 5), discount = 0,
+    repo = newRepository("bl_repo",
+      newCommodity("ELC", timeframe = "SEASON"),
+      newTechnology("ECOA", output = list(comm = "ELC"),
+        capacity = data.frame(region = "R1", stock = 10),
+        invcost = data.frame(invcost = 1000),
+        olife = data.frame(olife = 30), cap2act = 1))),
+    geoscales::filter_geoscale(gs, "region", "R1"))
+  led <- structure(list(
+    newcap = tibble::tibble(family = "tech", proc = "ECOA",
+      region = c("R1", "R2"), vintage = 2025L, cap = c(7, 9), olife = 30),
+    retnew = tibble::tibble(family = character(), proc = character(),
+      region = character(), vintage = integer(), cap = numeric(),
+      ret_year = integer()),
+    retstock = tibble::tibble(family = character(), proc = character(),
+      region = character(), amount = numeric(), ret_year = integer()),
+    sup_use = tibble::tibble()), class = "carry_ledger")
+  out <- .by_carry_newcap(mod, led, newHorizon(c(2025, 2030), intervals = 5),
+                          verbose = FALSE)
+  cap <- getObject(out, class = "technology")[["ECOA"]]@capacity
+  # only the kept region is written, and it gained the carried capacity
+  expect_setequal(as.character(cap$region), "R1")
+  expect_true(all(cap$stock == 17))
+  # the rows left out are named when the call is verbose
+  expect_message(.by_carry_newcap(mod, led,
+    newHorizon(c(2025, 2030), intervals = 5), verbose = TRUE),
+    "does not declare")
+})
