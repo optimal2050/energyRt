@@ -545,21 +545,21 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # the same thing at assignment; this catches a horizon or settings object
   # passed through `...`, and a model assembled by hand.
   .check_year_calendars(scen)
-  # Folding a whole column over the timeslice axis asserts that the value is
-  # uniform across the WHOLE set -- which silently assumes every year has the
-  # same slices. Both fold layers (R/fold.R here, and multimod's) project a
-  # membership map onto a fixed pair of columns and would drop the year.
-  # Refused rather than folded wrongly; the saving a per-year calendar gives
-  # is the point of it, and folding on top is a later piece of work.
-  if (!is.null(.year_calendar_names(scen)) &&
-        (isTRUE(fold) || "timeslice" %in% as.character(fold))) {
-    stop("`fold` cannot include the timeslice axis while a milestone has a ",
-         "calendar of its own: a whole-column fold asserts the value is ",
-         "uniform across every timeslice, and the years no longer share a ",
-         "timeslice set.
-Use fold = FALSE, or fold = c(\"region\", ",
-         "\"year\").", call. = FALSE)
-  }
+  # Folding the timeslice axis under a per-year calendar used to be refused,
+  # on the reading that a whole-column fold assumes every year has the same
+  # slices. It does not. Folding runs BEFORE `.filter_year_slices()`, so the
+  # column it judges still spans the model calendar's whole universe: a fold
+  # therefore asserts uniformity over the universe, and every year's slice set
+  # is a subset of it. What a wildcard then means at read time is decided by
+  # the per-year membership, which `.unfold_year_gate()` reapplies wherever a
+  # wildcard becomes concrete again; and at solve time by the year-gated
+  # variable domains, since the lookup rewrite points every (year, slice) cell
+  # the equations admit at the one wildcard cell. Measured on a sampled-year
+  # model: same objective folded and unfolded.
+  #
+  # The converse case simply does not fold: a parameter uniform WITHIN each
+  # year but differing between their slice sets fails the completeness test,
+  # which costs a saving and never writes a wrong value.
   # A sampled year's weights are its own: a season standing for two seasons
   # weighs 2, so that the year still annualises to one year. `obj2modInp.R`
   # already prefers `calendar@misc$pTimesliceWeight` over broadcasting the
@@ -2445,7 +2445,8 @@ interpolate_numpar <- function(
       v <- raw[[cl]]
       return(if (anyNA(v) && !all(is.na(v))) list(all = TRUE) else NULL)
     }
-    key <- do.call(paste, c(raw[ent], list(sep = "")))
+    key <- do.call(paste, c(raw[ent], list(sep = "
+")))
     has_na <- tapply(is.na(raw[[cl]]), key, any)
     has_ex <- tapply(!is.na(raw[[cl]]), key, any)
     k <- names(has_na)[has_na & has_ex]

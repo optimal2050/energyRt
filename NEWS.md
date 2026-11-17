@@ -31,6 +31,13 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 * Storage columns of the storing part take the `stg.` prefix, and the per-part efficiencies and variable costs are dotted: `af.*` -> `stg.af.*`, `weather` `waf.*` -> `stg.waf.*`, `seff` `stgeff`/`inpeff`/`outeff` -> `stg.eff`/`inp.eff`/`out.eff`, `varom` `stgcost`/`inpcost`/`outcost` -> `stg.varom`/`inp.varom`/`out.varom`. The old names are accepted with a deprecation warning; saved storages and process specs are renamed on load.
 
+* `fold` may now include the timeslice axis while a milestone carries its own
+  calendar; the combination was refused before. Folding happens while the data
+  still spans the model calendar's universe, so the uniformity it asserts holds
+  for every year's subset of it, and a wildcard expanded back is trimmed to the
+  cells each year actually has. Measured on a sampled-year model: same
+  objective folded and unfolded on GLPK, Pyomo/CBC and Julia/HiGHS.
+
 * `subset_model_regions()` prunes a cluster roster declared without a
   `region` column: a variant whose rows the cut removed is no longer declared,
   where before the model was refused for carrying no rows for it.

@@ -642,7 +642,25 @@ unfold_scenario_parameter <- function(scen, param,
   if (length(ms) == 0) {
     return(as.data.frame(data))
   }
-  unfold_parameter(param, ms)
+  .unfold_year_gate(scen, unfold_parameter(param, ms))
+}
+
+# A wildcard means "every member"; under a per-year calendar it means every
+# member THE YEAR HAS. Folding runs before `.filter_year_slices()`, so the
+# column it collapsed was uniform over the whole universe and the fold is
+# legitimate -- but the gate cannot trim a wildcard afterwards, because `NA` is
+# how the wildcard is written. The legality is therefore reapplied here, where
+# the wildcard becomes concrete again, through the same predicate the gate
+# uses. A no-op on a model with one calendar.
+#' @noRd
+.unfold_year_gate <- function(scen, data) {
+  if (is.null(data) || !nrow(data)) return(data)
+  data <- as.data.frame(data)
+  keep <- .year_slice_keep(scen, data)
+  if (is.null(keep) || all(keep)) return(data)
+  out <- data[keep, , drop = FALSE]
+  row.names(out) <- NULL
+  out
 }
 
 # -----------------------------------------------------------------------------#
@@ -677,7 +695,7 @@ unfold_parameters <- function(scen, dims = .foldable_dims,
     ms <- .fold_member_sets(scen, data, dims = dims, pname = pn)
     if (length(ms) == 0) next
     before <- nrow(data)
-    expanded <- unfold_parameter(p, ms)
+    expanded <- .unfold_year_gate(scen, unfold_parameter(p, ms))
     if (is.null(expanded) || nrow(expanded) == 0) next
     p2 <- .fold_write_back(p, expanded)
     scen@modInp@parameters[[pn]] <- p2
@@ -1050,7 +1068,8 @@ unfold_trade_routes <- function(scen, verbose = isVerbose(2)) {
     ms <- .fold_member_sets(scen, d, dims = intersect(dims, names(d)),
                             pname = nm)
     if (length(ms) == 0) next
-    out <- tryCatch(unfold_parameter(p, ms), error = function(e) NULL)
+    out <- tryCatch(.unfold_year_gate(scen, unfold_parameter(p, ms)),
+                    error = function(e) NULL)
     if (is.null(out) || nrow(out) == 0) next
     if (verbose) {
       message(sprintf("  materialise partial wildcard %-22s %d -> %d rows",

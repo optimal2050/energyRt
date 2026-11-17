@@ -314,6 +314,35 @@ getYearCalendars <- function(x) {
 #
 # A no-op, and not even a scan, when no milestone names a calendar: the cells
 # are then the full cross product by construction.
+# Which rows of one table name a `(year, timeslice)` cell the year's calendar
+# actually has. `NULL` when the question does not apply -- no per-year
+# calendar, or no year / timeslice pair of columns to judge.
+#
+# Shared so the two readers cannot drift: the gate below applies it to every
+# parameter once after the maps are built, and `fold.R` applies it again where
+# a wildcard is expanded back into concrete members.
+#' @noRd
+.year_slice_keep <- function(scen, d, ok = NULL) {
+  if (is.null(d) || !nrow(d)) return(NULL)
+  cn <- colnames(d)
+  if (!("year" %in% cn)) return(NULL)
+  scols <- intersect(c("timeslice", "timeslicep", "timeslice.1"), cn)
+  if (!length(scols)) return(NULL)
+  if (is.null(ok)) {
+    if (is.null(.year_calendar_names(scen))) return(NULL)
+    ys <- .year_slice_df(scen)
+    if (is.null(ys) || !nrow(ys)) return(NULL)
+    ok <- paste(as.integer(ys$year), as.character(ys$timeslice))
+  }
+  y <- suppressWarnings(as.integer(d[["year"]]))
+  # NA is a wildcard in the folded representation ("every year", "every
+  # timeslice"), so a row is judged only when it names a CONCRETE pair.
+  Reduce(`&`, lapply(scols, function(cc) {
+    s <- as.character(d[[cc]])
+    is.na(y) | is.na(s) | paste(y, s) %in% ok
+  }))
+}
+
 #' @noRd
 .filter_year_slices <- function(scen, verbose = FALSE) {
   if (is.null(.year_calendar_names(scen))) return(scen)
@@ -325,20 +354,9 @@ getYearCalendars <- function(x) {
     if (is.null(param)) next
     d <- tryCatch(get_data_slot(param), error = function(e) NULL)
     if (is.null(d) || nrow(d) == 0L) next
-    cn <- colnames(d)
-    if (!("year" %in% cn)) next
-    scols <- intersect(c("timeslice", "timeslicep", "timeslice.1"), cn)
-    if (!length(scols)) next
     d <- as.data.frame(d)
-    y <- suppressWarnings(as.integer(d$year))
-    # NA is a wildcard in the folded representation ("every year", "every
-    # timeslice"), so a row is dropped only when it names a CONCRETE pair the
-    # year does not have.
-    keep <- Reduce(`&`, lapply(scols, function(cc) {
-      s <- as.character(d[[cc]])
-      is.na(y) | is.na(s) | paste(y, s) %in% ok
-    }))
-    if (all(keep)) next
+    keep <- .year_slice_keep(scen, d, ok = ok)
+    if (is.null(keep) || all(keep)) next
     if (isTRUE(verbose)) {
       .say2("year-cal filter '", pn, "': ", nrow(d), " -> ", sum(keep),
             " rows")

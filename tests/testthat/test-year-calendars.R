@@ -398,30 +398,57 @@ test_that("pYearFraction is each year's own coverage of the year", {
   expect_equal(length(unique(gf(b))), 2L)
 })
 
-test_that("folding the timeslice axis is refused, folding the others is not", {
-  # A whole-column fold asserts the value is uniform across EVERY timeslice,
-  # which silently assumes the years share a timeslice set.
+test_that("every fold axis is available under a per-year calendar", {
+  # Folding the timeslice axis was refused here until 2026-11-17, on the
+  # reading that a whole-column fold assumes the years share a slice set. They
+  # need not: folding runs BEFORE `.filter_year_slices()`, so the column it
+  # judges spans the model calendar's whole universe and every year's set is a
+  # subset of it. What the wildcard means afterwards is decided by the per-year
+  # membership -- reapplied by `.unfold_year_gate()` wherever a wildcard
+  # becomes concrete, and by the year-gated variable domains at solve time.
   skip_if_no_fixtures()
-  expect_error(
-    interpolate_model(.yc_kit(2028L, nm = "yc_fd"), "yc_fd", ondisk = FALSE,
-                      overwrite = TRUE, fold = TRUE),
-    "cannot include the timeslice axis")
-  expect_error(
-    interpolate_model(.yc_kit(2028L, nm = "yc_fd2"), "yc_fd2", ondisk = FALSE,
-                      overwrite = TRUE, fold = "timeslice"),
-    "cannot include the timeslice axis")
-  # the other axes are unaffected
-  expect_s4_class(
-    suppressMessages(suppressWarnings(interpolate_model(
-      .yc_kit(2028L, nm = "yc_fd3"), "yc_fd3", ondisk = FALSE,
-      overwrite = TRUE, fold = c("region", "year")))),
-    "scenario")
+  for (f in list(TRUE, "timeslice", c("region", "year"))) {
+    nm <- paste0("yc_fd_", gsub("[^a-z]", "", paste(tolower(
+      as.character(f)), collapse = "")))
+    expect_s4_class(
+      suppressMessages(suppressWarnings(interpolate_model(
+        .yc_kit(2028L, nm = nm), nm, ondisk = FALSE, overwrite = TRUE,
+        fold = f))),
+      "scenario")
+  }
   # and a model with one calendar folds as it always did
   expect_s4_class(
     suppressMessages(suppressWarnings(interpolate_model(
       .yc_kit(nm = "yc_fd4"), "yc_fd4", ondisk = FALSE, overwrite = TRUE,
       fold = TRUE))),
     "scenario")
+})
+
+test_that("an expanded wildcard never invents a cell the year lacks", {
+  # The gate cannot trim a wildcard -- `NA` IS the wildcard -- so the legality
+  # is reapplied where the wildcard is expanded back. Without it, unfolding a
+  # year-wildcarded row cross-joins against the full timeslice set and
+  # resurrects pairs the sampled year does not have.
+  skip_if_no_fixtures()
+  scen <- .yc_interp(.yc_kit(2028L, nm = "yc_ug"), "yc_ug")
+  ys <- energyRt:::.year_slice_df(scen)
+  ok <- paste(as.integer(ys$year), as.character(ys$timeslice))
+  folded <- suppressMessages(suppressWarnings(
+    fold_parameters(scen, dims = c("region", "timeslice", "year"))))
+  back <- suppressMessages(suppressWarnings(unfold_parameters(
+    folded, dims = c("region", "timeslice", "year"),
+    types = c("numpar", "bounds"))))
+  bad <- character()
+  for (pn in names(back@modInp@parameters)) {
+    d <- tryCatch(as.data.frame(get_data_slot(back@modInp@parameters[[pn]])),
+                  error = function(e) NULL)
+    if (is.null(d) || !nrow(d) || !all(c("year", "timeslice") %in% names(d))) next
+    y <- suppressWarnings(as.integer(d$year))
+    s <- as.character(d$timeslice)
+    hit <- !is.na(y) & !is.na(s) & !(paste(y, s) %in% ok)
+    if (any(hit)) bad <- c(bad, pn)
+  }
+  expect_equal(bad, character(0))
 })
 
 test_that("a sampled year rolls up to the annual level with its own weights", {
