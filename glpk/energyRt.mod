@@ -520,6 +520,7 @@ param pTechPayback{tech, region, year};
 param pStorageOutPayback{stg, region, year};
 param pTradePayback{trade, region, year};
 param pDiscountFactor{region, year};
+param pObjWeight{region, year};
 param pDiscountFactorMileStone{region, year};
 param pSupCost{sup, comm, region, year, timeslice};
 param pSupAvaUp{sup, comm, region, year, timeslice};
@@ -1251,7 +1252,7 @@ s.t.  eqSubsCost{(lv, r, y) in mSubCost}: vSubsCost[lv,r,y]  =  -sum{c in comm, 
 
 s.t.  eqCost{(r, y) in mvTotalCost}: vTotalCost[r,y]  =  +sum{s1 in sup:((s1,r,y) in mvSupCost)}(sum{FORIF: (s1,r,y) in mvSupCost} (vSupCost[s1,r,y]))+sum{t in tech:((t,r,y) in mTechEac)}(sum{FORIF: (t,r,y) in mTechEac} (vTechEac[t,r,y]))+sum{t in tech:((t,r,y) in mTechRetCost)}(sum{FORIF: (t,r,y) in mTechRetCost} (vTechRetCost[t,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageRetCost)}(sum{FORIF: (st1,r,y) in mStorageRetCost} (vStorageRetCost[st1,r,y]))+sum{t1 in trade:((t1,r,y) in mTradeRetCost)}(sum{FORIF: (t1,r,y) in mTradeRetCost} (vTradeRetCost[t1,r,y]))+sum{t in tech:((t,r,y) in mTechFixom)}(sum{FORIF: (t,r,y) in mTechFixom} (vTechFixom[t,r,y]))+sum{t in tech:((t,r,y) in mTechVarom)}(sum{FORIF: (t,r,y) in mTechVarom} (vTechVarom[t,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageEac)}(sum{FORIF: (st1,r,y) in mStorageEac} (vStorageEac[st1,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageFixom)}(sum{FORIF: (st1,r,y) in mStorageFixom} (vStorageFixom[st1,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageVarom)}(sum{FORIF: (st1,r,y) in mStorageVarom} (vStorageVarom[st1,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageShortCost)}(sum{FORIF: (st1,r,y) in mStorageShortCost} (vStorageShortCost[st1,r,y]))+sum{i in imp:((i,r,y) in mImportRowCost)}(sum{FORIF: (i,r,y) in mImportRowCost} (vImportRowCost[i,r,y]))+sum{e in expp:((e,r,y) in mExportRowCost)}(sum{FORIF: (e,r,y) in mExportRowCost} (vExportRowCost[e,r,y]))+sum{t1 in trade:((t1,r,y) in mTradeEac)}(sum{FORIF: (t1,r,y) in mTradeEac} (vTradeEac[t1,r,y]))+sum{t1 in trade:((t1,r,y) in mTradeFixom)}(sum{FORIF: (t1,r,y) in mTradeFixom} (vTradeFixom[t1,r,y]))+sum{t1 in trade:((t1,r,y) in mImportIrCost)}(sum{FORIF: (t1,r,y) in mImportIrCost} (vImportIrCost[t1,r,y]))+sum{t1 in trade:((t1,r,y) in mExportIrCost)}(sum{FORIF: (t1,r,y) in mExportIrCost} (vExportIrCost[t1,r,y]))+sum{lv in levy:((lv,r,y) in mTaxCost)}(sum{FORIF: (lv,r,y) in mTaxCost} (vTaxCost[lv,r,y]))+sum{lv in levy:((lv,r,y) in mSubCost)}(sum{FORIF: (lv,r,y) in mSubCost} (vSubsCost[lv,r,y]))+sum{FORIF: (r,y) in mvTotalUserCosts} (vTotalUserCosts[r,y])+sum{c in comm:((c,r,y) in mDummyImportCost)}(sum{FORIF: (c,r,y) in mDummyImportCost} (vDummyImportCost[c,r,y]))+sum{c in comm:((c,r,y) in mDummyExportCost)}(sum{FORIF: (c,r,y) in mDummyExportCost} (vDummyExportCost[c,r,y]));
 
-s.t.  eqObjective: vObjective  =  sum{r in region,y in year:((r,y) in mvTotalCost)}(vTotalCost[r,y]*pPeriodLen[y]*pDiscountFactor[r,y]);
+s.t.  eqObjective: vObjective  =  sum{r in region,y in year:((r,y) in mvTotalCost)}(vTotalCost[r,y]*pPeriodLen[y]*pDiscountFactor[r,y]*pObjWeight[r,y]);
 
 
 printf  '"solver",,"%s"\n', time2str(gmtime(), "%Y-%m-%d %M:%H:S %TZ") >> "output/log.csv";

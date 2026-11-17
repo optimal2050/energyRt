@@ -4848,6 +4848,7 @@ model.eqObjective = Constraint(
     rule=lambda model: model.vObjective
     == sum(
         model.vTotalCost[r, y] * pPeriodLen.get((y)) * pDiscountFactor.get((r, y))
+        * pObjWeight.get((r, y))
         for r in region
         for y in mvTotalCost_ix.get(r, ())
     )

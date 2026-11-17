@@ -27,6 +27,12 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
+* **The objective can be weighted by milestone year and by region.** `setObjectiveWeights(mod, years = , regions = )` writes the two halves -- `horizon@intervals$weight` per milestone and `config@objweight` per `(region, year)` -- and they multiply into `pObjWeight[region, year]`, one more factor in `eqObjective` beside `pPeriodLen` and `pDiscountFactor`. The year half is for uneven time resolution: a milestone solved on a sample of the calendar still carries full-year cost at full period weight, so several cheaply resolved interim years can dominate the sum. The region half is for a study that does not value every region's costs equally -- income level, purchasing power, or a region modelled only as context.
+
+  The weight scales the whole cost cell, capital and fuel and penalties alike, so no trade-off inside a cell changes and only its share of the cross-cell investment decision moves; a uniform weight rescales the objective exactly. Weights are strictly positive and are not interpolated -- a cell no declaration names counts in full, and an undeclared model writes no rows at all, so it is unchanged. A cost declared at a coarse region inherits one weight its children agree on and is refused where they differ, as the discount factor already is.
+
+* `objective_weights(scen)` reports the solved objective beside the same sum recomputed WITHOUT the weights -- the net present value of the plan as costed -- plus the weight of every cell. No second solve: `vTotalCost` is exported per cell. `verify_solution()`'s objective identity now carries the weight.
+
 * `interpolate_model(storage_cycle = )` overrides every storage's own `@fullYear` for one build: `"year"` closes every cycle over the year, `"timeframe"` closes it at each parent timeframe boundary, `NULL` (default) honours the objects. The model is not changed; the override is recorded in `scen@misc$storage`.
 
 * Storage level targets: `storage@target` sets soft floors on the level (`stg.af.target`, a share of storing capacity), each with a price per unit short (`stg.af.cost`). Tiers stack, so a deeper tier with its own price makes draining dearer the further it goes. Reported as `vStorageShort` / `vStorageShortCost`. `varom$stg.varom` may now be negative, a reward for holding a charged store.

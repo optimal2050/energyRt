@@ -4216,6 +4216,18 @@ class:
         per-year calendars existed. Write it with
         `setCalendar(mod, cal, years = ...)`, which also checks that the
         calendar is a sample of the model's.
+
+
+        An optional `weight` column is the YEAR half of the objective weight:
+        how much that milestone's costs count in `eqObjective`. It multiplies
+        the region half (`config@objweight`) into `pObjWeight[region, year]`.
+        `NA`, or no column at all, means 1. Its purpose is a milestone whose
+        cost estimate deserves less trust -- typically one solved on a SAMPLE
+        of the model calendar between two fully resolved milestones, where the
+        year still carries full-year cost at full period weight and would
+        otherwise dominate the sum. Strictly positive; the weight scales the
+        whole cost cell, so no trade-off inside the year changes. Write it with
+        `setObjectiveWeights(mod, years = ...)`.
     base_year:
       type: integer
       description: >
@@ -4339,6 +4351,47 @@ class:
             Social discount rate, used to build the cumulative discount factor
             applied to total system costs in the objective. A property of the
             model, never of an individual process. Default is 0.
+    objweight:
+      type: data.frame
+      description: >-
+        The REGION half of the objective weight: how much each region's costs
+        count in the objective. It multiplies the year half
+        (`horizon@intervals$weight`) into `pObjWeight[region, year]`, the
+        factor `eqObjective` applies beside `pPeriodLen` and
+        `pDiscountFactor`. A cell no row names reads 1, so an undeclared model
+        is unweighted.
+
+        The weight scales the WHOLE cost cell -- capital, fuel, variable,
+        levies and penalties alike. That is deliberate: when every cost term in
+        a cell scales by one factor, no trade-off inside the cell changes, so
+        the year's dispatch is what it would have been unweighted and only the
+        cross-cell weighting moves. Weighting operating costs alone would shift
+        the merit order inside the down-weighted cell toward fuel-burning
+        plant.
+
+        Uses: a region whose costs a study prioritises, differences in income
+        level or purchasing power, or a region represented so coarsely that its
+        cost estimate should carry less weight. Declared weights are NOT
+        interpolated between the years they name -- an unnamed cell reads 1
+        rather than something nobody declared.
+
+        As an ARGUMENT (`newModel(objweight = )`, `update(cfg, objweight = )`,
+        `setObjectiveWeights(mod, regions = )`) it also accepts a named numeric
+        over regions, `c(R1 = 1, R2 = 0.6)`.
+      columns:
+        region:
+          type: character
+          description: Region name to apply the weight to, NA for every region.
+        year:
+          type: integer
+          description: Year to apply the weight to, NA for every year.
+        weight:
+          type: numeric
+          description: >-
+            Strictly positive multiplier on the region's total cost in the
+            objective. Default 1. Zero is refused: it would leave the cell's
+            dispatch cost-free and the solution arbitrary among many, and a
+            negative weight would reward cost.
     discountFirstYear:
       type: logical
       description: >

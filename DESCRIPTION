@@ -1,7 +1,7 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.91.5.9004
+Version: 0.91.5.9005
 Date: 2026-11-17
 Authors@R: 
   c(person(given = "Oleg", 
@@ -136,6 +136,7 @@ Collate:
     'multimod-import.R'
     'neos.R'
     'obj2modInp.R'
+    'objective-weights.R'
     'operability.R'
     'param-overrides.R'
     'parent-levels.R'

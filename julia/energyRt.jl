@@ -7044,6 +7044,13 @@ print("eqObjective...")
             else
                 pDiscountFactorDef
             end
+        ) *
+        (
+            if haskey(pObjWeight, (r, y))
+                pObjWeight[(r, y)]
+            else
+                pObjWeightDef
+            end
         ) for r in region for y in get(mvTotalCost_ix, r, ())
     )
 );

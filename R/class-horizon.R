@@ -459,6 +459,28 @@ setMethod("update", "horizon", function(object, ..., warn_nodata = TRUE) {
     }
   }
 
+  # `weight` is optional: the YEAR half of the objective weight, how much a
+  # milestone's costs count in `eqObjective`. NA (or an absent column) means 1,
+  # which is every horizon written before the weight existed. Strictly
+  # positive: 0 would leave the milestone's dispatch cost-free and its solution
+  # arbitrary among many, and a negative weight would reward cost.
+  if (!is.null(x[["weight"]])) {
+    wt <- suppressWarnings(as.numeric(x[["weight"]]))
+    if (length(wt) != NROW(x) || any(!is.na(x[["weight"]]) & is.na(wt))) {
+      stop("`intervals$weight` must be a numeric column")
+    }
+    bad <- !is.na(wt) & (!is.finite(wt) | wt <= 0)
+    if (any(bad)) {
+      stop("`intervals$weight` must be finite and > 0; got ",
+           paste(unique(x[["weight"]][bad]), collapse = ", "),
+           ".\n  Use NA (or 1) for a milestone that counts in full. ",
+           "A weight ",
+           "of 0 would leave that milestone's costs out of the objective ",
+           "entirely, so its dispatch would be cost-free and the solution ",
+           "arbitrary among many.")
+    }
+  }
+
   # `label` is optional on input and filled from `mid` when absent; NA is
   # allowed here because the fill runs after the `mid_is_end`/`mid_is_start`
   # rewrite, later than this check.

@@ -16,6 +16,7 @@
 #' @slot geoscale `r get_slot_doc("config", "geoscale")`
 #' @slot horizon `r get_slot_doc("config", "horizon")`
 #' @slot discount `r get_slot_doc("config", "discount")`
+#' @slot objweight `r get_slot_doc("config", "objweight")`
 #' @slot discountFirstYear `r get_slot_doc("config", "discountFirstYear")`
 #' @slot optimizeRetirement `r get_slot_doc("config", "optimizeRetirement")`
 #' @slot defVal `r get_slot_doc("config", "defVal")`
@@ -43,6 +44,7 @@ setClass("config",
     geoscale = "ANY",
     horizon = "horizon", # change to class
     discount = "data.frame",
+    objweight = "data.frame",
     discountFirstYear = "logical",
     optimizeRetirement = "logical",
     defVal = "data.frame",
@@ -85,6 +87,20 @@ setClass("config",
       year = integer(),
       wacc = numeric(), # weighted average cost of capital
       sdr = numeric(), # social discount rate
+      stringsAsFactors = FALSE
+    ),
+    # The region half of the objective weight: how much a region's costs count
+    # in the objective, beside `horizon@intervals$weight` (the year half). The
+    # two MULTIPLY into `pObjWeight[region, year]`, which is why they are two
+    # tables and not one -- a single table cannot say "2035 at 0.5 and R2 at
+    # 0.6" without the user spelling out 0.3 for the cell. Deliberately NOT a
+    # column of `discount`: `cfg@discount` feeds `levcost()`'s own discounting
+    # as well as the objective, so a weight placed there would corrupt every
+    # levelised cost while the objective still looked right.
+    objweight = data.frame(
+      region = character(),
+      year = integer(),
+      weight = numeric(),
       stringsAsFactors = FALSE
     ),
     # `character()`, not NULL: the slot is typed "character", so NULL made

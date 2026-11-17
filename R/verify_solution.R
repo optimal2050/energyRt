@@ -12,7 +12,7 @@
 #   inp_tot       eqInpTot     vInpTot = sum of sink-side totals + families
 #   cost          eqCost       vTotalCost = sum of cost-role variables
 #   objective     eqObjective  vObjective = sum vTotalCost * pPeriodLen
-#                                              * pDiscountFactor
+#                                              * pDiscountFactor * pObjWeight
 #
 # Missing solution rows mean zero (solvers export non-zeros only); missing
 # parameter rows mean the parameter's defVal (sparse interpolation drops
@@ -699,7 +699,13 @@ print.solution_verification <- function(x, detail = c("full", "issues"), ...) {
   .vs_result(dom, lhs, rhs, ctx, "user_costs")
 }
 
-# eqObjective: vObjective = sum vTotalCost * pPeriodLen[y] * pDiscountFactor[r, y].
+# eqObjective: vObjective = sum vTotalCost * pPeriodLen[y] *
+#              pDiscountFactor[r, y] * pObjWeight[r, y].
+#
+# `pObjWeight` defaults to 1 and is written only where a weight is declared, so
+# an unweighted scenario reaches the same sum as before. Omitting it here would
+# report a violation on every weighted run; `objective_weights()` is the same
+# recompute WITHOUT the factor, which is the unweighted NPV.
 .vs_check_objective <- function(ctx) {
   scen <- ctx$scen
   obj <- .vs_var(scen, "vObjective")
@@ -709,7 +715,8 @@ print.solution_verification <- function(x, detail = c("full", "issues"), ...) {
   tc <- .vs_value_at(scen, "vTotalCost", dom)
   plen <- .vs_par_at(scen, "pPeriodLen", dom)
   dfac <- .vs_par_at(scen, "pDiscountFactor", dom)
-  rhs <- sum(tc * plen * dfac)
+  owgt <- .vs_par_at(scen, "pObjWeight", dom)
+  rhs <- sum(tc * plen * dfac * owgt)
   keys <- data.table::data.table(variable = "vObjective")
   .vs_result(keys, obj$value[1], rhs, ctx, "objective")
 }

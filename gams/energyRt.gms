@@ -215,6 +215,7 @@ pTechPayback(tech, region, year)                    Cost-recovery period of a te
 pStorageOutPayback(stg, region, year)                  Cost-recovery period of a storage
 pTradePayback(trade, region, year)                  Cost-recovery period of a trade
 pDiscountFactor(region, year)                       Discount factor (cumulative)
+pObjWeight(region, year)                            Objective weight (year quality x region priority)
 pDiscountFactorMileStone(region, year)              Discount factor (cumulative) sum for MileStone
 * Supply
 pSupCost(sup, comm, region, year, timeslice)            Costs of supply (price per unit)
@@ -3634,7 +3635,8 @@ eqObjective..
    vObjective =e=
          sum((region, year)$mvTotalCost(region, year),
 *           pDiscountFactorMileStone(region, year) *
-            vTotalCost(region, year) * pPeriodLen(year) * pDiscountFactor(region, year));
+            vTotalCost(region, year) * pPeriodLen(year) * pDiscountFactor(region, year)
+            * pObjWeight(region, year));
 
 $include inc_constraints.gms
 

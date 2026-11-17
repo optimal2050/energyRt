@@ -1409,6 +1409,24 @@ setMethod(
                filter(pDiscountFactor, year %in% obj@parameters$year@data$year)
                # pDiscountFactor
       )
+    # `pObjWeight` -- the objective's weight on each `(region, year)` cost
+    # cell: the product of `horizon@intervals$weight` (the year half) and
+    # `config@objweight` (the region half). Built here beside
+    # `pDiscountFactor` and deliberately NOT folded into it -- `cfg@discount`
+    # feeds `levcost()`'s own discounting as well as the objective, so a
+    # weight placed there would silently corrupt every levelised cost while
+    # the objective still looked right. See R/objective-weights.R.
+    #
+    # NULL when nothing is declared: no rows are written and every backend
+    # reads the `defVal` of 1, so an unweighted model is bit-identical to one
+    # built before the weight existed.
+    .ow <- .obj_weight_cells(app, app@region,
+                             .get_data_slot(obj@parameters$year)$year)
+    if (!is.null(.ow) && NROW(.ow)) {
+      obj@parameters[["pObjWeight"]] <-
+        .dat2par(obj@parameters[["pObjWeight"]], .ow)
+    }
+
     # `pYearFraction` is the fraction of the year a milestone's timeslices
     # cover: 1 on a full calendar, less where the year is solved on a SAMPLE
     # of one (0.5 for two of four seasons).

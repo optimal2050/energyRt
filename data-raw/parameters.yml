@@ -139,6 +139,15 @@ pDiscountFactor:
   defVal: 1.0
   interpolation: back.inter.forth
   class: settings
+pObjWeight:
+  name: pObjWeight
+  dimSets:
+  - region
+  - year
+  type: numpar
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: settings
 pEmissionFactor:
   name: pEmissionFactor
   dimSets:
@@ -3132,6 +3141,16 @@ columns:
   commodity/property/value:
     parameter: ~
     why: "commodity property table, read by the unit and factor machinery"
+  config/objweight/weight:
+    parameter: ~
+    recast: {space: weighted_mean}
+    why: >-
+      the region half of the objective weight. It owns no parameter of its own:
+      `pObjWeight[region, year]` is the PRODUCT of this and
+      `horizon@intervals$weight`, assembled in obj2modInp.R beside
+      pDiscountFactor -- the same arrangement as `discount$sdr` ->
+      pDiscountFactor, where the slot column and the LP parameter are not the
+      same number
   demand/cluster/dem.share.fx:
     parameter: ~
     recast: {space: weighted_mean}

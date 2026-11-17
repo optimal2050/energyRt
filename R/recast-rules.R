@@ -10,6 +10,7 @@ NULL
   # class       slot          column           space            time
   "config",     "discount",   "sdr",           "weighted_mean", NA,
   "config",     "discount",   "wacc",          "weighted_mean", NA,
+  "config",     "objweight",  "weight",        "weighted_mean", NA,
   "demand",     "cluster",    "dem.share.fx",  "weighted_mean", NA,
   "demand",     "cluster",    "order",         "copy",          NA,
   "demand",     "demand",     "demand",        "sum",           "weighted_mean",

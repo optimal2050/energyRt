@@ -117,6 +117,7 @@ test_that("the columns no parameter owns are exactly the declared set", {
     "commodity/cluster/order",
     "commodity/property/max", "commodity/property/min",
     "commodity/property/sd", "commodity/property/value",
+    "config/objweight/weight",
     "demand/cluster/dem.share.fx", "demand/cluster/order",
     "export/cluster/act.share.fx", "export/cluster/act.share.lo",
     "export/cluster/act.share.up", "export/cluster/order",

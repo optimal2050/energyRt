@@ -46,6 +46,16 @@ As an ARGUMENT (\code{newModel(discount = )}, \code{update(cfg, discount = )}) t
 \item{sdr}{numeric. Social discount rate, used to build the cumulative discount factor applied to total system costs in the objective. A property of the model, never of an individual process. Default is 0.}
 }}
 
+\item{\code{objweight}}{data.frame. The REGION half of the objective weight: how much each region's costs count in the objective. It multiplies the year half (\code{horizon@intervals$weight}) into \code{pObjWeight[region, year]}, the factor \code{eqObjective} applies beside \code{pPeriodLen} and \code{pDiscountFactor}. A cell no row names reads 1, so an undeclared model is unweighted.
+The weight scales the WHOLE cost cell -- capital, fuel, variable, levies and penalties alike. That is deliberate: when every cost term in a cell scales by one factor, no trade-off inside the cell changes, so the year's dispatch is what it would have been unweighted and only the cross-cell weighting moves. Weighting operating costs alone would shift the merit order inside the down-weighted cell toward fuel-burning plant.
+Uses: a region whose costs a study prioritises, differences in income level or purchasing power, or a region represented so coarsely that its cost estimate should carry less weight. Declared weights are NOT interpolated between the years they name -- an unnamed cell reads 1 rather than something nobody declared.
+As an ARGUMENT (\code{newModel(objweight = )}, \code{update(cfg, objweight = )}, \code{setObjectiveWeights(mod, regions = )}) it also accepts a named numeric over regions, \code{c(R1 = 1, R2 = 0.6)}.
+\describe{
+\item{region}{character. Region name to apply the weight to, NA for every region.}
+\item{year}{integer. Year to apply the weight to, NA for every year.}
+\item{weight}{numeric. Strictly positive multiplier on the region's total cost in the objective. Default 1. Zero is refused: it would leave the cell's dispatch cost-free and the solution arbitrary among many, and a negative weight would reward cost.}
+}}
+
 \item{\code{discountFirstYear}}{logical. If TRUE, the discounting starts from the beginning of the year. If FALSE, the discounting starts from the end of the first year, i.e., the first year is not discounted.}
 
 \item{\code{optimizeRetirement}}{logical. Incidates if the retirement of capacities of the model objects  should be optimized. Also requires the same parameter in the classes with capacitu, such as \code{technology}, \code{storage}, \code{trade} to be set to TRUE to be effective for a specific object.}

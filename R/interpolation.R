@@ -1398,6 +1398,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   #   or `eqObjective` weights it by nothing. Inherits the children's rate where
   #   they agree; refuses to invent one where they do not.
   scen <- .extend_discount_to_coarse(scen)
+  scen <- .extend_objweight_to_coarse(scen)
 
   #============================================================================#
   # Make mapping-sets ####
@@ -5578,6 +5579,7 @@ setMethod("interpolate", signature(object = "scenario"),
   scen@modInp@user_costs <- terms
   scen <- build_mappings(scen, fmp = NULL, recipes = "cost_agg")
   scen <- .extend_discount_to_coarse(scen, skip = base_cells)
+  scen <- .extend_objweight_to_coarse(scen, skip = base_cells)
   scen@modInp@user_costs <- .wrap_user_costs(terms)
 
   .en_log("interpolate", scen@name,
