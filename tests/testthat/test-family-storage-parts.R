@@ -12,7 +12,7 @@
 #     declared. A part bound binds the others through a declared link; an
 #     unmeetable bound is infeasible.
 #   - whole-storage af bounds the LEVEL against the reservoir:
-#     af.up = 0.8 -> StgCap = 10/0.8 = 12.5.
+#     stg.af.up = 0.8 -> StgCap = 10/0.8 = 12.5.
 #   - the annuity tests size the charger to the reservoir through a declared
 #     `inp2stg.fx = 1` (10 units stored -> 10 units of charger).
 #   - wacc / payback are STORAGE-WIDE and carried on the OUT columns
@@ -99,7 +99,7 @@ test_that("family storage-parts: out.af with cap2act = 1 sizes the discharger as
 test_that("family storage-parts: whole-storage af bounds the level against the store", {
   skip_if_no_solver()
   scen <- pt_solve(pt_build(invcost = data.frame(stg.invcost = 0),
-                            af = data.frame(af.up = 0.8)), "pt_af")
+                            af = data.frame(stg.af.up = 0.8)), "pt_af")
   expect_true(verify_solution(scen)$ok)
   # level 10 <= 0.8 * StgCap
   expect_equal(ff_solution_sum(scen, "vStorageStgCap"), 12.5, tolerance = 1e-6)
@@ -239,7 +239,7 @@ test_that("family storage-parts: parts in different units need `inp2out`", {
   mk <- function(af, i2o = data.frame()) {
     stg <- newStorage(name = "CAR", input = list(comm = "ELC"),
       storage = list(comm = "BAT"), output = list(comm = "KM"),
-      seff = data.frame(inpeff = 0.90, outeff = 6), af = af, inp2out = i2o,
+      seff = data.frame(inp.eff = 0.90, out.eff = 6), af = af, inp2out = i2o,
       capacity = list(inp.cap.up = 7, stg.cap.up = 60, out.cap.up = 120),
       duration = data.frame(duration.lo = 0, duration.up = 1e6),
       vintage = data.frame(olife = 10L))

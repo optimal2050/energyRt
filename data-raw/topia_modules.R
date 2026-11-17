@@ -444,7 +444,7 @@ build_topia <- function(regions = .topia_regions[1:3],
     invcost = data.frame(year = years,
       stg.invcost = convert("USD/kWh", "MUSD/PJ", c(200, 140, 90, 60)),
       out.invcost = convert("USD/kW",  "MUSD/GW", c(150, 130, 110, 90))),
-    seff = data.frame(inpeff = 0.95, outeff = 0.95))
+    seff = data.frame(inp.eff = 0.95, out.eff = 0.95))
 
   # ---- trade: electricity at the finest level, fuels at the mid level -------
   # ELC moves region to region along the SHIPPED corridors (`topia$links`),
@@ -722,7 +722,7 @@ build_unit <- function(regions = .topia_regions[1], calendar = "unit_s4") {
 
   STG_ELC <- newStorage("STG_ELC", commodity = "ELC", olife = 1L, cap2act = 1,
     invcost = list(out.invcost = 1), duration = 1,
-    seff = data.frame(inpeff = 1, outeff = 1))
+    seff = data.frame(inp.eff = 1, out.eff = 1))
 
   # self-contained: `newModel(data = kit$SOLAR)` is the storage-bridging model
   # on its own (objective 10); added onto the base repo the shared objects

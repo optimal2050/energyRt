@@ -203,9 +203,9 @@ setClass("storage",
       region = character(),
       year = integer(),
       timeslice = character(),
-      stgeff = numeric(),
-      inpeff = numeric(),
-      outeff = numeric(),
+      stg.eff = numeric(),
+      inp.eff = numeric(),
+      out.eff = numeric(),
       stringsAsFactors = FALSE
     ),
     aux = data.frame(
@@ -272,9 +272,9 @@ setClass("storage",
       region = character(),
       year = integer(),
       timeslice = character(),
-      af.lo = numeric(),
-      af.up = numeric(),
-      af.fx = numeric(),
+      stg.af.lo = numeric(),
+      stg.af.up = numeric(),
+      stg.af.fx = numeric(),
       inp.af.up = numeric(),
       inp.af.fx = numeric(),
       inp.af.lo = numeric(),
@@ -299,16 +299,17 @@ setClass("storage",
       region = character(),
       year = integer(),
       timeslice = character(),
-      inpcost = numeric(),
-      outcost = numeric(),
-      stgcost = numeric(),
+      inp.varom = numeric(),
+      out.varom = numeric(),
+      stg.varom = numeric(),
       stringsAsFactors = FALSE
     ),
     # Soft floors on the LEVEL, priced. Each row is one tier: the level may fall
-    # below `af.target` (a share of storing capacity, the base of `af.lo`) at `cost`
-    # per unit short. Tiers stack -- the prices of every tier a level is below
-    # add up -- so a deeper tier with its own price makes draining dearer the
-    # further it goes. A missing or NA `tier` is the tier "1".
+    # below `stg.af.target` (a share of storing capacity, the base of
+    # `stg.af.lo`) at `stg.af.cost` per unit short. Tiers stack -- the prices of
+    # every tier a level is below add up -- so a deeper tier with its own price
+    # makes draining dearer the further it goes. A missing or NA `tier` is the
+    # tier "1".
     target = data.frame(
       vintage = character(),
       cluster = character(),
@@ -316,8 +317,8 @@ setClass("storage",
       year = integer(),
       timeslice = character(),
       tier = character(),
-      af.target = numeric(),
-      cost = numeric(),
+      stg.af.target = numeric(),
+      stg.af.cost = numeric(),
       stringsAsFactors = FALSE
     ),
     # `wacc` overrides the model-wide rate when annuitising this storage;
@@ -451,9 +452,9 @@ setClass("storage",
       weather = character(),
       unit = character(),
       transform = character(),
-      waf.lo = numeric(),
-      waf.up = numeric(),
-      waf.fx = numeric(),
+      stg.waf.lo = numeric(),
+      stg.waf.up = numeric(),
+      stg.waf.fx = numeric(),
       inp.waf.lo = numeric(),
       inp.waf.fx = numeric(),
       inp.waf.up = numeric(),
@@ -512,6 +513,47 @@ setClass("storage",
                   paste0("wcinp.", c("lo", "up", "fx"))),
   stats::setNames(paste0("out.waf.", c("lo", "up", "fx")),
                   paste0("wcout.", c("lo", "up", "fx"))))
+
+# The storing part carries the `stg.` prefix its capacity and cost columns
+# already use, and the per-part efficiencies and variable costs are dotted like
+# every other part column. Old spellings are renamed with a deprecation warning
+# in `newStorage()`/`update()`, and silently in a deserialized object by
+# `.upgrade_storage_inp2stg()`. Keyed by slot: `cost` is an old name only in
+# `@target`.
+.storage_dotted_cols <- list(
+  af      = stats::setNames(paste0("stg.af.", c("lo", "up", "fx")),
+                            paste0("af.", c("lo", "up", "fx"))),
+  weather = stats::setNames(paste0("stg.waf.", c("lo", "up", "fx")),
+                            paste0("waf.", c("lo", "up", "fx"))),
+  seff    = c(stgeff = "stg.eff", inpeff = "inp.eff", outeff = "out.eff"),
+  varom   = c(stgcost = "stg.varom", inpcost = "inp.varom",
+              outcost = "out.varom"),
+  target  = c(af.target = "stg.af.target", cost = "stg.af.cost")
+)
+
+# Rename the old spellings in a named list of slot data; returns the list and
+# the renamed pairs, new names keyed by "@slot$old".
+.storage_rename_dotted <- function(slots) {
+  done <- character()
+  for (sl in intersect(names(.storage_dotted_cols), names(slots))) {
+    x <- slots[[sl]]
+    if (is.null(x) || is.null(names(x))) next
+    map <- .storage_dotted_cols[[sl]]
+    hit <- names(x) %in% names(map)
+    if (!any(hit)) next
+    old <- names(x)[hit]
+    clash <- intersect(map[old], names(x))
+    if (length(clash)) {
+      stop("storage @", sl, ": both the old and the new spelling are given (",
+           paste0("`", names(map)[match(clash, map)], "` and `", clash, "`",
+                  collapse = ", "), ")", call. = FALSE)
+    }
+    names(x)[hit] <- map[old]
+    slots[[sl]] <- x
+    done <- c(done, stats::setNames(map[old], paste0("@", sl, "$", old)))
+  }
+  list(slots = slots, renamed = done)
+}
 
 setValidity("storage", function(object) {
   bad <- character()
@@ -579,6 +621,14 @@ setMethod("initialize", "storage", function(.Object, ...) {
     if (is.data.frame(x)) return(nrow(x) > 0L)
     if (is.list(x)) return(length(x) > 0L)
     length(x) > 0L
+  }
+  rn <- .storage_rename_dotted(args)
+  if (length(rn$renamed)) {
+    args <- rn$slots
+    warning("storage", if (nzchar(name)) paste0(" '", name, "'"), ": ",
+            "renamed column", if (length(rn$renamed) > 1) "s", " -- ",
+            paste0("`", names(rn$renamed), "` is now `", rn$renamed, "`",
+                   collapse = ", "), call. = FALSE)
   }
   # `commodity` is an ARGUMENT, not a slot. Fill whichever roles were not named;
   # an explicitly named role always wins. Doing this at construction (rather
@@ -788,7 +838,22 @@ setMethod("initialize", "storage", function(.Object, ...) {
   for (sl in setdiff(.storage_late_slots, names(attributes(s)))) {
     attr(s, sl) <- methods::slot(methods::new("storage"), sl)
   }
+  # old column spellings (`.storage_dotted_cols`)
+  sls <- names(.storage_dotted_cols)
+  rn <- .storage_rename_dotted(stats::setNames(
+    lapply(sls, function(sl) attr(s, sl)), sls))
+  if (length(rn$renamed)) {
+    for (sl in sls) attr(s, sl) <- rn$slots[[sl]]
+  }
   s
+}
+
+# TRUE when a storage needs `.upgrade_storage_inp2stg()`.
+.storage_needs_upgrade <- function(s) {
+  if (!all(.storage_late_slots %in% names(attributes(s)))) return(TRUE)
+  any(vapply(names(.storage_dotted_cols), function(sl) {
+    any(names(attr(s, sl)) %in% names(.storage_dotted_cols[[sl]]))
+  }, logical(1)))
 }
 
 # Upgrade every storage in a model (in each repository) so legacy models
@@ -802,8 +867,7 @@ setMethod("initialize", "storage", function(.Object, ...) {
     hit <- FALSE
     for (j in seq_along(objs)) {
       o <- objs[[j]]
-      if (methods::is(o, "storage") &&
-          !all(.storage_late_slots %in% names(attributes(o)))) {
+      if (methods::is(o, "storage") && .storage_needs_upgrade(o)) {
         objs[[j]] <- .upgrade_storage_inp2stg(o)
         hit <- TRUE
       }
@@ -992,9 +1056,9 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'     # region = "R1",
 #'     # year = 2020,
 #'     # timeslice = "HOUR",
-#'     stgeff = 0.999,
-#'     inpeff = 0.9,
-#'     outeff = 0.9
+#'     stg.eff = 0.999,
+#'     inp.eff = 0.9,
+#'     out.eff = 0.9
 #'   ),
 #'   aeff = data.frame(
 #'     acomm = "electricity",
@@ -1015,14 +1079,14 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'   ),
 #'   af = data.frame(
 #'     region = "R1", year = 2020, timeslice = "HOUR",
-#'     af.lo = 0.9, af.up = 0.9, af.fx = 0.9, inp.af.up = 0.9,
+#'     stg.af.lo = 0.9, stg.af.up = 0.9, stg.af.fx = 0.9, inp.af.up = 0.9,
 #'     inp.af.fx = 0.9, inp.af.lo = 0.9, out.af.up = 0.9,
 #'     out.af.fx = 0.9, out.af.lo = 0.9
 #'   ),
 #'   fixom = data.frame(region = "R1", year = 2020, out.fixom = 0.9),
 #'   varom = data.frame(
 #'     region = "R1", year = 2020, timeslice = "HOUR",
-#'     inpcost = 0.9, outcost = 0.9, stgcost = 0.9
+#'     inp.varom = 0.9, out.varom = 0.9, stg.varom = 0.9
 #'   ),
 #'   invcost = data.frame(
 #'     region = "R1", year = 2020, out.invcost = 0.9,
@@ -1038,9 +1102,9 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'   fullYear = TRUE,
 #'   weather = data.frame(
 #'     weather = "sunny",
-#'     waf.lo = 0.9,
-#'     waf.up = 0.9,
-#'     waf.fx = 0.9, inp.waf.lo = 0.9,
+#'     stg.waf.lo = 0.9,
+#'     stg.waf.up = 0.9,
+#'     stg.waf.fx = 0.9, inp.waf.lo = 0.9,
 #'     inp.waf.fx = 0.9, inp.waf.up = 0.9, out.waf.lo = 0.9, out.waf.fx = 0.9,
 #'     out.waf.up = 0.9
 #'   ),
@@ -1134,5 +1198,6 @@ setMethod("update", signature(object = "storage"),
   # they reach `.data2slots()`, which no longer knows those slot names
   args <- .tech_lifespan_args(list(...))
   args <- .storage_deprecated_args(args, tryCatch(object@name, error = function(e) ""))
+  object <- .upgrade_storage_inp2stg(object)
   do.call(.data2slots, c(list("storage", object), args))
 })

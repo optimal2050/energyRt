@@ -936,7 +936,7 @@ setMethod(
         # silently inherited it. Harmless while all three roles held the same
         # commodity -- and wrong the moment they differ, which is the whole
         # point of the roles: an EV storing kWh and selling km had its km-per-kWh
-        # `outeff` filed under electricity, where nothing reads it, so the motor
+        # `out.eff` filed under electricity, where nothing reads it, so the motor
         # ran at the default efficiency of 1.
         pdat0 <- slot_data
         if ("comm" %in% p$dimSets && is.null(pdat0$comm)) {

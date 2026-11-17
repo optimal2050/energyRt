@@ -2879,9 +2879,9 @@ map_mStorageVarom <- function(scen, fmp) .value_std(scen, "mStorageVarom", fmp)
   }
   free <- setdiff(tgt, priced)
   if (length(free)) {
-    warning("Storage: a `target` tier is set without a positive `cost` (",
+    warning("Storage: a `target` tier is set without a positive `stg.af.cost` (",
             paste(utils::head(free, 5), collapse = ", "),
-            "), so missing it costs nothing; use `af.lo` for a hard floor",
+            "), so missing it costs nothing; use `stg.af.lo` for a hard floor",
             call. = FALSE)
   }
   invisible()

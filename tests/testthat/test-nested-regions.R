@@ -339,7 +339,7 @@ test_that("a storage at the commodity's coarse level operates and is priced", {
                                     cost = c(1, 100))),
       newStorage("STG_GAS", commodity = "GAS", region = "NAT", olife = 1L,
                  cap2act = 1, invcost = list(out.invcost = 1), duration = 1,
-                 seff = data.frame(inpeff = 1, outeff = 1)),
+                 seff = data.frame(inp.eff = 1, out.eff = 1)),
       newDemand("DEM_GAS", commodity = "GAS", region = "NAT",
                 demand = data.frame(region = "NAT",
                                     timeslice = c("S1", "S2"), demand = 5))))

@@ -107,7 +107,7 @@ acs_stg_model <- function(nm, aeff) {
                                   ava.up = c(100, 0), cost = 1)),
     newSupply("SWAT", commodity = "WAT", supply = data.frame(cost = 0)),
     newStorage("STG", commodity = "ELC",
-               seff = data.frame(inpeff = 1, outeff = 1),
+               seff = data.frame(inp.eff = 1, out.eff = 1),
                invcost = data.frame(inp.invcost = 1, stg.invcost = 1,
                                     out.invcost = 1),
                vintage = data.frame(olife = 30L),

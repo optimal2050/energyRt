@@ -699,7 +699,7 @@ test_that("flow_chain is sensitive to the group efficiency itself", {
 # a storage that actually cycles, so storage_dynamics is exercised on
 # non-trivial levels rather than skipping or closing 0 = 0
 # --------------------------------------------------------------------------- #
-.vs_storage_model <- function(stgeff = 0.98) {
+.vs_storage_model <- function(stg.eff = 0.98) {
   newModel("vs_stg", repo = newRepository("vs_st",
     newCommodity("ELC", timeframe = "SEASON"),
     newCommodity("GAS", timeframe = "ANNUAL"),
@@ -712,7 +712,7 @@ test_that("flow_chain is sensitive to the group efficiency itself", {
     newStorage("STG_ELC", commodity = "ELC", olife = 30L,
       invcost = data.frame(stg.invcost = 20, out.invcost = 50,
                            inp.invcost = 50),
-      seff = data.frame(stgeff = stgeff, inpeff = 0.95, outeff = 0.95)),
+      seff = data.frame(stg.eff = stg.eff, inp.eff = 0.95, out.eff = 0.95)),
     newDemand("DEM_ELC", commodity = "ELC",
               demand = data.frame(demand = 100))),
     calendar = calendars$s4, region = "R1", discount = 0.05,
@@ -743,7 +743,7 @@ test_that("storage_dynamics catches a broken carry-over efficiency", {
   expect_equal(verify_solution(sol,
     checks = "storage_dynamics")$checks$storage_dynamics$status, "ok")
 
-  # stgeff enters as stgeff^share on the PREVIOUS level; perturbing it must
+  # stg.eff enters as stg.eff^share on the PREVIOUS level; perturbing it must
   # break the identity, otherwise the check is not reading the carry term
   p <- sol@modInp@parameters[["pStorageStgEff"]]
   skip_if(is.null(p), "pStorageStgEff absent")

@@ -17,8 +17,8 @@
     invcost = data.frame(stg.invcost = 100, out.invcost = 50,
                          inp.invcost = 20),
     fixom = data.frame(stg.fixom = 1, out.fixom = 2, inp.fixom = 3),
-    varom = data.frame(inpcost = 0.1, outcost = 0.2, stgcost = 0.05),
-    seff = data.frame(inpeff = 0.9, outeff = 0.95),
+    varom = data.frame(inp.varom = 0.1, out.varom = 0.2, stg.varom = 0.05),
+    seff = data.frame(inp.eff = 0.9, out.eff = 0.95),
     duration = 4, vintage = data.frame(olife = 10L))
   # a plain replace, NOT modifyList(): a data.frame is a list, so modifyList()
   # would MERGE the columns of an override into the default and quietly keep
@@ -102,14 +102,14 @@ test_that("cycles divide the capex share and leave the charging term alone", {
 
 test_that("round-trip efficiency enters twice", {
   h <- newHorizon(period = 2020L)
-  eff <- .lcs_battery(seff = data.frame(inpeff = 0.9, outeff = 0.95))
-  per <- .lcs_battery(seff = data.frame(inpeff = 1, outeff = 1))
+  eff <- .lcs_battery(seff = data.frame(inp.eff = 0.9, out.eff = 0.95))
+  per <- .lcs_battery(seff = data.frame(inp.eff = 1, out.eff = 1))
   a <- levcost(eff, cycles = 365, price = 10, discount = 0, horizon = h,
                method = "analytic", verbose = FALSE)
   b <- levcost(per, cycles = 365, price = 10, discount = 0, horizon = h,
                method = "analytic", verbose = FALSE)
   sup <- function(x) x$cost_breakdown$value[x$cost_breakdown$component == "supply"]
-  # charging cost per unit delivered is price / (inpeff * outeff)
+  # charging cost per unit delivered is price / (inp.eff * out.eff)
   expect_equal(sup(a), 10 / (0.9 * 0.95), tolerance = 1e-10)
   expect_equal(sup(b), 10, tolerance = 1e-10)
 })
@@ -225,8 +225,8 @@ test_that("a container prices a storage by name and takes its fuel price", {
         storage = list(comm = "ELC"),
         invcost = data.frame(stg.invcost = 0.05, out.invcost = 0.5),
         fixom = data.frame(stg.fixom = 0.001, out.fixom = 0.01),
-        varom = data.frame(outcost = 0.05),
-        seff = data.frame(inpeff = 0.9, outeff = 0.95),
+        varom = data.frame(out.varom = 0.05),
+        seff = data.frame(inp.eff = 0.9, out.eff = 0.95),
         duration = 500, vintage = data.frame(olife = 12L)),
       newTrade(
         "TRD_ELC", commodity = "ELC",
@@ -278,7 +278,7 @@ test_that("a corridor's ex-post denominator is what ARRIVES, not what is sent", 
                tolerance = 1e-9)
 })
 
-test_that("a store's ex-post varom per unit discharged is its outcost", {
+test_that("a store's ex-post varom per unit discharged is its out.varom", {
   skip_if_no_solver()
   sc <- .lc_scen()
   skip_if_not(isTRUE(sc@status$optimal), "fixture did not solve")
@@ -312,7 +312,7 @@ test_that("a name that is not a priceable process is reported, not crashed", {
     storage = list(comm = "ELC"),
     invcost = data.frame(vintage = c("v2020", "v2030"),
                          stg.invcost = c(100, 60), out.invcost = c(50, 40)),
-    seff = data.frame(inpeff = 0.9, outeff = 0.95),
+    seff = data.frame(inp.eff = 0.9, out.eff = 0.95),
     duration = 4,
     vintage = data.frame(vintage = c("v2020", "v2030"),
                          start = c(2020L, 2030L), end = c(2029L, 2040L),
@@ -448,7 +448,7 @@ test_that("a part without its own payback takes the discharger's", {
     storage = list(comm = "ELC"),
     cluster = data.frame(cluster = c("short", "long")),
     invcost = data.frame(stg.invcost = 100, out.invcost = 50),
-    seff = data.frame(inpeff = 0.9, outeff = 0.95),
+    seff = data.frame(inp.eff = 0.9, out.eff = 0.95),
     duration = data.frame(cluster = c("short", "long"), duration.fx = c(2, 8)),
     vintage = data.frame(olife = 20L))
 }

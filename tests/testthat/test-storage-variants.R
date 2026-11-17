@@ -204,7 +204,7 @@ test_that("each seff coefficient is filed under its OWN role's commodity", {
   #
   # Invisible while all three roles held the same commodity, and wrong the moment
   # they differ: an EV storing kWh and selling kilometres had its km-per-kWh
-  # `outeff` filed under electricity, where nothing reads it, so the motor ran at
+  # `out.eff` filed under electricity, where nothing reads it, so the motor ran at
   # the default efficiency of 1 and the car drew six times too much from the grid.
   skip_if_no_solver()
   cal <- newCalendar(
@@ -224,7 +224,7 @@ test_that("each seff coefficient is filed under its OWN role's commodity", {
         input    = list(comm = "ELC"),
         storage  = list(comm = "BAT"),
         output   = list(comm = "KM"),
-        seff     = data.frame(inpeff = 0.90, outeff = 6),
+        seff     = data.frame(inp.eff = 0.90, out.eff = 6),
         capacity = data.frame(stg.cap.up = 1e6),
         vintage  = V),
       newDemand("TRIPS", commodity = "KM",

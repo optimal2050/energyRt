@@ -1441,9 +1441,9 @@ model_clusters <- function(object) {
     storage = list(c("invcost", "stg.invcost", "invcost"),
                    c("invcost", "inp.invcost", "inpcost"),
                    c("fixom", "stg.fixom", "fixom"),
-                   c("seff", "stgeff", "eff"),
+                   c("seff", "stg.eff", "eff"),
                    c("duration", "duration", "duration"),
-                   c("af", "af.up", "af")),
+                   c("af", "stg.af.up", "af")),
     # a supply curve's shape IS its cost and how much is there
     supply = list(c("supply", "cost", "cost"),
                   c("supply", "ava.up", "ava"),

@@ -68,7 +68,7 @@ STG_BTR <- newStorage(
   storage = list(comm = "ELC", unit = "MWh"),
   # power sized per MW on the discharger, energy per MWh on the reservoir
   invcost = list(out.invcost = 20, stg.invcost = 1),
-  seff = data.frame(inpeff = 0.95, outeff = 0.95),
+  seff = data.frame(inp.eff = 0.95, out.eff = 0.95),
   vintage = data.frame(olife = 15L),
   fullYear = TRUE)
 

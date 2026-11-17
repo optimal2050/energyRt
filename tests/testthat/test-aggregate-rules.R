@@ -186,11 +186,11 @@ test_that("a storage self-discharge is copied, not averaged", {
   mk <- function(e) newStorage(
     "STG", commodity = "ELC",
     capacity = data.frame(region = c("R1", "R2"), out.stock = c(300, 100)),
-    seff = data.frame(region = c("R1", "R2"), stgeff = e))
+    seff = data.frame(region = c("R1", "R2"), stg.eff = e))
   agg <- ar_agg(c(ar_base(), list(mk(c(0.99, 0.99)))))
-  expect_equal(unique(agg@data[[1]]@data$STG@seff$stgeff), 0.99)
+  expect_equal(unique(agg@data[[1]]@data$STG@seff$stg.eff), 0.99)
   # it is raised to the slice duration, so the honest merge is geometric
-  expect_error(ar_agg(c(ar_base(), list(mk(c(0.99, 0.90))))), "stgeff")
+  expect_error(ar_agg(c(ar_base(), list(mk(c(0.99, 0.90))))), "stg.eff")
 })
 
 # --- constraint terms -------------------------------------------------------

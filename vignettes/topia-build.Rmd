@@ -1659,7 +1659,7 @@ STG_ELC <- newStorage(
     stg.invcost = convert("USD/kWh", "MUSD/GWh", c(200, 110, 70)),
     out.invcost = convert("USD/kW", "MUSD/GW", c(150, 120, 95))
   ),
-  seff = data.frame(inpeff = 0.95, outeff = 0.95),
+  seff = data.frame(inp.eff = 0.95, out.eff = 0.95),
   # The windy east already stores: a base-year run on the full hourly year
   # builds 1.9 GW in `R11` and 1.0 GW in `R12` from nothing, which says the
   # fleet standing in 2025 includes batteries there and the kit was not
@@ -1695,7 +1695,7 @@ STG_H2 <- newStorage(
     stg.invcost = convert("USD/kWh", "MUSD/GWh", 2),
     out.invcost = convert("USD/kW", "MUSD/GW", 400)
   ),
-  seff = data.frame(inpeff = 0.98, outeff = 0.98)
+  seff = data.frame(inp.eff = 0.98, out.eff = 0.98)
 )
 draw(STG_H2)
 

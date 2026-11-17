@@ -190,7 +190,7 @@ test_that("a coarse storage draws a finer aux commodity per child", {
               supply = data.frame(region = c("A", "B"), ava.up = c(1, 100),
                                   cost = c(0, 1))),
     newStorage("STG", commodity = "ELC", region = "P",
-               seff = data.frame(inpeff = 1, outeff = 1),
+               seff = data.frame(inp.eff = 1, out.eff = 1),
                invcost = data.frame(stg.invcost = 0),
                vintage = data.frame(olife = 30L),
                aux = data.frame(acomm = "LAND"),

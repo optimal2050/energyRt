@@ -27,7 +27,9 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## New features
 
-* Storage level targets: `storage@target` sets soft floors on the level (`af.target`, a share of storing capacity), each with a price per unit short (`cost`). Tiers stack, so a deeper tier with its own price makes draining dearer the further it goes. Reported as `vStorageShort` / `vStorageShortCost`. `varom$stgcost` may now be negative, a reward for holding a charged store.
+* Storage level targets: `storage@target` sets soft floors on the level (`stg.af.target`, a share of storing capacity), each with a price per unit short (`stg.af.cost`). Tiers stack, so a deeper tier with its own price makes draining dearer the further it goes. Reported as `vStorageShort` / `vStorageShortCost`. `varom$stg.varom` may now be negative, a reward for holding a charged store.
+
+* Storage columns of the storing part take the `stg.` prefix, and the per-part efficiencies and variable costs are dotted: `af.*` -> `stg.af.*`, `weather` `waf.*` -> `stg.waf.*`, `seff` `stgeff`/`inpeff`/`outeff` -> `stg.eff`/`inp.eff`/`out.eff`, `varom` `stgcost`/`inpcost`/`outcost` -> `stg.varom`/`inp.varom`/`out.varom`. The old names are accepted with a deprecation warning; saved storages and process specs are renamed on load.
 
 * `subset_model_regions()` prunes a cluster roster declared without a
   `region` column: a variant whose rows the cut removed is no longer declared,

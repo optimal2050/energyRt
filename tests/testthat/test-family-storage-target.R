@@ -4,15 +4,15 @@
 #   eqStorageTarget[tier]: vStorageLevel + vStorageShort[tier] >= target[tier] * capacity
 #   eqStorageShortCost:    vStorageShortCost = sum(cost[tier] * weight * vStorageShort[tier])
 #
-# `storage@target` rows are tiers: `af.target` is a share of storing capacity (the
-# base `af.lo` uses) and `cost` prices each unit short, on the annual basis of
-# `stgcost`. Below several targets the prices add up, so a deeper tier makes
+# `storage@target` rows are tiers: `stg.af.target` is a share of storing capacity (the
+# base `stg.af.lo` uses) and `stg.af.cost` prices each unit short, on the annual basis of
+# `stg.varom`. Below several targets the prices add up, so a deeper tier makes
 # draining dearer the further it goes. A missing or NA `tier` is the tier "1".
 # No target, no rows: a model without one is unchanged.
 #
 # Fixture: a 10-unit reservoir over eight equal slices, cheap supply only in
 # s1-s2, demand of 3 in s3-s8. Unconstrained, the store empties (objective
-# 810); a hard floor `af.lo = 0.5` holds 5 throughout (objective 1305).
+# 810); a hard floor `stg.af.lo = 0.5` holds 5 throughout (objective 1305).
 # =========================================================================== #
 
 st_slices <- paste0("s", 1:8)
@@ -32,7 +32,7 @@ st_build <- function(target = data.frame(), af = data.frame()) {
                                        out.cap.fx = 80),
                  invcost = data.frame(stg.invcost = 0),
                  target = target, af = af,
-                 seff = data.frame(inpeff = 1, outeff = 1)),
+                 seff = data.frame(inp.eff = 1, out.eff = 1)),
       newDemand("DEM", commodity = "ELC",
                 demand = data.frame(timeslice = st_slices[3:8], demand = 3))),
     calendar = newCalendar(
@@ -67,10 +67,10 @@ st_vs_target <- function(scen) {
   verify_solution(scen, checks = "storage_target")$checks$storage_target$status
 }
 
-st_one <- function(cost) data.frame(af.target = 0.5, cost = cost)
+st_one <- function(cost) data.frame(stg.af.target = 0.5, stg.af.cost = cost)
 # a unit drained saves 99 (100 bought vs 1 stored), so below 0.3 the stacked
 # price (1 + 200 per slice) is never worth paying, while above it (1) always is
-st_two <- data.frame(tier = c("t1", "t2"), af.target = c(0.6, 0.3), cost = c(1, 200))
+st_two <- data.frame(tier = c("t1", "t2"), stg.af.target = c(0.6, 0.3), stg.af.cost = c(1, 200))
 
 # @covers pStorageTarget pStorageTargetCost meqStorageTarget mStorageShortCost depth=I backends=glpk
 test_that("family storage-target: no target, no rows", {
@@ -94,7 +94,7 @@ test_that("family storage-target: a target builds one row per tier and level cel
   expect_setequal(scen@modInp@sets$tier, c("t1", "t2"))
   # an end-of-season target names its slice
   scen <- st_interp("st_rows_s8",
-                    target = data.frame(timeslice = "s8", af.target = 0.5, cost = 50))
+                    target = data.frame(timeslice = "s8", stg.af.target = 0.5, stg.af.cost = 50))
   expect_equal(as.character(ff_param(scen, "meqStorageTarget")$timeslice), "s8")
 })
 
@@ -102,8 +102,8 @@ test_that("family storage-target: a target builds one row per tier and level cel
 test_that("family storage-target: a tier without a price warns", {
   expect_warning(
     suppressMessages(interpolate_model(
-      st_build(target = data.frame(tier = c("t1", "t2"), af.target = c(0.6, 0.3),
-                                   cost = c(10, NA))),
+      st_build(target = data.frame(tier = c("t1", "t2"), stg.af.target = c(0.6, 0.3),
+                                   stg.af.cost = c(10, NA))),
       name = "st_noprice", overwrite = TRUE)),
     "t2")
 })
@@ -169,7 +169,7 @@ test_that("family storage-target: tier prices stack, so a deeper drain costs mor
 test_that("family storage-target: an unattainable target is a cost, not an infeasibility", {
   skip_if_no_solver()
   scen <- .fork_solve(st_interp("st_over",
-                                target = data.frame(af.target = 1.2, cost = 1000)),
+                                target = data.frame(stg.af.target = 1.2, stg.af.cost = 1000)),
                       solver_options$glpk)
   # the level cannot pass capacity (10), so each slice is at least 2 short
   sh <- st_var(scen, "vStorageShort")

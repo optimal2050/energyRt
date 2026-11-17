@@ -1,21 +1,21 @@
 # =========================================================================== #
-# Feature families: storage-efficiency (seff: inpeff/outeff/stgeff) and
-# storage-varom (per-role operating costs inpcost/outcost/stgcost).
+# Feature families: storage-efficiency (seff: inp.eff/out.eff/stg.eff) and
+# storage-varom (per-role operating costs inp.varom/out.varom/stg.varom).
 #
 # Shift model, 1 region, ANNUAL + 4 slices, one year, discount 0:
 #   supply of ELC only at s1 (ava.up), demand 10 at s3 -> the storage must
 #   carry 10 across two slice steps (s1->s2->s3).
 # Verified conventions (GLPK; vStorageLevel is the start-of-slice level):
-#   inpeff scales what charging stores; outeff scales what discharge delivers;
-#   stgeff is an ANNUAL retention rate applied per step as stgeff^share.
-#   varom: vStorageVarom = inpcost*charge + outcost*discharge
-#                          + stgcost*sum(levels)
+#   inp.eff scales what charging stores; out.eff scales what discharge delivers;
+#   stg.eff is an ANNUAL retention rate applied per step as stg.eff^share.
+#   varom: vStorageVarom = inp.varom*charge + out.varom*discharge
+#                          + stg.varom*sum(levels)
 # Analytic anchors:
 #   base                          -> obj 10 (fuel only)
-#   inpeff .8, outeff .5          -> charge 25, level 20, obj 25
-#   stgeff .5 (share .25)         -> charge 10*2^0.5 = 14.142136, obj same;
+#   inp.eff .8, out.eff .5          -> charge 25, level 20, obj 25
+#   stg.eff .5 (share .25)         -> charge 10*2^0.5 = 14.142136, obj same;
 #                                    successive levels shrink by 0.5^0.25
-#   inpcost 2, outcost 3, stgcost .5 -> vStorageVarom = 20+30+10 = 60, obj 70
+#   inp.varom 2, out.varom 3, stg.varom .5 -> vStorageVarom = 20+30+10 = 60, obj 70
 # =========================================================================== #
 
 se_slices <- paste0("s", 1:4)
@@ -49,11 +49,11 @@ se_solve <- function(mod, tag) {
 test_that("family storage-efficiency: charge and discharge efficiencies compound", {
   skip_if_no_solver()
   scen0 <- suppressMessages(suppressWarnings(interpolate_model(
-    se_build(seff = data.frame(inpeff = 0.8, outeff = 0.5)),
+    se_build(seff = data.frame(inp.eff = 0.8, out.eff = 0.5)),
     name = "se_io_i", overwrite = TRUE)))
   expect_equal(unique(ff_param(scen0, "pStorageInpEff")$value), 0.8)
   expect_equal(unique(ff_param(scen0, "pStorageOutEff")$value), 0.5)
-  scen <- se_solve(se_build(seff = data.frame(inpeff = 0.8, outeff = 0.5)), "se_io")
+  scen <- se_solve(se_build(seff = data.frame(inp.eff = 0.8, out.eff = 0.5)), "se_io")
   expect_true(verify_solution(scen)$ok)
   # deliver 10 = charge * 0.8 * 0.5 -> charge 25, stored level 20
   expect_equal(ff_solution_sum(scen, "vStorageInp"), 25, tolerance = 1e-6)
@@ -62,9 +62,9 @@ test_that("family storage-efficiency: charge and discharge efficiencies compound
 })
 
 # @covers pStorageStgEff depth=S backends=glpk
-test_that("family storage-efficiency: stgeff decays the level as stgeff^share per step", {
+test_that("family storage-efficiency: stg.eff decays the level as stg.eff^share per step", {
   skip_if_no_solver()
-  scen <- se_solve(se_build(seff = data.frame(stgeff = 0.5)), "se_stg")
+  scen <- se_solve(se_build(seff = data.frame(stg.eff = 0.5)), "se_stg")
   expect_true(verify_solution(scen)$ok)
   # two retention steps of 0.5^0.25 each between charge (s1) and delivery (s3)
   expect_equal(ff_solution_sum(scen, "vStorageInp"), 10 * 2^0.5, tolerance = 1e-6)
@@ -78,13 +78,13 @@ test_that("family storage-efficiency: stgeff decays the level as stgeff^share pe
 test_that("family storage-varom: per-role operating costs add up exactly", {
   skip_if_no_solver()
   scen0 <- suppressMessages(suppressWarnings(interpolate_model(
-    se_build(varom = data.frame(inpcost = 2, outcost = 3, stgcost = 0.5)),
+    se_build(varom = data.frame(inp.varom = 2, out.varom = 3, stg.varom = 0.5)),
     name = "se_varom_i", overwrite = TRUE)))
   expect_equal(unique(ff_param(scen0, "pStorageCostInp")$value), 2)
   expect_equal(unique(ff_param(scen0, "pStorageCostOut")$value), 3)
   expect_equal(unique(ff_param(scen0, "pStorageCostStore")$value), 0.5)
-  scen <- se_solve(se_build(varom = data.frame(inpcost = 2, outcost = 3,
-                                               stgcost = 0.5)), "se_varom")
+  scen <- se_solve(se_build(varom = data.frame(inp.varom = 2, out.varom = 3,
+                                               stg.varom = 0.5)), "se_varom")
   expect_true(verify_solution(scen)$ok)
   # charge 10 (2*10) + discharge 10 (3*10) + levels 10+10 (0.5*20) = 60
   expect_equal(ff_solution_sum(scen, "vStorageVarom"), 60, tolerance = 1e-6)

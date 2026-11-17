@@ -73,7 +73,7 @@ test_that("generic html: vintaged tech gets the by-vintage levcost section", {
                          start = c(2025L, 2035L), end = c(2034L, NA),
                          olife = c(12L, 15L)),
     seff = data.frame(vintage = c("2025", "2035"),
-                      inpeff = c(0.93, 0.95), outeff = c(0.93, 0.95)),
+                      inp.eff = c(0.93, 0.95), out.eff = c(0.93, 0.95)),
     invcost = data.frame(vintage = c("2025", "2035"),
                          stg.invcost = c(8081, 5000),
                          inp.invcost = c(607, 400),
@@ -124,7 +124,7 @@ test_that(".proc_info_df reads modern storage parts and costs", {
   info <- energyRt:::.proc_info_df(stg)
   expect_true(is.data.frame(info))
   expect_true("storage" %in% info$parameter)
-  expect_true(all(c("stg.invcost", "inp.invcost", "inpeff") %in%
+  expect_true(all(c("stg.invcost", "inp.invcost", "inp.eff") %in%
                     info$parameter))
   expect_match(info$value[info$parameter == "stg.invcost"], "5000 - 8081")
 })

@@ -112,9 +112,9 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
-\item{stgeff}{numeric. Storage decay annual rate.}
-\item{inpeff}{numeric. Input efficiency rate.}
-\item{outeff}{numeric. Output efficiency rate.}
+\item{stg.eff}{numeric. Storage decay annual rate.}
+\item{inp.eff}{numeric. Input efficiency rate.}
+\item{out.eff}{numeric. Output efficiency rate.}
 }}
 
 \item{aeff}{data.frame. Auxiliary commodities efficiency parameters. Rows can be assigned to a single variant via the \code{vintage} and/or \code{cluster} key columns; each variant then carries only its own couplings.
@@ -156,7 +156,7 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 \item{ncap2stg}{numeric. New-capacity-to-storage-level coefficient (multiplier).}
 }}
 
-\item{af}{data.frame. Availability factor parameters. Unlike a technology's \code{af} (which bounds activity, a flow), the storage \verb{af.*} columns bound the stored LEVEL -- a stock -- as a fraction of the storing capacity, i.e. a state-of-charge range. They are not capacity factors. The flow-side bounds are the \verb{cinp.*}/\verb{cout.*} columns, which bound charge/discharge relative to the charger/discharger capacity per timeslice (those are the storage analogue of a technology's \code{af}).
+\item{af}{data.frame. Availability factor parameters. Unlike a technology's \code{af} (which bounds activity, a flow), the storage \verb{stg.af.*} columns bound the stored LEVEL -- a stock -- as a fraction of the storing capacity, i.e. a state-of-charge range. They are not capacity factors. The flow-side bounds are the \verb{cinp.*}/\verb{cout.*} columns, which bound charge/discharge relative to the charger/discharger capacity per timeslice (those are the storage analogue of a technology's \code{af}).
 
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
@@ -164,11 +164,11 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
-\item{af.lo}{numeric. Lower bound of the stored level as a fraction of storing capacity (minimum state of charge).
+\item{stg.af.lo}{numeric. Lower bound of the stored level as a fraction of storing capacity (minimum state of charge).
 }
-\item{af.up}{numeric. Upper bound of the stored level as a fraction of storing capacity (maximum state of charge).
+\item{stg.af.up}{numeric. Upper bound of the stored level as a fraction of storing capacity (maximum state of charge).
 }
-\item{af.fx}{numeric. Fixed value of the stored-level fraction. This parameter overrides \code{af.lo} and \code{af.up}.
+\item{stg.af.fx}{numeric. Fixed value of the stored-level fraction. This parameter overrides \code{stg.af.lo} and \code{stg.af.up}.
 }
 \item{inp.af.lo}{numeric. Lower bound of the charging (input) flow relative to charger capacity per timeslice.
 }
@@ -202,12 +202,12 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
-\item{inpcost}{numeric. Costs associated with the input commodity.}
-\item{outcost}{numeric. Costs associated with the output commodity.}
-\item{stgcost}{numeric. Costs associated with the storage level. A negative value rewards holding a charged store.}
+\item{inp.varom}{numeric. Costs associated with the input commodity.}
+\item{out.varom}{numeric. Costs associated with the output commodity.}
+\item{stg.varom}{numeric. Costs associated with the storage level. A negative value rewards holding a charged store.}
 }}
 
-\item{target}{data.frame. Soft floors on the stored level, priced. Each row is one tier: the level may fall below \code{af.target} at \code{cost} per unit short. Tiers stack -- below several targets the prices add up -- so a deeper tier with its own price makes draining dearer the further it goes.
+\item{target}{data.frame. Soft floors on the stored level, priced. Each row is one tier: the level may fall below \code{stg.af.target} at \code{stg.af.cost} per unit short. Tiers stack -- below several targets the prices add up -- so a deeper tier with its own price makes draining dearer the further it goes.
 
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
@@ -216,8 +216,8 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice. An end-of-season target names its slice.}
 \item{tier}{character. Tier label; a missing or NA tier is the tier "1". Never a wildcard.}
-\item{af.target}{numeric. Soft floor on the stored level as a fraction of storing capacity (the base of \code{af.lo}), not an absolute level.}
-\item{cost}{numeric. Cost per unit the level falls short of \code{af.target}, on the same annual basis as \code{varom$stgcost}. Without it the target has no effect.}
+\item{stg.af.target}{numeric. Soft floor on the stored level as a fraction of storing capacity (the base of \code{stg.af.lo}), not an absolute level.}
+\item{stg.af.cost}{numeric. Cost per unit the level falls short of \code{stg.af.target}, on the same annual basis as \code{varom$stg.varom}. Without it the target has no effect.}
 }}
 
 \item{invcost}{data.frame. Investment cost.
@@ -359,9 +359,9 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 }
 \item{transform}{character. Optional name of a function in the weather object's \verb{@misc$transform}: the factor reads the series that function derives from the raw one, materialised at interpolation. NA reads the raw series.
 }
-\item{waf.lo}{numeric. Coefficient that links the weather factor with the lower bound of the availability factor.}
-\item{waf.up}{numeric. Coefficient that links the weather factor with the upper bound of the availability factor.}
-\item{waf.fx}{numeric. Coefficient that links the weather factor with the fixed value of the availability factor. This parameter overrides \code{waf.lo} and \code{waf.up}.
+\item{stg.waf.lo}{numeric. Coefficient that links the weather factor with the lower bound of the availability factor.}
+\item{stg.waf.up}{numeric. Coefficient that links the weather factor with the upper bound of the availability factor.}
+\item{stg.waf.fx}{numeric. Coefficient that links the weather factor with the fixed value of the availability factor. This parameter overrides \code{stg.waf.lo} and \code{stg.waf.up}.
 }
 \item{inp.waf.lo}{numeric. Coefficient that links the weather factor with the lower bound of the input commodity availability factor.
 }
@@ -427,9 +427,9 @@ STG1 <- newStorage(
     # region = "R1",
     # year = 2020,
     # timeslice = "HOUR",
-    stgeff = 0.999,
-    inpeff = 0.9,
-    outeff = 0.9
+    stg.eff = 0.999,
+    inp.eff = 0.9,
+    out.eff = 0.9
   ),
   aeff = data.frame(
     acomm = "electricity",
@@ -450,14 +450,14 @@ STG1 <- newStorage(
   ),
   af = data.frame(
     region = "R1", year = 2020, timeslice = "HOUR",
-    af.lo = 0.9, af.up = 0.9, af.fx = 0.9, inp.af.up = 0.9,
+    stg.af.lo = 0.9, stg.af.up = 0.9, stg.af.fx = 0.9, inp.af.up = 0.9,
     inp.af.fx = 0.9, inp.af.lo = 0.9, out.af.up = 0.9,
     out.af.fx = 0.9, out.af.lo = 0.9
   ),
   fixom = data.frame(region = "R1", year = 2020, out.fixom = 0.9),
   varom = data.frame(
     region = "R1", year = 2020, timeslice = "HOUR",
-    inpcost = 0.9, outcost = 0.9, stgcost = 0.9
+    inp.varom = 0.9, out.varom = 0.9, stg.varom = 0.9
   ),
   invcost = data.frame(
     region = "R1", year = 2020, out.invcost = 0.9,
@@ -473,9 +473,9 @@ STG1 <- newStorage(
   fullYear = TRUE,
   weather = data.frame(
     weather = "sunny",
-    waf.lo = 0.9,
-    waf.up = 0.9,
-    waf.fx = 0.9, inp.waf.lo = 0.9,
+    stg.waf.lo = 0.9,
+    stg.waf.up = 0.9,
+    stg.waf.fx = 0.9, inp.waf.lo = 0.9,
     inp.waf.fx = 0.9, inp.waf.up = 0.9, out.waf.lo = 0.9, out.waf.fx = 0.9,
     out.waf.up = 0.9
   ),

@@ -292,7 +292,7 @@ test_that("a storage spec round-trips faithfully", {
   expect_identical(as.character(obj@storage$comm), "ELC")
   expect_equal(obj@invcost$out.invcost, 12144)
   expect_equal(obj@invcost$stg.invcost, 8081)
-  expect_equal(obj@seff$inpeff, 0.95)
+  expect_equal(obj@seff$inp.eff, 0.95)
   expect_equal(nrow(obj@vintage), 2L)
 
   back <- process_from_spec(process_to_spec(obj))
@@ -321,7 +321,7 @@ test_that("logical flags round-trip against constructor defaults", {
   stg <- newStorage(
     name = "SFLAG",
     commodity = "ELC",
-    seff = data.frame(inpeff = 0.9, outeff = 0.9),
+    seff = data.frame(inp.eff = 0.9, out.eff = 0.9),
     fullYear = FALSE
   )
   spec <- process_to_spec(stg)

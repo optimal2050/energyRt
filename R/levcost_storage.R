@@ -2,15 +2,15 @@
 # levcost() for `storage` -- levelized cost of storage (LCOS)
 # =============================================================================
 # A store creates no energy: it buys at one time, sells at another, and loses
-# `inpeff * outeff` on the way. So its levelized cost is per unit DISCHARGED,
+# `inp.eff * out.eff` on the way. So its levelized cost is per unit DISCHARGED,
 # which makes it directly comparable with a technology's LCOE, and it depends on
 # something no slot carries -- how often the store cycles. `cycles` supplies it.
 #
 # The unit basis is one unit delivered per cycle. Everything else follows:
 #
-#   level drawn per cycle = 1 / outeff        (vStorageOut is already post-outeff)
-#   stgCap                = 1 / outeff        (the peak level)
-#   charged per cycle     = 1 / (outeff * inpeff)
+#   level drawn per cycle = 1 / out.eff       (vStorageOut is already post-out.eff)
+#   stgCap                = 1 / out.eff       (the peak level)
+#   charged per cycle     = 1 / (out.eff * inp.eff)
 #   outCap                = stgCap / duration (energy-to-power ratio)
 #   inpCap                = outCap * inp2out, or stgCap * inp2stg
 # A part with no ratio linking it is sized by its own flow: the representative
@@ -19,7 +19,7 @@
 #
 #   LCOS = ( sum_part eac_part * cap_part
 #          + sum_part fixom_part * cap_part
-#          + cycles * (inpcost*charged + outcost*1 + stgcost*stgCap)
+#          + cycles * (inp.varom*charged + out.varom*1 + stg.varom*stgCap)
 #          + cycles * price * charged )              <- the charging term
 #          / (cycles * 1)
 #
@@ -123,8 +123,8 @@
       .la_unsupported("@seff$", k, " outside (0, 1]")
     v
   }
-  inpeff <- eff("inpeff")
-  outeff <- eff("outeff")
+  inpeff <- eff("inp.eff")
+  outeff <- eff("out.eff")
 
   duration <- .lcs_ratio(object@duration, "duration", years, region, NA_real_)
   inp2out  <- .lcs_ratio(object@inp2out,  "inp2out",  years, region, 1)
@@ -199,12 +199,12 @@
   }
 
   # varom is charged per unit flowed / held, once per cycle
-  inpcost <- .la_series(object@varom, "inpcost", years, region, default = 0,
-                        what = "inpcost")
-  outcost <- .la_series(object@varom, "outcost", years, region, default = 0,
-                        what = "outcost")
-  stgcost <- .la_series(object@varom, "stgcost", years, region, default = 0,
-                        what = "stgcost")
+  inpcost <- .la_series(object@varom, "inp.varom", years, region, default = 0,
+                        what = "inp.varom")
+  outcost <- .la_series(object@varom, "out.varom", years, region, default = 0,
+                        what = "out.varom")
+  stgcost <- .la_series(object@varom, "stg.varom", years, region, default = 0,
+                        what = "stg.varom")
   varom <- ctx$cycles * (inpcost * charged + outcost * delivered +
                            stgcost * stgCap)
 
@@ -460,6 +460,7 @@ levcost_storage_ <- function(
   method <- match.arg(method)
   if (!inherits(object, "storage"))
     stop("`object` must be an energyRt 'storage' object.", call. = FALSE)
+  object <- .upgrade_storage_inp2stg(object)
   if (!is.numeric(cycles) || length(cycles) != 1 || !is.finite(cycles) ||
       cycles <= 0)
     stop("`cycles` must be one positive number (cycles per year).", call. = FALSE)

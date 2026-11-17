@@ -1612,20 +1612,20 @@ class:
         timeslice:
           type: character
           description: Time timeslice to apply the parameter, NA for every timeslice.
-        stgeff:
+        stg.eff:
           type: numeric
           description: Storage decay annual rate.
-        inpeff:
+        inp.eff:
           type: numeric
           description: Input efficiency rate.
-        outeff:
+        out.eff:
           type: numeric
           description: Output efficiency rate.
     af:
       type: data.frame
       description: >
         Availability factor parameters. Unlike a technology's `af` (which bounds
-        activity, a flow), the storage `af.*` columns bound the stored LEVEL --
+        activity, a flow), the storage `stg.af.*` columns bound the stored LEVEL --
         a stock -- as a fraction of the storing capacity, i.e. a state-of-charge
         range. They are not capacity factors. The flow-side bounds are the
         `cinp.*`/`cout.*` columns, which bound charge/discharge relative to
@@ -1647,21 +1647,21 @@ class:
         timeslice:
           type: character
           description: Time timeslice to apply the parameter, NA for every timeslice.
-        af.lo:
+        stg.af.lo:
           type: numeric
           description: >
             Lower bound of the stored level as a fraction of storing capacity
             (minimum state of charge).
-        af.up:
+        stg.af.up:
           type: numeric
           description: >
             Upper bound of the stored level as a fraction of storing capacity
             (maximum state of charge).
-        af.fx:
+        stg.af.fx:
           type: numeric
           description: >
             Fixed value of the stored-level fraction.
-            This parameter overrides `af.lo` and `af.up`.
+            This parameter overrides `stg.af.lo` and `stg.af.up`.
         inp.af.lo:
           type: numeric
           description: >
@@ -1866,20 +1866,20 @@ class:
         timeslice:
           type: character
           description: Time timeslice to apply the parameter, NA for every timeslice.
-        inpcost:
+        inp.varom:
           type: numeric
           description: Costs associated with the input commodity.
-        outcost:
+        out.varom:
           type: numeric
           description: Costs associated with the output commodity.
-        stgcost:
+        stg.varom:
           type: numeric
           description: Costs associated with the storage level. A negative value rewards holding a charged store.
     target:
       type: data.frame
       description: >
         Soft floors on the stored level, priced. Each row is one tier: the
-        level may fall below `af.target` at `cost` per unit short. Tiers stack --
+        level may fall below `stg.af.target` at `stg.af.cost` per unit short. Tiers stack --
         below several targets the prices add up -- so a deeper tier with its
         own price makes draining dearer the further it goes.
       columns:
@@ -1901,12 +1901,12 @@ class:
         tier:
           type: character
           description: Tier label; a missing or NA tier is the tier "1". Never a wildcard.
-        af.target:
+        stg.af.target:
           type: numeric
-          description: Soft floor on the stored level as a fraction of storing capacity (the base of `af.lo`), not an absolute level.
-        cost:
+          description: Soft floor on the stored level as a fraction of storing capacity (the base of `stg.af.lo`), not an absolute level.
+        stg.af.cost:
           type: numeric
-          description: Cost per unit the level falls short of `af.target`, on the same annual basis as `varom$stgcost`. Without it the target has no effect.
+          description: Cost per unit the level falls short of `stg.af.target`, on the same annual basis as `varom$stg.varom`. Without it the target has no effect.
     invcost:
       type: data.frame
       description: Investment cost.
@@ -2168,17 +2168,17 @@ class:
             `@misc$transform`: the factor reads the series that function derives
             from the raw one, materialised at interpolation. NA reads the raw
             series.
-        waf.lo:
+        stg.waf.lo:
           type: numeric
           description: Coefficient that links the weather factor with the lower bound of the availability factor.
-        waf.up:
+        stg.waf.up:
           type: numeric
           description: Coefficient that links the weather factor with the upper bound of the availability factor.
-        waf.fx:
+        stg.waf.fx:
           type: numeric
           description: >
             Coefficient that links the weather factor with the fixed value of the availability factor.
-            This parameter overrides `waf.lo` and `waf.up`.
+            This parameter overrides `stg.waf.lo` and `stg.waf.up`.
         inp.waf.lo:
           type: numeric
           description: >

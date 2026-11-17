@@ -1114,6 +1114,7 @@ setMethod("draw", "technology", function(object, ...) {
 
 ## draw.storage ####
 draw.storage <- function(object, ...) {
+  object <- .upgrade_storage_inp2stg(object)
   # A storage has three commodity ROLES rather than one `@commodity`: what fills
   # it, what it holds, and what it releases. For a battery all three are the same
   # and the figure is unchanged; for a hydrogen store or a reservoir they differ,
@@ -1187,8 +1188,8 @@ draw.storage <- function(object, ...) {
     )
   }
 
-  com_inp <- role_rows(comm_inp, "inpeff", "cinp")
-  com_out <- role_rows(comm_out, "outeff", "cout")
+  com_inp <- role_rows(comm_inp, "inp.eff", "cinp")
+  com_out <- role_rows(comm_out, "out.eff", "cout")
   # the efficiencies now live in the part boxes; a grey in-box arrow label
   # would duplicate them and clip the charger/discharger boxes
   if (!is.null(com_inp)) com_inp$lab_par <- NA_character_
@@ -1197,7 +1198,7 @@ draw.storage <- function(object, ...) {
   # `duration` is deliberately NOT carried here: `@duration` is a data.frame, so
   # `mutate(duration = object@duration)` only works while it has exactly one row,
   # and nothing downstream reads the column -- only `stg_par$lab_par` is used.
-  stg_par <- role_rows(comm_stg, "stgeff", "stg")
+  stg_par <- role_rows(comm_stg, "stg.eff", "stg")
 
   # Names the arrow labels are looked up by (`arrow_labels`, below).
   com_txt <- data.frame(
@@ -1245,21 +1246,21 @@ draw.storage <- function(object, ...) {
       rowwise() |>
       mutate(
         lab_waf = if_else(
-          !is.na(waf.fx),
-          make_label("waf.fx:", in_brackets = waf.fx, two_lines = FALSE),
-          if_else(!is.na(waf.lo) & !is.na(waf.up),
-            paste0("waf.lo: ", waf.lo, "\n", "waf.up: ", waf.up),
-            if_else(!is.na(waf.lo),
-              paste0("waf.lo: ", waf.lo),
-              if_else(!is.na(waf.up),
-                paste0("waf.up: ", waf.up),
+          !is.na(stg.waf.fx),
+          make_label("stg.waf.fx:", in_brackets = stg.waf.fx, two_lines = FALSE),
+          if_else(!is.na(stg.waf.lo) & !is.na(stg.waf.up),
+            paste0("stg.waf.lo: ", stg.waf.lo, "\n", "stg.waf.up: ", stg.waf.up),
+            if_else(!is.na(stg.waf.lo),
+              paste0("stg.waf.lo: ", stg.waf.lo),
+              if_else(!is.na(stg.waf.up),
+                paste0("stg.waf.up: ", stg.waf.up),
                 NA_character_
               )
             )
           )
         )
       ) |>
-      select(-waf.lo, -waf.up, -waf.fx) |>
+      select(-stg.waf.lo, -stg.waf.up, -stg.waf.fx) |>
       mutate(
         lab_wcinp = if_else(
           !is.na(inp.waf.fx),
@@ -1320,8 +1321,8 @@ draw.storage <- function(object, ...) {
     paste(signif(v, 5), collapse = "/")
   }
   .part_lines <- function(part) {
-    eff_col <- c(inp = "inpeff", stg = "stgeff", out = "outeff")[[part]]
-    varom_col <- c(inp = "inpcost", stg = "stgcost", out = "outcost")[[part]]
+    eff_col <- c(inp = "inp.eff", stg = "stg.eff", out = "out.eff")[[part]]
+    varom_col <- c(inp = "inp.varom", stg = "stg.varom", out = "out.varom")[[part]]
     out <- character(0)
     add <- function(lbl, v) {
       if (!is.null(v)) out <<- c(out, paste0(lbl, ": ", v))
@@ -1330,15 +1331,14 @@ draw.storage <- function(object, ...) {
     add(paste0(part, ".invcost"), .vals(object@invcost, paste0(part, ".invcost")))
     add(paste0(part, ".eac"), .vals(object@invcost, paste0(part, ".eac")))
     add(paste0(part, ".fixom"), .vals(object@fixom, paste0(part, ".fixom")))
-    add(paste0("varom.", varom_col), .vals(object@varom, varom_col))
+    add(varom_col, .vals(object@varom, varom_col))
     for (b in c("stock", "cap.lo", "cap.up", "cap.fx",
                 "ncap.lo", "ncap.up", "ncap.fx")) {
       cn <- paste0(part, ".", b)
       add(cn, .vals(object@capacity, cn))
     }
     # availability: a per-timeslice profile compresses to a slice count
-    af_cols <- if (part == "stg") c("af.lo", "af.up", "af.fx") else
-      paste0(part, ".", c("af.lo", "af.up", "af.fx"))
+    af_cols <- paste0(part, ".", c("af.lo", "af.up", "af.fx"))
     af <- object@af
     if (nrow(af) > 0) {
       set_cols <- af_cols[vapply(af_cols, function(k)
@@ -1450,9 +1450,9 @@ draw.storage <- function(object, ...) {
 #'     olife = 20 # operational life of the storage in years
 #'   ),
 #'   seff = data.frame(
-#'     stgeff = 0.999, # storage efficiency
-#'     inpeff = 0.9, # charging efficiency
-#'     outeff = 0.9 # discharging efficiency
+#'     stg.eff = 0.999, # storage efficiency
+#'     inp.eff = 0.9, # charging efficiency
+#'     out.eff = 0.9 # discharging efficiency
 #'   ),
 #'   aeff = data.frame(
 #'     acomm = "LITHIUM", # track lithium use for battery production
@@ -1461,8 +1461,8 @@ draw.storage <- function(object, ...) {
 #'     stg.ncap2ainp = convert(4 * 250, "Wh/kg", "GWh/kt")
 #'   ),
 #'   af = data.frame(
-#'     # af.lo = 0., # lower bound for the capacity factor
-#'     af.up = 1. # upper bound for the capacity factor
+#'     # stg.af.lo = 0., # minimum state of charge
+#'     stg.af.up = 1. # maximum state of charge
 #'   ),
 #'   fixom = data.frame(
 #'     # region = "R1",
@@ -1478,8 +1478,8 @@ draw.storage <- function(object, ...) {
 #'   fullYear = TRUE, # full year storage cycle
 #'   weather = data.frame(
 #'     weather = "AMBIENT_TEMP", # weather factor for capacity factor
-#'     waf.up = 1 # affects upper boundary of capacity factor
-#'     # waf.lo = 0.9 # affects lower boundary of capacity factor
+#'     stg.waf.up = 1 # affects upper boundary of capacity factor
+#'     # stg.waf.lo = 0.9 # affects lower boundary of capacity factor
 #'   )
 #'   # region = c("R1", "R2", "R3"),
 #' )

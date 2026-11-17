@@ -109,15 +109,15 @@ STG_H2 <- newStorage(
     stg.invcost = 112                     # the cavern
   ),
   seff      = data.frame(
-    inpeff  = 0.70,
-    outeff  = 0.50
+    inp.eff  = 0.70,
+    out.eff  = 0.50
   ),
   vintage   = data.frame(olife = 25L)
 )
 draw(STG_H2)
 ```
 
-`@seff$inpeff` and `$outeff` are **cross-commodity conversion factors** here —
+`@seff$inp.eff` and `$out.eff` are **cross-commodity conversion factors** here —
 input→stored and stored→output — the same role `cinp2use` plays for a
 technology. When the three commodities coincide they are the round-trip
 efficiencies they have always been, and nothing changes.
@@ -478,8 +478,8 @@ adequate. Discharge in a slice is bounded by three things:
 
 ```
 (1) out <= out.af.up · cap2act · outCap · share[s]
-(2) out / outeff <= level[s]
-(3) level[s] <= af.up · stgCap
+(2) out / out.eff <= level[s]
+(3) level[s] <= stg.af.up · stgCap
 ```
 
 For a 6 h / 10 MW battery (60 MWh), only (1) changes with resolution:
@@ -500,7 +500,7 @@ Worse, the *cycle count* collapses. `N` timeslices allow at most `⌊N/2⌋` cyc
 so on a day/night calendar a 6-hour battery can perform exactly **one** cycle a
 year — 60 MWh moved, against roughly 21,900 MWh for a store that really cycles
 daily. On a single annual timeslice there is no dynamic at all: the cyclic
-balance pairs the slice with itself and collapses to `inpeff·inp = out/outeff`.
+balance pairs the slice with itself and collapses to `inp.eff·inp = out/out.eff`.
 
 A store whose cycle is shorter than one timeslice is therefore **understated, not
 approximated**. Representing ~365 daily cycles needs on the order of 730
@@ -514,11 +514,11 @@ in the level equation:
 
 | column | applies to | meaning |
 |---|---|---|
-| `inpeff` | charging | fraction of the input that reaches the level |
-| `outeff` | discharging | level drawn per unit delivered is `1/outeff` |
-| `stgeff` | holding | retention per hour, compounded as `stgeff^share` |
+| `inp.eff` | charging | fraction of the input that reaches the level |
+| `out.eff` | discharging | level drawn per unit delivered is `1/out.eff` |
+| `stg.eff` | holding | retention per hour, compounded as `stg.eff^share` |
 
-`stgeff` is the one to watch: it is a **rate**, raised to the timeslice share, so
+`stg.eff` is the one to watch: it is a **rate**, raised to the timeslice share, so
 `0.999` is a per-hour retention and not a per-timeslice one. That is what keeps a
 self-discharge assumption stable when the calendar is refined.
 
@@ -529,9 +529,9 @@ STG_BTR_LOSS <- newStorage(
   commodity = "ELC",
   duration  = 6,
   seff      = data.frame(
-    inpeff = 0.95,
-    outeff = 0.95,
-    stgeff = 0.999
+    inp.eff = 0.95,
+    out.eff = 0.95,
+    stg.eff = 0.999
   ),
   vintage   = data.frame(olife = 15L)
 )
@@ -548,7 +548,7 @@ Three families share the slot:
 
 | columns | bounds |
 |---|---|
-| `af.lo` / `af.up` / `af.fx` | the **level**, against `vStorageStgCap` |
+| `stg.af.lo` / `stg.af.up` / `stg.af.fx` | the **level**, against `vStorageStgCap` |
 | `inp.af.lo` / `inp.af.up` / `inp.af.fx` | **charging**, against the charger |
 | `out.af.lo` / `out.af.up` / `out.af.fx` | **discharging**, against the discharger |
 
@@ -565,7 +565,7 @@ STG_RES <- newStorage(
   invcost   = list(stg.invcost = 40),
   af        = data.frame(
     timeslice = c(NA, "d046_h18"),
-    af.lo     = c(0.15, NA),              # never draw below 15% full
+    stg.af.lo = c(0.15, NA),              # never draw below 15% full
     inp.af.up   = c(NA, 0)                  # no charging in that slice
   ),
   vintage   = data.frame(olife = 40L)
@@ -630,13 +630,13 @@ Three slots, on the three things you can spend money on:
 |---|---|---|
 | `@invcost` | new capacity | `<part>.invcost`, `.wacc`, `.payback`, `.eac`, `.retcost` |
 | `@fixom` | installed capacity, per year | `<part>.fixom` |
-| `@varom` | flows and level, per timeslice | `inpcost`, `outcost`, `stgcost` |
+| `@varom` | flows and level, per timeslice | `inp.varom`, `out.varom`, `stg.varom` |
 
 `@invcost` and `@fixom` take the same `out.` / `inp.` / `stg.` prefixes as
 `@capacity`, so each part is priced in its own units: `out.invcost` per MW of
 discharger, `stg.invcost` per MWh of reservoir — which is exactly what the
-battery at the top of this article does. `@varom` instead splits by what is
-charged: `inpcost` per unit charged, `outcost` per unit discharged, `stgcost`
+battery at the top of this article does. `@varom` takes the same prefixes, by
+what each part moves or holds: `inp.varom` per unit charged, `out.varom` per unit discharged, `stg.varom`
 per unit held.
 
 ```{r}
@@ -648,8 +648,8 @@ STG_PRICED <- newStorage(
   invcost   = data.frame(out.invcost = 8081), # EUR/MWh on new capacity
   fixom     = data.frame(out.fixom = 5),      # EUR/MW/yr on the whole store
   varom     = data.frame(
-    inpcost = 0.5,
-    outcost = 0.5
+    inp.varom = 0.5,
+    out.varom = 0.5
   ),
   vintage   = data.frame(olife = 15L)
 )
@@ -941,7 +941,7 @@ STG_BTR_VRE <- newStorage(
   storage   = list(comm = "ELC", unit = "MWh"),
   # power priced per MW on the discharger, energy per MWh on the reservoir
   invcost   = list(out.invcost = 20, stg.invcost = 1),
-  seff      = data.frame(inpeff = 0.95, outeff = 0.95),
+  seff      = data.frame(inp.eff = 0.95, out.eff = 0.95),
   vintage   = data.frame(olife = 15L),
   fullYear  = TRUE
 )

@@ -1212,7 +1212,7 @@ pStorageWeatherAf:
   unit: "factor"
   class: storage
   slot: weather
-  colName: waf
+  colName: stg.waf
 pStorageWeatherInpAf:
   name: pStorageWeatherInpAf
   dimSets:
@@ -1380,7 +1380,7 @@ pStorageInpEff:
   type: numpar
   defVal: 1.0
   interpolation: back.inter.forth
-  colName: inpeff
+  colName: inp.eff
   recast: {space: weighted_mean, time: weighted_mean}
   unit: "fraction"
   class: storage
@@ -1396,7 +1396,7 @@ pStorageOutEff:
   type: numpar
   defVal: 1.0
   interpolation: back.inter.forth
-  colName: outeff
+  colName: out.eff
   recast: {space: weighted_mean, time: weighted_mean}
   unit: "fraction"
   class: storage
@@ -1412,7 +1412,7 @@ pStorageStgEff:
   type: numpar
   defVal: 1.0
   interpolation: back.inter.forth
-  colName: stgeff
+  colName: stg.eff
   recast: {space: copy, time: copy}
   unit: "fraction"
   class: storage
@@ -1427,7 +1427,7 @@ pStorageCostStore:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: stgcost
+  colName: stg.varom
   recast: {space: weighted_mean, time: weighted_mean}
   unit: "{currency}/{comm}"
   class: storage
@@ -1443,7 +1443,7 @@ pStorageCostInp:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: inpcost
+  colName: inp.varom
   recast: {space: weighted_mean, time: weighted_mean}
   unit: "{currency}/{comm}"
   class: storage
@@ -1459,7 +1459,7 @@ pStorageCostOut:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: outcost
+  colName: out.varom
   recast: {space: weighted_mean, time: weighted_mean}
   unit: "{currency}/{comm}"
   class: storage
@@ -1478,14 +1478,14 @@ pStorageTarget:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: af.target
+  colName: stg.af.target
   recast: {space: weighted_mean, time: weighted_mean}
   unit: "fraction"
   class: storage
   slot: target
   dropIfEmpty: true
 # Price of each unit the level falls short of its tier's target, on the same
-# annual basis as `stgcost` (weighted by pTimesliceWeight in
+# annual basis as `stg.varom` (weighted by pTimesliceWeight in
 # eqStorageShortCost). The prices of every tier the level is below add up.
 pStorageTargetCost:
   name: pStorageTargetCost
@@ -1498,7 +1498,7 @@ pStorageTargetCost:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: cost
+  colName: stg.af.cost
   recast: {space: weighted_mean, time: weighted_mean}
   unit: "{currency}/{comm}"
   class: storage
@@ -1518,7 +1518,7 @@ pStorageAf:
   interpolation:
   - back.inter.forth
   - back.inter.forth
-  colName: af
+  colName: stg.af
   recast: {space: weighted_mean, time: weighted_mean}
   unit: "fraction"
   class: storage

@@ -52,7 +52,7 @@ pb_build <- function(..., capacity = data.frame(), invcost = data.frame(stg.invc
                  olife = data.frame(olife = 30),
                  capacity = capacity, invcost = invcost, af = af,
                  inp2out = inp2out,
-                 seff = data.frame(inpeff = 1, outeff = 1)),
+                 seff = data.frame(inp.eff = 1, out.eff = 1)),
       newDemand("DEM", commodity = "ELC",
                 demand = data.frame(timeslice = "s3", demand = 8))),
     calendar = pb_cal(), region = "R1", horizon = newHorizon(2025),

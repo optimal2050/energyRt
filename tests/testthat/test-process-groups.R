@@ -750,7 +750,7 @@ test_that("a storage clusters with its part-keyed columns intact", {
     newStorage(name = paste0("STG_", r), commodity = "ELC", region = r,
                invcost = data.frame(region = r, stg.invcost = inv[[r]]),
                capacity = data.frame(region = r, stg.cap.up = cap[[r]]),
-               seff = data.frame(region = r, stgeff = 0.9)))
+               seff = data.frame(region = r, stg.eff = 0.9)))
   mod <- newModel("CRT", region = cr_regions,
                   calendar = energyRt::calendars$s4_hp3,
                   horizon = newHorizon(2025), discount = 0.05,

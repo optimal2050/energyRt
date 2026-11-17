@@ -13,9 +13,9 @@ reservoir:
 - comm: ELC
   unit: MWh
 efficiency:
-- stgeff: 0.999
-  inpeff: 0.95
-  outeff: 0.95
+- stg.eff: 0.999
+  inp.eff: 0.95
+  out.eff: 0.95
 duration:
 - duration.lo: 2.0
   duration.up: 8.0

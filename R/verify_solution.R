@@ -1531,7 +1531,7 @@ print.solution_verification <- function(x, detail = c("full", "issues"), ...) {
 
 # eqStorageTarget, per tier: level + shortfall >= target * capacity, where capacity is
 # vStorageStgCap where the storing part exists and duration.lo * vStorageOutCap
-# elsewhere (the base `af.lo` uses). An inequality: only a shortfall of the
+# elsewhere (the base `stg.af.lo` uses). An inequality: only a shortfall of the
 # left side counts, so the left side is capped at the right before comparing.
 .vs_check_storage_target <- function(ctx) {
   scen <- ctx$scen

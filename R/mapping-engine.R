@@ -1028,7 +1028,7 @@ recipe_value <- function(scen, names, fmp) {
                          types = "lo", drop = "lo"),
   meqStorageAfUp  = list(domain = "mvStorageLevel", source = "pStorageAf",
                          types = "up", drop = "up", structural = TRUE),
-  # Soft floor: conditional on a non-zero `target$af.target` (numpar, no `type`);
+  # Soft floor: conditional on a non-zero `target$stg.af.target` (numpar, no `type`);
   # the source carries `tier`, the level domain does not.
   meqStorageTarget = list(domain = "mvStorageLevel", source = "pStorageTarget",
                           drop = "lo"),

@@ -1481,10 +1481,10 @@ Levelized cost section will be omitted.")
   for (cc in c("stg.fixom", "inp.fixom", "out.fixom")) {
     add(cc, num_rng(gs("fixom"), cc))
   }
-  for (cc in c("stgcost", "inpcost", "outcost")) {
+  for (cc in c("stg.varom", "inp.varom", "out.varom")) {
     add(cc, num_rng(gs("varom"), cc))
   }
-  for (cc in c("inpeff", "outeff", "stgeff")) {
+  for (cc in c("inp.eff", "out.eff", "stg.eff")) {
     add(cc, num_rng(gs("seff"), cc))
   }
   for (cc in c("duration.lo", "duration.up", "duration.fx", "duration")) {
@@ -3245,7 +3245,7 @@ report_templates <- function(class = NULL) {
                     c("stg.fixom", "inp.fixom", "out.fixom"),
                     "Fixed O&M"),
     tidy_part_costs(object@varom,
-                    c("stgcost", "inpcost", "outcost"),
+                    c("stg.varom", "inp.varom", "out.varom"),
                     "Variable O&M")
   )))
   if (!is.null(storage_cost_df)) {
@@ -3256,7 +3256,7 @@ report_templates <- function(class = NULL) {
 
   seff_df <- if (nrow(object@seff) > 0) {
     cc <- intersect(c("vintage", "cluster", "region", "year", "timeslice",
-                      "stgeff", "inpeff", "outeff"), names(object@seff))
+                      "stg.eff", "inp.eff", "out.eff"), names(object@seff))
     .report_drop_empty_cols(object@seff[, cc, drop = FALSE])
   } else NULL
 

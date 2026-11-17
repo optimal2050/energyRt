@@ -11,7 +11,7 @@
 # Each has its own test below; the list exists so that a new departure cannot
 # appear unnoticed, and so that a stale entry is caught too.
 rc_departures <- c("technologyaframpup", "technologyaframpdown",
-                   "storageseffstgeff", "tradetradereactance",
+                   "storageseffstg.eff", "tradetradereactance",
                    "tradetraderesistance")
 
 test_that("the contract reproduces the inference apart from pinned departures", {

@@ -38,7 +38,7 @@
   # e.g. non-combusting feedstock, are preserved by .densify_one).
   pTechEmisComm  = "mTechInpComm",
   # Each efficiency is read on the domain of the flow it scales, NOT the level's.
-  # `inpeff`/`outeff` are indexed by the INPUT / OUTPUT commodity (they are
+  # `inp.eff`/`out.eff` are indexed by the INPUT / OUTPUT commodity (they are
   # cross-commodity conversion factors once the roles differ), so densifying them
   # over `mvStorageLevel` would materialise them against the STORED commodity and
   # leave the real flow tuples absent -- reading as 0 and killing the flow.

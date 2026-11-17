@@ -135,7 +135,7 @@
     efficiency = list(
       arg = "seff",
       cols = c("vintage", "cluster", "region", "year", "timeslice",
-               "stgeff", "inpeff", "outeff"),
+               "stg.eff", "inp.eff", "out.eff"),
       dims = c("vintage", "cluster", "region", "year", "timeslice")),
     aux_efficiency = list(
       arg = "aeff",
@@ -150,7 +150,7 @@
     availability = list(
       arg = "af",
       cols = c("vintage", "cluster", "region", "year", "timeslice",
-               "af.lo", "af.up", "af.fx",
+               "stg.af.lo", "stg.af.up", "stg.af.fx",
                "inp.af.lo", "inp.af.up", "inp.af.fx",
                "out.af.lo", "out.af.up", "out.af.fx"),
       dims = c("vintage", "cluster", "region", "year", "timeslice")),
@@ -176,7 +176,7 @@
     weather = list(
       arg = "weather",
       cols = c("vintage", "cluster", "weather", "transform",
-               "waf.lo", "waf.up", "waf.fx",
+               "stg.waf.lo", "stg.waf.up", "stg.waf.fx",
                "inp.waf.lo", "inp.waf.up", "inp.waf.fx",
                "out.waf.lo", "out.waf.up", "out.waf.fx"),
       dims = c("vintage", "cluster")),
@@ -198,7 +198,7 @@
     varom = list(
       arg = "varom",
       cols = c("vintage", "cluster", "region", "year", "timeslice",
-               "inpcost", "outcost", "stgcost"),
+               "inp.varom", "out.varom", "stg.varom"),
       dims = c("vintage", "cluster", "region", "year", "timeslice")),
     vintages = list(
       arg = "vintage",
@@ -375,6 +375,37 @@ read_process_spec <- function(spec) {
     }
   }
   if (!is.list(spec)) stop("`spec` must be a file path or a list")
+  .spec_upgrade_storage(spec)
+}
+
+# A storage spec written with the old column spellings: rename them per
+# section (`.storage_dotted_cols`, keyed by the section's slot), with the
+# deprecation warning `newStorage()` gives.
+#' @noRd
+.spec_upgrade_storage <- function(spec) {
+  if (!identical(tryCatch(.spec_class(spec), error = function(e) NULL),
+                 "storage")) {
+    return(spec)
+  }
+  SECS <- .spec_sections("storage")
+  done <- character()
+  for (sec in intersect(names(spec), names(SECS))) {
+    map <- .storage_dotted_cols[[SECS[[sec]]$arg]]
+    if (is.null(map) || !is.list(spec[[sec]])) next
+    for (i in seq_along(spec[[sec]])) {
+      row <- spec[[sec]][[i]]
+      hit <- names(row) %in% names(map)
+      if (!any(hit)) next
+      done <- union(done, paste0("`", names(row)[hit], "` is now `",
+                                 map[names(row)[hit]], "`"))
+      names(row)[hit] <- map[names(row)[hit]]
+      spec[[sec]][[i]] <- row
+    }
+  }
+  if (length(done)) {
+    warning("storage spec: renamed column", if (length(done) > 1) "s",
+            " -- ", paste(done, collapse = ", "), call. = FALSE)
+  }
   spec
 }
 
