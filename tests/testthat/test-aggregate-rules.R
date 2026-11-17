@@ -117,7 +117,7 @@ test_that('resolve_conflicts = "force" is TRUE, and a bad value is refused', {
     "resolve_conflicts")
 })
 
-test_that("a weather profile is weighted by the scale, not averaged flat", {
+test_that("a weather profile is preserved, not averaged", {
   skip_if_no_geoscales()
   objs <- ar_base()
   objs[[2]]@weather <- data.frame(weather = "WSOL", comm = "ELC", waf.up = 1)
@@ -128,9 +128,16 @@ test_that("a weather profile is weighted by the scale, not averaged flat", {
                          wval = rep(c(0.2, 0.8), each = 2)))
   agg <- ar_agg(c(objs, list(wth)))
   w <- agg@data[[1]]@data$WSOL@weather
-  # a profile has no size of its own, so the geoscale's weight decides:
-  # 3 km2 at 0.2 and 1 km2 at 0.8 -> 0.35, not the plain mean 0.5
-  expect_equal(unique(round(w$wval, 6)), 0.35)
+  # RULED: nothing about a weather series is averaged. The weight such a mean
+  # would need is the resource available for that grade in that province -- a
+  # (region, cluster) quantity no geoscale can carry -- so both profiles
+  # survive as variants of the coarse region instead, values untouched. The
+  # old behaviour weighted them by km2 (3 at 0.2, 1 at 0.8 -> 0.35).
+  expect_setequal(round(w$wval, 6), c(0.2, 0.8))
+  expect_setequal(as.character(w$cluster), c("R1", "R2"))
+  expect_setequal(as.character(w$region), "G1")
+  # and the series are not thinned: one row per (variant, timeslice)
+  expect_equal(nrow(w), 4L)
 })
 
 test_that("a per-region constraint budget adds up", {
@@ -272,4 +279,35 @@ test_that("the routes that are not built say so plainly", {
     energyRt:::recast_object(wth, scale = ar_geoscale(), target = "grp",
                              as = "objects"),
     "not built yet")
+})
+
+test_that("the whole variant closure composes the same labels", {
+  skip_if_no_geoscales()
+  testthat::skip_if_not(exists("topia"), "the shipped dataset is needed")
+  mod <- build_topia(calendar = "d365_h24_1dps", as = "model", quiet = TRUE)
+  az <- suppressWarnings(suppressMessages(
+    aggregate_model_regions(mod, level = "zone", verbose = FALSE)))
+  get1 <- function(m, nm) {
+    for (el in m@data) if (methods::is(el, "repository"))
+      if (nm %in% names(el@data)) return(el@data[[nm]])
+    NULL
+  }
+  labs <- function(o) sort(unique(as.character(o@cluster$cluster)))
+  # the series survive row for row: nothing averaged, nothing thinned
+  expect_equal(nrow(get1(az, "WWIN")@weather),
+               nrow(get1(mod, "WWIN")@weather))
+  # a grade exists in the provinces that have it, so 3 grades over 12
+  # provinces give 17 variants, not 36
+  expect_equal(length(labs(get1(az, "WWIN"))), 17L)
+  # and the objects sharing those labels agree: the series, the land
+  # commodity's roster and both sides of the land market
+  expect_setequal(labs(get1(az, "EWIN")), labs(get1(az, "WWIN")))
+  expect_setequal(labs(get1(az, "RES_LANDW")), labs(get1(az, "WWIN")))
+  expect_true(all(labs(get1(az, "WWIN")) %in% labs(get1(az, "LANDW"))))
+  # an UNCLUSTERED series gains a roster, region-scoped so each variant stays
+  # in the coarse region it came from
+  wh <- get1(az, "WHYD")@cluster
+  expect_true(nrow(wh) > 0L)
+  expect_true("region" %in% names(wh))
+  expect_setequal(as.character(wh$region[wh$cluster == "R05"]), "Z3")
 })

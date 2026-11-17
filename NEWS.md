@@ -29,6 +29,14 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 * Storage level targets: `storage@target` sets soft floors on the level (`af.target`, a share of storing capacity), each with a price per unit short (`cost`). Tiers stack, so a deeper tier with its own price makes draining dearer the further it goes. Reported as `vStorageShort` / `vStorageShortCost`. `varom$stgcost` may now be negative, a reward for holding a charged store.
 
+* `aggregate_model_regions()` no longer averages weather. A series is already
+  a clustered object, and the weight such a mean needs -- the resource
+  available for that grade in that province -- is not something a geoscale can
+  carry, so every fine series is preserved: the province becomes part of the
+  variant label (`HI` in `R07` becomes `HI_R07` under `Z4`) and no value is
+  touched. The objects that share those labels -- the series, the resource
+  commodity and both sides of its market -- are composed together.
+
 * `aggregate_model_regions(dryrun = TRUE)` returns a plan instead of
   aggregating: the geoframe each region-keyed slot sits at and what will happen
   to it, the `copy` columns that disagree, each corridor's fate, the clustering

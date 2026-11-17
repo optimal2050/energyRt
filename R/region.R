@@ -1967,9 +1967,56 @@ aggregate_model_regions <- function(object, geoscale = NULL, level,
     "refuse"
   }
 
+  # -- weather: preserved, not averaged -------------------------------------
+  # By ruling nothing is averaged by default, because the weight a VRE series
+  # needs is the land available for that grade in that province -- a
+  # (region, cluster) quantity a geoscale cannot carry. The series and
+  # everything sharing their variant labels are promoted instead: the province
+  # becomes part of the label and no value is touched.
+  lt_par <- as.data.frame(geoscales::geoscale_leaftable(gs))
+  par_of <- stats::setNames(as.character(lt_par[[level]]),
+                            as.character(lt_par$region))
+  wx_seed <- names(objs)[vapply(objs, function(o)
+    methods::is(o, "weather"), logical(1))]
+  wx_seed <- wx_seed[vapply(objs[wx_seed], function(o)
+    identical(.wx_level_case(o), "agg"), logical(1))]
+  promoted <- list()
+  if (length(wx_seed)) {
+    grp <- .agg_wx_closure(objs, wx_seed)
+    used <- character()
+    own_used <- list()
+    for (nm in grp) {
+      r <- .agg_promote_object(objs[[nm]], par_of)
+      promoted[[nm]] <- r$object
+      own_used[[nm]] <- r$pairs
+      used <- c(used, r$used)
+    }
+    used <- unique(used)
+    all_pairs <- unique(do.call(rbind, c(own_used, list(
+      data.frame(cluster = character(), region = character(),
+                 stringsAsFactors = FALSE)))))
+    for (nm in grp) {
+      own <- own_used[[nm]]
+      if (is.null(own) || !nrow(own)) own <- all_pairs
+      promoted[[nm]] <- .agg_wx_sync_roster(
+        promoted[[nm]], used, tier_slots = .COMMODITY_TIER_SLOTS, own = own)
+    }
+    if (isTRUE(verbose)) {
+      .say("Weather preserved: ", length(grp), " object(s) carry ",
+           length(used), " variant(s) (", paste(utils::head(grp, 6),
+           collapse = ", "), if (length(grp) > 6) ", ..." else "", ")")
+    }
+  }
+
   # -- objects that span regions: the object stays, its data moves ------------
   for (i in which(cls != "trade")) {
     o <- objs[[i]]
+    nm_i <- tryCatch(as.character(o@name)[1], error = function(e) NA_character_)
+    if (!is.na(nm_i) && nm_i %in% names(promoted)) {
+      # already at the coarse regions, as variants
+      out[[nm_i]] <- promoted[[nm_i]]
+      next
+    }
     case <- .wx_level_case(o)
     if (identical(case, "refuse")) {
       r <- unique(c(as.character(methods::slot(o, "region")),
@@ -3797,4 +3844,214 @@ print.aggregation_plan <- function(x, ...) {
   cat("\n", if (isTRUE(x$ready)) "Ready to aggregate." else
     "Not ready: the call would stop.", "\n", sep = "")
   invisible(x)
+}
+
+# =============================================================================
+# Preserving weather under a coarser region
+# =============================================================================
+# A weather series is already a clustered object: wind by site grade, solar by
+# tilt. Averaging those series across the provinces of a zone needs a weight
+# that no geoscale can carry -- the land available for THAT grade in THAT
+# province, a (region, cluster) quantity living in the resource data -- so by
+# ruling nothing is averaged by default. The series are PRESERVED instead: the
+# province becomes part of the variant label, so `(R07, HI)` under `Z4` is the
+# variant `HI_R07`, and no value is touched.
+#
+# Preserving one object is not enough. A grade is declared on the series, on
+# the land commodity and on the processes that consume both, and all of them
+# resolve `(object, cluster)` pairs at interpolation -- so every object in that
+# closure composes the same labels or the references break.
+
+# The label a (cluster, region) pair becomes. An unclustered series has no
+# label of its own, so the region code IS the variant.
+#' @noRd
+.agg_wx_label <- function(cluster, region) {
+  cl <- as.character(cluster)
+  rg <- as.character(region)
+  ifelse(is.na(cl) | !nzchar(cl), rg, paste0(cl, "_", rg))
+}
+
+# Compose every region-keyed slot of one object into variants, and move its
+# rows to the parent region. Returns the object plus the labels it now uses,
+# which the rosters of the objects it references have to declare.
+#' @noRd
+.agg_promote_object <- function(obj, par) {
+  used <- character()
+  pairs <- list()
+  for (sl in .instance_slots(obj)) {
+    if (identical(sl, "misc")) next
+    v <- tryCatch(methods::slot(obj, sl), error = function(e) NULL)
+    if (!is.data.frame(v) || !nrow(v) || !"region" %in% names(v)) next
+    reg <- as.character(v$region)
+    known <- !is.na(reg) & reg %in% names(par)
+    if (!any(known)) next
+    cl <- if ("cluster" %in% names(v)) as.character(v$cluster) else
+      rep(NA_character_, nrow(v))
+    lab <- .agg_wx_label(cl, reg)
+    if (!"cluster" %in% names(v)) v$cluster <- NA_character_
+    v$cluster[known] <- lab[known]
+    v$region[known] <- unname(par[reg[known]])
+    used <- c(used, lab[known])
+    pairs[[length(pairs) + 1L]] <- data.frame(
+      cluster = lab[known], region = v$region[known],
+      stringsAsFactors = FALSE)
+    methods::slot(obj, sl) <- v
+  }
+  # A cluster-keyed row with NO region applies to every region, so when its
+  # label splits per region the row splits with it: one row per new label,
+  # same values. Left alone it would reference a variant that no longer
+  # exists, which is what interpolation refuses.
+  used <- unique(used[!is.na(used)])
+  if (length(used)) {
+    # the labels an old one became: those that extend it, which pass 1
+    # observed on real rows -- so a grade present in five provinces does not
+    # grow twelve variants
+    kids_of <- function(c0) used[startsWith(used, paste0(c0, "_"))]
+    for (sl in .instance_slots(obj)) {
+      if (identical(sl, "misc")) next
+      v <- tryCatch(methods::slot(obj, sl), error = function(e) NULL)
+      if (!is.data.frame(v) || !nrow(v) || !"cluster" %in% names(v)) next
+      # A row with no region -- the column absent, or its value NA -- is a
+      # wildcard over every region, so pass 1 left it alone and its label is
+      # still the old one. It splits per variant and keeps the wildcard.
+      reg <- if ("region" %in% names(v)) as.character(v$region) else
+        rep(NA_character_, nrow(v))
+      cl <- as.character(v$cluster)
+      hit <- is.na(reg) & !is.na(cl) & nzchar(cl) & !cl %in% used &
+        vapply(cl, function(c0) length(kids_of(c0)) > 0L, logical(1))
+      if (!any(hit)) next
+      grown <- do.call(rbind, lapply(which(hit), function(i) {
+        kids <- kids_of(cl[i])
+        rows <- v[rep(i, length(kids)), , drop = FALSE]
+        rows$cluster <- kids
+        rows
+      }))
+      out <- rbind(v[!hit, , drop = FALSE], grown)
+      rownames(out) <- NULL
+      methods::slot(obj, sl) <- out
+    }
+  }
+  if (.hasSlot(obj, "region")) {
+    r <- as.character(methods::slot(obj, "region"))
+    hit <- !is.na(r) & r %in% names(par)
+    if (any(hit)) {
+      r[hit] <- unname(par[r[hit]])
+      methods::slot(obj, "region") <- unique(r)
+    }
+  }
+  pr <- if (length(pairs)) unique(do.call(rbind, pairs)) else
+    data.frame(cluster = character(), region = character(),
+               stringsAsFactors = FALSE)
+  list(object = obj, used = used, pairs = pr)
+}
+
+# Which objects must move together: the series, everything that references
+# them, every tiered object those reference, and everything referencing THOSE.
+# Stopping short at any step splits a market -- a plant on `LANDW_CLHI` whose
+# land supply now provides `LANDW_CLHI_R07` has no land at all.
+#' @noRd
+.agg_wx_closure <- function(objs, seeds) {
+  wx_links <- function(o) {
+    if (!.hasSlot(o, "weather")) return(character())
+    d <- tryCatch(as.data.frame(methods::slot(o, "weather")),
+                  error = function(e) NULL)
+    if (is.null(d) || !nrow(d) || !"weather" %in% names(d)) return(character())
+    unique(as.character(d$weather[!is.na(d$weather)]))
+  }
+  tiered <- names(objs)[vapply(objs, function(o) {
+    if (!.hasSlot(o, "cluster")) return(FALSE)
+    d <- tryCatch(methods::slot(o, "cluster"), error = function(e) NULL)
+    is.data.frame(d) && nrow(d) > 0L
+  }, logical(1))]
+  comm_of <- lapply(objs, function(o)
+    tryCatch(.lvl_object_comms(o, names(objs)), error = function(e) character()))
+  grp <- unique(seeds)
+  repeat {
+    add <- character()
+    for (nm in names(objs)) {
+      if (nm %in% grp) next
+      o <- objs[[nm]]
+      # references a member series, or a member tiered object
+      if (any(wx_links(o) %in% grp) ||
+          any(intersect(comm_of[[nm]], tiered) %in% grp)) {
+        add <- c(add, nm)
+      }
+    }
+    # a tiered object a member references joins too
+    for (nm in grp) {
+      add <- c(add, intersect(comm_of[[nm]], tiered), wx_links(objs[[nm]]))
+    }
+    add <- setdiff(unique(add), grp)
+    add <- intersect(add, names(objs))
+    if (!length(add)) break
+    grp <- c(grp, add)
+  }
+  grp
+}
+
+# A roster declares the authoritative variant set, so an object whose variants
+# were composed elsewhere needs its own roster extended: the parent tier's row
+# is duplicated under each new label, and the tier data slots with it.
+#' @noRd
+.agg_wx_sync_roster <- function(obj, used, tier_slots = character(),
+                                own = NULL) {
+  if (!.hasSlot(obj, "cluster")) return(obj)
+  d <- tryCatch(methods::slot(obj, "cluster"), error = function(e) NULL)
+  if (!is.data.frame(d)) return(obj)
+  if (!nrow(d) || !"cluster" %in% names(d)) {
+    # An object that declared no variants now has them: the roster is the
+    # authoritative set, so a label living only in a data slot would be read
+    # as a typo. It is created from the labels THIS object uses -- not the
+    # group's union, which would hand a hydro series the wind grades.
+    if (is.null(own) || !nrow(own)) return(obj)
+    new_tab <- unique(own[, c("cluster", "region"), drop = FALSE])
+    # a region-scoped roster carries one row per (cluster, region), which is
+    # what confines a variant to the coarse region it came from; without it the
+    # variant exists everywhere the object does and its weather link breaks
+    if (!"region" %in% names(d)) new_tab$region <- NULL
+    for (cn in setdiff(names(d), names(new_tab))) new_tab[[cn]] <- d[[cn]][0][NA]
+    methods::slot(obj, "cluster") <- new_tab[, names(d), drop = FALSE]
+    return(obj)
+  }
+  have <- unique(as.character(d$cluster))
+  new <- setdiff(used, have)
+  if (!length(new)) return(obj)
+  # the parent is the longest declared label the new one extends, so a tier
+  # named `HI` claims `HI_R07` and never `MD_R07`
+  parent_of <- function(lab) {
+    cand <- have[vapply(have, function(p)
+      startsWith(lab, paste0(p, "_")), logical(1))]
+    if (!length(cand)) NA_character_ else cand[which.max(nchar(cand))]
+  }
+  reg_of <- if (is.null(own) || !nrow(own)) character() else
+    stats::setNames(as.character(own$region), as.character(own$cluster))
+  grow <- function(tab) {
+    if (!is.data.frame(tab) || !nrow(tab) || !"cluster" %in% names(tab)) {
+      return(tab)
+    }
+    add <- lapply(new, function(lab) {
+      p <- parent_of(lab)
+      if (is.na(p)) return(NULL)
+      rows <- tab[as.character(tab$cluster) == p, , drop = FALSE]
+      if (!nrow(rows)) return(NULL)
+      rows$cluster <- lab
+      # the child belongs to the coarse region its fine region rolled into
+      if ("region" %in% names(rows) && lab %in% names(reg_of)) {
+        rows$region <- unname(reg_of[[lab]])
+        rows <- unique(rows)
+      }
+      rows
+    })
+    add <- add[!vapply(add, is.null, logical(1))]
+    if (!length(add)) return(tab)
+    out <- rbind(tab, do.call(rbind, add))
+    rownames(out) <- NULL
+    out
+  }
+  methods::slot(obj, "cluster") <- grow(d)
+  for (sl in intersect(tier_slots, .instance_slots(obj))) {
+    methods::slot(obj, sl) <- grow(tryCatch(methods::slot(obj, sl),
+                                            error = function(e) NULL))
+  }
+  obj
 }
