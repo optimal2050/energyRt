@@ -49,7 +49,7 @@ test_that("analytic equals solve on a lossy battery, per year and NPV", {
   # pass on the total alone
   m <- merge(p$a$cost_breakdown_npv, p$s$cost_breakdown_npv, by = "component")
   expect_equal(nrow(m), 4L)
-  expect_setequal(m$component, c("eac", "fixom", "varom", "supply"))
+  expect_setequal(m$component, c("eac", "fixom", "varom", "input"))
   expect_equal(m$value.x, m$value.y, tolerance = .lcs_tol)
 })
 

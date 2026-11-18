@@ -195,7 +195,7 @@
 
   list(years = years, total = total, annual_out = annual_out,
        components = list(eac = eac, fixom = fixom, varom = varom,
-                         supply = supply),
+                         input = supply),
        eac_parts = eac_parts, caps = caps,
        charged = ctx$cycles * charged)
 }
@@ -310,7 +310,7 @@
 
   list(years = years, total = unname(total), annual_out = unname(annual_out),
        components = list(eac = unname(eac), fixom = unname(fixom),
-                         varom = unname(varom), supply = unname(supply)),
+                         varom = unname(varom), input = unname(supply)),
        scen = sc)
 }
 

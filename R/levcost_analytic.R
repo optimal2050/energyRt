@@ -627,7 +627,12 @@
   cmp_raw <- list(eac    = .la_nz(years, s$eac),
                   fixom  = .la_nz(years, s$fixom),
                   varom  = .la_nz(years, s$varom),
-                  supply = .la_nz(years, s$supply))
+                  input  = .la_nz(years, s$supply))
+  # A process that consumes anything reports an input cost, zero included: a
+  # free input is priced at zero, and `.la_nz()` drops an all-zero component,
+  # which would leave the LCOE looking complete without one.
+  if (is.null(cmp_raw$input) && length(c(ctx$in_comms, ctx$aux_inp_comms)) > 0)
+    cmp_raw$input <- data.frame(year = as.integer(years), value = 0)
 
   cbd <- do.call(rbind, Filter(Negate(is.null), lapply(names(cmp_raw), function(nm) {
     d <- cmp_raw[[nm]]; if (is.null(d)) return(NULL)
@@ -1001,7 +1006,7 @@
                  share = unname(shares),
                  levcost_npv_act = sum(sv$total / dsc) / npv_act,
                  eac = comp[1], fixom = comp[2], varom = comp[3],
-                 supply = comp[4], stringsAsFactors = FALSE)
+                 input = comp[4], stringsAsFactors = FALSE)
     }
     if (ctx$has_grouped_output && length(ctx$all_out_comms) >= 2) {
       ov <- .levcost_share_vertices(ctx$share_lo[ctx$all_out_comms],

@@ -147,7 +147,7 @@ For \code{technology} input: a list of class \code{"levcost"} with fields:
 \item{\code{$levcost}}{data.frame – total levelized cost by year.}
 \item{\code{$levcost_npv}}{Named numeric – NPV-weighted average LCOE.}
 \item{\code{$cost_breakdown}}{data.frame – tidy cost components by year.
-Components: \code{eac}, \code{fixom}, \code{varom}, \code{supply},
+Components: \code{eac}, \code{fixom}, \code{varom}, \code{input},
 \code{import}, \code{export} (negative, a credit).}
 \item{\code{$cost_breakdown_npv}}{data.frame – NPV-weighted component
 breakdown.}
@@ -216,7 +216,7 @@ unit discharged, not its delivered cost; use \code{levcost()} on the
 
 A \emph{grouped} input is priced like any other: \code{vTechInp} carries the
 consumption of each member commodity separately, so a multi-fuel technology
-reports one \code{supply} component covering the blend the solver chose.
+reports one \code{input} component covering the blend the solver chose.
 What a group does not get is a share \emph{frontier} --
 \code{tech_share_frontier()} skips a group in which no commodity declares an
 explicit \code{grp.share.up} or a positive \code{grp.share.lo}, since an

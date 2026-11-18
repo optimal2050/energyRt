@@ -52,7 +52,7 @@
 #'
 #' A \emph{grouped} input is priced like any other: \code{vTechInp} carries the
 #' consumption of each member commodity separately, so a multi-fuel technology
-#' reports one \code{supply} component covering the blend the solver chose.
+#' reports one \code{input} component covering the blend the solver chose.
 #' What a group does not get is a share \emph{frontier} --
 #' \code{tech_share_frontier()} skips a group in which no commodity declares an
 #' explicit \code{grp.share.up} or a positive \code{grp.share.lo}, since an
@@ -160,7 +160,7 @@
 #'     \item{\code{$levcost}}{data.frame – total levelized cost by year.}
 #'     \item{\code{$levcost_npv}}{Named numeric – NPV-weighted average LCOE.}
 #'     \item{\code{$cost_breakdown}}{data.frame – tidy cost components by year.
-#'       Components: \code{eac}, \code{fixom}, \code{varom}, \code{supply},
+#'       Components: \code{eac}, \code{fixom}, \code{varom}, \code{input},
 #'       \code{import}, \code{export} (negative, a credit).}
 #'     \item{\code{$cost_breakdown_npv}}{data.frame – NPV-weighted component
 #'       breakdown.}
@@ -1151,10 +1151,10 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
   lcoe_npv <- if (is.finite(npv_out) && npv_out > 0) npv_cost / npv_out else NA_real_
 
   comp$levcost <- ifelse(comp$output > 0, comp$total / comp$output, NA_real_)
-  # component name "supply" matches the technology levcost / autoplot convention
+  # component name "input" matches the technology levcost / autoplot convention
   breakdown <- data.frame(
     year = rep(comp$year, 4),
-    component = rep(c("eac", "fixom", "varom", "supply"), each = nrow(comp)),
+    component = rep(c("eac", "fixom", "varom", "input"), each = nrow(comp)),
     value = c(comp$eac, comp$fixom, comp$varom, comp$fuel), stringsAsFactors = FALSE)
   bd_npv <- aggregate(value ~ component,
     transform(breakdown, value = value / rep((1 + discount)^(comp$year - base_year), 4)),
@@ -1590,7 +1590,7 @@ levcost_chain_ <- function(
       sup <- agg_yr(sfget("vSupCost"))
       if (is.null(sup)) return(NULL)
       data.frame(tech = "supply", chain = chain_name, comm = norm_comm, region = region,
-                 year = as.integer(sup$year), component = "supply", value = sup$value,
+                 year = as.integer(sup$year), component = "input", value = sup$value,
                  stringsAsFactors = FALSE)
     }))
   ))
@@ -2791,7 +2791,13 @@ Price it with `timeframe = \"native\"` and a matching `calendar = `.",
     cmp_raw <- list(eac = agg_yr(sfget("vTechEac")),
                     fixom = fixom_val,
                     varom = varom_val,
-                    supply = agg_yr(sfget("vSupCost")))
+                    input = agg_yr(sfget("vSupCost")))
+    # A process that consumes anything reports an input cost, zero included.
+    # A free input is priced at zero, and `cost = 0` equals pSupCost's default,
+    # so the row is pruned and no vSupCost cell exists to read it back from --
+    # without this the component is absent and the LCOE looks complete.
+    if (is.null(cmp_raw$input) && length(c(in_comms, aux_inp_comms)) > 0)
+      cmp_raw$input <- data.frame(year = as.integer(tc_df$year), value = 0)
     # NB: vDummyImportCost is the backstop slack and is deliberately excluded — it
     # is not part of the technology's own levelized cost.
     ex <- sfget("vExportRowCost")
@@ -2813,7 +2819,7 @@ Price it with `timeframe = \"native\"` and a matching `calendar = `.",
     cost_yearly <- data.frame(tech = tech_name, group = group_val,
                               region = region, year = as.integer(tc_df$year),
                               total = tc_df$value, stringsAsFactors = FALSE)
-    for (cnm in c("eac", "fixom", "varom", "supply", "import", "export")) {
+    for (cnm in c("eac", "fixom", "varom", "input", "import", "export")) {
       d <- cmp_raw[[cnm]]
       if (!is.null(d) && nrow(d) > 0) {
         dd <- data.frame(year = as.integer(d$year), v__ = d$value, stringsAsFactors = FALSE)
@@ -3384,11 +3390,11 @@ print.share_frontier_plots <- function(x, ...) {
 # with the fully-qualified S3method(ggplot2::autoplot, <class>) form (delayed
 # registration, no hard ggplot2 dependency). Users call it via library(ggplot2).
 
-.levcost_comp_order  <- c("eac", "fixom", "varom", "supply", "import", "export")
+.levcost_comp_order  <- c("eac", "fixom", "varom", "input", "import", "export")
 .levcost_comp_labels <- c(eac    = "EAC (Annualised Inv.)",
                            fixom  = "Fixed O&M",
                            varom  = "Variable O&M",
-                           supply = "Supply / Fuel",
+                           input  = "Input cost",
                            import = "Import",
                            export = "Export (credit)")
 

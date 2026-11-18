@@ -34,7 +34,7 @@ test_that("analytic equals solve on a plain technology, per year and NPV", {
              by = "component")
   expect_equal(m$value.x, m$value.y, tolerance = .lc_tol)
   # same wide table shape: components + activity/capacity + flows
-  expect_true(all(c("eac", "fixom", "varom", "supply", "activity",
+  expect_true(all(c("eac", "fixom", "varom", "input", "activity",
                     "capacity", "out_ELC", "inp_GAS") %in%
                     names(p$a$cost_yearly)))
 })
