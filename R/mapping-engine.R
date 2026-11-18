@@ -1043,7 +1043,7 @@ recipe_value <- function(scen, names, fmp) {
   # that constrains nothing is the defect this closes -- while a reservoir-only
   # storage keeps no charging bound and charges at whatever rate its level
   # allows. Outside the membership the map stays conditional, which is why
-  # `pStorageInpAf` carries `dropIfEmpty: false`.
+  # both `pStorageInpAf` and `pStorageOutAf` carry `dropIfEmpty: false`.
   #
   # The discharging part is optional in the same way (`mStorageOutCap`): the
   # reservoir is the storage's anchor, so a storage without a discharger

@@ -19,7 +19,8 @@
 
 pr_slices <- paste0("s", 1:4)
 
-pr_build <- function(storage_args = list(), ...) {
+pr_build <- function(storage_args = list(), regions = "R1",
+                     periods = 2025L, ...) {
   stg <- do.call(newStorage, c(list(
     name = "STG", commodity = "ELC",
     input = list(comm = "ELC", cap2act = 1),
@@ -36,11 +37,13 @@ pr_build <- function(storage_args = list(), ...) {
                 demand = data.frame(timeslice = "s3", demand = 8))),
     calendar = newCalendar(timetable = make_timetable(
       struct = list(ANNUAL = "ANNUAL", SL = pr_slices)), name = "pr_cal"),
-    region = "R1", horizon = newHorizon(2025), discount = 0)
+    region = regions, horizon = newHorizon(period = periods), discount = 0)
 }
 
-pr_interp <- function(nm, storage_args, ...) suppressMessages(suppressWarnings(
-  interpolate_model(pr_build(storage_args), name = nm, overwrite = TRUE, ...)))
+pr_interp <- function(nm, storage_args, regions = "R1", periods = 2025L, ...)
+  suppressMessages(suppressWarnings(interpolate_model(
+    pr_build(storage_args, regions = regions, periods = periods),
+    name = nm, overwrite = TRUE, ...)))
 
 pr_rows <- function(scen, map) {
   d <- tryCatch(energyRt:::.gds(scen, map), error = function(e) NULL)
@@ -120,6 +123,50 @@ test_that("storage-part-rule: a link sizes both of its ends", {
                          inp2stg = data.frame(inp2stg.fx = 1)))
   expect_gte(pr_rows(scen, "mStorageInpCap"), 1)
   expect_equal(pr_unsized(scen, "mStorageInpCap"), 0L)
+})
+
+pr_cells <- function(scen, map) {
+  d <- tryCatch(energyRt:::.gds(scen, map), error = function(e) NULL)
+  if (is.null(d)) character(0) else sort(unique(paste0(d$region, ":", d$year)))
+}
+
+# @covers mStorageInpCap depth=I backends=glpk
+test_that("storage-part-rule: a declaration names its own cells, not every cell", {
+  # one rule per axis, the same one every key column follows: NA means every
+  # member, a concrete value means that one. `R1` does not declare `R2`.
+  reg <- pr_interp("pr_reg", list(
+    invcost = pr_rsv,
+    capacity = data.frame(region = "R1", inp.cap.up = 5)),
+    regions = c("R1", "R2"))
+  expect_true(all(startsWith(pr_cells(reg, "mStorageInpCap"), "R1:")))
+  expect_false(any(startsWith(pr_cells(reg, "mStorageInpCap"), "R2:")))
+
+  yr <- pr_interp("pr_yr", list(
+    invcost = pr_rsv,
+    capacity = data.frame(year = 2035L, inp.cap.up = 5)),
+    periods = c(2025L, 2035L))
+  expect_equal(pr_cells(yr, "mStorageInpCap"), "R1:2035")
+
+  # the same declaration without a key is a wildcard and covers the window
+  all_ <- pr_interp("pr_wild", list(invcost = pr_rsv,
+                                    capacity = data.frame(inp.cap.up = 5)))
+  expect_equal(length(pr_cells(all_, "mStorageInpCap")),
+               length(pr_cells(all_, "mStorageSpan")))
+})
+
+# @covers mStorageInpCap depth=I backends=glpk
+test_that("storage-part-rule: the advisory is per cell, not per storage", {
+  # sized in R1, declared everywhere by the af: R2's charger is free, and a
+  # per-object test would have let R1's bound answer for it
+  scen <- pr_interp("pr_mixed", list(
+    invcost = pr_rsv,
+    af = data.frame(inp.af.up = 0.5),
+    capacity = data.frame(region = "R1", inp.cap.up = 5)),
+    regions = c("R1", "R2"))
+  expect_true(any(startsWith(pr_cells(scen, "mStorageInpCap"), "R2:")))
+  expect_equal(pr_unsized(scen, "mStorageInpCap"), 1L)
+  d <- as.data.frame(validate_scenario_parameters(scen, action = "silent"))
+  expect_match(d$detail[d$check == "unsized_part"], "cell\\(s\\) of 1 object")
 })
 
 # @covers mStorageInpCap depth=I backends=glpk

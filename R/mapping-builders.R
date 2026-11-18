@@ -2718,23 +2718,38 @@ map_mStorageFixom <- function(scen, fmp) .value_std(scen, "mStorageFixom", fmp)
 # a declared zero included) is still needed: `.check_storage_parts()` stops on a
 # reservoir nothing determines. The data rule is the one this map used before the
 # anchor move, evaluated on a scratch copy and kept in `@misc`.
-# A part the OBJECT declares exists over the storage's whole window, even where
-# the default-value rule left its parameters with no rows. Unions onto the value
-# domain the sources built, so a part is never lost, only added.
+# A part exists at the cells its own parameters name -- including the cells the
+# default-value rule emptied, which is what the pre-drop shadow restores. One
+# rule per axis: a declaration for `R1` declares `R1`, not `R2`; a key left NA
+# means every member; a year spreads exactly as that parameter's interpolation
+# rule spread it. Unions onto the value domain the sources built, so a cell is
+# never lost, only added.
 .map_part_declared <- function(scen, name, part, window, fmp) {
-  stg <- .storage_part_declared(scen, part)
-  if (!length(stg)) return(scen)
   win <- .gds(scen, window)
   if (is.null(win) || !nrow(win) || !"stg" %in% colnames(win)) return(scen)
-  more <- win[as.character(win$stg) %in% stg, , drop = FALSE]
-  if (!nrow(more)) return(scen)
+  win <- as.data.frame(win)
+  cells <- .part_cells(.part_shadow(scen, .storage_part_params(part)), win)
+  wild <- .storage_part_wild(scen, part)
+  if (length(wild)) {
+    cells <- dplyr::bind_rows(
+      cells, win[as.character(win$stg) %in% wild, , drop = FALSE])
+    cells <- dplyr::distinct(cells)
+  }
+  # the cells something SIZES, kept for the `unsized_part` advisory
+  sized <- .part_cells(.part_shadow(scen, .storage_part_params(part, sizing = TRUE)),
+                       win)
+  sz <- scen@misc$.part_sized
+  if (!is.list(sz)) sz <- list()
+  sz[[name]] <- sized
+  scen@misc$.part_sized <- sz
+  if (is.null(cells) || !nrow(cells)) return(scen)
   cur <- .gds(scen, name)
   out <- if (is.null(cur)) {
-    more
+    cells
   } else {
-    k <- intersect(colnames(cur), colnames(more))
+    k <- intersect(colnames(cur), colnames(cells))
     dplyr::distinct(dplyr::bind_rows(cur[, k, drop = FALSE],
-                                     more[, k, drop = FALSE]))
+                                     cells[, k, drop = FALSE]))
   }
   .set_map(scen, name, as.data.frame(out), fmp)
 }
@@ -2874,6 +2889,88 @@ map_mStorageVarom <- function(scen, fmp) .value_std(scen, "mStorageVarom", fmp)
 # The four maps whose domain is "the sources OR a declaration on the object".
 .storage_part_maps <- c("mStorageInpCap", "mStorageInpNew",
                         "mStorageOutCap", "mStorageOutNew")
+
+# The parameters belonging to each part, derived from the catalogue so a new
+# `inp.` / `out.` column cannot be forgotten here. `cap2act` falls out for
+# free: it sits on the role slot as `cap2act`, never as `<part>.cap2act`.
+# `sizing` keeps the ones that can DETERMINE the capacity; the ratio links
+# belong to both of the parts they tie together.
+.storage_pp_cache <- new.env(parent = emptyenv())
+.storage_part_links <- function(part) switch(part,
+  inp = c("pStorageInp2out", "pStorageInp2stg"),
+  out = c("pStorageInp2out", "pStorageDuration"),
+  stg = c("pStorageInp2stg", "pStorageDuration"),
+  character(0))
+
+.storage_part_params <- function(part, sizing = FALSE) {
+  key <- paste0(part, if (sizing) ".sized" else ".all")
+  hit <- .storage_pp_cache[[key]]
+  if (!is.null(hit)) return(hit)
+  mi <- .modInp
+  nm <- names(mi)
+  pre <- paste0("^", part, "[.]")
+  keep <- vapply(nm, function(n) {
+    p <- mi[[n]]
+    if (!identical(p$class, "storage")) return(FALSE)
+    cn <- p$colName
+    if (length(cn) != 1L || is.na(cn) || !grepl(pre, cn)) return(FALSE)
+    !isTRUE(sizing) || grepl(.storage_size_re, sub(pre, "", cn))
+  }, logical(1))
+  out <- c(nm[keep], .storage_part_links(part))
+  .storage_pp_cache[[key]] <- out
+  out
+}
+
+# The pre-drop key domains recorded by `interpolate_parameters()`, unioned.
+.part_shadow <- function(scen, params) {
+  dom <- scen@misc$.part_domain
+  if (!is.list(dom) || !length(dom)) return(NULL)
+  d <- dplyr::bind_rows(dom[intersect(params, names(dom))])
+  if (!NROW(d)) NULL else dplyr::distinct(d)
+}
+
+# Shadow cells -> window cells. A key a row leaves NA means every member of
+# that dimension (the standing wildcard rule), so each row joins the window on
+# the columns it actually names.
+.part_cells <- function(dom, win) {
+  if (is.null(dom) || !nrow(dom)) return(NULL)
+  keys <- intersect(c("stg", "region", "year"), colnames(dom))
+  if (!length(keys)) return(NULL)
+  na_tag <- apply(is.na(dom[, keys, drop = FALSE]), 1L,
+                  function(z) paste(keys[z], collapse = ","))
+  out <- NULL
+  for (g in split(seq_len(nrow(dom)), na_tag)) {
+    wild <- strsplit(na_tag[g[1]], ",", fixed = TRUE)[[1]]
+    by <- setdiff(keys, wild)
+    if (!length(by)) return(dplyr::distinct(win))
+    k <- dplyr::distinct(dom[g, by, drop = FALSE])
+    out <- dplyr::bind_rows(out, dplyr::inner_join(win, k, by = by))
+  }
+  if (is.null(out) || !nrow(out)) NULL else dplyr::distinct(out)
+}
+
+# A part parameter with no `region`/`year` dimension names no cell at all, so
+# it claims every cell of the window. `interpolate_parameters()` skips such a
+# parameter (it has no year axis to interpolate), so it leaves no shadow and is
+# read from the object instead -- the weather factors are the only ones.
+.storage_part_wild <- function(scen, part) {
+  objs <- tryCatch(getObjects(scen@model, class = "storage"),
+                   error = function(e) NULL)
+  if (!length(objs)) return(character(0))
+  pre <- paste0("^", part, "[.]")
+  keep <- vapply(objs, function(o) {
+    df <- .stg_slot_df(o, "weather")
+    !is.null(df) && .stg_any(df, grep(pre, colnames(df), value = TRUE))
+  }, logical(1))
+  if (!any(keep)) return(character(0))
+  base <- unique(vapply(objs[keep], function(o) as.character(o@name),
+                        character(1)))
+  v <- tryCatch(as.data.frame(scen@modInp@sets$variant), error = function(e) NULL)
+  if (is.null(v) || !nrow(v) || !all(c("name", "base") %in% colnames(v))) {
+    return(base)
+  }
+  union(base, as.character(v$name[as.character(v$base) %in% base]))
+}
 
 .stg_slot_df <- function(o, sl) {
   d <- tryCatch(methods::slot(o, sl), error = function(e) NULL)

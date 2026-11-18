@@ -93,9 +93,12 @@ test_that("family storage-power-bound: the flow availabilities default to 1", {
   mi <- getFromNamespace(".modInp", "energyRt")
   expect_equal(as.numeric(unlist(mi$pStorageInpAf$defVal)), c(0, 1))
   expect_equal(as.numeric(unlist(mi$pStorageOutAf$defVal)), c(0, 1))
-  # the charging map is conditional outside `mStorageInpCap`, so its declared
-  # default-valued rows must survive the `sparse` prune
+  # both flow maps are conditional outside their part's membership, so their
+  # declared default-valued rows must survive the `sparse` prune -- the
+  # `structural_in` contract at R/mapping-engine.R requires it of both
   expect_false(isTRUE(mi$pStorageInpAf$dropIfEmpty))
+  expect_false(isTRUE(mi$pStorageOutAf$dropIfEmpty))
+  expect_identical(mi$pStorageInpAf$dropIfEmpty, mi$pStorageOutAf$dropIfEmpty)
 })
 
 # @covers pStorageInpAf pStorageOutAf eqStorageInpUp eqStorageOutUp depth=I backends=glpk

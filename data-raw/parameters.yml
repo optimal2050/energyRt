@@ -1932,6 +1932,7 @@ pStorageOutAf:
   - year
   - timeslice
   type: bounds
+  dropIfEmpty: false
   defVal:
   - 0.0
   - 1.0

@@ -3137,17 +3137,29 @@ validate_scenario_parameters <- function(object, fold = TRUE,
          how = "inp.invcost, inp.cap.up, inp2stg or inp2out"),
     list(part = "out", map = "mStorageOutCap", what = "discharger",
          how = "out.invcost, out.cap.up, duration or inp2out"))) {
-    have <- .members(pt$map, "stg")
-    if (is.null(have) || length(have) == 0) next
-    sized <- tryCatch(.storage_part_declared(object, pt$part, sized = TRUE),
-                      error = function(e) character(0))
-    free <- setdiff(have, sized)
-    if (length(free) == 0) next
+    mpar <- object@modInp@parameters[[pt$map]]
+    md <- if (is.null(mpar)) NULL else get_data_slot(mpar)
+    if (is.null(md) || nrow(md) == 0) next
+    md <- as.data.frame(md)
+    key <- intersect(c("stg", "region", "year"), colnames(md))
+    if (!length(key)) next
+    sized <- tryCatch(object@misc$.part_sized[[pt$map]], error = function(e) NULL)
+    free <- if (is.null(sized) || !NROW(sized)) {
+      dplyr::distinct(md[, key, drop = FALSE])
+    } else {
+      dplyr::anti_join(dplyr::distinct(md[, key, drop = FALSE]),
+                       dplyr::distinct(as.data.frame(sized)[, key, drop = FALSE]),
+                       by = key)
+    }
+    if (!NROW(free)) next
+    # named per cell, because a part priced in one region and free in another is
+    # exactly the case a per-object test misses
+    who <- unique(as.character(free$stg))
     add(pt$map, "unsized_part",
         paste0(pt$what, " capacity is declared but nothing sizes it, so an af ",
-               "bound on it constrains nothing -- give it ", pt$how, " -- for ",
-               length(free), " object(s): ",
-               paste(utils::head(free, 5), collapse = ", ")))
+               "bound on it constrains nothing -- give it ", pt$how, " -- at ",
+               NROW(free), " cell(s) of ", length(who), " object(s): ",
+               paste(utils::head(who, 5), collapse = ", ")))
   }
 
   # Variant provenance: `sets$variant` is the authoritative map from a minted
@@ -3402,6 +3414,20 @@ interpolate_parameters <- function(scen, drop_default = FALSE, params = NULL) {
   if (length(milestones) == 0) {
     stop("Milestone years (scen@modInp@sets$year) are not defined.")
   }
+  # Storage parts are structure-follows-data, and the structure is decided after
+  # this function has removed every default-valued row -- so the keys of those
+  # rows are recorded before the drop. Interpolation has already run, so a year
+  # has spread exactly as the parameter's own rule spread it, and a key left NA
+  # is still NA, i.e. still a wildcard.
+  .part_par <- unique(c(.storage_part_params("inp"), .storage_part_params("out")))
+  .pd <- list()
+  .pd_add <- function(pn, d) {
+    k <- intersect(c("stg", "region", "year"), colnames(d))
+    if (!("stg" %in% k) || !nrow(d)) return(invisible(NULL))
+    .pd[[pn]] <<- dplyr::distinct(dplyr::bind_rows(
+      .pd[[pn]], dplyr::distinct(as.data.frame(d)[, k, drop = FALSE])))
+    invisible(NULL)
+  }
 
   for (pn in .param_subset(scen, params)) {
     param <- scen@modInp@parameters[[pn]]
@@ -3417,6 +3443,12 @@ interpolate_parameters <- function(scen, drop_default = FALSE, params = NULL) {
     # A partially-wildcarded key column is broadcast here, so the wildcard rows
     # join the series they qualify instead of becoming a parallel one.
     raw <- .expand_partial_wildcards(scen, raw, param@dimSets, pname = pn)
+    # The DECLARED cells of a storage part, recorded before interpolation fills
+    # the rest with defaults and the drop removes them again. It has to be the
+    # raw row: once interpolation has run, a cell the user wrote at the default
+    # and a cell the fill invented are the same number. A key left NA is still
+    # a wildcard here, so `region = "R1"` declares R1 and nothing else.
+    if (pn %in% .part_par) .pd_add(pn, raw)
 
     # Per-parameter override of the global `drop_default`. A parameter may set
     # `@misc$dropIfEmpty` (from the `dropIfEmpty` field in parameters.yml) to force
@@ -3578,6 +3610,14 @@ Declare one bound per key.
     .interp_param_tick(pn, as.numeric(Sys.time() - .tick0, units = "secs"))
   }
 
+  # Merge rather than replace: `params = ` re-interpolates a subset, and the
+  # parts not touched keep the domain recorded for them earlier.
+  if (length(.pd)) {
+    prev <- scen@misc$.part_domain
+    if (!is.list(prev)) prev <- list()
+    prev[names(.pd)] <- .pd
+    scen@misc$.part_domain <- prev
+  }
   scen
 }
 
