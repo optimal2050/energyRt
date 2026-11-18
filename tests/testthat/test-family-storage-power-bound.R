@@ -20,11 +20,16 @@
 #   - both converters are OPTIONAL (the reservoir is the anchor, 2026-10-17):
 #     `meqStorageInpUp` / `meqStorageOutUp` are `structural_in` their part's
 #     map (`mStorageInpCap` / `mStorageOutCap`), structural wherever the part
-#     has data (any of stock / cap / ncap / invcost / eac / fixom on the
-#     `inp.` / `out.` part). A reservoir-only storage keeps no flow bound
-#     beyond its level;
-#   - `inp.af` / `out.af` declared on a storage without that part is an
-#     interpolation error;
+#     exists. A storage declaring nothing on `inp.` / `out.` keeps no flow
+#     bound beyond its level;
+#   - a part exists wherever the OBJECT declares ANY `inp.` / `out.` column
+#     (2026-11-18), read from the object rather than from the interpolated
+#     parameters, so a deliberate `inp.invcost = 0` or `inp.cap.up = Inf`
+#     counts. `inp.eff` counts too, being an `inp.` column; `stg.eff` speaks
+#     for the reservoir alone. A part nothing SIZES -- declared only by an
+#     `af`, a weather factor, a flow cost, an aux coupling, a retirement bound
+#     or an annuity rate -- is sized freely by the LP, which the
+#     `unsized_part` advisory names;
 #   - `inp.af.up = Inf` / `out.af.up = Inf` declared explicitly still remove the
 #     equation (the open-side anti-join in `.build_constraint_join_map`), and
 #     the `free_meal` advisory then names it.
@@ -39,7 +44,8 @@ pb_cal <- function() newCalendar(
 # cap2act = 1 keeps the arithmetic readable: the per-slice allowance is
 # capacity * share = capacity / 4.
 pb_build <- function(..., capacity = data.frame(), invcost = data.frame(stg.invcost = 0),
-                     af = data.frame(), inp2out = data.frame()) {
+                     af = data.frame(), inp2out = data.frame(),
+                     seff = data.frame(inp.eff = 1, out.eff = 1)) {
   newModel("pb",
     repo = newRepository("pb_repo",
       newCommodity("ELC", timeframe = "SL"),
@@ -51,8 +57,7 @@ pb_build <- function(..., capacity = data.frame(), invcost = data.frame(stg.invc
                  output = list(comm = "ELC", cap2act = 1),
                  olife = data.frame(olife = 30),
                  capacity = capacity, invcost = invcost, af = af,
-                 inp2out = inp2out,
-                 seff = data.frame(inp.eff = 1, out.eff = 1)),
+                 inp2out = inp2out, seff = seff),
       newDemand("DEM", commodity = "ELC",
                 demand = data.frame(timeslice = "s3", demand = 8))),
     calendar = pb_cal(), region = "R1", horizon = newHorizon(2025),
@@ -100,8 +105,9 @@ test_that("family storage-power-bound: a priced charger is rated without any `af
   # the charging part exists, so both flow bounds are instantiated
   expect_gte(pb_rows(scen, "mStorageInpCap"), 1)
   expect_gte(pb_rows(scen, "meqStorageInpUp"), 1)
-  # no discharger declared: no discharging bound
-  expect_equal(pb_rows(scen, "meqStorageOutUp"), 0L)
+  # the discharger is declared too -- `out.eff` is an `out.` column, and any
+  # declaration on a part brings that part into being
+  expect_gte(pb_rows(scen, "meqStorageOutUp"), 1)
   # nothing was written into the parameter: the declared default carries the 1
   expect_equal(pb_bound_rows(scen, "pStorageInpAf", "up"), 0L)
   # and the coverage check does not read that as a missing value
@@ -126,25 +132,49 @@ test_that("family storage-power-bound: `inp.af.up = Inf` is the explicit opt-out
 })
 
 # @covers pStorageInpAf depth=I backends=glpk
-test_that("family storage-power-bound: a reservoir-only storage keeps no flow bound", {
-  scen <- pb_interp("pb_rsv")                       # no inp capacity driver
+test_that("family storage-power-bound: a storage declaring nothing on a part keeps no flow bound", {
+  # `seff` is what declared the parts in every other case here; with it empty
+  # the storage says nothing about either converter
+  scen <- pb_interp("pb_rsv", seff = data.frame())
   expect_equal(pb_rows(scen, "mStorageInpCap"), 0L)
   expect_gte(pb_rows(scen, "mvStorageInp"), 1)      # the flow does exist
   expect_equal(pb_rows(scen, "meqStorageInpUp"), 0L)
   expect_equal(pb_rows(scen, "mStorageOutCap"), 0L)
   expect_equal(pb_rows(scen, "meqStorageOutUp"), 0L)
-  # no charger was declared, so nothing is missing -- no advisory either
+  # nothing was declared, so nothing is missing -- no advisory either
   iss <- pb_issues(scen)
   expect_equal(nrow(iss[iss$parameter == "meqStorageInpUp", , drop = FALSE]), 0L)
+  expect_equal(nrow(iss[iss$check == "unsized_part", , drop = FALSE]), 0L)
 })
 
 # @covers pStorageInpAf eqStorageInpUp depth=I backends=glpk
-test_that("family storage-power-bound: a bound declared without a charger is an error", {
-  # there is no charger rating for the availability to scale
-  expect_error(pb_interp("pb_declared", af = data.frame(inp.af.up = 0.5)),
-               "no charger")
-  expect_error(pb_interp("pb_declared_out", af = data.frame(out.af.up = 0.5)),
-               "no discharger")
+test_that("family storage-power-bound: a part declared but not sized builds, and is named", {
+  # an `af` is a declaration on the part, so the part exists -- but nothing
+  # fixes its size, so the LP sets it freely and the bound constrains nothing
+  scen <- pb_interp("pb_declared", af = data.frame(inp.af.up = 0.5))
+  expect_gte(pb_rows(scen, "mStorageInpCap"), 1)
+  expect_gte(pb_rows(scen, "meqStorageInpUp"), 1)
+  iss <- pb_issues(scen)
+  un <- iss[iss$check == "unsized_part" & iss$parameter == "mStorageInpCap", ]
+  expect_equal(nrow(un), 1L)
+  expect_match(un$detail, "charger capacity is declared but nothing sizes it")
+  expect_equal(nrow(iss[iss$severity == "structural", , drop = FALSE]), 0L)
+
+  # a price sizes it, and the advisory goes quiet
+  sized <- pb_interp("pb_sized", af = data.frame(inp.af.up = 0.5),
+                     invcost = data.frame(inp.invcost = 10, stg.invcost = 0))
+  iss2 <- pb_issues(sized)
+  expect_equal(nrow(iss2[iss2$check == "unsized_part" &
+                           iss2$parameter == "mStorageInpCap", , drop = FALSE]), 0L)
+})
+
+# @covers pStorageInpEff depth=I backends=glpk
+test_that("family storage-power-bound: `stg.eff` speaks for the reservoir alone", {
+  # the part prefix is the whole rule: a reservoir efficiency must not mint a
+  # charger or a discharger
+  scen <- pb_interp("pb_stgeff", seff = data.frame(stg.eff = 0.99))
+  expect_equal(pb_rows(scen, "mStorageInpCap"), 0L)
+  expect_equal(pb_rows(scen, "mStorageOutCap"), 0L)
 })
 
 # @covers pStorageInpAf vStorageInp eqStorageInpUp depth=S backends=glpk

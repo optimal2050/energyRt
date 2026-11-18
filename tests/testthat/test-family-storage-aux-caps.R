@@ -64,14 +64,13 @@ test_that("family storage-aux-caps: couplings land iff the part is materialised"
     name = "sc_i", overwrite = TRUE)))
   expect_equal(unique(ff_param(scen, "pStorageStgNCap2AInp")$value), 0.1)
   expect_gte(nrow(ff_param(scen, "mStorageStgNCap2AInp")), 1)
-  # no charger (no inp.* data): no vStorageInpCap, so its coupling is dropped
-  # (with a warning) and no map rows are emitted
-  expect_warning(
-    scen2 <- suppressMessages(interpolate_model(
-      sc_build(data.frame(acomm = "WAT", inp.ncap2ainp = 0.1)),
-      name = "sc_i2", overwrite = TRUE)),
-    "no capacity variable")
-  expect_equal(nrow(ff_param(scen2, "mStorageInpNCap2AInp")), 0)
+  # an aux coupling is itself a declaration on the charger (2026-11-18), so the
+  # part exists and the coupling lands instead of being dropped with a warning
+  scen2 <- suppressMessages(suppressWarnings(interpolate_model(
+    sc_build(data.frame(acomm = "WAT", inp.ncap2ainp = 0.1)),
+    name = "sc_i2", overwrite = TRUE)))
+  expect_gte(NROW(ff_param(scen2, "mStorageInpNCap2AInp")), 1)
+  expect_gte(NROW(ff_param(scen2, "mStorageInpCap")), 1)
 })
 
 # @covers pStorageStgNCap2AInp vStorageAInp eqStorageAInp depth=S backends=glpk

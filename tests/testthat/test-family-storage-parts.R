@@ -20,10 +20,10 @@
 #     parts -- deliberate: "one storage, one lifetime and one wacc").
 #     out.wacc = 0.1: EAC = 300 * 0.1/(1 - 1.1^-30) = 31.824/unit -> obj 328.24
 #     out.payback = 10: EAC = 300/10 = 30/unit -> obj 310.
-#   - KNOWN GAP (pinned): inp./stg. wacc and payback columns are accepted and
-#     interpolated into pStorageInpWacc/StgWacc/InpPayback/StgPayback but
-#     NEVER read -- the EAC keeps invcost/olife. Either honour them per part
-#     or refuse the columns; until then the pin documents the silent ignore.
+#   - per-part wacc and payback ARE honoured: `inp.wacc` annuitises the charger
+#     at its own rate and `inp.payback` recovers it over its own life, with the
+#     storage-wide `out.*` carrier as the fallback. (This note recorded the
+#     opposite as a KNOWN GAP long after the tests below closed it.)
 # =========================================================================== #
 
 pt_slices <- paste0("s", 1:4)

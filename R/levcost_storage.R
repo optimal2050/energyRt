@@ -71,33 +71,10 @@
 #' Structure follows data: a part carrying nothing but a commodity gets no
 #' capacity variable, so its `invcost`/`fixom` never enter the objective. The
 #' analytic path must mirror that or it would price capacity the solver never
-#' builds. `out` always exists.
+#' builds. One predicate, shared with the mapping layer, so the two agree.
 #' @noRd
 .lcs_has_part <- function(object, part) {
-  if (identical(part, "out")) return(TRUE)
-  cost_cols <- paste0(part, c(".invcost", ".fixom"))
-  for (sl in c("invcost", "fixom")) {
-    d <- methods::slot(object, sl)
-    for (cc in intersect(cost_cols, names(d)))
-      if (nrow(d) > 0 && any(!is.na(d[[cc]]))) return(TRUE)
-  }
-  cap <- object@capacity
-  pref <- paste0(part, ".")
-  cc <- grep(paste0("^", pref), names(cap), value = TRUE)
-  if (nrow(cap) > 0 && length(cc) > 0 &&
-      any(vapply(cc, function(k) any(!is.na(cap[[k]])), logical(1)))) return(TRUE)
-  # A declared part slot with more than a bare DECLARATION also materialises it.
-  # `comm`, `unit` and `cap2act` are declaration: `cap2act` is populated on
-  # every part by the constructor, so counting it would make every part look
-  # priced and defeat the check.
-  sl <- switch(part, inp = "input", stg = "storage")
-  d <- methods::slot(object, sl)
-  if (nrow(d) > 0) {
-    extra <- setdiff(names(d), c("comm", "unit", "cap2act"))
-    if (any(vapply(extra, function(k) any(!is.na(d[[k]])), logical(1))))
-      return(TRUE)
-  }
-  FALSE
+  nzchar(.storage_part_decl(object, part))
 }
 
 # Share of the year the representative cycle charges (and discharges) in.
@@ -269,13 +246,28 @@
                         timeslice = "DIS", demand = 1,
                         stringsAsFactors = FALSE))
 
-  comms <- lapply(unique(c(inp_comm, out_comm)), function(cm)
+  # the STORED commodity is declared too: a store whose reservoir medium is
+  # neither its input nor its output (electricity into a battery stock out as
+  # vehicle-km) would otherwise reference a name the mini-model never declares
+  stg_comm <- tryCatch(as.character(object@storage$comm)[1],
+                       error = function(e) NA_character_)
+  if (length(stg_comm) != 1L || is.na(stg_comm) || !nzchar(stg_comm)) {
+    stg_comm <- character(0)
+  }
+  comms <- lapply(unique(c(inp_comm, out_comm, stg_comm)), function(cm)
     newCommodity(name = cm, timeframe = "CYCLE"))
 
   repo <- do.call(newRepository, c(list(name = ".LCS_REPO"), comms,
                                    list(sup, dem, object)))
   mdl <- newModel(name = ".LCS", region = region, discount = ctx$discount,
                   calendar = cal, horizon = ctx$horizon, data = repo)
+  # The mini-model's calendar IS one representative cycle (`year_fraction =
+  # 1 / cycles`), not a sample of a larger calendar, so it has no gaps for the
+  # storage chain to cross and nothing to reference: keep the gap machinery,
+  # and its no-reference warning, out of an internal two-slice solve.
+  .bg_prev <- options::opt("bridge_storage_gaps")
+  options(energyRt.bridge_storage_gaps = TRUE)
+  on.exit(options(energyRt.bridge_storage_gaps = .bg_prev), add = TRUE)
   sc <- solve(mdl, name = ".LCS_RUN", solver = ctx$solver, transient = TRUE,
               path = .levcost_scratch_path(".LCS_RUN"), verbose = FALSE)
   if (!isTRUE(sc@status$optimal))

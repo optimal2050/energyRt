@@ -2718,6 +2718,27 @@ map_mStorageFixom <- function(scen, fmp) .value_std(scen, "mStorageFixom", fmp)
 # a declared zero included) is still needed: `.check_storage_parts()` stops on a
 # reservoir nothing determines. The data rule is the one this map used before the
 # anchor move, evaluated on a scratch copy and kept in `@misc`.
+# A part the OBJECT declares exists over the storage's whole window, even where
+# the default-value rule left its parameters with no rows. Unions onto the value
+# domain the sources built, so a part is never lost, only added.
+.map_part_declared <- function(scen, name, part, window, fmp) {
+  stg <- .storage_part_declared(scen, part)
+  if (!length(stg)) return(scen)
+  win <- .gds(scen, window)
+  if (is.null(win) || !nrow(win) || !"stg" %in% colnames(win)) return(scen)
+  more <- win[as.character(win$stg) %in% stg, , drop = FALSE]
+  if (!nrow(more)) return(scen)
+  cur <- .gds(scen, name)
+  out <- if (is.null(cur)) {
+    more
+  } else {
+    k <- intersect(colnames(cur), colnames(more))
+    dplyr::distinct(dplyr::bind_rows(cur[, k, drop = FALSE],
+                                     more[, k, drop = FALSE]))
+  }
+  .set_map(scen, name, as.data.frame(out), fmp)
+}
+
 map_mStorageStgCap   <- function(scen, fmp) {
   tmp <- value_on_window(scen, "mStorageStgCap", source = .storage_stg_data,
                          window = "mStorageSpan", fmp = function(x) NULL)
@@ -2726,10 +2747,22 @@ map_mStorageStgCap   <- function(scen, fmp) {
   .map_copy(scen, "mStorageStgCap", "mStorageSpan", fmp)
 }
 map_mStorageStgNew   <- function(scen, fmp) .map_copy(scen, "mStorageStgNew", "mStorageNew", fmp)
-map_mStorageOutCap   <- function(scen, fmp) .value_std(scen, "mStorageOutCap", fmp)
-map_mStorageOutNew   <- function(scen, fmp) .value_std(scen, "mStorageOutNew", fmp)
-map_mStorageInpCap   <- function(scen, fmp) .value_std(scen, "mStorageInpCap", fmp)
-map_mStorageInpNew   <- function(scen, fmp) .value_std(scen, "mStorageInpNew", fmp)
+map_mStorageOutCap   <- function(scen, fmp) {
+  scen <- .value_std(scen, "mStorageOutCap", fmp)
+  .map_part_declared(scen, "mStorageOutCap", "out", "mStorageSpan", fmp)
+}
+map_mStorageOutNew   <- function(scen, fmp) {
+  scen <- .value_std(scen, "mStorageOutNew", fmp)
+  .map_part_declared(scen, "mStorageOutNew", "out", "mStorageNew", fmp)
+}
+map_mStorageInpCap   <- function(scen, fmp) {
+  scen <- .value_std(scen, "mStorageInpCap", fmp)
+  .map_part_declared(scen, "mStorageInpCap", "inp", "mStorageSpan", fmp)
+}
+map_mStorageInpNew   <- function(scen, fmp) {
+  scen <- .value_std(scen, "mStorageInpNew", fmp)
+  .map_part_declared(scen, "mStorageInpNew", "inp", "mStorageNew", fmp)
+}
 map_mStorageInpFixom <- function(scen, fmp) .value_std(scen, "mStorageInpFixom", fmp)
 map_mStorageInpEac   <- function(scen, fmp) .value_std(scen, "mStorageInpEac", fmp)
 map_mStorageStgFixom <- function(scen, fmp) .value_std(scen, "mStorageStgFixom", fmp)
@@ -2784,34 +2817,19 @@ map_mStorageVarom <- function(scen, fmp) .value_std(scen, "mStorageVarom", fmp)
 
 # -- storage parts: the checks the anchor needs ------------------------------ #
 # The reservoir (`vStorageStgCap`) exists for every storage; the charger and
-# discharger only with data. Three things the maps cannot say on their own, so
-# interpolation stops on them (`.check_storage_parts()`, after the constraint
-# maps are built):
-#   1. a reservoir nothing determines -- no reservoir data (stock, bound, cost)
-#      and no link to a sized part (`duration`, `inp2stg`) -- is a free,
-#      unbounded energy capacity;
-#   2. a flow bound (`inp.af`, `out.af`) on a part that does not exist binds a
-#      capacity variable that is not there;
-#   3. a link (`duration`, `inp2out`, `inp2stg`) declared on a part that does
-#      not exist links nothing.
+# discharger exist wherever the object declares a column on them
+# (`.storage_part_decl()`). One thing the maps cannot say on their own, so
+# interpolation stops on it (`.check_storage_parts()`, after the constraint
+# maps are built): a reservoir nothing determines -- no reservoir data (stock,
+# bound, cost) and no link to a sized part (`duration`, `inp2stg`) -- is a
+# free, unbounded energy capacity.
+#
+# A bound or a link on a part that does not exist used to stop here too. It
+# cannot arise now that writing one is itself what declares the part; what
+# those refusals guarded against is the `unsized_part` advisory.
 .storage_stg_data <- c("pStorageStgStock", "pStorageStgCap", "pStorageStgNewCap",
                        "pStorageStgInvcost", "pStorageStgEac", "pStorageStgFixom")
 
-# storages (stg names) with any row in `pars`; for a bounds parameter only rows
-# that bound (lo > 0 or up < Inf) count
-.storages_in <- function(scen, pars) {
-  out <- character(0)
-  for (p in pars) {
-    d <- .gds(scen, p)
-    if (is.null(d) || !nrow(d) || !"stg" %in% colnames(d)) next
-    if ("type" %in% colnames(d)) {
-      d <- d[(as.character(d$type) == "lo" & d$value > 0) |
-               (as.character(d$type) == "up" & is.finite(d$value)), , drop = FALSE]
-    }
-    out <- union(out, unique(as.character(d$stg)))
-  }
-  out
-}
 .stg_of <- function(scen, map) {
   d <- .gds(scen, map)
   if (is.null(d) || !nrow(d)) character(0) else unique(as.character(d$stg))
@@ -2839,10 +2857,98 @@ map_mStorageVarom <- function(scen, fmp) .value_std(scen, "mStorageVarom", fmp)
   union(base, as.character(v$name[as.character(v$base) %in% base]))
 }
 
+# Slots that can carry a `<part>.` column; the ratio slots, with the parts each
+# end sizes; the columns that can DETERMINE a capacity (a stock, a capacity or
+# new-capacity bound, a price) as against those that only scale or couple one;
+# and the columns that merely DECLARE a part. `cap2act` is filled by the
+# constructor on every part, so counting it would make every part exist.
+.storage_part_slots <- c("capacity", "invcost", "fixom", "varom", "af",
+                         "seff", "aeff", "weather")
+.storage_link_parts <- list(inp2out = c("inp", "out"),
+                            inp2stg = c("inp", "stg"),
+                            duration = c("stg", "out"))
+.storage_size_re <- "^(stock|cap|ncap|invcost|eac|fixom)([.]|$)"
+.storage_decl_cols <- c("comm", "unit", "cap2act")
+.storage_key_cols <- c("vintage", "cluster", "region", "year", "timeslice")
+
+# The four maps whose domain is "the sources OR a declaration on the object".
+.storage_part_maps <- c("mStorageInpCap", "mStorageInpNew",
+                        "mStorageOutCap", "mStorageOutNew")
+
+.stg_slot_df <- function(o, sl) {
+  d <- tryCatch(methods::slot(o, sl), error = function(e) NULL)
+  if (is.null(d) || !NROW(d)) NULL else as.data.frame(d)
+}
+.stg_any <- function(df, cols) {
+  cols <- intersect(cols, colnames(df))
+  length(cols) > 0 && any(!is.na(as.matrix(df[, cols, drop = FALSE])))
+}
+
+# Does an OBJECT declare this part, and is the part sized? Read from the object
+# rather than from the interpolated parameters, because the default-value rule
+# removes `inp.invcost = 0` and `inp.cap.up = Inf` before any map is built, so a
+# part declared that way would not exist and `sparse =` would decide the model's
+# structure. Any `<part>.` column counts, in any slot that carries one, plus the
+# ratio links, whose two ends are both parts.
+#
+# "" = not declared, "sized" = something can determine the capacity,
+# "scaling" = declared only by what scales or couples it (an `af`, a weather
+# factor, a flow cost, an aux coupling, a retirement bound, an annuity rate).
+.storage_part_decl <- function(o, part) {
+  decl <- FALSE
+  sized <- FALSE
+  pre <- paste0("^", part, "[.]")
+  for (sl in .storage_part_slots) {
+    df <- .stg_slot_df(o, sl)
+    if (is.null(df)) next
+    for (cc in grep(pre, colnames(df), value = TRUE)) {
+      if (!any(!is.na(df[[cc]]))) next
+      decl <- TRUE
+      if (grepl(.storage_size_re, sub(pre, "", cc))) sized <- TRUE
+    }
+  }
+  for (sl in names(.storage_link_parts)) {
+    if (!part %in% .storage_link_parts[[sl]]) next
+    df <- .stg_slot_df(o, sl)
+    if (is.null(df)) next
+    if (.stg_any(df, setdiff(colnames(df), .storage_key_cols))) {
+      decl <- TRUE
+      sized <- TRUE
+    }
+  }
+  sl <- switch(part, inp = "input", out = "output", stg = "storage", NULL)
+  if (!is.null(sl)) {
+    df <- .stg_slot_df(o, sl)
+    if (!is.null(df) && .stg_any(df, setdiff(colnames(df), .storage_decl_cols))) {
+      decl <- TRUE
+    }
+  }
+  if (!decl) "" else if (sized) "sized" else "scaling"
+}
+
+# stg names (variant names included) whose `part` the objects declare;
+# `sized = TRUE` keeps only those whose capacity something can determine.
+.storage_part_declared <- function(scen, part, sized = FALSE) {
+  objs <- tryCatch(getObjects(scen@model, class = "storage"),
+                   error = function(e) NULL)
+  if (!length(objs)) return(character(0))
+  keep <- vapply(objs, function(o) {
+    d <- .storage_part_decl(o, part)
+    if (isTRUE(sized)) identical(d, "sized") else nzchar(d)
+  }, logical(1))
+  if (!any(keep)) return(character(0))
+  base <- unique(vapply(objs[keep], function(o) as.character(o@name),
+                        character(1)))
+  v <- tryCatch(as.data.frame(scen@modInp@sets$variant), error = function(e) NULL)
+  if (is.null(v) || !nrow(v) || !all(c("name", "base") %in% colnames(v))) {
+    return(base)
+  }
+  union(base, as.character(v$name[as.character(v$base) %in% base]))
+}
+
 .check_storage_parts <- function(scen) {
   all_stg <- .stg_of(scen, "mStorageSpan")
   if (!length(all_stg)) return(invisible())
-  inp <- .stg_of(scen, "mStorageInpCap"); out <- .stg_of(scen, "mStorageOutCap")
   msg <- character(0)
   # 1. the reservoir is determined
   linked <- union(.stg_of(scen, "mStorageDurationLo"),
@@ -2858,27 +2964,13 @@ map_mStorageVarom <- function(scen, fmp) .value_std(scen, "mStorageVarom", fmp)
       "stg.invcost = 0 for a deliberately free reservoir), or link it to a sized ",
       "discharger (duration) or charger (inp2stg)"))
   }
-  # 2. flow bounds on a part that does not exist
-  for (pt in list(list("Inp", inp, "inp.af", "charger"), list("Out", out, "out.af", "discharger"))) {
-    b <- unique(unlist(lapply(c("Lo", "Up", "Fx"), function(s)
-      .stg_of(scen, paste0("meqStorage", pt[[1]], s)))))
-    bad <- setdiff(b, pt[[2]])
-    if (length(bad)) {
-      msg <- c(msg, paste0(pt[[3]], " is set on ", paste(utils::head(bad, 5), collapse = ", "),
-                           ", which has no ", pt[[4]], " (no ", tolower(pt[[1]]),
-                           ".* capacity or cost data)"))
-    }
-  }
-  # 3. links on a part that does not exist
-  for (lk in list(list("pStorageDuration", out, "duration", "discharger"),
-                  list("pStorageInp2out", intersect(inp, out), "inp2out", "charger and a discharger"),
-                  list("pStorageInp2stg", inp, "inp2stg", "charger"))) {
-    bad <- intersect(setdiff(.storages_in(scen, lk[[1]]), lk[[2]]), all_stg)
-    if (length(bad)) {
-      msg <- c(msg, paste0(lk[[3]], " is declared on ", paste(utils::head(bad, 5), collapse = ", "),
-                           ", which has no ", lk[[4]], " to link"))
-    }
-  }
+  # A flow bound or a ratio link on a part that does not exist used to stop
+  # here. It cannot arise any more: `.map_part_declared()` reads the objects, so
+  # writing `inp.af` or `inp2stg` is itself what brings the part into being. The
+  # case those refusals guarded against -- a bound that scales a capacity
+  # nothing sizes, and so constrains nothing -- is now an advisory from
+  # `validate_scenario_parameters()`, which can say it without refusing a model
+  # the user had every right to write.
   if (length(msg)) stop(paste0("Storage: ", msg, collapse = "\n"), call. = FALSE)
   invisible()
 }

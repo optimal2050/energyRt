@@ -2964,6 +2964,12 @@ validate_scenario_parameters <- function(object, fold = TRUE,
   # reported.
   for (mp in names(.value_map_def)) {
     if (!is.null(.prg)) .prg(message = mp)
+    # The storage part domains are "sources OR declared on the object", so a
+    # tuple with no parameter behind it is legitimate there: a part the user
+    # declared but did not size. The `unsized_part` advisory below reports that
+    # case, and a coverage test against the sources alone would call it
+    # structural.
+    if (mp %in% .storage_part_maps) next
     mpar <- object@modInp@parameters[[mp]]
     if (is.null(mpar)) next
     # a map held as its rule alone was decided from its sources (enumerated
@@ -3120,6 +3126,28 @@ validate_scenario_parameters <- function(object, fold = TRUE,
                  paste(utils::head(missing, 5), collapse = ", ")),
           severity = g$severity)
     }
+  }
+
+  # A storage part the user declared but never sized: its capacity carries no
+  # price and no bound, so the LP sets it to whatever the flows ask for and an
+  # `af` scaling it constrains nothing. The part itself is legitimate -- a
+  # declaration on it is what brings it into being -- so this is advisory.
+  for (pt in list(
+    list(part = "inp", map = "mStorageInpCap", what = "charger",
+         how = "inp.invcost, inp.cap.up, inp2stg or inp2out"),
+    list(part = "out", map = "mStorageOutCap", what = "discharger",
+         how = "out.invcost, out.cap.up, duration or inp2out"))) {
+    have <- .members(pt$map, "stg")
+    if (is.null(have) || length(have) == 0) next
+    sized <- tryCatch(.storage_part_declared(object, pt$part, sized = TRUE),
+                      error = function(e) character(0))
+    free <- setdiff(have, sized)
+    if (length(free) == 0) next
+    add(pt$map, "unsized_part",
+        paste0(pt$what, " capacity is declared but nothing sizes it, so an af ",
+               "bound on it constrains nothing -- give it ", pt$how, " -- for ",
+               length(free), " object(s): ",
+               paste(utils::head(free, 5), collapse = ", ")))
   }
 
   # Variant provenance: `sets$variant` is the authoritative map from a minted

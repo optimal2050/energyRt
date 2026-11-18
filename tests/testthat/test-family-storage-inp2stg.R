@@ -99,10 +99,14 @@ test_that("family storage-inp2stg: the rate bound lands in modInp with its maps"
     si2_build(), name = "si2_i2", overwrite = TRUE)))
   expect_equal(nrow(ff_param(scen2, "mStorageInp2stgUp")), 0)
   expect_equal(nrow(ff_param(scen2, "mStorageInp2stgLo")), 0)
-  # a rate declared on a storage without a charger is an error
-  expect_error(suppressMessages(suppressWarnings(interpolate_model(
+  # a rate declared on a storage with no charger RATING builds the charger: a
+  # link sizes both of its ends (2026-11-18). The reservoir was already allowed
+  # to be determined by `inp2stg`, so refusing the other direction was circular.
+  scen3 <- suppressMessages(suppressWarnings(interpolate_model(
     si2_build(inp2stg = data.frame(inp2stg.up = 0.5), charger = FALSE),
-    name = "si2_i3", overwrite = TRUE))), "no charger")
+    name = "si2_i3", overwrite = TRUE)))
+  expect_gte(NROW(ff_param(scen3, "mStorageInpCap")), 1)
+  expect_gte(NROW(ff_param(scen3, "mStorageInp2stgUp")), 1)
 })
 
 # @covers pStorageInp2stg vStorageInpCap vStorageStgCap eqStorageInp2stgUp depth=S backends=glpk

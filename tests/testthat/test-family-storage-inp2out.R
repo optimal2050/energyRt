@@ -47,11 +47,14 @@ test_that("family storage-inp2out: the ratio bound lands in modInp with its maps
   expect_gte(nrow(ff_param(scen, "mStorageInp2outLo")), 1)
   # the completed up = Inf side is OPEN: no up equation may be instantiated
   expect_equal(nrow(ff_param(scen, "mStorageInp2outUp")), 0)
-  # a link declared on a storage without a charger is an error
-  expect_error(suppressMessages(suppressWarnings(interpolate_model(
+  # a link declared on a storage with no charger PRICE builds the charger: a
+  # link sizes both of its ends (2026-11-18)
+  scen2 <- suppressMessages(suppressWarnings(interpolate_model(
     si_build(inp2out = data.frame(inp2out.lo = 2, inp2out.up = 3),
              inp_invcost = NULL),
-    name = "si_i2", overwrite = TRUE))), "no charger")
+    name = "si_i2", overwrite = TRUE)))
+  expect_gte(NROW(ff_param(scen2, "mStorageInpCap")), 1)
+  expect_gte(NROW(ff_param(scen2, "mStorageInp2outUp")), 1)
 })
 
 # @covers pStorageInp2out vStorageInpCap vStorageOutCap depth=S backends=glpk

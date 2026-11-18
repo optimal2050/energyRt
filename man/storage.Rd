@@ -68,7 +68,7 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 
 \item{olife}{deprecated, use the \code{olife} column of \code{vintage}.}
 
-\item{input}{data.frame. The commodity that FILLS the store -- the "charger" side. Named by \code{comm}, with an optional \code{unit}. Left empty it takes whatever \code{newStorage(commodity = )} supplied.
+\item{input}{data.frame. The commodity that FILLS the store -- the "charger" side. Named by \code{comm}, with an optional \code{unit}. Left empty it takes whatever \code{newStorage(commodity = )} supplied. The charger is an OPTIONAL part: \code{vStorageInpCap} exists only where the object declares something on it, and naming the commodity here is not a declaration. See \verb{@capacity} for the rule.
 
 \describe{
 \item{comm}{character. Commodity consumed to fill the store.}
@@ -78,7 +78,7 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 }
 }}
 
-\item{output}{data.frame. The commodity the store RELEASES -- the "discharger" side. Named by \code{comm}, with an optional \code{unit}. Left empty it takes whatever \code{newStorage(commodity = )} supplied.
+\item{output}{data.frame. The commodity the store RELEASES -- the "discharger" side. Named by \code{comm}, with an optional \code{unit}. Left empty it takes whatever \code{newStorage(commodity = )} supplied. The discharger is an OPTIONAL part: \code{vStorageOutCap} exists only where the object declares something on it, and naming the commodity here is not a declaration. See \verb{@capacity} for the rule.
 
 \describe{
 \item{comm}{character. Commodity produced when the store discharges.}
@@ -88,7 +88,7 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 }
 }}
 
-\item{storage}{data.frame. The commodity the store HOLDS -- what \code{vStorageLevel} is measured in. Named by \code{comm}, with an optional \code{unit}. Left empty it takes whatever \code{newStorage(commodity = )} supplied. It may differ from BOTH flows: a hydrogen store consumes and produces electricity while holding hydrogen. There is no \code{commodity} slot -- \code{newStorage(commodity = )} is a shorthand folded into these three at construction, so an object never carries two answers to what it consumes. Beyond \code{comm}, this slot carries the storing side's OWN capacity and economics, measured in ENERGY (e.g. MWh) rather than power. Supplying any of them materialises \code{vStorageStgCap}, so the store's energy can be sized, bounded and priced independently of its inverter; supplying none of them (a bare \code{comm}) leaves the storage with a single power capacity and the pre-v0.84 model, with \verb{@duration} inlined into the availability bounds.
+\item{storage}{data.frame. The commodity the store HOLDS -- what \code{vStorageLevel} is measured in. Named by \code{comm}, with an optional \code{unit}. Left empty it takes whatever \code{newStorage(commodity = )} supplied. It may differ from BOTH flows: a hydrogen store consumes and produces electricity while holding hydrogen. There is no \code{commodity} slot -- \code{newStorage(commodity = )} is a shorthand folded into these three at construction, so an object never carries two answers to what it consumes. Beyond \code{comm}, this slot carries the storing side's OWN capacity and economics, measured in ENERGY (e.g. MWh) rather than power, so the store's energy can be sized, bounded and priced independently of its inverter. The reservoir is the ANCHOR: \code{vStorageStgCap} exists for every storage, whether or not any \code{stg.} column is supplied. What the \code{stg.} columns decide is whether it is DETERMINED -- a reservoir with no stock, bound or price and no link to a sized part (\code{duration}, \code{inp2stg}) is a free, unbounded energy capacity, which interpolation refuses. \code{stg.invcost = 0} declares a deliberately free one.
 
 \describe{
 \item{comm}{character. Commodity the store HOLDS -- what \code{vStorageLevel} is measured in.}
@@ -156,7 +156,7 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 \item{ncap2stg}{numeric. New-capacity-to-storage-level coefficient (multiplier).}
 }}
 
-\item{af}{data.frame. Availability factor parameters. Unlike a technology's \code{af} (which bounds activity, a flow), the storage \verb{stg.af.*} columns bound the stored LEVEL -- a stock -- as a fraction of the storing capacity, i.e. a state-of-charge range. They are not capacity factors. The flow-side bounds are the \verb{cinp.*}/\verb{cout.*} columns, which bound charge/discharge relative to the charger/discharger capacity per timeslice (those are the storage analogue of a technology's \code{af}).
+\item{af}{data.frame. Availability factor parameters. Unlike a technology's \code{af} (which bounds activity, a flow), the storage \verb{stg.af.*} columns bound the stored LEVEL -- a stock -- as a fraction of the storing capacity, i.e. a state-of-charge range. They are not capacity factors. The flow-side bounds are the \verb{inp.af.*}/\verb{out.af.*} columns, which bound charge/discharge relative to the charger/discharger capacity per timeslice (those are the storage analogue of a technology's \code{af}). An \code{inp.af}/\code{out.af} is itself a declaration of that part, so writing one brings the converter into being -- but it does not SIZE it. A part with no capacity bound, price or link behind it is sized freely by the LP, and a bound scaling a free capacity constrains nothing; see \verb{@capacity}.
 
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
@@ -243,7 +243,8 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 \item{stg.retcost}{numeric. Cost of retiring the reservoir itself -- the energy the store can hold early.}
 }}
 
-\item{capacity}{data.frame. Capacity parameters of the storage technology.
+\item{capacity}{data.frame. Capacity parameters of the storage technology, in three groups: the charger (\code{inp.}), the reservoir (\code{stg.}) and the discharger (\code{out.}). The reservoir always exists. The two converters do not: \code{vStorageInpCap} and \code{vStorageOutCap} exist only where the OBJECT declares something on that part, and the declaration may sit in any slot -- a bound or a stock here, a cost in \verb{@invcost} or \verb{@fixom}, an \code{inp.af} in \verb{@af}, an \code{inp.eff} in \verb{@seff}, an aux coupling in \verb{@aeff} -- or be a ratio link (\code{inp2out}, \code{inp2stg}, \code{duration}), which declares both of its ends. \code{comm}, \code{unit} and \code{cap2act} declare nothing: \code{cap2act} is filled on every part at construction. The rule reads the object, not the interpolated parameters, so a declared \code{0} or \code{Inf} counts and \code{inp.invcost = 0} is a deliberately free charger. Only a stock, a \code{cap}/\code{ncap} bound, a price (\code{invcost}, \code{eac}, \code{fixom}) or a link SIZES a part; declared by anything else it exists but nothing fixes its size, so the LP sets it freely and an \code{af} scaling it constrains nothing -- \code{validate_scenario_parameters()} reports that as \code{unsized_part}.
+
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}

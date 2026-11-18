@@ -665,6 +665,8 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Breaking changes
 
+* **A storage's charger and discharger exist wherever the object declares an `inp.` / `out.` column on them.** Read from the object, not from the pruned parameters, so `inp.invcost = 0` and `inp.cap.up = Inf` count and `sparse =` no longer decides which parts a model has. `inp2out`, `inp2stg` and `duration` declare both of their ends; `comm`, `unit` and `cap2act` declare nothing. A part declared by a zero or an `Inf` gains a real capacity variable, so an `af` bound on it starts binding. An `af`, a link or an aux coupling alone no longer errors, and `validate_scenario_parameters()` reports a part nothing sizes as `unsized_part`.
+
 * **A storage level no longer crosses a gap left by a sampled calendar.** A sample keeps blocks of the year and drops the rest, so its successor relation chained blocks months apart as if they were adjacent, moving a season's energy through one block's worth of level capacity. Each contiguous block now closes onto its own first timeslice. A full calendar has no gaps and is unaffected; a sampled year's results can move, and only upward -- the feasible set shrinks. `interpolate_model(bridge_storage_gaps = TRUE)`, or `options(energyRt.bridge_storage_gaps = TRUE)`, restores the old chain. Ramping still bridges gaps: a ramp limit across one is restrictive rather than permissive. Gaps are located from the calendar a sample records as its source, so a calendar sampled by hand warns instead of guessing.
 
 * `setCalendar()`'s first argument after the object is now `calendar`, which

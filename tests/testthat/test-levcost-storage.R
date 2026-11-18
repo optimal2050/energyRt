@@ -150,8 +150,16 @@ test_that("an unpriced part gets no capacity, and a priced one does", {
   unpriced <- .lcs_battery(
     invcost = data.frame(stg.invcost = 100, out.invcost = 50),
     fixom   = data.frame(stg.fixom = 1, out.fixom = 2))
+  # both declare `inp.eff` and `inp.varom`, so both HAVE a charger: any `inp.`
+  # column declares the part (2026-11-18). What differs is whether it is
+  # PRICED, which is what the levelised cost is about.
   expect_true(energyRt:::.lcs_has_part(priced, "inp"))
-  expect_false(energyRt:::.lcs_has_part(unpriced, "inp"))
+  expect_true(energyRt:::.lcs_has_part(unpriced, "inp"))
+  expect_false(energyRt:::.lcs_has_part(
+    .lcs_battery(invcost = data.frame(stg.invcost = 100),
+                 fixom = data.frame(stg.fixom = 1),
+                 varom = data.frame(stg.varom = 0.05),
+                 seff = data.frame(stg.eff = 1)), "inp"))
 
   h <- newHorizon(period = 2020L)
   lp <- levcost(priced, cycles = 365, discount = 0.05, horizon = h,
