@@ -45,6 +45,7 @@ en_config_show()
 #> ── energyRt configuration ──────────────────────────────────────────────────────
 #>   base_maps                   FALSE                       [default]
 #>   base_maps_verify            FALSE                       [default]
+#>   bridge_storage_gaps         FALSE                       [option]
 #>   datasets_path               "datasets/"                 [default]
 #>   debug                       0                           [default]
 #>   exchange_compression        "lz4"                       [default]

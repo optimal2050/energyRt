@@ -108,8 +108,8 @@ STG_H2 <- newStorage(
     stg.invcost = 112                     # the cavern
   ),
   seff      = data.frame(
-    inpeff  = 0.70,
-    outeff  = 0.50
+    inp.eff  = 0.70,
+    out.eff  = 0.50
   ),
   vintage   = data.frame(olife = 25L)
 )
@@ -120,10 +120,11 @@ draw(STG_H2)
 electrolyser, hydrogen held in a salt cavern, and electricity leaving a
 fuel cell.](storage_files/figure-html/hydrogen-storage-diagram-1.png)
 
-`@seff$inpeff` and `$outeff` are **cross-commodity conversion factors**
-here — input→stored and stored→output — the same role `cinp2use` plays
-for a technology. When the three commodities coincide they are the
-round-trip efficiencies they have always been, and nothing changes.
+`@seff$inp.eff` and `$out.eff` are **cross-commodity conversion
+factors** here — input→stored and stored→output — the same role
+`cinp2use` plays for a technology. When the three commodities coincide
+they are the round-trip efficiencies they have always been, and nothing
+changes.
 
 Before this, the same system needed an electrolyser, a store, a fuel
 cell, and an artificial `H2` commodity whose only job was to join them.
@@ -304,14 +305,15 @@ scen_year <- solve_model(mod_year, name = "fy_year")
 #> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
-#> ℹ building maps: value✔ building maps: value (0.0s)
+#> ℹ building maps: value✔ building maps: value (0.1s)
 #> ℹ building maps: filter✔ building maps: filter (0.2s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
+#> ℹ building maps: constraint
+#> ✔ building maps: constraint (0.1s)
 #> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: fy_year
-#>   parameters : 202 value, 361 maps, 16 sets
+#>   parameters : 203 value, 361 maps, 16 sets
 #>   param rows : 1,559
 #>   estimate   : ~4,661 variables, ~5,227 constraints (from gating maps)
 #>   top parameters by rows:
@@ -330,11 +332,11 @@ scen_year <- solve_model(mod_year, name = "fy_year")
 #>     cardYear           1
 #>     pYearFraction      1
 #>     pWacc              1
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpgFESxc/energyRt/scenarios/fy_year-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.29s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpAvTvH0/energyRt/scenarios/fy_year-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.31s
 #> Starting  GLPK 
-#> 0.2s
-#> Reading solution: 0.11s
+#> 0.27s
+#> Reading solution: 0.14s
 scen_day <- solve_model(mod_day, name = "fy_day")
 #> ℹ checking declarations✔ checking declarations (0.0s)
 #> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.0s)
@@ -355,13 +357,14 @@ scen_day <- solve_model(mod_day, name = "fy_day")
 #> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
 #> ℹ building maps: value✔ building maps: value (0.0s)
-#> ℹ building maps: filter✔ building maps: filter (0.1s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
+#> ℹ building maps: filter✔ building maps: filter (0.2s)
+#> ℹ building maps: constraint
+#> ✔ building maps: constraint (0.1s)
 #> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: fy_day
-#>   parameters : 202 value, 361 maps, 16 sets
+#>   parameters : 203 value, 361 maps, 16 sets
 #>   param rows : 1,559
 #>   estimate   : ~4,661 variables, ~5,227 constraints (from gating maps)
 #>   top parameters by rows:
@@ -380,11 +383,11 @@ scen_day <- solve_model(mod_day, name = "fy_day")
 #>     cardYear           1
 #>     pYearFraction      1
 #>     pWacc              1
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpgFESxc/energyRt/scenarios/fy_day-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.28s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpAvTvH0/energyRt/scenarios/fy_day-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.39s
 #> Starting  GLPK 
-#> 0.15s
-#> Reading solution: 0.11s
+#> 0.16s
+#> Reading solution: 0.12s
 
 getData(scen_year, "vObjective", merge = TRUE)$value
 #> [1] 9962.545
@@ -585,8 +588,8 @@ Making the rating resolution-independent does **not** make a coarse
 calendar adequate. Discharge in a slice is bounded by three things:
 
     (1) out <= out.af.up · cap2act · outCap · share[s]
-    (2) out / outeff <= level[s]
-    (3) level[s] <= af.up · stgCap
+    (2) out / out.eff <= level[s]
+    (3) level[s] <= stg.af.up · stgCap
 
 For a 6 h / 10 MW battery (60 MWh), only (1) changes with resolution:
 
@@ -607,7 +610,7 @@ cycles, so on a day/night calendar a 6-hour battery can perform exactly
 **one** cycle a year — 60 MWh moved, against roughly 21,900 MWh for a
 store that really cycles daily. On a single annual timeslice there is no
 dynamic at all: the cyclic balance pairs the slice with itself and
-collapses to `inpeff·inp = out/outeff`.
+collapses to `inp.eff·inp = out/out.eff`.
 
 A store whose cycle is shorter than one timeslice is therefore
 **understated, not approximated**. Representing ~365 daily cycles needs
@@ -620,13 +623,13 @@ recover.
 `@seff` carries all three efficiencies, and they are applied at
 different places in the level equation:
 
-| column   | applies to  | meaning                                          |
-|----------|-------------|--------------------------------------------------|
-| `inpeff` | charging    | fraction of the input that reaches the level     |
-| `outeff` | discharging | level drawn per unit delivered is `1/outeff`     |
-| `stgeff` | holding     | retention per hour, compounded as `stgeff^share` |
+| column    | applies to  | meaning                                           |
+|-----------|-------------|---------------------------------------------------|
+| `inp.eff` | charging    | fraction of the input that reaches the level      |
+| `out.eff` | discharging | level drawn per unit delivered is `1/out.eff`     |
+| `stg.eff` | holding     | retention per hour, compounded as `stg.eff^share` |
 
-`stgeff` is the one to watch: it is a **rate**, raised to the timeslice
+`stg.eff` is the one to watch: it is a **rate**, raised to the timeslice
 share, so `0.999` is a per-hour retention and not a per-timeslice one.
 That is what keeps a self-discharge assumption stable when the calendar
 is refined.
@@ -639,15 +642,15 @@ STG_BTR_LOSS <- newStorage(
   commodity = "ELC",
   duration  = 6,
   seff      = data.frame(
-    inpeff = 0.95,
-    outeff = 0.95,
-    stgeff = 0.999
+    inp.eff = 0.95,
+    out.eff = 0.95,
+    stg.eff = 0.999
   ),
   vintage   = data.frame(olife = 15L)
 )
 STG_BTR_LOSS@seff
-#>   vintage cluster region year timeslice stgeff inpeff outeff
-#> 1    <NA>    <NA>   <NA>   NA      <NA>  0.999   0.95   0.95
+#>   vintage cluster region year timeslice stg.eff inp.eff out.eff
+#> 1    <NA>    <NA>   <NA>   NA      <NA>   0.999    0.95    0.95
 ```
 
 Efficiencies may vary by `region`, `year` and `timeslice`, so a store
@@ -661,7 +664,7 @@ capacities. Three families share the slot:
 
 | columns | bounds |
 |----|----|
-| `af.lo` / `af.up` / `af.fx` | the **level**, against `vStorageStgCap` |
+| `stg.af.lo` / `stg.af.up` / `stg.af.fx` | the **level**, against `vStorageStgCap` |
 | `inp.af.lo` / `inp.af.up` / `inp.af.fx` | **charging**, against the charger |
 | `out.af.lo` / `out.af.up` / `out.af.fx` | **discharging**, against the discharger |
 
@@ -679,18 +682,18 @@ STG_RES <- newStorage(
   invcost   = list(stg.invcost = 40),
   af        = data.frame(
     timeslice = c(NA, "d046_h18"),
-    af.lo     = c(0.15, NA),              # never draw below 15% full
+    stg.af.lo = c(0.15, NA),              # never draw below 15% full
     inp.af.up   = c(NA, 0)                  # no charging in that slice
   ),
   vintage   = data.frame(olife = 40L)
 )
 STG_RES@af
-#>   vintage cluster region year timeslice af.lo af.up af.fx inp.af.up inp.af.fx
-#> 1    <NA>    <NA>   <NA>   NA      <NA>  0.15    NA    NA        NA        NA
-#> 2    <NA>    <NA>   <NA>   NA  d046_h18    NA    NA    NA         0        NA
-#>   inp.af.lo out.af.up out.af.fx out.af.lo
-#> 1        NA        NA        NA        NA
-#> 2        NA        NA        NA        NA
+#>   vintage cluster region year timeslice stg.af.lo stg.af.up stg.af.fx inp.af.up
+#> 1    <NA>    <NA>   <NA>   NA      <NA>      0.15        NA        NA        NA
+#> 2    <NA>    <NA>   <NA>   NA  d046_h18        NA        NA        NA         0
+#>   inp.af.fx inp.af.lo out.af.up out.af.fx out.af.lo
+#> 1        NA        NA        NA        NA        NA
+#> 2        NA        NA        NA        NA        NA
 ```
 
 `NA` in a key column means “every member of it”, so the first row
@@ -765,14 +768,15 @@ Three slots, on the three things you can spend money on:
 |----|----|----|
 | `@invcost` | new capacity | `<part>.invcost`, `.wacc`, `.payback`, `.eac`, `.retcost` |
 | `@fixom` | installed capacity, per year | `<part>.fixom` |
-| `@varom` | flows and level, per timeslice | `inpcost`, `outcost`, `stgcost` |
+| `@varom` | flows and level, per timeslice | `inp.varom`, `out.varom`, `stg.varom` |
 
 `@invcost` and `@fixom` take the same `out.` / `inp.` / `stg.` prefixes
 as `@capacity`, so each part is priced in its own units: `out.invcost`
 per MW of discharger, `stg.invcost` per MWh of reservoir — which is
-exactly what the battery at the top of this article does. `@varom`
-instead splits by what is charged: `inpcost` per unit charged, `outcost`
-per unit discharged, `stgcost` per unit held.
+exactly what the battery at the top of this article does. `@varom` takes
+the same prefixes, by what each part moves or holds: `inp.varom` per
+unit charged, `out.varom` per unit discharged, `stg.varom` per unit
+held.
 
 ``` r
 
@@ -784,14 +788,14 @@ STG_PRICED <- newStorage(
   invcost   = data.frame(out.invcost = 8081), # EUR/MWh on new capacity
   fixom     = data.frame(out.fixom = 5),      # EUR/MW/yr on the whole store
   varom     = data.frame(
-    inpcost = 0.5,
-    outcost = 0.5
+    inp.varom = 0.5,
+    out.varom = 0.5
   ),
   vintage   = data.frame(olife = 15L)
 )
 STG_PRICED@varom
-#>   vintage cluster region year timeslice inpcost outcost stgcost
-#> 1    <NA>    <NA>   <NA>   NA      <NA>     0.5     0.5      NA
+#>   vintage cluster region year timeslice inp.varom out.varom stg.varom
+#> 1    <NA>    <NA>   <NA>   NA      <NA>       0.5       0.5        NA
 ```
 
 `wacc`, `payback` and `eac` behave exactly as on a `technology`: see the
@@ -1024,13 +1028,13 @@ scen <- solve_model(sol_mod, name = "solar_battery")
 #> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
 #> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
-#> ℹ collecting sets: object names✔ collecting sets: object names (0.1s)
+#> ℹ collecting sets: object names✔ collecting sets: object names (0.0s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
 #> ℹ collecting sets: timeframes✔ collecting sets: timeframes (0.0s)
 #> ℹ collecting sets: process inputs/outputs✔ collecting sets: process inputs/outputs (0.0s)
 #> ℹ collecting sets: membership comm sets✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
-#> ℹ building maps: membership + closure✔ building maps: membership + closure (0.0s)
+#> ℹ building maps: membership + closure✔ building maps: membership + closure (0.1s)
 #> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
 #> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.1s)
@@ -1039,12 +1043,13 @@ scen <- solve_model(sol_mod, name = "solar_battery")
 #> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
 #> ℹ building maps: value✔ building maps: value (0.0s)
 #> ℹ building maps: filter✔ building maps: filter (0.2s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
+#> ℹ building maps: constraint
+#> ✔ building maps: constraint (0.1s)
 #> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.0s)
 #> model_size: solar_battery
-#>   parameters : 202 value, 361 maps, 16 sets
+#>   parameters : 203 value, 361 maps, 16 sets
 #>   param rows : 2,087
 #>   estimate   : ~6,415 variables, ~7,269 constraints (from gating maps)
 #>   top parameters by rows:
@@ -1063,10 +1068,10 @@ scen <- solve_model(sol_mod, name = "solar_battery")
 #>     cardYear           1
 #>     pYearFraction      1
 #>     pWacc              1
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpgFESxc/energyRt/scenarios/solar_battery-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.3s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpAvTvH0/energyRt/scenarios/solar_battery-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.31s
 #> Starting  GLPK 
-#> 0.26s
+#> 0.25s
 #> Reading solution: 0.13s
 ```
 
@@ -1161,7 +1166,7 @@ STG_BTR_VRE <- newStorage(
   storage   = list(comm = "ELC", unit = "MWh"),
   # power priced per MW on the discharger, energy per MWh on the reservoir
   invcost   = list(out.invcost = 20, stg.invcost = 1),
-  seff      = data.frame(inpeff = 0.95, outeff = 0.95),
+  seff      = data.frame(inp.eff = 0.95, out.eff = 0.95),
   vintage   = data.frame(olife = 15L),
   fullYear  = TRUE
 )

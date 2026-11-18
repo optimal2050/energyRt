@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9005</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -222,14 +222,14 @@ they do not:</p>
 <span>    stg.invcost <span class="op">=</span> <span class="fl">112</span>                     <span class="co"># the cavern</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  seff      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    inpeff  <span class="op">=</span> <span class="fl">0.70</span>,</span>
-<span>    outeff  <span class="op">=</span> <span class="fl">0.50</span></span>
+<span>    inp.eff  <span class="op">=</span> <span class="fl">0.70</span>,</span>
+<span>    out.eff  <span class="op">=</span> <span class="fl">0.50</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">25L</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/draw.html">draw</a></span><span class="op">(</span><span class="va">STG_H2</span><span class="op">)</span></span></code></pre></div>
 <p><img src="storage_files/figure-html/hydrogen-storage-diagram-1.png" class="r-plt" alt="Flow diagram of a hydrogen storage system with electricity entering an electrolyser, hydrogen held in a salt cavern, and electricity leaving a fuel cell."></p>
-<p><code>@seff$inpeff</code> and <code>$outeff</code> are
+<p><code>@seff$inp.eff</code> and <code>$out.eff</code> are
 <strong>cross-commodity conversion factors</strong> here — input→stored
 and stored→output — the same role <code>cinp2use</code> plays for a
 technology. When the three commodities coincide they are the round-trip
@@ -501,14 +501,15 @@ each gets its own repository and model:</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> interpolating parameters over milestone years<span style="color: #00BB00;">✔</span> interpolating parameters over milestone years <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> calendar-filter: restricting parameters to declared timeslices<span style="color: #00BB00;">✔</span> calendar-filter: restricting parameters to declared timeslices <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter<span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.2s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: cost aggregation<span style="color: #00BB00;">✔</span> building maps: cost aggregation <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing model-size summary<span style="color: #00BB00;">✔</span> computing model-size summary <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; model_size: fy_year</span></span>
-<span><span class="co">#&gt;   parameters : 202 value, 361 maps, 16 sets</span></span>
+<span><span class="co">#&gt;   parameters : 203 value, 361 maps, 16 sets</span></span>
 <span><span class="co">#&gt;   param rows : 1,559</span></span>
 <span><span class="co">#&gt;   estimate   : ~4,661 variables, ~5,227 constraints (from gating maps)</span></span>
 <span><span class="co">#&gt;   top parameters by rows:</span></span>
@@ -527,11 +528,11 @@ each gets its own repository and model:</p>
 <span><span class="co">#&gt;     cardYear           1</span></span>
 <span><span class="co">#&gt;     pYearFraction      1</span></span>
 <span><span class="co">#&gt;     pWacc              1</span></span>
-<span><span class="co">#&gt; Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpgFESxc/energyRt/scenarios/fy_year-d365_h24_1dpm/runs/glpk </span></span>
-<span><span class="co">#&gt; Writing files: 0.29s</span></span>
+<span><span class="co">#&gt; Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpAvTvH0/energyRt/scenarios/fy_year-d365_h24_1dpm/runs/glpk </span></span>
+<span><span class="co">#&gt; Writing files: 0.31s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.2s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.11s</span></span>
+<span><span class="co">#&gt; 0.27s</span></span>
+<span><span class="co">#&gt; Reading solution: 0.14s</span></span>
 <span><span class="va">scen_day</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod_day</span>, name <span class="op">=</span> <span class="st">"fy_day"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> checking declarations<span style="color: #00BB00;">✔</span> checking declarations <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> expanding vintage/cluster variants<span style="color: #00BB00;">✔</span> expanding vintage/cluster variants <span style="color: #555555;">(0.0s)</span></span></span>
@@ -552,13 +553,14 @@ each gets its own repository and model:</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> calendar-filter: restricting parameters to declared timeslices<span style="color: #00BB00;">✔</span> calendar-filter: restricting parameters to declared timeslices <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter<span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.1s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter<span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: cost aggregation<span style="color: #00BB00;">✔</span> building maps: cost aggregation <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing model-size summary<span style="color: #00BB00;">✔</span> computing model-size summary <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; model_size: fy_day</span></span>
-<span><span class="co">#&gt;   parameters : 202 value, 361 maps, 16 sets</span></span>
+<span><span class="co">#&gt;   parameters : 203 value, 361 maps, 16 sets</span></span>
 <span><span class="co">#&gt;   param rows : 1,559</span></span>
 <span><span class="co">#&gt;   estimate   : ~4,661 variables, ~5,227 constraints (from gating maps)</span></span>
 <span><span class="co">#&gt;   top parameters by rows:</span></span>
@@ -577,11 +579,11 @@ each gets its own repository and model:</p>
 <span><span class="co">#&gt;     cardYear           1</span></span>
 <span><span class="co">#&gt;     pYearFraction      1</span></span>
 <span><span class="co">#&gt;     pWacc              1</span></span>
-<span><span class="co">#&gt; Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpgFESxc/energyRt/scenarios/fy_day-d365_h24_1dpm/runs/glpk </span></span>
-<span><span class="co">#&gt; Writing files: 0.28s</span></span>
+<span><span class="co">#&gt; Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpAvTvH0/energyRt/scenarios/fy_day-d365_h24_1dpm/runs/glpk </span></span>
+<span><span class="co">#&gt; Writing files: 0.39s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.15s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.11s</span></span>
+<span><span class="co">#&gt; 0.16s</span></span>
+<span><span class="co">#&gt; Reading solution: 0.12s</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_year</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span></span>
 <span><span class="co">#&gt; [1] 9962.545</span></span>
@@ -821,8 +823,8 @@ MWh.</p>
 make a coarse calendar adequate. Discharge in a slice is bounded by
 three things:</p>
 <pre><code>(1) out &lt;= out.af.up · cap2act · outCap · share[s]
-(2) out / outeff &lt;= level[s]
-(3) level[s] &lt;= af.up · stgCap</code></pre>
+(2) out / out.eff &lt;= level[s]
+(3) level[s] &lt;= stg.af.up · stgCap</code></pre>
 <p>For a 6 h / 10 MW battery (60 MWh), only (1) changes with
 resolution:</p>
 <table class="table">
@@ -865,7 +867,7 @@ allow at most <code>⌊N/2⌋</code> cycles, so on a day/night calendar a
 60 MWh moved, against roughly 21,900 MWh for a store that really cycles
 daily. On a single annual timeslice there is no dynamic at all: the
 cyclic balance pairs the slice with itself and collapses to
-<code>inpeff·inp = out/outeff</code>.</p>
+<code>inp.eff·inp = out/out.eff</code>.</p>
 <p>A store whose cycle is shorter than one timeslice is therefore
 <strong>understated, not approximated</strong>. Representing ~365 daily
 cycles needs on the order of 730 timeslices — sub-6-hourly resolution.
@@ -891,25 +893,25 @@ applied at different places in the level equation:</p>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td><code>inpeff</code></td>
+<td><code>inp.eff</code></td>
 <td>charging</td>
 <td>fraction of the input that reaches the level</td>
 </tr>
 <tr class="even">
-<td><code>outeff</code></td>
+<td><code>out.eff</code></td>
 <td>discharging</td>
-<td>level drawn per unit delivered is <code>1/outeff</code>
+<td>level drawn per unit delivered is <code>1/out.eff</code>
 </td>
 </tr>
 <tr class="odd">
-<td><code>stgeff</code></td>
+<td><code>stg.eff</code></td>
 <td>holding</td>
-<td>retention per hour, compounded as <code>stgeff^share</code>
+<td>retention per hour, compounded as <code>stg.eff^share</code>
 </td>
 </tr>
 </tbody>
 </table>
-<p><code>stgeff</code> is the one to watch: it is a
+<p><code>stg.eff</code> is the one to watch: it is a
 <strong>rate</strong>, raised to the timeslice share, so
 <code>0.999</code> is a per-hour retention and not a per-timeslice one.
 That is what keeps a self-discharge assumption stable when the calendar
@@ -921,15 +923,15 @@ is refined.</p>
 <span>  commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
 <span>  duration  <span class="op">=</span> <span class="fl">6</span>,</span>
 <span>  seff      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    inpeff <span class="op">=</span> <span class="fl">0.95</span>,</span>
-<span>    outeff <span class="op">=</span> <span class="fl">0.95</span>,</span>
-<span>    stgeff <span class="op">=</span> <span class="fl">0.999</span></span>
+<span>    inp.eff <span class="op">=</span> <span class="fl">0.95</span>,</span>
+<span>    out.eff <span class="op">=</span> <span class="fl">0.95</span>,</span>
+<span>    stg.eff <span class="op">=</span> <span class="fl">0.999</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">15L</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">STG_BTR_LOSS</span><span class="op">@</span><span class="va">seff</span></span>
-<span><span class="co">#&gt;   vintage cluster region year timeslice stgeff inpeff outeff</span></span>
-<span><span class="co">#&gt; 1    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA      &lt;NA&gt;  0.999   0.95   0.95</span></span></code></pre></div>
+<span><span class="co">#&gt;   vintage cluster region year timeslice stg.eff inp.eff out.eff</span></span>
+<span><span class="co">#&gt; 1    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA      &lt;NA&gt;   0.999    0.95    0.95</span></span></code></pre></div>
 <p>Efficiencies may vary by <code>region</code>, <code>year</code> and
 <code>timeslice</code>, so a store that ages or a cavern that leaks more
 in summer is a matter of extra rows.</p>
@@ -951,7 +953,8 @@ their capacities. Three families share the slot:</p>
 <tbody>
 <tr class="odd">
 <td>
-<code>af.lo</code> / <code>af.up</code> / <code>af.fx</code>
+<code>stg.af.lo</code> / <code>stg.af.up</code> /
+<code>stg.af.fx</code>
 </td>
 <td>the <strong>level</strong>, against <code>vStorageStgCap</code>
 </td>
@@ -987,18 +990,18 @@ charge during the evening peak:</p>
 <span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>stg.invcost <span class="op">=</span> <span class="fl">40</span><span class="op">)</span>,</span>
 <span>  af        <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    timeslice <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="st">"d046_h18"</span><span class="op">)</span>,</span>
-<span>    af.lo     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.15</span>, <span class="cn">NA</span><span class="op">)</span>,              <span class="co"># never draw below 15% full</span></span>
+<span>    stg.af.lo <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.15</span>, <span class="cn">NA</span><span class="op">)</span>,              <span class="co"># never draw below 15% full</span></span>
 <span>    inp.af.up   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="fl">0</span><span class="op">)</span>                  <span class="co"># no charging in that slice</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">40L</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">STG_RES</span><span class="op">@</span><span class="va">af</span></span>
-<span><span class="co">#&gt;   vintage cluster region year timeslice af.lo af.up af.fx inp.af.up inp.af.fx</span></span>
-<span><span class="co">#&gt; 1    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA      &lt;NA&gt;  0.15    NA    NA        NA        NA</span></span>
-<span><span class="co">#&gt; 2    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA  d046_h18    NA    NA    NA         0        NA</span></span>
-<span><span class="co">#&gt;   inp.af.lo out.af.up out.af.fx out.af.lo</span></span>
-<span><span class="co">#&gt; 1        NA        NA        NA        NA</span></span>
-<span><span class="co">#&gt; 2        NA        NA        NA        NA</span></span></code></pre></div>
+<span><span class="co">#&gt;   vintage cluster region year timeslice stg.af.lo stg.af.up stg.af.fx inp.af.up</span></span>
+<span><span class="co">#&gt; 1    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA      &lt;NA&gt;      0.15        NA        NA        NA</span></span>
+<span><span class="co">#&gt; 2    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA  d046_h18        NA        NA        NA         0</span></span>
+<span><span class="co">#&gt;   inp.af.fx inp.af.lo out.af.up out.af.fx out.af.lo</span></span>
+<span><span class="co">#&gt; 1        NA        NA        NA        NA        NA</span></span>
+<span><span class="co">#&gt; 2        NA        NA        NA        NA        NA</span></span></code></pre></div>
 <p><code>NA</code> in a key column means “every member of it”, so the
 first row applies in every timeslice and the second only in the named
 one. <code>.fx</code> overrides the matching
@@ -1115,8 +1118,8 @@ permission rather than an instruction.</p>
 <td><code>@varom</code></td>
 <td>flows and level, per timeslice</td>
 <td>
-<code>inpcost</code>, <code>outcost</code>,
-<code>stgcost</code>
+<code>inp.varom</code>, <code>out.varom</code>,
+<code>stg.varom</code>
 </td>
 </tr>
 </tbody>
@@ -1126,9 +1129,10 @@ permission rather than an instruction.</p>
 <code>@capacity</code>, so each part is priced in its own units:
 <code>out.invcost</code> per MW of discharger, <code>stg.invcost</code>
 per MWh of reservoir — which is exactly what the battery at the top of
-this article does. <code>@varom</code> instead splits by what is
-charged: <code>inpcost</code> per unit charged, <code>outcost</code> per
-unit discharged, <code>stgcost</code> per unit held.</p>
+this article does. <code>@varom</code> takes the same prefixes, by what
+each part moves or holds: <code>inp.varom</code> per unit charged,
+<code>out.varom</code> per unit discharged, <code>stg.varom</code> per
+unit held.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">STG_PRICED</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage.html">newStorage</a></span><span class="op">(</span></span>
 <span>  name      <span class="op">=</span> <span class="st">"STG_PRICED"</span>,</span>
@@ -1138,14 +1142,14 @@ unit discharged, <code>stgcost</code> per unit held.</p>
 <span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>out.invcost <span class="op">=</span> <span class="fl">8081</span><span class="op">)</span>, <span class="co"># EUR/MWh on new capacity</span></span>
 <span>  fixom     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>out.fixom <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>,      <span class="co"># EUR/MW/yr on the whole store</span></span>
 <span>  varom     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    inpcost <span class="op">=</span> <span class="fl">0.5</span>,</span>
-<span>    outcost <span class="op">=</span> <span class="fl">0.5</span></span>
+<span>    inp.varom <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>    out.varom <span class="op">=</span> <span class="fl">0.5</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">15L</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">STG_PRICED</span><span class="op">@</span><span class="va">varom</span></span>
-<span><span class="co">#&gt;   vintage cluster region year timeslice inpcost outcost stgcost</span></span>
-<span><span class="co">#&gt; 1    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA      &lt;NA&gt;     0.5     0.5      NA</span></span></code></pre></div>
+<span><span class="co">#&gt;   vintage cluster region year timeslice inp.varom out.varom stg.varom</span></span>
+<span><span class="co">#&gt; 1    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA      &lt;NA&gt;       0.5       0.5        NA</span></span></code></pre></div>
 <p><code>wacc</code>, <code>payback</code> and <code>eac</code> behave
 exactly as on a <code>technology</code>: see the <a href="model-bricks.html">technology</a> article rather than a second
 copy here.</p>
@@ -1410,13 +1414,13 @@ in the evening.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing commodity clusters<span style="color: #00BB00;">✔</span> materializing commodity clusters <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather clusters<span style="color: #00BB00;">✔</span> materializing weather clusters <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather transforms<span style="color: #00BB00;">✔</span> materializing weather transforms <span style="color: #555555;">(0.2s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: object names<span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: object names<span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process classes<span style="color: #00BB00;">✔</span> collecting sets: process classes <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: timeframes<span style="color: #00BB00;">✔</span> collecting sets: timeframes <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process inputs/outputs<span style="color: #00BB00;">✔</span> collecting sets: process inputs/outputs <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: membership comm sets<span style="color: #00BB00;">✔</span> collecting sets: membership comm sets <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process regions<span style="color: #00BB00;">✔</span> collecting sets: process regions <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: membership + closure<span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: membership + closure<span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> settings parameters (discount, period length, timeslice share)<span style="color: #00BB00;">✔</span> settings parameters (discount, period length, timeslice share) <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: calendar + lifespan<span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.1s)</span></span></span>
@@ -1425,12 +1429,13 @@ in the evening.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter<span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.2s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: cost aggregation<span style="color: #00BB00;">✔</span> building maps: cost aggregation <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing model-size summary<span style="color: #00BB00;">✔</span> computing model-size summary <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; model_size: solar_battery</span></span>
-<span><span class="co">#&gt;   parameters : 202 value, 361 maps, 16 sets</span></span>
+<span><span class="co">#&gt;   parameters : 203 value, 361 maps, 16 sets</span></span>
 <span><span class="co">#&gt;   param rows : 2,087</span></span>
 <span><span class="co">#&gt;   estimate   : ~6,415 variables, ~7,269 constraints (from gating maps)</span></span>
 <span><span class="co">#&gt;   top parameters by rows:</span></span>
@@ -1449,10 +1454,10 @@ in the evening.</p>
 <span><span class="co">#&gt;     cardYear           1</span></span>
 <span><span class="co">#&gt;     pYearFraction      1</span></span>
 <span><span class="co">#&gt;     pWacc              1</span></span>
-<span><span class="co">#&gt; Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpgFESxc/energyRt/scenarios/solar_battery-d365_h24_1dpm/runs/glpk </span></span>
-<span><span class="co">#&gt; Writing files: 0.3s</span></span>
+<span><span class="co">#&gt; Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpAvTvH0/energyRt/scenarios/solar_battery-d365_h24_1dpm/runs/glpk </span></span>
+<span><span class="co">#&gt; Writing files: 0.31s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.26s</span></span>
+<span><span class="co">#&gt; 0.25s</span></span>
 <span><span class="co">#&gt; Reading solution: 0.13s</span></span></code></pre></div>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage_duration.html">storage_duration</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span>                 <span class="co"># 12h / 1d / 1w / 30d by default</span></span>
@@ -1532,7 +1537,7 @@ than by the load.</p>
 <span>  storage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span><span class="op">)</span>,</span>
 <span>  <span class="co"># power priced per MW on the discharger, energy per MWh on the reservoir</span></span>
 <span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>out.invcost <span class="op">=</span> <span class="fl">20</span>, stg.invcost <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
-<span>  seff      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inpeff <span class="op">=</span> <span class="fl">0.95</span>, outeff <span class="op">=</span> <span class="fl">0.95</span><span class="op">)</span>,</span>
+<span>  seff      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inp.eff <span class="op">=</span> <span class="fl">0.95</span>, out.eff <span class="op">=</span> <span class="fl">0.95</span><span class="op">)</span>,</span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">15L</span><span class="op">)</span>,</span>
 <span>  fullYear  <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>

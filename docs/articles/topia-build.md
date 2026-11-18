@@ -146,20 +146,20 @@ knitr::kable(geo[, setdiff(names(geo), "region")],
              caption = "The province hierarchy")
 ```
 
-| nation | zone | province | name      |     area |
-|:-------|:-----|:---------|:----------|---------:|
-| TOPIA  | Z1   | R01      | Geysia    | 5.657862 |
-| TOPIA  | Z2   | R02      | Metropia  | 5.657862 |
-| TOPIA  | Z2   | R03      | Solaria   | 5.657862 |
-| TOPIA  | Z3   | R04      | Nuclia    | 5.657862 |
-| TOPIA  | Z3   | R05      | Alpinia   | 5.657862 |
-| TOPIA  | Z3   | R06      | Coalia    | 5.657862 |
-| TOPIA  | Z4   | R07      | Torrentia | 5.657862 |
-| TOPIA  | Z4   | R08      | Shalia    | 5.657862 |
-| TOPIA  | Z4   | R09      | Silvania  | 5.657862 |
-| TOPIA  | Z4   | R10      | Industria | 5.657862 |
-| TOPIA  | Z5   | R11      | Windia    | 5.657862 |
-| TOPIA  | Z5   | R12      | Maritia   | 5.657862 |
+| nation | zone | province |     area |
+|:-------|:-----|:---------|---------:|
+| TOPIA  | Z1   | R01      | 5.657862 |
+| TOPIA  | Z2   | R02      | 5.657862 |
+| TOPIA  | Z2   | R03      | 5.657862 |
+| TOPIA  | Z3   | R04      | 5.657862 |
+| TOPIA  | Z3   | R05      | 5.657862 |
+| TOPIA  | Z3   | R06      | 5.657862 |
+| TOPIA  | Z4   | R07      | 5.657862 |
+| TOPIA  | Z4   | R08      | 5.657862 |
+| TOPIA  | Z4   | R09      | 5.657862 |
+| TOPIA  | Z4   | R10      | 5.657862 |
+| TOPIA  | Z5   | R11      | 5.657862 |
+| TOPIA  | Z5   | R12      | 5.657862 |
 
 The province hierarchy {.table}
 
@@ -1954,7 +1954,7 @@ STG_ELC <- newStorage(
     stg.invcost = convert("USD/kWh", "MUSD/GWh", c(200, 110, 70)),
     out.invcost = convert("USD/kW", "MUSD/GW", c(150, 120, 95))
   ),
-  seff = data.frame(inpeff = 0.95, outeff = 0.95),
+  seff = data.frame(inp.eff = 0.95, out.eff = 0.95),
   # The windy east already stores: a base-year run on the full hourly year
   # builds 1.9 GW in `R11` and 1.0 GW in `R12` from nothing, which says the
   # fleet standing in 2025 includes batteries there and the kit was not
@@ -1996,7 +1996,7 @@ STG_H2 <- newStorage(
     stg.invcost = convert("USD/kWh", "MUSD/GWh", 2),
     out.invcost = convert("USD/kW", "MUSD/GW", 400)
   ),
-  seff = data.frame(inpeff = 0.98, outeff = 0.98)
+  seff = data.frame(inp.eff = 0.98, out.eff = 0.98)
 )
 draw(STG_H2)
 ```

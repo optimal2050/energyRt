@@ -572,6 +572,8 @@ re-run.
 - [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
   [`interpolate(`*`<model>`*`)`](https://energyRt.org/reference/interpolate_model.md)
   : Interpolate a model into a solver-ready scenario
+- [`setObjectiveWeights()`](https://energyRt.org/reference/setObjectiveWeights.md)
+  : Weight the objective by milestone year and by region
 - [`solve_model()`](https://energyRt.org/reference/solve_model.md)
   [`solve_scenario()`](https://energyRt.org/reference/solve_model.md)
   [`solve(`*`<model>`*`,`*`<character>`*`)`](https://energyRt.org/reference/solve_model.md)
@@ -714,6 +716,9 @@ Getting tidy data out of a solved scenario.
 
 - [`getMix()`](https://energyRt.org/reference/getMix.md) : Extract a
   tidy mix (generation, capacity, fuel) from a solved scenario
+
+- [`objective_weights()`](https://energyRt.org/reference/objective_weights.md)
+  : The objective, weighted and unweighted
 
 - [`getObject()`](https://energyRt.org/reference/getObject.md) :
   Retrieve model objects from a repository, model or scenario

@@ -178,9 +178,9 @@ STG_ELC <- newStorage(
     olife = 20 # operational life of the storage in years
   ),
   seff = data.frame(
-    stgeff = 0.999, # storage efficiency
-    inpeff = 0.9, # charging efficiency
-    outeff = 0.9 # discharging efficiency
+    stg.eff = 0.999, # storage efficiency
+    inp.eff = 0.9, # charging efficiency
+    out.eff = 0.9 # discharging efficiency
   ),
   aeff = data.frame(
     acomm = "LITHIUM", # track lithium use for battery production
@@ -189,8 +189,8 @@ STG_ELC <- newStorage(
     stg.ncap2ainp = convert(4 * 250, "Wh/kg", "GWh/kt")
   ),
   af = data.frame(
-    # af.lo = 0., # lower bound for the capacity factor
-    af.up = 1. # upper bound for the capacity factor
+    # stg.af.lo = 0., # minimum state of charge
+    stg.af.up = 1. # maximum state of charge
   ),
   fixom = data.frame(
     # region = "R1",
@@ -206,8 +206,8 @@ STG_ELC <- newStorage(
   fullYear = TRUE, # full year storage cycle
   weather = data.frame(
     weather = "AMBIENT_TEMP", # weather factor for capacity factor
-    waf.up = 1 # affects upper boundary of capacity factor
-    # waf.lo = 0.9 # affects lower boundary of capacity factor
+    stg.waf.up = 1 # affects upper boundary of capacity factor
+    # stg.waf.lo = 0.9 # affects lower boundary of capacity factor
   )
   # region = c("R1", "R2", "R3"),
 )

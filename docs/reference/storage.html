@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9005</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -240,13 +240,13 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 <dt>timeslice</dt>
 <dd><p>character. Time timeslice to apply the parameter, NA for every timeslice.</p></dd>
 
-<dt>stgeff</dt>
+<dt>stg.eff</dt>
 <dd><p>numeric. Storage decay annual rate.</p></dd>
 
-<dt>inpeff</dt>
+<dt>inp.eff</dt>
 <dd><p>numeric. Input efficiency rate.</p></dd>
 
-<dt>outeff</dt>
+<dt>out.eff</dt>
 <dd><p>numeric. Output efficiency rate.</p></dd>
 
 
@@ -346,7 +346,7 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 
 
 <dt id="arg-af">af<a class="anchor" aria-label="anchor" href="#arg-af"></a></dt>
-<dd><p>data.frame. Availability factor parameters. Unlike a technology's <code>af</code> (which bounds activity, a flow), the storage <code>af.*</code> columns bound the stored LEVEL – a stock – as a fraction of the storing capacity, i.e. a state-of-charge range. They are not capacity factors. The flow-side bounds are the <code>cinp.*</code>/<code>cout.*</code> columns, which bound charge/discharge relative to the charger/discharger capacity per timeslice (those are the storage analogue of a technology's <code>af</code>).</p>
+<dd><p>data.frame. Availability factor parameters. Unlike a technology's <code>af</code> (which bounds activity, a flow), the storage <code>stg.af.*</code> columns bound the stored LEVEL – a stock – as a fraction of the storing capacity, i.e. a state-of-charge range. They are not capacity factors. The flow-side bounds are the <code>cinp.*</code>/<code>cout.*</code> columns, which bound charge/discharge relative to the charger/discharger capacity per timeslice (those are the storage analogue of a technology's <code>af</code>).</p>
 <dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
@@ -362,14 +362,14 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 <dt>timeslice</dt>
 <dd><p>character. Time timeslice to apply the parameter, NA for every timeslice.</p></dd>
 
-<dt>af.lo</dt>
+<dt>stg.af.lo</dt>
 <dd><p>numeric. Lower bound of the stored level as a fraction of storing capacity (minimum state of charge).</p></dd>
 
-<dt>af.up</dt>
+<dt>stg.af.up</dt>
 <dd><p>numeric. Upper bound of the stored level as a fraction of storing capacity (maximum state of charge).</p></dd>
 
-<dt>af.fx</dt>
-<dd><p>numeric. Fixed value of the stored-level fraction. This parameter overrides <code>af.lo</code> and <code>af.up</code>.</p></dd>
+<dt>stg.af.fx</dt>
+<dd><p>numeric. Fixed value of the stored-level fraction. This parameter overrides <code>stg.af.lo</code> and <code>stg.af.up</code>.</p></dd>
 
 <dt>inp.af.lo</dt>
 <dd><p>numeric. Lower bound of the charging (input) flow relative to charger capacity per timeslice.</p></dd>
@@ -435,13 +435,13 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 <dt>timeslice</dt>
 <dd><p>character. Time timeslice to apply the parameter, NA for every timeslice.</p></dd>
 
-<dt>inpcost</dt>
+<dt>inp.varom</dt>
 <dd><p>numeric. Costs associated with the input commodity.</p></dd>
 
-<dt>outcost</dt>
+<dt>out.varom</dt>
 <dd><p>numeric. Costs associated with the output commodity.</p></dd>
 
-<dt>stgcost</dt>
+<dt>stg.varom</dt>
 <dd><p>numeric. Costs associated with the storage level. A negative value rewards holding a charged store.</p></dd>
 
 
@@ -449,7 +449,7 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 
 
 <dt id="arg-target">target<a class="anchor" aria-label="anchor" href="#arg-target"></a></dt>
-<dd><p>data.frame. Soft floors on the stored level, priced. Each row is one tier: the level may fall below <code>af.target</code> at <code>cost</code> per unit short. Tiers stack – below several targets the prices add up – so a deeper tier with its own price makes draining dearer the further it goes.</p>
+<dd><p>data.frame. Soft floors on the stored level, priced. Each row is one tier: the level may fall below <code>stg.af.target</code> at <code>stg.af.cost</code> per unit short. Tiers stack – below several targets the prices add up – so a deeper tier with its own price makes draining dearer the further it goes.</p>
 <dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
@@ -468,11 +468,11 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 <dt>tier</dt>
 <dd><p>character. Tier label; a missing or NA tier is the tier "1". Never a wildcard.</p></dd>
 
-<dt>af.target</dt>
-<dd><p>numeric. Soft floor on the stored level as a fraction of storing capacity (the base of <code>af.lo</code>), not an absolute level.</p></dd>
+<dt>stg.af.target</dt>
+<dd><p>numeric. Soft floor on the stored level as a fraction of storing capacity (the base of <code>stg.af.lo</code>), not an absolute level.</p></dd>
 
-<dt>cost</dt>
-<dd><p>numeric. Cost per unit the level falls short of <code>af.target</code>, on the same annual basis as <code>varom$stgcost</code>. Without it the target has no effect.</p></dd>
+<dt>stg.af.cost</dt>
+<dd><p>numeric. Cost per unit the level falls short of <code>stg.af.target</code>, on the same annual basis as <code>varom$stg.varom</code>. Without it the target has no effect.</p></dd>
 
 
 </dl></dd>
@@ -809,14 +809,14 @@ Coarsening is a MODEL CHANGE, not a re-representation. The object's own constrai
 <dt>transform</dt>
 <dd><p>character. Optional name of a function in the weather object's <code>@misc$transform</code>: the factor reads the series that function derives from the raw one, materialised at interpolation. NA reads the raw series.</p></dd>
 
-<dt>waf.lo</dt>
+<dt>stg.waf.lo</dt>
 <dd><p>numeric. Coefficient that links the weather factor with the lower bound of the availability factor.</p></dd>
 
-<dt>waf.up</dt>
+<dt>stg.waf.up</dt>
 <dd><p>numeric. Coefficient that links the weather factor with the upper bound of the availability factor.</p></dd>
 
-<dt>waf.fx</dt>
-<dd><p>numeric. Coefficient that links the weather factor with the fixed value of the availability factor. This parameter overrides <code>waf.lo</code> and <code>waf.up</code>.</p></dd>
+<dt>stg.waf.fx</dt>
+<dd><p>numeric. Coefficient that links the weather factor with the fixed value of the availability factor. This parameter overrides <code>stg.waf.lo</code> and <code>stg.waf.up</code>.</p></dd>
 
 <dt>inp.waf.lo</dt>
 <dd><p>numeric. Coefficient that links the weather factor with the lower bound of the input commodity availability factor.</p></dd>
@@ -904,9 +904,9 @@ the storage cycle will be a calendar day).</p>
 <span class="r-in"><span>    <span class="co"># region = "R1",</span></span></span>
 <span class="r-in"><span>    <span class="co"># year = 2020,</span></span></span>
 <span class="r-in"><span>    <span class="co"># timeslice = "HOUR",</span></span></span>
-<span class="r-in"><span>    stgeff <span class="op">=</span> <span class="fl">0.999</span>,</span></span>
-<span class="r-in"><span>    inpeff <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
-<span class="r-in"><span>    outeff <span class="op">=</span> <span class="fl">0.9</span></span></span>
+<span class="r-in"><span>    stg.eff <span class="op">=</span> <span class="fl">0.999</span>,</span></span>
+<span class="r-in"><span>    inp.eff <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
+<span class="r-in"><span>    out.eff <span class="op">=</span> <span class="fl">0.9</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  aeff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    acomm <span class="op">=</span> <span class="st">"electricity"</span>,</span></span>
@@ -927,14 +927,14 @@ the storage cycle will be a calendar day).</p>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  af <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, timeslice <span class="op">=</span> <span class="st">"HOUR"</span>,</span></span>
-<span class="r-in"><span>    af.lo <span class="op">=</span> <span class="fl">0.9</span>, af.up <span class="op">=</span> <span class="fl">0.9</span>, af.fx <span class="op">=</span> <span class="fl">0.9</span>, inp.af.up <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
+<span class="r-in"><span>    stg.af.lo <span class="op">=</span> <span class="fl">0.9</span>, stg.af.up <span class="op">=</span> <span class="fl">0.9</span>, stg.af.fx <span class="op">=</span> <span class="fl">0.9</span>, inp.af.up <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
 <span class="r-in"><span>    inp.af.fx <span class="op">=</span> <span class="fl">0.9</span>, inp.af.lo <span class="op">=</span> <span class="fl">0.9</span>, out.af.up <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
 <span class="r-in"><span>    out.af.fx <span class="op">=</span> <span class="fl">0.9</span>, out.af.lo <span class="op">=</span> <span class="fl">0.9</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  fixom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, out.fixom <span class="op">=</span> <span class="fl">0.9</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  varom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, timeslice <span class="op">=</span> <span class="st">"HOUR"</span>,</span></span>
-<span class="r-in"><span>    inpcost <span class="op">=</span> <span class="fl">0.9</span>, outcost <span class="op">=</span> <span class="fl">0.9</span>, stgcost <span class="op">=</span> <span class="fl">0.9</span></span></span>
+<span class="r-in"><span>    inp.varom <span class="op">=</span> <span class="fl">0.9</span>, out.varom <span class="op">=</span> <span class="fl">0.9</span>, stg.varom <span class="op">=</span> <span class="fl">0.9</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, out.invcost <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
@@ -950,9 +950,9 @@ the storage cycle will be a calendar day).</p>
 <span class="r-in"><span>  fullYear <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
 <span class="r-in"><span>  weather <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    weather <span class="op">=</span> <span class="st">"sunny"</span>,</span></span>
-<span class="r-in"><span>    waf.lo <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
-<span class="r-in"><span>    waf.up <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
-<span class="r-in"><span>    waf.fx <span class="op">=</span> <span class="fl">0.9</span>, inp.waf.lo <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
+<span class="r-in"><span>    stg.waf.lo <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
+<span class="r-in"><span>    stg.waf.up <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
+<span class="r-in"><span>    stg.waf.fx <span class="op">=</span> <span class="fl">0.9</span>, inp.waf.lo <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
 <span class="r-in"><span>    inp.waf.fx <span class="op">=</span> <span class="fl">0.9</span>, inp.waf.up <span class="op">=</span> <span class="fl">0.9</span>, out.waf.lo <span class="op">=</span> <span class="fl">0.9</span>, out.waf.fx <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
 <span class="r-in"><span>    out.waf.up <span class="op">=</span> <span class="fl">0.9</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>

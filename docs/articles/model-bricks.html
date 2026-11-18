@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9005</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -283,12 +283,12 @@ time.</p>
 </h3>
 <p>Shifts a commodity across time. <code>seff</code> holds the
 charging/discharging/holding efficiencies
-(<code>inpeff</code>/<code>outeff</code>/<code>stgeff</code>) and
+(<code>inp.eff</code>/<code>out.eff</code>/<code>stg.eff</code>) and
 <code>duration</code> is the storage duration.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">STG_ELC</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage.html">newStorage</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"STG_ELC"</span>, desc <span class="op">=</span> <span class="st">"Battery"</span>, commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
-<span>  seff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inpeff <span class="op">=</span> <span class="fl">0.9</span>, outeff <span class="op">=</span> <span class="fl">0.9</span>, stgeff <span class="op">=</span> <span class="fl">0.999</span><span class="op">)</span>,</span>
+<span>  seff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inp.eff <span class="op">=</span> <span class="fl">0.9</span>, out.eff <span class="op">=</span> <span class="fl">0.9</span>, stg.eff <span class="op">=</span> <span class="fl">0.999</span><span class="op">)</span>,</span>
 <span>  duration <span class="op">=</span> <span class="fl">4</span>,                                   <span class="co"># 4 hours of storage per unit power</span></span>
 <span>  aux  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>acomm <span class="op">=</span> <span class="st">"MAT"</span>, unit <span class="op">=</span> <span class="st">"kt"</span><span class="op">)</span>,</span>
 <span>  <span class="co"># a storage has three parts, so an aux coupling must say WHICH capacity it</span></span>

@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9005</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -97,7 +97,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>TOPIA I: building the model</h1>
             
-            <h4 data-toc-skip class="date">2026-11-16</h4>
+            <h4 data-toc-skip class="date">2026-11-17</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/vignettes/topia-build.Rmd" class="external-link"><code>vignettes/topia-build.Rmd</code></a></small>
       <div class="d-none name"><code>topia-build.Rmd</code></div>
@@ -324,7 +324,6 @@ own demand in every hour from what it holds locally.</p>
 <th align="left">nation</th>
 <th align="left">zone</th>
 <th align="left">province</th>
-<th align="left">name</th>
 <th align="right">area</th>
 </tr></thead>
 <tbody>
@@ -332,84 +331,72 @@ own demand in every hour from what it holds locally.</p>
 <td align="left">TOPIA</td>
 <td align="left">Z1</td>
 <td align="left">R01</td>
-<td align="left">Geysia</td>
 <td align="right">5.657862</td>
 </tr>
 <tr class="even">
 <td align="left">TOPIA</td>
 <td align="left">Z2</td>
 <td align="left">R02</td>
-<td align="left">Metropia</td>
 <td align="right">5.657862</td>
 </tr>
 <tr class="odd">
 <td align="left">TOPIA</td>
 <td align="left">Z2</td>
 <td align="left">R03</td>
-<td align="left">Solaria</td>
 <td align="right">5.657862</td>
 </tr>
 <tr class="even">
 <td align="left">TOPIA</td>
 <td align="left">Z3</td>
 <td align="left">R04</td>
-<td align="left">Nuclia</td>
 <td align="right">5.657862</td>
 </tr>
 <tr class="odd">
 <td align="left">TOPIA</td>
 <td align="left">Z3</td>
 <td align="left">R05</td>
-<td align="left">Alpinia</td>
 <td align="right">5.657862</td>
 </tr>
 <tr class="even">
 <td align="left">TOPIA</td>
 <td align="left">Z3</td>
 <td align="left">R06</td>
-<td align="left">Coalia</td>
 <td align="right">5.657862</td>
 </tr>
 <tr class="odd">
 <td align="left">TOPIA</td>
 <td align="left">Z4</td>
 <td align="left">R07</td>
-<td align="left">Torrentia</td>
 <td align="right">5.657862</td>
 </tr>
 <tr class="even">
 <td align="left">TOPIA</td>
 <td align="left">Z4</td>
 <td align="left">R08</td>
-<td align="left">Shalia</td>
 <td align="right">5.657862</td>
 </tr>
 <tr class="odd">
 <td align="left">TOPIA</td>
 <td align="left">Z4</td>
 <td align="left">R09</td>
-<td align="left">Silvania</td>
 <td align="right">5.657862</td>
 </tr>
 <tr class="even">
 <td align="left">TOPIA</td>
 <td align="left">Z4</td>
 <td align="left">R10</td>
-<td align="left">Industria</td>
 <td align="right">5.657862</td>
 </tr>
 <tr class="odd">
 <td align="left">TOPIA</td>
 <td align="left">Z5</td>
 <td align="left">R11</td>
-<td align="left">Windia</td>
 <td align="right">5.657862</td>
 </tr>
 <tr class="even">
 <td align="left">TOPIA</td>
 <td align="left">Z5</td>
 <td align="left">R12</td>
-<td align="left">Maritia</td>
 <td align="right">5.657862</td>
 </tr>
 </tbody>
@@ -2521,7 +2508,7 @@ than the last.</p>
 <span>    stg.invcost <span class="op">=</span> <span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="st">"USD/kWh"</span>, <span class="st">"MUSD/GWh"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">200</span>, <span class="fl">110</span>, <span class="fl">70</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>    out.invcost <span class="op">=</span> <span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="st">"USD/kW"</span>, <span class="st">"MUSD/GW"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">150</span>, <span class="fl">120</span>, <span class="fl">95</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
-<span>  seff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inpeff <span class="op">=</span> <span class="fl">0.95</span>, outeff <span class="op">=</span> <span class="fl">0.95</span><span class="op">)</span>,</span>
+<span>  seff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inp.eff <span class="op">=</span> <span class="fl">0.95</span>, out.eff <span class="op">=</span> <span class="fl">0.95</span><span class="op">)</span>,</span>
 <span>  <span class="co"># The windy east already stores: a base-year run on the full hourly year</span></span>
 <span>  <span class="co"># builds 1.9 GW in `R11` and 1.0 GW in `R12` from nothing, which says the</span></span>
 <span>  <span class="co"># fleet standing in 2025 includes batteries there and the kit was not</span></span>
@@ -2559,7 +2546,7 @@ than the last.</p>
 <span>    stg.invcost <span class="op">=</span> <span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="st">"USD/kWh"</span>, <span class="st">"MUSD/GWh"</span>, <span class="fl">2</span><span class="op">)</span>,</span>
 <span>    out.invcost <span class="op">=</span> <span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="st">"USD/kW"</span>, <span class="st">"MUSD/GW"</span>, <span class="fl">400</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
-<span>  seff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inpeff <span class="op">=</span> <span class="fl">0.98</span>, outeff <span class="op">=</span> <span class="fl">0.98</span><span class="op">)</span></span>
+<span>  seff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inp.eff <span class="op">=</span> <span class="fl">0.98</span>, out.eff <span class="op">=</span> <span class="fl">0.98</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/draw.html">draw</a></span><span class="op">(</span><span class="va">STG_H2</span><span class="op">)</span></span></code></pre></div>
 <p><img src="topia-build_files/figure-html/storage-2.png"><!-- --></p>

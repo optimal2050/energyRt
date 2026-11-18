@@ -15,7 +15,7 @@ folded together by data-raw/topia_assemble.R.'><meta property="og:image" content
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9005</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -103,24 +103,27 @@ provinces in different places, and each assigns the codes so that a
 zone is one contiguous block on that picture. The finest geoframe is
 <code>province</code>, not <code>region</code>: energyRt uses <code>region</code> for a model's own
 spatial dimension, so a geoframe of that name would make
-<code>level = "region"</code> ambiguous. The leaftable still carries a <code>region</code>
-column – the atom key, a copy of <code>province</code> – so anything joining on
-<code>region</code> is unaffected.</p></dd>
+<code>level = "region"</code> ambiguous. <code>province</code> is the atom key
+(<code>geoscales::geoscale_key(gs)</code>), and the province names are in
+<code>geoscales::geoscale_labels(gs)</code>; zones and the nation have none.</p></dd>
 
 <dt>weather</dt>
 <dd><p>solar / wind / hydro capacity factors for the two
-calendars TOPIA runs on. Columns <code>dataset</code>, <code>calendar</code>
-(<code>s4_h24</code>/<code>d365_h24</code>), <code>resource</code> (<code>WSOL</code>/<code>WWIN</code>/<code>WHYD</code>), <code>region</code>,
-<code>cluster</code> (the resource grade, <code>NA</code> where ungraded), <code>timeslice</code> and
-<code>wval</code> (capacity factor, 0-1). The <code>dataset</code> column is the split that
-matters: <code>measured</code> carries the graded hourly series on <code>d365_h24</code> –
+calendars TOPIA runs on: a list with one table per calendar,
+<code>topia$weather$s4_h24</code> and <code>topia$weather$d365_h24</code>. Columns <code>dataset</code>,
+<code>resource</code> (<code>WSOL</code>/<code>WWIN</code>/<code>WHYD</code>), <code>region</code>, <code>cluster</code> (the resource
+grade, <code>NA</code> where ungraded), <code>timeslice</code> and <code>wval</code> (capacity factor,
+0-1). <code>timeslice</code> is bound to the table's calendar and <code>region</code> to the
+hierarchy at <code>province</code> (<code><a href="https://optimal2050.github.io/timescales/r/reference/bind_calendar.html" class="external-link">timescales::calendar_link()</a></code>), so a
+conversion given another calendar stops instead of matching the
+labels. <code>sample</code> carries the graded hourly series on <code>d365_h24</code> –
 wind in <code>HI</code>/<code>MD</code>/<code>LO</code>, solar in <code>FL</code>/<code>TH</code> – and <code>simulated</code> the small
 stand-in on <code>s4_h24</code>, whose <code>cluster</code> is <code>NA</code> throughout. A clustered
 technology therefore has no weather rows on <code>s4_h24</code>.</p></dd>
 
 <dt>demand</dt>
 <dd><p>relative electricity-load shapes by province and timeslice,
-for the same two calendars. Columns <code>dataset</code>, <code>calendar</code>, <code>region</code>,
+one table per calendar as in <code>weather</code>. Columns <code>dataset</code>, <code>region</code>,
 <code>timeslice</code> and <code>load</code> (relative, mean ~1); scale by a province's annual
 demand and the timeslice shares to get energy per timeslice.</p></dd>
 
@@ -225,14 +228,11 @@ bridging) to 10. The arithmetic is written out in
 <span class="r-out co"><span class="r-pr">#&gt;</span> [7] "modules"  </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">geoscales</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "squares"   "honeycomb" "island"    "continent"</span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">weather</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     dataset calendar resource region cluster timeslice  wval</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 simulated   s4_h24     WHYD    R01    &lt;NA&gt;   WIN_h00 0.535</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 simulated   s4_h24     WHYD    R01    &lt;NA&gt;   WIN_h01 0.535</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 simulated   s4_h24     WHYD    R01    &lt;NA&gt;   WIN_h02 0.535</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 simulated   s4_h24     WHYD    R01    &lt;NA&gt;   WIN_h03 0.535</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 simulated   s4_h24     WHYD    R01    &lt;NA&gt;   WIN_h04 0.535</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 simulated   s4_h24     WHYD    R01    &lt;NA&gt;   WIN_h05 0.535</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">weather</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "dataset"   "calendar"  "resource"  "region"    "cluster"   "timeslice"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [7] "wval"     </span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">weather</span><span class="op">$</span><span class="va">s4_h24</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
 <span class="r-in"><span><span class="va">topia</span><span class="op">$</span><span class="va">stock</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   tech gw</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 ECOA  6</span>

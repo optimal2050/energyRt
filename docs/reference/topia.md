@@ -31,28 +31,32 @@ A named list of five elements:
   that a zone is one contiguous block on that picture. The finest
   geoframe is `province`, not `region`: energyRt uses `region` for a
   model's own spatial dimension, so a geoframe of that name would make
-  `level = "region"` ambiguous. The leaftable still carries a `region`
-  column – the atom key, a copy of `province` – so anything joining on
-  `region` is unaffected.
+  `level = "region"` ambiguous. `province` is the atom key
+  (`geoscales::geoscale_key(gs)`), and the province names are in
+  `geoscales::geoscale_labels(gs)`; zones and the nation have none.
 
 - weather:
 
   solar / wind / hydro capacity factors for the two calendars TOPIA runs
-  on. Columns `dataset`, `calendar` (`s4_h24`/`d365_h24`), `resource`
+  on: a list with one table per calendar, `topia$weather$s4_h24` and
+  `topia$weather$d365_h24`. Columns `dataset`, `resource`
   (`WSOL`/`WWIN`/`WHYD`), `region`, `cluster` (the resource grade, `NA`
-  where ungraded), `timeslice` and `wval` (capacity factor, 0-1). The
-  `dataset` column is the split that matters: `measured` carries the
-  graded hourly series on `d365_h24` – wind in `HI`/`MD`/`LO`, solar in
-  `FL`/`TH` – and `simulated` the small stand-in on `s4_h24`, whose
-  `cluster` is `NA` throughout. A clustered technology therefore has no
-  weather rows on `s4_h24`.
+  where ungraded), `timeslice` and `wval` (capacity factor, 0-1).
+  `timeslice` is bound to the table's calendar and `region` to the
+  hierarchy at `province`
+  ([`timescales::calendar_link()`](https://optimal2050.github.io/timescales/r/reference/bind_calendar.html)),
+  so a conversion given another calendar stops instead of matching the
+  labels. `sample` carries the graded hourly series on `d365_h24` – wind
+  in `HI`/`MD`/`LO`, solar in `FL`/`TH` – and `simulated` the small
+  stand-in on `s4_h24`, whose `cluster` is `NA` throughout. A clustered
+  technology therefore has no weather rows on `s4_h24`.
 
 - demand:
 
-  relative electricity-load shapes by province and timeslice, for the
-  same two calendars. Columns `dataset`, `calendar`, `region`,
-  `timeslice` and `load` (relative, mean ~1); scale by a province's
-  annual demand and the timeslice shares to get energy per timeslice.
+  relative electricity-load shapes by province and timeslice, one table
+  per calendar as in `weather`. Columns `dataset`, `region`, `timeslice`
+  and `load` (relative, mean ~1); scale by a province's annual demand
+  and the timeslice shares to get energy per timeslice.
 
 - stock:
 
@@ -169,14 +173,11 @@ names(topia)
 #> [7] "modules"  
 names(topia$geoscales)
 #> [1] "squares"   "honeycomb" "island"    "continent"
-head(topia$weather)
-#>     dataset calendar resource region cluster timeslice  wval
-#> 1 simulated   s4_h24     WHYD    R01    <NA>   WIN_h00 0.535
-#> 2 simulated   s4_h24     WHYD    R01    <NA>   WIN_h01 0.535
-#> 3 simulated   s4_h24     WHYD    R01    <NA>   WIN_h02 0.535
-#> 4 simulated   s4_h24     WHYD    R01    <NA>   WIN_h03 0.535
-#> 5 simulated   s4_h24     WHYD    R01    <NA>   WIN_h04 0.535
-#> 6 simulated   s4_h24     WHYD    R01    <NA>   WIN_h05 0.535
+names(topia$weather)
+#> [1] "dataset"   "calendar"  "resource"  "region"    "cluster"   "timeslice"
+#> [7] "wval"     
+head(topia$weather$s4_h24)
+#> NULL
 topia$stock
 #>   tech gw
 #> 1 ECOA  6

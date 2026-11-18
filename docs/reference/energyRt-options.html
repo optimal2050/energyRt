@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9005</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -470,6 +470,21 @@ Keep parameters at a parent geoframe or timeframe alongside the finest level, so
 
 <dt>envvar: </dt>
 <dd><p>ENERGYRT_PARENT_LEVELS (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>bridge_storage_gaps</dt>
+<dd><dl>
+May a storage level be carried across a gap a sampled calendar leaves in the year? FALSE (default) closes each contiguous block of kept timeslices onto itself, so nothing crosses a gap; TRUE chains the blocks as if they were adjacent. A full calendar has no gaps and is unaffected either way.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="cn">FALSE</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>energyRt.bridge_storage_gaps</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_BRIDGE_STORAGE_GAPS (evaluated if possible, raw string otherwise)</p></dd>
 
 
 </dl></dd>

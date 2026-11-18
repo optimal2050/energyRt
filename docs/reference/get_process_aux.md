@@ -95,9 +95,9 @@ scen <- interpolate_model(mod, name = "EX")
 #> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
 #> ✔ building maps: calendar + lifespan (0.2s)
 #> ℹ ob2mi: interpolating 83 model objects
-#> ✔ ob2mi: interpolating 83 model objects (0.7s)
+#> ✔ ob2mi: interpolating 83 model objects (0.8s)
 #> ℹ interpolating parameters over milestone years
-#> ✔ interpolating parameters over milestone years (1.7s)
+#> ✔ interpolating parameters over milestone years (1.5s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices
 #> ✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)
@@ -110,7 +110,7 @@ scen <- interpolate_model(mod, name = "EX")
 #> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
 #> ✔ building maps: filter (0.6s)
 #> ℹ building maps: constraint
-#> Error: waf: the weather series has no value at the timeslices of the bound it multiplies (ESOL_VIN2015_CLFL/WSOL_CLFL, ESOL_VIN2030_CLFL/WSOL_CLFL, ESOL_VIN2045_CLFL/WSOL_CLFL, ESOL_VIN2015_CLTH/WSOL_CLTH, ESOL_VIN2030_CLTH/WSOL_CLTH). Give the weather the technology's timeframe.
+#> Error: waf: the weather series has no value at the timeslices of the bound it multiplies (ESOL_VIN2015_CLFL/WSOL_CLFL, ESOL_VIN2030_CLFL/WSOL_CLFL, ESOL_VIN2045_CLFL/WSOL_CLFL, ESOL_VIN2015_CLTH/WSOL_CLTH, ESOL_VIN2030_CLTH/WSOL_CLTH). Give the weather the technology's timeframe or a coarser one.
 
 # a process with no auxiliary flow reports an empty vector, not a missing entry
 get_process_aux(scen, process = "ECOA")

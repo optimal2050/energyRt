@@ -17,7 +17,7 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9005</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -99,6 +99,8 @@ and validates the result. The returned scenario is ready for <code><a href="solv
 <span>  fold <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  sparse <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  prune <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  storage_cycle <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  bridge_storage_gaps <span class="op">=</span> <span class="fu">options</span><span class="fu">::</span><span class="fu"><a href="https://dgkf.github.io/options/reference/opt.html" class="external-link">opt</a></span><span class="op">(</span><span class="st">"bridge_storage_gaps"</span><span class="op">)</span>,</span>
 <span>  validate <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  code <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  kvl <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -216,6 +218,27 @@ parameter's flagged value are dropped (lossless: an absent tuple reads as
 the default, which equals the dropped value). One parameter is flagged
 today (<code>pWeather</code>). Superseded by <code>sparse</code>'s <code>value =</code> form; retained for
 compatibility.</p></dd>
+
+
+<dt id="arg-storage-cycle">storage_cycle<a class="anchor" aria-label="anchor" href="#arg-storage-cycle"></a></dt>
+<dd><p><code>NULL</code>, <code>"year"</code> or <code>"timeframe"</code>; where every
+storage closes its cycle, overriding each object's own <code>storage@fullYear</code>
+for this build. <code>NULL</code> (default) honours the objects. <code>"year"</code> gives every
+storage the year-wide cycle, <code>"timeframe"</code> closes every cycle at its
+parent timeframe boundary. The objects themselves are not changed; the
+override is recorded in <code>scen@misc$storage</code>.</p></dd>
+
+
+<dt id="arg-bridge-storage-gaps">bridge_storage_gaps<a class="anchor" aria-label="anchor" href="#arg-bridge-storage-gaps"></a></dt>
+<dd><p>logical; may a storage level be carried across a
+gap a SAMPLED calendar leaves in the year? A sample's successor relation
+chains its blocks in order, so without this the level moves a season's
+energy through one block's worth of level capacity. <code>FALSE</code> (default)
+closes each contiguous block of kept timeslices onto itself, so nothing
+crosses a gap; <code>TRUE</code> chains the blocks as if they were adjacent in time.
+A full calendar has no gaps and is unaffected either way, and ramping
+bridges gaps regardless – a ramp limit across one is restrictive rather
+than permissive, and nearly non-binding.</p></dd>
 
 
 <dt id="arg-validate">validate<a class="anchor" aria-label="anchor" href="#arg-validate"></a></dt>
@@ -409,7 +432,7 @@ are reused for the objects it holds (set by <code>base</code>).</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.2s)</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> ob2mi: interpolating 83 model objects</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> ob2mi: interpolating 83 model objects <span style="color: #555555;">(0.6s)</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> ob2mi: interpolating 83 model objects <span style="color: #555555;">(0.8s)</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> interpolating parameters over milestone years</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> interpolating parameters over milestone years <span style="color: #555555;">(1.6s)</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> calendar-filter: restricting parameters to declared timeslices</span>
@@ -424,7 +447,7 @@ are reused for the objects it holds (set by <code>base</code>).</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.6s)</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> building maps: constraint</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> waf: the weather series has no value at the timeslices of the bound it multiplies (ESOL_VIN2015_CLFL/WSOL_CLFL, ESOL_VIN2030_CLFL/WSOL_CLFL, ESOL_VIN2045_CLFL/WSOL_CLFL, ESOL_VIN2015_CLTH/WSOL_CLTH, ESOL_VIN2030_CLTH/WSOL_CLTH). Give the weather the technology's timeframe.</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> waf: the weather series has no value at the timeslices of the bound it multiplies (ESOL_VIN2015_CLFL/WSOL_CLFL, ESOL_VIN2030_CLFL/WSOL_CLFL, ESOL_VIN2045_CLFL/WSOL_CLFL, ESOL_VIN2015_CLTH/WSOL_CLTH, ESOL_VIN2030_CLTH/WSOL_CLTH). Give the weather the technology's timeframe or a coarser one.</span>
 <span class="r-in"><span><span class="va">scen</span></span></span>
 <span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'scen' not found</span>
 <span class="r-in"><span></span></span>
@@ -459,7 +482,7 @@ are reused for the objects it holds (set by <code>base</code>).</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> materializing weather transforms</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> materializing weather transforms <span style="color: #555555;">(0.2s)</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> collecting sets: object names</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.0s)</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.2s)</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> collecting sets: process classes</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> collecting sets: process classes <span style="color: #555555;">(0.0s)</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> collecting sets: timeframes</span>
@@ -489,20 +512,20 @@ are reused for the objects it holds (set by <code>base</code>).</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> ob2mi: interpolating 83 model objects</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> ob2mi: interpolating 83 model objects <span style="color: #555555;">(0.6s)</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> interpolating parameters over milestone years</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> interpolating parameters over milestone years <span style="color: #555555;">(2.1s)</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> interpolating parameters over milestone years <span style="color: #555555;">(1.5s)</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> calendar-filter: restricting parameters to declared timeslices</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> calendar-filter: restricting parameters to declared timeslices <span style="color: #555555;">(0.1s)</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> calendar-filter: restricting parameters to declared timeslices <span style="color: #555555;">(0.0s)</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.1s)</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> building maps: value</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.2s)</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.1s)</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> building maps: filter</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(1.2s)</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.5s)</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> building maps: constraint</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> waf: the weather series has no value at the timeslices of the bound it multiplies (ESOL_VIN2015_CLFL/WSOL_CLFL, ESOL_VIN2030_CLFL/WSOL_CLFL, ESOL_VIN2045_CLFL/WSOL_CLFL, ESOL_VIN2015_CLTH/WSOL_CLTH, ESOL_VIN2030_CLTH/WSOL_CLTH). Give the weather the technology's timeframe.</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> waf: the weather series has no value at the timeslices of the bound it multiplies (ESOL_VIN2015_CLFL/WSOL_CLFL, ESOL_VIN2030_CLFL/WSOL_CLFL, ESOL_VIN2045_CLFL/WSOL_CLFL, ESOL_VIN2015_CLTH/WSOL_CLTH, ESOL_VIN2030_CLTH/WSOL_CLTH). Give the weather the technology's timeframe or a coarser one.</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

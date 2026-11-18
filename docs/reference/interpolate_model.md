@@ -26,6 +26,8 @@ interpolate_model(
   fold = FALSE,
   sparse = TRUE,
   prune = TRUE,
+  storage_cycle = NULL,
+  bridge_storage_gaps = options::opt("bridge_storage_gaps"),
   validate = TRUE,
   code = NULL,
   kvl = FALSE,
@@ -152,6 +154,27 @@ interpolate(object, ...)
   as the default, which equals the dropped value). One parameter is
   flagged today (`pWeather`). Superseded by `sparse`'s `value =` form;
   retained for compatibility.
+
+- storage_cycle:
+
+  `NULL`, `"year"` or `"timeframe"`; where every storage closes its
+  cycle, overriding each object's own `storage@fullYear` for this build.
+  `NULL` (default) honours the objects. `"year"` gives every storage the
+  year-wide cycle, `"timeframe"` closes every cycle at its parent
+  timeframe boundary. The objects themselves are not changed; the
+  override is recorded in `scen@misc$storage`.
+
+- bridge_storage_gaps:
+
+  logical; may a storage level be carried across a gap a SAMPLED
+  calendar leaves in the year? A sample's successor relation chains its
+  blocks in order, so without this the level moves a season's energy
+  through one block's worth of level capacity. `FALSE` (default) closes
+  each contiguous block of kept timeslices onto itself, so nothing
+  crosses a gap; `TRUE` chains the blocks as if they were adjacent in
+  time. A full calendar has no gaps and is unaffected either way, and
+  ramping bridges gaps regardless – a ramp limit across one is
+  restrictive rather than permissive, and nearly non-binding.
 
 - validate:
 
@@ -358,7 +381,7 @@ scen <- interpolate_model(mod, name = "BASE")
 #> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
 #> ✔ building maps: calendar + lifespan (0.2s)
 #> ℹ ob2mi: interpolating 83 model objects
-#> ✔ ob2mi: interpolating 83 model objects (0.6s)
+#> ✔ ob2mi: interpolating 83 model objects (0.8s)
 #> ℹ interpolating parameters over milestone years
 #> ✔ interpolating parameters over milestone years (1.6s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices
@@ -373,7 +396,7 @@ scen <- interpolate_model(mod, name = "BASE")
 #> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
 #> ✔ building maps: filter (0.6s)
 #> ℹ building maps: constraint
-#> Error: waf: the weather series has no value at the timeslices of the bound it multiplies (ESOL_VIN2015_CLFL/WSOL_CLFL, ESOL_VIN2030_CLFL/WSOL_CLFL, ESOL_VIN2045_CLFL/WSOL_CLFL, ESOL_VIN2015_CLTH/WSOL_CLTH, ESOL_VIN2030_CLTH/WSOL_CLTH). Give the weather the technology's timeframe.
+#> Error: waf: the weather series has no value at the timeslices of the bound it multiplies (ESOL_VIN2015_CLFL/WSOL_CLFL, ESOL_VIN2030_CLFL/WSOL_CLFL, ESOL_VIN2045_CLFL/WSOL_CLFL, ESOL_VIN2015_CLTH/WSOL_CLTH, ESOL_VIN2030_CLTH/WSOL_CLTH). Give the weather the technology's timeframe or a coarser one.
 scen
 #> Error: object 'scen' not found
 
@@ -408,7 +431,7 @@ model_size(interpolate_model(mod, name = "FOLDED", fold = TRUE))
 #> ℹ materializing weather transforms
 #> ✔ materializing weather transforms (0.2s)
 #> ℹ collecting sets: object names
-#> ✔ collecting sets: object names (0.0s)
+#> ✔ collecting sets: object names (0.2s)
 #> ℹ collecting sets: process classes
 #> ✔ collecting sets: process classes (0.0s)
 #> ℹ collecting sets: timeframes
@@ -438,19 +461,19 @@ model_size(interpolate_model(mod, name = "FOLDED", fold = TRUE))
 #> ℹ ob2mi: interpolating 83 model objects
 #> ✔ ob2mi: interpolating 83 model objects (0.6s)
 #> ℹ interpolating parameters over milestone years
-#> ✔ interpolating parameters over milestone years (2.1s)
+#> ✔ interpolating parameters over milestone years (1.5s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices
-#> ✔ calendar-filter: restricting parameters to declared timeslices (0.1s)
+#> ✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)
 #> ✔ computing equivalent annual costs (EAC) (0.1s)
 #> ℹ building maps: value
-#> ✔ building maps: value (0.2s)
+#> ✔ building maps: value (0.1s)
 #> ℹ building maps: filter
 #> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
 #> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
 #> Processes with no input commodity (output is bounded, not fuelled): ESOL_VIN2015_CLFL, ESOL_VIN2015_CLTH, ESOL_VIN2030_CLFL, ESOL_VIN2030_CLTH, ESOL_VIN2045_CLFL, ESOL_VIN2045_CLTH, EWIN_VIN2015_CLHI, EWIN_VIN2015_CLLO, EWIN_VIN2015_CLMD, EWIN_VIN2030_CLHI, EWIN_VIN2030_CLLO, EWIN_VIN2030_CLMD, EWIN_VIN2045_CLHI, EWIN_VIN2045_CLLO, EWIN_VIN2045_CLMD
-#> ✔ building maps: filter (1.2s)
+#> ✔ building maps: filter (0.5s)
 #> ℹ building maps: constraint
-#> Error: waf: the weather series has no value at the timeslices of the bound it multiplies (ESOL_VIN2015_CLFL/WSOL_CLFL, ESOL_VIN2030_CLFL/WSOL_CLFL, ESOL_VIN2045_CLFL/WSOL_CLFL, ESOL_VIN2015_CLTH/WSOL_CLTH, ESOL_VIN2030_CLTH/WSOL_CLTH). Give the weather the technology's timeframe.
+#> Error: waf: the weather series has no value at the timeslices of the bound it multiplies (ESOL_VIN2015_CLFL/WSOL_CLFL, ESOL_VIN2030_CLFL/WSOL_CLFL, ESOL_VIN2045_CLFL/WSOL_CLFL, ESOL_VIN2015_CLTH/WSOL_CLTH, ESOL_VIN2030_CLTH/WSOL_CLTH). Give the weather the technology's timeframe or a coarser one.
 # }
 ```

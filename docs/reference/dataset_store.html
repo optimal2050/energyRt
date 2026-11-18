@@ -71,7 +71,7 @@ bypasses resolution. It returns the bare payload."><meta property="og:image" con
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9005</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -286,8 +286,8 @@ invisibly. <code>load_dataset()</code> returns the payload.</p>
 <span class="r-in"><span><span class="fu"><a href="accessors.html">open_project</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># a table a model refers to, stored once and referenced by hash</span></span></span>
-<span class="r-in"><span><span class="fu">save_dataset</span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">weather</span>, <span class="st">"topia_weather"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">dataset_hash</span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">weather</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">save_dataset</span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">weather</span><span class="op">$</span><span class="va">s4_h24</span>, <span class="st">"topia_weather"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">dataset_hash</span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">weather</span><span class="op">$</span><span class="va">s4_h24</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">load_dataset</span><span class="op">(</span><span class="st">"topia_weather"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># or store the CALL that makes it -- `fun` is a namespaced name, and the</span></span></span>

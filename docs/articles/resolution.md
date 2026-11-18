@@ -122,7 +122,8 @@ The derived slots do the bookkeeping the model needs:
 - **`@timeframe_rank`** — the level hierarchy; a commodity’s `timeframe`
   picks the level it is balanced on.
 
-`autoplot()` draws the nested structure:
+[`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+draws the nested structure:
 
 ``` r
 
@@ -331,20 +332,19 @@ bookkeeping stays cheap.
 ## Space: regions and geoscales
 
 A model’s `region` vector is its finest spatial resolution. A `Geoscale`
-adds the hierarchy above those regions: for example, region inside zone
-inside nation. It is built from a leaf table with one row per finest
-region and one column per level:
+adds the hierarchy above those regions: for example, province inside
+zone inside nation. It is built from a leaf table with one row per
+finest region and one column per level:
 
 ``` r
 
 gs <- geoscale_from_leaftable(
   data.frame(
     nation = c("NA1", "NA1", "NA2", "NA2"),
-    region = c("R1",  "R2",  "R3",  "R4"),
-    km2    = rep(1, 4)  # equal illustrative weights for the icicle widths
+    province = c("R1",  "R2",  "R3",  "R4"),
+    km2      = rep(1, 4)  # equal illustrative weights for the icicle widths
   ),
-  geoframes = c("nation", "region"),
-  key = "region",
+  geoframes = c("nation", "province"),
   weights = "km2",
   default_weight = "km2",
   name = "demo"

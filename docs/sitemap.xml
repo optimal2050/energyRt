@@ -225,6 +225,7 @@
 <url><loc>https://energyRt.org/reference/newWeather.html</loc></url>
 <url><loc>https://energyRt.org/reference/normalize_model_currency.html</loc></url>
 <url><loc>https://energyRt.org/reference/obj2mem.html</loc></url>
+<url><loc>https://energyRt.org/reference/objective_weights.html</loc></url>
 <url><loc>https://energyRt.org/reference/object_image.html</loc></url>
 <url><loc>https://energyRt.org/reference/parse_domain_hint.html</loc></url>
 <url><loc>https://energyRt.org/reference/path_builders.html</loc></url>
@@ -283,6 +284,7 @@
 <url><loc>https://energyRt.org/reference/sequence_coverage.html</loc></url>
 <url><loc>https://energyRt.org/reference/setCalendar.html</loc></url>
 <url><loc>https://energyRt.org/reference/setGeoscale.html</loc></url>
+<url><loc>https://energyRt.org/reference/setObjectiveWeights.html</loc></url>
 <url><loc>https://energyRt.org/reference/size.html</loc></url>
 <url><loc>https://energyRt.org/reference/solution_ledger.html</loc></url>
 <url><loc>https://energyRt.org/reference/solution_targets.html</loc></url>

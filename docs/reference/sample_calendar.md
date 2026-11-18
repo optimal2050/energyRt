@@ -60,9 +60,7 @@ is the same operation on a
 [`timescales::Calendar`](https://optimal2050.github.io/timescales/r/reference/Calendar.html),
 selecting by timeframe and label and recording the parent and the
 coverage in the object's metadata. This one works on energyRt's own
-calendar class, which is why it exists separately: timescales is a
-Suggests-only relationship, consulted when the shipped calendars are
-built and never at runtime.
+calendar class, which is why it exists separately.
 
 ## See also
 

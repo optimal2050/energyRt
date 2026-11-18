@@ -526,27 +526,27 @@ cycle will be a calendar day).
   : character. Time timeslice to apply the parameter, NA for every
     timeslice.
 
-  stgeff
+  stg.eff
 
   : numeric. Storage decay annual rate.
 
-  inpeff
+  inp.eff
 
   : numeric. Input efficiency rate.
 
-  outeff
+  out.eff
 
   : numeric. Output efficiency rate.
 
 - `af`:
 
   data.frame. Availability factor parameters. Unlike a technology's `af`
-  (which bounds activity, a flow), the storage `af.*` columns bound the
-  stored LEVEL – a stock – as a fraction of the storing capacity, i.e. a
-  state-of-charge range. They are not capacity factors. The flow-side
-  bounds are the `cinp.*`/`cout.*` columns, which bound charge/discharge
-  relative to the charger/discharger capacity per timeslice (those are
-  the storage analogue of a technology's `af`).
+  (which bounds activity, a flow), the storage `stg.af.*` columns bound
+  the stored LEVEL – a stock – as a fraction of the storing capacity,
+  i.e. a state-of-charge range. They are not capacity factors. The
+  flow-side bounds are the `cinp.*`/`cout.*` columns, which bound
+  charge/discharge relative to the charger/discharger capacity per
+  timeslice (those are the storage analogue of a technology's `af`).
 
   vintage
 
@@ -571,20 +571,20 @@ cycle will be a calendar day).
   : character. Time timeslice to apply the parameter, NA for every
     timeslice.
 
-  af.lo
+  stg.af.lo
 
   : numeric. Lower bound of the stored level as a fraction of storing
     capacity (minimum state of charge).
 
-  af.up
+  stg.af.up
 
   : numeric. Upper bound of the stored level as a fraction of storing
     capacity (maximum state of charge).
 
-  af.fx
+  stg.af.fx
 
   : numeric. Fixed value of the stored-level fraction. This parameter
-    overrides `af.lo` and `af.up`.
+    overrides `stg.af.lo` and `stg.af.up`.
 
   inp.af.lo
 
@@ -857,15 +857,15 @@ cycle will be a calendar day).
   : character. Time timeslice to apply the parameter, NA for every
     timeslice.
 
-  inpcost
+  inp.varom
 
   : numeric. Costs associated with the input commodity.
 
-  outcost
+  out.varom
 
   : numeric. Costs associated with the output commodity.
 
-  stgcost
+  stg.varom
 
   : numeric. Costs associated with the storage level. A negative value
     rewards holding a charged store.
@@ -873,9 +873,10 @@ cycle will be a calendar day).
 - `target`:
 
   data.frame. Soft floors on the stored level, priced. Each row is one
-  tier: the level may fall below `af.target` at `cost` per unit short.
-  Tiers stack – below several targets the prices add up – so a deeper
-  tier with its own price makes draining dearer the further it goes.
+  tier: the level may fall below `stg.af.target` at `stg.af.cost` per
+  unit short. Tiers stack – below several targets the prices add up – so
+  a deeper tier with its own price makes draining dearer the further it
+  goes.
 
   vintage
 
@@ -905,16 +906,16 @@ cycle will be a calendar day).
   : character. Tier label; a missing or NA tier is the tier "1". Never a
     wildcard.
 
-  af.target
+  stg.af.target
 
   : numeric. Soft floor on the stored level as a fraction of storing
-    capacity (the base of `af.lo`), not an absolute level.
+    capacity (the base of `stg.af.lo`), not an absolute level.
 
-  cost
+  stg.af.cost
 
-  : numeric. Cost per unit the level falls short of `af.target`, on the
-    same annual basis as `varom$stgcost`. Without it the target has no
-    effect.
+  : numeric. Cost per unit the level falls short of `stg.af.target`, on
+    the same annual basis as `varom$stg.varom`. Without it the target
+    has no effect.
 
 - `invcost`:
 
@@ -1222,21 +1223,21 @@ cycle will be a calendar day).
     from the raw one, materialised at interpolation. NA reads the raw
     series.
 
-  waf.lo
+  stg.waf.lo
 
   : numeric. Coefficient that links the weather factor with the lower
     bound of the availability factor.
 
-  waf.up
+  stg.waf.up
 
   : numeric. Coefficient that links the weather factor with the upper
     bound of the availability factor.
 
-  waf.fx
+  stg.waf.fx
 
   : numeric. Coefficient that links the weather factor with the fixed
-    value of the availability factor. This parameter overrides `waf.lo`
-    and `waf.up`.
+    value of the availability factor. This parameter overrides
+    `stg.waf.lo` and `stg.waf.up`.
 
   inp.waf.lo
 

@@ -41,6 +41,17 @@ An S4 class to represent model/scenario planning horizon with intervals
   `setCalendar(mod, cal, years = ...)`, which also checks that the
   calendar is a sample of the model's.
 
+  An optional `weight` column is the YEAR half of the objective weight:
+  how much that milestone's costs count in `eqObjective`. It multiplies
+  the region half (`config@objweight`) into `pObjWeight[region, year]`.
+  `NA`, or no column at all, means 1. Its purpose is a milestone whose
+  cost estimate deserves less trust – typically one solved on a SAMPLE
+  of the model calendar between two fully resolved milestones, where the
+  year still carries full-year cost at full period weight and would
+  otherwise dominate the sum. Strictly positive; the weight scales the
+  whole cost cell, so no trade-off inside the year changes. Write it
+  with `setObjectiveWeights(mod, years = ...)`.
+
 - `base_year`:
 
   integer. Optional single milestone year that is GIVEN rather than

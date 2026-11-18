@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9005</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -252,9 +252,9 @@ every level (<code>ANNUAL</code>, <code>SEASON</code>, …);</li>
 a commodity’s <code>timeframe</code> picks the level it is balanced
 on.</li>
 </ul>
-<p><code>autoplot()</code> draws the nested structure:</p>
+<p><code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> draws the nested structure:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">autoplot</span><span class="op">(</span><span class="va">cal</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">cal</span><span class="op">)</span></span></code></pre></div>
 <p><img src="resolution_files/figure-html/cal-plot-1.png"><!-- --></p>
 </div>
 <div class="section level3">
@@ -426,18 +426,17 @@ follow it — annual bookkeeping stays cheap.</p>
 </h2>
 <p>A model’s <code>region</code> vector is its finest spatial
 resolution. A <code>Geoscale</code> adds the hierarchy above those
-regions: for example, region inside zone inside nation. It is built from
-a leaf table with one row per finest region and one column per
+regions: for example, province inside zone inside nation. It is built
+from a leaf table with one row per finest region and one column per
 level:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">gs</span> <span class="op">&lt;-</span> <span class="fu">geoscale_from_leaftable</span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    nation <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"NA1"</span>, <span class="st">"NA1"</span>, <span class="st">"NA2"</span>, <span class="st">"NA2"</span><span class="op">)</span>,</span>
-<span>    region <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>,  <span class="st">"R2"</span>,  <span class="st">"R3"</span>,  <span class="st">"R4"</span><span class="op">)</span>,</span>
-<span>    km2    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">4</span><span class="op">)</span>  <span class="co"># equal illustrative weights for the icicle widths</span></span>
+<span>    province <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>,  <span class="st">"R2"</span>,  <span class="st">"R3"</span>,  <span class="st">"R4"</span><span class="op">)</span>,</span>
+<span>    km2      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">4</span><span class="op">)</span>  <span class="co"># equal illustrative weights for the icicle widths</span></span>
 <span>  <span class="op">)</span>,</span>
-<span>  geoframes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"nation"</span>, <span class="st">"region"</span><span class="op">)</span>,</span>
-<span>  key <span class="op">=</span> <span class="st">"region"</span>,</span>
+<span>  geoframes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"nation"</span>, <span class="st">"province"</span><span class="op">)</span>,</span>
 <span>  weights <span class="op">=</span> <span class="st">"km2"</span>,</span>
 <span>  default_weight <span class="op">=</span> <span class="st">"km2"</span>,</span>
 <span>  name <span class="op">=</span> <span class="st">"demo"</span></span>

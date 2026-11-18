@@ -32,12 +32,76 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 ### New features
 
+- **The objective can be weighted by milestone year and by region.**
+  `setObjectiveWeights(mod, years = , regions = )` writes the two halves
+  – `horizon@intervals$weight` per milestone and `config@objweight` per
+  `(region, year)` – and they multiply into `pObjWeight[region, year]`,
+  one more factor in `eqObjective` beside `pPeriodLen` and
+  `pDiscountFactor`. The year half is for uneven time resolution: a
+  milestone solved on a sample of the calendar still carries full-year
+  cost at full period weight, so several cheaply resolved interim years
+  can dominate the sum. The region half is for a study that does not
+  value every region’s costs equally – income level, purchasing power,
+  or a region modelled only as context.
+
+  The weight scales the whole cost cell, capital and fuel and penalties
+  alike, so no trade-off inside a cell changes and only its share of the
+  cross-cell investment decision moves; a uniform weight rescales the
+  objective exactly. Weights are strictly positive and are not
+  interpolated – a cell no declaration names counts in full, and an
+  undeclared model writes no rows at all, so it is unchanged. A cost
+  declared at a coarse region inherits one weight its children agree on
+  and is refused where they differ, as the discount factor already is.
+
+- `objective_weights(scen)` reports the solved objective beside the same
+  sum recomputed WITHOUT the weights – the net present value of the plan
+  as costed – plus the weight of every cell. No second solve:
+  `vTotalCost` is exported per cell.
+  [`verify_solution()`](https://energyRt.org/reference/verify_solution.md)’s
+  objective identity now carries the weight.
+
+- **The store lifecycle verbs take a folder path.** `seal_*()`,
+  `unseal_*()` and
+  [`list_dependents()`](https://energyRt.org/reference/list_dependents.md)
+  now accept a stored entry’s directory as well as its registered name
+  or the object itself: the three forms
+  [`load_scenario()`](https://energyRt.org/reference/load_scenario.md)
+  takes. That reaches an entry outside the project’s store, and a
+  scenario whose name two folders answer to, which no
+  [`refresh_registry()`](https://energyRt.org/reference/registry.md) can
+  disambiguate. The entry’s name is read from its manifest, so the
+  registry row stays keyed on the name and never on the path. A layout-2
+  scenario folder, which keeps no `scenario.yml` to hold the flag, now
+  says so instead of reporting the scenario missing from its store.
+
+- `interpolate_model(storage_cycle = )` overrides every storage’s own
+  `@fullYear` for one build: `"year"` closes every cycle over the year,
+  `"timeframe"` closes it at each parent timeframe boundary, `NULL`
+  (default) honours the objects. The model is not changed; the override
+  is recorded in `scen@misc$storage`.
+
 - Storage level targets: `storage@target` sets soft floors on the level
-  (`af.target`, a share of storing capacity), each with a price per unit
-  short (`cost`). Tiers stack, so a deeper tier with its own price makes
-  draining dearer the further it goes. Reported as `vStorageShort` /
-  `vStorageShortCost`. `varom$stgcost` may now be negative, a reward for
-  holding a charged store.
+  (`stg.af.target`, a share of storing capacity), each with a price per
+  unit short (`stg.af.cost`). Tiers stack, so a deeper tier with its own
+  price makes draining dearer the further it goes. Reported as
+  `vStorageShort` / `vStorageShortCost`. `varom$stg.varom` may now be
+  negative, a reward for holding a charged store.
+
+- Storage columns of the storing part take the `stg.` prefix, and the
+  per-part efficiencies and variable costs are dotted: `af.*` -\>
+  `stg.af.*`, `weather` `waf.*` -\> `stg.waf.*`, `seff`
+  `stgeff`/`inpeff`/`outeff` -\> `stg.eff`/`inp.eff`/`out.eff`, `varom`
+  `stgcost`/`inpcost`/`outcost` -\> `stg.varom`/`inp.varom`/`out.varom`.
+  The old names are accepted with a deprecation warning; saved storages
+  and process specs are renamed on load.
+
+- `fold` may now include the timeslice axis while a milestone carries
+  its own calendar; the combination was refused before. Folding happens
+  while the data still spans the model calendar’s universe, so the
+  uniformity it asserts holds for every year’s subset of it, and a
+  wildcard expanded back is trimmed to the cells each year actually has.
+  Measured on a sampled-year model: same objective folded and unfolded
+  on GLPK, Pyomo/CBC and Julia/HiGHS.
 
 - [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
   prunes a cluster roster declared without a `region` column: a variant
@@ -143,8 +207,9 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   `per-year calendars` row. A model whose years all share a calendar
   reports exactly what it reported before.
 
-- `autoplot()` on a `horizon` labels each interval with the calendar
-  that milestone is solved on, when `intervals$calendar` names one.
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  on a `horizon` labels each interval with the calendar that milestone
+  is solved on, when `intervals$calendar` names one.
 
 - **[`topia_simulate()`](https://energyRt.org/reference/topia_simulate.md)
   generates TOPIA’s weather and demand profiles.** The shipped
@@ -746,8 +811,8 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   per vintage and cluster, or one result per region.
 
 - [`draw()`](https://energyRt.org/reference/draw.md) process diagrams;
-  `autoplot()` for objects, calendars, horizons, scenarios and
-  comparisons;
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  for objects, calendars, horizons, scenarios and comparisons;
   [`plot_map()`](https://energyRt.org/reference/energyRt-deprecated.md),
   [`plot_trade_map()`](https://energyRt.org/reference/energyRt-deprecated.md),
   [`plot_trade_network()`](https://energyRt.org/reference/energyRt-deprecated.md).
@@ -760,18 +825,22 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   storage; trade maps take `comm` and any geoscale level, and separate
   stock from investable capacity.
 
-- Shared `autoplot()` settings: `@desc` as subtitle, the object’s unit
-  on the y axis, legends titled by the key they show.
+- Shared
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  settings: `@desc` as subtitle, the object’s unit on the y axis,
+  legends titled by the key they show.
 
 - `autoplot(<supply>)`: `param =` picks the quantity, `style =` the
   chart; `type =` is deprecated.
 
 - [`sequence_coverage()`](https://energyRt.org/reference/sequence_coverage.md)
   reports what a solve sequence covered, one row per unit and element,
-  and `autoplot()` draws it: a sampled calendar as a tile grid or a wall
-  calendar, a region sample on its geoscale, a recursive walk as a
-  horizon Gantt with the look-ahead years marked apart from the decided
-  ones. Elements no unit covered stay visible as gaps.
+  and
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  draws it: a sampled calendar as a tile grid or a wall calendar, a
+  region sample on its geoscale, a recursive walk as a horizon Gantt
+  with the look-ahead years marked apart from the decided ones. Elements
+  no unit covered stay visible as gaps.
 
 - `autoplot(<by_sample>, "histogram")` draws a result’s spread across
   the samples, weighted by each sample’s coverage, with the free pass
@@ -825,6 +894,20 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 ### Breaking changes
 
+- **A storage level no longer crosses a gap left by a sampled
+  calendar.** A sample keeps blocks of the year and drops the rest, so
+  its successor relation chained blocks months apart as if they were
+  adjacent, moving a season’s energy through one block’s worth of level
+  capacity. Each contiguous block now closes onto its own first
+  timeslice. A full calendar has no gaps and is unaffected; a sampled
+  year’s results can move, and only upward – the feasible set shrinks.
+  `interpolate_model(bridge_storage_gaps = TRUE)`, or
+  `options(energyRt.bridge_storage_gaps = TRUE)`, restores the old
+  chain. Ramping still bridges gaps: a ramp limit across one is
+  restrictive rather than permissive. Gaps are located from the calendar
+  a sample records as its source, so a calendar sampled by hand warns
+  instead of guessing.
+
 - [`setCalendar()`](https://energyRt.org/reference/setCalendar.md)’s
   first argument after the object is now `calendar`, which takes a
   calendar object. Passing
@@ -854,10 +937,12 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 - [`plot()`](https://energyRt.org/reference/draw.md) on every energyRt
   class now draws the figure and returns it invisibly, like base
-  [`plot()`](https://energyRt.org/reference/draw.md); `autoplot()`
+  [`plot()`](https://energyRt.org/reference/draw.md);
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
   returns the ggplot to modify.
 
-- `autoplot()` on a calendar is drawn by
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  on a calendar is drawn by
   [`timescales::gg_calendar()`](https://optimal2050.github.io/timescales/r/reference/gg_calendar.html).
   `labels` takes `"name"`, `"timeslice"` or `"none"` (`label_by` is
   gone), the text colour is automatic (`label_color` is gone) and
@@ -1018,10 +1103,10 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   and
   [`mmcloud::set_hf_token()`](https://rdrr.io/pkg/mmcloud/man/hf_token.html).
 
-- `autoplot()` on a `horizon` marks the milestones that are given rather
-  than optimised: the base year and any milestones before it are washed
-  out, with a rule at the last given year and a caption naming the
-  states.
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  on a `horizon` marks the milestones that are given rather than
+  optimised: the base year and any milestones before it are washed out,
+  with a rule at the last given year and a caption naming the states.
 
 ### Breaking changes
 
@@ -1069,11 +1154,12 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   rather than a list of milestones, so the years it then asked for were
   not milestones of the horizon it built.
 
-- `autoplot()` on a single-interval `horizon` shows both of its
-  boundaries. The leading tick was the first interval’s start unshifted,
-  which collapses onto the milestone whenever that interval is one year,
-  leaving the shipped one-year horizons as a slab with a single tick at
-  the right edge.
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  on a single-interval `horizon` shows both of its boundaries. The
+  leading tick was the first interval’s start unshifted, which collapses
+  onto the milestone whenever that interval is one year, leaving the
+  shipped one-year horizons as a slab with a single tick at the right
+  edge.
 
 - The year legend of `autoplot(<horizon>)` breaks on whole years; on a
   short horizon the continuous scale put breaks between them (`2032.5`).
@@ -1330,12 +1416,13 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   [`plot_trade_map()`](https://energyRt.org/reference/energyRt-deprecated.md)
   already drew every level – the two views now agree.
 
-- `autoplot()` refuses a bare `units` value instead of dropping it.
-  `units` names a base unit per commodity (`units = list(ELC = "GWh")`);
-  a parameter name passed there – `units = "cost"`, where
-  `param = "cost"` is meant – was accepted and ignored, and the chart
-  then drew something else in silence. A style that labels from the
-  object says that `units` has no effect on it.
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  refuses a bare `units` value instead of dropping it. `units` names a
+  base unit per commodity (`units = list(ELC = "GWh")`); a parameter
+  name passed there – `units = "cost"`, where `param = "cost"` is meant
+  – was accepted and ignored, and the chart then drew something else in
+  silence. A style that labels from the object says that `units` has no
+  effect on it.
 
 - A `demand` naming no year was dropped instead of read:
   [`aggregate()`](https://rdrr.io/r/stats/aggregate.html) drops NA

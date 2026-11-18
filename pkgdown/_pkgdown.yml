@@ -214,6 +214,7 @@ reference:
     verbs let a stage be inspected or re-run.
   contents:
   - interpolate_model
+  - setObjectiveWeights
   - solve_model
   - write_script
   - read_solution
@@ -284,6 +285,7 @@ reference:
   - get_variable
   - get_weather
   - getMix
+  - objective_weights
   - getObject
   - getUnit
   - getScenario

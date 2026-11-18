@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9005</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -89,7 +89,8 @@
 
 <dt><code>intervals</code></dt>
 <dd><p>data.frame. Data frame with the start, middle, and end year of every modelled interval, plus an optional display <code>label</code>. <code>start</code>, <code>mid</code> and <code>end</code> are integer years; <code>mid</code> is the milestone and the model's key for the period. <code>label</code> is a character display name, unique across intervals, filled from <code>mid</code> when not given, and rendered fiscally (<code>FY2025-26</code>) when the calendar carries a non-January <code>year_start</code>. The label is presentation only and never reaches the solver – see <code><a href="year_label.html">year_label()</a></code>.</p>
-<p>An optional <code>calendar</code> column names the calendar that milestone is solved on, taken from <code>config@misc$calendars</code>; <code>NA</code>, or no column at all, means the model calendar, which is every horizon written before per-year calendars existed. Write it with <code>setCalendar(mod, cal, years = ...)</code>, which also checks that the calendar is a sample of the model's.</p></dd>
+<p>An optional <code>calendar</code> column names the calendar that milestone is solved on, taken from <code>config@misc$calendars</code>; <code>NA</code>, or no column at all, means the model calendar, which is every horizon written before per-year calendars existed. Write it with <code>setCalendar(mod, cal, years = ...)</code>, which also checks that the calendar is a sample of the model's.</p>
+<p>An optional <code>weight</code> column is the YEAR half of the objective weight: how much that milestone's costs count in <code>eqObjective</code>. It multiplies the region half (<code>config@objweight</code>) into <code>pObjWeight[region, year]</code>. <code>NA</code>, or no column at all, means 1. Its purpose is a milestone whose cost estimate deserves less trust – typically one solved on a SAMPLE of the model calendar between two fully resolved milestones, where the year still carries full-year cost at full period weight and would otherwise dominate the sum. Strictly positive; the weight scales the whole cost cell, so no trade-off inside the year changes. Write it with <code>setObjectiveWeights(mod, years = ...)</code>.</p></dd>
 
 
 <dt><code>base_year</code></dt>

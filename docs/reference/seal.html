@@ -53,7 +53,7 @@ is refreshed."><meta property="og:image" content="https://energyRt.org/logo.png"
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9005</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -187,7 +187,11 @@ is refreshed.</p>
 
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
-<dd><p>the object (model/repository/scenario), or its registered name.
+<dd><p>the object (model/repository/scenario), its registered name, or the
+path of its stored folder – the three forms <code><a href="load_scenario.html">load_scenario()</a></code> takes. A
+path reaches an entry outside this project's store, and one whose name the
+registry cannot resolve to a single folder; the entry's own name is then
+read from its manifest.
 For <code>mark_delete()</code>/<code>unmark_delete()</code> on a bare name, give <code>type =</code>.</p></dd>
 
 

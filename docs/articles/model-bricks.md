@@ -160,14 +160,14 @@ draw(PIPE, node = "R2")   # imports from R1, exports to R3
 ### storage
 
 Shifts a commodity across time. `seff` holds the
-charging/discharging/holding efficiencies (`inpeff`/`outeff`/`stgeff`)
-and `duration` is the storage duration.
+charging/discharging/holding efficiencies
+(`inp.eff`/`out.eff`/`stg.eff`) and `duration` is the storage duration.
 
 ``` r
 
 STG_ELC <- newStorage(
   name = "STG_ELC", desc = "Battery", commodity = "ELC",
-  seff = data.frame(inpeff = 0.9, outeff = 0.9, stgeff = 0.999),
+  seff = data.frame(inp.eff = 0.9, out.eff = 0.9, stg.eff = 0.999),
   duration = 4,                                   # 4 hours of storage per unit power
   aux  = data.frame(acomm = "MAT", unit = "kt"),
   # a storage has three parts, so an aux coupling must say WHICH capacity it

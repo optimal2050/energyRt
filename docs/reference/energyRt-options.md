@@ -389,6 +389,21 @@ package name to `env`.
 
   : ENERGYRT_PARENT_LEVELS (evaluated if possible, raw string otherwise)
 
+- bridge_storage_gaps:
+
+  default:
+
+  :     FALSE
+
+  option:
+
+  : energyRt.bridge_storage_gaps
+
+  envvar:
+
+  : ENERGYRT_BRIDGE_STORAGE_GAPS (evaluated if possible, raw string
+    otherwise)
+
 - on_missing_input:
 
   default:

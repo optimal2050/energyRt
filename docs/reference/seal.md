@@ -81,7 +81,12 @@ delete_marked(
 
 - x:
 
-  the object (model/repository/scenario), or its registered name. For
+  the object (model/repository/scenario), its registered name, or the
+  path of its stored folder – the three forms
+  [`load_scenario()`](https://energyRt.org/reference/load_scenario.md)
+  takes. A path reaches an entry outside this project's store, and one
+  whose name the registry cannot resolve to a single folder; the entry's
+  own name is then read from its manifest. For
   `mark_delete()`/`unmark_delete()` on a bare name, give `type =`.
 
 - verbose:
