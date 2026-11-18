@@ -12,6 +12,8 @@ interpolate_model(
   ...,
   base = NULL,
   base_year_scenario = base,
+  base_year_capacity = c("fixed", "free"),
+  base_year_relax = character(),
   desc = NULL,
   ondisk = FALSE,
   overwrite = FALSE,
@@ -68,11 +70,32 @@ reused, the new objects' tables are computed, and every map is rebuilt.}
 when the horizon marks one (see \code{\link[=newHorizon]{newHorizon()}}). Defaults to \code{base}, so a
 projection built on a base takes that base's base-year solution for free.
 May also be a solved \link{scenario}, the list \code{\link[=solve_base_year]{solve_base_year()}} returns, a
-scenario name, or \code{"<scenario>/<run>"}; \code{NULL} or \code{FALSE} carries nothing.
+scenario name, or \code{"<scenario>/<run>"}.
+
+Supplying one also selects HOW the base year is handled. Given a solved
+base year, this LP must not re-optimise it: the horizon is split, the
+base year leaves the LP, and what that solve decided crosses as sunk
+stock. Given none (\code{NULL} or \code{FALSE}), the base year is solved HERE with
+the projection, in one LP, at its own period weight and with its capacity
+pinned by \code{base_year_capacity}. The argument is the switch because the
+two cannot be combined: a base year is either already optimised or
+optimised here.
 What crosses is only what that solve DECIDED — its new capacity, written
 as sunk \code{stock} at its true vintage. The model's own \verb{@stock} is left
 alone. With no source the projection still excludes the base year, and
 starts from the model's declared \verb{@stock}; a message says so.}
+
+\item{base_year_capacity}{when the base year is solved WITH the projection
+-- that is, when no \code{base_year_scenario} is given -- \code{"fixed"} (default)
+pins its TOTAL capacity at the declared stock. The base year has already
+happened: its fleet is data, and an LP left free to build or retire in it
+is re-optimising the past. \code{"free"} lifts the pin. Ignored when a base
+year is supplied, since that solve has already decided its own capacity.}
+
+\item{base_year_relax}{process names left free to invest despite
+\code{base_year_capacity = "fixed"}. Where an observed fleet cannot serve an
+observed load, letting a named process correct the stock beats an
+infeasible solve; each name is a stated assumption and is reported.}
 
 \item{desc}{character scenario description.}
 

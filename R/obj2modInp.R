@@ -1354,20 +1354,20 @@ setMethod(
     }
     obj@parameters[["mMilestoneLast"]] <- .dat2par(
       obj@parameters[["mMilestoneLast"]],
-      data.table(year = max(app@horizon@intervals$mid))
+      data.table(year = max(.lp_years(app@horizon)))
     )
     obj@parameters[["mMilestoneFirst"]] <- .dat2par(
       obj@parameters[["mMilestoneFirst"]],
-      data.table(year = min(app@horizon@intervals$mid))
+      data.table(year = min(.lp_years(app@horizon)))
     )
     obj@parameters[["mMilestoneNext"]] <- .dat2par(
       obj@parameters[["mMilestoneNext"]],
-      data.table(year = app@horizon@intervals$mid[-nrow(app@horizon@intervals)],
-                 yearp = app@horizon@intervals$mid[-1])
+      data.table(year = utils::head(.lp_years(app@horizon), -1L),
+                 yearp = utils::tail(.lp_years(app@horizon), -1L))
     )
     obj@parameters[["mMilestoneHasNext"]] <- .dat2par(
       obj@parameters[["mMilestoneHasNext"]],
-      data.table(year = app@horizon@intervals$mid[-nrow(app@horizon@intervals)])
+      data.table(year = utils::head(.lp_years(app@horizon), -1L))
     )
 
     obj@parameters[["mSameTimeslice"]] <- .dat2par(
@@ -1386,11 +1386,18 @@ setMethod(
     obj@parameters[["cardYear"]] <- .dat2par(obj@parameters[["cardYear"]],
                                              tmp[nrow(tmp), , drop = FALSE])
 
+    # The year column and the length column must come from the SAME interval
+    # rows. The horizon lists every milestone, including the base year whose
+    # interval is one year long, so pairing solved years against all intervals
+    # recycles -- and the projection's first milestone silently inherits the
+    # base year's length. Filter the rows once, then read both from it.
+    .iv <- as.data.frame(app@horizon@intervals)
+    .iv <- .iv[as.integer(.iv$mid) %in% .lp_years(app@horizon), ,
+               drop = FALSE]
     obj@parameters[["pPeriodLen"]] <- .dat2par(
       obj@parameters[["pPeriodLen"]],
-      data.table(year = app@horizon@intervals$mid,
-                 value = (app@horizon@intervals$end -
-                            app@horizon@intervals$start + 1),
+      data.table(year = as.integer(.iv$mid),
+                 value = as.integer(.iv$end - .iv$start + 1),
                  stringsAsFactors = FALSE)
     )
     # Cumulative discount factor for the objective -- built from the SOCIAL
@@ -1404,10 +1411,13 @@ setMethod(
       dd$value <- cumprod(1 / (1 + dd$value))
       pDiscountFactor <- rbind(pDiscountFactor, dd)
     }
+    # The base year's factor is 1 and equals `defVal`, so `prune = TRUE`
+    # drops the parameter entirely -- the objective then reads the default,
+    # which IS the computed value. An absent pDiscountFactor on a base-year
+    # scenario is pruning working, not a missing declaration.
     obj@parameters[["pDiscountFactor"]] <-
       .dat2par(obj@parameters[["pDiscountFactor"]],
                filter(pDiscountFactor, year %in% obj@parameters$year@data$year)
-               # pDiscountFactor
       )
     # `pObjWeight` -- the objective's weight on each `(region, year)` cost
     # cell: the product of `horizon@intervals$weight` (the year half) and

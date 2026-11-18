@@ -51,7 +51,7 @@ process_operability <- function(object) {
     stop("`process_operability()` needs an interpolated scenario; ",
          "interpolate the model first.", call. = FALSE)
   }
-  years <- as.integer(object@settings@horizon@intervals$mid)
+  years <- .lp_years(object@settings@horizon)
   out <- list(
     .op_region_gaps(object),
     .op_no_capacity(object, years, "mTechSpan", "tech", "technology"),

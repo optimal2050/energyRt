@@ -145,11 +145,30 @@
 #'   New processes, commodities and other model objects are built on the base
 #'   too: the per-object tables of the objects the base already holds are
 #'   reused, the new objects' tables are computed, and every map is rebuilt.
+#' @param base_year_capacity when the base year is solved WITH the projection
+#'   -- that is, when no `base_year_scenario` is given -- `"fixed"` (default)
+#'   pins its TOTAL capacity at the declared stock. The base year has already
+#'   happened: its fleet is data, and an LP left free to build or retire in it
+#'   is re-optimising the past. `"free"` lifts the pin. Ignored when a base
+#'   year is supplied, since that solve has already decided its own capacity.
+#' @param base_year_relax process names left free to invest despite
+#'   `base_year_capacity = "fixed"`. Where an observed fleet cannot serve an
+#'   observed load, letting a named process correct the stock beats an
+#'   infeasible solve; each name is a stated assumption and is reported.
 #' @param base_year_scenario where the base year's own solution comes from,
 #'   when the horizon marks one (see [newHorizon()]). Defaults to `base`, so a
 #'   projection built on a base takes that base's base-year solution for free.
 #'   May also be a solved [scenario], the list [solve_base_year()] returns, a
-#'   scenario name, or `"<scenario>/<run>"`; `NULL` or `FALSE` carries nothing.
+#'   scenario name, or `"<scenario>/<run>"`.
+#'
+#'   Supplying one also selects HOW the base year is handled. Given a solved
+#'   base year, this LP must not re-optimise it: the horizon is split, the
+#'   base year leaves the LP, and what that solve decided crosses as sunk
+#'   stock. Given none (`NULL` or `FALSE`), the base year is solved HERE with
+#'   the projection, in one LP, at its own period weight and with its capacity
+#'   pinned by `base_year_capacity`. The argument is the switch because the
+#'   two cannot be combined: a base year is either already optimised or
+#'   optimised here.
 #'   What crosses is only what that solve DECIDED — its new capacity, written
 #'   as sunk `stock` at its true vintage. The model's own `@stock` is left
 #'   alone. With no source the projection still excludes the base year, and
@@ -192,6 +211,8 @@
 #' }
 interpolate_model <- function(object, name = NULL, ..., base = NULL,
                        base_year_scenario = base,
+                       base_year_capacity = c("fixed", "free"),
+                       base_year_relax = character(),
                        desc = NULL, ondisk = FALSE, overwrite = FALSE,
                        fold = FALSE, sparse = TRUE, prune = TRUE,
                        storage_cycle = NULL,
@@ -205,6 +226,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
                        on_missing_input = options::opt("on_missing_input"),
                        check = FALSE,
                        verbose = isVerbose(), .reuse = NULL) {
+  base_year_capacity <- match.arg(base_year_capacity)
   # which build arguments the caller set (read before any is reassigned)
   .given <- c(fold = !missing(fold), sparse = !missing(sparse),
               prune = !missing(prune), code = !missing(code), kvl = !missing(kvl),
@@ -711,11 +733,80 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   # ledger to carry. Said out loud, not assumed.
   .by_mark <- .base_year(scen@settings@horizon)
   if (!is.null(.by_mark)) {
+    # Whether the base year is a SEPARATE problem or part of this one is
+    # decided by whether a solved base year was handed in. Supplying one says
+    # it has already been optimised, so this LP must not re-optimise it: the
+    # horizon is split and what that solve decided crosses as sunk stock.
+    # Supplying none says solve it here, with the projection, in one LP.
+    #
+    # The switch is the argument itself rather than a mode flag, because the
+    # two cannot be combined: a base year cannot be both already-solved and
+    # solved here.
+    # `FALSE` is the third answer: hands off. The caller has already decided
+    # the base year's treatment and split the horizon itself -- this is how
+    # solve_base_year() interpolates its own one-year problem, having pinned
+    # capacity before handing the model over. Nothing here may undo that.
+    .by_hands_off <- isFALSE(base_year_scenario)
+    .by_spec <- if (.by_hands_off) NULL else
+      base_year_scenario %||% .scen_by_link$scenario
+    .by_given <- !is.null(.by_spec) &&
+      !(is.character(.by_spec) &&
+          (!length(.by_spec) || !nzchar(.by_spec[1])))
+
+    if (.by_hands_off) {
+      .by_src <- NULL
+    } else if (!.by_given) {
+      # TOGETHER. No split: every milestone stays in the LP, so the base year
+      # is dispatched here and carries its own period weight -- zero-weighting
+      # it would leave its dispatch unpriced and therefore arbitrary, and that
+      # arbitrary state would feed the first projection year.
+      #
+      # Its capacity is still DATA, so it is pinned at the declared stock
+      # unless the caller says otherwise. Without that the LP is free to build
+      # and retire in a year that has already happened.
+      if (identical(base_year_capacity, "fixed")) {
+        # at or before the mark: the base year and whatever history the
+        # horizon carries, all of them observed
+        .obs <- as.integer(scen@settings@horizon@intervals$mid)
+        .obs <- .obs[.obs <= .by_mark]
+        object <- .by_freeze_capacity(object, .by_mark,
+                                      relax = base_year_relax, years = .obs)
+        # the scenario's model must describe what was actually built, the way
+        # the carry path rewrites it -- otherwise `scen@model` says the past
+        # is free while the LP says it is pinned
+        .model_given <- .by_freeze_capacity(.model_given, .by_mark,
+                                            relax = base_year_relax,
+                                            years = .obs)
+        scen@model <- .model_given
+        if (isTRUE(verbose)) {
+          .n <- attr(object, "n_capacity_frozen") %||% 0L
+          .r <- attr(object, "capacity_relaxed") %||% character()
+          .say("base year ", .by_mark, ": solved WITH the projection; total ",
+               "capacity pinned at stock for ", .n, " process(es)",
+               if (length(.r)) paste0("; left free: ",
+                                      paste(.r, collapse = ", ")) else "",
+               ". Pass `base_year_scenario =` to solve it separately instead.")
+        }
+      } else if (isTRUE(verbose)) {
+        .say("base year ", .by_mark, ": solved WITH the projection, capacity ",
+             "free -- the LP may build and retire in an observed year.")
+      }
+      # recorded so a later solve can tell whether the knobs it was asked for
+      # are the ones this scenario was actually built with
+      scen@misc$base_year <- list(year = .by_mark, history = integer(),
+                                  mode = "together",
+                                  capacity = base_year_capacity,
+                                  relax = base_year_relax)
+      .by_src <- NULL
+    } else {
+    # SEPARATE: the base year was optimised elsewhere.
     .hh <- .by_split(scen@settings@horizon)
     scen <- setHorizon(scen, .hh$main)
-    scen@misc$base_year <- list(year = .by_mark, history = .hh$history)
-    .by_src <- .by_source(base_year_scenario %||% .scen_by_link$scenario,
-                          .by_mark)
+    scen@misc$base_year <- list(year = .by_mark, history = .hh$history,
+                                mode = "separate",
+                                capacity = NA_character_,
+                                relax = character())
+    .by_src <- .by_source(.by_spec, .by_mark)
     if (is.null(.by_src)) {
       .say("base year ", .by_mark, ": not optimised, and no base-year ",
               "solution was given -- the projection starts from the model's ",
@@ -734,6 +825,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
               " capacity vintage(s) carried forward as stock",
               if (!is.na(.by_src$scenario))
                 paste0(" from '", .by_src$scenario, "'") else "")
+    }
     }
   }
 
@@ -867,7 +959,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
   .geo_hier <- .geo_hierarchy(getGeoscale(scen@settings),
                               scen@modInp@sets$region)
   if (!is.null(.geo_hier)) scen@modInp@sets$region <- .geo_hier$region
-  scen@modInp@sets$year <- as.integer(scen@settings@horizon@intervals$mid)
+  scen@modInp@sets$year <- .lp_years(scen@settings@horizon)
   # Sampled-calendar convention guard: the top slice must be full-year
   # magnitude (share = 1). A serialized calendar built before this
   # contract carries share = year_fraction there and would reproduce the
@@ -1653,7 +1745,7 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
 
 .interp_settings_params <- function(scen) {
   ss <- scen@settings
-  mid <- ss@horizon@intervals$mid
+  mid <- .lp_years(ss@horizon)
 
   # Set parameters (legacy interpolate.R: year / timeslice / region).
   scen@modInp@parameters[["year"]] <-
@@ -2586,10 +2678,21 @@ interpolate_numpar <- function(
   .n_grid <- nrow(grid)
   grid <- dplyr::left_join(grid, vals, by = c(set_cols, "year"))
   if (nrow(grid) != .n_grid) {
+    dup <- vals[duplicated(vals[, c(set_cols, "year"), drop = FALSE]) |
+                  duplicated(vals[, c(set_cols, "year"), drop = FALSE],
+                             fromLast = TRUE), , drop = FALSE]
+    dup <- utils::head(dup[do.call(order, as.list(dup[, c(set_cols, "year"),
+                                                      drop = FALSE])), ,
+                           drop = FALSE], 6L)
     stop("interpolation multiplied a series: ", nrow(grid), " rows from ",
          .n_grid, ". The data carries a repeated (",
          paste(c(set_cols, "year"), collapse = ", "),
-         ") key; give each row a distinct key, or keep one row.",
+         ") key; give each row a distinct key, or keep one row.
+",
+         "  repeated: ",
+         paste(utils::capture.output(print(as.data.frame(dup))),
+               collapse = "
+  "),
          call. = FALSE)
   }
   out <- interpolate_numpar(
@@ -4697,10 +4800,10 @@ get_process_invest_years <- function(scen, process = NULL, classes = NULL) {
   process_invest_year <- .interp_memo(
     key = "process_invest_year",
     fingerprint = list(process_invest_window, scen@modInp@sets$process,
-                       scen@settings@horizon@intervals$mid),
+                       .lp_years(scen@settings@horizon)),
     compute = function() {
       .window_years(process_invest_window, scen@modInp@sets$process,
-                    scen@settings@horizon@intervals$mid)
+                    .lp_years(scen@settings@horizon))
     }
   )
 
@@ -4753,7 +4856,7 @@ get_process_stock_window <- function(scen, process = NULL, classes = NULL) {
     )
   }
 
-  mod_years <- scen@settings@horizon@intervals$mid
+  mod_years <- .lp_years(scen@settings@horizon)
 
   # the stock rows of every object in one table (`.k` numbers the objects),
   # then the window per (object, region): the earliest and latest of its
@@ -4865,7 +4968,7 @@ get_process_stock_years <- function(scen, process = NULL, classes = NULL) {
 
   process_stock_year <- .window_years(scen@modInp@sets$process_stock_window,
                                       scen@modInp@sets$process,
-                                      scen@settings@horizon@intervals$mid)
+                                      .lp_years(scen@settings@horizon))
 
   process_stock_year <- .empty_process_years(process_stock_year)
 
@@ -4888,7 +4991,7 @@ get_process_stock_years <- function(scen, process = NULL, classes = NULL) {
   data.table::setnames(inv, "year", "built")
   inv <- merge(inv, ol, by = c("process", "region"), all.x = TRUE)
   inv[is.na(olife), olife := .default_olife()]
-  mids <- as.integer(scen@settings@horizon@intervals$mid)
+  mids <- .lp_years(scen@settings@horizon)
   j <- inv[, list(year = mids), by = c("process", "region", "built", "olife")]
   j <- j[j$year >= j$built & (is.infinite(j$olife) | j$year < j$built + j$olife), ]
   unique(j[, list(process, region, year)])

@@ -42,6 +42,40 @@ NULL
   if (!length(by)) NULL else by[[1]]
 }
 
+# Which part of a marked horizon this object solves: "by", "main", or
+# character(0) when it is an unsplit horizon. Stored in `@misc` rather than as
+# a slot so a horizon saved before this existed still loads.
+#' @noRd
+.solve_part <- function(horizon) {
+  if (is.null(horizon) || !isS4(horizon)) return(character())
+  p <- tryCatch(horizon@misc$solve_part, error = function(e) NULL)
+  if (is.null(p)) character() else as.character(p)
+}
+
+# The milestones the LP contains, as opposed to the years the horizon
+# describes. They differ once a base year is marked: the horizon still lists
+# every milestone, so a saved scenario can report the whole span, while the LP
+# holds only its own part. Membership, not solution state -- these are the
+# years that WILL be solved, named before any solve has happened.
+#
+# Everything that derives LP structure -- the milestone maps, the invest and
+# stock windows, the stock path -- must use this rather than
+# `horizon@intervals$mid`, or a projection silently gains a base-year column.
+#
+# Returns an ascending integer vector; every milestone for an unsplit horizon.
+#' @noRd
+.lp_years <- function(horizon) {
+  if (is.null(horizon) || !isS4(horizon)) return(integer())
+  mids <- as.integer(horizon@intervals$mid)
+  by <- .base_year(horizon)
+  part <- .solve_part(horizon)
+  if (is.null(by) || !length(part)) return(sort(mids))
+  switch(part[[1]],
+    by = sort(mids[mids == by]),
+    main = sort(mids[mids > by]),
+    sort(mids))
+}
+
 # Split a marked horizon into the problems it describes:
 #
 #   $by       the base year alone, solved on its own
@@ -77,6 +111,9 @@ NULL
 .by_split <- function(horizon) {
   by <- .base_year(horizon)
   if (is.null(by)) return(NULL)
+  # already a half: the mark is kept now, so the part marker is what makes
+  # splitting idempotent
+  if (length(.solve_part(horizon))) return(NULL)
   iv <- as.data.frame(horizon@intervals)
   mids <- as.integer(iv$mid)
   if (!(by %in% mids)) {
@@ -87,13 +124,23 @@ NULL
     stop("The horizon marks its last milestone (", by, ") as the base year, ",
          "leaving nothing to project.", call. = FALSE)
   }
-  cut <- function(rows, suffix) {
-    h <- newHorizon(intervals = rows, force_BY_interval_to_1_year = FALSE,
+  # Each half keeps the WHOLE interval table and records which part of it it
+  # solves. The scenario can then describe every milestone it is about --
+  # reporting reads `intervals$mid` and sees 2025..2060 -- while the LP reads
+  # `.lp_years()` and sees only its own part. Slicing the table instead
+  # made the two indistinguishable: a saved projection could not say that a
+  # base year existed, let alone what it decided.
+  cut <- function(part, suffix) {
+    h <- newHorizon(intervals = iv, force_BY_interval_to_1_year = FALSE,
                     name = paste0(.horizon_name(horizon), suffix),
                     desc = horizon@desc)
-    # each half's interpolation range is the WHOLE horizon's, not the slice's
-    # -- see Details
+    # the interpolation range is the whole horizon's -- newHorizon() trims
+    # `period` to the intervals, and bounds extrapolation reads it
     h@period <- horizon@period
+    # the mark is KEPT, not cleared: .lp_years() needs it to know which
+    # milestones belong to which part
+    h@base_year <- as.integer(by)
+    h@misc$solve_part <- part
     h
   }
   history <- sort(mids[mids < by])
@@ -105,8 +152,7 @@ NULL
             ") are historical and enter no LP; their data still anchors ",
             "interpolation")
   }
-  list(by = cut(iv[mids == by, , drop = FALSE], "_by"),
-       main = cut(iv[mids > by, , drop = FALSE], "_main"),
+  list(by = cut("by", "_by"), main = cut("main", "_main"),
        history = history)
 }
 
@@ -136,6 +182,69 @@ NULL
   c("solver.dir", "transient", "tmp.dir", "tmp.del", "force", "read.solution",
     "wait", "verbose", "echo", "run", "run.conflict", "n.threads", "invisible",
     "show.output.on.console", "open.folder")
+}
+
+# Pin TOTAL capacity at the declared stock for the base year.
+#
+# The base year is a dispatch of an observed fleet: its capacity is data. But
+# `solve_base_year()` builds it as its own one-year problem, where investment
+# variables exist, so any process whose `ncap.up` is unset is free to be
+# built. Blocking investment alone is not enough either -- with retirement
+# free the total could still fall -- which is why this pairs with
+# `.by_freeze_retirement()`.
+#
+# Every investment bound in the base year goes to zero, across all three
+# capacity schemas: `ncap.*` on a technology or trade, and the prefixed
+# `out.*` / `inp.*` / `stg.*` forms on a storage, which a plain `ncap.up`
+# search misses. A process with no base-year row gets one.
+#
+# `relax` is the caller's discretion: where an observed fleet cannot serve an
+# observed load, letting a named process correct the stock is better than an
+# infeasible solve -- and each name is then a stated assumption.
+#' @noRd
+.by_freeze_capacity <- function(mod, base_year, relax = character(),
+                                years = NULL) {
+  # Every year at or before the mark is observed, so all of them are pinned,
+  # not the base year alone: with history in the LP an unpinned 2020 would be
+  # free to build its way out of the fleet that is being calibrated.
+  years <- sort(unique(as.integer(years %||% base_year)))
+  froze <- character(); skipped <- character()
+  one <- function(o) {
+    nm <- tryCatch(o@name, error = function(e) NA_character_)
+    if (!is.na(nm) && nm %in% relax) { skipped <<- c(skipped, nm); return(o) }
+    if (!methods::.hasSlot(o, "capacity")) return(o)
+    cp <- o@capacity
+    cols <- grep("ncap[.](up|lo|fx)$", names(cp), value = TRUE)
+    if (!length(cols)) return(o)
+    miss <- setdiff(years, as.integer(cp$year[!is.na(cp$year)]))
+    if (!nrow(cp) || (length(miss) && !any(is.na(cp$year)))) {
+      blank <- cp[rep(NA_integer_, length(miss)), , drop = FALSE]
+      blank$year <- as.integer(miss)
+      for (ch in intersect(c("vintage", "cluster", "region"), names(blank))) {
+        blank[[ch]] <- NA_character_
+      }
+      cp <- rbind(cp, blank); rownames(cp) <- NULL
+    }
+    i <- which(is.na(cp$year) | as.integer(cp$year) %in% years)
+    for (cl in cols) cp[[cl]][i] <- 0
+    o@capacity <- cp
+    if (!is.na(nm)) froze <<- c(froze, nm)
+    o
+  }
+  for (nm in names(mod@data)) {
+    repo <- mod@data[[nm]]
+    if (!isS4(repo) || !methods::.hasSlot(repo, "data")) next
+    for (i in seq_along(repo@data)) {
+      o <- repo@data[[i]]
+      if (is(o, "technology") || is(o, "storage") || is(o, "trade")) {
+        repo@data[[i]] <- one(o)
+      }
+    }
+    mod@data[[nm]] <- repo
+  }
+  attr(mod, "n_capacity_frozen") <- length(froze)
+  attr(mod, "capacity_relaxed") <- skipped
+  mod
 }
 
 .by_freeze_retirement <- function(mod) {
@@ -185,6 +294,17 @@ NULL
 #' @param name scenario name; defaults to the object's own.
 #' @param solver solver options, as [solve_scenario()] takes.
 #' @param optimize_retirement allow the base year to retire stock endogenously.
+#' @param capacity `"fixed"` (default) pins TOTAL capacity at the declared
+#'   stock: the base year dispatches an observed fleet, it does not plan one.
+#'   Blocking investment alone would not do it -- with retirement free the
+#'   total could still fall -- so this pairs with `optimize_retirement`.
+#'   `"free"` restores the old behaviour, in which any process without an
+#'   explicit `ncap.up` may be built in the base year.
+#' @param relax process names left free to invest despite `capacity =
+#'   "fixed"`. Where an observed fleet cannot serve an observed load, letting
+#'   a named process correct the stock beats an infeasible solve -- but the
+#'   base year is then no longer a pure dispatch, so each name is a stated
+#'   assumption and is reported.
 #' @param variant the variant label for the base-year run.
 #' @param save store the solved scenario, so a projection can refer to it by
 #'   name later. `TRUE` by default: a base-year solution nothing can reopen
@@ -203,9 +323,13 @@ NULL
 #' by$ledger
 #' }
 solve_base_year <- function(object, name = NULL, solver = NULL,
-                            optimize_retirement = FALSE, variant = "by",
+                            optimize_retirement = FALSE,
+                            capacity = c("fixed", "free"),
+                            relax = character(),
+                            variant = "by",
                             save = TRUE, ...,
                             verbose = isVerbose()) {
+  capacity <- match.arg(capacity)
   mod <- if (is(object, "scenario")) object@model else object
   if (!is(mod, "model")) {
     stop("`solve_base_year()` expects a model or an interpolated scenario; ",
@@ -227,13 +351,35 @@ solve_base_year <- function(object, name = NULL, solver = NULL,
               " process(es) (observed retirements are data, not decisions).")
     }
   }
+  if (identical(capacity, "fixed")) {
+    mod <- .by_freeze_capacity(mod, by, relax = relax)
+    ncf <- attr(mod, "n_capacity_frozen") %||% 0L
+    rlx <- attr(mod, "capacity_relaxed") %||% character()
+    if (isTRUE(verbose)) {
+      .say("Base year ", by, ": total capacity pinned at stock for ", ncf,
+           " process(es)", if (length(rlx)) paste0(
+             "; left free at the caller's discretion: ",
+             paste(rlx, collapse = ", ")) else "",
+           ". A shortfall is then priced by the model's own slack rather ",
+           "than reported as infeasible.")
+    }
+  }
   nm <- name %||% paste0(mod@name, "_by")
   # `...` carries both interpolation and solver arguments; route them the way
   # solve_model() does, or interpolate_model() warns about every solver knob
   dots <- list(...)
   is_solve <- names(dots) %in% .by_solve_args()
+  # `base_year_scenario = FALSE`: the split and the capacity pin are already
+  # applied above, so interpolation must not apply its own defaults on top --
+  # its `base_year_capacity = "fixed"` would otherwise override
+  # `capacity = "free"` here and pin a base year the caller left open.
   scen <- suppressMessages(do.call(interpolate_model, c(
-    list(mod, name = nm, hh$by), dots[!is_solve])))
+    list(mod, name = nm, hh$by, base_year_scenario = FALSE),
+    dots[!is_solve])))
+  # what this base year WAS built with, for the solve-time consistency check
+  scen@misc$base_year <- list(year = by, history = hh$history,
+                              mode = "base", capacity = capacity,
+                              relax = relax)
   sol <- do.call(solve_scenario, c(
     list(scen, solver = solver, variant = variant), dots[is_solve]))
   if (isTRUE(save) && isTRUE(sol@status$optimal)) {
@@ -318,7 +464,10 @@ solve_base_year <- function(object, name = NULL, solver = NULL,
     }
     return(mod)
   }
-  mids <- as.integer(horizon@intervals$mid)
+  # the years the PROJECTION solves, not every milestone the horizon lists:
+  # writing carried stock into the base year or history would put the fleet
+  # back into years that left the LP
+  mids <- .lp_years(horizon)
   fams <- .carry_families()
   keys <- unique(ledger$newcap[, c("family", "proc", "region")])
   touched <- 0L

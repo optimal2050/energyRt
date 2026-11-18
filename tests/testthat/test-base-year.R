@@ -74,9 +74,19 @@ test_that("the split is three-way and keeps the original period", {
   expect_message(energyRt:::.by_split(h), "2020")
   hh <- suppressMessages(energyRt:::.by_split(h))
 
-  expect_identical(as.integer(hh$by@intervals$mid), 2025L)
-  expect_identical(as.integer(hh$main@intervals$mid), c(2030L, 2040L))
+  # both halves keep EVERY milestone, so a saved scenario can describe the
+  # whole span; which of them the LP contains is `energyRt:::.lp_years()`
+  all_mids <- as.integer(h@intervals$mid)
+  expect_identical(as.integer(hh$by@intervals$mid), all_mids)
+  expect_identical(as.integer(hh$main@intervals$mid), all_mids)
+  expect_identical(energyRt:::.lp_years(hh$by), 2025L)
+  expect_identical(energyRt:::.lp_years(hh$main), c(2030L, 2040L))
   expect_identical(hh$history, 2020L)
+
+  # the mark is kept -- energyRt:::.lp_years() needs it -- and the part marker is
+  # what makes splitting idempotent
+  expect_identical(energyRt:::.base_year(hh$main), 2025L)
+  expect_null(energyRt:::.by_split(hh$main))
   # deliberately not a horizon: nothing should be able to solve it
   expect_true(is.integer(hh$history))
 
@@ -87,10 +97,14 @@ test_that("the split is three-way and keeps the original period", {
   expect_identical(range(hh$main@period), range(h@period))
   expect_identical(min(hh$main@period), 2020L)
 
-  # row slices, not rebuilt intervals: period lengths are untouched
+  # intervals are carried over untouched, not rebuilt: every milestone keeps
+  # the start/end it had, so period lengths and cost weights are unchanged
   m <- as.data.frame(hh$main@intervals)
-  expect_identical(as.integer(m$start[1]), 2026L)
-  expect_identical(as.integer(m$end[1]), 2035L)
+  r30 <- m[as.integer(m$mid) == 2030L, ]
+  expect_identical(as.integer(r30$start), 2026L)
+  expect_identical(as.integer(r30$end), 2035L)
+  expect_identical(as.data.frame(hh$main@intervals),
+                   as.data.frame(h@intervals))
 
   # the halves need distinct names -- a scenario folder is named after its
   # horizon
@@ -120,9 +134,16 @@ test_that("a horizon serialized before the slot still reads", {
 
 
 test_that("the mark takes the base year and its history out of the LP", {
+  # Supplying a base-year source is what says "already optimised elsewhere",
+  # and so what splits the horizon. Without one the base year is solved HERE,
+  # with the projection -- covered by its own test below. The source need not
+  # hold a solution: naming one is the request, and the split follows from it.
+  src <- suppressMessages(interpolate_model(
+    .by_model(newHorizon(intervals = .by_iv(), name = "hsrc")),
+    name = "by_src"))
   s <- suppressMessages(interpolate_model(
     .by_model(newHorizon(intervals = .by_iv(), base_year = 2025, name = "h25")),
-    name = "by_prj"))
+    name = "by_prj", base_year_scenario = src))
 
   expect_identical(sort(as.integer(s@modInp@sets$year)), c(2030L, 2040L))
   expect_identical(
@@ -165,8 +186,12 @@ test_that("the base-year solve is the base year alone, with retirement off", {
   skip_if_no_solver()
   mod <- .by_model(newHorizon(intervals = .by_iv(), base_year = 2025,
                               name = "h25"))
+  # `capacity = "free"`: this test is about what the base year DECIDES and
+  # what crosses from it. The default pins total capacity at stock, which is
+  # right for a calibration run but leaves nothing to decide or carry.
   by <- suppressMessages(solve_base_year(
-    mod, name = "by_solve", solver = solver_options$glpk, verbose = FALSE))
+    mod, name = "by_solve", solver = solver_options$glpk, verbose = FALSE,
+    capacity = "free"))
 
   expect_identical(sort(as.integer(by$scenario@modInp@sets$year)), 2025L)
   expect_true(isTRUE(by$scenario@status$optimal))
@@ -191,7 +216,8 @@ test_that("the carry writes only what the base year decided", {
   mk <- function() .by_model(newHorizon(intervals = .by_iv(),
                                         base_year = 2025, name = "h25"))
   by <- suppressMessages(solve_base_year(
-    mk(), name = "by_solve", solver = solver_options$glpk, verbose = FALSE))
+    mk(), name = "by_solve", solver = solver_options$glpk, verbose = FALSE,
+    capacity = "free"))
   built <- as.data.frame(by$ledger$newcap)
   expect_true(nrow(built) >= 1L)
   expect_true("NEW" %in% built$proc)
@@ -226,7 +252,8 @@ test_that("the carry respects the operating life", {
                                         base_year = 2025, name = "h25"),
                              olife = 10)
   by <- suppressMessages(solve_base_year(
-    mk(), name = "by_solvel", solver = solver_options$glpk, verbose = FALSE))
+    mk(), name = "by_solvel", solver = solver_options$glpk, verbose = FALSE,
+    capacity = "free"))
   skip_if(is.null(by$ledger) || !nrow(as.data.frame(by$ledger$newcap)))
 
   s <- suppressMessages(interpolate_model(mk(), name = "by_prjl",
@@ -238,17 +265,60 @@ test_that("the carry respects the operating life", {
 })
 
 
-test_that("a marked horizon with no source proceeds from the model's stock", {
+test_that("a marked horizon with no source is solved WITH the projection", {
   mk <- function() .by_model(newHorizon(intervals = .by_iv(),
                                         base_year = 2025, name = "h25"))
   expect_message(
     s <- interpolate_model(mk(), name = "by_prjn"),
-    "no base-year solution was given")
-  # the model's own stock is what the projection starts from, unchanged
-  expect_identical(mk()@data$byrepo@data$OLD@capacity,
-                   s@model@data$byrepo@data$OLD@capacity)
+    "solved WITH the projection")
+
+  # No split at all: every milestone the horizon declares is in this LP,
+  # history included, each carrying its own period weight -- so observed
+  # dispatch is priced rather than arbitrary, and nothing feeds the first
+  # projection year from an unpriced state.
+  expect_identical(sort(as.integer(s@modInp@sets$year)),
+                   c(2020L, 2025L, 2030L, 2040L))
+  expect_identical(energyRt:::.lp_years(getHorizon(s)),
+                   c(2020L, 2025L, 2030L, 2040L))
+  expect_identical(s@misc$base_year$mode, "together")
+  expect_identical(s@misc$base_year$capacity, "fixed")
+
+  # Those years are OBSERVED, so their total capacity is data, not a
+  # decision: the upward bound is pinned at every year up to the mark. That
+  # is what keeps a past year from building its way out of the fleet being
+  # calibrated -- the price of leaving history in the LP.
+  up <- s@model@data$byrepo@data$NEW@capacity
+  pinned <- as.integer(up$year[!is.na(up$ncap.up) & up$ncap.up == 0])
+  expect_true(all(c(2020L, 2025L) %in% pinned))
+  expect_false(any(c(2030L, 2040L) %in% pinned))
+})
+
+
+test_that("the base year may be left free with the projection", {
+  mk <- function() .by_model(newHorizon(intervals = .by_iv(),
+                                        base_year = 2025, name = "h25"))
+  expect_message(
+    s <- interpolate_model(mk(), name = "by_prjf",
+                           base_year_capacity = "free"),
+    "capacity free")
+  expect_identical(s@misc$base_year$capacity, "free")
+  # untouched: the caller owns the consequence
   expect_identical(mk()@data$byrepo@data$NEW@capacity,
                    s@model@data$byrepo@data$NEW@capacity)
+})
+
+
+test_that("a named process is left free despite the pin", {
+  mk <- function() .by_model(newHorizon(intervals = .by_iv(),
+                                        base_year = 2025, name = "h25"))
+  s <- suppressMessages(interpolate_model(mk(), name = "by_prjr",
+                                          base_year_relax = "NEW"))
+  expect_identical(s@misc$base_year$relax, "NEW")
+  # NEW keeps its freedom, OLD does not
+  expect_identical(mk()@data$byrepo@data$NEW@capacity,
+                   s@model@data$byrepo@data$NEW@capacity)
+  old <- s@model@data$byrepo@data$OLD@capacity
+  expect_true(all(old$ncap.up[as.integer(old$year) == 2025L] == 0))
 })
 
 
@@ -273,7 +343,8 @@ test_that("the link survives a save and names a stale source", {
   mk <- function() .by_model(newHorizon(intervals = .by_iv(),
                                         base_year = 2025, name = "h25"))
   by <- suppressMessages(solve_base_year(
-    mk(), name = "by_solves", solver = solver_options$glpk, verbose = FALSE))
+    mk(), name = "by_solves", solver = solver_options$glpk, verbose = FALSE,
+    capacity = "free"))
   s <- suppressMessages(interpolate_model(mk(), name = "by_prjs",
                                           base_year_scenario = by))
   s <- suppressMessages(save_scenario(s, verbose = FALSE))
@@ -294,12 +365,13 @@ test_that("the link survives a save and names a stale source", {
 })
 
 
-test_that("getData(base_year = TRUE) labels its source and refuses vObjective", {
+test_that("getData(base_year = TRUE) labels its source and shows vObjective", {
   skip_if_no_solver()
   mk <- function() .by_model(newHorizon(intervals = .by_iv(),
                                         base_year = 2025, name = "h25"))
   by <- suppressMessages(solve_base_year(
-    mk(), name = "by_solveg", solver = solver_options$glpk, verbose = FALSE))
+    mk(), name = "by_solveg", solver = solver_options$glpk, verbose = FALSE,
+    capacity = "free"))
   s <- suppressMessages(interpolate_model(mk(), name = "by_prjg",
                                           base_year_scenario = by))
   s <- suppressMessages(save_scenario(s, verbose = FALSE))
@@ -318,10 +390,14 @@ test_that("getData(base_year = TRUE) labels its source and refuses vObjective", 
                     both$source == "base"))
   expect_true(all(both$source[as.integer(both$year) > 2025L] == "solved"))
 
-  # the two objectives are separate optimisations and do not union
-  obj <- suppressWarnings(getData(s, "vObjective", merge = TRUE,
-                                  base_year = TRUE))
-  expect_true(all(obj$source == "solved"))
+  # Asking for the base year is asking to see its cost, so both objectives
+  # come back -- but they are separate optimisations, one undiscounted year
+  # against a discounted multi-period total, so the warning says they must
+  # not be summed and `source` is what keeps them apart.
+  expect_warning(
+    obj <- getData(s, "vObjective", merge = TRUE, base_year = TRUE),
+    "do not sum into a system cost")
+  expect_setequal(unique(obj$source), c("solved", "base"))
 
   # a scenario recording no base year says so rather than inventing one
   plain <- suppressMessages(save_scenario(suppressMessages(interpolate_model(

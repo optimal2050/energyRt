@@ -1639,7 +1639,7 @@ expand_variants <- function(mod, prefix = .variant_prefix(mod),
   prefix <- .variant_prefix_merge(prefix)
 
   regions <- as.character(mod@config@region)
-  years   <- tryCatch(as.integer(mod@config@horizon@intervals$mid),
+  years   <- tryCatch(.lp_years(mod@config@horizon),
                       error = function(e) integer())
   # Flow bounds (unlike capacity bounds) can vary by timeslice, so the cell grid
   # needs the calendar's slices too.

@@ -500,7 +500,7 @@ newDCLink <- function(name, commodity, from, to, resistance = NA_real_,
 # Falls back to the model config so the direct unit tests keep working.
 .kvl_for_each <- function(mod, comms, settings = NULL) {
   src <- if (!is.null(settings)) settings else mod@config
-  yrs <- sort(unique(as.integer(src@horizon@intervals$mid)))
+  yrs <- sort(unique(.lp_years(src@horizon)))
   cal <- src@calendar
   out <- list()
   for (cm in comms) {

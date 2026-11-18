@@ -20,7 +20,7 @@
 # -- shared calendar accessors --------------------------------------------- #
 .cal_timeslices <- function(scen) as.character(scen@settings@calendar@timeslice_share$timeslice)
 .cal_anc    <- function(scen) dplyr::as_tibble(scen@settings@calendar@timeslice_ancestry)
-.cal_mid    <- function(scen) as.integer(scen@settings@horizon@intervals$mid)
+.cal_mid    <- function(scen) .lp_years(scen@settings@horizon)
 
 # timeslice ancestry-expansion (parent -> self + all descendants), shared by
 # mTimesliceParentChildE and mCommTimesliceOrParent.

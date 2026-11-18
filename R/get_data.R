@@ -173,9 +173,12 @@ findData <- function(object,
 #'   horizon marks a base year also returns that year, read from the separate
 #'   run the scenario recorded (see [solve_base_year()]), and every row gains
 #'   a `source` column — `"solved"` for the scenario's own LP, `"base"` for
-#'   the base year. `vObjective` is not unioned: the base year and the
-#'   projection are separate optimisations, so only the projection's is
-#'   returned. A scenario that records no base year, or whose recorded source
+#'   the base year. `vObjective` is returned for both, tagged in `source`,
+#'   with a warning: the two are separate optimisations -- one undiscounted
+#'   year against a discounted multi-period total -- so they may be shown
+#'   side by side but do not sum into a system cost. A scenario whose linked
+#'   base year has been re-solved since also warns. A scenario that records
+#'   no base year, or whose recorded source
 #'   cannot be read, warns and returns its own rows alone. Note that
 #'   post-processing applies the FIRST object's horizon and calendar labels to
 #'   every row.
@@ -385,6 +388,18 @@ getData.scenario <- function(
                   if (nzchar(link$run)) paste0("/", link$run) else "", "'")
                 else " (no source was carried)", ".", call. = FALSE)
         next
+      }
+      # A base year re-solved since the projection was built no longer
+      # describes the fleet the projection started from. Splicing it anyway
+      # produces a series whose first year contradicts the rest, with nothing
+      # on the face of it to say so -- hence a warning rather than silence.
+      # Not an error: a deliberate re-solve is a normal thing to be doing.
+      if (isTRUE(tryCatch(.by_link_stale(link, sc0), error = function(e) FALSE))) {
+        warning("getData(base_year = TRUE): scenario '", nmi, "' was built ",
+                "on an earlier solution of base year ", link$year,
+                "; '", link$scenario, "' has been re-solved since. The ",
+                "spliced base-year rows are not the ones this projection ",
+                "carried -- re-interpolate it to adopt them.", call. = FALSE)
       }
       exp_scen[[length(exp_scen) + 1L]] <- sb
       exp_nm <- c(exp_nm, nmi)
@@ -643,12 +658,21 @@ getData.scenario <- function(
               collect() |>
               filter(kk)
             if (!is.null(dkk) && nrow(dkk) > 0) {
-              # The base year and the projection are separate optimisations,
-              # so their objectives do not union into anything -- the same
-              # refusal getData.recursive() makes. Every other variable does.
+              # `vObjective` IS returned for the base year. Asking for
+              # `base_year = TRUE` is asking to see the base year's cost, and
+              # dropping it silently answers a different question. What the
+              # two objectives must not do is SUM: one is a single
+              # undiscounted year, the other a discounted multi-period total.
+              # The `source` column is what keeps them apart, so the caller
+              # can show them side by side -- or add them, knowingly.
               if (!is.null(src_of) && identical(src_of[s], "base") &&
                   identical(pv, "vObjective")) {
-                next
+                warning("getData(base_year = TRUE): 'vObjective' is returned ",
+                        "for both the base year and the projection, tagged ",
+                        "in `source`. They are separate optimisations -- one ",
+                        "undiscounted year against a discounted multi-period ",
+                        "total -- so they do not sum into a system cost.",
+                        call. = FALSE)
               }
               nkk <- sum(kk)
               tagcols <- data.frame(

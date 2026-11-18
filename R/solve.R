@@ -711,13 +711,57 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 solve_model <- function(object, name = NULL, solver = NULL,
                         ondisk = FALSE, fold = FALSE, ...) {
   if (inherits(object, "scenario")) {
-    # convenience: interpolate an un-interpolated scenario before solving; an
-    # already-interpolated scenario is solved as-is (its build knobs preserved)
+    # `...` carries both interpolation and solver arguments. Route them the
+    # way solve_base_year() does, or an interpolation knob is handed to the
+    # solver and the build it was meant to change happens without it.
+    .dots <- list(...)
+    .is_solve <- names(.dots) %in% .by_solve_args()
+    .interp_args <- .dots[!.is_solve]
+    .solve_args <- .dots[.is_solve]
+
     if (!isTRUE(object@status$interpolated)) {
-      object <- interpolate_model(object@model, name = object@name)
+      object <- do.call(interpolate_model, c(
+        list(object@model, name = object@name, ondisk = ondisk, fold = fold),
+        .interp_args))
+    } else if (length(.interp_args)) {
+      # Already built. An interpolation argument now can only be honoured by
+      # rebuilding, so rather than solve something other than what was asked
+      # for, say which knob disagrees and stop. Matching values are no
+      # disagreement and pass straight through.
+      .rec <- object@misc$base_year %||% list()
+      # The record keys the base year by what it IS, the arguments by what to
+      # do -- so they are compared through a map, not by name. Anything the
+      # record cannot speak for (a calendar, a horizon) differs by definition:
+      # it could only be honoured by rebuilding.
+      .key <- c(base_year_capacity = "capacity",
+                base_year_relax = "relax",
+                base_year_scenario = "scenario")
+      .differs <- vapply(names(.interp_args), function(k) {
+        kk <- .key[[k]] %||% NA_character_
+        if (is.na(kk) || !kk %in% names(.rec)) return(TRUE)
+        .was <- .rec[[kk]]
+        .now <- .interp_args[[k]]
+        if (identical(k, "base_year_scenario")) {
+          # a source is recorded by name; accept a name or the object itself
+          .now <- if (is(.now, "scenario")) .now@name else as.character(.now)
+          .was <- as.character(.was %||% "")
+        }
+        !isTRUE(all.equal(.was, .now))
+      }, logical(1))
+      if (any(.differs)) {
+        stop("`", paste(names(.interp_args)[.differs], collapse = "`, `"),
+             "` differ", if (sum(.differs) == 1L) "s" else "",
+             " from what scenario '", object@name, "' was interpolated with",
+             if (length(.rec$capacity) && !is.na(.rec$capacity))
+               paste0(" (base_year_capacity = \"", .rec$capacity, "\")")
+             else "",
+             ". An interpolated scenario cannot adopt a build argument at ",
+             "solve time. Re-interpolate with interpolate_model(), or call ",
+             "solve_model() on the model.", call. = FALSE)
+      }
     }
     return(do.call(solve_scenario, c(list(object = object, solver = solver),
-                                     list(...))))
+                                     .solve_args)))
   }
   if (!inherits(object, "model")) {
     stop("`solve_model()` expects a model or scenario object. ",

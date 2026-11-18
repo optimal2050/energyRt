@@ -69,16 +69,20 @@ NULL
 #' @noRd
 .get_recast_rule <- function(class, slot, column, axis = c("space", "time")) {
   axis <- match.arg(axis)
-  ref <- paste(.defRecast$class, .defRecast$slot, .defRecast$column, sep = "")
-  i <- match(paste(class, slot, column, sep = ""), ref)
+  ref <- paste(.defRecast$class, .defRecast$slot, .defRecast$column, sep = "
+")
+  i <- match(paste(class, slot, column, sep = "
+"), ref)
   stats::setNames(.defRecast[[axis]][i], column)
 }
 
 #' Columns of a slot carrying no declaration at all
 #' @noRd
 .recast_undeclared <- function(class, slot, column) {
-  ref <- paste(.defRecast$class, .defRecast$slot, .defRecast$column, sep = "")
-  column[is.na(match(paste(class, slot, column, sep = ""), ref))]
+  ref <- paste(.defRecast$class, .defRecast$slot, .defRecast$column, sep = "
+")
+  column[is.na(match(paste(class, slot, column, sep = "
+"), ref))]
 }
 
 # --------------------------------------------------------------------------- #
@@ -637,7 +641,7 @@ recast_model_calendar <- function(object, calendar, rules = NULL, year = NULL,
 #' @noRd
 .recast_year <- function(object) {
   h <- tryCatch(object@config@horizon, error = function(e) NULL)
-  y <- tryCatch(as.integer(h@intervals$mid), error = function(e) integer())
+  y <- tryCatch(.lp_years(h), error = function(e) integer())
   if (!length(y)) y <- tryCatch(as.integer(h@period), error = function(e) integer())
   if (!length(y) || all(is.na(y))) return(2025L)
   min(y, na.rm = TRUE)

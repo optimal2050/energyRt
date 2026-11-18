@@ -134,7 +134,7 @@ guided_windows <- function(horizon, direction = c("backward", "forward"),
   # apply_targets() would drop them with a warning meant for a caller who
   # mistyped a year, not for the driver doing this by construction.
   if (!is.null(targets) && nrow(targets)) {
-    mids <- as.integer(h@intervals$mid)
+    mids <- .lp_years(h)
     prov <- attr(targets, "provenance")
     targets <- targets[targets$year %in% mids, , drop = FALSE]
     attr(targets, "provenance") <- prov

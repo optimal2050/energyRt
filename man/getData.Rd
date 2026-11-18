@@ -327,9 +327,12 @@ below, which is about technologies.}
 horizon marks a base year also returns that year, read from the separate
 run the scenario recorded (see \code{\link[=solve_base_year]{solve_base_year()}}), and every row gains
 a \code{source} column — \code{"solved"} for the scenario's own LP, \code{"base"} for
-the base year. \code{vObjective} is not unioned: the base year and the
-projection are separate optimisations, so only the projection's is
-returned. A scenario that records no base year, or whose recorded source
+the base year. \code{vObjective} is returned for both, tagged in \code{source},
+with a warning: the two are separate optimisations -- one undiscounted
+year against a discounted multi-period total -- so they may be shown
+side by side but do not sum into a system cost. A scenario whose linked
+base year has been re-solved since also warns. A scenario that records
+no base year, or whose recorded source
 cannot be read, warns and returns its own rows alone. Note that
 post-processing applies the FIRST object's horizon and calendar labels to
 every row.}

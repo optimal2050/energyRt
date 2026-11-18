@@ -196,7 +196,7 @@ map_mSupAva <- function(scen, fmp) {
   sup_span  <- .gds(scen, "mSupSpan")
   sup_comm  <- .gds(scen, "mSupComm")
   sup_timeslice <- .filter_timeslice(scen, "supply", "sup")
-  milestones <- as.integer(scen@settings@horizon@intervals$mid)
+  milestones <- .lp_years(scen@settings@horizon)
   if (is.null(sup_span) || is.null(sup_comm) || is.null(sup_timeslice) ||
       length(milestones) == 0) return(scen)
   ava <- merge0(sup_span, sup_comm)
@@ -311,7 +311,7 @@ map_mvStorageAOut <- function(scen, fmp) {
 map_mvDemInp <- function(scen, fmp) {
   dc <- .gds(scen, "mDemComm"); comm_timeslice <- .gds(scen, "mCommTimeslice")
   regions <- as.character(scen@settings@region)
-  milestones <- as.integer(scen@settings@horizon@intervals$mid)
+  milestones <- .lp_years(scen@settings@horizon)
   if (is.null(dc) || is.null(comm_timeslice) ||
       length(regions) == 0 || length(milestones) == 0) return(scen)
   di <- merge0(dc, comm_timeslice)
@@ -677,14 +677,14 @@ map_mSupAvaUp <- function(scen, fmp) {
   .io_row_maps(key, .gds(scen, timeslice_m), .gds(scen, comm_m),
                .gds(scen, prow), .gds(scen, pres),
                .row_regions(scen),
-               as.integer(scen@settings@horizon@intervals$mid))
+               .lp_years(scen@settings@horizon))
 }
 # m*RowCost (value-recipe sibling): unique (key, region, year) of the row flow
 # domain, intersected with the model's region x year grid (recipe_value skips it).
 .cost_row <- function(scen, src_nm, nm, fmp) {
   d <- .gds(scen, src_nm); p <- scen@modInp@parameters[[nm]]
   regions    <- .row_regions(scen)
-  milestones <- as.integer(scen@settings@horizon@intervals$mid)
+  milestones <- .lp_years(scen@settings@horizon)
   if (is.null(d) || is.null(p) ||
       length(regions) == 0 || length(milestones) == 0) return(scen)
   dregionyear <- expand.grid(region = regions, year = as.integer(milestones),
@@ -795,7 +795,7 @@ map_mExportRowUp <- function(scen, fmp)
   mti <- .gds(scen, "mTradeIr")
   p <- scen@modInp@parameters[[nm]]
   regions    <- as.character(scen@settings@region)
-  milestones <- as.integer(scen@settings@horizon@intervals$mid)
+  milestones <- .lp_years(scen@settings@horizon)
   if (is.null(mti) || is.null(p) ||
       length(regions) == 0 || length(milestones) == 0) return(scen)
   dregionyear <- expand.grid(region = regions, year = as.integer(milestones),
@@ -818,7 +818,7 @@ map_mTradeIr <- function(scen, fmp) {
   scen <- .set_map(scen, "mTradeRoutes", .reduce_dup(routes_all), fmp)
   trade_timeslice <- .gds(scen, "mTradeTimeslice")
   trade_span  <- .gds(scen, "mTradeSpan")
-  milestones  <- as.integer(scen@settings@horizon@intervals$mid)
+  milestones  <- .lp_years(scen@settings@horizon)
   if (is.null(trade_timeslice)) return(scen)
   ir_pieces <- list()
   for (nm in names(trade_info)) {
@@ -950,7 +950,7 @@ map_mAggregateFactor <- function(scen, fmp) {
 map_mAggOut <- function(scen, fmp) {
   agg <- .gds(scen, "pAggregateFactor"); comm_timeslice <- .gds(scen, "mCommTimeslice")
   regions    <- as.character(scen@settings@region)
-  milestones <- as.integer(scen@settings@horizon@intervals$mid)
+  milestones <- .lp_years(scen@settings@horizon)
   if (is.null(agg) || is.null(comm_timeslice) ||
       length(regions) == 0 || length(milestones) == 0) return(scen)
   timeslices <- unique(comm_timeslice$timeslice)

@@ -195,7 +195,7 @@ solution_ledger <- function(object, years = NULL, ledger = NULL) {
   }
   L <- ledger %||% .ledger_new()
   stopifnot(inherits(L, "carry_ledger"))
-  mids <- as.integer(object@settings@horizon@intervals$mid)
+  mids <- .lp_years(object@settings@horizon)
   years <- as.integer(years %||% mids)
   years <- intersect(years, mids)
   if (length(years) == 0) stop("No decided years to extract")
@@ -423,7 +423,7 @@ apply_ledger <- function(mod, ledger, horizon,
                                tolerance = 1e-6, verbose = isVerbose(2)) {
   stopifnot(is(mod, "model"), inherits(ledger, "carry_ledger"),
             is(horizon, "horizon"))
-  mids <- as.integer(horizon@intervals$mid)
+  mids <- .lp_years(horizon)
   carry <- match.arg(carry, c("capacity", "retirements", "budgets"),
                      several.ok = TRUE)
   if ("retirements" %in% carry && !("capacity" %in% carry)) {

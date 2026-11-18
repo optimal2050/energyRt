@@ -172,7 +172,7 @@ getYearCalendars <- function(x) {
 .year_slice_df <- function(scen) {
   h <- .calendar_host(scen)
   if (is.null(h)) return(NULL)
-  years <- as.integer(h@horizon@intervals$mid)
+  years <- .lp_years(h@horizon)
   if (!length(years)) return(NULL)
   yc <- getYearCalendars(scen)
   if (is.null(yc)) {
@@ -241,7 +241,7 @@ getYearCalendars <- function(x) {
 .year_fraction_df <- function(scen) {
   h <- .calendar_host(scen)
   if (is.null(h)) return(NULL)
-  years <- as.integer(h@horizon@intervals$mid)
+  years <- .lp_years(h@horizon)
   if (!length(years)) return(NULL)
   frac <- function(cal) {
     v <- suppressWarnings(as.numeric(tryCatch(cal@year_fraction,
