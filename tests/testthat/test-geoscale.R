@@ -256,7 +256,7 @@ test_that("every zone is one contiguous block on every layout", {
       nbl[[reg[j]]] <- c(nbl[[reg[j]]], reg[i])
     }
     for (z in unique(geo$zone)) {
-      m <- geo$region[geo$zone == z]
+      m <- geo$province[geo$zone == z]
       seen <- m[1]; fr <- m[1]
       while (length(fr)) {
         nx <- setdiff(intersect(unlist(nbl[fr]), m), seen)

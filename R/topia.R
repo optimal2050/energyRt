@@ -27,20 +27,23 @@
 #'     zone is one contiguous block on that picture. The finest geoframe is
 #'     `province`, not `region`: energyRt uses `region` for a model's own
 #'     spatial dimension, so a geoframe of that name would make
-#'     `level = "region"` ambiguous. The leaftable still carries a `region`
-#'     column -- the atom key, a copy of `province` -- so anything joining on
-#'     `region` is unaffected.}
+#'     `level = "region"` ambiguous. `province` is the atom key
+#'     (`geoscales::geoscale_key(gs)`), and the province names are in
+#'     `geoscales::geoscale_labels(gs)`; zones and the nation have none.}
 #'   \item{weather}{solar / wind / hydro capacity factors for the two
-#'     calendars TOPIA runs on. Columns `dataset`, `calendar`
-#'     (`s4_h24`/`d365_h24`), `resource` (`WSOL`/`WWIN`/`WHYD`), `region`,
-#'     `cluster` (the resource grade, `NA` where ungraded), `timeslice` and
-#'     `wval` (capacity factor, 0-1). The `dataset` column is the split that
-#'     matters: `measured` carries the graded hourly series on `d365_h24` --
+#'     calendars TOPIA runs on: a list with one table per calendar,
+#'     `topia$weather$s4_h24` and `topia$weather$d365_h24`. Columns `dataset`,
+#'     `resource` (`WSOL`/`WWIN`/`WHYD`), `region`, `cluster` (the resource
+#'     grade, `NA` where ungraded), `timeslice` and `wval` (capacity factor,
+#'     0-1). `timeslice` is bound to the table's calendar and `region` to the
+#'     hierarchy at `province` (`timescales::calendar_link()`), so a
+#'     conversion given another calendar stops instead of matching the
+#'     labels. `sample` carries the graded hourly series on `d365_h24` --
 #'     wind in `HI`/`MD`/`LO`, solar in `FL`/`TH` -- and `simulated` the small
 #'     stand-in on `s4_h24`, whose `cluster` is `NA` throughout. A clustered
 #'     technology therefore has no weather rows on `s4_h24`.}
 #'   \item{demand}{relative electricity-load shapes by province and timeslice,
-#'     for the same two calendars. Columns `dataset`, `calendar`, `region`,
+#'     one table per calendar as in `weather`. Columns `dataset`, `region`,
 #'     `timeslice` and `load` (relative, mean ~1); scale by a province's annual
 #'     demand and the timeslice shares to get energy per timeslice.}
 #'   \item{stock}{deterministic base-year installed capacity per technology.
@@ -111,7 +114,8 @@
 #' @examples
 #' names(topia)
 #' names(topia$geoscales)
-#' head(topia$weather)
+#' names(topia$weather)
+#' head(topia$weather$s4_h24)
 #' topia$stock
 #'
 #' \dontrun{
@@ -247,13 +251,32 @@
   if (is.null(ov)) energyRt::topia else ov
 }
 
+# One calendar's table of `topia$weather` / `topia$demand`, with the bound
+# `region` and `timeslice` columns as plain strings. `NULL` when the dataset
+# has no table for that calendar.
+.topia_table <- function(x, calendar) {
+  v <- x[[calendar]]
+  if (is.null(v)) return(NULL)
+  v <- as.data.frame(v)
+  for (k in intersect(c("region", "timeslice"), names(v))) {
+    v[[k]] <- as.character(v[[k]])
+  }
+  v
+}
+
+# The calendars a named dataset is built for.
+.topia_calendars <- function(x, dataset) {
+  names(x)[vapply(x, function(v) any(as.character(v$dataset) == dataset),
+                  logical(1))]
+}
+
 # region -> zone -> nation, from the kit's own geoscale table
 .topia_geo_map <- function() {
-  g <- as.data.frame(.topia_ds()$geoscales)
-  nm <- c("region", "zone", "nation")
-  pre <- sub("\\.region$", "", grep("\\.region$", names(g), value = TRUE)[1])
-  out <- g[, paste(pre, nm, sep = "."), drop = FALSE]
-  names(out) <- nm
+  gs <- .topia_ds()$geoscales[[1L]]
+  lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
+  out <- data.frame(region = lt[[geoscales::geoscale_key(gs)]],
+                    zone = lt$zone, nation = lt$nation,
+                    stringsAsFactors = FALSE)
   out <- out[!is.na(out$region) & !duplicated(out$region), ]
   out[] <- lapply(out, as.character)
   out
@@ -298,9 +321,10 @@
 }
 
 .topia_pick <- function(x, calendar, dataset, what) {
-  v <- x[x$calendar == calendar & x$dataset == dataset, ]
-  if (nrow(v) == 0) {
-    have <- unique(as.character(x$calendar[x$dataset == dataset]))
+  v <- .topia_table(x, calendar)
+  if (!is.null(v)) v <- v[as.character(v$dataset) == dataset, , drop = FALSE]
+  if (is.null(v) || nrow(v) == 0) {
+    have <- .topia_calendars(x, dataset)
     stop("TOPIA's '", dataset, "' ", what, " is not built for calendar '",
          calendar, "'. It covers: ", paste(have, collapse = ", "),
          ". Pass `dataset =` to choose the other set.", call. = FALSE)
@@ -399,8 +423,7 @@ topia_profiles <- function(regions,
     weather <- weather[, c("resource", "cluster", "region", "timeslice",
                            "wval")]
   } else {
-    w <- .topia_pick(as.data.frame(.topia_ds()$weather), calendar, dataset,
-                     "weather")
+    w <- .topia_pick(.topia_ds()$weather, calendar, dataset, "weather")
     w$resource <- as.character(w$resource)
     w$region <- as.character(w$region)
     w$timeslice <- as.character(w$timeslice)
@@ -425,8 +448,7 @@ topia_profiles <- function(regions,
                            "wval")]
   }
 
-  d <- .topia_pick(as.data.frame(.topia_ds()$demand), calendar, dataset,
-                   "demand")
+  d <- .topia_pick(.topia_ds()$demand, calendar, dataset, "demand")
   d$region <- as.character(d$region)
   d$timeslice <- as.character(d$timeslice)
   demand <- .topia_lookup(d, regions, "load", gm)

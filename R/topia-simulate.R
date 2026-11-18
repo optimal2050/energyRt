@@ -121,10 +121,13 @@
 .sim_targets <- function(regions, measured = NULL) {
   if (is.null(measured)) {
     ds <- .topia_ds()
-    w <- as.data.frame(ds$weather)
-    d <- as.data.frame(ds$demand)
-    w <- w[as.character(w$dataset) == "sample", , drop = FALSE]
-    d <- d[as.character(d$dataset) == "sample", , drop = FALSE]
+    pick <- function(x) {
+      v <- lapply(.topia_calendars(x, "sample"), function(nm)
+        .topia_pick(x, nm, "sample", "table"))
+      if (length(v)) do.call(rbind, v) else data.frame()
+    }
+    w <- pick(ds$weather)
+    d <- pick(ds$demand)
   } else {
     # the dataset build calibrates against the measured frames directly: at
     # that point the shipped dataset is what is being written

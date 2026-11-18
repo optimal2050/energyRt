@@ -543,8 +543,8 @@ test_that("the clustering comes back as a geoscale with a `cluster` frame", {
   expect_equal(geoscales::geoscale_geoframes(gs),
                c("nation", "zone", "cluster", "province"))
   lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
-  expect_setequal(lt$region, cr_regions)
-  expect_equal(anyDuplicated(lt$region), 0L)
+  expect_setequal(lt$province, cr_regions)
+  expect_equal(anyDuplicated(lt$province), 0L)
   # a cluster sits in exactly one zone -- clusters never straddle `level`
   expect_true(all(tapply(lt$zone, lt$cluster,
                          function(z) length(unique(z))) == 1L))

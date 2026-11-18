@@ -86,9 +86,14 @@ test_that("the TOPIA satellite datasets are gone, their content is not", {
   # both live inside the `geoscales` entry now.
   expect_true(all(c("geoscales", "weather", "demand", "stock", "modules") %in%
                     names(topia)))
-  expect_s3_class(topia$weather, "data.frame")
-  expect_s3_class(topia$demand, "data.frame")
+  # one table per calendar
+  expect_setequal(names(topia$weather), c("s4_h24", "d365_h24"))
+  expect_setequal(names(topia$demand), c("s4_h24", "d365_h24"))
+  for (nm in names(topia$weather)) {
+    expect_s3_class(topia$weather[[nm]], "data.frame")
+    expect_s3_class(topia$demand[[nm]], "data.frame")
+  }
   expect_s3_class(topia$stock, "data.frame")
   expect_type(topia$modules, "list")
-  expect_gt(nrow(topia$weather), 0L)
+  expect_gt(nrow(topia$weather$s4_h24), 0L)
 })

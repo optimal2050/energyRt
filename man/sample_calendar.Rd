@@ -47,9 +47,7 @@ becomes a scaled \code{share}.
 \code{timescales::filter_calendar()} is the same operation on a
 \code{timescales::Calendar}, selecting by timeframe and label and recording the
 parent and the coverage in the object's metadata. This one works on
-energyRt's own calendar class, which is why it exists separately: timescales
-is a Suggests-only relationship, consulted when the shipped calendars are
-built and never at runtime.
+energyRt's own calendar class, which is why it exists separately.
 }
 \examples{
 cal <- calendars$s4_h24

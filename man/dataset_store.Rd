@@ -126,8 +126,8 @@ bypasses resolution. It returns the bare payload.
 open_project(tempdir())
 
 # a table a model refers to, stored once and referenced by hash
-save_dataset(topia$weather, "topia_weather")
-dataset_hash(topia$weather)
+save_dataset(topia$weather$s4_h24, "topia_weather")
+dataset_hash(topia$weather$s4_h24)
 load_dataset("topia_weather")
 
 # or store the CALL that makes it -- `fun` is a namespaced name, and the

@@ -304,9 +304,13 @@ get_process_groups <- function(x, regions = NULL) {
   lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
   frames <- geoscales::geoscale_geoframes(gs)
   frames <- frames[seq_len(match(level, frames))]
+  key <- geoscales::geoscale_key(gs)
+  # the atoms enter as a frame named `region`, the model's word for them
+  if (identical(key, "region")) frames <- setdiff(frames, "region")
+  d <- lt[, frames, drop = FALSE]
+  d$region <- as.character(lt[[key]])
   nestedscales::scale_from_leaftable(
-    lt[, c(frames, "region"), drop = FALSE],
-    frames = c(frames, "region"), key = "region", name = "cluster_regions")
+    d, frames = c(frames, "region"), key = "region", name = "cluster_regions")
 }
 
 # Features -> the long table nestedscales reads. Each feature is z-scored, so
@@ -368,14 +372,16 @@ get_process_groups <- function(x, regions = NULL) {
   names(a)[1] <- "region"
   a$cluster <- .cl_label_by_members(as.character(a$region),
                                     as.character(a$cluster))
+  # `sc` carries the atoms as `region` whatever the geoscale calls its key
+  st <- as.data.frame(nestedscales::scale_leaftable(sc))
   data.frame(region = as.character(a$region),
              cluster = as.character(a$cluster),
              # a medoid is a REAL member, not an average -- which is what a
              # link column (`weather`, ...) needs, since averaging the name of
              # another object is meaningless
              medoid = if (is.null(a$medoid)) FALSE else as.logical(a$medoid),
-             target = as.character(lt[[level]])[
-               match(as.character(a$region), as.character(lt$region))],
+             target = as.character(st[[level]])[
+               match(as.character(a$region), as.character(st$region))],
              stringsAsFactors = FALSE)
 }
 
@@ -766,8 +772,10 @@ model_clusters <- function(object) {
   # bands by one, and refuses outright when the geoscale declares none
   wts <- intersect(geoscales::geoscale_weights(gs), names(lt))
   out[wts] <- lt[keep, wts, drop = FALSE]
-  g <- tryCatch(S7::prop(gs, "geometry"), error = function(e) NULL)
-  if (!is.null(g) && length(g) == nrow(lt)) g <- g[keep] else g <- NULL
+  g <- tryCatch({
+    shp <- geoscales::geoscale_geometry(gs, fine)
+    sf::st_geometry(shp)[match(out[[fine]], as.character(shp[[fine]]))]
+  }, error = function(e) NULL)
   geoscales::geoscale_from_leaftable(
     out, geoframes = c(up, "cluster", fine), key = fine, geometry = g,
     weights = if (length(wts)) wts else NULL,
@@ -1037,7 +1045,8 @@ model_clusters <- function(object) {
   check_package("sf")
   fine <- geoscales::geoscale_geoframes(gs, finest = TRUE)
   lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
-  tgt <- as.character(lt[[level]])[match(regs, as.character(lt$region))]
+  tgt <- as.character(lt[[level]])[
+    match(regs, as.character(lt[[geoscales::geoscale_key(gs)]]))]
   rows <- list()
   per <- integer()
   notes <- character()

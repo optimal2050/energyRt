@@ -301,7 +301,7 @@ and processes whose timeframes follow it — annual bookkeeping stays cheap.
 # Space: regions and geoscales
 
 A model's `region` vector is its finest spatial resolution. A `Geoscale` adds
-the hierarchy above those regions: for example, region inside zone inside
+the hierarchy above those regions: for example, province inside zone inside
 nation. It is built from a leaf table with one row per finest region and one
 column per level:
 
@@ -309,11 +309,10 @@ column per level:
 gs <- geoscale_from_leaftable(
   data.frame(
     nation = c("NA1", "NA1", "NA2", "NA2"),
-    region = c("R1",  "R2",  "R3",  "R4"),
-    km2    = rep(1, 4)  # equal illustrative weights for the icicle widths
+    province = c("R1",  "R2",  "R3",  "R4"),
+    km2      = rep(1, 4)  # equal illustrative weights for the icicle widths
   ),
-  geoframes = c("nation", "region"),
-  key = "region",
+  geoframes = c("nation", "province"),
   weights = "km2",
   default_weight = "km2",
   name = "demo"

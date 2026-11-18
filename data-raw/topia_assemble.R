@@ -86,7 +86,15 @@ stopifnot(
   # the retiring kits are a test fixture now, not part of the dataset
   is.null(topia$modules$golden),
   all(vapply(topia$geoscales, inherits, logical(1), "geoscales::GeoScale")),
-  is.data.frame(topia$weather), is.data.frame(topia$demand),
+  is.list(topia$weather), all(vapply(topia$weather, is.data.frame, NA)),
+  is.list(topia$demand), all(vapply(topia$demand, is.data.frame, NA)),
+  # each table is bound to the calendar the model of that name runs on
+  all(vapply(names(topia$weather), function(nm) {
+    ln <- timescales::calendar_link(topia$weather[[nm]])
+    id <- timescales::calendar_id(.ts_calendar(topia$modules$calendars[[nm]]))
+    identical(sub("^.*@", "", ln$id[ln$column == "timeslice"]),
+              sub("^.*@", "", id))
+  }, logical(1))),
   is.data.frame(topia$stock), is.list(topia$modules)
 )
 

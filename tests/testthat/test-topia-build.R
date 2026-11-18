@@ -409,3 +409,15 @@ test_that("preset tiny is small enough to be worth having", {
   expect_error(build_topia(preset = "tiny", techs = "ECOA", quiet = TRUE),
                "not both")
 })
+
+test_that("a frame bound to another calendar than the model's is refused", {
+  # the shipped tables say which calendar their timeslices are on
+  ln <- timescales::calendar_link(topia$demand$s4_h24)
+  expect_equal(ln$scale[ln$column == "timeslice"], "s4_h24")
+  expect_error(build_topia(demand = topia$demand$s4_h24, quiet = TRUE),
+               "bound to calendar")
+  # the right calendar's table goes through as an ordinary frame
+  d <- topia$demand$d365_h24
+  d <- d[as.character(d$dataset) == "sample", c("region", "timeslice", "load")]
+  expect_no_error(build_topia(demand = d, quiet = TRUE))
+})

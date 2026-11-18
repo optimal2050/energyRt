@@ -136,7 +136,7 @@ test_that("the adjacency is the geoscale's, confined to the coarse region", {
   expect_equal(sum(.cl_adjacency(gs, "nation")) / 2, 22)
   # no edge crosses a zone
   lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
-  z <- stats::setNames(as.character(lt$zone), as.character(lt$region))
+  z <- stats::setNames(as.character(lt$zone), as.character(lt$province))
   idx <- which(a, arr.ind = TRUE)
   expect_true(all(z[rownames(a)[idx[, 1]]] == z[colnames(a)[idx[, 2]]]))
 })

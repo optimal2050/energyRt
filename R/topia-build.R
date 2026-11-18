@@ -513,21 +513,44 @@
 # refused, naming the calendars it does cover.
 
 #' @noRd
+.tb_unbind <- function(x, what, model_cal) {
+  ln <- timescales::calendar_link(x)
+  ln <- ln[ln$column == "timeslice", , drop = FALSE]
+  tc <- if (nrow(ln)) .ts_calendar(model_cal) else NULL
+  if (!is.null(tc)) {
+    hash <- function(z) sub("^.*@", "", z)
+    if (!identical(hash(ln$id[[1L]]), hash(timescales::calendar_id(tc)))) {
+      stop("build_topia(", what, " = ): the frame's timeslices are bound to ",
+           "calendar \"", ln$scale[[1L]], "\", not to the model's calendar \"",
+           model_cal@name, "\".", call. = FALSE)
+    }
+  }
+  for (k in intersect(c("region", "timeslice"), names(x))) {
+    if (inherits(x[[k]], "scale_unit")) x[[k]] <- as.character(x[[k]])
+  }
+  x
+}
+
+# A frame the caller supplies is used as given, after its link is read: bound
+# to another calendar than the model's it is refused, and bound columns go on
+# as plain strings.
+#' @noRd
 .tb_source <- function(x, what, regions, model_cal, ds) {
   if (is.null(x)) return(NULL)
-  if (is.data.frame(x)) return(x)
+  if (is.data.frame(x)) return(.tb_unbind(x, what, model_cal))
   if (!is.character(x) || length(x) != 1L) {
     stop("build_topia(", what, " = ): give the name of a shipped dataset or ",
          "a data.frame shaped like topia_profiles()$", what, ".",
          call. = FALSE)
   }
-  tbl <- as.data.frame(ds[[what]])
-  sets <- unique(as.character(tbl$dataset))
+  tbl <- ds[[what]]
+  sets <- unique(unlist(lapply(tbl, function(v)
+    unique(as.character(v$dataset))), use.names = FALSE))
   if (!x %in% sets) {
     stop("build_topia(", what, " = \"", x, "\"): TOPIA ships ",
          paste0("\"", sets, "\"", collapse = ", "), ".", call. = FALSE)
   }
-  have <- unique(as.character(tbl$calendar[tbl$dataset == x]))
+  have <- .topia_calendars(tbl, x)
   if (!model_cal@name %in% have) {
     stop("build_topia(", what, " = \"", x, "\"): that set is built for ",
          paste0("\"", have, "\"", collapse = ", "), ", not for the model's ",

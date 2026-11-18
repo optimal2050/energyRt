@@ -24,9 +24,8 @@
 # the model uses (a world map for a two-region model) is normal and supported,
 # and only the ancestors of declared regions enter `sets$region`.
 #
-# `geoscales` is an optional (Suggests) dependency, so every entry point that
-# needs the package guards with `check_package("geoscales")`, and the type test
-# `is_geoscale()` works whether or not it is installed.
+# `geoscales` is imported. The type test `is_geoscale()` reads the class
+# attribute only.
 
 #' @include class-model.R class-scenario.R class-settings.R
 NULL

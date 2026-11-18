@@ -20,20 +20,23 @@ provinces in different places, and each assigns the codes so that a
 zone is one contiguous block on that picture. The finest geoframe is
 \code{province}, not \code{region}: energyRt uses \code{region} for a model's own
 spatial dimension, so a geoframe of that name would make
-\code{level = "region"} ambiguous. The leaftable still carries a \code{region}
-column -- the atom key, a copy of \code{province} -- so anything joining on
-\code{region} is unaffected.}
+\code{level = "region"} ambiguous. \code{province} is the atom key
+(\code{geoscales::geoscale_key(gs)}), and the province names are in
+\code{geoscales::geoscale_labels(gs)}; zones and the nation have none.}
 \item{weather}{solar / wind / hydro capacity factors for the two
-calendars TOPIA runs on. Columns \code{dataset}, \code{calendar}
-(\code{s4_h24}/\code{d365_h24}), \code{resource} (\code{WSOL}/\code{WWIN}/\code{WHYD}), \code{region},
-\code{cluster} (the resource grade, \code{NA} where ungraded), \code{timeslice} and
-\code{wval} (capacity factor, 0-1). The \code{dataset} column is the split that
-matters: \code{measured} carries the graded hourly series on \code{d365_h24} --
+calendars TOPIA runs on: a list with one table per calendar,
+\code{topia$weather$s4_h24} and \code{topia$weather$d365_h24}. Columns \code{dataset},
+\code{resource} (\code{WSOL}/\code{WWIN}/\code{WHYD}), \code{region}, \code{cluster} (the resource
+grade, \code{NA} where ungraded), \code{timeslice} and \code{wval} (capacity factor,
+0-1). \code{timeslice} is bound to the table's calendar and \code{region} to the
+hierarchy at \code{province} (\code{timescales::calendar_link()}), so a
+conversion given another calendar stops instead of matching the
+labels. \code{sample} carries the graded hourly series on \code{d365_h24} --
 wind in \code{HI}/\code{MD}/\code{LO}, solar in \code{FL}/\code{TH} -- and \code{simulated} the small
 stand-in on \code{s4_h24}, whose \code{cluster} is \code{NA} throughout. A clustered
 technology therefore has no weather rows on \code{s4_h24}.}
 \item{demand}{relative electricity-load shapes by province and timeslice,
-for the same two calendars. Columns \code{dataset}, \code{calendar}, \code{region},
+one table per calendar as in \code{weather}. Columns \code{dataset}, \code{region},
 \code{timeslice} and \code{load} (relative, mean ~1); scale by a province's annual
 demand and the timeslice shares to get energy per timeslice.}
 \item{stock}{deterministic base-year installed capacity per technology.
@@ -118,7 +121,8 @@ bridging) to 10. The arithmetic is written out in
 \examples{
 names(topia)
 names(topia$geoscales)
-head(topia$weather)
+names(topia$weather)
+head(topia$weather$s4_h24)
 topia$stock
 
 \dontrun{

@@ -1,8 +1,9 @@
 ## data-raw/topia_data.R
 ## TOPIA's input profiles, as the two datasets `topia_profiles(dataset =)`
 ## serves, plus the calendar-agnostic base-year capacity:
-##   topia_weather - dataset/calendar/resource/region/timeslice/wval
-##   topia_demand  - dataset/calendar/region/timeslice/load
+##   topia_weather - one table per calendar:
+##                   dataset/resource/region/cluster/timeslice/wval
+##   topia_demand  - one table per calendar: dataset/region/timeslice/load
 ##   topia_stock   - tech/gw
 ##
 ##   "simulated"  closed-form shapes on the coarse calendar (s4_h24), built
@@ -111,6 +112,36 @@ message("topia_weather: ", nrow(topia_weather), " rows (",
         paste(levels(topia_weather$calendar), collapse = ", "), ")")
 message("topia_demand:  ", nrow(topia_demand), " rows")
 
+# One table per calendar. A column can be bound to one calendar only, and the
+# two sets share timeslice labels' vocabulary but not their calendar, so the
+# `calendar` column becomes the list's names. `timeslice` is bound to that
+# calendar and `region` to the hierarchy, at `province`.
+.per_calendar <- function(x) {
+  cals <- levels(x$calendar)
+  lapply(stats::setNames(nm = cals), function(nm) {
+    v <- x[x$calendar == nm, setdiff(names(x), "calendar"), drop = FALSE]
+    for (k in intersect(names(v), c("dataset", "resource", "cluster"))) {
+      v[[k]] <- droplevels(v[[k]])
+    }
+    v$region <- as.character(v$region)
+    v$timeslice <- as.character(v$timeslice)
+    rownames(v) <- NULL
+    v <- geoscales::bind_geoscale(v, topia_model_geoscale,
+                                  c(region = "province"))
+    timescales::bind_calendar(v, timescales::calendar(nm))
+  })
+}
+topia_weather <- .per_calendar(topia_weather)
+topia_demand <- .per_calendar(topia_demand)
+stopifnot(
+  setequal(names(topia_weather), c("s4_h24", "d365_h24")),
+  setequal(names(topia_demand), c("s4_h24", "d365_h24")),
+  all(vapply(names(topia_weather), function(nm) {
+    ln <- timescales::calendar_link(topia_weather[[nm]])
+    identical(ln$scale[ln$column == "timeslice"], nm)
+  }, logical(1)))
+)
+
 # ── 4. base-year capacity per technology (GW, per region) ────────────────────
 topia_stock <- data.frame(
   tech = c("ECOA", "EGAS", "ENUC", "EHYD", "ESOL", "EWIN"),
@@ -130,4 +161,4 @@ options(energyRt.topia_data = list(geoscales = topia_geoscales,
 
 # ── 6. Store ─────────────────────────────────────────────────────────────────
 # (no use_data here: data-raw/topia_assemble.R writes the single dataset)
-rm(.sample_rds, .keep_w, .keep_d, .tag, .k, .banned)
+rm(.sample_rds, .keep_w, .keep_d, .tag, .k, .banned, .per_calendar)

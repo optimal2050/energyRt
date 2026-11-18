@@ -275,7 +275,7 @@ solve_base_year <- function(object, name = NULL, solver = NULL,
                    error = function(e) NULL)
     if (!is.null(lt)) {
       fr <- intersect(geoscales::geoscale_geoframes(gs), names(lt))
-      r <- c(r, as.character(lt$region),
+      r <- c(r, as.character(lt[[geoscales::geoscale_key(gs)]]),
              unlist(lapply(fr, function(f) as.character(lt[[f]])),
                     use.names = FALSE))
     }

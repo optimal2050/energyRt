@@ -522,7 +522,7 @@ Declare them at the commodity's level, or change the commodity's ",
   ltg <- NULL
   if (has_gs) {
     ltg <- as.data.frame(geoscales::geoscale_leaftable(gs))
-    known_r <- unique(c(as.character(ltg$region),
+    known_r <- unique(c(as.character(ltg[[geoscales::geoscale_key(gs)]]),
                         unlist(lapply(frames, function(f)
                           as.character(ltg[[f]])), use.names = FALSE)))
     known_r <- known_r[!is.na(known_r) & nzchar(known_r)]

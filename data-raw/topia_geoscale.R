@@ -23,7 +23,8 @@
 # of the number line and contiguous on no layout at all.
 #
 # NAMES. The codes `R01`-`R12` are the identifiers; the long names are labels
-# only, each naming the endowment the region carries in `topia_modules.R` (or
+# only, kept in the geoscale's label table for `province` (zones and the
+# nation have none), each naming the endowment the region carries in `topia_modules.R` (or
 # is meant to carry, for geothermal, biomass and offshore wind).
 #
 # WHAT THIS FILE SHIPS. One `geoscales::GeoScale` per layout, in
@@ -79,16 +80,22 @@ geo <- data.frame(
   zone   = unname(.topia_zone_of[.topia_regions]),
   # The finest geoframe is `province`, NOT `region`: energyRt already uses
   # `region` for the model's own spatial dimension, and a geoscale frame of
-  # the same name makes `level = "region"` read as the generic one. The atom
-  # key column `region` is still created, by the constructor, as a copy of
-  # `province` -- that is the contract geoscales offers a downstream model.
+  # the same name makes `level = "region"` read as the generic one. `province`
+  # is the atom key.
   province = .topia_regions,
-  name   = unname(.topia_names[.topia_regions]),
+  stringsAsFactors = FALSE
+)
+
+geo_labels <- data.frame(
+  geoframe = "province",
+  region   = .topia_regions,
+  variant  = "name",
+  label    = unname(.topia_names[.topia_regions]),
   stringsAsFactors = FALSE
 )
 
 stopifnot(
-  nrow(geo) == 12L, !anyDuplicated(geo$province), !anyNA(geo$name),
+  nrow(geo) == 12L, !anyDuplicated(geo$province), !anyNA(geo_labels$label),
   identical(geo$province, .topia_regions),
   identical(sort(unique(geo$zone)), sort(.topia_zones)),
   identical(as.integer(table(geo$zone)[.topia_zones]), c(1L, 2L, 3L, 4L, 2L))
@@ -155,7 +162,7 @@ topia_geoscales <- lapply(stats::setNames(nm = names(map)), function(nm) {
     name = paste0("topia_", nm),
     desc = paste0("TOPIA reference provinces (", nm,
                   " layout), nested nation -> zone -> province"),
-    labels = "name"
+    labels = geo_labels
   )
   gs <- geoscales::attach_geometry_geoscale(gs, map[[nm]][, "region"],
                                             by = "region",
@@ -192,7 +199,7 @@ topia_model_geoscale <- geoscales::geoscale_from_leaftable(
   weights = character(),
   name = "topia",
   desc = "TOPIA hierarchy (nation -> zone -> province), no geometry",
-  labels = "name"
+  labels = geo_labels
 )
 stopifnot(
   inherits(topia_model_geoscale, "geoscales::GeoScale"),

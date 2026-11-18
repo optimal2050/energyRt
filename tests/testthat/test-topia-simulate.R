@@ -8,7 +8,9 @@
 # =========================================================================== #
 
 ts_meas <- function() {
-  w <- as.data.frame(topia$weather)
+  w <- as.data.frame(topia$weather$d365_h24)
+  w$region <- as.character(w$region)
+  w$timeslice <- as.character(w$timeslice)
   w[as.character(w$dataset) == "sample", , drop = FALSE]
 }
 

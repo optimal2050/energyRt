@@ -240,9 +240,7 @@ calendar_samples <- function(calendar, level = NULL, sample_size = NULL,
 #' `timescales::filter_calendar()` is the same operation on a
 #' `timescales::Calendar`, selecting by timeframe and label and recording the
 #' parent and the coverage in the object's metadata. This one works on
-#' energyRt's own calendar class, which is why it exists separately: timescales
-#' is a Suggests-only relationship, consulted when the shipped calendars are
-#' built and never at runtime.
+#' energyRt's own calendar class, which is why it exists separately.
 #'
 #' @param cal a `calendar` to sample.
 #' @param slices the timeslices to keep. Any level: a leaf set, or coarser

@@ -37,10 +37,9 @@ setClass("config",
     units = "data.frame",
     region = "character",
     calendar = "calendar",
-    # Optional `geoscales::GeoScale`. Typed "ANY" rather than "Geoscale"
-    # because `geoscales` is a Suggests dependency (it is not on CRAN, and
-    # energyRt targets CRAN), so the class does not exist when this file is
-    # sourced at build time. `setValidity("config")` below enforces the type.
+    # Optional `geoscales::GeoScale`. Typed "ANY" because it is an S7 class
+    # with no S4 definition to name here; `setValidity("config")` below
+    # enforces the type.
     geoscale = "ANY",
     horizon = "horizon", # change to class
     discount = "data.frame",
@@ -162,8 +161,7 @@ is_geoscale <- function(x) {
   # `geoscales` 0.6 renamed the class Geoscale -> GeoScale (and rebased it on
   # nestedscales::NestedScale). The old spellings stay in the list so a model
   # serialized before the rename still loads.
-  inherits(x, c("geoscales::GeoScale", "GeoScale",
-                "geoscales::GeoScale", "Geoscale"))
+  inherits(x, c("geoscales::GeoScale", "GeoScale", "Geoscale"))
 }
 
 setMethod("initialize", "config", function(.Object, ...) {

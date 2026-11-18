@@ -1051,21 +1051,15 @@ NULL
 #' others -- and its wrapper exposes no way to ask for the other reading. The
 #' atom routes do: a `sum` is split by the scale's weight and re-summed, which
 #' is exact, and an intensive value is copied down and averaged back up.
-#'
-#' The key is renamed on the way in: the atom key column is `region` too, and
-#' the join refuses two columns of one name.
 #' @noRd
 .agg_through_atoms <- function(df, gs, source, level, vals, rules) {
-  k <- ".agg_code"
-  d <- df
-  names(d)[names(d) == "region"] <- k
   atoms <- as.data.frame(geoscales::recast_to_geoatoms(
-    d, gs, source = source, key = k, values = vals, rule = rules,
+    df, gs, source = source, key = "region", values = vals, rule = rules,
     attach_weight = FALSE))
   if (!nrow(atoms)) return(atoms)
   geoscales::recast_from_geoatoms(
-    atoms, gs, target = level, key = "region", values = vals, rule = rules,
-    na_rm = TRUE, na_action = "drop")
+    atoms, gs, target = level, key = geoscales::geoscale_key(gs),
+    values = vals, rule = rules, na_rm = TRUE, na_action = "drop")
 }
 
 #' Columns ruled `copy` whose values differ inside a target group
@@ -1262,7 +1256,7 @@ These values have no merged form. Declare one value for ",
       parts[[length(parts) + 1L]] <- d
       next
     }
-    # Only the atoms route takes a weight column of `x`; the general one
+    # Only the atoms route takes a weight column of the data; the general one
     # resolves `weight` against the SCALE's declared weights. So a coarse
     # group is weighted by the geoscale -- as an object carrying no size of
     # its own already is -- and the atom group keeps today's behaviour, which
@@ -1271,7 +1265,7 @@ These values have no merged form. Declare one value for ",
     o <- if (identical(f, fine))
       geoscales::recast_from_geoatoms(
         d, gs, target = level, key = "region", values = vals, rule = rules,
-        weight = wc, na_rm = TRUE, na_action = "drop")
+        data_weight = wc, na_rm = TRUE, na_action = "drop")
     else
       .agg_through_atoms(d, gs, source = f, level = level, vals = vals,
                          rules = rules)
@@ -1523,7 +1517,7 @@ These values have no merged form. Declare one value for ",
     o <- suppressWarnings(geoscales::recast_pairs(
       d, gs, target = level, source = if (identical(f, fine)) NULL else f,
       src = "src", dst = "dst", values = vals,
-      rule = .agg_rules(vals), weight = ".agg_w", na_rm = TRUE))
+      rule = .agg_rules(vals), data_weight = ".agg_w", na_rm = TRUE))
     o <- as.data.frame(o)
     parts[[length(parts) + 1L]] <- o[, intersect(names(df), names(o)),
                                      drop = FALSE]
@@ -1977,7 +1971,7 @@ aggregate_model_regions <- function(object, geoscale = NULL, level,
   # becomes part of the label and no value is touched.
   lt_par <- as.data.frame(geoscales::geoscale_leaftable(gs))
   par_of <- stats::setNames(as.character(lt_par[[level]]),
-                            as.character(lt_par$region))
+                            as.character(lt_par[[geoscales::geoscale_key(gs)]]))
   wx_seed <- names(objs)[vapply(objs, function(o)
     methods::is(o, "weather"), logical(1))]
   wx_seed <- wx_seed[vapply(objs[wx_seed], function(o)
@@ -3638,6 +3632,7 @@ model_region_gaps <- function(mod) {
   gs <- tryCatch(mod@config@geoscale, error = function(e) NULL)
   if (!is.null(gs) && is_geoscale(gs)) {
     lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
+    atom <- as.character(lt[[geoscales::geoscale_key(gs)]])
     for (w in geoscales::geoscale_weights(gs)) {
       if (!w %in% names(lt)) next
       x <- suppressWarnings(as.numeric(lt[[w]]))
@@ -3645,7 +3640,7 @@ model_region_gaps <- function(mod) {
       if (!any(ok)) next
       out <- rbind(out[, c("measure", "full", "kept")], data.frame(
         measure = paste0("<weight>$", w), full = sum(x[ok]),
-        kept = sum(x[ok & as.character(lt$region) %in% keep]),
+        kept = sum(x[ok & atom %in% keep]),
         stringsAsFactors = FALSE))
     }
   }
