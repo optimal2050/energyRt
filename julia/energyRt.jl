@@ -3484,21 +3484,7 @@ print("eqStorageAfLo(stg, comm, region, year, timeslice)...")
             pStorageAfLoDef
         end
     ) *
-    (
-        # [2c] the storing side is its own variable where it carries data;
-        # elsewhere the duration ratio is inlined onto the output capacity.
-        if (st1, r, y) in mStorageStgCap
-            vStorageStgCap[(st1, r, y)]
-        else
-            (
-                if haskey(pStorageDurationLo, (st1, r, y))
-                    pStorageDurationLo[(st1, r, y)]
-                else
-                    pStorageDurationLoDef
-                end
-            ) * vStorageOutCap[(st1, r, y)]
-        end
-    ) *
+    vStorageStgCap[(st1, r, y)] *
     prod(
         (
             if haskey(pStorageWeatherAfLo, (wth1, st1))
@@ -3525,21 +3511,7 @@ print("eqStorageAfFx(stg, comm, region, year, timeslice)...")
             pStorageAfLoDef
         end
     ) *
-    (
-        # [2c] the storing side is its own variable where it carries data;
-        # elsewhere the duration ratio is inlined onto the output capacity.
-        if (st1, r, y) in mStorageStgCap
-            vStorageStgCap[(st1, r, y)]
-        else
-            (
-                if haskey(pStorageDurationLo, (st1, r, y))
-                    pStorageDurationLo[(st1, r, y)]
-                else
-                    pStorageDurationLoDef
-                end
-            ) * vStorageOutCap[(st1, r, y)]
-        end
-    ) *
+    vStorageStgCap[(st1, r, y)] *
     prod(
         (
             if haskey(pStorageWeatherAfLo, (wth1, st1))
@@ -3573,21 +3545,7 @@ print("eqStorageAfUp(stg, comm, region, year, timeslice)...")
             pStorageAfUpDef
         end
     ) *
-    (
-        # [2c] the storing side is its own variable where it carries data;
-        # elsewhere the duration ratio is inlined onto the output capacity.
-        if (st1, r, y) in mStorageStgCap
-            vStorageStgCap[(st1, r, y)]
-        else
-            (
-                if haskey(pStorageDurationUp, (st1, r, y))
-                    pStorageDurationUp[(st1, r, y)]
-                else
-                    pStorageDurationUpDef
-                end
-            ) * vStorageOutCap[(st1, r, y)]
-        end
-    ) *
+    vStorageStgCap[(st1, r, y)] *
     prod(
         (
             if haskey(pStorageWeatherAfUp, (wth1, st1))
@@ -3624,19 +3582,7 @@ print("eqStorageTarget(stg, tier, comm, region, year, timeslice)...")
             pStorageTargetDef
         end
     ) *
-    (
-        if (st1, r, y) in mStorageStgCap
-            vStorageStgCap[(st1, r, y)]
-        else
-            (
-                if haskey(pStorageDurationLo, (st1, r, y))
-                    pStorageDurationLo[(st1, r, y)]
-                else
-                    pStorageDurationLoDef
-                end
-            ) * vStorageOutCap[(st1, r, y)]
-        end
-    )
+    vStorageStgCap[(st1, r, y)]
 );
 print(
     " ",

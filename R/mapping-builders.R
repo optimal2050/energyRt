@@ -2783,14 +2783,12 @@ map_mStorageInpEac   <- function(scen, fmp) .value_std(scen, "mStorageInpEac", f
 map_mStorageStgFixom <- function(scen, fmp) .value_std(scen, "mStorageStgFixom", fmp)
 map_mStorageStgEac   <- function(scen, fmp) .value_std(scen, "mStorageStgEac", fmp)
 
-# The COMPLEMENT of mStorageStgCap within the storage's operating span: where the
-# storing part has no data and therefore no capacity variable, so the af bounds
-# use `duration * vStorageOutCap` instead. Built as a set difference rather than
-# a value domain, hence the bespoke builder. Must run AFTER map_mStorageStgCap
-# (see the .value_builders order below).
-# `have` is the part's capacity domain; the complement within the operating span
-# is where that part has no variable and the linking ratio is inlined onto
-# vStorageOutCap instead. Must run AFTER the map it complements.
+# The COMPLEMENT of a part's capacity domain (`have`) within the storage's
+# operating span: where that part has no capacity variable, so its linking ratio
+# is inlined onto vStorageOutCap instead. A set difference rather than a value
+# domain, hence the bespoke builder; must run AFTER the map it complements.
+# Only the charger needs one -- the reservoir is the anchor, so its capacity
+# variable exists everywhere and it has no complement.
 .map_no_part_cap <- function(scen, name, have, fmp) {
   span <- .gds(scen, "mStorageSpan")
   if (is.null(span) || !nrow(span)) return(scen)
@@ -2800,8 +2798,6 @@ map_mStorageStgEac   <- function(scen, fmp) .value_std(scen, "mStorageStgEac", f
     dplyr::anti_join(span, as.data.frame(h), by = c("stg", "region", "year"))
   .set_map(scen, name, as.data.frame(out), fmp)
 }
-map_mStorageNoStgCap <- function(scen, fmp)
-  .map_no_part_cap(scen, "mStorageNoStgCap", "mStorageStgCap", fmp)
 map_mStorageNoInpCap <- function(scen, fmp)
   .map_no_part_cap(scen, "mStorageNoInpCap", "mStorageInpCap", fmp)
 
@@ -3254,7 +3250,6 @@ map_mSubCost <- function(scen, fmp)
   mStorageInpNew = map_mStorageInpNew,
   mStorageInpFixom = map_mStorageInpFixom,
   mStorageInpEac = map_mStorageInpEac,
-  mStorageNoStgCap = map_mStorageNoStgCap,   # AFTER mStorageStgCap: complement
   mStorageInpStgCap = map_mStorageInpStgCap, # AFTER both parents: intersection
   mStorageInpOutCap = map_mStorageInpOutCap, # AFTER both parents: intersection
   mStorageStgNew = map_mStorageStgNew,

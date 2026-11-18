@@ -65,7 +65,7 @@
     # never registered here, so a spec regeneration dropped them to
     # UNCLASSIFIED. Recovered from the previous mapping_spec.yml.
     "mStorageInpCap", "mStorageInpEac", "mStorageInpFixom", "mStorageInpNew",
-    "mStorageNoInpCap", "mStorageNoStgCap", "mStorageStgCap", "mStorageStgEac",
+    "mStorageNoInpCap", "mStorageStgCap", "mStorageStgEac",
     "mStorageStgFixom", "mStorageStgNew", "mStorageInpStgCap",
     "mStorageOutCap", "mStorageOutNew", "mStorageInpOutCap",
 

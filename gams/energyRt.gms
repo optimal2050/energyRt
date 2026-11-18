@@ -554,7 +554,6 @@ mStorageInp2stgLo(stg, region, year)
 mStorageInp2stgFx(stg, region, year)
 mStorageInp2stgUp(stg, region, year)
 mStorageStgCap(stg, region, year)
-mStorageNoStgCap(stg, region, year)
 mStorageStgNew(stg, region, year)
 mStorageStgCapLo(stg, region, year)
 mStorageStgCapFx(stg, region, year)
@@ -2312,10 +2311,7 @@ eqStorageAfLo(stg, comm, region, year, timeslice)$meqStorageAfLo(stg, comm, regi
     vStorageLevel(stg, comm, region, year, timeslice)
     =g=
     pStorageAfLo(stg, region, year, timeslice) *
-      (vStorageStgCap(stg, region, year)$mStorageStgCap(stg, region, year)
-       + (pStorageDurationLo(stg, region, year)
-          * vStorageOutCap(stg, region, year)
-         )$mStorageNoStgCap(stg, region, year))
+      (vStorageStgCap(stg, region, year)$mStorageStgCap(stg, region, year))
       * prod(weather$mStorageWeatherAfLo(weather, stg),
              pStorageWeatherAfLo(weather, stg)
              * sum(regionp$mWeatherRegionAt(weather, region, regionp),
@@ -2326,10 +2322,7 @@ eqStorageAfFx(stg, comm, region, year, timeslice)$meqStorageAfFx(stg, comm, regi
     vStorageLevel(stg, comm, region, year, timeslice)
     =e=
     pStorageAfLo(stg, region, year, timeslice) *
-      (vStorageStgCap(stg, region, year)$mStorageStgCap(stg, region, year)
-       + (pStorageDurationLo(stg, region, year)
-          * vStorageOutCap(stg, region, year)
-         )$mStorageNoStgCap(stg, region, year))
+      (vStorageStgCap(stg, region, year)$mStorageStgCap(stg, region, year))
       * prod(weather$mStorageWeatherAfLo(weather, stg),
              pStorageWeatherAfLo(weather, stg)
              * sum(regionp$mWeatherRegionAt(weather, region, regionp),
@@ -2339,10 +2332,7 @@ eqStorageAfUp(stg, comm, region, year, timeslice)$meqStorageAfUp(stg, comm, regi
     vStorageLevel(stg, comm, region, year, timeslice)
     =l=
     pStorageAfUp(stg, region, year, timeslice) *
-      (vStorageStgCap(stg, region, year)$mStorageStgCap(stg, region, year)
-       + (pStorageDurationUp(stg, region, year)
-          * vStorageOutCap(stg, region, year)
-         )$mStorageNoStgCap(stg, region, year))
+      (vStorageStgCap(stg, region, year)$mStorageStgCap(stg, region, year))
       * prod(weather$mStorageWeatherAfUp(weather, stg),
              pStorageWeatherAfUp(weather, stg)
              * sum(regionp$mWeatherRegionAt(weather, region, regionp),
@@ -2356,10 +2346,7 @@ eqStorageTarget(stg, tier, comm, region, year, timeslice)$meqStorageTarget(stg, 
     + vStorageShort(stg, tier, comm, region, year, timeslice)
     =g=
     pStorageTarget(stg, tier, region, year, timeslice) *
-      (vStorageStgCap(stg, region, year)$mStorageStgCap(stg, region, year)
-       + (pStorageDurationLo(stg, region, year)
-          * vStorageOutCap(stg, region, year)
-         )$mStorageNoStgCap(stg, region, year));
+      (vStorageStgCap(stg, region, year)$mStorageStgCap(stg, region, year));
 
 * Draw only from what was ALREADY stored. This is stricter than the level's own
 * non-negativity, which would also permit discharging energy charged in the SAME

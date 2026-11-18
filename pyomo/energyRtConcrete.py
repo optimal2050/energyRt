@@ -2517,13 +2517,7 @@ model.eqStorageAfLo = Constraint(
     meqStorageAfLo,
     rule=lambda model, st1, c, r, y, s: model.vStorageLevel[st1, c, r, y, s]
     >= pStorageAfLo.get((st1, r, y, s))
-    # [2c] the storing side is its own variable where it carries data;
-    # elsewhere the duration ratio is inlined onto the output capacity.
-    * (
-        model.vStorageStgCap[st1, r, y]
-        if (st1, r, y) in mStorageStgCap
-        else pStorageDurationLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
-    )
+    * model.vStorageStgCap[st1, r, y]
     * prod(
         pStorageWeatherAfLo.get((wth1, st1)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherAfLo_ix.get(st1, ())
@@ -2533,13 +2527,7 @@ model.eqStorageAfFx = Constraint(
     meqStorageAfFx,
     rule=lambda model, st1, c, r, y, s: model.vStorageLevel[st1, c, r, y, s]
     == pStorageAfLo.get((st1, r, y, s))
-    # [2c] the storing side is its own variable where it carries data;
-    # elsewhere the duration ratio is inlined onto the output capacity.
-    * (
-        model.vStorageStgCap[st1, r, y]
-        if (st1, r, y) in mStorageStgCap
-        else pStorageDurationLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
-    )
+    * model.vStorageStgCap[st1, r, y]
     * prod(
         pStorageWeatherAfLo.get((wth1, st1)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherAfLo_ix.get(st1, ())
@@ -2561,13 +2549,7 @@ model.eqStorageAfUp = Constraint(
     meqStorageAfUp,
     rule=lambda model, st1, c, r, y, s: model.vStorageLevel[st1, c, r, y, s]
     <= pStorageAfUp.get((st1, r, y, s))
-    # [2c] the storing side is its own variable where it carries data;
-    # elsewhere the duration ratio is inlined onto the output capacity.
-    * (
-        model.vStorageStgCap[st1, r, y]
-        if (st1, r, y) in mStorageStgCap
-        else pStorageDurationUp.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
-    )
+    * model.vStorageStgCap[st1, r, y]
     * prod(
         pStorageWeatherAfUp.get((wth1, st1)) * sum(sum(pWeather.get((wth1, rw, y, sw)) for sw in mTimesliceAncestorE_ix.get(s, ())) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherAfUp_ix.get(st1, ())
@@ -2593,11 +2575,7 @@ model.eqStorageTarget = Constraint(
     rule=lambda model, st1, tr, c, r, y, s: model.vStorageLevel[st1, c, r, y, s]
     + model.vStorageShort[st1, tr, c, r, y, s]
     >= pStorageTarget.get((st1, tr, r, y, s))
-    * (
-        model.vStorageStgCap[st1, r, y]
-        if (st1, r, y) in mStorageStgCap
-        else pStorageDurationLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
-    ),
+    * model.vStorageStgCap[st1, r, y],
 )
 if verbose:
     print(

@@ -107,7 +107,5 @@ test_that("an eac-priced storing part gets its own capacity variable", {
       mk(slot), name = paste0("ss_", slot), overwrite = TRUE)))
     expect_gte(nrow(ff_param(scen, "mStorageStgCap")), 1,
                label = paste0("mStorageStgCap rows with stg.", slot))
-    expect_equal(nrow(ff_param(scen, "mStorageNoStgCap")), 0,
-                 label = paste0("mStorageNoStgCap rows with stg.", slot))
   }
 })

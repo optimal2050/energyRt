@@ -247,7 +247,6 @@ set mStorageInp2stgLo dimen 3;
 set mStorageInp2stgFx dimen 3;
 set mStorageInp2stgUp dimen 3;
 set mStorageStgCap dimen 3;
-set mStorageNoStgCap dimen 3;
 set mStorageStgNew dimen 3;
 set mStorageStgCapLo dimen 3;
 set mStorageStgCapFx dimen 3;
@@ -1004,15 +1003,15 @@ s.t.  eqStorageLevel{(st1, c, r, y, sp, s) in meqStorageLevel}: vStorageLevel[st
 
 # [duration] now a BOUND on (stg, region, year): AfLo takes the LOWER ratio,
 # AfUp the UPPER. defVal [1,1] keeps a storage that says nothing tied at 1 h.
-s.t.  eqStorageAfLo{(st1, c, r, y, s) in meqStorageAfLo}: vStorageLevel[st1,c,r,y,s]  >=  pStorageAfLo[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoStgCap} (pStorageDurationLo[st1,r,y]*vStorageOutCap[st1,r,y]))*prod{wth1 in mStorageWeatherAfLo_ix[st1]}(pStorageWeatherAfLo[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(sum{sw in mTimesliceAncestorE_ix[s]}(pWeather[wth1,rw,y,sw])));
-s.t.  eqStorageAfFx{(st1, c, r, y, s) in meqStorageAfFx}: vStorageLevel[st1,c,r,y,s]  =  pStorageAfLo[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoStgCap} (pStorageDurationLo[st1,r,y]*vStorageOutCap[st1,r,y]))*prod{wth1 in mStorageWeatherAfLo_ix[st1]}(pStorageWeatherAfLo[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(sum{sw in mTimesliceAncestorE_ix[s]}(pWeather[wth1,rw,y,sw])));
+s.t.  eqStorageAfLo{(st1, c, r, y, s) in meqStorageAfLo}: vStorageLevel[st1,c,r,y,s]  >=  pStorageAfLo[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y]))*prod{wth1 in mStorageWeatherAfLo_ix[st1]}(pStorageWeatherAfLo[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(sum{sw in mTimesliceAncestorE_ix[s]}(pWeather[wth1,rw,y,sw])));
+s.t.  eqStorageAfFx{(st1, c, r, y, s) in meqStorageAfFx}: vStorageLevel[st1,c,r,y,s]  =  pStorageAfLo[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y]))*prod{wth1 in mStorageWeatherAfLo_ix[st1]}(pStorageWeatherAfLo[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(sum{sw in mTimesliceAncestorE_ix[s]}(pWeather[wth1,rw,y,sw])));
 
-s.t.  eqStorageAfUp{(st1, c, r, y, s) in meqStorageAfUp}: vStorageLevel[st1,c,r,y,s] <=  pStorageAfUp[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoStgCap} (pStorageDurationUp[st1,r,y]*vStorageOutCap[st1,r,y]))*prod{wth1 in mStorageWeatherAfUp_ix[st1]}(pStorageWeatherAfUp[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(sum{sw in mTimesliceAncestorE_ix[s]}(pWeather[wth1,rw,y,sw])));
+s.t.  eqStorageAfUp{(st1, c, r, y, s) in meqStorageAfUp}: vStorageLevel[st1,c,r,y,s] <=  pStorageAfUp[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y]))*prod{wth1 in mStorageWeatherAfUp_ix[st1]}(pStorageWeatherAfUp[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(sum{sw in mTimesliceAncestorE_ix[s]}(pWeather[wth1,rw,y,sw])));
 
 # Soft floor, one row per tier: the level may fall below each tier's target and
 # each shortfall is priced in eqStorageShortCost, so the tier prices stack. Same
 # capacity term as eqStorageAfLo, no weather factor.
-s.t.  eqStorageTarget{(st1, tr, c, r, y, s) in meqStorageTarget}: vStorageLevel[st1,c,r,y,s]+vStorageShort[st1,tr,c,r,y,s]  >=  pStorageTarget[st1,tr,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoStgCap} (pStorageDurationLo[st1,r,y]*vStorageOutCap[st1,r,y]));
+s.t.  eqStorageTarget{(st1, tr, c, r, y, s) in meqStorageTarget}: vStorageLevel[st1,c,r,y,s]+vStorageShort[st1,tr,c,r,y,s]  >=  pStorageTarget[st1,tr,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y]));
 
 # [rename] eqStorageClear -> eqStorageOutLevel. Draw only from what was ALREADY
 # stored: stricter than the level's non-negativity, which would also permit
