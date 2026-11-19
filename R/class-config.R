@@ -282,10 +282,6 @@ setMethod(
 #' @export
 setMethod("getHorizon", signature(obj = "config"), function(obj) obj@horizon)
 
-#' @rdname newHorizon
-#' @family update config
-#' @method update config
-#' @export
 # A calendar's structure is DERIVED from its timetable: the shares, the frame
 # ranks and families, the ancestry and both successor relations are all built by
 # `newCalendar()`. `update()` forwards every `...` name into the calendar's
@@ -297,6 +293,11 @@ setMethod("getHorizon", signature(obj = "config"), function(obj) obj@horizon)
   "timetable", "timeslice_share", "timeframe_rank", "timeslices_in_frame",
   "timeslice_family", "timeslice_ancestry", "next_in_timeframe", "next_in_year")
 
+
+#' @rdname newHorizon
+#' @family update config
+#' @method update config
+#' @export
 setMethod("update", "config", function(object, ..., warn_nodata = TRUE) {
   derived <- intersect(names(list(...)), .config_derived_calendar_slots)
   if (length(derived)) {

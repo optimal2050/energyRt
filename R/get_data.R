@@ -28,7 +28,9 @@ getData <- function(object, ...) UseMethod("getData")
 #' @param dfNames logical, when TRUE returns names of the data frame column.
 #' @param asMatrix return results as a matrix (not implemented).
 #' @param setsNames_ regular expression pattern for names of sets which will be included in search.
-#' @param add_weights accepted and currently ignored.
+#' @param add_weights accepted and ignored: `findData()` returns names and
+#'   dimensions, not values, so there is nothing to weight. The weighting
+#'   arguments live on [getData()].
 #' @param allSets logical, if TRUE _and_ operator should be used in search the sets, _or_ will be used if FALSE.
 #' @param ignore.case grepl parameter for matching names.
 #'
@@ -207,8 +209,27 @@ findData <- function(object,
 #'   (`technology`, `commodity`, `storage`, ...).
 #' @param unfold logical, expand a stored parameter back over its full domain
 #'   before returning it.
-#' @param add_weights,add_period_length,apply_weights,apply_period_length,as_data_table
-#'   accepted and currently ignored.
+#' @param add_weights,add_period_length attach the factor as a column
+#'   (`weight`, `period_length`). `"auto"` (the default) attaches it when
+#'   the matching `apply_*` applied it, so the result shape is unchanged
+#'   unless asked for; `TRUE` attaches it wherever the axis is defined,
+#'   including on rows that are not multiplied -- which is how a skipped
+#'   row shows the reader why.
+#' @param apply_weights logical, multiply `value` by the timeslice weight
+#'   `pTimesliceWeight(year, timeslice)`: how many times the slice occurs
+#'   in its year. `1` on a full calendar, `1/year_fraction` on a sampled
+#'   one, and `1` at the top (`ANNUAL`) slice always, so a per-slice
+#'   quantity times its weight is the annual quantity and applying weights
+#'   after `timeframe = "lowest"` multiplies by 1 rather than
+#'   double-counting. Only a result declared `sum` on the time axis is
+#'   scaled: a level (`vStorageLevel`, declared `last`) is a snapshot and
+#'   an input parameter is a rate, so neither is a quantity to weight.
+#'   Anything left unscaled is named in a warning.
+#' @param apply_period_length logical, multiply `value` by
+#'   `pPeriodLen(year)`, the number of years the milestone stands for.
+#'   Flow-like results only (roles `source`, `sink`, `activity`,
+#'   `balance`, `interregional`, `cost`), never a capacity or a stock.
+#' @param as_data_table accepted and currently ignored.
 #' @param drop_duplicated_scenarios logical, when several scenarios carry the
 #'   same name, keep only the first.
 #'
@@ -793,6 +814,17 @@ getData.scenario <- function(
     if (!is.null(hier)) ll <- .apply_geoframe(ll, hier, geoframe, routes = rts)
   }
 
+  # Timeslice weights and period lengths, see `add_weights` / `apply_weights`.
+  # Last of the post-processing steps: both roll-ups are linear, so scaling
+  # after them is the same arithmetic, and neither sees the new columns.
+  if (length(ll) > 0) {
+    ll <- .apply_time_factors(ll, object[[1]],
+                              add_weights = add_weights,
+                              apply_weights = apply_weights,
+                              add_period_length = add_period_length,
+                              apply_period_length = apply_period_length)
+  }
+
   if (merge) {
     if (length(ll) == 1) {
       dat <- ll[[1]]
@@ -1357,6 +1389,193 @@ getData.default <- function(object, ...) {
   }
   lapply(ll, function(df)
     .aggregate_timeframe_df(df, calendar, target_rank, year_calendars))
+}
+
+# ---- timeslice weights and period lengths ---------------------------------
+#
+# Two factors the LP applies internally, made available on the way out.
+#
+#   `weight`        pTimesliceWeight(year, timeslice): how many times a slice
+#                   occurs in its year. 1 on a full calendar, 1/year_fraction
+#                   on a sampled one, and 1 at the top (ANNUAL) slice always,
+#                   so a per-slice quantity times its weight is the annual
+#                   quantity -- and applying weights after the roll-up to
+#                   ANNUAL multiplies by 1 rather than double-counting.
+#   `period_length` pPeriodLen(year) = end - start + 1: the years a milestone
+#                   stands for.
+#
+# The weights are read from the calendar, per-year calendars honoured, which
+# is the source `.aggregate_timeframe_df()` reads, so the roll-up and these
+# cannot disagree.
+#
+# What is MULTIPLIED is gated by the declared catalogue rather than by a
+# column's presence: only a `sum` on the time axis is a quantity to weight
+# (a level is `last`, a snapshot; every input parameter is a rate), and only
+# a flow-like role is a quantity to spread over a period. The factor is
+# still ATTACHED wherever its axis is defined, so a skipped row carries the
+# reason with it.
+#' @noRd
+.PERIOD_LENGTH_ROLES <- c(
+  "source", "sink", "activity", "balance", "interregional", "cost"
+)
+
+# The role of the single variable a frame holds, or NA -- a parameter, a
+# mixed frame, or a name the catalogue does not carry.
+#' @noRd
+.df_variable_role <- function(df) {
+  if (!("name" %in% names(df))) return(NA_character_)
+  nm <- unique(as.character(df$name))
+  if (length(nm) != 1L) return(NA_character_)
+  v <- tryCatch(.variables, error = function(e) NULL)
+  x <- v[[nm]]
+  if (is.null(x)) return(NA_character_)
+  as.character(x$role)[1]
+}
+
+# The weight of every ROW, from that year's own calendar where the model
+# declares one -- the year split `.aggregate_timeframe_df()` makes.
+#' @noRd
+.timeslice_weight_vec <- function(df, calendar, year_calendars = NULL) {
+  wof <- function(cl) {
+    ts <- cl@timeslice_share
+    stats::setNames(as.numeric(ts$weight), as.character(ts$timeslice))
+  }
+  tsl <- as.character(df$timeslice)
+  out <- rep(NA_real_, length(tsl))
+  if (!is.null(year_calendars) && length(year_calendars) &&
+        "year" %in% names(df)) {
+    ys <- as.character(df$year)
+    for (y in unique(ys)) {
+      cl <- year_calendars[[y]] %||% calendar
+      i <- which(ys == y)
+      out[i] <- unname(wof(cl)[tsl[i]])
+    }
+  } else {
+    out <- unname(wof(calendar)[tsl])
+  }
+  # an unknown slice, and a folded NA ("every timeslice"), stand for
+  # themselves: there is no occurrence count to apply
+  out[is.na(out)] <- 1
+  out
+}
+
+# pPeriodLen per ROW. The interpolated parameter first -- it is what the
+# objective weighted -- and the horizon's own intervals when it is absent
+# or folded onto a wildcard year.
+#' @noRd
+.period_length_vec <- function(df, scen) {
+  pl <- NULL
+  p <- tryCatch(scen@modInp@parameters[["pPeriodLen"]],
+                error = function(e) NULL)
+  if (!is.null(p)) {
+    d <- tryCatch(as.data.frame(get_data_slot(p)), error = function(e) NULL)
+    if (!is.null(d) && nrow(d) > 0 &&
+          all(c("year", "value") %in% names(d)) && !anyNA(d$year)) {
+      pl <- stats::setNames(as.numeric(d$value), as.character(d$year))
+    }
+  }
+  if (is.null(pl)) {
+    iv <- tryCatch(as.data.frame(scen@settings@horizon@intervals),
+                   error = function(e) NULL)
+    if (is.null(iv) || nrow(iv) == 0 ||
+          !all(c("mid", "start", "end") %in% names(iv))) {
+      return(NULL)
+    }
+    pl <- stats::setNames(as.numeric(iv$end - iv$start + 1),
+                          as.character(iv$mid))
+  }
+  out <- unname(pl[as.character(df$year)])
+  out[is.na(out)] <- 1
+  out
+}
+
+#' @noRd
+.resolve_auto_add <- function(add, applied, what) {
+  if (is.character(add)) {
+    if (identical(tolower(as.character(add)[1]), "auto")) {
+      return(isTRUE(applied))
+    }
+    stop("`", what, "` takes TRUE, FALSE or 'auto'.", call. = FALSE)
+  }
+  isTRUE(add)
+}
+
+#' @noRd
+.attach_factor_col <- function(df, col, v, nm) {
+  if (col %in% names(df)) {
+    stop("getData(): '", nm, "' already carries a '", col, "' column, so ",
+         "the factor of that name cannot be attached.", call. = FALSE)
+  }
+  df[[col]] <- v
+  df
+}
+
+#' @noRd
+.apply_time_factors <- function(ll, scen, add_weights, apply_weights,
+                                add_period_length, apply_period_length) {
+  add_w <- .resolve_auto_add(add_weights, apply_weights, "add_weights")
+  add_p <- .resolve_auto_add(add_period_length, apply_period_length,
+                             "add_period_length")
+  app_w <- isTRUE(apply_weights)
+  app_p <- isTRUE(apply_period_length)
+  if (!add_w && !app_w && !add_p && !app_p) return(ll)
+  cal <- tryCatch(scen@settings@calendar, error = function(e) NULL)
+  ycal <- tryCatch(getYearCalendars(scen), error = function(e) NULL)
+  skipped_w <- character(0)
+  skipped_p <- character(0)
+  out <- lapply(seq_along(ll), function(i) {
+    df <- ll[[i]]
+    nm <- names(ll)[i]
+    if (is.null(df) || nrow(df) == 0 || !("value" %in% names(df))) return(df)
+    if ((add_w || app_w) && "timeslice" %in% names(df)) {
+      if (is.null(cal)) {
+        if (app_w) skipped_w <<- c(skipped_w, nm)
+      } else {
+        w <- .timeslice_weight_vec(df, cal, ycal)
+        if (app_w) {
+          rule <- .df_variable_rule(df, "time", default = NA_character_)
+          if (identical(rule, "sum")) {
+            df$value <- df$value * w
+          } else {
+            skipped_w <<- c(skipped_w, nm)
+          }
+        }
+        if (add_w) df <- .attach_factor_col(df, "weight", w, nm)
+      }
+    }
+    if ((add_p || app_p) && "year" %in% names(df)) {
+      pl <- .period_length_vec(df, scen)
+      if (is.null(pl)) {
+        if (app_p) skipped_p <<- c(skipped_p, nm)
+      } else {
+        if (app_p) {
+          if (.df_variable_role(df) %in% .PERIOD_LENGTH_ROLES) {
+            df$value <- df$value * pl
+          } else {
+            skipped_p <<- c(skipped_p, nm)
+          }
+        }
+        if (add_p) df <- .attach_factor_col(df, "period_length", pl, nm)
+      }
+    }
+    df
+  })
+  names(out) <- names(ll)
+  if (length(skipped_w)) {
+    warning("getData(apply_weights = TRUE) left ",
+            .preview_chr(unique(skipped_w)),
+            " unweighted: a timeslice weight scales a result declared ",
+            "`sum` on the time axis, and a level is a snapshot while an ",
+            "input parameter is a rate.", call. = FALSE)
+  }
+  if (length(skipped_p)) {
+    warning("getData(apply_period_length = TRUE) left ",
+            .preview_chr(unique(skipped_p)),
+            " unscaled: a period length spreads a flow over the years the ",
+            "milestone stands for, which a capacity or a stock is not.",
+            call. = FALSE)
+  }
+  out
 }
 
 

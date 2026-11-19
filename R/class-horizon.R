@@ -374,10 +374,6 @@ newHorizon <- function(
   by
 }
 
-#' @family update horizon
-#' @method update horizon
-#' @rdname newHorizon
-#' @export
 # `intervals` is DERIVED from `period` by `newHorizon()`, and `.data2slots()`
 # writes slots one at a time: a new `period` left the old milestones standing,
 # naming years the horizon no longer covers. Rebuilding them here would be
@@ -387,6 +383,11 @@ newHorizon <- function(
 # label fill below exists for.
 .horizon_derived_from_period <- "period"
 
+
+#' @family update horizon
+#' @method update horizon
+#' @rdname newHorizon
+#' @export
 setMethod("update", "horizon", function(object, ..., warn_nodata = TRUE) {
   if (any(.horizon_derived_from_period %in% names(list(...)))) {
     stop("update(horizon): `period` derives `intervals`, so it cannot be set ",

@@ -31,7 +31,9 @@ findData(
 
 \item{ignore.case}{grepl parameter for matching names.}
 
-\item{add_weights}{accepted and currently ignored.}
+\item{add_weights}{accepted and ignored: \code{findData()} returns names and
+dimensions, not values, so there is nothing to weight. The weighting
+arguments live on \code{\link[=getData]{getData()}}.}
 
 \item{dropEmpty}{logical, if TRUE drops parameters and variables with zero length.}
 

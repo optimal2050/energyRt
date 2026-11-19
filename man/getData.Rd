@@ -286,9 +286,32 @@ only value-bearing parameters are returned).}
 
 \item{drop.zeros}{logical, should rows containing zero values be filtered out.}
 
-\item{add_weights, add_period_length, apply_weights, apply_period_length, as_data_table}{accepted and currently ignored.}
+\item{add_weights, add_period_length}{attach the factor as a column
+(\code{weight}, \code{period_length}). \code{"auto"} (the default) attaches it when
+the matching \verb{apply_*} applied it, so the result shape is unchanged
+unless asked for; \code{TRUE} attaches it wherever the axis is defined,
+including on rows that are not multiplied -- which is how a skipped
+row shows the reader why.}
+
+\item{apply_weights}{logical, multiply \code{value} by the timeslice weight
+\code{pTimesliceWeight(year, timeslice)}: how many times the slice occurs
+in its year. \code{1} on a full calendar, \code{1/year_fraction} on a sampled
+one, and \code{1} at the top (\code{ANNUAL}) slice always, so a per-slice
+quantity times its weight is the annual quantity and applying weights
+after \code{timeframe = "lowest"} multiplies by 1 rather than
+double-counting. Only a result declared \code{sum} on the time axis is
+scaled: a level (\code{vStorageLevel}, declared \code{last}) is a snapshot and
+an input parameter is a rate, so neither is a quantity to weight.
+Anything left unscaled is named in a warning.}
+
+\item{apply_period_length}{logical, multiply \code{value} by
+\code{pPeriodLen(year)}, the number of years the milestone stands for.
+Flow-like results only (roles \code{source}, \code{sink}, \code{activity},
+\code{balance}, \code{interregional}, \code{cost}), never a capacity or a stock.}
 
 \item{asTibble}{logical, if the data.frames should be converted into tibbles.}
+
+\item{as_data_table}{accepted and currently ignored.}
 
 \item{stringsAsFactors}{logical, should the sets values be converted to factors?}
 
