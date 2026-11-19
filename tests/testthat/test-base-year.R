@@ -482,3 +482,155 @@ test_that("a carried ledger is narrowed to the model's regions", {
     newHorizon(c(2025, 2030), intervals = 5), verbose = TRUE),
     "does not declare")
 })
+
+# --------------------------------------------------------------------------- #
+# A bound binds only the variants its key names. A vintaged or clustered
+# process whose `ncap.up` row names one vintage leaves every other vintage
+# free to be built -- which is how an observed year built 980 GW of capacity
+# while reporting that 72 processes had been pinned.
+
+.by_vin_model <- function() {
+  newModel("by_vin", region = "R1", discount = 0.05, calendar = .by_cal(),
+    horizon = newHorizon(intervals = .by_iv(), base_year = 2025, name = "hv"),
+    repo = newRepository("vrepo",
+      newCommodity("ELC", timeframe = "SL"),
+      newCommodity("GAS", timeframe = "ANNUAL"),
+      newSupply("SUP", commodity = "GAS",
+                supply = data.frame(region = "R1", cost = 15)),
+      newTechnology("TV", input = list(comm = "GAS"),
+        output = list(comm = "ELC"),
+        ceff = data.frame(comm = "GAS", cinp2use = 1),
+        # the shipped shape: one bound, scoped to a single vintage
+        capacity = data.frame(vintage = "2020", year = 2025L,
+                              stock = 40, ncap.up = 0),
+        vintage = data.frame(vintage = c("2020", "2025"),
+                             start = c(2020L, 2025L), olife = c(30L, 30L)),
+        invcost = list(invcost = 900), cap2act = 1),
+      newDemand("DEM", commodity = "ELC",
+        demand = data.frame(region = "R1",
+                            year = c(2025L, 2030L, 2040L),
+                            demand = c(35, 60, 80)))))
+}
+
+# the map is the evidence: a bound exists only where the parameter is
+# populated, so a missing entry is an unbounded column, not a loose one
+.by_ncap_up_map <- function(scen) {
+  m <- scen@modInp@parameters[["mTechNewCapUp"]]
+  if (is.null(m)) return(data.frame())
+  as.data.frame(energyRt:::get_lazy_data(m, slot = "data"))
+}
+
+test_that("the pin binds every variant, not the one its row names", {
+  mod <- .by_vin_model()
+
+  # untouched: the shipped row leaves the 2025 vintage free
+  bare <- suppressMessages(interpolate_model(
+    mod, name = "by_vin_bare", base_year_capacity = "free"))
+  mb <- .by_ncap_up_map(bare)
+  expect_false("TV_VIN2025" %in% mb$tech)
+
+  # pinned: every variant in the roster is bounded at the base year
+  pin <- suppressMessages(interpolate_model(mod, name = "by_vin_pin"))
+  mp <- .by_ncap_up_map(pin)
+  at25 <- mp[as.integer(mp$year) == 2025L, ]
+  expect_true(all(c("TV_VIN2020", "TV_VIN2025") %in% at25$tech))
+
+  # and the bound is zero for both, not merely present
+  v <- as.data.frame(energyRt:::get_lazy_data(
+    pin@modInp@parameters[["pTechNewCap"]], slot = "data"))
+  v <- v[as.integer(v$year) == 2025L & v$type == "up", ]
+  expect_setequal(v$tech, c("TV_VIN2020", "TV_VIN2025"))
+  expect_true(all(v$value == 0))
+})
+
+
+test_that("the pin overrides a narrower bound that disagrees", {
+  mod <- .by_vin_model()
+  # a specific row that would otherwise allow a build
+  cp <- mod@data$vrepo@data$TV@capacity
+  cp$ncap.up <- 999
+  mod@data$vrepo@data$TV@capacity <- cp
+
+  pin <- suppressMessages(interpolate_model(mod, name = "by_vin_ovr"))
+  v <- as.data.frame(energyRt:::get_lazy_data(
+    pin@modInp@parameters[["pTechNewCap"]], slot = "data"))
+  v <- v[as.integer(v$year) == 2025L & v$type == "up", ]
+  expect_true(all(v$value == 0))
+})
+
+
+test_that("the pin does not duplicate a key it already occupies", {
+  mod <- .by_vin_model()
+  # an all-NA-variant row already at the base year: every trade has one, and
+  # a second row on the same key stops interpolation outright
+  cp <- mod@data$vrepo@data$TV@capacity
+  blank <- cp[NA_integer_, , drop = FALSE][1, , drop = FALSE]
+  blank$vintage <- NA_character_; blank$year <- 2025L; blank$ncap.up <- 7
+  cp <- rbind(cp, blank); rownames(cp) <- NULL
+  mod@data$vrepo@data$TV@capacity <- cp
+
+  expect_no_error(
+    pin <- suppressMessages(interpolate_model(mod, name = "by_vin_dup")))
+  v <- as.data.frame(energyRt:::get_lazy_data(
+    pin@modInp@parameters[["pTechNewCap"]], slot = "data"))
+  v <- v[as.integer(v$year) == 2025L & v$type == "up", ]
+  expect_true(all(v$value == 0))
+})
+
+
+test_that("together mode freezes retirement as well as investment", {
+  # total capacity, not investment alone: with retirement endogenous the LP
+  # can shrink an observed fleet instead of growing it
+  mod <- .by_model(newHorizon(intervals = .by_iv(), base_year = 2025,
+                              name = "h25"))
+  s <- suppressMessages(interpolate_model(mod, name = "by_tog_ret"))
+  expect_false(any(grepl("^vTechRetCap$", names(s@modInp@parameters))))
+  ret <- s@modInp@parameters[["mTechRetireNewCap"]] %||%
+    s@modInp@parameters[["mvTechRetiredNewCap"]]
+  if (!is.null(ret)) {
+    d <- as.data.frame(energyRt:::get_lazy_data(ret, slot = "data"))
+    expect_true(!nrow(d) || !any(as.integer(d$year) == 2025L))
+  }
+})
+
+# --------------------------------------------------------------------------- #
+# A derived scenario re-enters interpolate_model() through
+# .interpolate_on_base(), where `base` is no longer in scope. Without the
+# base's recorded treatment being carried over, `base_year_scenario` defaults
+# to NULL there and the derived scenario solves the base year WITH the
+# projection -- splitting one way for REF and the other for everything built
+# on it.
+
+test_that("a derived scenario inherits its base's base-year mode", {
+  mk <- function() .by_model(newHorizon(intervals = .by_iv(),
+                                        base_year = 2025, name = "h25"))
+  src <- suppressMessages(interpolate_model(
+    .by_model(newHorizon(intervals = .by_iv(), name = "hsrc2")),
+    name = "by_dsrc"))
+  ref <- suppressMessages(interpolate_model(mk(), name = "by_dref",
+                                            base_year_scenario = src))
+  expect_identical(ref@misc$base_year$mode, "separate")
+
+  # a SAMPLED calendar is what routes this through the re-entering path
+  cal2 <- newCalendar(timetable = make_timetable(
+    struct = list(ANNUAL = "ANNUAL", SL = sprintf("s%02d", 1:2))),
+    name = "bycal2")
+  sub <- suppressMessages(interpolate_model(
+    mk(), name = "by_dsub", base = ref, calendar = cal2))
+
+  expect_identical(sub@misc$base_year$mode, "separate")
+  expect_identical(solved_years_of <- energyRt:::.lp_years(getHorizon(sub)),
+                   c(2030L, 2040L))
+  expect_false(any(as.integer(sub@modInp@sets$year) == 2025L))
+})
+
+
+test_that("the split is idempotent for a horizon that arrives split", {
+  # a derived call that inherits its base's settings gets the projection half
+  # already; splitting it again returns NULL and must not be treated as a
+  # failure to split
+  h <- newHorizon(intervals = .by_iv(), base_year = 2025, name = "hidem")
+  hh <- suppressMessages(energyRt:::.by_split(h))
+  expect_null(energyRt:::.by_split(hh$main))
+  expect_identical(energyRt:::.lp_years(hh$main), c(2030L, 2040L))
+})

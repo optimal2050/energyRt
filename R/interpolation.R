@@ -769,11 +769,16 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
         # horizon carries, all of them observed
         .obs <- as.integer(scen@settings@horizon@intervals$mid)
         .obs <- .obs[.obs <= .by_mark]
+        # Both halves of "total capacity", not investment alone: with
+        # retirement left endogenous the LP can still shrink an observed
+        # fleet, which is the same error in the other direction.
+        object <- .by_freeze_retirement(object)
         object <- .by_freeze_capacity(object, .by_mark,
                                       relax = base_year_relax, years = .obs)
         # the scenario's model must describe what was actually built, the way
         # the carry path rewrites it -- otherwise `scen@model` says the past
         # is free while the LP says it is pinned
+        .model_given <- .by_freeze_retirement(.model_given)
         .model_given <- .by_freeze_capacity(.model_given, .by_mark,
                                             relax = base_year_relax,
                                             years = .obs)
@@ -800,7 +805,17 @@ interpolate_model <- function(object, name = NULL, ..., base = NULL,
       .by_src <- NULL
     } else {
     # SEPARATE: the base year was optimised elsewhere.
+    # A horizon that is already split returns NULL -- the split is idempotent
+    # -- which happens when a derived scenario inherits its base's settings.
+    # It is already the projection half, so it is kept as it is.
     .hh <- .by_split(scen@settings@horizon)
+    if (is.null(.hh)) {
+      .hh <- list(main = scen@settings@horizon,
+                  history = setdiff(
+                    as.integer(scen@settings@horizon@intervals$mid),
+                    .lp_years(scen@settings@horizon)))
+      .hh$history <- .hh$history[.hh$history < .by_mark]
+    }
     scen <- setHorizon(scen, .hh$main)
     scen@misc$base_year <- list(year = .by_mark, history = .hh$history,
                                 mode = "separate",
@@ -6168,8 +6183,30 @@ setMethod("interpolate", signature(object = "scenario"),
   st <- base@status
   .interp_step(verbose, paste0("base '", base@name, "': new objects or a ",
                                "sample; reusing its per-object tables"))
+  # This re-enters interpolate_model(), where `base` is no longer in scope, so
+  # `base_year_scenario` would default to NULL and the base year would be
+  # solved WITH the projection -- a derived scenario silently treated
+  # differently from the base it derives from. The base already records how
+  # its own base year was handled, so that decision is carried over rather
+  # than re-made.
+  .by <- tryCatch(base@misc$base_year, error = function(e) NULL)
+  by_args <- if (is.null(.by) || is.null(.by$year)) {
+    list()
+  } else if (identical(.by$mode, "separate")) {
+    # The source the base split against, by name, which survives the
+    # re-entry. With none recorded the base itself is handed over: what
+    # matters is that the horizon splits the same way, and any carry then
+    # resolves through the base's own link.
+    .src <- as.character(.by$scenario %||% "")[1]
+    list(base_year_scenario = if (nzchar(.src)) .src else base)
+  } else {
+    # solved together: `base` being absent already selects that mode, so only
+    # the capacity treatment needs restating
+    list(base_year_capacity = .by$capacity %||% "fixed",
+         base_year_relax = .by$relax %||% character())
+  }
   scen <- tryCatch(do.call(interpolate_model, c(
-    list(base@model, base@settings), args,
+    list(base@model, base@settings), args, by_args,
     list(name = name, fold = as.character(st$folded %||% character()),
          sparse = TRUE, prune = isTRUE(st$pruned),
          kvl = isTRUE(base@misc$kvl),

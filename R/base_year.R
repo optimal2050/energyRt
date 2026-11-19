@@ -206,42 +206,88 @@ NULL
                                 years = NULL) {
   # Every year at or before the mark is observed, so all of them are pinned,
   # not the base year alone: with history in the LP an unpinned 2020 would be
-  # free to build its way out of the fleet that is being calibrated.
+  # free to build its way out of the fleet being calibrated.
   years <- sort(unique(as.integer(years %||% base_year)))
   froze <- character(); skipped <- character()
+
   one <- function(o) {
     nm <- tryCatch(o@name, error = function(e) NA_character_)
     if (!is.na(nm) && nm %in% relax) { skipped <<- c(skipped, nm); return(o) }
     if (!methods::.hasSlot(o, "capacity")) return(o)
     cp <- o@capacity
-    cols <- grep("ncap[.](up|lo|fx)$", names(cp), value = TRUE)
-    if (!length(cols)) return(o)
-    miss <- setdiff(years, as.integer(cp$year[!is.na(cp$year)]))
-    if (!nrow(cp) || (length(miss) && !any(is.na(cp$year)))) {
-      blank <- cp[rep(NA_integer_, length(miss)), , drop = FALSE]
-      blank$year <- as.integer(miss)
-      for (ch in intersect(c("vintage", "cluster", "region"), names(blank))) {
-        blank[[ch]] <- NA_character_
-      }
-      cp <- rbind(cp, blank); rownames(cp) <- NULL
+    # all three schemas: `ncap.*` on a technology or trade, and the prefixed
+    # `out.`/`inp.`/`stg.` forms on a storage
+    up <- grep("ncap[.]up$", names(cp), value = TRUE)
+    force <- grep("ncap[.](lo|fx)$", names(cp), value = TRUE)
+    if (!length(up)) return(o)
+    vk <- intersect(c("vintage", "cluster", "region"), names(cp))
+    # A bound binds only the variants its key names. A row naming a vintage
+    # leaves every other vintage free, so the pin is written with the variant
+    # keys EMPTY, which is what expands it across the whole roster. An empty
+    # key is also the broader row, and the broader row wins, so a narrower
+    # bound that disagrees is overridden rather than fought.
+    key_blank <- function(d) {
+      if (!length(vk)) return(rep(TRUE, nrow(d)))
+      !Reduce(`|`, lapply(vk, function(k) !is.na(d[[k]])))
     }
-    i <- which(is.na(cp$year) | as.integer(cp$year) %in% years)
-    for (cl in cols) cp[[cl]][i] <- 0
+    wrote <- FALSE
+    for (y in years) {
+      # Zero EVERY row at this year first, whatever variant it names. The
+      # blank-key row added below expands onto those same variants, and two
+      # rows that reach one variant with different values are a multiplied
+      # series, not a bound. Agreeing on zero costs nothing and removes the
+      # conflict; a narrower ceiling above zero has no meaning here anyway.
+      if (nrow(cp)) {
+        at_y <- !is.na(cp$year) & as.integer(cp$year) == y
+        if (any(at_y)) {
+          for (cl in up) cp[[cl]][at_y] <- 0
+          for (cl in force) cp[[cl]][at_y] <- NA
+          wrote <- TRUE
+        }
+      }
+      hit <- if (!nrow(cp)) logical(0) else
+        key_blank(cp) & !is.na(cp$year) & as.integer(cp$year) == y
+      if (any(hit)) {
+        # Set in place. Appending a second row on the same key is a duplicate
+        # and stops interpolation, and every trade already carries one.
+        i <- which(hit)
+      } else {
+        blank <- if (nrow(cp)) cp[NA_integer_, , drop = FALSE][1, , drop = FALSE]
+                 else cp[NA_integer_, , drop = FALSE][1, , drop = FALSE]
+        blank$year <- as.integer(y)
+        for (k in vk) blank[[k]] <- NA
+        cp <- rbind(cp, blank); rownames(cp) <- NULL
+        i <- nrow(cp)
+      }
+      for (cl in up) cp[[cl]][i] <- 0
+      # a forced build contradicts the pin, so it is lifted rather than left
+      # to collide with the zero ceiling
+      for (cl in force) cp[[cl]][i] <- NA
+      wrote <- TRUE
+    }
+    if (!wrote) return(o)
     o@capacity <- cp
     if (!is.na(nm)) froze <<- c(froze, nm)
     o
   }
+
   for (nm in names(mod@data)) {
     repo <- mod@data[[nm]]
     if (!isS4(repo) || !methods::.hasSlot(repo, "data")) next
-    for (i in seq_along(repo@data)) {
-      o <- repo@data[[i]]
-      if (is(o, "technology") || is(o, "storage") || is(o, "trade")) {
-        repo@data[[i]] <- one(o)
+    walk <- function(r) {
+      for (i in seq_along(r@data)) {
+        o <- r@data[[i]]
+        if (isS4(o) && methods::.hasSlot(o, "data") && is(o, "repository")) {
+          r@data[[i]] <- walk(o)
+        } else if (is(o, "technology") || is(o, "storage") || is(o, "trade")) {
+          r@data[[i]] <- one(o)
+        }
       }
+      r
     }
-    mod@data[[nm]] <- repo
+    mod@data[[nm]] <- walk(repo)
   }
+  # only what was actually written -- the count is evidence, not intent
   attr(mod, "n_capacity_frozen") <- length(froze)
   attr(mod, "capacity_relaxed") <- skipped
   mod
