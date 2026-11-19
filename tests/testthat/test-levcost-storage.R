@@ -96,7 +96,7 @@ test_that("cycles divide the capex share and leave the charging term alone", {
   expect_equal(cmp(a2, "eac"),   cmp(a1, "eac") / 2,   tolerance = 1e-10)
   expect_equal(cmp(a2, "fixom"), cmp(a1, "fixom") / 2, tolerance = 1e-10)
   # the energy terms are per CYCLE, so they are untouched
-  expect_equal(cmp(a2, "supply"), cmp(a1, "supply"), tolerance = 1e-10)
+  expect_equal(cmp(a2, "input"), cmp(a1, "input"), tolerance = 1e-10)
   expect_equal(cmp(a2, "varom"),  cmp(a1, "varom"),  tolerance = 1e-10)
 })
 
@@ -108,7 +108,7 @@ test_that("round-trip efficiency enters twice", {
                method = "analytic", verbose = FALSE)
   b <- levcost(per, cycles = 365, price = 10, discount = 0, horizon = h,
                method = "analytic", verbose = FALSE)
-  sup <- function(x) x$cost_breakdown$value[x$cost_breakdown$component == "supply"]
+  sup <- function(x) x$cost_breakdown$value[x$cost_breakdown$component == "input"]
   # charging cost per unit delivered is price / (inp.eff * out.eff)
   expect_equal(sup(a), 10 / (0.9 * 0.95), tolerance = 1e-10)
   expect_equal(sup(b), 10, tolerance = 1e-10)
@@ -297,7 +297,7 @@ test_that("a store's ex-post varom per unit discharged is its out.varom", {
   # ELC has no supply object, so the charging energy is charged at zero here --
   # documented, and the reason this is the store's OWN cost and not its
   # delivered cost
-  expect_equal(bd$value[bd$component == "supply"], 0, tolerance = 1e-12)
+  expect_equal(bd$value[bd$component == "input"], 0, tolerance = 1e-12)
 })
 
 test_that("a name that is not a priceable process is reported, not crashed", {
