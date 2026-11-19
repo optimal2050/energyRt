@@ -543,20 +543,30 @@
   cols <- colnames(df)
   who <- paste0(cls, if (!is.null(name) && nzchar(name)) paste0(" '", name, "'") else "",
                 "@", slot_name)
+  # The key columns are collected with `[[`, not with `d[, keys, drop = FALSE]`:
+  # that is data.frame indexing, and a data.table reads `keys` as a symbol to
+  # look up in `j`, so it stops -- and every timetable, and many user tables,
+  # are data.tables. `[[` means the same in both classes and copies only the
+  # key columns, as the old subset did. `duplicated()` still sees a frame, so
+  # a real NA and the string "NA" stay distinct.
+  key_frame <- function(rows, keys) {
+    d <- lapply(keys, function(k) df[[k]][rows])
+    names(d) <- keys
+    as.data.frame(d, stringsAsFactors = FALSE, optional = TRUE)
+  }
   for (col in cols) {
     keys <- .slot_col_keys(cls, slot_name, col, cols)
     if (is.null(keys)) next
-    set <- !is.na(df[[col]])
-    if (sum(set) < 2) next
-    d <- df[set, , drop = FALSE]
-    kk <- if (length(keys)) d[, keys, drop = FALSE] else
-      data.frame(.all = rep(1L, nrow(d)))
+    rows <- which(!is.na(df[[col]]))
+    if (length(rows) < 2) next
+    kk <- if (length(keys)) key_frame(rows, keys) else
+      data.frame(.all = rep(1L, length(rows)))
     dup <- duplicated(kk) | duplicated(kk, fromLast = TRUE)
     if (!any(dup)) next
-    bad <- d[dup, , drop = FALSE]
-    bk <- if (length(keys)) bad[, keys, drop = FALSE] else
-      data.frame(.all = rep(1L, nrow(bad)))
-    g <- split(seq_len(nrow(bad)), do.call(paste, c(bk, sep = "|")))[[1]]
+    # the error path alone materialises whole rows, and it stops
+    bad <- as.data.frame(df)[rows[dup], , drop = FALSE]
+    g <- split(seq_len(nrow(bad)),
+               do.call(paste, c(kk[dup, , drop = FALSE], sep = "|")))[[1]]
     vals <- bad[[col]][g]
     stop(
       who, ": column '", col, "' is set ", length(g),

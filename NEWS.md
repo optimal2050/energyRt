@@ -843,6 +843,10 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* `update(config, ...)` refuses the calendar slots derived from a timetable (`timetable` itself, `timeslice_share`, `timeframe_rank`, `timeslices_in_frame`, `timeslice_family`, `timeslice_ancestry`, `next_in_timeframe`, `next_in_year`) and names `setCalendar()`. They were accepted only because `update()` forwards every argument into the calendar's slots: setting one wrote it and left the rest describing the previous calendar, with the new timetable then validated against that stale structure.
+
+* A table handed to a keyed slot is checked for conflicting rows whether it is a data.frame or a data.table. The guard subset its key columns with data.frame indexing, which a data.table reads as a column name in `j`, so `newSupply(supply = <data.table>)` stopped on a data.table error instead of being checked.
+
 * `levcost()` on a container says what it could not price. A process whose input commodity nothing supplies is skipped, and the refusal was a verbose-gated message, so a sweep returned a shorter list with no record of the gap. It now warns once and carries `attr(x, "unpriced")` naming each process, its class and the reason.
 
 * `levcost()` takes the region from every slot that names one, as `by_region` always did. Reading only `@region` and `@capacity` priced a technology whose regions appear in `invcost` alone in a synthetic region where none of its rows matched, and every number came back `NA` -- `by_variant = TRUE` most visibly.

@@ -286,7 +286,28 @@ setMethod("getHorizon", signature(obj = "config"), function(obj) obj@horizon)
 #' @family update config
 #' @method update config
 #' @export
+# A calendar's structure is DERIVED from its timetable: the shares, the frame
+# ranks and families, the ancestry and both successor relations are all built by
+# `newCalendar()`. `update()` forwards every `...` name into the calendar's
+# slots, so these were accepted by construction -- and setting one wrote it
+# while the rest went on describing the previous calendar, with the new
+# timetable then validated against that stale structure. They are outputs, not
+# inputs; the calendar is replaced whole instead.
+.config_derived_calendar_slots <- c(
+  "timetable", "timeslice_share", "timeframe_rank", "timeslices_in_frame",
+  "timeslice_family", "timeslice_ancestry", "next_in_timeframe", "next_in_year")
+
 setMethod("update", "config", function(object, ..., warn_nodata = TRUE) {
+  derived <- intersect(names(list(...)), .config_derived_calendar_slots)
+  if (length(derived)) {
+    stop("update(config): ", paste0("`", derived, "`", collapse = ", "), " ",
+         if (length(derived) == 1L) "is" else "are",
+         " derived from the calendar's timetable and cannot be set here.
+",
+         "  Build the calendar and attach it instead: ",
+         "setCalendar(obj, newCalendar(timetable = ..., name = ...)).",
+         call. = FALSE)
+  }
   # `discount` is an argument, not a column: a bare number (or a `discount`
   # column) is expanded into equal `wacc`/`sdr` here, and partial or mixed rate
   # rows are rejected, so `.data2slots()` and everything downstream only ever
