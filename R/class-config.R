@@ -308,6 +308,13 @@ setMethod("update", "config", function(object, ..., warn_nodata = TRUE) {
          "setCalendar(obj, newCalendar(timetable = ..., name = ...)).",
          call. = FALSE)
   }
+  if (any(.horizon_derived_from_period %in% names(list(...)))) {
+    stop("update(config): `period` derives the horizon's `intervals`, so it ",
+         "cannot be set here -- the milestones would go on naming the old ",
+         "years.
+  Build the horizon and attach it instead: ",
+         "setHorizon(obj, period = ...).", call. = FALSE)
+  }
   # `discount` is an argument, not a column: a bare number (or a `discount`
   # column) is expanded into equal `wacc`/`sdr` here, and partial or mixed rate
   # rows are rejected, so `.data2slots()` and everything downstream only ever

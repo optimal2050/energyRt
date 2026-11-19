@@ -541,7 +541,10 @@
 .assert_no_conflicting_rows <- function(df, cls, slot_name, name = NULL) {
   if (!is.data.frame(df) || nrow(df) < 2) return(invisible(TRUE))
   cols <- colnames(df)
-  who <- paste0(cls, if (!is.null(name) && nzchar(name)) paste0(" '", name, "'") else "",
+  # an unnamed object carries `character(0)`, and `TRUE && nzchar(character(0))`
+  # is NA, which stops here before any row is checked
+  named <- length(name) == 1L && !is.na(name) && nzchar(name)
+  who <- paste0(cls, if (named) paste0(" '", name, "'") else "",
                 "@", slot_name)
   # The key columns are collected with `[[`, not with `d[, keys, drop = FALSE]`:
   # that is data.frame indexing, and a data.table reads `keys` as a symbol to

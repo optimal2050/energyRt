@@ -843,6 +843,10 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* `update()` refuses `period`, on a `horizon` and through a `config`, and names `newHorizon()` / `setHorizon()`. `intervals` is derived from it, and writing one slot at a time left the milestones naming years the new period did not contain. Rebuilding them would drop the `calendar` and `weight` columns `intervals` now carries, so the horizon is replaced whole instead.
+
+* A slot of an unnamed object is checked for conflicting rows instead of stopping. `@name` is `character(0)` there, and the message built from it made the condition `NA`, so `update()` on any unnamed object died before a row was read.
+
 * `update(config, ...)` refuses the calendar slots derived from a timetable (`timetable` itself, `timeslice_share`, `timeframe_rank`, `timeslices_in_frame`, `timeslice_family`, `timeslice_ancestry`, `next_in_timeframe`, `next_in_year`) and names `setCalendar()`. They were accepted only because `update()` forwards every argument into the calendar's slots: setting one wrote it and left the rest describing the previous calendar, with the new timetable then validated against that stale structure.
 
 * A table handed to a keyed slot is checked for conflicting rows whether it is a data.frame or a data.table. The guard subset its key columns with data.frame indexing, which a data.table reads as a column name in `j`, so `newSupply(supply = <data.table>)` stopped on a data.table error instead of being checked.

@@ -109,7 +109,11 @@ NULL
       unique(c(as.character(rt$src), as.character(rt$dst))) else character()
     return(r[!is.na(r) & nzchar(r)])
   }
-  r <- unique(c(as.character(methods::slot(o, "region")),
+  # the loop below is guarded per slot; this read needs the same, since a class
+  # with no `region` slot at all (a commodity) otherwise stops here
+  own <- if (methods::.hasSlot(o, "region"))
+    as.character(methods::slot(o, "region")) else character()
+  r <- unique(c(own,
                 unlist(lapply(methods::slotNames(o), function(sl) {
                   # an object saved before a slot was added does not carry it
                   if (!methods::.hasSlot(o, sl)) return(NULL)

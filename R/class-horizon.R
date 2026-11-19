@@ -378,7 +378,22 @@ newHorizon <- function(
 #' @method update horizon
 #' @rdname newHorizon
 #' @export
+# `intervals` is DERIVED from `period` by `newHorizon()`, and `.data2slots()`
+# writes slots one at a time: a new `period` left the old milestones standing,
+# naming years the horizon no longer covers. Rebuilding them here would be
+# worse than refusing -- `intervals` carries `calendar` and `weight` columns
+# that `newHorizon(period = )` cannot know to preserve, so they would be
+# dropped in silence. `intervals` itself stays settable, which is what the
+# label fill below exists for.
+.horizon_derived_from_period <- "period"
+
 setMethod("update", "horizon", function(object, ..., warn_nodata = TRUE) {
+  if (any(.horizon_derived_from_period %in% names(list(...)))) {
+    stop("update(horizon): `period` derives `intervals`, so it cannot be set ",
+         "here -- the milestones would go on naming the old years.
+",
+         "  Build the horizon instead: newHorizon(period = ...).", call. = FALSE)
+  }
   # cf <- .data2slots("config", object, ..., warn_nodata = FALSE)
   object <- .data2slots("horizon", object, ...,
     # ignore_args = c("name", "desc"),

@@ -65,3 +65,50 @@ test_that("the conflicting-row guard reads a data.table", {
   expect_error(newSupply("S", commodity = "COA", supply = bad), "same key")
   expect_s4_class(newSupply("S", commodity = "COA", supply = ok), "supply")
 })
+
+# --------------------------------------------------------------------------- #
+# The horizon's twin of the same shape: `intervals` is derived from `period`.
+# --------------------------------------------------------------------------- #
+
+test_that("update(horizon): `period` is refused rather than left inconsistent", {
+  h <- newHorizon(period = 2025:2034, intervals = c(5, 5))
+  expect_error(update(h, period = 2040:2059), "derives `intervals`")
+  expect_error(update(h, period = 2040:2059), "newHorizon")
+  # it used to write `period` and leave the milestones at the old years
+  expect_equal(h@intervals$mid, c(2025L, 2027L, 2032L))
+})
+
+test_that("update(config): `period` is refused, naming setHorizon", {
+  cfg <- uc_cfg()
+  cfg@horizon <- newHorizon(period = 2025:2034, intervals = c(5, 5))
+  expect_error(update(cfg, period = 2040:2059), "setHorizon")
+})
+
+test_that("update(horizon): `intervals` stays settable, labels filled", {
+  h <- newHorizon(period = 2025:2034, intervals = c(5, 5))
+  iv <- data.table::as.data.table(h@intervals)
+  iv$label <- NULL
+  u <- update(h, intervals = iv)
+  expect_equal(nrow(u@intervals), nrow(h@intervals))
+  expect_true(all(nzchar(u@intervals$label)))
+})
+
+test_that("an unnamed object is checked for conflicting rows, not crashed on", {
+  # `@name` is `character(0)` on an unnamed object, and `TRUE &&
+  # nzchar(character(0))` is NA, which stopped the guard before any row was
+  # read -- so `update()` on any unnamed object died there
+  expect_error(energyRt:::.assert_no_conflicting_rows(
+    data.frame(region = c("R1", "R1"), cost = c(1, 2)), "supply", "supply",
+    name = character(0)), "same key")
+  expect_true(energyRt:::.assert_no_conflicting_rows(
+    data.frame(region = c("R1", "R2"), cost = c(1, 2)), "supply", "supply",
+    name = character(0)))
+})
+
+test_that(".tech_regions(): a class with no region slot returns nothing", {
+  expect_equal(energyRt:::.tech_regions(newCommodity("ELC", timeframe = "ANNUAL")),
+               character(0))
+  tech <- newTechnology("T", region = c("R1", "R2"),
+                        input = list(comm = "COA"), output = list(comm = "ELC"))
+  expect_setequal(energyRt:::.tech_regions(tech), c("R1", "R2"))
+})
