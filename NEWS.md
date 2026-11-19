@@ -843,6 +843,12 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* `levcost()` on a container says what it could not price. A process whose input commodity nothing supplies is skipped, and the refusal was a verbose-gated message, so a sweep returned a shorter list with no record of the gap. It now warns once and carries `attr(x, "unpriced")` naming each process, its class and the reason.
+
+* `levcost()` takes the region from every slot that names one, as `by_region` always did. Reading only `@region` and `@capacity` priced a technology whose regions appear in `invcost` alone in a synthetic region where none of its rows matched, and every number came back `NA` -- `by_variant = TRUE` most visibly.
+
+* A `trade` levelized cost carries the traded commodity's unit, taken from the container. PJ-priced fuel corridors otherwise sat in one table beside GWh-priced ones with nothing to tell them apart.
+
 * A levy on a storage part that does not exist is reported instead of charging nothing. `inp.cap`, `inp.ncap`, `out.cap` and `out.ncap` are summed over the part's own capacity map, so a rate on a storage without that converter multiplied nothing; `validate_scenario_parameters()` now names it as `levy_no_part`, per cell and per levy. Advisory, since a levy selecting every storage legitimately sweeps reservoir-only ones.
 
 * The `setCalendar()` example runs. Its horizon was built from

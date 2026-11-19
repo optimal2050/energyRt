@@ -39,9 +39,16 @@ mk_hourly <- function(calendar = calendars$s4_h24, regions = c("R1", "R2")) {
 }
 
 # The weighted annual total of one value column: what a rate conserves.
+#
+# `share` is one OCCURRENCE's fraction of the year and `weight` is how many
+# times that occurrence stands in it, so `share * weight` is the annualiser and
+# sums to 1 on every calendar. `share` alone does not: it sums to 1 on `s4`
+# (four seasons, each occurring once) and to 4/365 on `s4_h24` (96 hours of
+# four representative days), so weighting the two sides by `share` compared a
+# whole year against four days.
 wtot <- function(d, val, calendar) {
-  w <- stats::setNames(calendar@timetable$share,
-                       as.character(calendar@timetable$timeslice))
+  tt <- calendar@timetable
+  w <- stats::setNames(tt$share * tt$weight, as.character(tt$timeslice))
   d <- d[as.character(d$timeslice) %in% names(w), , drop = FALSE]
   sum(d[[val]] * w[as.character(d$timeslice)], na.rm = TRUE)
 }

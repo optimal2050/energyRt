@@ -330,3 +330,49 @@ test_that("an un-vintaged corridor still returns a plain levcost", {
   expect_s3_class(x, "levcost")
   expect_false(inherits(x, "levcost_variants"))
 })
+
+test_that("a container sweep says what it could not price", {
+  # the per-process refusal is a verbose-gated message, so a sweep returned a
+  # shorter list and a caller running quietly had no way to know a process was
+  # missing rather than free
+  ELC <- newCommodity("ELC", timeframe = "ANNUAL")
+  PP <- newTechnology(
+    "PP", region = "R1", input = list(comm = "ELC"),
+    output = list(comm = "HEAT"),
+    ceff = data.frame(comm = c("ELC", "HEAT"), cinp2use = c(0.9, NA),
+                      cact2cout = c(NA, 1)),
+    invcost = data.frame(invcost = 100), af = data.frame(af.up = 0.9),
+    vintage = data.frame(olife = 20L), cap2act = 1)
+  repo <- newRepository("REPO", ELC, newCommodity("HEAT", timeframe = "ANNUAL"),
+                        PP, .lct_line())
+  h <- newHorizon(period = 2020L)
+  # no `autocomplete`: PP's ELC input has no supply, so PP cannot be priced
+  expect_warning(
+    res <- suppressMessages(levcost(repo, horizon = h, discount = 0.05,
+                                    verbose = FALSE)),
+    "could not be priced")
+  expect_equal(names(res), "TRD_ELC")
+  up <- attr(res, "unpriced")
+  expect_s3_class(up, "data.frame")
+  expect_equal(up$process, "PP")
+  expect_equal(up$class, "technology")
+  expect_match(up$reason, "no supply")
+  expect_match(up$reason, "ELC")
+})
+
+test_that("a trade result carries the traded commodity's unit", {
+  # PJ-priced fuel corridors sat in one table beside GWh-priced ones with
+  # nothing to tell them apart. A trade declares no unit of its own, so it
+  # comes from the commodity in the container -- and is NA without one.
+  repo <- newRepository("REPO", newCommodity("ELC", timeframe = "ANNUAL",
+                                             unit = "GWh"), .lct_line())
+  h <- newHorizon(period = 2020L)
+  withu <- levcost(repo, name = "TRD_ELC", discount = 0.05, horizon = h,
+                   verbose = FALSE)
+  expect_equal(withu$units$unit, "GWh")
+  expect_equal(withu$units$comm, "ELC")
+  # a bare object has no container to ask, and says so rather than guessing
+  bare <- levcost(.lct_line(), discount = 0.05, horizon = h,
+                  method = "analytic", verbose = FALSE)
+  expect_true(is.na(bare$units$unit))
+})

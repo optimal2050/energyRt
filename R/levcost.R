@@ -330,6 +330,17 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
          stop("levcost(): no engine for class ", cls, call. = FALSE))
 }
 
+# A process a container cannot price. The message at each refusal is
+# verbose-gated, so a sweep over every process would otherwise return a shorter
+# list with no record of what it left out. The condition is not gated and
+# carries the reason; unhandled, `signalCondition()` does nothing.
+.levcost_unpriceable <- function(name, proc_class, reason) {
+  signalCondition(structure(
+    list(message = reason, call = NULL, process = name, proc_class = proc_class),
+    class = c("levcost_unpriceable", "condition")))
+  invisible(NULL)
+}
+
 # Every process in a container that levcost() can price, as
 # list(name = , class = , object = ), optionally narrowed to `classes`.
 .levcost_processes <- function(container, classes = NULL) {
@@ -744,18 +755,34 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
               "technology, storage or trade to price.")
       return(invisible(NULL))
     }
+    skipped <- list()
     out <- lapply(procs, function(p)
-      tryCatch(.levcost_container(container, name = p$name, comm = comm,
-                                  autocomplete = autocomplete,
-                                  fuel_costs = fuel_costs, verbose = verbose,
-                                  classes = p$class, by_region = by_region,
-                                  ...),
-               error = function(e) {
-                 warning("levcost(): ", p$class, " '", p$name, "' could not be ",
-                         "priced: ", conditionMessage(e), call. = FALSE)
-                 NULL
-               }))
+      withCallingHandlers(
+        tryCatch(.levcost_container(container, name = p$name, comm = comm,
+                                    autocomplete = autocomplete,
+                                    fuel_costs = fuel_costs, verbose = verbose,
+                                    classes = p$class, by_region = by_region,
+                                    ...),
+                 error = function(e) {
+                   warning("levcost(): ", p$class, " '", p$name, "' could not ",
+                           "be priced: ", conditionMessage(e), call. = FALSE)
+                   NULL
+                 }),
+        levcost_unpriceable = function(cnd) {
+          skipped[[p$name]] <<- data.frame(
+            process = p$name, class = p$class,
+            reason = conditionMessage(cnd), stringsAsFactors = FALSE)
+        }))
     names(out) <- vapply(procs, `[[`, character(1), "name")
+    # Every process that produced nothing, with its reason where one was
+    # signalled. The list is shorter than the container, and a caller that
+    # cannot see the messages has to be told so.
+    for (nm in names(out)[vapply(out, is.null, logical(1))]) {
+      if (!is.null(skipped[[nm]])) next
+      skipped[[nm]] <- data.frame(
+        process = nm, class = procs[[match(nm, names(out))]]$class,
+        reason = "not priced", stringsAsFactors = FALSE)
+    }
     out <- Filter(Negate(is.null), out)
     # `by_region` makes each entry a per-region list; flatten to one level so
     # the result stays a plain `levcost_list`, keyed `<process>@<region>`
@@ -775,6 +802,18 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
     # print / autoplot / plot methods and report()'s handling of a multi-result
     # apply to this unchanged
     class(out) <- c("levcost_list", "list")
+    if (length(skipped)) {
+      up <- do.call(rbind, skipped)
+      rownames(up) <- NULL
+      attr(out, "unpriced") <- up
+      warning("levcost(): ", nrow(up), " of ", length(procs), " process(es) ",
+              "could not be priced and are absent from the result: ",
+              paste(utils::head(paste0(up$process, " -- ", up$reason), 3),
+                    collapse = "; "),
+              if (nrow(up) > 3) ", ..." else "",
+              ". See attr(x, \"unpriced\"); `autocomplete = TRUE` prices an ",
+              "unsupplied input at zero.", call. = FALSE)
+    }
     return(out)
   }
   proc <- .levcost_find_process(container, name, classes)
@@ -804,6 +843,8 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
             paste(missing, collapse = ", "), ".\n",
             "  Set autocomplete = TRUE to add zero-cost supplies, or pass e.g. ",
             "fuel_costs = c(", missing[1], " = <price>).")
+    .levcost_unpriceable(name, cls, paste0(
+      "consumes with no supply: ", paste(missing, collapse = ", ")))
     return(invisible(NULL))
   }
   dots <- list(...)
@@ -1370,10 +1411,7 @@ levcost_chain_ <- function(
 
   # ── 3. Resolve region ─────────────────────────────────────────────────────
   if (is.null(region)) {
-    reg_cands <- unique(unlist(lapply(object, function(t) {
-      r <- unique(na.omit(t@region))
-      r[nzchar(as.character(r))]
-    })))
+    reg_cands <- unique(unlist(lapply(object, .levcost_tech_regions)))
     region <- if (length(reg_cands) > 0) reg_cands[1] else "REGION"
     if (verbose) {
       if (length(reg_cands) == 0)  message("No region found; using 'REGION'.")
@@ -2092,12 +2130,12 @@ levcost_technology_ <- function(
 
   # ── 2. Resolve region ───────────────────────────────────────────────────────
   if (is.null(region)) {
-    reg_candidates <- unique(na.omit(object@region))
-    if (length(reg_candidates) == 0 && nrow(object@capacity) > 0 &&
-        "region" %in% names(object@capacity))
-      reg_candidates <- unique(na.omit(object@capacity$region))
-    reg_candidates <- reg_candidates[nzchar(as.character(reg_candidates)) &
-                                       !is.na(reg_candidates)]
+    # Every region-bearing slot, which is what `by_region` already sweeps and
+    # what the subsetting below tests. Reading only `@region` and `@capacity`
+    # missed a technology whose regions appear in `invcost` (or any other
+    # slot): it was priced in the synthetic "REGION", no region-keyed row
+    # matched, and every number came back NA.
+    reg_candidates <- .levcost_tech_regions(object)
     if (length(reg_candidates) == 0) {
       region <- "REGION"
       if (verbose) message("No region found in technology; using 'REGION'.")

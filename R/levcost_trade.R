@@ -383,8 +383,29 @@ levcost_trade_ <- function(
                           run_solve()
                         }))
 
+  # The denominator's unit. A trade declares none of its own -- no `units`
+  # slot and no `output` table -- so it comes from the commodity in `repo`, and
+  # is NA on a bare-object call rather than guessed. Without it a PJ-priced
+  # fuel corridor sat in one table beside GWh-priced ones with nothing to tell
+  # them apart.
+  # `repo` arrives as a plain LIST of the container's commodity and supply
+  # objects, the way the storage engine reads it, not as a repository.
+  tr_unit <- NA_character_
+  if (!is.null(repo)) {
+    cs <- if (is.list(repo) && !isS4(repo)) repo else
+      tryCatch(getObjects(repo, "commodity"), error = function(e) list())
+    for (co in cs) {
+      if (!inherits(co, "commodity")) next
+      if (!identical(as.character(co@name)[1], cm)) next
+      u <- tryCatch(as.character(co@units$comm)[1], error = function(e) NA_character_)
+      if (length(u) == 1L && !is.na(u) && nzchar(u)) tr_unit <- u
+      break
+    }
+  }
   .levcost_assemble(res, name = name, comm = comm,
                     region = paste(rt$src, rt$dst, sep = "->"),
                     discount = discount, base_year = base_year,
-                    units = NULL, scen = res$scen)
+                    units = data.frame(comm = comm, unit = tr_unit,
+                                       stringsAsFactors = FALSE),
+                    scen = res$scen)
 }

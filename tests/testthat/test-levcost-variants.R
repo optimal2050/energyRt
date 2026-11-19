@@ -660,3 +660,30 @@ test_that("one expanded name still returns a single levcost, unknown names repor
   expect_false(inherits(one, "levcost_variants"))
   expect_message(levcost(scen, name = "NOPE"), "not a technology")
 })
+
+test_that("levcost: the region is taken from every slot that names one", {
+  # `by_region` sweeps every region-bearing slot; the single-cell path read
+  # only `@region` and `@capacity`, so a technology naming its regions in
+  # `invcost` alone was priced in the synthetic "REGION", where none of its
+  # region-keyed rows matched and every number came back NA.
+  skip_if_no_solver()
+  TT <- newTechnology(
+    "SOLX", input = list(comm = "SUN"), output = list(comm = "ELC"),
+    cluster = data.frame(cluster = c("A", "B")),
+    invcost = data.frame(region = c("R1", "R1", "R2", "R2"),
+                         cluster = c("A", "B", "A", "B"),
+                         invcost = c(800, 900, 1000, 1100)),
+    af = data.frame(af.up = 0.3),
+    olife = data.frame(olife = 25), cap2act = 1)
+  one <- suppressMessages(suppressWarnings(
+    levcost(TT, by_variant = TRUE, fuel_costs = c(SUN = 0), discount = 0.06,
+            base_year = 2025, verbose = FALSE)))
+  expect_true(all(one$region == "R1"))
+  expect_true(all(is.finite(one$levcost)))
+  # and it equals the R1 leg of the per-region sweep, which was always right
+  grid <- suppressMessages(suppressWarnings(
+    levcost(TT, by_variant = TRUE, by_region = TRUE, fuel_costs = c(SUN = 0),
+            discount = 0.06, base_year = 2025, verbose = FALSE)))
+  expect_setequal(names(grid), c("R1", "R2"))
+  expect_equal(one$levcost, grid$R1$levcost, tolerance = 1e-8)
+})
