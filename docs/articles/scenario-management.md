@@ -229,7 +229,7 @@ without it, the label defaults to the solver directory name
 
 scen <- interpolate_model(mod, name = "BASE") |>
   solve_scenario(solver = solver_options$glpk, echo = FALSE)
-#> ℹ checking declarations✔ checking declarations (0.0s)
+#> ℹ checking declarations✔ checking declarations (0.1s)
 #> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.0s)
 #> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
@@ -245,23 +245,23 @@ scen <- interpolate_model(mod, name = "BASE") |>
 #> ✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
 #> ℹ building maps: membership + closure
-#> ✔ building maps: membership + closure (0.1s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
-#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
+#> ✔ building maps: membership + closure (0.2s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
+#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.4s)
 #> ℹ building maps: calendar + lifespan
-#> ✔ building maps: calendar + lifespan (0.1s)
-#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
+#> ✔ building maps: calendar + lifespan (0.5s)
+#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.3s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
-#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
-#> ℹ building maps: value✔ building maps: value (0.0s)
+#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.1s)
+#> ℹ building maps: value✔ building maps: value (0.1s)
 #> ℹ building maps: filter
-#> ✔ building maps: filter (0.1s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.0s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
-#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
-#> ℹ computing model-size summary✔ computing model-size summary (0.0s)
+#> ✔ building maps: filter (0.4s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.3s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.2s)
+#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.1s)
+#> ℹ computing model-size summary✔ computing model-size summary (0.1s)
 #> model_size: BASE
-#>   parameters : 202 value, 361 maps, 16 sets
+#>   parameters : 203 value, 360 maps, 16 sets
 #>   param rows : 95
 #>   estimate   : ~140 variables, ~128 constraints (from gating maps)
 #>   top parameters by rows:
@@ -353,7 +353,7 @@ list_versions("SM", type = "model")
 #> # A tibble: 1 × 7
 #>   status  name  type  version  sealed_at            refs size_mb
 #>   <chr>   <chr> <chr> <chr>    <dttm>              <int>   <dbl>
-#> 1 current SM    model ea94b58e 2026-11-17 03:15:46     0       0
+#> 1 current SM    model a96c3c7c 2026-11-19 02:47:32     0       0
 ```
 
 **Only sealed versions are referenced.** A scenario records the model it
@@ -375,7 +375,7 @@ list_dependents("SM", type = "model")[, c("type", "name", "version")]
 #> # A tibble: 1 × 3
 #>   type     name  version 
 #>   <chr>    <chr> <chr>   
-#> 1 scenario BASE  ea94b58e
+#> 1 scenario BASE  a96c3c7c
 ```
 
 A model that is not sealed is copied into the scenario folder
@@ -453,13 +453,13 @@ confirms:
 ``` r
 
 full <- interpolate_model(mod, fee, name = "FEE_FULL")
-#> ℹ checking declarations✔ checking declarations (0.0s)
-#> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.0s)
-#> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
-#> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
-#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
+#> ℹ checking declarations✔ checking declarations (0.1s)
+#> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.1s)
+#> ℹ materializing commodity clusters✔ materializing commodity clusters (0.1s)
+#> ℹ materializing weather clusters✔ materializing weather clusters (0.1s)
+#> ℹ materializing weather transforms✔ materializing weather transforms (0.4s)
 #> ℹ collecting sets: object names
-#> ✔ collecting sets: object names (0.0s)
+#> ✔ collecting sets: object names (0.1s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
 #> ℹ collecting sets: timeframes
 #> ✔ collecting sets: timeframes (0.0s)
@@ -469,24 +469,24 @@ full <- interpolate_model(mod, fee, name = "FEE_FULL")
 #> ✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
 #> ℹ building maps: membership + closure
-#> ✔ building maps: membership + closure (0.0s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
-#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
+#> ✔ building maps: membership + closure (0.4s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
+#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.4s)
 #> ℹ building maps: calendar + lifespan
-#> ✔ building maps: calendar + lifespan (0.1s)
-#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.1s)
-#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
-#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
-#> ℹ building maps: value✔ building maps: value (0.0s)
+#> ✔ building maps: calendar + lifespan (0.3s)
+#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.3s)
+#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.1s)
+#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.1s)
+#> ℹ building maps: value✔ building maps: value (0.2s)
 #> ℹ building maps: filter
-#> ✔ building maps: filter (0.1s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.0s)
-#> ℹ compiling 1 user constraint(s) / cost term(s)✔ compiling 1 user constraint(s) / cost term(s) (0.0s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
+#> ✔ building maps: filter (0.3s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.4s)
+#> ℹ compiling 1 user constraint(s) / cost term(s)✔ compiling 1 user constraint(s) / cost term(s) (0.1s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
-#> ℹ computing model-size summary✔ computing model-size summary (0.0s)
+#> ℹ computing model-size summary✔ computing model-size summary (0.1s)
 #> model_size: FEE_FULL
-#>   parameters : 202 value, 362 maps, 16 sets
+#>   parameters : 203 value, 361 maps, 16 sets
 #>   param rows : 95
 #>   estimate   : ~143 variables, ~128 constraints (from gating maps)
 #>   top parameters by rows:
@@ -599,10 +599,10 @@ scen_low <- interpolate_model(make_mod(c(50, 50, 50)), name = "BASE",
 #> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.0s)
 #> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
-#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
+#> ℹ materializing weather transforms✔ materializing weather transforms (0.3s)
 #> ℹ collecting sets: object names
-#> ✔ collecting sets: object names (0.0s)
-#> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
+#> ✔ collecting sets: object names (0.2s)
+#> ℹ collecting sets: process classes✔ collecting sets: process classes (0.2s)
 #> ℹ collecting sets: timeframes
 #> ✔ collecting sets: timeframes (0.0s)
 #> ℹ collecting sets: process inputs/outputs
@@ -611,8 +611,8 @@ scen_low <- interpolate_model(make_mod(c(50, 50, 50)), name = "BASE",
 #> ✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
 #> ℹ building maps: membership + closure
-#> ✔ building maps: membership + closure (0.0s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
+#> ✔ building maps: membership + closure (0.1s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
 #> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan
 #> ✔ building maps: calendar + lifespan (0.2s)
@@ -622,12 +622,12 @@ scen_low <- interpolate_model(make_mod(c(50, 50, 50)), name = "BASE",
 #> ℹ building maps: value✔ building maps: value (0.0s)
 #> ℹ building maps: filter
 #> ✔ building maps: filter (0.1s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.0s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.0s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
-#> ℹ computing model-size summary✔ computing model-size summary (0.0s)
+#> ℹ computing model-size summary✔ computing model-size summary (0.1s)
 #> model_size: BASE
-#>   parameters : 202 value, 361 maps, 16 sets
+#>   parameters : 203 value, 360 maps, 16 sets
 #>   param rows : 95
 #>   estimate   : ~140 variables, ~128 constraints (from gating maps)
 #>   top parameters by rows:

@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9007</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -343,7 +343,7 @@ name (e.g. <code>"glpk"</code>):</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span>, echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> checking declarations<span style="color: #00BB00;">✔</span> checking declarations <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> checking declarations<span style="color: #00BB00;">✔</span> checking declarations <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> expanding vintage/cluster variants<span style="color: #00BB00;">✔</span> expanding vintage/cluster variants <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing commodity clusters<span style="color: #00BB00;">✔</span> materializing commodity clusters <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather clusters<span style="color: #00BB00;">✔</span> materializing weather clusters <span style="color: #555555;">(0.0s)</span></span></span>
@@ -359,23 +359,23 @@ name (e.g. <code>"glpk"</code>):</p>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: membership comm sets <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process regions<span style="color: #00BB00;">✔</span> collecting sets: process regions <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: membership + closure</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.1s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> settings parameters (discount, period length, timeslice share)<span style="color: #00BB00;">✔</span> settings parameters (discount, period length, timeslice share) <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> settings parameters (discount, period length, timeslice share)<span style="color: #00BB00;">✔</span> settings parameters (discount, period length, timeslice share) <span style="color: #555555;">(0.4s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: calendar + lifespan</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.1s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> interpolating parameters over milestone years<span style="color: #00BB00;">✔</span> interpolating parameters over milestone years <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.5s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> interpolating parameters over milestone years<span style="color: #00BB00;">✔</span> interpolating parameters over milestone years <span style="color: #555555;">(0.3s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> calendar-filter: restricting parameters to declared timeslices<span style="color: #00BB00;">✔</span> calendar-filter: restricting parameters to declared timeslices <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.1s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.1s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: cost aggregation<span style="color: #00BB00;">✔</span> building maps: cost aggregation <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing model-size summary<span style="color: #00BB00;">✔</span> computing model-size summary <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.4s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.3s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: cost aggregation<span style="color: #00BB00;">✔</span> building maps: cost aggregation <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing model-size summary<span style="color: #00BB00;">✔</span> computing model-size summary <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; model_size: BASE</span></span>
-<span><span class="co">#&gt;   parameters : 202 value, 361 maps, 16 sets</span></span>
+<span><span class="co">#&gt;   parameters : 203 value, 360 maps, 16 sets</span></span>
 <span><span class="co">#&gt;   param rows : 95</span></span>
 <span><span class="co">#&gt;   estimate   : ~140 variables, ~128 constraints (from gating maps)</span></span>
 <span><span class="co">#&gt;   top parameters by rows:</span></span>
@@ -457,7 +457,7 @@ loading it.</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 7</span></span></span>
 <span><span class="co">#&gt;   status  name  type  version  sealed_at            refs size_mb</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dttm&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> current SM    model ea94b58e 2026-11-17 <span style="color: #949494;">03:15:46</span>     0       0</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> current SM    model a96c3c7c 2026-11-19 <span style="color: #949494;">02:47:32</span>     0       0</span></span></code></pre></div>
 <p><strong>Only sealed versions are referenced.</strong> A scenario
 records the model it was interpolated from. When that model is a sealed
 version, <code><a href="../reference/save_scenario.html">save_scenario()</a></code> stores the reference
@@ -475,7 +475,7 @@ lists the scenario among its dependents:</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 3</span></span></span>
 <span><span class="co">#&gt;   type     name  version </span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> scenario BASE  ea94b58e</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> scenario BASE  a96c3c7c</span></span></code></pre></div>
 <p>A model that is not sealed is copied into the scenario folder
 (<code>model/</code>), so a later change to the store cannot alter a
 saved scenario; <code>save_scenario(mode = "full")</code> (or
@@ -562,13 +562,13 @@ with REF’s additions and the new ones, which
 <code><a href="../reference/compare_inputs.html">compare_inputs()</a></code> confirms:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">full</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="va">fee</span>, name <span class="op">=</span> <span class="st">"FEE_FULL"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> checking declarations<span style="color: #00BB00;">✔</span> checking declarations <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> expanding vintage/cluster variants<span style="color: #00BB00;">✔</span> expanding vintage/cluster variants <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing commodity clusters<span style="color: #00BB00;">✔</span> materializing commodity clusters <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather clusters<span style="color: #00BB00;">✔</span> materializing weather clusters <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather transforms<span style="color: #00BB00;">✔</span> materializing weather transforms <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> checking declarations<span style="color: #00BB00;">✔</span> checking declarations <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> expanding vintage/cluster variants<span style="color: #00BB00;">✔</span> expanding vintage/cluster variants <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing commodity clusters<span style="color: #00BB00;">✔</span> materializing commodity clusters <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather clusters<span style="color: #00BB00;">✔</span> materializing weather clusters <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather transforms<span style="color: #00BB00;">✔</span> materializing weather transforms <span style="color: #555555;">(0.4s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: object names</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process classes<span style="color: #00BB00;">✔</span> collecting sets: process classes <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: timeframes</span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: timeframes <span style="color: #555555;">(0.0s)</span></span></span>
@@ -578,24 +578,24 @@ with REF’s additions and the new ones, which
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: membership comm sets <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process regions<span style="color: #00BB00;">✔</span> collecting sets: process regions <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: membership + closure</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> settings parameters (discount, period length, timeslice share)<span style="color: #00BB00;">✔</span> settings parameters (discount, period length, timeslice share) <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.4s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> settings parameters (discount, period length, timeslice share)<span style="color: #00BB00;">✔</span> settings parameters (discount, period length, timeslice share) <span style="color: #555555;">(0.4s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: calendar + lifespan</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.1s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> interpolating parameters over milestone years<span style="color: #00BB00;">✔</span> interpolating parameters over milestone years <span style="color: #555555;">(0.1s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> calendar-filter: restricting parameters to declared timeslices<span style="color: #00BB00;">✔</span> calendar-filter: restricting parameters to declared timeslices <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.3s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> interpolating parameters over milestone years<span style="color: #00BB00;">✔</span> interpolating parameters over milestone years <span style="color: #555555;">(0.3s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> calendar-filter: restricting parameters to declared timeslices<span style="color: #00BB00;">✔</span> calendar-filter: restricting parameters to declared timeslices <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing equivalent annual costs (EAC)<span style="color: #00BB00;">✔</span> computing equivalent annual costs (EAC) <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.2s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.1s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> compiling 1 user constraint(s) / cost term(s)<span style="color: #00BB00;">✔</span> compiling 1 user constraint(s) / cost term(s) <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.3s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.4s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> compiling 1 user constraint(s) / cost term(s)<span style="color: #00BB00;">✔</span> compiling 1 user constraint(s) / cost term(s) <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: cost aggregation<span style="color: #00BB00;">✔</span> building maps: cost aggregation <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing model-size summary<span style="color: #00BB00;">✔</span> computing model-size summary <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing model-size summary<span style="color: #00BB00;">✔</span> computing model-size summary <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; model_size: FEE_FULL</span></span>
-<span><span class="co">#&gt;   parameters : 202 value, 362 maps, 16 sets</span></span>
+<span><span class="co">#&gt;   parameters : 203 value, 361 maps, 16 sets</span></span>
 <span><span class="co">#&gt;   param rows : 95</span></span>
 <span><span class="co">#&gt;   estimate   : ~143 variables, ~128 constraints (from gating maps)</span></span>
 <span><span class="co">#&gt;   top parameters by rows:</span></span>
@@ -691,10 +691,10 @@ their <em>own</em> interpolated problem, with their solves inside.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> expanding vintage/cluster variants<span style="color: #00BB00;">✔</span> expanding vintage/cluster variants <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing commodity clusters<span style="color: #00BB00;">✔</span> materializing commodity clusters <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather clusters<span style="color: #00BB00;">✔</span> materializing weather clusters <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather transforms<span style="color: #00BB00;">✔</span> materializing weather transforms <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> materializing weather transforms<span style="color: #00BB00;">✔</span> materializing weather transforms <span style="color: #555555;">(0.3s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: object names</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process classes<span style="color: #00BB00;">✔</span> collecting sets: process classes <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: object names <span style="color: #555555;">(0.2s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process classes<span style="color: #00BB00;">✔</span> collecting sets: process classes <span style="color: #555555;">(0.2s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: timeframes</span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: timeframes <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process inputs/outputs</span></span>
@@ -703,8 +703,8 @@ their <em>own</em> interpolated problem, with their solves inside.</p>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> collecting sets: membership comm sets <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: process regions<span style="color: #00BB00;">✔</span> collecting sets: process regions <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: membership + closure</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: membership + closure <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> collecting sets: invest/stock windows<span style="color: #00BB00;">✔</span> collecting sets: invest/stock windows <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> settings parameters (discount, period length, timeslice share)<span style="color: #00BB00;">✔</span> settings parameters (discount, period length, timeslice share) <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: calendar + lifespan</span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: calendar + lifespan <span style="color: #555555;">(0.2s)</span></span></span>
@@ -714,12 +714,12 @@ their <em>own</em> interpolated problem, with their solves inside.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: value<span style="color: #00BB00;">✔</span> building maps: value <span style="color: #555555;">(0.0s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: filter</span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> building maps: filter <span style="color: #555555;">(0.1s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: constraint<span style="color: #00BB00;">✔</span> building maps: constraint <span style="color: #555555;">(0.1s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> prune: dropping flagged default-valued rows<span style="color: #00BB00;">✔</span> prune: dropping flagged default-valued rows <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> building maps: cost aggregation<span style="color: #00BB00;">✔</span> building maps: cost aggregation <span style="color: #555555;">(0.0s)</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing model-size summary<span style="color: #00BB00;">✔</span> computing model-size summary <span style="color: #555555;">(0.0s)</span></span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> computing model-size summary<span style="color: #00BB00;">✔</span> computing model-size summary <span style="color: #555555;">(0.1s)</span></span></span>
 <span><span class="co">#&gt; model_size: BASE</span></span>
-<span><span class="co">#&gt;   parameters : 202 value, 361 maps, 16 sets</span></span>
+<span><span class="co">#&gt;   parameters : 203 value, 360 maps, 16 sets</span></span>
 <span><span class="co">#&gt;   param rows : 95</span></span>
 <span><span class="co">#&gt;   estimate   : ~140 variables, ~128 constraints (from gating maps)</span></span>
 <span><span class="co">#&gt;   top parameters by rows:</span></span>

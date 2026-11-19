@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9007</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -97,7 +97,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>TOPIA II: running scenarios</h1>
             
-            <h4 data-toc-skip class="date">2026-11-16</h4>
+            <h4 data-toc-skip class="date">2026-11-18</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/vignettes/topia-use.Rmd" class="external-link"><code>vignettes/topia-use.Rmd</code></a></small>
       <div class="d-none name"><code>topia-use.Rmd</code></div>
@@ -532,7 +532,7 @@ exact at the model’s time resolution, with no calendar caveat.</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">lc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/levcost.html">levcost</a></span><span class="op">(</span><span class="va">scen_BASE</span>, name <span class="op">=</span> <span class="st">"ENUC"</span><span class="op">)</span>      <span class="co"># the existing nuclear fleet</span></span>
 <span><span class="va">lc</span><span class="op">$</span><span class="va">levcost_npv</span>                               <span class="co"># NPV levelized cost, MUSD/GWh</span></span>
-<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">lc</span>, type <span class="op">=</span> <span class="st">"components"</span><span class="op">)</span>            <span class="co"># eac / fixom / varom / supply, by year</span></span></code></pre></div>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">lc</span>, type <span class="op">=</span> <span class="st">"components"</span><span class="op">)</span>            <span class="co"># eac / fixom / varom / input, by year</span></span></code></pre></div>
 <p><code>ENUC</code> runs on base-year capacity, so its <strong>capital
 is already sunk</strong> – the annualised-investment term
 <code>eac</code> is ~0 and the realized cost is <strong>fixed O&amp;M

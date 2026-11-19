@@ -119,7 +119,10 @@ newStorage(
 
   data.frame. The commodity that FILLS the store – the "charger" side.
   Named by `comm`, with an optional `unit`. Left empty it takes whatever
-  `newStorage(commodity = )` supplied.
+  `newStorage(commodity = )` supplied. The charger is an OPTIONAL part:
+  `vStorageInpCap` exists only where the object declares something on
+  it, and naming the commodity here is not a declaration. See
+  `@capacity` for the rule.
 
   comm
 
@@ -151,7 +154,10 @@ newStorage(
 
   data.frame. The commodity the store RELEASES – the "discharger" side.
   Named by `comm`, with an optional `unit`. Left empty it takes whatever
-  `newStorage(commodity = )` supplied.
+  `newStorage(commodity = )` supplied. The discharger is an OPTIONAL
+  part: `vStorageOutCap` exists only where the object declares something
+  on it, and naming the commodity here is not a declaration. See
+  `@capacity` for the rule.
 
   comm
 
@@ -190,11 +196,14 @@ newStorage(
   construction, so an object never carries two answers to what it
   consumes. Beyond `comm`, this slot carries the storing side's OWN
   capacity and economics, measured in ENERGY (e.g. MWh) rather than
-  power. Supplying any of them materialises `vStorageStgCap`, so the
-  store's energy can be sized, bounded and priced independently of its
-  inverter; supplying none of them (a bare `comm`) leaves the storage
-  with a single power capacity and the pre-v0.84 model, with `@duration`
-  inlined into the availability bounds.
+  power, so the store's energy can be sized, bounded and priced
+  independently of its inverter. The reservoir is the ANCHOR:
+  `vStorageStgCap` exists for every storage, whether or not any `stg.`
+  column is supplied. What the `stg.` columns decide is whether it is
+  DETERMINED – a reservoir with no stock, bound or price and no link to
+  a sized part (`duration`, `inp2stg`) is a free, unbounded energy
+  capacity, which interpolation refuses. `stg.invcost = 0` declares a
+  deliberately free one.
 
   comm
 
@@ -474,9 +483,14 @@ newStorage(
   (which bounds activity, a flow), the storage `stg.af.*` columns bound
   the stored LEVEL – a stock – as a fraction of the storing capacity,
   i.e. a state-of-charge range. They are not capacity factors. The
-  flow-side bounds are the `cinp.*`/`cout.*` columns, which bound
+  flow-side bounds are the `inp.af.*`/`out.af.*` columns, which bound
   charge/discharge relative to the charger/discharger capacity per
-  timeslice (those are the storage analogue of a technology's `af`).
+  timeslice (those are the storage analogue of a technology's `af`). An
+  `inp.af`/`out.af` is itself a declaration of that part, so writing one
+  brings the converter into being – but it does not SIZE it. A part with
+  no capacity bound, price or link behind it is sized freely by the LP,
+  and a bound scaling a free capacity constrains nothing; see
+  `@capacity`.
 
   vintage
 
@@ -777,7 +791,24 @@ newStorage(
 
 - capacity:
 
-  data.frame. Capacity parameters of the storage technology.
+  data.frame. Capacity parameters of the storage technology, in three
+  groups: the charger (`inp.`), the reservoir (`stg.`) and the
+  discharger (`out.`). The reservoir always exists. The two converters
+  do not: `vStorageInpCap` and `vStorageOutCap` exist only where the
+  OBJECT declares something on that part, and the declaration may sit in
+  any slot – a bound or a stock here, a cost in `@invcost` or `@fixom`,
+  an `inp.af` in `@af`, an `inp.eff` in `@seff`, an aux coupling in
+  `@aeff` – or be a ratio link (`inp2out`, `inp2stg`, `duration`), which
+  declares both of its ends. `comm`, `unit` and `cap2act` declare
+  nothing: `cap2act` is filled on every part at construction. The rule
+  reads the object, not the interpolated parameters, so a declared `0`
+  or `Inf` counts and `inp.invcost = 0` is a deliberately free charger.
+  Only a stock, a `cap`/`ncap` bound, a price (`invcost`, `eac`,
+  `fixom`) or a link SIZES a part; declared by anything else it exists
+  but nothing fixes its size, so the LP sets it freely and an `af`
+  scaling it constrains nothing –
+  [`validate_scenario_parameters()`](https://energyRt.org/reference/validate_scenario_parameters.md)
+  reports that as `unsized_part`.
 
   vintage
 

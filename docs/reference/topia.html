@@ -15,7 +15,7 @@ folded together by data-raw/topia_assemble.R.'><meta property="og:image" content
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9005</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9007</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -229,10 +229,15 @@ bridging) to 10. The arithmetic is written out in
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">geoscales</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "squares"   "honeycomb" "island"    "continent"</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">weather</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "dataset"   "calendar"  "resource"  "region"    "cluster"   "timeslice"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [7] "wval"     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "d365_h24" "s4_h24"  </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">topia</span><span class="op">$</span><span class="va">weather</span><span class="op">$</span><span class="va">s4_h24</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     dataset resource region cluster timeslice  wval</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 simulated     WHYD    R01    &lt;NA&gt;   WIN_h00 0.535</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 simulated     WHYD    R01    &lt;NA&gt;   WIN_h01 0.535</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 simulated     WHYD    R01    &lt;NA&gt;   WIN_h02 0.535</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 simulated     WHYD    R01    &lt;NA&gt;   WIN_h03 0.535</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 simulated     WHYD    R01    &lt;NA&gt;   WIN_h04 0.535</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 simulated     WHYD    R01    &lt;NA&gt;   WIN_h05 0.535</span>
 <span class="r-in"><span><span class="va">topia</span><span class="op">$</span><span class="va">stock</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   tech gw</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 ECOA  6</span>

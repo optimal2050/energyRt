@@ -13,6 +13,8 @@ solve_base_year(
   name = NULL,
   solver = NULL,
   optimize_retirement = FALSE,
+  capacity = c("fixed", "free"),
+  relax = character(),
   variant = "by",
   save = TRUE,
   ...,
@@ -40,6 +42,23 @@ solve_base_year(
 - optimize_retirement:
 
   allow the base year to retire stock endogenously.
+
+- capacity:
+
+  `"fixed"` (default) pins TOTAL capacity at the declared stock: the
+  base year dispatches an observed fleet, it does not plan one. Blocking
+  investment alone would not do it – with retirement free the total
+  could still fall – so this pairs with `optimize_retirement`. `"free"`
+  restores the old behaviour, in which any process without an explicit
+  `ncap.up` may be built in the base year.
+
+- relax:
+
+  process names left free to invest despite `capacity = "fixed"`. Where
+  an observed fleet cannot serve an observed load, letting a named
+  process correct the stock beats an infeasible solve – but the base
+  year is then no longer a pure dispatch, so each name is a stated
+  assumption and is reported.
 
 - variant:
 

@@ -174,10 +174,15 @@ names(topia)
 names(topia$geoscales)
 #> [1] "squares"   "honeycomb" "island"    "continent"
 names(topia$weather)
-#> [1] "dataset"   "calendar"  "resource"  "region"    "cluster"   "timeslice"
-#> [7] "wval"     
+#> [1] "d365_h24" "s4_h24"  
 head(topia$weather$s4_h24)
-#> NULL
+#>     dataset resource region cluster timeslice  wval
+#> 1 simulated     WHYD    R01    <NA>   WIN_h00 0.535
+#> 2 simulated     WHYD    R01    <NA>   WIN_h01 0.535
+#> 3 simulated     WHYD    R01    <NA>   WIN_h02 0.535
+#> 4 simulated     WHYD    R01    <NA>   WIN_h03 0.535
+#> 5 simulated     WHYD    R01    <NA>   WIN_h04 0.535
+#> 6 simulated     WHYD    R01    <NA>   WIN_h05 0.535
 topia$stock
 #>   tech gw
 #> 1 ECOA  6

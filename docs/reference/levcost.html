@@ -13,7 +13,7 @@ without re-solving: levcost(lc, by_variant = "npv").'><meta property="og:image" 
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9005</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9007</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -281,7 +281,7 @@ priced across both at once.</p></dd>
 
 <dt><code>$cost_breakdown</code></dt>
 <dd><p>data.frame – tidy cost components by year.
-Components: <code>eac</code>, <code>fixom</code>, <code>varom</code>, <code>supply</code>,
+Components: <code>eac</code>, <code>fixom</code>, <code>varom</code>, <code>input</code>,
 <code>import</code>, <code>export</code> (negative, a credit).</p></dd>
 
 <dt><code>$cost_breakdown_npv</code></dt>
@@ -358,7 +358,7 @@ unit discharged, not its delivered cost; use <code>levcost()</code> on the
 <code>storage</code> object with <code>price =</code> for the latter.</p>
 <p>A <em>grouped</em> input is priced like any other: <code>vTechInp</code> carries the
 consumption of each member commodity separately, so a multi-fuel technology
-reports one <code>supply</code> component covering the blend the solver chose.
+reports one <code>input</code> component covering the blend the solver chose.
 What a group does not get is a share <em>frontier</em> –
 <code><a href="tech_share_frontier.html">tech_share_frontier()</a></code> skips a group in which no commodity declares an
 explicit <code>grp.share.up</code> or a positive <code>grp.share.lo</code>, since an

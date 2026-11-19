@@ -485,7 +485,7 @@ exact at the model’s time resolution, with no calendar caveat.
 
 lc <- levcost(scen_BASE, name = "ENUC")      # the existing nuclear fleet
 lc$levcost_npv                               # NPV levelized cost, MUSD/GWh
-autoplot(lc, type = "components")            # eac / fixom / varom / supply, by year
+autoplot(lc, type = "components")            # eac / fixom / varom / input, by year
 ```
 
 `ENUC` runs on base-year capacity, so its **capital is already sunk** –

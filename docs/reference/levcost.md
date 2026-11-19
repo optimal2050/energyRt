@@ -225,7 +225,7 @@ For `technology` input: a list of class `"levcost"` with fields:
 - `$cost_breakdown`:
 
   data.frame – tidy cost components by year. Components: `eac`, `fixom`,
-  `varom`, `supply`, `import`, `export` (negative, a credit).
+  `varom`, `input`, `import`, `export` (negative, a credit).
 
 - `$cost_breakdown_npv`:
 
@@ -304,7 +304,7 @@ object with `price =` for the latter.
 
 A *grouped* input is priced like any other: `vTechInp` carries the
 consumption of each member commodity separately, so a multi-fuel
-technology reports one `supply` component covering the blend the solver
+technology reports one `input` component covering the blend the solver
 chose. What a group does not get is a share *frontier* –
 [`tech_share_frontier()`](https://energyRt.org/reference/tech_share_frontier.md)
 skips a group in which no commodity declares an explicit `grp.share.up`

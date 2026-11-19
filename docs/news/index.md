@@ -894,6 +894,28 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 ### Breaking changes
 
+- **[`levcost()`](https://energyRt.org/reference/levcost.md)’s `supply`
+  cost component is now `input`, and a process that consumes anything
+  always reports one.** The old name claimed to know the commodity was a
+  fuel. A free input used to be omitted rather than reported at zero –
+  `cost = 0` equals `pSupCost`’s default, so the row is pruned and no
+  `vSupCost` cell remains to read back – which made
+  [`levcost()`](https://energyRt.org/reference/levcost.md) on a bare
+  technology look like a complete cost. It is now a zero in the
+  breakdown and in `cost_yearly`.
+
+- **A storage’s charger and discharger exist wherever the object
+  declares an `inp.` / `out.` column on them.** Read from the object,
+  not from the pruned parameters, so `inp.invcost = 0` and
+  `inp.cap.up = Inf` count and `sparse =` no longer decides which parts
+  a model has. `inp2out`, `inp2stg` and `duration` declare both of their
+  ends; `comm`, `unit` and `cap2act` declare nothing. A part declared by
+  a zero or an `Inf` gains a real capacity variable, so an `af` bound on
+  it starts binding. An `af`, a link or an aux coupling alone no longer
+  errors, and
+  [`validate_scenario_parameters()`](https://energyRt.org/reference/validate_scenario_parameters.md)
+  reports a part nothing sizes as `unsized_part`.
+
 - **A storage level no longer crosses a gap left by a sampled
   calendar.** A sample keeps blocks of the year and drops the rest, so
   its successor relation chained blocks months apart as if they were
@@ -1147,6 +1169,65 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
   and `"topia_seasons"` are removed.
 
 ### Bug fixes
+
+- [`update()`](https://energyRt.org/reference/update.md) refuses
+  `period`, on a `horizon` and through a `config`, and names
+  [`newHorizon()`](https://energyRt.org/reference/newHorizon.md) /
+  [`setHorizon()`](https://energyRt.org/reference/newModel.md).
+  `intervals` is derived from it, and writing one slot at a time left
+  the milestones naming years the new period did not contain. Rebuilding
+  them would drop the `calendar` and `weight` columns `intervals` now
+  carries, so the horizon is replaced whole instead.
+
+- A slot of an unnamed object is checked for conflicting rows instead of
+  stopping. `@name` is `character(0)` there, and the message built from
+  it made the condition `NA`, so
+  [`update()`](https://energyRt.org/reference/update.md) on any unnamed
+  object died before a row was read.
+
+- `update(config, ...)` refuses the calendar slots derived from a
+  timetable (`timetable` itself, `timeslice_share`, `timeframe_rank`,
+  `timeslices_in_frame`, `timeslice_family`, `timeslice_ancestry`,
+  `next_in_timeframe`, `next_in_year`) and names
+  [`setCalendar()`](https://energyRt.org/reference/setCalendar.md). They
+  were accepted only because
+  [`update()`](https://energyRt.org/reference/update.md) forwards every
+  argument into the calendar’s slots: setting one wrote it and left the
+  rest describing the previous calendar, with the new timetable then
+  validated against that stale structure.
+
+- A table handed to a keyed slot is checked for conflicting rows whether
+  it is a data.frame or a data.table. The guard subset its key columns
+  with data.frame indexing, which a data.table reads as a column name in
+  `j`, so `newSupply(supply = <data.table>)` stopped on a data.table
+  error instead of being checked.
+
+- [`levcost()`](https://energyRt.org/reference/levcost.md) on a
+  container says what it could not price. A process whose input
+  commodity nothing supplies is skipped, and the refusal was a
+  verbose-gated message, so a sweep returned a shorter list with no
+  record of the gap. It now warns once and carries `attr(x, "unpriced")`
+  naming each process, its class and the reason.
+
+- [`levcost()`](https://energyRt.org/reference/levcost.md) takes the
+  region from every slot that names one, as `by_region` always did.
+  Reading only `@region` and `@capacity` priced a technology whose
+  regions appear in `invcost` alone in a synthetic region where none of
+  its rows matched, and every number came back `NA` –
+  `by_variant = TRUE` most visibly.
+
+- A `trade` levelized cost carries the traded commodity’s unit, taken
+  from the container. PJ-priced fuel corridors otherwise sat in one
+  table beside GWh-priced ones with nothing to tell them apart.
+
+- A levy on a storage part that does not exist is reported instead of
+  charging nothing. `inp.cap`, `inp.ncap`, `out.cap` and `out.ncap` are
+  summed over the part’s own capacity map, so a rate on a storage
+  without that converter multiplied nothing;
+  [`validate_scenario_parameters()`](https://energyRt.org/reference/validate_scenario_parameters.md)
+  now names it as `levy_no_part`, per cell and per levy. Advisory, since
+  a levy selecting every storage legitimately sweeps reservoir-only
+  ones.
 
 - The [`setCalendar()`](https://energyRt.org/reference/setCalendar.md)
   example runs. Its horizon was built from

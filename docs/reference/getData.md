@@ -449,12 +449,14 @@ getData(
   scenario recorded (see
   [`solve_base_year()`](https://energyRt.org/reference/solve_base_year.md)),
   and every row gains a `source` column — `"solved"` for the scenario's
-  own LP, `"base"` for the base year. `vObjective` is not unioned: the
-  base year and the projection are separate optimisations, so only the
-  projection's is returned. A scenario that records no base year, or
-  whose recorded source cannot be read, warns and returns its own rows
-  alone. Note that post-processing applies the FIRST object's horizon
-  and calendar labels to every row.
+  own LP, `"base"` for the base year. `vObjective` is returned for both,
+  tagged in `source`, with a warning: the two are separate optimisations
+  – one undiscounted year against a discounted multi-period total – so
+  they may be shown side by side but do not sum into a system cost. A
+  scenario whose linked base year has been re-solved since also warns. A
+  scenario that records no base year, or whose recorded source cannot be
+  read, warns and returns its own rows alone. Note that post-processing
+  applies the FIRST object's horizon and calendar labels to every row.
 
 - verbose:
 
