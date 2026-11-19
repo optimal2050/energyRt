@@ -185,6 +185,14 @@ for (nm in names(topia_geoscales)) {
     setequal(geoscales::geoscale_regions(gs, "province"), .topia_regions),
     nrow(geoscales::geoscale_geometry(gs, "zone")) == length(.topia_zones)
   )
+  # every polygon is on the row of its code: compared shape by shape with the
+  # layout it was attached from, which carries the codes
+  chk <- geoscales::check_geometry_geoscale(gs, reference = map[[nm]],
+                                            by = "region", quiet = TRUE)
+  if (any(chk$status == "fail")) {
+    print(chk)
+    stop("topia$geoscales$", nm, ": geometry is not on the rows of its codes")
+  }
 }
 
 # -- the hierarchy a MODEL is solved on --------------------------------------
