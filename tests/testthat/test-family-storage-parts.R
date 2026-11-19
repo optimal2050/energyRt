@@ -281,3 +281,30 @@ test_that("family storage-parts: parts in different units need `inp2out`", {
   expect_true(!is.null(s_in) && isTRUE(s_in@status$solved))
   expect_equal(obj(s_in), 202.7778, tolerance = 1e-4)
 })
+
+# @covers eqStorageAfUp vStorageStgCap depth=X backends=julia_highs,pyomo_cbc,mm_highs
+test_that("family storage-parts: the backends agree on the level-against-reservoir bound", {
+  # eqStorageAfLo / AfFx / AfUp and eqStorageTarget read the reservoir's
+  # capacity, and each template spells that term differently: GLPK and GAMS sum
+  # over `mStorageStgCap`, Pyomo and Julia index the variable by it. The
+  # reservoir is the anchor, so the same cell is in every backend's domain --
+  # this is what checks all four spellings against one answer.
+  skip_if_no_solver()
+  skip_if_tier_below("cross")
+  mk <- function() pt_build(invcost = data.frame(stg.invcost = 0),
+                            af = data.frame(stg.af.up = 0.8))
+  ref <- pt_solve(mk(), "pt_af_x_glpk")
+  expect_equal(ff_solution_sum(ref, "vStorageStgCap"), 12.5, tolerance = 1e-6)
+  for (b in c("julia_highs", "pyomo_cbc", "mm_highs")) {
+    ok <- switch(b, julia_highs = has_julia(), pyomo_cbc = has_python(),
+                 mm_highs = has_multimod())
+    if (!isTRUE(ok)) next
+    scen <- .fork_solve(suppressMessages(suppressWarnings(interpolate_model(
+      mk(), name = paste0("pt_af_x_", b), overwrite = TRUE))),
+      solver_options[[b]])
+    expect_equal(.fork_objective(scen), .fork_objective(ref),
+                 tolerance = 1e-6, label = b)
+    expect_equal(ff_solution_sum(scen, "vStorageStgCap"), 12.5,
+                 tolerance = 1e-6, label = b)
+  }
+})

@@ -3265,6 +3265,69 @@ validate_scenario_parameters <- function(object, fold = TRUE,
                paste(utils::head(who, 5), collapse = ", ")))
   }
 
+  # A levy on a storage part that does not exist charges nothing. The LP term is
+  # summed over the part's own capacity map in eqTaxCost / eqSubCost, so a rate
+  # on a cell outside it is silently free. `.levy_check_stg_cap()` runs on the
+  # object and can only see its rate columns; the parts exist after the maps are
+  # built. Advisory, not an error: a levy selecting every storage legitimately
+  # sweeps reservoir-only ones. Tested against the part's CAPACITY map for the
+  # `ncap` columns too -- a cell outside the NEW map usually means no investment
+  # window rather than no part.
+  local({
+    pget <- function(nm) tryCatch({
+      pr <- object@modInp@parameters[[nm]]
+      if (is.null(pr)) return(NULL)
+      d <- as.data.frame(get_data_slot(pr))
+      if (is.null(d) || !nrow(d)) NULL else d
+    }, error = function(e) NULL)
+    sp <- pget("mStorageSpan")
+    if (is.null(sp) || !"stg" %in% colnames(sp)) return(invisible())
+    stg_all <- unique(as.character(sp$stg))
+    for (lv in list(
+      list(map = "mStorageInpCap", what = "charger",
+           pars = c("pTaxProcInpCap", "pTaxProcInpNcap",
+                    "pSubProcInpCap", "pSubProcInpNcap"),
+           how = "inp.invcost, inp.cap.up, inp2stg or inp2out"),
+      list(map = "mStorageOutCap", what = "discharger",
+           pars = c("pTaxProcOutCap", "pTaxProcOutNcap",
+                    "pSubProcOutCap", "pSubProcOutNcap"),
+           how = "out.invcost, out.cap.up, duration or inp2out"))) {
+      md <- pget(lv$map)
+      have <- if (is.null(md) || !all(c("stg", "region", "year") %in% colnames(md)))
+        NULL else dplyr::distinct(data.frame(
+          stg = as.character(md$stg), region = as.character(md$region),
+          year = as.integer(md$year), stringsAsFactors = FALSE))
+      for (pn in lv$pars) {
+        pd <- pget(pn)
+        if (is.null(pd) ||
+            !all(c("process", "region", "year", "value") %in% colnames(pd))) next
+        pd <- pd[!is.na(pd$value) & pd$value != 0 &
+                   !is.na(pd$region) & !is.na(pd$year) &
+                   as.character(pd$process) %in% stg_all, , drop = FALSE]
+        if (!nrow(pd)) next
+        cells <- dplyr::distinct(data.frame(
+          stg = as.character(pd$process), region = as.character(pd$region),
+          year = as.integer(pd$year),
+          levy = if ("levy" %in% colnames(pd)) as.character(pd$levy)
+                 else NA_character_, stringsAsFactors = FALSE))
+        gap <- if (is.null(have)) cells else
+          dplyr::anti_join(cells, have, by = c("stg", "region", "year"))
+        if (!NROW(gap)) next
+        who <- unique(gap$stg)
+        lvs <- unique(gap$levy[!is.na(gap$levy)])
+        add(pn, "levy_no_part",
+            paste0("charges a ", lv$what, " that does not exist, so it charges ",
+                   "nothing -- declare the part (", lv$how, ") or levy the ",
+                   "reservoir (stg.cap / stg.ncap) -- at ", NROW(gap),
+                   " cell(s) of ", length(who), " object(s): ",
+                   paste(utils::head(who, 5), collapse = ", "),
+                   if (length(lvs))
+                     paste0("; levy ", paste(utils::head(lvs, 3), collapse = ", "))
+                   else ""))
+      }
+    }
+  })
+
   # Variant provenance: `sets$variant` is the authoritative map from a minted
   # process name to its (base, vintage, cluster) cell, and the documented rule is
   # that a name is never parsed back into coordinates. That only holds if the

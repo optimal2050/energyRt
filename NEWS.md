@@ -843,6 +843,8 @@ continue. Upgrading from 0.50 is not a drop-in: see *Breaking changes*.
 
 ## Bug fixes
 
+* A levy on a storage part that does not exist is reported instead of charging nothing. `inp.cap`, `inp.ncap`, `out.cap` and `out.ncap` are summed over the part's own capacity map, so a rate on a storage without that converter multiplied nothing; `validate_scenario_parameters()` now names it as `levy_no_part`, per cell and per levy. Advisory, since a levy selecting every storage legitimately sweeps reservoir-only ones.
+
 * The `setCalendar()` example runs. Its horizon was built from
   `newHorizon(c(2030, 2035, 2040), ...)`, where `period` is a span rather than
   a list of milestones, so the years it then asked for were not milestones of
