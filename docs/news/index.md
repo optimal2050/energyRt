@@ -32,6 +32,26 @@ and debugging continue. Upgrading from 0.50 is not a drop-in: see
 
 ### New features
 
+- **[`getData()`](https://energyRt.org/reference/getData.md) weights
+  results by timeslice and by period length.** `apply_weights = TRUE`
+  multiplies `value` by `pTimesliceWeight(year, timeslice)` – how many
+  times a slice occurs in its year, `1` on a full calendar,
+  `1/year_fraction` on a sampled one, and `1` at the top (`ANNUAL`)
+  slice always – so a sampled scenario’s per-slice results annualise,
+  and applying the weights after `timeframe = "lowest"` multiplies by 1
+  instead of annualising twice. `apply_period_length = TRUE` multiplies
+  by `pPeriodLen(year)`, the years a milestone stands for. `add_weights`
+  / `add_period_length` attach the factor as a column (`weight`,
+  `period_length`); `"auto"`, the default, attaches it when it was
+  applied, so no existing result changes shape.
+
+  What is multiplied is decided by the declared catalogue, not by the
+  column being there: only a result declared `sum` on the time axis is
+  weighted, and only a flow-like role is spread over a period. A level
+  is a snapshot, a capacity is a stock and an input parameter is a rate,
+  so none of them is scaled – and whatever was left alone is named in a
+  warning. The four arguments were accepted and silently ignored before.
+
 - **The objective can be weighted by milestone year and by region.**
   `setObjectiveWeights(mod, years = , regions = )` writes the two halves
   – `horizon@intervals$weight` per milestone and `config@objweight` per

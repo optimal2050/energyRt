@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9007</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9008</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -116,7 +116,9 @@
 
 
 <dt id="arg-add-weights">add_weights<a class="anchor" aria-label="anchor" href="#arg-add-weights"></a></dt>
-<dd><p>accepted and currently ignored.</p></dd>
+<dd><p>accepted and ignored: <code>findData()</code> returns names and
+dimensions, not values, so there is nothing to weight. The weighting
+arguments live on <code><a href="getData.html">getData()</a></code>.</p></dd>
 
 
 <dt id="arg-dropempty">dropEmpty<a class="anchor" aria-label="anchor" href="#arg-dropempty"></a></dt>

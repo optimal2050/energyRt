@@ -190,32 +190,32 @@ scen_vin <- solve_model(
   overwrite = TRUE,
   echo = FALSE
 )
-#> ℹ checking declarations✔ checking declarations (0.1s)
+#> ℹ checking declarations✔ checking declarations (0.0s)
 #> ℹ expanding vintage/cluster variants
-#> ✔ expanding vintage/cluster variants (0.2s)
+#> ✔ expanding vintage/cluster variants (0.0s)
 #> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
-#> ℹ materializing weather transforms✔ materializing weather transforms (0.5s)
+#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
 #> ℹ collecting sets: object names
-#> ✔ collecting sets: object names (0.1s)
+#> ✔ collecting sets: object names (0.0s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
-#> ℹ collecting sets: timeframes✔ collecting sets: timeframes (0.1s)
-#> ℹ collecting sets: process inputs/outputs✔ collecting sets: process inputs/outputs (0.1s)
+#> ℹ collecting sets: timeframes✔ collecting sets: timeframes (0.0s)
+#> ℹ collecting sets: process inputs/outputs✔ collecting sets: process inputs/outputs (0.0s)
 #> ℹ collecting sets: membership comm sets✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
-#> ℹ building maps: membership + closure✔ building maps: membership + closure (0.4s)
+#> ℹ building maps: membership + closure✔ building maps: membership + closure (0.1s)
 #> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
-#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.4s)
-#> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.4s)
-#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.3s)
+#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.2s)
+#> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.2s)
+#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.2s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
-#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.2s)
+#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
 #> ℹ building maps: value✔ building maps: value (0.1s)
-#> ℹ building maps: filter✔ building maps: filter (0.5s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.3s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.2s)
-#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.1s)
-#> ℹ computing model-size summary✔ computing model-size summary (0.3s)
+#> ℹ building maps: filter✔ building maps: filter (0.3s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
+#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
+#> ℹ computing model-size summary✔ computing model-size summary (0.1s)
 #> model_size: art_vintage
 #>   parameters : 203 value, 360 maps, 16 sets
 #>   param rows : 751
@@ -376,35 +376,35 @@ scen_clu <- solve_model(
 )
 #> ℹ checking declarations✔ checking declarations (0.2s)
 #> ℹ expanding vintage/cluster variants
-#> ✔ expanding vintage/cluster variants (0.4s)
-#> ℹ materializing commodity clusters✔ materializing commodity clusters (0.1s)
-#> ℹ materializing weather clusters✔ materializing weather clusters (0.1s)
+#> ✔ expanding vintage/cluster variants (0.0s)
+#> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
+#> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
 #> ℹ materializing weather transforms✔ materializing weather transforms (0.4s)
 #> ℹ collecting sets: object names
-#> ✔ collecting sets: object names (0.1s)
+#> ✔ collecting sets: object names (0.0s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
 #> ℹ collecting sets: timeframes
-#> ✔ collecting sets: timeframes (0.1s)
+#> ✔ collecting sets: timeframes (0.0s)
 #> ℹ collecting sets: process inputs/outputs
 #> ✔ collecting sets: process inputs/outputs (0.0s)
 #> ℹ collecting sets: membership comm sets
 #> ✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
 #> ℹ building maps: membership + closure
-#> ✔ building maps: membership + closure (0.3s)
+#> ✔ building maps: membership + closure (0.1s)
 #> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
-#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.4s)
+#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan
-#> ✔ building maps: calendar + lifespan (0.3s)
+#> ✔ building maps: calendar + lifespan (0.2s)
 #> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.3s)
-#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.1s)
-#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.1s)
+#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
+#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
 #> ℹ building maps: value✔ building maps: value (0.1s)
 #> ℹ building maps: filter
-#> ✔ building maps: filter (0.4s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.4s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.2s)
-#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.1s)
+#> ✔ building maps: filter (0.2s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
+#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.1s)
 #> model_size: art_cluster
 #>   parameters : 203 value, 360 maps, 16 sets
@@ -482,9 +482,9 @@ mod_rr <- newModel(
   discount = 0.05
 )
 scen_rr <- interpolate_model(mod_rr, name = "art_region", ondisk = FALSE)
-#> ℹ checking declarations✔ checking declarations (0.2s)
+#> ℹ checking declarations✔ checking declarations (0.3s)
 #> ℹ expanding vintage/cluster variants
-#> ✔ expanding vintage/cluster variants (0.0s)
+#> ✔ expanding vintage/cluster variants (0.1s)
 #> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
 #> ℹ materializing weather transforms✔ materializing weather transforms (0.4s)
@@ -492,7 +492,7 @@ scen_rr <- interpolate_model(mod_rr, name = "art_region", ondisk = FALSE)
 #> ✔ collecting sets: object names (0.0s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
 #> ℹ collecting sets: timeframes
-#> ✔ collecting sets: timeframes (0.0s)
+#> ✔ collecting sets: timeframes (0.1s)
 #> ℹ collecting sets: process inputs/outputs
 #> ✔ collecting sets: process inputs/outputs (0.0s)
 #> ℹ collecting sets: membership comm sets
@@ -504,13 +504,13 @@ scen_rr <- interpolate_model(mod_rr, name = "art_region", ondisk = FALSE)
 #> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan
 #> ✔ building maps: calendar + lifespan (0.3s)
-#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.2s)
+#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.3s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
-#> ℹ building maps: value✔ building maps: value (0.0s)
+#> ℹ building maps: value✔ building maps: value (0.1s)
 #> ℹ building maps: filter
 #> ✔ building maps: filter (0.2s)
-#> ℹ building maps: constraint✔ building maps: constraint (0.2s)
+#> ℹ building maps: constraint✔ building maps: constraint (0.1s)
 #> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.1s)
@@ -784,7 +784,7 @@ scen_w <- interpolate_model(mod_w, name = "art_weather", ondisk = FALSE)
 #> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
 #> ℹ materializing weather clusters
 #> ✔ materializing weather clusters (0.0s)
-#> ℹ materializing weather transforms✔ materializing weather transforms (0.4s)
+#> ℹ materializing weather transforms✔ materializing weather transforms (0.3s)
 #> ℹ collecting sets: object names
 #> ✔ collecting sets: object names (0.0s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
@@ -956,13 +956,13 @@ scen_land <- solve_model(
 )
 #> ℹ checking declarations✔ checking declarations (0.0s)
 #> ℹ expanding vintage/cluster variants
-#> ✔ expanding vintage/cluster variants (0.1s)
+#> ✔ expanding vintage/cluster variants (0.0s)
 #> ℹ materializing commodity clusters
 #> ✔ materializing commodity clusters (0.0s)
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
 #> ℹ materializing weather transforms✔ materializing weather transforms (0.4s)
 #> ℹ collecting sets: object names
-#> ✔ collecting sets: object names (0.3s)
+#> ✔ collecting sets: object names (0.2s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
 #> ℹ collecting sets: timeframes✔ collecting sets: timeframes (0.0s)
 #> ℹ collecting sets: process inputs/outputs✔ collecting sets: process inputs/outputs (0.0s)
@@ -975,7 +975,7 @@ scen_land <- solve_model(
 #> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.2s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
-#> ℹ building maps: value✔ building maps: value (0.1s)
+#> ℹ building maps: value✔ building maps: value (0.0s)
 #> ℹ building maps: filter✔ building maps: filter (0.2s)
 #> ℹ building maps: constraint✔ building maps: constraint (0.1s)
 #> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
@@ -1134,11 +1134,11 @@ scen_coal <- interpolate_model(mod_coal, name = "art_coal", ondisk = FALSE)
 #> ℹ materializing commodity clusters
 #> ✔ materializing commodity clusters (0.0s)
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
-#> ℹ materializing weather transforms✔ materializing weather transforms (0.3s)
+#> ℹ materializing weather transforms✔ materializing weather transforms (0.4s)
 #> ℹ collecting sets: object names
 #> ✔ collecting sets: object names (0.0s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
-#> ℹ collecting sets: timeframes✔ collecting sets: timeframes (0.1s)
+#> ℹ collecting sets: timeframes✔ collecting sets: timeframes (0.0s)
 #> ℹ collecting sets: process inputs/outputs✔ collecting sets: process inputs/outputs (0.0s)
 #> ℹ collecting sets: membership comm sets✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
@@ -1146,11 +1146,11 @@ scen_coal <- interpolate_model(mod_coal, name = "art_coal", ondisk = FALSE)
 #> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
 #> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.2s)
-#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.3s)
+#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.2s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
 #> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
-#> ℹ building maps: value✔ building maps: value (0.1s)
-#> ℹ building maps: filter✔ building maps: filter (0.2s)
+#> ℹ building maps: value✔ building maps: value (0.0s)
+#> ℹ building maps: filter✔ building maps: filter (0.3s)
 #> ℹ building maps: constraint✔ building maps: constraint (0.1s)
 #> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
@@ -1414,7 +1414,7 @@ scen_site <- solve_model(
 #> ℹ materializing commodity clusters
 #> ✔ materializing commodity clusters (0.0s)
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
-#> ℹ materializing weather transforms✔ materializing weather transforms (0.6s)
+#> ℹ materializing weather transforms✔ materializing weather transforms (0.4s)
 #> ℹ collecting sets: object names
 #> Warning: calendar 'two_seasons' is representative at 'SEASON': its slices span
 #> 2 x the length of one SEASON. `share` carries the repetition, so anything with
@@ -1432,9 +1432,9 @@ scen_site <- solve_model(
 #> ✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
 #> ℹ building maps: membership + closure
-#> ✔ building maps: membership + closure (0.1s)
+#> ✔ building maps: membership + closure (0.2s)
 #> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
-#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.2s)
+#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
 #> ℹ building maps: calendar + lifespan
 #> ✔ building maps: calendar + lifespan (0.2s)
 #> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.2s)

@@ -42,5 +42,5 @@ Other options:
 
 ``` r
 get_scenarios_path()
-#> [1] "C:/Users/admin/AppData/Local/Temp/RtmpKKOxnM/energyRt/scenarios"
+#> [1] "C:/Users/admin/AppData/Local/Temp/RtmpS06Vs4/energyRt/scenarios"
 ```

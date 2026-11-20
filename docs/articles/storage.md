@@ -287,29 +287,29 @@ mod_day <- newModel(
 )
 
 scen_year <- solve_model(mod_year, name = "fy_year")
-#> ℹ checking declarations✔ checking declarations (0.1s)
-#> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.1s)
+#> ℹ checking declarations✔ checking declarations (0.0s)
+#> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.0s)
 #> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
-#> ℹ materializing weather transforms✔ materializing weather transforms (0.4s)
-#> ℹ collecting sets: object names✔ collecting sets: object names (0.1s)
+#> ℹ materializing weather transforms✔ materializing weather transforms (0.2s)
+#> ℹ collecting sets: object names✔ collecting sets: object names (0.0s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
-#> ℹ collecting sets: timeframes✔ collecting sets: timeframes (0.1s)
-#> ℹ collecting sets: process inputs/outputs✔ collecting sets: process inputs/outputs (0.1s)
+#> ℹ collecting sets: timeframes✔ collecting sets: timeframes (0.0s)
+#> ℹ collecting sets: process inputs/outputs✔ collecting sets: process inputs/outputs (0.0s)
 #> ℹ collecting sets: membership comm sets✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
-#> ℹ building maps: membership + closure✔ building maps: membership + closure (0.3s)
-#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
-#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.3s)
-#> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.4s)
-#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.4s)
+#> ℹ building maps: membership + closure✔ building maps: membership + closure (0.1s)
+#> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.0s)
+#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
+#> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.2s)
+#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.2s)
 #> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
-#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.2s)
-#> ℹ building maps: value✔ building maps: value (0.2s)
-#> ℹ building maps: filter✔ building maps: filter (0.6s)
+#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
+#> ℹ building maps: value✔ building maps: value (0.1s)
+#> ℹ building maps: filter✔ building maps: filter (0.3s)
 #> ℹ building maps: constraint
-#> ✔ building maps: constraint (0.4s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.2s)
+#> ✔ building maps: constraint (0.2s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
 #> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.1s)
 #> model_size: fy_year
@@ -332,36 +332,36 @@ scen_year <- solve_model(mod_year, name = "fy_year")
 #>     cardYear           1
 #>     pYearFraction      1
 #>     pWacc              1
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpyeC8fH/energyRt/scenarios/fy_year-d365_h24_1dpm/runs/glpk 
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/Rtmp8gDeZq/energyRt/scenarios/fy_year-d365_h24_1dpm/runs/glpk 
 #> Writing files: 0.56s
 #> Starting  GLPK 
-#> 0.22s
-#> Reading solution: 0.25s
+#> 0.2s
+#> Reading solution: 0.37s
 scen_day <- solve_model(mod_day, name = "fy_day")
-#> ℹ checking declarations✔ checking declarations (0.2s)
-#> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.1s)
-#> ℹ materializing commodity clusters✔ materializing commodity clusters (0.1s)
-#> ℹ materializing weather clusters✔ materializing weather clusters (0.1s)
+#> ℹ checking declarations✔ checking declarations (0.0s)
+#> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.0s)
+#> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
+#> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
 #> ℹ materializing weather transforms✔ materializing weather transforms (0.4s)
-#> ℹ collecting sets: object names✔ collecting sets: object names (0.1s)
+#> ℹ collecting sets: object names✔ collecting sets: object names (0.0s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
 #> ℹ collecting sets: timeframes✔ collecting sets: timeframes (0.0s)
 #> ℹ collecting sets: process inputs/outputs✔ collecting sets: process inputs/outputs (0.0s)
 #> ℹ collecting sets: membership comm sets✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
-#> ℹ building maps: membership + closure✔ building maps: membership + closure (0.3s)
+#> ℹ building maps: membership + closure✔ building maps: membership + closure (0.1s)
 #> ℹ collecting sets: invest/stock windows✔ collecting sets: invest/stock windows (0.1s)
-#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.4s)
-#> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.3s)
-#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.3s)
-#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.1s)
-#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.1s)
-#> ℹ building maps: value✔ building maps: value (0.2s)
-#> ℹ building maps: filter✔ building maps: filter (0.5s)
+#> ℹ settings parameters (discount, period length, timeslice share)✔ settings parameters (discount, period length, timeslice share) (0.1s)
+#> ℹ building maps: calendar + lifespan✔ building maps: calendar + lifespan (0.2s)
+#> ℹ interpolating parameters over milestone years✔ interpolating parameters over milestone years (0.2s)
+#> ℹ calendar-filter: restricting parameters to declared timeslices✔ calendar-filter: restricting parameters to declared timeslices (0.0s)
+#> ℹ computing equivalent annual costs (EAC)✔ computing equivalent annual costs (EAC) (0.0s)
+#> ℹ building maps: value✔ building maps: value (0.1s)
+#> ℹ building maps: filter✔ building maps: filter (0.3s)
 #> ℹ building maps: constraint
-#> ✔ building maps: constraint (0.5s)
-#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.2s)
-#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.1s)
+#> ✔ building maps: constraint (0.2s)
+#> ℹ prune: dropping flagged default-valued rows✔ prune: dropping flagged default-valued rows (0.1s)
+#> ℹ building maps: cost aggregation✔ building maps: cost aggregation (0.0s)
 #> ℹ computing model-size summary✔ computing model-size summary (0.1s)
 #> model_size: fy_day
 #>   parameters : 203 value, 360 maps, 16 sets
@@ -383,11 +383,11 @@ scen_day <- solve_model(mod_day, name = "fy_day")
 #>     cardYear           1
 #>     pYearFraction      1
 #>     pWacc              1
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpyeC8fH/energyRt/scenarios/fy_day-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.66s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/Rtmp8gDeZq/energyRt/scenarios/fy_day-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.57s
 #> Starting  GLPK 
-#> 0.15s
-#> Reading solution: 0.23s
+#> 0.17s
+#> Reading solution: 0.22s
 
 getData(scen_year, "vObjective", merge = TRUE)$value
 #> [1] 9962.545
@@ -1023,14 +1023,14 @@ sol_mod <- newModel(
 )
 
 scen <- solve_model(sol_mod, name = "solar_battery")
-#> ℹ checking declarations✔ checking declarations (0.0s)
+#> ℹ checking declarations✔ checking declarations (0.2s)
 #> ℹ expanding vintage/cluster variants✔ expanding vintage/cluster variants (0.0s)
 #> ℹ materializing commodity clusters✔ materializing commodity clusters (0.0s)
 #> ℹ materializing weather clusters✔ materializing weather clusters (0.0s)
 #> ℹ materializing weather transforms✔ materializing weather transforms (0.3s)
 #> ℹ collecting sets: object names✔ collecting sets: object names (0.0s)
 #> ℹ collecting sets: process classes✔ collecting sets: process classes (0.0s)
-#> ℹ collecting sets: timeframes✔ collecting sets: timeframes (0.1s)
+#> ℹ collecting sets: timeframes✔ collecting sets: timeframes (0.0s)
 #> ℹ collecting sets: process inputs/outputs✔ collecting sets: process inputs/outputs (0.0s)
 #> ℹ collecting sets: membership comm sets✔ collecting sets: membership comm sets (0.0s)
 #> ℹ collecting sets: process regions✔ collecting sets: process regions (0.0s)
@@ -1068,10 +1068,10 @@ scen <- solve_model(sol_mod, name = "solar_battery")
 #>     cardYear           1
 #>     pYearFraction      1
 #>     pWacc              1
-#> Solver directory:  C:/Users/admin/AppData/Local/Temp/RtmpyeC8fH/energyRt/scenarios/solar_battery-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.61s
+#> Solver directory:  C:/Users/admin/AppData/Local/Temp/Rtmp8gDeZq/energyRt/scenarios/solar_battery-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.63s
 #> Starting  GLPK 
-#> 0.28s
+#> 0.25s
 #> Reading solution: 0.22s
 ```
 

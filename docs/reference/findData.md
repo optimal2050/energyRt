@@ -51,7 +51,9 @@ findData(
 
 - add_weights:
 
-  accepted and currently ignored.
+  accepted and ignored: `findData()` returns names and dimensions, not
+  values, so there is nothing to weight. The weighting arguments live on
+  [`getData()`](https://energyRt.org/reference/getData.md).
 
 - dropEmpty:
 

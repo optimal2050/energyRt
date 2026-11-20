@@ -384,14 +384,41 @@ getData(
 
   logical, should rows containing zero values be filtered out.
 
-- add_weights, add_period_length, apply_weights, apply_period_length,
-  as_data_table:
+- add_weights, add_period_length:
 
-  accepted and currently ignored.
+  attach the factor as a column (`weight`, `period_length`). `"auto"`
+  (the default) attaches it when the matching `apply_*` applied it, so
+  the result shape is unchanged unless asked for; `TRUE` attaches it
+  wherever the axis is defined, including on rows that are not
+  multiplied – which is how a skipped row shows the reader why.
+
+- apply_weights:
+
+  logical, multiply `value` by the timeslice weight
+  `pTimesliceWeight(year, timeslice)`: how many times the slice occurs
+  in its year. `1` on a full calendar, `1/year_fraction` on a sampled
+  one, and `1` at the top (`ANNUAL`) slice always, so a per-slice
+  quantity times its weight is the annual quantity and applying weights
+  after `timeframe = "lowest"` multiplies by 1 rather than
+  double-counting. Only a result declared `sum` on the time axis is
+  scaled: a level (`vStorageLevel`, declared `last`) is a snapshot and
+  an input parameter is a rate, so neither is a quantity to weight.
+  Anything left unscaled is named in a warning.
+
+- apply_period_length:
+
+  logical, multiply `value` by `pPeriodLen(year)`, the number of years
+  the milestone stands for. Flow-like results only (roles `source`,
+  `sink`, `activity`, `balance`, `interregional`, `cost`), never a
+  capacity or a stock.
 
 - asTibble:
 
   logical, if the data.frames should be converted into tibbles.
+
+- as_data_table:
+
+  accepted and currently ignored.
 
 - stringsAsFactors:
 

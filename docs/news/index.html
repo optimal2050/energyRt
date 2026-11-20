@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9007</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9008</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -76,6 +76,10 @@
 <div class="section level3">
 <h3 id="new-features-0-90-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-90-0"></a></h3>
 <ul><li>
+<p><strong><code><a href="../reference/getData.html">getData()</a></code> weights results by timeslice and by period length.</strong> <code>apply_weights = TRUE</code> multiplies <code>value</code> by <code>pTimesliceWeight(year, timeslice)</code> – how many times a slice occurs in its year, <code>1</code> on a full calendar, <code>1/year_fraction</code> on a sampled one, and <code>1</code> at the top (<code>ANNUAL</code>) slice always – so a sampled scenario’s per-slice results annualise, and applying the weights after <code>timeframe = "lowest"</code> multiplies by 1 instead of annualising twice. <code>apply_period_length = TRUE</code> multiplies by <code>pPeriodLen(year)</code>, the years a milestone stands for. <code>add_weights</code> / <code>add_period_length</code> attach the factor as a column (<code>weight</code>, <code>period_length</code>); <code>"auto"</code>, the default, attaches it when it was applied, so no existing result changes shape.</p>
+<p>What is multiplied is decided by the declared catalogue, not by the column being there: only a result declared <code>sum</code> on the time axis is weighted, and only a flow-like role is spread over a period. A level is a snapshot, a capacity is a stock and an input parameter is a rate, so none of them is scaled – and whatever was left alone is named in a warning. The four arguments were accepted and silently ignored before.</p>
+</li>
+<li>
 <p><strong>The objective can be weighted by milestone year and by region.</strong> <code>setObjectiveWeights(mod, years = , regions = )</code> writes the two halves – <code>horizon@intervals$weight</code> per milestone and <code>config@objweight</code> per <code>(region, year)</code> – and they multiply into <code>pObjWeight[region, year]</code>, one more factor in <code>eqObjective</code> beside <code>pPeriodLen</code> and <code>pDiscountFactor</code>. The year half is for uneven time resolution: a milestone solved on a sample of the calendar still carries full-year cost at full period weight, so several cheaply resolved interim years can dominate the sum. The region half is for a study that does not value every region’s costs equally – income level, purchasing power, or a region modelled only as context.</p>
 <p>The weight scales the whole cost cell, capital and fuel and penalties alike, so no trade-off inside a cell changes and only its share of the cross-cell investment decision moves; a uniform weight rescales the objective exactly. Weights are strictly positive and are not interpolated – a cell no declaration names counts in full, and an undeclared model writes no rows at all, so it is unchanged. A cost declared at a coarse region inherits one weight its children agree on and is refused where they differ, as the discount factor already is.</p>
 </li>

@@ -41,7 +41,7 @@ observed year range) with each parameter's default interpolation rule."><meta pr
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9007</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.91.5.9008</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -438,12 +438,41 @@ only value-bearing parameters are returned).</p></dd>
 <dd><p>logical, should rows containing zero values be filtered out.</p></dd>
 
 
-<dt id="arg-add-weights-add-period-length-apply-weights-apply-period-length-as-data-table">add_weights, add_period_length, apply_weights, apply_period_length, as_data_table<a class="anchor" aria-label="anchor" href="#arg-add-weights-add-period-length-apply-weights-apply-period-length-as-data-table"></a></dt>
-<dd><p>accepted and currently ignored.</p></dd>
+<dt id="arg-add-weights-add-period-length">add_weights, add_period_length<a class="anchor" aria-label="anchor" href="#arg-add-weights-add-period-length"></a></dt>
+<dd><p>attach the factor as a column
+(<code>weight</code>, <code>period_length</code>). <code>"auto"</code> (the default) attaches it when
+the matching <code>apply_*</code> applied it, so the result shape is unchanged
+unless asked for; <code>TRUE</code> attaches it wherever the axis is defined,
+including on rows that are not multiplied – which is how a skipped
+row shows the reader why.</p></dd>
+
+
+<dt id="arg-apply-weights">apply_weights<a class="anchor" aria-label="anchor" href="#arg-apply-weights"></a></dt>
+<dd><p>logical, multiply <code>value</code> by the timeslice weight
+<code>pTimesliceWeight(year, timeslice)</code>: how many times the slice occurs
+in its year. <code>1</code> on a full calendar, <code>1/year_fraction</code> on a sampled
+one, and <code>1</code> at the top (<code>ANNUAL</code>) slice always, so a per-slice
+quantity times its weight is the annual quantity and applying weights
+after <code>timeframe = "lowest"</code> multiplies by 1 rather than
+double-counting. Only a result declared <code>sum</code> on the time axis is
+scaled: a level (<code>vStorageLevel</code>, declared <code>last</code>) is a snapshot and
+an input parameter is a rate, so neither is a quantity to weight.
+Anything left unscaled is named in a warning.</p></dd>
+
+
+<dt id="arg-apply-period-length">apply_period_length<a class="anchor" aria-label="anchor" href="#arg-apply-period-length"></a></dt>
+<dd><p>logical, multiply <code>value</code> by
+<code>pPeriodLen(year)</code>, the number of years the milestone stands for.
+Flow-like results only (roles <code>source</code>, <code>sink</code>, <code>activity</code>,
+<code>balance</code>, <code>interregional</code>, <code>cost</code>), never a capacity or a stock.</p></dd>
 
 
 <dt id="arg-astibble">asTibble<a class="anchor" aria-label="anchor" href="#arg-astibble"></a></dt>
 <dd><p>logical, if the data.frames should be converted into tibbles.</p></dd>
+
+
+<dt id="arg-as-data-table">as_data_table<a class="anchor" aria-label="anchor" href="#arg-as-data-table"></a></dt>
+<dd><p>accepted and currently ignored.</p></dd>
 
 
 <dt id="arg-stringsasfactors">stringsAsFactors<a class="anchor" aria-label="anchor" href="#arg-stringsasfactors"></a></dt>
